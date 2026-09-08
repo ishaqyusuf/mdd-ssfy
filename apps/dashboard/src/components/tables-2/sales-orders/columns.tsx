@@ -1,4 +1,5 @@
 "use client";
+import { salesPaymentReviewActivity } from "@/lib/table-row-activity/sales-outcomes";
 
 import {
 	getInventoryInboundOwnershipLabel,
@@ -785,6 +786,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 	const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 	const markPaymentReviewed = useMutation(
 		trpc.sales.markLatestPaymentReviewed.mutationOptions({
+			meta: { rowActivity: salesPaymentReviewActivity(String(auth.id ?? "")) },
 			onSuccess() {
 				toast({
 					duration: 2000,

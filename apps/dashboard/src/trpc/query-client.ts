@@ -1,3 +1,7 @@
+import {
+	beginMutationRowActivity,
+	settleMutationRowActivity,
+} from "@/lib/table-row-activity/mutation";
 import { triggerMutationQueryEvents } from "@/lib/query-events/mutation-trigger";
 import {
 	formatSpecialOrderOperationWarning,
@@ -44,6 +48,12 @@ export function makeQueryClient() {
 		},
 		mutationCache: new MutationCache({
 			onMutate: async (_variables, mutation) => {
+				if (!isServer)
+					beginMutationRowActivity(
+						mutation,
+						mutation.meta?.rowActivity,
+						_variables,
+					);
 				const title = mutation?.meta?.toastTitle?.loading;
 				if (!title) return;
 
@@ -53,6 +63,7 @@ export function makeQueryClient() {
 				});
 			},
 			onSuccess: async (data, variables, _context, mutation) => {
+				if (!isServer) settleMutationRowActivity(mutation, data);
 				const title = mutation?.meta?.toastTitle?.success;
 				if (title) {
 					toast({
@@ -79,6 +90,7 @@ export function makeQueryClient() {
 				});
 			},
 			onError: async (data, variables, _context, mutation) => {
+				if (!isServer) settleMutationRowActivity(mutation, data, true);
 				if (process.env.NODE_ENV === "development" && mutation?.meta?.debug) {
 					consoleLog("Mutation error", { data, variables, mutation });
 				}

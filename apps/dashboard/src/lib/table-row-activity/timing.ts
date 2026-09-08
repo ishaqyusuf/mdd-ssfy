@@ -1,0 +1,5 @@
+export const ROW_SUCCESS_DWELL_MS = 1600;
+export const ROW_EXIT_FADE_MS = 225;
+export const ROW_FAILURE_DWELL_MS = 6000;
+export const ROW_SUCCESS_MAX_LIFETIME_MS = 3000;
+export const ROW_ACTIVITY_RETENTION_MS = 6000;

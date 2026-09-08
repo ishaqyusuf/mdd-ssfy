@@ -1,3 +1,10 @@
+import {
+	beginTaskRowActivity,
+	bindTaskRowActivity,
+	failTaskRowActivity,
+	settleTaskRowActivity,
+} from "@/lib/table-row-activity/sales-task";
+import type { RowActivityToken } from "@/store/table-row-activity";
 import { triggerTask } from "@/actions/trigger-task";
 import {
 	getRunErrorMessage,
@@ -30,6 +37,7 @@ interface Props {
 	onError?: (message?: string) => void;
 	onSuccess?: (run?: unknown) => void;
 	onStarted?: () => void;
+	onCanceled?: () => void;
 	debug?: boolean;
 	silent?: boolean;
 	monitor?: boolean;
@@ -45,6 +53,7 @@ type TriggerTaskOptions = {
 };
 
 type PendingTrigger = {
+	rowActivities: RowActivityToken[];
 	input: TriggerTaskInput;
 	options?: TriggerTaskOptions;
 };
@@ -59,6 +68,7 @@ export function useTaskTrigger(props?: Props) {
 		onError,
 		onSuccess,
 		onStarted,
+		onCanceled,
 		silent,
 		monitor,
 	} = props || {};
@@ -105,6 +115,8 @@ export function useTaskTrigger(props?: Props) {
 						.getState()
 						.tasks.find((task) => task.runId === failedRunId)
 				: null;
+			if (failedRunId)
+				settleTaskRowActivity({ runId: failedRunId }, "error", undefined);
 			const alreadyHandledError = Boolean(existingTask?.handledEffects?.error);
 			const handledAt = Date.now();
 
@@ -178,6 +190,19 @@ export function useTaskTrigger(props?: Props) {
 
 		const terminalState = getRunTerminalState(run);
 
+		if (terminalState === "CANCELED") {
+			if (!runId) return;
+			settleTaskRowActivity({ runId }, "canceled", undefined);
+			setRunId(undefined);
+			setAccessToken(undefined);
+			setStatus(null);
+			onCanceled?.();
+			activeTriggerRef.current = null;
+			executingToastRef.current?.dismiss();
+			executingToastRef.current = null;
+			return;
+		}
+
 		if (terminalState === "FAILED") {
 			setCompletionError(
 				getTaskFailureMessage({
@@ -201,13 +226,14 @@ export function useTaskTrigger(props?: Props) {
 				return;
 			}
 
+			if (runId) settleTaskRowActivity({ runId }, "success", run?.output);
 			handledSuccessRef.current = true;
 			setCompletionError(null);
 			setStatus("COMPLETED");
 			activeTriggerRef.current = null;
 			onSuccess?.(run);
 		}
-	}, [error, onSuccess, run]);
+	}, [error, onSuccess, onCanceled, run, runId]);
 	useEffect(() => {
 		if (status === "COMPLETED") {
 			setRunId(undefined);
@@ -258,6 +284,7 @@ export function useTaskTrigger(props?: Props) {
 		onSuccess({ data }) {
 			const pending = pendingTriggersRef.current.shift();
 			if (!data?.id || !data?.publicAccessToken) {
+				failTaskRowActivity(pending?.rowActivities ?? []);
 				const errorMessage = (data as { errorMessage?: string } | undefined)
 					?.errorMessage;
 				activeTriggerRef.current = pending || null;
@@ -274,6 +301,7 @@ export function useTaskTrigger(props?: Props) {
 				return;
 			}
 			activeTriggerRef.current = pending || null;
+			bindTaskRowActivity(data.id, pending?.rowActivities ?? []);
 			setRunId(data.id);
 			setAccessToken(data.publicAccessToken);
 			if (monitor ?? !silent) {
@@ -298,6 +326,7 @@ export function useTaskTrigger(props?: Props) {
 		},
 		onError(e) {
 			const pending = pendingTriggersRef.current.shift();
+			failTaskRowActivity(pending?.rowActivities ?? []);
 			activeTriggerRef.current = pending || null;
 			trustedStartFailureRef.current = false;
 			setRunId(undefined);
@@ -307,8 +336,31 @@ export function useTaskTrigger(props?: Props) {
 		},
 	});
 	const trigger = (input: TriggerTaskInput, options?: TriggerTaskOptions) => {
-		pendingTriggersRef.current.push({ input, options });
-		return _action.executeAsync(input);
+		if (
+			pendingTriggersRef.current.length &&
+			(options?.intent ||
+				pendingTriggersRef.current.some(
+					(pending) => pending.rowActivities.length,
+				))
+		) {
+			return Promise.reject(new Error("Wait for the current action to start."));
+		}
+		const pending: PendingTrigger = {
+			input,
+			options,
+			rowActivities: beginTaskRowActivity(
+				String(auth.id ?? ""),
+				options?.intent,
+			),
+		};
+		pendingTriggersRef.current.push(pending);
+		return _action.executeAsync(input).catch((error) => {
+			pendingTriggersRef.current = pendingTriggersRef.current.filter(
+				(item) => item !== pending,
+			);
+			failTaskRowActivity(pending.rowActivities);
+			throw error;
+		});
 	};
 	const ctx = {
 		trigger,

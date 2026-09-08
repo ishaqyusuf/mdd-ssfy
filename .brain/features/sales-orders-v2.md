@@ -347,3 +347,39 @@
   `persist-sales-order-list-projections`; the completed task then returns later
   reads to the projection path. Order `09379PC` produced `persisted: 1` and
   `skippedAsStale: 0`, and the following read created no additional warm task.
+
+## Row processing and departure feedback (implementation in progress)
+
+Sales Orders adopts the opt-in `useTableRowsWithActivity` hook backed by the
+client-only `tableRowActivity` ledger. The ledger holds owner/table/entity and
+operation identities, phases and labels; full row snapshots belong only to the
+mounted table instance. This infrastructure can support other tables, but those
+tables require explicit adapters and rollout acceptance.
+
+The table captures loaded rows synchronously before requests. Server rows remain
+authoritative for selected ids, batch payloads, counts and pagination. Only the
+rendered table/virtualizer receives composed display rows. Confirmed success may
+retain a missing captured row after a successful same-scope network refetch;
+cache writes, loading/error states and unproven truncated page windows do not
+prove departure. A complete refetch ending at server exhaustion can legitimately
+contain fewer pages. Refreshed rows always supersede snapshots.
+
+Success presentation defaults to 1600ms plus a 225ms opacity fade, bounded by
+3000ms after settlement; failures remain visible for up to 6000ms. Reduced-motion
+CSS removes the fade. Processing and success disable row interactions. Terminal
+success clears only captured successful UUIDs, including rows already absent,
+while failures and unrelated selections remain selected. Focus inside an affected
+row moves to the stable table target; batch feedback has one polite announcement.
+
+Domain adapters resolve payment review and monitored task output per sale.
+Transport completion alone never implies business success. Missing or ambiguous
+outcomes show neutral feedback; review-required outcomes preserve the existing
+fallback confirmation. Operation correlation ignores stale completions and task
+restoration cannot replay an observed run after feedback expires. Owner changes
+clear activity and observed-run identity; navigation clears only local snapshots.
+
+Payment review and fulfillment are the acceptance pilot. Additional actions and
+other tables remain subject to the reviewed plan's operator gates. The canonical
+[implementation task](../tasks/2026-09-08-table-row-processing-exit-feedback.md)
+records validation evidence and outstanding work; this section does not claim
+completed browser acceptance or deployment.

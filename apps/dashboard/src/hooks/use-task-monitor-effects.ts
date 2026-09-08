@@ -1,4 +1,5 @@
 "use client";
+import { settleTaskRowActivity } from "@/lib/table-row-activity/sales-task";
 
 import {
 	type TaskMonitorTask,
@@ -28,6 +29,7 @@ export function useTaskMonitorEffects() {
 
 	const runTaskEffect = useCallback(
 		async (task: TaskMonitorTask, phase: TaskEffectPhase, output?: unknown) => {
+			settleTaskRowActivity(task, phase, output);
 			if (!task.intent) return;
 			if (task.intent.name === "sales.adapt-legacy-inventory") {
 				if (phase === "canceled") return;

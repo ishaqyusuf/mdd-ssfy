@@ -1,4 +1,5 @@
 "use client";
+import { isRowActivityBusy } from "@/store/table-row-activity";
 
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
@@ -26,9 +27,10 @@ import type { SalesOrder } from "./columns";
 
 type Props = {
 	data: SalesOrder[];
+	busy?: boolean;
 };
 
-export function BottomBar({ data }: Props) {
+export function BottomBar({ data, busy }: Props) {
 	const [mounted, setMounted] = useState(false);
 	const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 	const trpc = useTRPC();
@@ -187,7 +189,28 @@ export function BottomBar({ data }: Props) {
 				exit={{ y: 100 }}
 				transition={{ duration: 0.2, ease: "easeOut" }}
 			>
-				<div className="pointer-events-auto relative h-12 max-w-[calc(100vw-1rem)] overflow-x-auto scrollbar-hide sm:min-w-[400px]">
+				<div
+					inert={busy || undefined}
+					aria-busy={busy || undefined}
+					onClickCapture={(event) => {
+						if (
+							isRowActivityBusy(String(auth.id ?? ""), "sales-orders", salesIds)
+						) {
+							event.preventDefault();
+							event.stopPropagation();
+						}
+					}}
+					onKeyDownCapture={(event) => {
+						if (
+							(event.key === "Enter" || event.key === " ") &&
+							isRowActivityBusy(String(auth.id ?? ""), "sales-orders", salesIds)
+						) {
+							event.preventDefault();
+							event.stopPropagation();
+						}
+					}}
+					className="pointer-events-auto relative h-12 max-w-[calc(100vw-1rem)] overflow-x-auto scrollbar-hide sm:min-w-[400px]"
+				>
 					<motion.div
 						className="absolute inset-0 bg-[rgba(247,247,247,0.85)] backdrop-blur-lg backdrop-filter dark:bg-[rgba(19,19,19,0.7)]"
 						initial={{ opacity: 0 }}
@@ -236,8 +259,6 @@ export function BottomBar({ data }: Props) {
 								<SalesMenu.MarkAs
 									asSubmenu={false}
 									includePaymentReviewed={isPaymentReviewMode}
-									onPaymentReviewed={() => setRowSelection({})}
-									onStatusActionSettled={() => setRowSelection({})}
 									statusCandidates={statusCandidates}
 								/>
 							</SalesMenu>

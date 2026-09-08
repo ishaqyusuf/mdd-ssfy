@@ -179,3 +179,18 @@ On 2026-07-22, multi-order payment review moved from parallel calls to `sales.ma
 - Focused payment-domain, query-event, and Sales Orders review coverage passed with 38 tests / 81 assertions.
 - Authorized local browser QA proved one UI batch action reviewed two selected payments together. The local Next runtime became unresponsive immediately afterward, so same-page DOM evidence was not captured; exact payment fields and temporary auth records were restored. The orchestration regression test verifies the awaited event completes before selection/menu cleanup, which is the behavior that removes the manual-refresh race.
 - Dedicated orchestration coverage proves one batch request, one scoped invalidation, that the operation remains pending until invalidation completes, and that selection/menu callbacks happen afterward.
+
+## Optional row feedback
+
+Mutation metadata may opt into `rowActivity`. Its descriptor resolves entity ids
+from each invocation's variables, with operation tokens correlated to that
+mutation. The global mutation cache begins feedback before the request and settles
+it before the existing query events or local error-handler early return. Batch
+payment review retains its explicit `queryEvents: false` owner and awaited
+reviewed-only invalidation.
+
+Row feedback changes presentation only: it neither adds invalidations nor changes
+event targets, cached list membership, pagination, or server counts. Monitored
+sales tasks settle per-sale feedback before their existing terminal effects;
+fulfillment's existing two-stage reconciliation remains unchanged. See the
+[Sales Orders contract](sales-orders-v2.md#row-processing-and-departure-feedback-implementation-in-progress).

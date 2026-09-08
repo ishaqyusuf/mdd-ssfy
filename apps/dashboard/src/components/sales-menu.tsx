@@ -1,3 +1,5 @@
+import { isRowActivityBusy } from "@/store/table-row-activity";
+import { salesPaymentReviewActivity } from "@/lib/table-row-activity/sales-outcomes";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { generateToken } from "@/actions/token-action";
 import { invalidateDispatchWorkspace } from "@/components/dispatch-admin/dispatch-query-invalidation";
@@ -1131,7 +1133,10 @@ function SalesMenuMarkAs({
 	const completionDateLoadingRef = useRef(false);
 	const [statusActionPending, setStatusActionPending] = useState(false);
 	const beginStatusAction = () => {
-		if (statusActionInFlightRef.current) return false;
+		if (
+			statusActionInFlightRef.current ||
+			isRowActivityBusy(String(auth.id ?? ""), "sales-orders", salesIds)
+		) return false;
 		statusActionInFlightRef.current = true;
 		setStatusActionPending(true);
 		return true;
@@ -1151,6 +1156,7 @@ function SalesMenuMarkAs({
 	const markPaymentsReviewedMutation = useMutation(
 		trpc.sales.markPaymentsReviewed.mutationOptions({
 			meta: {
+				rowActivity: salesPaymentReviewActivity(String(auth.id ?? ""), true),
 				queryEvents: false,
 			},
 		}),
@@ -1187,6 +1193,9 @@ function SalesMenuMarkAs({
 		errorToast: "Unable to mark the selected orders production completed",
 		executingToast: "Starting bulk production completion...",
 		monitor: true,
+		onCanceled() {
+			releaseStatusAction();
+		},
 		onStarted() {
 			actions.closeMenu();
 			toast({
@@ -1230,6 +1239,9 @@ function SalesMenuMarkAs({
 		errorToast: "Unable to mark the selected orders fulfilled",
 		executingToast: "Starting bulk fulfillment...",
 		monitor: true,
+		onCanceled() {
+			releaseStatusAction();
+		},
 		onStarted() {
 			actions.closeMenu();
 			toast({
@@ -1821,6 +1833,7 @@ function SalesMenuMarkAs({
 	};
 
 	const markPaymentReviewed = async () => {
+		if (isRowActivityBusy(String(auth.id ?? ""), "sales-orders", salesIds)) return;
 		try {
 			const result = await reviewSelectedPayments({
 				salesIds,

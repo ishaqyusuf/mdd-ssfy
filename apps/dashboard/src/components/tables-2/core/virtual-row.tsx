@@ -1,5 +1,7 @@
 "use client";
 
+import type { RowPresentation } from "@/lib/table-row-activity/compose";
+import { Icons } from "@gnd/ui/icons";
 import { cn } from "@gnd/ui/cn";
 import { TableCell, TableRow } from "@gnd/ui/table";
 import type {
@@ -26,6 +28,8 @@ import {
 } from "./types";
 
 interface VirtualRowProps<TData> {
+	activity?: RowPresentation;
+	activityLabelColumnId?: string;
 	row: Row<TData>;
 	virtualStart: number;
 	rowHeight: number;
@@ -46,6 +50,8 @@ interface VirtualRowProps<TData> {
 
 function VirtualRowInner<TData>({
 	row,
+	activity,
+	activityLabelColumnId,
 	virtualStart,
 	rowHeight,
 	onCellClick,
@@ -58,6 +64,12 @@ function VirtualRowInner<TData>({
 	rowClassName,
 	fillColumnId,
 }: VirtualRowProps<TData>) {
+	const ActivityIcon =
+		activity?.phase === "processing"
+			? Icons.spinner
+			: activity?.phase === "success"
+				? Icons.check
+				: Icons.AlertCircle;
 	const cells = row.getVisibleCells();
 	const resolvedFillColumnId = resolveTableFillColumnId(
 		cells.map((cell) => ({
@@ -69,10 +81,33 @@ function VirtualRowInner<TData>({
 
 	return (
 		<TableRow
+			onClickCapture={(event) => {
+				if (activity?.interactionDisabled) {
+					event.preventDefault();
+					event.stopPropagation();
+				}
+			}}
+			onKeyDownCapture={(event) => {
+				if (
+					activity?.interactionDisabled &&
+					(event.key === "Enter" || event.key === " ")
+				) {
+					event.preventDefault();
+					event.stopPropagation();
+				}
+			}}
+			data-row-key={row.id}
+			data-row-activity={activity?.phase}
+			aria-busy={activity?.phase === "processing" || undefined}
+			aria-disabled={activity?.interactionDisabled || undefined}
+			aria-label={activity?.label}
+			inert={activity?.interactionDisabled || undefined}
 			data-index={row.index}
 			data-state={isSelected ? "selected" : undefined}
 			className={cn(
 				"group cursor-pointer select-text",
+				activity?.retained &&
+					"transition-opacity duration-[225ms] motion-reduce:transition-none",
 				"hover:bg-[#F2F1EF] hover:dark:bg-secondary",
 				"data-[state=selected]:bg-muted/50",
 				"flex items-center border-0",
@@ -80,6 +115,7 @@ function VirtualRowInner<TData>({
 				rowClassName?.(row),
 			)}
 			style={{
+				opacity: activity?.exiting ? 0 : 1,
 				height: rowHeight,
 				transform: `translateY(${virtualStart}px)`,
 				contain: "layout style paint",
@@ -123,10 +159,23 @@ function VirtualRowInner<TData>({
 							cellClassName,
 							"group-data-[state=selected]:bg-muted/50",
 							isActions && "justify-center",
+							activity?.phase === "processing" &&
+								"!bg-amber-100 dark:!bg-amber-950",
+							activity?.phase === "success" &&
+								"!bg-emerald-100 dark:!bg-emerald-950",
+							activity?.phase === "error" && "!bg-red-100 dark:!bg-red-950",
+							activity?.phase === "review-required" &&
+								"!bg-amber-50 dark:!bg-amber-950",
+							(activity?.phase === "unknown" ||
+								activity?.phase === "canceled") &&
+								"!bg-muted",
 						)}
 						style={cellStyle}
 						onClick={() => {
-							if (!nonClickableColumns.has(columnId)) {
+							if (
+								!activity?.interactionDisabled &&
+								!nonClickableColumns.has(columnId)
+							) {
 								onCellClick?.(row.id, columnId);
 							}
 						}}
@@ -137,7 +186,21 @@ function VirtualRowInner<TData>({
 								meta?.contentClassName,
 							)}
 						>
-							{flexRender(cell.column.columnDef.cell, cell.getContext())}
+							{activity && columnId === activityLabelColumnId ? (
+								<span className="inline-flex items-center gap-1.5">
+									<ActivityIcon
+										aria-hidden="true"
+										className={cn(
+											"size-3.5 shrink-0",
+											activity.phase === "processing" &&
+												"animate-spin motion-reduce:animate-none",
+										)}
+									/>
+									<span>{activity.label}</span>
+								</span>
+							) : (
+								flexRender(cell.column.columnDef.cell, cell.getContext())
+							)}
 						</div>
 					</TableCell>
 				);
@@ -151,6 +214,8 @@ function arePropsEqual<TData>(
 	nextProps: VirtualRowProps<TData>,
 ): boolean {
 	return (
+		prevProps.activityLabelColumnId === nextProps.activityLabelColumnId &&
+		prevProps.activity === nextProps.activity &&
 		prevProps.row.id === nextProps.row.id &&
 		prevProps.virtualStart === nextProps.virtualStart &&
 		prevProps.rowHeight === nextProps.rowHeight &&

@@ -1,10 +1,12 @@
 import "@tanstack/react-query";
+import type { RowActivityDescriptor } from "@/lib/table-row-activity/mutation";
 import type { QueryEventName } from "@/lib/query-events/registry";
 import type { QueryEventScope } from "@/lib/query-events/types";
 
 declare module "@tanstack/react-query" {
 	interface Register {
 		mutationMeta: {
+			rowActivity?: RowActivityDescriptor;
 			debug?: boolean;
 			queryEventScope?: QueryEventScope;
 			queryEvents?: readonly QueryEventName[] | false;

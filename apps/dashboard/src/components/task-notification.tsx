@@ -1,4 +1,9 @@
 "use client";
+import {
+	restoreTaskRowActivity,
+	settleTaskRowActivity,
+	clearOtherRowActivityOwners,
+} from "@/lib/table-row-activity/sales-task";
 
 import { cancelTaskRunAction } from "@/actions/cancel-task-run";
 import { finalizeTaskRunDiagnosticAction } from "@/actions/task-run-diagnostics";
@@ -34,8 +39,11 @@ const IS_PRODUCTION_TASK_FEEDBACK = process.env.NODE_ENV === "production";
 
 export function TaskNotification() {
 	const allTasks = useTaskMonitorTasks();
-	const { data: session } = useSession();
+	const { data: session, status: sessionStatus } = useSession();
 	const userId = session?.user?.id ? String(session.user.id) : null;
+	useEffect(() => {
+		if (sessionStatus !== "loading") clearOtherRowActivityOwners(userId);
+	}, [sessionStatus, userId]);
 	const tasks = allTasks.filter(
 		(task) => !task.ownerId || task.ownerId === userId,
 	);
@@ -212,6 +220,9 @@ function TaskNotificationWatcher({
 	const updateTask = useTaskMonitorStore((state) => state.updateTask);
 	const removeTask = useTaskMonitorStore((state) => state.removeTask);
 	const { runTaskEffect } = useTaskMonitorEffects();
+	useEffect(() => {
+		restoreTaskRowActivity(task);
+	}, [task]);
 	const { execute: finalizeDiagnostic, executeAsync: reconcileDiagnostic } =
 		useAction(finalizeTaskRunDiagnosticAction);
 	const finalizedRef = useRef(new Set<string>());
@@ -378,6 +389,7 @@ function TaskNotificationWatcher({
 						}
 
 						if (diagnostic?.status === "CANCELED") {
+							settleTaskRowActivity(task, "canceled", undefined);
 							updateTask(task.runId, {
 								status: "CANCELED",
 								completedAt: Date.now(),
@@ -439,6 +451,7 @@ function TaskNotificationWatcher({
 		}
 
 		if (terminalState === "CANCELED") {
+			settleTaskRowActivity(task, "canceled", undefined);
 			finalizeRun("CANCELED");
 			updateTask(task.runId, {
 				status: "CANCELED",
@@ -489,6 +502,7 @@ function TaskNotificationRow({
 		task.error || task.description || `Run ${shortRunId(task.runId)}`;
 	const cancelTask = useAction(cancelTaskRunAction, {
 		onSuccess: () => {
+			settleTaskRowActivity(task, "canceled", undefined);
 			updateTask(task.runId, {
 				status: "CANCELED",
 				completedAt: Date.now(),

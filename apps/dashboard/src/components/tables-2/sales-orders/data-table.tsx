@@ -1,6 +1,11 @@
 "use client";
 
 import { salesInboundRowClassName } from "@/components/sales-inbound-status-badge";
+import { clearCompletedRowSelection } from "@/lib/table-row-activity/selection";
+import { observeTableRefresh } from "@/lib/table-row-activity/refresh";
+import { useSearchParams } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { useTableRowsWithActivity } from "@/hooks/use-table-rows-with-activity";
 import { VirtualRow } from "@/components/tables-2/core";
 import { useCancelSalesOrdersRequests } from "@/hooks/use-cancel-sales-orders-requests";
 import { useGuardedInfiniteScroll } from "@/hooks/use-guarded-infinite-scroll";
@@ -22,11 +27,21 @@ import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { Button } from "@gnd/ui/button";
 import { Table, TableBody } from "@gnd/ui/table";
-import { hashKey, useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import {
+	hashKey,
+	useSuspenseInfiniteQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useSyncExternalStore,
+} from "react";
 
 import { BottomBar } from "./bottom-bar";
 import { columns } from "./columns";
@@ -40,6 +55,8 @@ const NON_CLICKABLE_COLUMNS = new Set([
 	"actions",
 ]);
 const COLUMN_IDS = getColumnIds(columns);
+const getEntityId = (row: { id: number }) => row.id;
+const noRefresh = () => undefined;
 const TABLE_ID = "sales-orders";
 const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
@@ -50,6 +67,9 @@ type Props = {
 
 export function DataTable({ initialSettings, bin }: Props) {
 	const trpc = useTRPC();
+	const auth = useAuth();
+	const queryClient = useQueryClient();
+	const searchParams = useSearchParams();
 	const cancelSupersededOrdersRequests = useCancelSalesOrdersRequests();
 	const { params } = useSortParams();
 	const { filters, hasFilters } = useSalesOrdersV2FilterParams();
@@ -100,8 +120,13 @@ export function DataTable({ initialSettings, bin }: Props) {
 		[queryInput, trpc],
 	);
 
-	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-		useSuspenseInfiniteQuery(infiniteQueryOptions);
+	const {
+		data,
+
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+	} = useSuspenseInfiniteQuery(infiniteQueryOptions);
 	const nextCursor = (
 		data.pages.at(-1)?.meta as { cursor?: string | number | null } | undefined
 	)?.cursor;
@@ -113,6 +138,51 @@ export function DataTable({ initialSettings, bin }: Props) {
 	const tableData = useMemo(() => {
 		return data?.pages.flatMap((page) => page?.data ?? []) ?? [];
 	}, [data]);
+
+	const refreshObserver = useMemo(
+		() =>
+			observeTableRefresh<typeof data>(
+				queryClient,
+				infiniteQueryOptions.queryKey,
+				(result) => ({
+					pageCount: result.pages.length,
+					exhausted:
+						(
+							result.pages.at(-1)?.meta as
+								| { cursor?: string | number | null }
+								| undefined
+						)?.cursor == null,
+					entityIds: result.pages.flatMap((page) => page.data.map(getEntityId)),
+				}),
+			),
+		[queryClient, queryIdentity],
+	);
+	const refreshReceipt = useSyncExternalStore(
+		refreshObserver.subscribe,
+		refreshObserver.getSnapshot,
+		noRefresh,
+	);
+	const verifiedRefresh =
+		refreshReceipt?.data === data ? refreshReceipt : undefined;
+	const { displayRows, presentationById } = useTableRowsWithActivity({
+		serverRows: tableData,
+		ownerId: String(auth.id ?? ""),
+		tableId: TABLE_ID,
+		scopeKey: JSON.stringify([queryIdentity, searchParams.get("tabName")]),
+		refresh: verifiedRefresh,
+		getEntityId,
+		onCommitted: (row) => {
+			setRowSelection((current) =>
+				clearCompletedRowSelection(current, new Set([row.uuid])),
+			);
+		},
+		onCapture: (row) => {
+			const focused =
+				document.activeElement?.closest<HTMLElement>("[data-row-key]");
+			if (focused?.dataset.rowKey === row.uuid)
+				parentRef.current?.focus({ preventScroll: true });
+		},
+	});
 
 	useEffect(() => {
 		const selectedIds = tableData.reduce<number[]>((ids, order) => {
@@ -133,7 +203,9 @@ export function DataTable({ initialSettings, bin }: Props) {
 	}, [setSelectedSalesIds]);
 
 	const table = useReactTable({
-		data: tableData,
+		data: displayRows,
+		enableRowSelection: (row) =>
+			!presentationById.get(row.original.id)?.interactionDisabled,
 		getRowId: (row) => row.uuid,
 		columns,
 		onRowSelectionChange: setRowSelection,
@@ -164,6 +236,7 @@ export function DataTable({ initialSettings, bin }: Props) {
 	const rows = table.getRowModel().rows;
 	const rowVirtualizer = useVirtualizer({
 		count: rows.length,
+		getItemKey: (index) => rows[index]!.id,
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => tableConfig.rowHeight,
 		overscan: 10,
@@ -199,13 +272,26 @@ export function DataTable({ initialSettings, bin }: Props) {
 		[],
 	);
 
+	const activitySummary = [...presentationById.values()].reduce(
+		(counts, item) => {
+			counts.set(item.label, (counts.get(item.label) ?? 0) + 1);
+			return counts;
+		},
+		new Map<string, number>(),
+	);
+	const activityAnnouncement = [...activitySummary]
+		.map(
+			([label, count]) =>
+				`${count} ${count === 1 ? "order" : "orders"}: ${label}`,
+		)
+		.join(". ");
 	const showBottomBar = Object.keys(rowSelection).length > 0;
 
-	if (hasFilters && tableData.length === 0) {
+	if (hasFilters && displayRows.length === 0) {
 		return <NoResults onBeforeClear={cancelSupersededOrdersRequests} />;
 	}
 
-	if (tableData.length === 0) {
+	if (displayRows.length === 0) {
 		return <EmptyState />;
 	}
 
@@ -213,12 +299,22 @@ export function DataTable({ initialSettings, bin }: Props) {
 
 	return (
 		<div className="relative">
+			<div
+				role="status"
+				aria-live="polite"
+				aria-atomic="true"
+				className="sr-only"
+			>
+				{activityAnnouncement}
+			</div>
 			<div className="w-full">
 				<div
 					ref={(element) => {
 						parentRef.current = element;
 						tableScroll.containerRef.current = element;
 					}}
+					tabIndex={-1}
+					aria-label="Sales orders"
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
 						height: "calc(100vh - 350px + var(--header-offset, 0px))",
@@ -253,6 +349,8 @@ export function DataTable({ initialSettings, bin }: Props) {
 										<VirtualRow
 											key={row.id}
 											row={row}
+											activity={presentationById.get(row.original.id)}
+											activityLabelColumnId="status"
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
 											fillColumnId={tableConfig.fillColumnId}
@@ -303,7 +401,16 @@ export function DataTable({ initialSettings, bin }: Props) {
 			</div>
 
 			<AnimatePresence>
-				{showBottomBar && <BottomBar data={tableData} />}
+				{showBottomBar && (
+					<BottomBar
+						data={tableData}
+						busy={tableData.some(
+							(row) =>
+								rowSelection[row.uuid] &&
+								presentationById.get(row.id)?.interactionDisabled,
+						)}
+					/>
+				)}
 			</AnimatePresence>
 		</div>
 	);

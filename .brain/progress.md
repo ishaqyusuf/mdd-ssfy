@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-09-08 — Row feedback implementation checkpoint
+
+- Shared opt-in ledger/hook and Sales Orders payment/task integration implemented.
+  Scoped snapshots preserve server membership; cancellation and local completion
+  settle before caller effects. Full review findings corrected.
+- Pilot/core/task suite:69 tests pass. Synthetic browser:15 checks pass on desktop
+  and mobile dark mode. Broad suite retains3 unrelated executor mock failures;
+  Dashboard types retain repository diagnostics documented in the task.
+- Authenticated fixture QA is awaiting explicit authorization under the plan.
+  Additional pilot actions and wider rollout remain gated; task is Blocked at70%.
+- See `tasks/2026-09-08-table-row-processing-exit-feedback.md` and
+  `decisions/2026-09-08-table-row-activity.md`. No business data or deployment changed.
+
 ## 2026-09-08 — Table row exit feedback plan reviewed
 
 - Reviewed the August 6 plan against current Sales Orders, batch payment review,
