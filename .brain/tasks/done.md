@@ -1,5 +1,8 @@
 # Done
 
+### [Completion modal simplification and actor activity](2026-09-07-completion-modal-and-actor-activity.md)
+- Status: Done
+
 ### [Dispatch week/month calendar and due-date parity](2026-09-07-dispatch-week-month-calendar.md)
 - Status: Done
 

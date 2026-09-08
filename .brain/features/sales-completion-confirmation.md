@@ -1,6 +1,6 @@
 # Sales completion confirmation
 
-Ticket21 is being implemented locally; canonical acceptance status and evidence
+Ticket21 is implemented and verified locally; canonical acceptance status and evidence
 are in `.scratch/sales-pipeline-lifecycle-implementation/completion-modal-follow-up-draft.md`.
 
 The shared Production/Fulfillment confirmation keeps Full workflow and Status
@@ -17,6 +17,7 @@ transaction as new completion provenance, never on skipped/failed/replayed
 commands. No email or notification delivery runs. Local visible activity QA
 confirmed the initiating actor and status-only provenance; the test declaration
 was cancelled to restore the prior operational state, retaining audit history.
-Batch date-picker acceptance and final closure remain pending. The editable
+Batch date-picker acceptance passed for two selected orders: business-today
+default, edited date, explicit clear and cancel without submission. The editable
 effective date applies to Status only; Full workflow retains operational proof
 dates. This is not a production release claim.

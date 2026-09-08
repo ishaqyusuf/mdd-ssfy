@@ -1,7 +1,7 @@
 # Task: Simplify completion confirmation and record actor activity
 
 ## Status
-In Progress
+Done
 
 ## Canonical Ticket
 [Scratch ticket](../../.scratch/sales-pipeline-lifecycle-implementation/completion-modal-follow-up-draft.md)
@@ -10,4 +10,4 @@ In Progress
 2026-09-07
 
 ## Last Updated
-2026-09-07
+2026-09-08
