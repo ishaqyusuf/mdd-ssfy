@@ -383,3 +383,11 @@ other tables remain subject to the reviewed plan's operator gates. The canonical
 [implementation task](../tasks/2026-09-08-table-row-processing-exit-feedback.md)
 records validation evidence and outstanding work; this section does not claim
 completed browser acceptance or deployment.
+
+### Authenticated review correction
+
+The legacy loader's shared include omits payment history. Populate the existing
+latestPaymentReview field with a separate bounded loaded-order lookup, taking
+only the newest eligible payment per order. Keep that metadata out of invoice
+calculations. Approved local single-row QA verified success feedback followed by
+queue removal after this correction; the synthetic order/payment were cleaned up.

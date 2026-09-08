@@ -1,3 +1,4 @@
+import { getSalesOrderPaymentReviews } from "./sales-order-payment-review";
 import { salesOrderDto } from "@api/dto/sales-dto";
 import { whereSales } from "@api/prisma-where";
 import type { SalesQueryParamsSchema } from "@api/schemas/sales";
@@ -1347,6 +1348,7 @@ async function normalizeOrders(
 		existingInventoryRequirementRows,
 		currentSpecialOrderRequests,
 		pipelineSnapshots,
+		paymentReviews,
 	] = await Promise.all([
 		salesNotesCount(
 			rows.map((sale) => ({
@@ -1446,6 +1448,7 @@ async function normalizeOrders(
 			},
 		}),
 		getSalesPipelineSnapshots(db, salesOrderIds),
+		getSalesOrderPaymentReviews(db, salesOrderIds),
 	]);
 	const specialOrderRequestMap = new Map(
 		currentSpecialOrderRequests.map(
@@ -1485,6 +1488,7 @@ async function normalizeOrders(
 
 		return {
 			...normalized,
+			latestPaymentReview: paymentReviews.get(row.id) ?? null,
 			specialOrder: {
 				...normalized.specialOrder,
 				linkState,

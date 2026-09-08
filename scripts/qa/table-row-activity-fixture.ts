@@ -2,7 +2,7 @@
 const fixtureId = "QA-ROW-FEEDBACK-20260908";
 const args = new Set(process.argv.slice(2));
 for (const arg of args) {
-	if (!["--apply", "--cleanup"].includes(arg))
+	if (!["--apply", "--cleanup", "--reset"].includes(arg))
 		throw new Error(`Unknown argument: ${arg}`);
 }
 const url = new URL(
@@ -21,7 +21,7 @@ process.env.DATABASE_URL = url.toString();
 const { db } = await import("../../packages/db/src/index.ts");
 try {
 	const existing = await db.salesOrders.findMany({
-		where: { orderId: fixtureId },
+		where: { orderId: fixtureId, deletedAt: {} },
 		select: { id: true, meta: true, deletedAt: true },
 	});
 	if (
@@ -37,7 +37,9 @@ try {
 		apply: args.has("--apply"),
 		action: args.has("--cleanup")
 			? "Soft-delete only marked synthetic order and payment"
-			: "Create one synthetic order and zero-amount reviewable payment",
+			: args.has("--reset")
+				? "Reset only the marked synthetic fixture for another QA run"
+				: "Create one synthetic order and zero-amount reviewable payment",
 		fixtureId,
 		existing,
 	});
@@ -57,6 +59,29 @@ try {
 					data: { deletedAt: new Date() },
 				});
 			});
+		} else if (args.has("--reset") && existing.length) {
+			await db.$transaction(async (tx) => {
+				const orderIds = existing.map((row) => row.id);
+				await tx.salesOrders.updateMany({
+					where: { id: { in: orderIds }, deletedAt: {} },
+					data: { deletedAt: null },
+				});
+				await tx.salesPayments.updateMany({
+					where: {
+						orderId: { in: orderIds },
+						deletedAt: {},
+						meta: { path: "$.validationFixtureId", equals: fixtureId },
+					},
+					data: {
+						deletedAt: null,
+						reviewStatus: "needs_review",
+						reviewedAt: null,
+						reviewedById: null,
+						reviewMethod: null,
+						origin: "office",
+					},
+				});
+			});
 		} else if (!existing.length) {
 			const created = await db.salesOrders.create({
 				data: {
@@ -74,7 +99,7 @@ try {
 							amount: 0,
 							status: "success",
 							reviewStatus: "needs_review",
-							origin: "manual",
+							origin: "office",
 							meta: { validationFixtureId: fixtureId },
 						},
 					},

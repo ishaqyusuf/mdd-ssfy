@@ -1,5 +1,16 @@
 # API Contracts
 
+## Sales Orders payment review metadata (2026-09-08)
+
+- Legacy Sales Orders reads now populate the existing latestPaymentReview field
+  through a bounded lookup of loaded orders, selecting only their newest
+  non-deleted needs_review payment in success/completed/paid state.
+- Zero-amount reviewable payments remain actionable. Rows without a qualifying
+  payment return null. This fixes a disabled single-row review button despite
+  membership in the review queue.
+- Review metadata stays separate from invoice/payment totals and full payment
+  history. Request/response field names and mutation permissions are unchanged.
+
 ## Completion confirmation (Ticket21, local implementation)
 
 Direct, bulk and explicit-fallback status-only completion inputs accept omitted

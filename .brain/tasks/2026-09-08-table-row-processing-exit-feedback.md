@@ -229,3 +229,18 @@ absence. No API changes are needed to preserve this distinction.
 - This completes the approved batch-review fixture exercise, not the full pilot:
   single-row behavior, authenticated fulfillment/mobile/failure/reduced-motion
   coverage and operator acceptance remain. Completion remains80%.
+
+- Fixed the single-row QA defect: SalesListInclude omitted payments, so review
+  metadata was null despite queue membership. Added a bounded loaded-order review
+  lookup without passing partial payment history into invoice totals.
+- API typecheck passes;27 API metadata/list tests pass (74 assertions).
+- Reset the same approved marked fixture (repeatable script now explicitly reads
+  deleted fixtures and supports guarded --reset). Single-row Reviewed became
+  actionable; authenticated UI observed inert success/Payment reviewed then No
+  results. Both order27347/payment9350 were verified soft-deleted again at
+  2026-09-08T20:00:36Z, payment reviewStatus=reviewed.
+- Updated API contract and Sales Orders feature docs; schema/permissions unchanged.
+  Final focused review pending; full fulfillment/operator acceptance still open.
+- Focused reviewer found no blocking lookup/reset issues and independently passed
+  both new tests. Broader mixed-payment query ordering remains a validation gap;
+  only the approved zero-amount fixture was used for live data proof.
