@@ -22,7 +22,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 ## Implementation Progress
 - Completion: 80%
 - Current Checklist: 7/10 — Validate production/cancellation and remaining pilot action adapters
-- Blockers: Operator timing/color acceptance and an authorized disposable fulfillment fixture are pending
+- Blockers: Disposable local fulfillment fixture identity/setup is still needed
 
 ## Implementation Checklist
 - [x] Establish activity lifecycle and outcome contract with behavioral tests
@@ -260,3 +260,11 @@ absence. No API changes are needed to preserve this distinction.
   mobile QA. No approval or disposable fulfillment order was supplied. Prior
   turn was no progress (read-only acceptance audit); no new test run was needed.
   Marked Blocked at80%; resume the same scope when those inputs arrive.
+
+- User approved the visual preview:1600ms success dwell,225ms fade and current
+  colors are accepted. This removes the timing/color decision gate.
+- Read-only local lookup found no active known INV-FIX-ALLOC, INV-FIX-PARTIAL,
+  INV-FIX-RECEIVED or QA-ROW-FEEDBACK-20260908 order. The payment fixture remains
+  cleaned up. A disposable fulfillment order identity/setup is still needed.
+- Removed temporary generated public preview artifacts after visual acceptance;
+  source harness and builder remain committed. No business data changed this turn.

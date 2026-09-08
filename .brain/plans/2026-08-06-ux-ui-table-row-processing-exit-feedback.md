@@ -495,3 +495,12 @@ visual strength before rollout beyond Sales Orders.
 - Focused automated tests, desktop/mobile authenticated browser proof, dark
   mode, reduced motion, and operator timing approval are recorded before wider
   rollout.
+
+## Operator Acceptance — 2026-09-08
+
+The user approved the displayed visual preview: current color strength and the
+1600ms success dwell followed by225ms fade. Timing/color approval is satisfied.
+Authenticated single and batch payment review, including mobile, have passed;
+full-workflow fulfillment acceptance and gated additional action validation remain
+open in the linked implementation task. This approval does not substitute for
+those unperformed checks.
