@@ -3,6 +3,18 @@
 ## Goal
 Provide a cleaner production operations surface for both admins and production workers with fast due-date triage, clear urgency alerts, and a more usable daily queue.
 
+## Active membership correction (2026-09-07)
+
+- Shared canonical membership now requires `type: order` and `deletedAt: null`
+  for summary, dashboard and admin list reads, including source fallback.
+- Cancelled canonical headlines are excluded from projected membership; source
+  fallback uses the canonical commercial cancellation state, including canceled,
+  void and voided aliases. Missing projection headlines trigger source fallback.
+- Active still includes required, unfinished Production regardless of age or
+  assignment state. No business records or completion evidence are changed.
+- Production tests pass 75/75, covering both membership read paths. The revised
+  live count has not been measured and no deployment was performed.
+
 ## Assignment-backed queue eligibility and control sync (2026-09-01)
 
 - Production queue eligibility retains the canonical live produceable-control
@@ -1023,3 +1035,7 @@ Provide a cleaner production operations surface for both admins and production w
 - Production item expansion remains URL-backed, but selecting the already-open
   item now collapses it and clears `prod-item-view`. Title-row and accordion
   chevron interactions share the same toggle policy.
+## Sales Rep column default — 2026-09-07
+
+- Sales Production hides the Sales Rep column by default through the shared table settings. Users can enable it in the column picker; an explicitly saved visibility preference still takes precedence.
+- Direct visibility checks pass. The targeted table-settings/Production UI guard run has 11 passing tests and one unrelated failure in the unchanged Calendar source assertion (`migration-parity.test.ts:163`).

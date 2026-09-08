@@ -1140,6 +1140,7 @@ function addCanonicalProductionStageMembership(
 	snapshot: SalesPipelineSnapshot,
 ) {
 	if (snapshot.production.applicability !== "required") return;
+	if (snapshot.commercial.state === "cancelled") return;
 	const id = snapshot.evidence.salesOrderId;
 	if (isCanonicalProductionCompleted(snapshot)) {
 		membership.completed.add(id);
@@ -1160,9 +1161,11 @@ function addProjectedProductionStageMembership(
 		salesOrderId: number;
 		pipelineProductionApplicability: string | null;
 		pipelineProductionState: string | null;
+		pipelineHeadline: string | null;
 	},
 ) {
 	if (projection.pipelineProductionApplicability !== "required") return;
+	if (projection.pipelineHeadline === "cancelled") return;
 	const state = projection.pipelineProductionState;
 	if (state === "completed" || state === "administratively_completed") {
 		membership.completed.add(projection.salesOrderId);
@@ -1179,6 +1182,9 @@ async function loadCanonicalProductionStageMembershipIds(
 	workspaceWhere: Prisma.SalesOrdersWhereInput,
 ) {
 	const membership = emptyCanonicalProductionStageMembership();
+	const eligibleWhere: Prisma.SalesOrdersWhereInput = {
+		AND: [workspaceWhere, { type: "order", deletedAt: null }],
+	};
 	const projections = (
 		db as Db & {
 			salesOrderListProjection?: Db["salesOrderListProjection"];
@@ -1194,12 +1200,14 @@ async function loadCanonicalProductionStageMembershipIds(
 				pipelineRevision: { not: null },
 				pipelineProductionApplicability: "required",
 				pipelineProductionState: { not: null },
-				salesOrder: { is: workspaceWhere },
+				pipelineHeadline: { not: null },
+				salesOrder: { is: eligibleWhere },
 			},
 			select: {
 				salesOrderId: true,
 				pipelineProductionApplicability: true,
 				pipelineProductionState: true,
+				pipelineHeadline: true,
 			},
 			orderBy: { salesOrderId: "asc" },
 			take: 250,
@@ -1213,7 +1221,7 @@ async function loadCanonicalProductionStageMembershipIds(
 	}
 	await addUncachedCanonicalProductionStageMembership(
 		db,
-		workspaceWhere,
+		eligibleWhere,
 		membership,
 	);
 	return membership;
@@ -1242,6 +1250,7 @@ async function addUncachedCanonicalProductionStageMembership(
 							{ pipelineRevision: null },
 							{ pipelineProductionApplicability: null },
 							{ pipelineProductionState: null },
+							{ pipelineHeadline: null },
 						],
 					},
 				},

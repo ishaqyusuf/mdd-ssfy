@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-09-07 — Production Active count eligibility fixed
+
+- Shared membership restricts candidates to undeleted orders and excludes
+  canonical cancellations in both indexed and source-fallback paths. Projections
+  with missing headlines fall back to source evidence.
+- All 75 focused Production tests pass, including new cancellation-alias and
+  query-scope coverage. No database mutation, deployment or live-count claim.
+
 ## 2026-09-07 — Sales Pipeline Goal complete
 
 - Scratch first:18/18 tickets and196/196 acceptance checks complete.

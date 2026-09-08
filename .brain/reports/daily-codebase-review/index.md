@@ -1,5 +1,6 @@
 # Daily Codebase Review Index
 
+- [2026-09-08](./2026-09-08.md) - Typecheck still fails in `@gnd/settings`; sales lifecycle is done, but top risks remain public legacy sales/Square routes, mock Active Sessions, and dealer/mobile readiness gaps.
 - [2026-09-07](./2026-09-07.md) - Typecheck still fails in `@gnd/settings`; top risks are public legacy sales writes, public Square terminal/device-code side effects, mock Active Sessions, and mobile/dealer readiness gaps.
 - [2026-09-06](./2026-09-06.md) - Typecheck still fails in `@gnd/settings`; top risks are public Square terminal/device-code side effects, public task-event wrappers, sales lifecycle cutover policy, mock Active Sessions, and dealer/mobile readiness gaps.
 - [2026-09-05](./2026-09-05.md) - Typecheck still fails in `@gnd/settings`; top risks are public checkout/Square/customer-pay surfaces, public task-event wrappers, and mobile/dealer readiness gaps.

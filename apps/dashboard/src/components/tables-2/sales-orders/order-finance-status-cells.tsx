@@ -62,16 +62,22 @@ export function SalesOrderStatusCell({
 }) {
 	const auth = useAuth();
 	const editable = canEdit ?? Boolean(auth.can?.editOrders);
+	const statusLabel =
+		item.status === "administratively_completed"
+			? "Completed"
+			: item.statusLabel;
 	const className = cn(
 		buttonVariants({ variant: "ghost", size: "sm" }),
 		"h-7 max-w-full justify-start gap-1.5 whitespace-nowrap border-0 px-2 font-medium shadow-none",
-		getSalesOrderLifecycleStatusBadgeClassName(item.status),
+		getSalesOrderLifecycleStatusBadgeClassName(
+			item.status === "administratively_completed" ? "fulfilled" : item.status,
+		),
 	);
 
 	if (!editable) {
 		return (
-			<span className={className} aria-label={`${item.statusLabel} status`}>
-				<span className="truncate">{item.statusLabel}</span>
+			<span className={className} aria-label={`${statusLabel} status`}>
+				<span className="truncate">{statusLabel}</span>
 			</span>
 		);
 	}
@@ -98,7 +104,7 @@ export function SalesOrderStatusCell({
 					onKeyDown={(event) => event.stopPropagation()}
 					onPointerDown={(event) => event.stopPropagation()}
 				>
-					<span className="truncate">{item.statusLabel}</span>
+					<span className="truncate">{statusLabel}</span>
 					<Icons.ChevronDown className="size-3 shrink-0 opacity-70" />
 				</span>
 			}

@@ -1,7 +1,7 @@
 # Task: Marked completion label and Dispatch due-queue exclusion
 
 ## Status
-In Progress
+Done
 
 ## Canonical Ticket
 [Scratch ticket](../../.scratch/sales-pipeline-lifecycle-implementation/issues/19-dispatch-completion-membership-and-label.md)

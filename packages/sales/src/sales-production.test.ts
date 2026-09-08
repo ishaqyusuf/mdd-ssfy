@@ -129,6 +129,74 @@ function completedProjection(row: ReturnType<typeof completedProductionRow>) {
 }
 
 describe("sales production priority sorting", () => {
+	it.each(["projection", "source"] as const)(
+		"excludes cancelled production and scopes %s membership to undeleted orders",
+		async (mode) => {
+			const rows = [null, "cancelled", "canceled", "void", "voided"].map(
+				(status, index) => ({
+					...assignedProductionRow(index + 1, "NORMAL"),
+					status,
+				}),
+			);
+			let membershipWhere: unknown;
+			const db = {
+				orderItemProductionAssignments: {
+					fields: fieldSource.orderItemProductionAssignments.fields,
+					findMany: async () => [],
+				},
+				salesOrderListProjection: {
+					findMany: async (args: {
+						where: {
+							salesOrder: { is: unknown };
+							pipelineHeadline: unknown;
+						};
+					}) => {
+						membershipWhere = args.where.salesOrder.is;
+						expect(args.where.pipelineHeadline).toEqual({ not: null });
+						if (mode === "source") return [];
+						return rows.map((row) => {
+							const snapshot = resolveSalesPipelineSnapshotFromOrder(
+								row as never,
+							);
+							return {
+								salesOrderId: row.id,
+								pipelineProductionApplicability:
+									snapshot.production.applicability,
+								pipelineProductionState: snapshot.production.state,
+								pipelineHeadline: snapshot.headline.code,
+							};
+						});
+					},
+				},
+				salesOrders: {
+					count: async () => 0,
+					findMany: async (args: SalesFindManyArgs) => {
+						if (args.where?.AND) {
+							expect(args.where.AND[0]).toEqual(membershipWhere);
+							expect(JSON.stringify(args.where)).toContain(
+								'"pipelineHeadline":null',
+							);
+							return mode === "source" ? rows.map(({ id }) => ({ id })) : [];
+						}
+						return rows;
+					},
+				},
+				salesProductionSubmissionMaterialReview: {
+					count: async () => 0,
+					findMany: async () => [],
+				},
+			};
+			const { summary } = await getSalesProductionSummary(
+				db as unknown as Db,
+				{},
+			);
+			expect(summary.queueCount).toBe(1);
+			expect(membershipWhere).toEqual({
+				AND: [expect.anything(), { type: "order", deletedAt: null }],
+			});
+		},
+	);
+
 	it("shares one indexed canonical membership read across dashboard sections", async () => {
 		let projectionReads = 0;
 		const db = {

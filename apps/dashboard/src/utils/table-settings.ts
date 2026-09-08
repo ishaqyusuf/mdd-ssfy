@@ -194,7 +194,7 @@ const defaultHiddenColumns: Record<TableId, string[]> = {
 	"sales-finance-receivables": ["reconciliation", "salesRep"],
 	"contractor-accounting": ["source"],
 	"sales-resolution": [],
-	"sales-production": [],
+	"sales-production": ["salesRep"],
 	"sales-statistics": [],
 	"inventory-products": [],
 	"inventory-categories": [],
