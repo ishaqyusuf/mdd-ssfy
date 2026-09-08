@@ -1,6 +1,6 @@
 # Sales Mark as eligibility and archive consolidation
 
-Status: Approved for implementation. Canonical task: ../tasks/2026-09-08-sales-mark-as-eligibility-and-archive.md.
+Status: Implemented and locally verified. Canonical task: ../tasks/2026-09-08-sales-mark-as-eligibility-and-archive.md.
 
 Approved labels, clarified by user: Ready (no production), Not Assigned (production required without assignment), Updating… (initial summary generation pending). Inventory shortages/failures are separate alerts and must not replace the initial workflow status. Needs Review is reserved for actual unresolved/conflicting sale requirements, not absent generated controls.
 

@@ -1972,3 +1972,6 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 ### [Historical dispatch status-only completion import](2026-09-07-historical-dispatch-completion-import.md)
 - Status: Done
 - Completed Date: 2026-09-07
+
+### [Sales Mark as eligibility, labels and archive](2026-09-08-sales-mark-as-eligibility-and-archive.md)
+- Status: Done

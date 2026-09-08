@@ -16364,4 +16364,4 @@ data mutation or worker-policy enablement. Follow-up cancellation/reconciliation
 and primary/secondary status presentation remain queued separately.
 
 ## 2026-09-08 — Sales Mark as and initial status validation
-Implemented post-save calibration, standard initial-status colors, production eligibility and consolidated archive/restore. Final focused suite: 76 tests pass. Local database and browser checks pass; review findings closed. Broader checks retain documented baseline errors. Scoped commit pending; see tasks/2026-09-08-sales-mark-as-eligibility-and-archive.md.
+Implemented post-save calibration, standard initial-status colors, production eligibility and consolidated archive/restore. Final focused suite: 76 tests pass. Local database and browser checks pass; review findings closed. Broader checks retain documented baseline errors. Implemented in 2c24408bb; task completed: tasks/2026-09-08-sales-mark-as-eligibility-and-archive.md.

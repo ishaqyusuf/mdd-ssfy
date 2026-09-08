@@ -1,7 +1,7 @@
 # Task: Sales Mark as eligibility, labels and archive
 
 ## Status
-In Progress
+Done
 
 ## Priority
 Medium
@@ -24,7 +24,7 @@ background workflow; do not add saved-item joins to the orders-list query.
 Inventory problems stay separate alerts. Initial background processing shows Updating….
 
 ## Implementation Progress
-- Completion: 88%
+- Completion: 100%
 - Current Checklist: 8/8 — Commit scoped changes and audit completion
 - Blockers: None
 
@@ -36,7 +36,7 @@ Inventory problems stay separate alerts. Initial background processing shows Upd
 - [x] Verify permissions, confirmation, refresh, selection and error behavior.
 - [x] Complete focused tests, typechecks and in-app browser acceptance.
 - [x] Complete code review and resolve findings; update Brain behavior docs.
-- [ ] Commit scoped changes on the current branch and audit completion.
+- [x] Commit scoped changes on the current branch and audit completion.
 
 ## Validation Evidence
 - Current checkout: gnd, master. Pre-existing changes recorded in /tmp/gnd-mark-as-baseline/preexisting.patch; preserve them.
@@ -73,4 +73,6 @@ Inventory problems stay separate alerts. Initial background processing shows Upd
 - Archive: single, row, overview and batch callers wired; standalone row/batch actions removed. Direct archivedAt, permission, audit, restore, idempotency, confirmation cancellation, query invalidation and changed-only selection verified.
 - Color: existing lifecycle metadata and badge classes used; browser verified Ready class.
 - Final focused suite: 76 pass / 0 fail / 209 assertions across 15 files. Broader typechecks were run; baseline errors and an unrelated stale source-string test are documented above. Review agents confirmed their findings closed after fixes.
-- Remaining: scoped commit, verify committed contents, finalize task/ledger.
+- Committed implementation: 2c24408bb. Verified committed archive-state transport, production caller pipeline evidence, shared labels, background job entry point, and clean staging area. All checklist requirements audited; no implementation work remains.
+
+Final commit audit: 2c24408bb contains 49 scoped files. Unrelated worktree changes were preserved. Final suite: 76 passing focused tests; broader baseline validation limitations remain documented.

@@ -685,6 +685,3 @@ Tracks the active work queue. Keep this focused and execution-ready.
   deploys to production. Before continuing, initialize Trigger staging and set
   its non-production `DATABASE_URL` plus required worker credentials. Do not
   copy the production database URL into staging.
-
-### [Sales Mark as eligibility, labels and archive](2026-09-08-sales-mark-as-eligibility-and-archive.md)
-- Status: In Progress
