@@ -136,6 +136,7 @@ export async function getSalesItemControllablesInfoAction(
                   lhQty: true,
                   rhQty: true,
                   totalQty: true,
+                  meta: true,
                 },
               },
             },
@@ -145,7 +146,10 @@ export async function getSalesItemControllablesInfoAction(
     },
   });
   const setting = await getSalesSetting(prisma);
-  const groupConfig = {};
+  const groupSteps = new Map(
+    order.items.filter(item => item.multiDykeUid && item.formSteps[0])
+      .map(item => [item.multiDykeUid!, item.formSteps[0]!] as const),
+  );
   return {
     ...order,
     // setting,
@@ -156,22 +160,24 @@ export async function getSalesItemControllablesInfoAction(
       };
     }),
     items: order.items.map((item) => {
-      const mainStep = item.formSteps?.[0];
+      const mainStep = item.formSteps?.[0] ?? groupSteps.get(item.multiDykeUid!);
       const stepConfigUid = mainStep?.prodUid;
-      let config =
-        setting?.data?.route?.[stepConfigUid!]?.config ||
-        (groupConfig as any)?.[item.multiDykeUid!];
-      if (config) (groupConfig as any)[item.multiDykeUid!] = config;
+      const config = setting?.data?.route?.[stepConfigUid!]?.config;
       const isService = mainStep?.value?.toLowerCase() == "services";
+      if (order.isDyke && mainStep && !isService && !config) {
+        throw new Error(`Sales item ${item.id} has no requirement configuration for its item type.`);
+      }
       return {
         ...item,
         itemStatConfig: order.isDyke
           ? {
-              production: isService ? item.dykeProduction : config?.production,
-              shipping: config?.shipping,
+              production: isService || !mainStep
+                ? item.dykeProduction
+                : config?.production === true,
+              shipping: !mainStep ? true : config?.shipping === true,
             }
           : {
-              production: item.qty && item.swing,
+              production: Boolean(item.qty && item.swing),
               shipping: !!item.qty,
             },
       };

@@ -18,6 +18,7 @@ import {
 } from "@gnd/sales";
 import {
 	SALES_ORDER_LIFECYCLE_STATUSES,
+	getSalesOrderStatusPresentation,
 	type SalesOrderLifecycleStatus,
 } from "@gnd/sales/order-status";
 import {
@@ -464,6 +465,7 @@ export function normalizeOrderRow(
 
 	return {
 		id: dto.id,
+		archivedAt: row.archivedAt,
 		uuid: dto.uuid,
 		slug: dto.slug,
 		orderId: dto.orderId,
@@ -518,7 +520,7 @@ export function normalizeOrderRow(
 			: toFulfillmentLabel(fulfillmentState),
 		completion,
 		status: "unknown" as const,
-		statusLabel: "Status unavailable",
+		statusLabel: "Updating…",
 		statusTone: "stone",
 	};
 }
@@ -559,7 +561,7 @@ function applyControlAwareLifecycle(row: ControlAwareOrderRow) {
 			? row.fulfillmentLabel
 			: toFulfillmentLabel(fulfillmentStatus),
 		status: "unknown" as const,
-		statusLabel: "Status unavailable",
+		statusLabel: "Updating…",
 		statusTone: "stone",
 	};
 }
@@ -951,7 +953,7 @@ export function applyMaterializedSalesPipelineReadMode(
 			...row,
 			pipeline: null,
 			status: "unknown",
-			statusLabel: "Status unavailable",
+			statusLabel: "Updating…",
 			statusTone: "stone",
 			productionState: "unknown",
 			productionLabel: "Status unavailable",
@@ -963,8 +965,8 @@ export function applyMaterializedSalesPipelineReadMode(
 		...row,
 		pipeline: canonical,
 		status: canonical.headline.code,
-		statusLabel: canonical.headline.label,
-		statusTone: canonical.headline.tone,
+		statusLabel: getSalesOrderStatusPresentation(canonical).label,
+		statusTone: getSalesOrderStatusPresentation(canonical).tone,
 		productionState: canonical.production.state,
 		productionLabel:
 			canonical.production.state === "administratively_completed"
@@ -1522,8 +1524,8 @@ async function normalizeOrders(
 			...lifecycleRow,
 			pipeline,
 			status: pipeline?.headline.code ?? "unknown",
-			statusLabel: pipeline?.headline.label ?? "Status unavailable",
-			statusTone: pipeline?.headline.tone ?? "stone",
+			statusLabel: getSalesOrderStatusPresentation(pipeline).label,
+			statusTone: getSalesOrderStatusPresentation(pipeline).tone,
 			productionState: pipeline?.production.state ?? "unknown",
 			productionLabel: pipeline
 				? getSalesPipelineProductionStateLabel(pipeline.production.state)

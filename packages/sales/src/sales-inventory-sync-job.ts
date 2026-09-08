@@ -12,6 +12,7 @@ export type QueueSalesInventoryLineItemsSyncInput = {
   salesOrderId: number;
   source: SalesInventorySyncSource;
   triggeredByUserId?: number | null;
+  skipInventory?: boolean;
 };
 
 export async function queueSalesInventoryLineItemsSync(
@@ -20,6 +21,7 @@ export async function queueSalesInventoryLineItemsSync(
   return tasks
     .trigger("sync-sales-inventory-line-items", {
       salesOrderId: input.salesOrderId,
+      ...(input.skipInventory ? { skipInventory: true } : {}),
       source: input.source,
       triggeredByUserId: input.triggeredByUserId ?? null,
     })

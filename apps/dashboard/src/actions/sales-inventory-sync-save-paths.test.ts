@@ -41,7 +41,8 @@ describe("sales inventory sync save paths", () => {
         expect(source).toContain("queueSalesInventoryLineItemsSync");
 		expect(source).toContain("normalizeSalesInventoryLegacyStatus");
 		expect(source).toContain("!result?.data?.error &&");
-		expect(source).toContain("result?.salesId &&");
+		expect(source).toContain("result?.salesId");
+		expect(source).toContain("skipInventory: Boolean(normalizeSalesInventoryLegacyStatus(result.inventoryStatus))");
         expect(source).toContain('source: "old-form"');
     });
 

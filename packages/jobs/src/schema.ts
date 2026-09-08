@@ -277,6 +277,7 @@ export type QueueSalesInventoryLegacyStatusMigrationInput = z.infer<
 >;
 
 export const syncSalesInventoryLineItemsSchemaTask = z.object({
+	skipInventory: z.boolean().optional(),
 	salesOrderId: positiveIntegerId,
 	source: z
 		.enum([

@@ -33,6 +33,7 @@ export function BottomBar({ data }: Props) {
 		salesId: order.id,
 		status: order.lifecycleStatus,
 		pipelineRevision: order.pipeline?.revision,
+		pipeline: order.pipeline,
 		productionCompleted: order.completed,
 	}));
 

@@ -2630,3 +2630,8 @@ post-receipt canonical pipeline evidence revision, not only the sale timestamp.
 The command requires one persisted projection; a skipped refresh rolls back receipt,
 allocation and audit so success cannot leave the order list stale. Inbound item
 selection is scoped before limiting.
+
+## Post-save sales job calibration (2026-09-08)
+`sync-sales-inventory-line-items` accepts optional `skipInventory: boolean`. Every run calibrates saved sales controls and the persisted list summary first; true skips ordinary inventory synchronization for legacy/PO-only saves. Existing callers that omit it continue inventory synchronization after calibration. The list query gains no saved-item requirement joins. Calibration uses the SalesOrders row lock shared by workflow commands and rebuilds derived totals rather than issuing assignments or completion commands.
+
+Sales Orders and General overview now expose `archivedAt` independently of the pipeline snapshot. The persisted order-list payload includes it at projection version 6, so an unavailable workflow summary does not prevent authorized archive/restore actions. No additional database relation is loaded for archive state.

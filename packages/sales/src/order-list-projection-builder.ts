@@ -7,7 +7,7 @@ import {
 	salesOrderListProjectionVersion,
 	serializeSalesOrderListRow,
 } from "./order-list-read-model";
-import type { SalesOrderLifecycleStatus } from "./order-status";
+import { getSalesOrderStatusPresentation, type SalesOrderLifecycleStatus } from "./order-status";
 import { repairSalesInvoiceCccDisplay } from "./payment-system";
 import { getSalesPriorityLabel, normalizeSalesPriority } from "./priority";
 import {
@@ -315,6 +315,7 @@ export async function refreshSalesOrderListProjections(
 				createdAt: true,
 				updatedAt: true,
 				deletedAt: true,
+				archivedAt: true,
 				meta: true,
 				grandTotal: true,
 				amountDue: true,
@@ -530,6 +531,7 @@ export async function refreshSalesOrderListProjections(
 					: null;
 		return {
 			id: order.id,
+			archivedAt: order.archivedAt,
 			uuid: order.orderId,
 			slug: order.slug,
 			orderId: order.orderId.toUpperCase(),
@@ -633,8 +635,8 @@ export async function refreshSalesOrderListProjections(
 					? "Administratively completed"
 					: titleCaseStatus(selectedPipeline?.fulfillment.state ?? "unknown"),
 			status: selectedPipeline?.headline.code ?? "unknown",
-			statusLabel: selectedPipeline?.headline.label ?? "Status unavailable",
-			statusTone: selectedPipeline?.headline.tone ?? "stone",
+			statusLabel: getSalesOrderStatusPresentation(selectedPipeline).label,
+			statusTone: getSalesOrderStatusPresentation(selectedPipeline).tone,
 			inventoryApplicability: resolveSalesInventoryApplicability({
 				lifecycleStatus,
 				projection: inventoryProjection,

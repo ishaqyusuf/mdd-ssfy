@@ -1,4 +1,6 @@
 "use client";
+
+import { getSalesArchiveCandidates } from "@/components/sales-archive-menu";
 import { isRowActivityBusy } from "@/store/table-row-activity";
 
 import { SalesMenu } from "@/components/sales-menu";
@@ -10,16 +12,8 @@ import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { ConfirmBtn } from "@gnd/ui/custom/confirm-button";
-import {
-	Dialog,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@gnd/ui/dialog";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
-import { toast } from "@gnd/ui/use-toast";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -32,7 +26,6 @@ type Props = {
 
 export function BottomBar({ data, busy }: Props) {
 	const [mounted, setMounted] = useState(false);
-	const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const auth = useAuth();
@@ -48,16 +41,13 @@ export function BottomBar({ data, busy }: Props) {
 	const statusCandidates = selectedOrders.map((order) => ({
 		salesId: order.id,
 		status: order.status,
+		pipeline: order.pipeline,
 		pipelineRevision: order.pipeline?.revision,
 	}));
 	const orderIds = selectedOrders.map((order) => order.orderId);
 	const firstOrder = selectedOrders[0];
 	const selectedCount = selectedOrders.length;
 	const isPaymentReviewMode = filters.paymentReview === "needs_review";
-	const isArchivedMode = filters.archiveScope === "archived";
-	const selectedOrdersWithActiveOperationalWork = selectedOrders.filter(
-		(order) => order.status !== "fulfilled" && order.status !== "cancelled",
-	);
 	const customerPhone =
 		firstOrder?.customerPhone && firstOrder.customerPhone !== "-"
 			? firstOrder.customerPhone
@@ -87,47 +77,6 @@ export function BottomBar({ data, busy }: Props) {
 			},
 		}),
 	);
-	const setArchived = useMutation(
-		trpc.sales.setSalesOrdersArchived.mutationOptions({
-			onSuccess(result) {
-				setArchiveDialogOpen(false);
-				const changedIds = new Set(result.changed);
-				const changedOrderUuids = new Set(
-					selectedOrders
-						.filter((order) => changedIds.has(order.id))
-						.map((order) => order.uuid),
-				);
-				setRowSelection(
-					Object.fromEntries(
-						Object.entries(rowSelection).filter(
-							([uuid]) => !changedOrderUuids.has(uuid),
-						),
-					),
-				);
-				toast({
-					duration: 2000,
-					variant: "success",
-					title: isArchivedMode ? "Orders restored" : "Orders archived",
-					description: result.changed.length
-						? `${result.changed.length} changed${result.skipped.length ? `; ${result.skipped.length} skipped.` : "."}`
-						: `No orders changed${result.skipped.length ? `; ${result.skipped.length} skipped.` : "."}`,
-				});
-			},
-			onError(error) {
-				toast({
-					duration: 3000,
-					variant: "error",
-					title: "Orders not updated",
-					description: error.message || "Unable to update the selected orders.",
-				});
-			},
-			meta: {
-				queryEventScope: {
-					sales: salesRefs,
-				},
-			},
-		}),
-	);
 
 	useEffect(() => {
 		setMounted(true);
@@ -143,45 +92,6 @@ export function BottomBar({ data, busy }: Props) {
 
 	return createPortal(
 		<>
-			<Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
-				<DialogContent className="sm:max-w-md">
-					<DialogHeader>
-						<DialogTitle>
-							{isArchivedMode
-								? "Restore selected orders"
-								: "Archive selected orders"}
-						</DialogTitle>
-					</DialogHeader>
-					<p className="text-sm text-muted-foreground">
-						{isArchivedMode
-							? `This returns ${selectedCount} selected order${selectedCount === 1 ? "" : "s"} to the default Sales Orders workspace.`
-							: selectedOrdersWithActiveOperationalWork.length
-								? `${selectedOrdersWithActiveOperationalWork.length} selected order${selectedOrdersWithActiveOperationalWork.length === 1 ? " still has" : "s still have"} active operational work. Archiving only hides the selected orders from the default Sales Orders workspace; it does not stop operational work or change the Sales Bin.`
-								: `This hides ${selectedCount} selected order${selectedCount === 1 ? "" : "s"} from the default Sales Orders workspace without changing the Sales Bin or operational status.`}
-					</p>
-					<DialogFooter>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => setArchiveDialogOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							type="button"
-							disabled={setArchived.isPending}
-							onClick={() =>
-								setArchived.mutate({
-									salesIds,
-									archived: !isArchivedMode,
-								})
-							}
-						>
-							{isArchivedMode ? "Restore orders" : "Archive orders"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
 			<motion.div
 				className="pointer-events-none fixed bottom-6 left-0 right-0 z-50 flex h-12 justify-center"
 				initial={{ y: 100 }}
@@ -260,6 +170,12 @@ export function BottomBar({ data, busy }: Props) {
 									asSubmenu={false}
 									includePaymentReviewed={isPaymentReviewMode}
 									statusCandidates={statusCandidates}
+ archiveOrders={getSalesArchiveCandidates(selectedOrders.map(order => ({salesId:order.id,orderNo:order.orderId,archivedAt:order.archivedAt,pipeline:order.pipeline})))}
+ onArchived={ids => {
+  const changed = new Set(ids);
+  const changedUuids = new Set(selectedOrders.filter(order => changed.has(order.id)).map(order => order.uuid));
+  setRowSelection(Object.fromEntries(Object.entries(rowSelection).filter(([uuid]) => !changedUuids.has(uuid))));
+ }}
 								/>
 							</SalesMenu>
 
@@ -297,17 +213,6 @@ export function BottomBar({ data, busy }: Props) {
 									Pay
 								</Button>
 							</SalesPaymentProcessor>
-
-							{auth.can.editOrders ? (
-								<Button
-									variant="ghost"
-									disabled={!salesIds.length || setArchived.isPending}
-									onClick={() => setArchiveDialogOpen(true)}
-								>
-									<Icons.Archive className="mr-2 size-4" />
-									{isArchivedMode ? "Restore active" : "Archive"}
-								</Button>
-							) : null}
 
 							<ConfirmBtn
 								variant="ghost"

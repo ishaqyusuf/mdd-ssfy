@@ -1,3 +1,4 @@
+import { getSalesOrderStatusPresentation } from "@gnd/sales/order-status";
 import { salesOverviewDto } from "@api/dto/sales-dto";
 import type { GetSaleOverviewSchema } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
@@ -83,10 +84,11 @@ export async function getSaleOverviewGeneralV2(
 
 	return {
 		...overview,
+		archivedAt: sale.archivedAt,
 		pipeline,
 		canonicalStatus: pipeline?.headline.code ?? "unknown",
-		statusLabel: pipeline?.headline.label ?? "Unknown",
-		statusTone: pipeline?.headline.tone ?? "slate",
+		statusLabel: getSalesOrderStatusPresentation(pipeline).label,
+		statusTone: getSalesOrderStatusPresentation(pipeline).tone,
 		inventoryInboundOwnership,
 		documentReadiness: resolveSalesOverviewDocumentReadiness({
 			saleUpdatedAt: sale.updatedAt,

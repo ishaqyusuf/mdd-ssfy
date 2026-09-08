@@ -22,6 +22,8 @@ const actionButtonClass =
 export function GeneralActionBar({ type, salesNo, salesId }) {
 	const { data } = useSaleOverview() as {
 		data?: {
+			pipeline?: import("@gnd/sales/sales-pipeline").SalesPipelineSnapshot | null;
+			archivedAt?: Date | string | null;
 			type?: SalesType | null;
 			id?: number | null;
 			customerId?: number | null;
@@ -153,6 +155,10 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 						) : null}
 						<SalesMenu.SalesEmailMenuItems />
 						<SalesMenu.MarkAs
+							pipeline={data?.pipeline}
+							pipelineCapabilities={data?.pipeline?.capabilities}
+							statusCandidates={[{salesId,status:currentOrderStatus,pipelineRevision:data?.pipeline?.revision,pipeline:data?.pipeline}]}
+							archiveOrders={data?.archivedAt !== undefined ? [{salesId,orderNo:data.orderId ?? salesNo,archived:data.archivedAt !== null}] : undefined}
 							currentStatus={currentOrderStatus}
 							productionStatus={productionStatus}
 							hasFulfillmentDispatch={Boolean(data?.dispatchList?.length)}

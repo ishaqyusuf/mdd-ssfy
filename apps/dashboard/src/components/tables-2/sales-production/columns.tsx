@@ -458,6 +458,7 @@ function Actions({ item }: { item: SalesProductionRow }) {
 			}
 		>
 			<SalesMenu.MarkAs
+					pipeline={item.pipeline}
 				asSubmenu={false}
 				showUnavailableFulfilled
 				currentStatus={item.lifecycleStatus}
@@ -468,6 +469,7 @@ function Actions({ item }: { item: SalesProductionRow }) {
 						salesId: item.id,
 						status: item.lifecycleStatus,
 						pipelineRevision: item.pipeline?.revision,
+						pipeline: item.pipeline,
 						productionCompleted: item.completed,
 					},
 				]}

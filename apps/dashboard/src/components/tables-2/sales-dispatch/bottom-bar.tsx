@@ -83,6 +83,7 @@ export function BottomBar({ data, enableSalesMarkAs = false }: Props) {
 							>
 								<SalesMenu.MarkAs
 									asSubmenu={false}
+ statusCandidates={selectedDispatches.map(row => ({salesId:Number(row.order?.id || 0),status:row.pipeline?.headline.code,pipeline:row.pipeline,pipelineRevision:row.pipeline?.revision}))}
 									onStatusActionSettled={() => setRowSelection({})}
 								/>
 							</SalesMenu>

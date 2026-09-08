@@ -4,7 +4,7 @@ import {
   type TaskName,
 } from "../../schema";
 import { db } from "@gnd/db";
-import { runSalesInventoryProjectionSync } from "@sales/run-sales-inventory-projection-sync";
+import { runSalesPostSaveSync } from "@sales/run-sales-post-save-sync";
 
 export const syncSalesInventoryLineItemsTask = schemaTask({
   id: "sync-sales-inventory-line-items" as TaskName,
@@ -14,8 +14,9 @@ export const syncSalesInventoryLineItemsTask = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (payload) => {
-    return runSalesInventoryProjectionSync(db, {
+    return runSalesPostSaveSync(db, {
       salesOrderId: payload.salesOrderId,
+      skipInventory: payload.skipInventory,
       source: payload.source,
       triggeredByUserId: payload.triggeredByUserId ?? null,
     });

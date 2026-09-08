@@ -1,6 +1,6 @@
 import { isControlReadV2Enabled } from "./control/application/feature-flags";
 
-export const SALES_ORDER_LIST_PROJECTION_VERSION = 5;
+export const SALES_ORDER_LIST_PROJECTION_VERSION = 6;
 const SALES_ORDER_LIST_PROJECTION_LEGACY_CONTROL_VERSION = 1;
 
 export function salesOrderListProjectionVersion() {
@@ -38,6 +38,7 @@ export function isSalesOrderListProjectionFresh(input: {
 
 const DATE_FIELDS = new Set([
 	"createdAt",
+	"archivedAt",
 	"paymentDueDate",
 	"receivedAt",
 	"currentRequestExpiresAt",

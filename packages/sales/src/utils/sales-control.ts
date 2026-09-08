@@ -665,6 +665,10 @@ export function composeControls(order: GetSalesItemControllables) {
       if (item.housePackageTool?.doors?.length) {
         item.housePackageTool?.doors.map((door) => {
           let controlUid = doorItemControlUid(door.id, door.dimension);
+          const meta = door.meta as { prodOverride?: { production?: boolean } } | null;
+          const production = typeof meta?.prodOverride?.production === "boolean"
+            ? meta.prodOverride.production
+            : item.itemStatConfig?.production;
           controls.push({
             uid: controlUid,
             itemId: item.id,
@@ -678,12 +682,12 @@ export function composeControls(order: GetSalesItemControllables) {
               qty: !door.lhQty && !door.rhQty ? door.totalQty : 0,
               doorId: door.id,
               shippable: item.itemStatConfig?.shipping,
-              produceable: item.itemStatConfig?.production,
+              produceable: production,
             }),
             data: {
               subtitle: `${door.dimension}`,
               shippable: item.itemStatConfig?.shipping,
-              produceable: item.itemStatConfig?.production,
+              produceable: production,
             },
           });
         });
@@ -721,8 +725,8 @@ export function composeControls(order: GetSalesItemControllables) {
         itemId: item.id,
         orderId: order.id,
         data: {
-          shippable: true,
-          produceable: true,
+          shippable: item.itemStatConfig?.shipping,
+          produceable: item.itemStatConfig?.production,
           title: `${item.description}`,
           subtitle: [item.swing]?.filter(Boolean)?.join(" | "),
         },
@@ -731,8 +735,8 @@ export function composeControls(order: GetSalesItemControllables) {
           controlUid,
           itemId: item.id,
           qty: item.qty,
-          shippable: true,
-          produceable: true,
+          shippable: item.itemStatConfig?.shipping,
+          produceable: item.itemStatConfig?.production,
         }),
       });
     }

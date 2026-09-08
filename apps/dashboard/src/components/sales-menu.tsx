@@ -1,3 +1,5 @@
+import type { SalesMenuPipeline } from "./sales-batch-status-selection";
+import { SalesArchiveMenu, type SalesArchiveCandidate } from "./sales-archive-menu";
 import { isRowActivityBusy } from "@/store/table-row-activity";
 import { salesPaymentReviewActivity } from "@/lib/table-row-activity/sales-outcomes";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
@@ -25,6 +27,7 @@ import {
 	type SalesOrderStatusMenuAction,
 	type SalesOrderStatusMenuItem,
 	getSalesOrderStatusMenuActions,
+	applySalesProductionMenuEligibility,
 } from "@/components/sales-status-menu-actions";
 import { SalesWorkflowCancellationDialog } from "@/components/sales-workflow-cancellation-dialog";
 import { reviewSelectedPayments } from "@/components/tables-2/sales-orders/review-selected-payments";
@@ -444,6 +447,9 @@ type ActionProps = {
 };
 
 type MarkAsProps = ActionProps & {
+	pipeline?: SalesMenuPipeline | null;
+	archiveOrders?: readonly SalesArchiveCandidate[];
+	onArchived?: (ids: number[]) => void;
 	asSubmenu?: boolean;
 	includePaymentReviewed?: boolean;
 	showUnavailableFulfilled?: boolean;
@@ -1043,6 +1049,9 @@ function SalesMenuDelete({ onDeleted }: DeleteProps) {
 }
 
 function SalesMenuMarkAs({
+	pipeline,
+	archiveOrders,
+	onArchived,
 	disabled,
 	asSubmenu = true,
 	includePaymentReviewed = false,
@@ -1407,7 +1416,7 @@ function SalesMenuMarkAs({
 				title: `${skippedCount} order${skippedCount === 1 ? "" : "s"} skipped`,
 				description:
 					action === "production_completed"
-						? "Completed orders and lifecycle exceptions were not updated. Resolve exception rows individually so GND can verify their current revision."
+						? "Orders with completed, unnecessary, unavailable or blocked production were not updated. Resolve exception rows individually so GND can verify their current revision."
 						: "Fulfilled orders and lifecycle exceptions were not updated. Resolve exception rows individually so GND can verify their current revision.",
 			});
 		}
@@ -1496,7 +1505,7 @@ function SalesMenuMarkAs({
 		if (!prepareAdministrativeOverrideSelection()) return;
 		const today = await loadCompletionDate();
 		if (today === null) return;
-		setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+		setProductionCompletionChoice("STATUS_ONLY");
 		setProductionAdministrativeOverride(true);
 		setProductionEffectiveDate(today);
 		setProductionConfirmationOpen(true);
@@ -1504,6 +1513,7 @@ function SalesMenuMarkAs({
 
 	const submitProductionCompletion = async () => {
 		if (productionCompletionChoice === "FULL_WORKFLOW") {
+ if (productionAdministrativeOverride || pipeline?.production?.applicability === "not_required") return;
 			setProductionConfirmationOpen(false);
 			await markProductionCompleted(statusActionSalesIdsRef.current);
 			return;
@@ -1969,7 +1979,7 @@ function SalesMenuMarkAs({
 						label: "Fulfilled",
 					},
 				];
-	const statusMenuActions = applyFulfillmentCompletionProjection(
+	const statusMenuActions = applySalesProductionMenuEligibility(applyFulfillmentCompletionProjection(
 		applyProductionCompletionProjection(
 			baseStatusMenuActions,
 			completionProjection,
@@ -1977,7 +1987,10 @@ function SalesMenuMarkAs({
 		),
 		completionProjection,
 		canEditSalesCompletion,
-	)
+	), pipeline?.production?.applicability ?? (
+ statusCandidates?.some(candidate => candidate.pipeline?.production?.applicability === "required") ? "required" :
+ statusCandidates?.length && statusCandidates.every(candidate => candidate.pipeline?.production?.applicability === "not_required") ? "not_required" :
+ productionStatus === "not_required" ? "not_required" : undefined), Boolean(completionProjection?.activeProductionRecord))
 		.filter(
 			(item) =>
 				item.action !== "fulfilled" ||
@@ -2023,6 +2036,7 @@ function SalesMenuMarkAs({
 					<Fragment key={item.action}>
 						<SalesMenuItem
 							className="whitespace-nowrap"
+							title={item.disabledReason}
 							disabled={
 								isDisabled ||
 								item.disabled ||
@@ -2096,6 +2110,7 @@ function SalesMenuMarkAs({
 					Reviewed
 				</SalesMenuItem>
 			) : null}
+			{archiveOrders ? <SalesArchiveMenu orders={archiveOrders} disabled={disabled || statusActionPending} onChanged={onArchived} onClose={actions.closeMenu} /> : null}
 		</>
 	);
 	const blockerPreview = inventoryPreflight?.blockers.slice(0, 4) || [];
@@ -2325,10 +2340,13 @@ function SalesMenuMarkAs({
 	);
 	const completionDialogs = (
 		<SalesProductionCompletionDialogs
+			canRunFullWorkflow={!productionAdministrativeOverride}
+			fullWorkflowUnavailableReason="Resolve this lifecycle exception with an audited milestone; production workflow is unavailable here."
 			projection={completionProjection}
 			showStatusOnly={statusOnlyPresentationVisible}
 			canEditStatusOnly={canEditSalesCompletion}
-			salesOrderCount={salesIds.length}
+			salesOrderCount={statusActionSalesIdsRef.current.length || salesIds.length}
+			skippedOrderCount={productionConfirmationOpen ? salesIds.length - statusActionSalesIdsRef.current.length : 0}
 			projectionPending={salesCompletionProjectionQuery.isPending}
 			confirmationOpen={productionConfirmationOpen}
 			choice={productionCompletionChoice}

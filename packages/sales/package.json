@@ -82,6 +82,7 @@
 		"./inventory-reconciliation-report": "./src/inventory-reconciliation-report.ts",
 		"./sales-inventory-sync-monitor": "./src/sales-inventory-sync-monitor.ts",
 		"./sales-inventory-sync-job": "./src/sales-inventory-sync-job.ts",
+		"./run-sales-post-save-sync": "./src/run-sales-post-save-sync.ts",
 		"./run-sales-inventory-projection-sync": "./src/run-sales-inventory-projection-sync.ts",
 		"./manual-fulfill-sales-inventory-needs": "./src/manual-fulfill-sales-inventory-needs.ts",
 		"./sync-sales-inventory-line-items": "./src/sync-sales-inventory-line-items.ts",

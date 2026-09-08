@@ -1,3 +1,4 @@
+import { getSalesOrderStatusPresentation } from "@gnd/sales/order-status";
 import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { cn, cva } from "@gnd/ui/cn";
@@ -118,7 +119,7 @@ export function getSalesOverviewDocumentStatus(
 	}
 	if (data?.pipeline) {
 		return {
-			label: data.pipeline.headline.label,
+			label: getSalesOrderStatusPresentation(data.pipeline).label,
 			labelText: "Order Status",
 			status: data.pipeline.headline.code,
 			className: cn(

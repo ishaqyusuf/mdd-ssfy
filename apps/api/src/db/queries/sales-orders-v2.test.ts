@@ -127,7 +127,7 @@ describe("materialized sales pipeline rollout", () => {
 		expect(row).toMatchObject({
 			pipeline: null,
 			status: "unknown",
-			statusLabel: "Status unavailable",
+			statusLabel: "Updating…",
 			productionState: "unknown",
 			fulfillmentState: "unknown",
 		});

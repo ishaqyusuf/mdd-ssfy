@@ -1,11 +1,13 @@
 "use client";
 
+import { getSalesArchiveCandidates } from "@/components/sales-archive-menu";
+
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useAuth } from "@/hooks/use-auth";
 import { formatCurrency } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { getSalesOrderLifecycleStatusBadgeClassName } from "@gnd/sales/order-status";
+import { getSalesOrderStatusBadgeClassName } from "@gnd/sales/order-status";
 import { Badge } from "@gnd/ui/badge";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
@@ -22,6 +24,7 @@ type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
 
 export type SalesOrderTablePresentation = Pick<
 	SalesOrder,
+	| "archivedAt"
 	| "id"
 	| "uuid"
 	| "slug"
@@ -87,8 +90,8 @@ export function SalesOrderStatusCell({
 	const className = cn(
 		buttonVariants({ variant: "ghost", size: "sm" }),
 		"h-7 max-w-full justify-start gap-1.5 whitespace-nowrap border-0 px-2 font-medium shadow-none",
-		getSalesOrderLifecycleStatusBadgeClassName(
-			item.status === "administratively_completed" ? "fulfilled" : item.status,
+		getSalesOrderStatusBadgeClassName(
+			item.status, statusLabel,
 		),
 	);
 
@@ -132,11 +135,14 @@ export function SalesOrderStatusCell({
 				currentStatus={item.status}
 				productionStatus={item.productionState}
 				pipelineCapabilities={item.pipeline?.capabilities}
+ pipeline={item.pipeline}
+ archiveOrders={getSalesArchiveCandidates([{salesId:item.id,orderNo:item.orderId,archivedAt:item.archivedAt,pipeline:item.pipeline}])}
 				statusCandidates={[
 					{
 						salesId: item.id,
 						status: item.status,
 						pipelineRevision: item.pipeline?.revision,
+						pipeline: item.pipeline,
 					},
 				]}
 			/>

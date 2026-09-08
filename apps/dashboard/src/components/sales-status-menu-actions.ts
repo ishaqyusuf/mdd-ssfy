@@ -1,4 +1,5 @@
 import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
+import type { StageApplicability } from "@gnd/sales/sales-pipeline";
 
 export type SalesOrderStatusMenuAction =
 	| "production_completed"
@@ -12,7 +13,33 @@ export type SalesOrderStatusMenuItem = {
 	action: SalesOrderStatusMenuAction;
 	label: string;
 	disabled?: boolean;
+	disabledReason?: string;
 };
+
+export function applySalesProductionMenuEligibility(
+	items: SalesOrderStatusMenuItem[],
+	applicability: StageApplicability | null | undefined,
+	hasRecordedProductionCompletion = false,
+): SalesOrderStatusMenuItem[] {
+	return items.flatMap((item) => {
+		if (!item.action.includes("production")) return [item];
+		// Existing audited cancellation keeps its own server-validated review path.
+		if (
+			item.action === "cancel_production" &&
+			(applicability !== "not_required" || hasRecordedProductionCompletion)
+		)
+			return [item];
+		if (applicability === "not_required") return [];
+		if (applicability === "required") return [item];
+		return [
+			{
+				...item,
+				disabled: true,
+				disabledReason: "Production requirements need review",
+			},
+		];
+	});
+}
 
 const PRODUCTION_COMPLETED_LIFECYCLE_STATUSES =
 	new Set<SalesOrderLifecycleStatus>([

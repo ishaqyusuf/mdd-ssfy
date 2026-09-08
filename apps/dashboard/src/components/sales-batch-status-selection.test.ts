@@ -1,9 +1,33 @@
+import { resolveSalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { describe, expect, it } from "bun:test";
 
 import {
 	resolveSalesBatchAdministrativeOverrideSelection,
 	resolveSalesBatchStatusSelection,
 } from "./sales-batch-status-selection";
+
+const requiredPipeline = resolveSalesPipelineSnapshot({
+	salesOrderId: 11,
+	orderNo: "11",
+	commercial: { status: "open" },
+	payment: { total: 100, amountDue: 0 },
+	material: { applicability: "not_required", requiredQty: 0, readyQty: 0 },
+	production: {
+		configuredRequirement: true,
+		requiredQty: 1,
+		assignments: [],
+		submissions: [],
+		aggregate: null,
+		administrativeCompletion: null,
+	},
+	fulfillment: {
+		configuredRequirement: true,
+		requiredQty: 1,
+		packedQty: 0,
+		dispatches: [],
+		administrativeCompletion: null,
+	},
+});
 
 describe("sales batch status selection", () => {
 	it("skips orders that already completed production", () => {
@@ -12,7 +36,7 @@ describe("sales batch status selection", () => {
 				action: "production_completed",
 				salesIds: [11, 12, 13, 14],
 				candidates: [
-					{ salesId: 11, status: "in_production" },
+					{ salesId: 11, status: "in_production", pipeline: requiredPipeline },
 					{ salesId: 12, status: "ready_to_fulfill" },
 					{ salesId: 13, status: "fulfilled" },
 					{ salesId: 14, productionCompleted: true },
@@ -41,7 +65,7 @@ describe("sales batch status selection", () => {
 		});
 	});
 
-	it("keeps unknown candidates eligible for backward-compatible callers", () => {
+	it("skips missing production evidence instead of assuming eligibility", () => {
 		expect(
 			resolveSalesBatchStatusSelection({
 				action: "production_completed",
@@ -49,8 +73,8 @@ describe("sales batch status selection", () => {
 				candidates: [{ salesId: 31, status: "ready_to_fulfill" }],
 			}),
 		).toEqual({
-			eligibleSalesIds: [32],
-			skippedSalesIds: [31],
+			eligibleSalesIds: [],
+			skippedSalesIds: [31, 32],
 		});
 	});
 

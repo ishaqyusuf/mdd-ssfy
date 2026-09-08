@@ -24,7 +24,9 @@ type SalesProductionCompletionDialogsProps = {
 	showStatusOnly: boolean;
 	canEditStatusOnly: boolean;
 	canRunFullWorkflow?: boolean;
+	fullWorkflowUnavailableReason?: string;
 	salesOrderCount: number;
+	skippedOrderCount?: number;
 	projectionPending: boolean;
 	confirmationOpen: boolean;
 	choice: SalesCompletionChoice;
@@ -162,7 +164,8 @@ export function SalesProductionCompletionDialogs(
 					<AlertDialog.Header>
 						<AlertDialog.Title>Mark {milestone} completed</AlertDialog.Title>
 						<AlertDialog.Description>
-							{`Choose how GND should record ${milestone} completion${isBulk ? ` for ${props.salesOrderCount} selected orders` : ""}. Full workflow is selected by default.`}
+							{`Choose how GND should record ${milestone} completion${isBulk || props.skippedOrderCount ? ` for ${props.salesOrderCount} eligible order${props.salesOrderCount === 1 ? "" : "s"}` : ""}. ${props.canRunFullWorkflow === false ? "Only an audited status update is available." : "Full workflow is selected by default."}`}
+              {Boolean(props.skippedOrderCount) && ` ${props.skippedOrderCount} selected order${props.skippedOrderCount === 1 ? " is" : "s are"} excluded because the action is unnecessary, completed, or unavailable.`}
 						</AlertDialog.Description>
 					</AlertDialog.Header>
 					<RadioGroup
@@ -194,7 +197,7 @@ export function SalesProductionCompletionDialogs(
 								</span>
 								{props.canRunFullWorkflow === false ? (
 									<span className="mt-2 block text-xs text-amber-700 dark:text-amber-300">
-										Full-workflow permission is required for this choice.
+										{props.fullWorkflowUnavailableReason ?? "Full-workflow permission is required for this choice."}
 									</span>
 								) : null}
 							</span>

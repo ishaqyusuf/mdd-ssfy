@@ -14,12 +14,12 @@ export async function saveSalesFormDta(
 
 	if (
 		!result?.data?.error &&
-		result?.salesId &&
-		!normalizeSalesInventoryLegacyStatus(result.inventoryStatus)
+		result?.salesId
 	) {
         await queueSalesInventoryLineItemsSync({
             salesOrderId: result.salesId,
             source: "old-form",
+            skipInventory: Boolean(normalizeSalesInventoryLegacyStatus(result.inventoryStatus)),
         });
     }
 

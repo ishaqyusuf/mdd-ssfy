@@ -76,6 +76,9 @@ function BacklogActions({
 						asSubmenu={false}
 						currentStatus={item.status}
 						productionStatus={item.productionState}
+ pipeline={item.pipeline}
+ pipelineCapabilities={item.pipeline?.capabilities}
+ statusCandidates={[{salesId:item.id,status:item.status,pipeline:item.pipeline,pipelineRevision:item.pipeline?.revision}]}
 					/>
 				</SalesMenu>
 			) : null}

@@ -1,3 +1,4 @@
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
 import type { SalesInventoryMarkAsAction } from "@gnd/sales/sales-inventory-mark-as-preflight";
 
@@ -11,7 +12,13 @@ const PRODUCTION_COMPLETED_STATUSES = new Set<SalesOrderLifecycleStatus>([
 	"fulfilled",
 ]);
 
+export type SalesMenuPipeline = {
+	production?: Pick<SalesPipelineSnapshot["production"], "applicability">;
+	capabilities?: SalesPipelineSnapshot["capabilities"];
+};
+
 export type SalesBatchStatusCandidate = {
+	pipeline?: SalesMenuPipeline | null;
 	salesId: number;
 	status?: SalesOrderLifecycleStatus | null;
 	pipelineRevision?: string | null;
@@ -50,6 +57,11 @@ export function resolveSalesBatchStatusSelection({
 		const lifecycleException =
 			candidate?.status === "unknown" || candidate?.status === "conflict";
 		const shouldSkip =
+			(action === "production_completed" &&
+				(!candidate?.pipeline ||
+					candidate.pipeline.production?.applicability !== "required" ||
+					!candidate.pipeline.capabilities?.markProductionCompleted
+						?.allowed)) ||
 			lifecycleException ||
 			(action === "fulfilled" ? fulfilled : fulfilled || productionCompleted);
 

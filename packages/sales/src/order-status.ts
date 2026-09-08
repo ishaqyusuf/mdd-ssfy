@@ -2,7 +2,49 @@ import {
 	SALES_PIPELINE_HEADLINE_CODES,
 	SALES_PIPELINE_HEADLINE_META,
 	type SalesPipelineHeadlineCode,
+	type SalesPipelineSnapshot,
 } from "./sales-pipeline";
+
+/** Display copy uses the same lifecycle metadata as the standard status badges. */
+export function getSalesOrderStatusPresentation(
+	snapshot: SalesPipelineSnapshot | null | undefined,
+) {
+	const present = (status: SalesOrderLifecycleStatus, label: string) => ({
+		label,
+		tone: getSalesOrderLifecycleStatusTone(status),
+	});
+	if (!snapshot) return present("unknown", "Updating…");
+	const { headline, production } = snapshot;
+	if (headline.code === "conflict") return present("conflict", "Needs Review");
+	if (
+		production.applicability === "required" &&
+		production.state === "not_assigned" &&
+		["unknown", "awaiting_production"].includes(headline.code)
+	) {
+		return present("awaiting_production", "Not Assigned");
+	}
+	if (headline.code === "unknown") {
+		const requirementsPending =
+			snapshot.evidence.production.configuredRequirement === null &&
+			snapshot.evidence.fulfillment.configuredRequirement === null;
+		return present(
+			"unknown",
+			requirementsPending ? "Updating…" : "Needs Review",
+		);
+	}
+	if (
+		headline.code === "ready_to_fulfill" ||
+		(headline.code === "fulfillment_queued" &&
+			production.applicability === "not_required" &&
+			snapshot.dispatch.state === "none")
+	) {
+		return present("ready_to_fulfill", "Ready");
+	}
+	return present(
+		headline.code,
+		getSalesOrderLifecycleStatusLabel(headline.code),
+	);
+}
 
 export const SALES_ORDER_LIFECYCLE_STATUSES = SALES_PIPELINE_HEADLINE_CODES;
 
@@ -75,4 +117,22 @@ export function getSalesOrderLifecycleStatusBadgeClassName(
 			?.badgeClassName ??
 		"border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-300"
 	);
+}
+
+/** Short labels retain their normal lifecycle badge colors on every list surface. */
+export function getSalesOrderStatusBadgeClassName(
+	status: SalesOrderLifecycleStatus | string,
+	label: string,
+) {
+	const displayStatus =
+		label === "Ready"
+			? "ready_to_fulfill"
+			: label === "Not Assigned"
+				? "awaiting_production"
+				: label === "Updating…"
+					? "unknown"
+					: status === "administratively_completed"
+						? "fulfilled"
+						: status;
+	return getSalesOrderLifecycleStatusBadgeClassName(displayStatus);
 }

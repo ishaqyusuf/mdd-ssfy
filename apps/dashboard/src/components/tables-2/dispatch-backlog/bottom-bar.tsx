@@ -53,6 +53,7 @@ export function BottomBar({
 					>
 						<SalesMenu.MarkAs
 							asSubmenu={false}
+ statusCandidates={rows.map(row => ({salesId:row.id,status:row.status,pipeline:row.pipeline,pipelineRevision:row.pipeline?.revision}))}
 							onStatusActionSettled={onDeselect}
 						/>
 					</SalesMenu>

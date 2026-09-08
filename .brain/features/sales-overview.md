@@ -411,3 +411,10 @@ The temporary General renderer rollout is governed by
   `/sales-book/orders?sales-overview-id=09433PC&sales-type=order&mode=sales&salesTab=inventory`.
   Sales Overview opened with Inventory selected and no Configure Inventory
   dialog mounted.
+
+## Initial workflow calibration after save (2026-09-08)
+The existing sync-sales-inventory-line-items job now first locks the order, reconstructs derived item controls and totals from saved sale items and operational history, and refreshes the persisted order-list summary. Inventory sync follows separately; a failure remains retryable after the initial workflow summary has been published. New-form and old-form legacy saves queue this phase with skipInventory, preserving legacy inventory adaptation. Initial presentation is Ready when production is unnecessary and Not Assigned when required without assignment; missing generated requirements display Updating…. Missing item-type settings reject calibration instead of manufacturing no-production.
+
+Short initial workflow labels use existing lifecycle color metadata and badge classes: Ready maps to ready_to_fulfill, Not Assigned to awaiting_production, and Updating… to unknown. No separate color palette is introduced. Local verification of 09631PC and 09632AD calibration preserved operational history and resolved both to Ready.
+
+Mark as contains Archived/Restore active for single and batch orders, using direct archive state independently of workflow availability. Separate archive controls are removed. No-production orders hide ordinary production actions; existing audited cancellation access is preserved.

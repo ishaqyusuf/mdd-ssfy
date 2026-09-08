@@ -760,7 +760,7 @@ function DispatchActionsCell({
 				{showSalesMarkAs ? (
 					<>
 						<SalesMenu.Separator />
-						<SalesMenu.MarkAs />
+						<SalesMenu.MarkAs pipeline={item.pipeline} pipelineCapabilities={item.pipeline?.capabilities} statusCandidates={[{salesId:Number(item.order?.id || 0),status:item.pipeline?.headline.code,pipeline:item.pipeline,pipelineRevision:item.pipeline?.revision}]} />
 					</>
 				) : null}
 			</SalesMenu>

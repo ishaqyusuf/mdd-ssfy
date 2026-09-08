@@ -24,6 +24,13 @@ describe("queueSalesInventoryLineItemsSync", () => {
     );
   });
 
+  it("queues calibration for legacy sales without ordinary inventory sync", async () => {
+    await queueSalesInventoryLineItemsSync({salesOrderId: 123, source: "old-form", skipInventory: true});
+    expect(tasks.trigger).toHaveBeenCalledWith("sync-sales-inventory-line-items", {
+      salesOrderId: 123, source: "old-form", triggeredByUserId: null, skipInventory: true,
+    });
+  });
+
   it("keeps copy sales as a distinct sync source", async () => {
     await queueSalesInventoryLineItemsSync({
       salesOrderId: 456,

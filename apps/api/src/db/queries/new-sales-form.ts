@@ -4709,17 +4709,14 @@ async function runNewSalesFormPostSaveTasks(
 				documentPrefixes: getSalesDocumentPrefixes(isQuote),
 			}),
 		),
-		...(shouldSyncInventory
-			? [
-					runBoundedPostSaveTask("queue-sales-inventory-line-items-sync", () =>
-							queueSalesInventoryLineItemsSync({
-								salesOrderId: result.salesId,
-								source: "new-form",
-								triggeredByUserId: ctx.userId ?? null,
-							}),
-					),
-				]
-			: []),
+		runBoundedPostSaveTask("queue-sales-inventory-line-items-sync", () =>
+			queueSalesInventoryLineItemsSync({
+				salesOrderId: result.salesId,
+				source: "new-form",
+				triggeredByUserId: ctx.userId ?? null,
+				skipInventory: !shouldSyncInventory,
+			}),
+		),
 		runBoundedPostSaveTask("queue-sales-document-snapshot-warmups", () =>
 			queueSalesDocumentSnapshotWarmups(
 				getSalesDocumentWarmupInputs(result.salesId, isQuote),
