@@ -1,6 +1,10 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-09-08: Ticket20 deployed on READY dpl_9XPRNCrFMxibkMjPsBWvEqrxsqxS
+  serving www.gndprodesk.com. Live Week/Month, saved dispatch-date placement,
+  green completed styling and both completion routes excluded from Past Due
+  verified read-only. Release handoff in Scratch contains exact evidence.
 - 2026-09-07: Ticket20 locally implements URL-owned Week/Month navigation,
   shared date pickers, business-timezone dueDate grouping and bounded cursor
   pagination. Undated records load independently. Sales-domain completion
