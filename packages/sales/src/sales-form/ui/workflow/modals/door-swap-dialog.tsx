@@ -1,6 +1,8 @@
 /** @jsxImportSource react */
 "use client";
 
+import { useState } from "react";
+import { Input } from "@gnd/ui/input";
 import { Button } from "@gnd/ui/button";
 import {
 	Dialog,
@@ -33,10 +35,25 @@ export type DoorSwapDialogProps<TComponent extends DoorSwapDialogComponent> = {
 export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 	props: DoorSwapDialogProps<TComponent>,
 ) {
+	const [search, setSearch] = useState("");
+	const query = search.trim().toLowerCase();
+	const candidates = props.candidates.filter((component) =>
+		[
+			component.title,
+			component.uid,
+			props.componentLabel(component.title || component.uid || "Door"),
+		].some((value) => String(value || "").toLowerCase().includes(query)),
+	);
+
 	return (
-		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
+		<Dialog
+			open={props.open}
+			onOpenChange={(open) => {
+				setSearch("");
+				props.onOpenChange(open);
+			}}
+		>
 			<DialogContent
-				onOpenAutoFocus={(event) => event.preventDefault()}
 				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl flex-col overflow-hidden"
 			>
 				<DialogHeader className="shrink-0">
@@ -55,16 +72,27 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 					)}{" "}
 					will be repriced on the selected door.
 				</div>
+				<Input
+					type="search"
+					aria-label="Search doors"
+					placeholder="Search doors..."
+					value={search}
+					onChange={(event) => setSearch(event.target.value)}
+					className="shrink-0"
+				/>
 				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
 					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-						{props.candidates.map((component) => {
+						{candidates.map((component) => {
 							const imageSrc = props.resolveImageSrc(component.img);
 							return (
 								<button
 									key={`swap-door-${component.uid}`}
 									type="button"
 									className="overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
-									onClick={() => props.onSwap(component)}
+									onClick={() => {
+										setSearch("");
+										props.onSwap(component);
+									}}
 								>
 									<div className="h-32 bg-muted">
 										{imageSrc ? (
@@ -94,16 +122,22 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 								</button>
 							);
 						})}
-						{!props.candidates.length ? (
+						{!candidates.length ? (
 							<div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-								No other visible door options are available to swap into right
-								now.
+								{query ? "No doors match your search." : "No other visible door options are available to swap into right now."}
 							</div>
 						) : null}
 					</div>
 				</div>
 				<DialogFooter className="shrink-0">
-					<Button variant="outline" onClick={() => props.onOpenChange(false)}>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => {
+							setSearch("");
+							props.onOpenChange(false);
+						}}
+					>
 						Cancel
 					</Button>
 				</DialogFooter>

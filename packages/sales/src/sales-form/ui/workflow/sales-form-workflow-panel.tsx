@@ -868,15 +868,16 @@ export function SalesFormWorkflowPanel<
 							? openDoorSizeModal(line, activeDoorComponent)
 							: undefined
 					}
-					onSwapDoor={() =>
+					onSwapDoor={() => {
+						setActiveItem(String(line.uid || ""));
 						setDoorSwapModal({
 							open: true,
 							lineUid: String(line.uid || ""),
 							sourceUid: activeDoorComponent?.uid
 								? String(activeDoorComponent.uid)
 								: null,
-						})
-					}
+						});
+					}}
 					onDeleteDoor={deleteDoorOption}
 					onPatchRow={patchRow}
 					onRemoveSizeRow={(row) =>

@@ -1395,13 +1395,14 @@ export function ItemWorkflowPanel() {
 								})
 							: undefined
 					}
-					onSwapDoor={() =>
+					onSwapDoor={() => {
+						setEditor({ activeItem: line.uid });
 						setDoorSwapModal({
 							open: true,
 							lineUid: line.uid,
 							sourceUid: activeDoorComponent?.uid || null,
-						})
-					}
+						});
+					}}
 					onDeleteDoor={() =>
 						activeDoorComponent
 							? removeDoorOptionFromHpt(

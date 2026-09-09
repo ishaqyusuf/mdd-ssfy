@@ -856,3 +856,15 @@ New Sales Form save automatically tolerates missing approved child IDs only when
 Draft/final/review/approval failures display persistent safe details with operation, order, code, reference, timestamp and Copy error details. A successful persistence followed by failed statistics refresh is labeled saved, with follow-up requiring attention; it does not mark the order unsaved or invite resubmission. Statistics refresh uses keyed quantity-control persistence instead of duplicate-prone bulk insertion.
 
 Verified local 09623PC edit/save/reload/repeat-save and fresh09635PC copy/save. See `../plans/2026-09-08-copied-sale-confirm-save-investigation.md` for values, tests and rollout limitations.
+
+## Multi-item door swap and search (2026-09-09)
+
+- Swap Door activates the clicked sales line before opening in both Dashboard
+  and shared package workflow panels. Modal ownership, candidate visibility,
+  supplier and pricing context therefore follow that item even when another
+  expanded item was active.
+- The shared modal provides an autofocus search field matching door titles,
+  display labels and UIDs, ignoring case and surrounding whitespace. Empty
+  matches show guidance; closing or selecting a replacement clears search.
+- Existing size/quantity preservation and repricing behavior is unchanged.
+  No API, database, permission or persistence contract changed.
