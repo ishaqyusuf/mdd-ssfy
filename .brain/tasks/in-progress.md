@@ -691,6 +691,3 @@ Tracks the active work queue. Keep this focused and execution-ready.
   deploys to production. Before continuing, initialize Trigger staging and set
   its non-production `DATABASE_URL` plus required worker credentials. Do not
   copy the production database URL into staging.
-
-### [Production missing-inbound alert and quick availability](2026-09-09-production-missing-inbound-and-quick-availability.md)
-- Status: In Progress

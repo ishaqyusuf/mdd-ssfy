@@ -1985,3 +1985,6 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 
 ### [Sales Mark as eligibility, labels and archive](2026-09-08-sales-mark-as-eligibility-and-archive.md)
 - Status: Done
+
+### [Production missing-inbound alert and quick availability](2026-09-09-production-missing-inbound-and-quick-availability.md)
+- Status: Done

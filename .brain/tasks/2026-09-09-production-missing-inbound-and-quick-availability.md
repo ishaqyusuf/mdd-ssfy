@@ -1,7 +1,7 @@
 # Task: Production missing-inbound alert and quick availability
 
 ## Status
-In Progress
+Done
 
 ## Priority
 Medium
@@ -13,7 +13,7 @@ Medium
 2026-09-09
 
 ## Plan Status
-In Progress
+Done
 
 ## Plan File
 [Plan](../plans/2026-09-09-feature-production-missing-inbound-and-quick-availability.md)
@@ -25,8 +25,8 @@ In Progress
 User requested inspection of order 09602PC and a detailed checklist plan; then added a grouped Mark as available control with supplier submenu and received-date double-click save. Brain owns this task. Browser review found zero inbounds and four uncovered needs totaling 58 units.
 
 ## Implementation Progress
-- Completion: 93%
-- Current Checklist: 10/14 — Scoped commit and final requirement audit
+- Completion: 100%
+- Current Checklist: 14/14 — Complete
 - Blockers: None.
 
 ## Implementation Checklist
@@ -40,7 +40,7 @@ User requested inspection of order 09602PC and a detailed checklist plan; then a
 - [x] Verify role/transaction/UI behavior and update Brain implementation docs.
 
 - [x] Complete final relevant suite and code review.
-- [ ] Commit scoped work on the current branch and complete the requirement audit.
+- [x] Commit scoped work on the current branch and complete the requirement audit.
 - [x] Extend the shared Production material panel with covered-review eligibility for reuse in calendar details.
 - [x] Add the calendar's full-width View material actions expansion with lazy loading and persistent nested actions.
 - [x] Add Sync materials to assignments for safe, idempotent reconciliation of already covered submissions and refresh all affected Production surfaces.
@@ -48,6 +48,12 @@ User requested inspection of order 09602PC and a detailed checklist plan; then a
 
 
 ## Validation Evidence
+### Completion — 2026-09-09
+- All14 implementation items are complete. Verification, the two-second hover change and Brain acceptance audit committed on master as b2ebd9377. Main runtime implementation is present in existing commit6f9831d09; unrelated concurrent work was not staged.
+- Final compatibility run:54 pass,0 fail,494 assertions. Attention checks:6 pass,19 assertions. Full relevant suite, corrected affected-file reruns, actual worker/admin responsive browser evidence and two-axis no-findings review are recorded below. Existing repository typecheck failures remain a documented limitation, not a passing typecheck claim.
+- No reviewed customer order was changed; disposable fixtures were cleaned and the original admin account restored. No database schema migration was required. Task pointer moved to done.md. Historical incomplete-status notes below describe earlier milestones only.
+
+
 ### Compatibility and requirement audit — 2026-09-09
 - Final local database regression passes54 tests /494 assertions across ordinary receipt, receipt/cancellation concurrency, availability and covered-material synchronization. This validates existing cancellation compensation, provenance, later dispatch/payment preservation, scoped worker authority, stock coherence and replay. Command completed successfully; log: /tmp/gnd-final-receipt-compatibility.log.
 - Audited all nine original acceptance criteria plus calendar/Sync/footer/hover additions against current code, test output and recorded browser checks. Plan acceptance and extension verification are now checked. Both final review agents remain complete with no actionable findings. The final two-second timing edit changes only the opening timer; cleanup and immediate explicit activation remain intact.
