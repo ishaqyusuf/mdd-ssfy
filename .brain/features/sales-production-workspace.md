@@ -1073,3 +1073,11 @@ workspace and list projections; pending Production submissions remain pending.
 Submitted quantity supersedes Assigned/Material Ready except real partial staffing
 gaps. See [implementation](sales-productions-v2.md) and the
 [receipt ADR](../decisions/2026-09-08-scoped-production-inbound-receipt.md).
+
+## Inline overdue due-date editing — 2026-09-09
+
+- Admin Production Schedule cells, including mobile cards, show a calendar icon beside overdue dates for users with editProduction. Today/future, unscheduled/invalid and canonically completed rows do not offer the action. Worker table columns remain read-only.
+- The inline calendar starts on the existing date; selecting a different date enables Save date. Cancel makes no change, repeated saves are locked while pending, and errors preserve the selection.
+- Saving uses the existing guarded batch assignment-edit action for one order, updating only active incomplete assignment due dates. It supplies no ownership or quantity changes and normalizes the selected calendar day with the shared Production date helper.
+- Successful saves close the picker and invalidate active Production lists, worker lists, summaries and calendars, plus the scoped pipeline event for open order details. A refresh failure is reported as a saved date needing refresh, not a failed save.
+- Mobile date controls sit outside the order-opening button. No new API, database migration, permission or background job is introduced. Validation is recorded in the linked [task](../tasks/2026-09-09-production-inline-overdue-date.md).

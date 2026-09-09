@@ -299,7 +299,8 @@ export function DataTable({
 													"Not assigned"}
 											</Badge>
 										</div>
-										<div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+										</button>
+										<div className="grid grid-cols-2 gap-x-3 gap-y-2 px-3 pb-3 text-xs">
 											{workerMode ? (
 												<MobileCardField
 													label="Due"
@@ -327,7 +328,6 @@ export function DataTable({
 												value={`${Math.round(item.status?.production?.workflow?.percentage || 0)}%`}
 											/>
 										</div>
-									</button>
 									{!workerMode && item.invoicePresentation ? (
 										<div
 											className="flex items-center justify-between px-3 pb-3 text-xs"

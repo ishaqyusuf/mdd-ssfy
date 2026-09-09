@@ -1988,3 +1988,6 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 
 ### [Production missing-inbound alert and quick availability](2026-09-09-production-missing-inbound-and-quick-availability.md)
 - Status: Done
+
+### [Production table inline overdue date](2026-09-09-production-inline-overdue-date.md)
+- Status: Done

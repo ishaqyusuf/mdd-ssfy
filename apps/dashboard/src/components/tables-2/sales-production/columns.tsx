@@ -21,6 +21,7 @@ import { getProductionDueDatePresentation } from "@sales/production-date";
 import type { getSalesProductions } from "@sales/sales-production";
 import type { ColumnDef } from "@tanstack/react-table";
 
+import { ProductionDueDateAction } from "./due-date-action";
 import { getSalesProductionAssignedToLabel } from "./assigned-to-label";
 import { getSalesProductionDueDateClassName } from "./due-date-tone";
 import { getSalesProductionSchedulePresentation } from "./schedule-presentation";
@@ -416,18 +417,26 @@ export function ScheduleCell({ item }: { item: SalesProductionRow }) {
 	const dueDate = item.dueDate || item.alert?.date;
 	const presentation = getSalesProductionSchedulePresentation(dueDate);
 	return (
-		<div className="flex min-w-0 flex-col gap-1">
-			<span
-				className={cn(
-					"truncate font-medium",
-					getSalesProductionDueDateClassName(dueDate, item.completed),
-				)}
-			>
-				{presentation.date}
-			</span>
-			<span className="truncate text-xs text-muted-foreground">
-				{presentation.label}
-			</span>
+		<div className="flex min-w-0 items-center gap-1">
+			<div className="flex min-w-0 flex-col gap-1">
+				<span
+					className={cn(
+						"truncate font-medium",
+						getSalesProductionDueDateClassName(dueDate, item.completed),
+					)}
+				>
+					{presentation.date}
+				</span>
+				<span className="truncate text-xs text-muted-foreground">
+					{presentation.label}
+				</span>
+			</div>
+			<ProductionDueDateAction
+				salesId={item.id}
+				orderNo={item.orderId}
+				dueDate={dueDate}
+				completed={item.completed}
+			/>
 		</div>
 	);
 }
