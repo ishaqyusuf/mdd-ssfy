@@ -10,7 +10,8 @@ import { synchronizationResultMessage } from "./synchronization-result-message";
 export function CoveredMaterialsAction({
 	salesOrderId,
 	showPending = false,
-}: { salesOrderId: number; showPending?: boolean }) {
+	onOpenInventory,
+}: { salesOrderId: number; showPending?: boolean; onOpenInventory?: () => void }) {
 	const trpc = useTRPC();
 	const client = useQueryClient();
 	const query = useQuery(
@@ -65,9 +66,14 @@ export function CoveredMaterialsAction({
 			!summary.eligibleReviewCount &&
 			!summary.applicableAllocationCount &&
 			!summary.applicableReceivedQty &&
-			!summary.applicableDemandCount)
+			!summary.applicableDemandCount &&
+			!summary.repairableAllocationCount &&
+			!summary.repairableClassificationCount &&
+			!summary.blockedReviewCount &&
+			!summary.blockers?.length)
 	)
 		return null;
+	const reviewOnly = summary.pendingReviewCount > 0 && !summary.pendingMaterialQty && !summary.applicableAllocationCount && !summary.applicableReceivedQty && !summary.applicableDemandCount && !summary.repairableAllocationCount && !summary.repairableClassificationCount;
 	return (
 		<section
 			aria-label="Synchronize assignment materials"
@@ -75,25 +81,25 @@ export function CoveredMaterialsAction({
 		>
 			<div className="space-y-1">
 				<h3 className="text-sm font-medium">
-					Received materials need to be synced to assignments
+					{summary.canApply ? reviewOnly ? "Materials are ready — submitted work needs approval" : "Received materials need to be synced to assignments" : "Material synchronization needs attention"}
 				</h3>
 				<p className="text-xs text-muted-foreground">
-					Sync received materials to assignment needs and approve eligible
-					submitted work in one step
+					{summary.canApply ? reviewOnly ? "Sync will recheck the pending reviews and approve eligible submitted work in one step" : "Sync received materials, reconcile assignment records, and approve eligible submitted work in one step" : "Some material or production records still need to be resolved"}
 					{summary.workerMode ? " for your assignments" : ""}.
 				</p>
-				{!summary.canApply && (
+				{summary.canSynchronize === false && (
 					<p className="text-xs text-muted-foreground">
 						Contact your supervisor to resolve the remaining material
 						quantities.
 					</p>
 				)}
-				{summary.allocationBlocked && (
+				{summary.canApply && (summary.repairableAllocationCount > 0 || summary.repairableClassificationCount > 0) && (
 					<p className="text-xs text-muted-foreground">
-						Some quantities are inconsistent. Eligible materials will sync; the
-						rest will stay pending.
+						Sync will repair stale material suggestions and inventory production setup where the records can be verified.
 					</p>
 				)}
+				{summary.blockers?.map((message, index) => <p key={`${index}-${message}`} className="text-xs text-muted-foreground">{message}</p>)}
+				{!summary.canApply && !summary.blockers?.length && summary.canSynchronize !== false && <p className="text-xs text-muted-foreground">Open inventory to check material coverage. Submitted work may also need its assignment details corrected before approval.</p>}
 				{mutation.error && (
 					<p role="alert" className="text-sm text-destructive">
 						{mutation.error.message}
@@ -101,6 +107,7 @@ export function CoveredMaterialsAction({
 				)}
 			</div>
 			<div className="flex flex-wrap gap-2">
+				{!summary.canApply && !summary.workerMode && onOpenInventory && <Button size="sm" variant="outline" onClick={onOpenInventory}>Open inventory</Button>}
 				{summary.canApply && (
 					<Button
 						size="sm"

@@ -22,6 +22,11 @@ export function ProductionMaterialAvailability({
 	);
 	const { setParams } = useSalesOverviewQuery();
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
+	const openInventory = () => {
+		if (onOpenInventory) return onOpenInventory();
+		setInventorySegment("stock");
+		setParams({ salesTab: "inventory" });
+	};
 	if (query.isLoading)
 		return (
 			<p className="text-sm text-muted-foreground" role="status">
@@ -41,6 +46,7 @@ export function ProductionMaterialAvailability({
 			<CoveredMaterialsAction
 				salesOrderId={salesOrderId}
 				showPending={summary.state === "review"}
+				onOpenInventory={openInventory}
 			/>
 		);
 	const message =
@@ -96,7 +102,7 @@ export function ProductionMaterialAvailability({
 					)}
 				</div>
 			</section>
-			<CoveredMaterialsAction salesOrderId={salesOrderId} />
+			<CoveredMaterialsAction salesOrderId={salesOrderId} onOpenInventory={openInventory} />
 		</>
 	);
 }

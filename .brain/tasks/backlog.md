@@ -1,5 +1,8 @@
 # Backlog
 
+### [Capture customer requests and build example-guided sales generation](2026-09-09-sales-customer-request-learning.md)
+- Status: Backlog
+
 
 ## Purpose
 Tracks queued work that is important but not currently in the top execution slice.

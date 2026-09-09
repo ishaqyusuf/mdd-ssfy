@@ -2,9 +2,71 @@
 
 ## Implementation state
 
+Review-list refresh resets pagination and invalidates cached list queries. Service
+selection follows current reviewer membership; failed list requests hide cached
+incident rows. Runtime browser verification remains pending.
+
+The initial review screen is available at `/settings/reliability`: selects permitted
+services, lists incidents and opens revision-bound draft previews. Evidence renders
+as plain text. No publication or approval action is available yet. Browser validation
+and navigation integration remain pending.
+
 In progress. [Canonical task](../tasks/2026-09-09-autonomous-production-error-management.md)
 tracks full requirements and activation gates. [Research](../research/2026-09-03-autonomous-production-error-management.md)
 is the design source. No provider connections or publications are active yet.
+
+## Evidence packet counts
+
+`previewReliabilityIncident` requires server-supplied principal membership for the
+service, reads the requested revision and returns rendered title/evidence with a
+SHA-256 digest binding incident, service, revision and exact content. It returns
+forbidden, unavailable or informational without a draft where appropriate. Preview
+does not persist approval, claim delivery or acquire provider credentials. The
+authenticated review route/UI and approval lifecycle remain pending.
+
+`renderReliabilityEvidenceDraft` formats reconstructed packets as a bounded GitHub
+title/body, showing count precision, observation dates, owner and up to ten provider
+references. It explicitly leaves root cause, query coverage and investigation
+criteria unestablished and refuses INFO ticket drafts. It performs no publication;
+review and send wiring remain pending.
+
+`initializeReliabilityEvidenceDraft` stores the baseline under existing
+`ReliabilityIncident.analysis` as `{schemaVersion: 1, state: "DRAFT", packet}`.
+The atomic write requires the same service/revision and absent analysis. Concurrent
+initializers have one winner; existing analysis is never replaced. This does not
+change incident revision, approve publication, or refresh a draft from an older
+revision. Those later lifecycle operations remain pending.
+
+Snapshot `evidenceReferences` contains at most 100 reconstructed provider references
+with account/project/event/group, operation, recorded impact/time, and allowlisted
+deployment/request/trace/release identifiers. Raw evidence JSON is never forwarded.
+References retain per-occurrence provenance; they do not assert one affected release
+for the entire incident or manufacture provider URLs. Provider links and further
+analysis enrichment remain pending.
+
+`getReliabilityEvidencePacket` reads the requested service, incident and revision
+in a RepeatableRead transaction, sampling at most 100 canonical occurrence keys.
+Wrong-service or unavailable revisions return null. Operation-instance and user
+counts remain unknown because the ledger currently stores operation names rather
+than those identities. The returned baseline is not persisted or approved for
+publication and still needs provider evidence enrichment.
+
+`prepareReliabilityEvidencePacket` creates a versioned deterministic baseline tied
+to an incident revision. It preserves observation timestamps without treating them
+as provider query coverage. Missing behavior, impact, release, hypotheses, related
+work and acceptance criteria remain explicitly unknown or empty. P0/P1 receive
+urgent-investigation routing; INFO remains informational. The baseline performs
+no model or tool calls and grants no publication authorization. Evidence enrichment,
+stored reviewable drafts and urgent delivery wiring remain pending.
+
+`summarizeReliabilityEvidenceCounts` distinguishes recorded ledger events from
+distinct operation instances and users. At most 1,000 samples are accepted;
+canonical scoped occurrence identities are deduplicated and conflicting duplicates
+are rejected. Exact distinct counts require complete ledger sample coverage and
+known identities for every event. Partial known counts are lower bounds; absent
+identities are unknown, not zero. No sampled identities appear in the output.
+Ledger completeness does not establish provider ingestion coverage. Packet assembly
+and integration with analysis/publication remain pending.
 
 ## Intake boundary
 

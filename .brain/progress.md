@@ -1,5 +1,13 @@
 # Progress
 
+## 2026-09-09 — Remove Office invoice badge
+
+- The shared invoice payment-review badge now renders only for online payments;
+  Office and missing-origin badges are removed across all consumers.
+- Invoice amounts, breakdowns, and payment actions remain unchanged.
+- Validation: isolated component rendering passed for online, office, null
+  review, null origin, and missing origin; scoped `git diff --check` passed.
+
 ## 2026-09-09 — Post-scheduler reliability verification
 
 - All 37 local integration tests / 229 assertions pass; observability typecheck
@@ -205,8 +213,9 @@
 
 - Opened `.brain/intake/2026-09-09-client-call-notes.md` for ongoing client-call
   bugs, tasks, features, and clarifications. Captured requests to remove items
-  from an existing inbound and verify inbound Adjust accuracy. Both await triage;
-  this session remains note capture.
+  from an existing inbound, verify inbound Adjust accuracy, and sort Production
+  calendar items by assignment/rescheduling recency within each date (newest
+  first). Items await triage; this session remains note capture.
 
 ## 2026-09-09 — Sentry discovery health
 
@@ -17261,3 +17270,7 @@ and preserves original reports, worker, labor and dates on partial splits. Sixte
 focused tests pass. Sales typecheck validation and live acceptance limitations are
 recorded in `tasks/2026-09-09-production-worker-reassignment.md`; no schema changes,
 production data changes or deployment.
+
+- 2026-09-09: Completed [Production Sync repairs](tasks/2026-09-09-production-sync-repair-dead-end.md), including one-click review-only finalization. Local09602PC interior48 units now approved; exterior10 remain assigned. Focused transaction21 and UI/planner12 tests pass. Existing typecheck failures documented; no deployment.
+
+- 2026-09-09: Simplified production calendar card controls into actions menu plus drag handle, priority border/overview, and full-width wrapping names. Local worker/reschedule menu checks passed without data writes;7 focused tests passed.

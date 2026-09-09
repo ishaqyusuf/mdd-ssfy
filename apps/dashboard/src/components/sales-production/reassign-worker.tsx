@@ -12,8 +12,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 
-export function ReassignProductionWorker({salesId, assignmentIds, disabled = false, onUpdated}: {
- salesId: number; assignmentIds: number[]; disabled?: boolean; onUpdated?: () => void;
+export function ReassignProductionWorker({salesId, assignmentIds, disabled = false, onUpdated, menuItem = false}: {
+ salesId: number; assignmentIds: number[]; disabled?: boolean; onUpdated?: () => void; menuItem?: boolean;
 }) {
  const auth = useAuth();
  const overview = useSalesOverviewQuery();
@@ -33,8 +33,9 @@ export function ReassignProductionWorker({salesId, assignmentIds, disabled = fal
  if (!auth.can.editProduction) return null;
  return <Popover open={open} onOpenChange={setOpen}>
   <PopoverTrigger asChild>
-   <Button type="button" size="icon" variant="ghost" className="size-8 shrink-0" disabled={disabled || action.isExecuting} aria-label="Change production worker" title={disabled ? "All assigned work has been submitted" : "Change production worker"} onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
-    <Icons.Edit className="size-4" />
+   <Button type="button" size={menuItem ? "default" : "icon"} variant="ghost" className={menuItem ? "w-full justify-start gap-2" : "size-8 shrink-0"} disabled={disabled || action.isExecuting} aria-label="Change production worker" title={disabled ? "All assigned work has been submitted" : "Change production worker"} onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
+    <Icons.Edit className="size-4 shrink-0" />
+    {menuItem ? "Change production worker" : null}
    </Button>
   </PopoverTrigger>
   <PopoverContent align="end" className="w-64 p-2" onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>

@@ -47,3 +47,7 @@ export { appendReliabilityGithubEvidence } from "./github-create";
 export { publishGithubIncident } from "./github-publish";
 export { signGithubAppJwt } from "./github-app-jwt";
 export { exchangeGithubInstallationToken } from "./github-installation-token";
+export { summarizeReliabilityEvidenceCounts } from "./evidence-counts";
+export { prepareReliabilityEvidencePacket } from "./evidence-packet";
+export { prepareReliabilityEvidenceReferences } from "./evidence-references";
+export { renderReliabilityEvidenceDraft } from "./evidence-draft";

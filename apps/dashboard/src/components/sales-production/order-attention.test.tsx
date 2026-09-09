@@ -12,10 +12,10 @@ const presentation: ProductionOrderPresentation = {
  reportedQty:2,
 };
 const props={presentation,orderNo:"TEST-1",lockReason:"Completed work cannot be moved."};
-test("tooltip gives each alert its own icon and includes the lock reason",()=>{
+test("tooltip gives each alert its own icon without the drag lock reason",()=>{
  const html=renderToStaticMarkup(<ProductionAttentionTooltip {...props}><button>Order</button></ProductionAttentionTooltip>);
- expect(html).toContain("🔒");
- expect(html).toContain(props.lockReason);
+ expect(html).not.toContain("🔒");
+ expect(html).not.toContain(props.lockReason);
  expect(html).toContain("Reported work; approval is still required");
  expect(html.match(/<li /g)?.length).toBe(2);
  expect(html.match(/<svg /g)?.length).toBe(2);
@@ -25,7 +25,7 @@ test("lock-only explanation does not introduce an alert button",()=>{
  const quiet={...props,presentation:{...presentation,attention:[]}};
  expect(renderToStaticMarkup(<ProductionAttentionButton {...quiet}/>)).toBe("");
  const html=renderToStaticMarkup(<ProductionAttentionTooltip {...quiet}><button>Order</button></ProductionAttentionTooltip>);
- expect(html).toContain(quiet.lockReason);
+ expect(html).not.toContain(quiet.lockReason);
  expect(html).not.toContain("<li");
 });
 test("worker tooltip suppression renders only the original control",()=>{
@@ -33,12 +33,13 @@ test("worker tooltip suppression renders only the original control",()=>{
  expect(html).toBe("<button>Order</button>");
 });
 
-test("lock-only card offers a separate tappable reason without an alert icon",()=>{
+test("locked card shows a disabled slashed drag handle",()=>{
  const quiet={...props,presentation:{...presentation,attention:[]}};
  const html=renderToStaticMarkup(<ProductionAttentionButton {...quiet} kind="lock"/>);
- expect(html).toContain('aria-label="Why TEST-1 cannot be rescheduled"');
- expect(html).toContain("🔒");
- expect(html).not.toContain("<svg");
+ expect(html).toContain('aria-label="Dragging unavailable for TEST-1"');
+ expect(html).not.toContain("🔒");
+ expect(html).toContain("<svg");
+ expect(html).toContain('disabled=""');
 });
 
 test("expanded calendar details replace material prose and retain independent blockers",()=>{
@@ -52,4 +53,10 @@ test("calendar cards render an explicit details control without mounting materia
  expect(html).toContain('aria-label="Material details for TEST-1"');
  expect(html).not.toContain("Checking material availability");
  expect(html).not.toContain("Select available materials");
+});
+
+test("completed order overview retains priority", () => {
+ const html = renderToStaticMarkup(<ProductionAttentionTooltip {...props} priority="CRITICAL"><button>Order</button></ProductionAttentionTooltip>);
+ expect(html).toContain("Critical");
+ expect(html).toContain("Production completed");
 });

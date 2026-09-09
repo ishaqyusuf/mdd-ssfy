@@ -15,9 +15,11 @@ import {
 } from "@gnd/observability/reliability";
 import { handleVercelDrainRequest } from "../../../../apps/api/src/rest/reliability-vercel";
 import { handleVercelDeploymentRequest } from "../../../../apps/api/src/rest/reliability-vercel-deployment";
+import { reliabilityRouter } from "../../../../apps/api/src/trpc/routers/reliability.route";
 import { publishConfiguredGithubIncident } from "../../../jobs/src/reliability/configured-github-publication";
 import { recoverConfiguredGithubDelivery } from "../../../jobs/src/reliability/configured-github-recovery";
 import { deliverReliabilityIncident } from "../../../jobs/src/reliability/deliver-incident";
+import { previewReliabilityIncident } from "../../../jobs/src/reliability/preview-incident";
 import { reconcileSentrySource } from "../../../jobs/src/reliability/reconcile-sentry";
 import { reconcileTriggerSource } from "../../../jobs/src/reliability/reconcile-trigger";
 import { reconcileVercelSource } from "../../../jobs/src/reliability/reconcile-vercel";
@@ -44,6 +46,10 @@ import {
 	reserveGithubRecoveryScan,
 	settleReliabilityDelivery,
 } from "./reliability-delivery";
+import {
+	getReliabilityEvidencePacket,
+	initializeReliabilityEvidenceDraft,
+} from "./reliability-evidence";
 import {
 	getDueTriggerWatches,
 	getTriggerReconciliationHealth,
@@ -118,6 +124,239 @@ afterAll(async () => {
 });
 
 describe.skipIf(!enabled)("durable reliability intake", () => {
+	it("paginates a full incident list without duplicates or omissions", async () => {
+		const prefix = `${service.id}-pagination`;
+		const ids = Array.from(
+			{ length: 53 },
+			(_, index) => `${prefix}-${String(index).padStart(3, "0")}`,
+		);
+		await db.reliabilityIncident.createMany({
+			data: ids.map((id) => ({
+				id,
+				problemKey: createHash("sha256").update(id).digest("hex"),
+				serviceId: service.id,
+				owner: service.owner,
+				severity: "P2",
+				status: "NEEDS_INVESTIGATION",
+				occurrenceCount: 0,
+				firstSeenAt: now,
+				lastSeenAt: now,
+			})),
+		});
+		const { listReliabilityIncidents } = await import("./reliability-list");
+		const principal = { actorId: "reviewer", serviceIds: [service.id] };
+		const first = await listReliabilityIncidents(
+			db,
+			{ serviceId: service.id },
+			principal,
+		);
+		if (first.status !== "ok") throw new Error("Expected list");
+		expect(first.items).toHaveLength(50);
+		expect(first.nextCursor).toBe(first.items.at(-1)?.id);
+		const seen = first.items.map((item) => item.id);
+		let cursor = first.nextCursor;
+		let pages = 1;
+		while (cursor && pages < 10) {
+			const page = await listReliabilityIncidents(
+				db,
+				{ serviceId: service.id, cursor },
+				principal,
+			);
+			if (page.status !== "ok") throw new Error("Expected page");
+			seen.push(...page.items.map((item) => item.id));
+			cursor = page.nextCursor;
+			pages++;
+		}
+		expect(cursor).toBeNull();
+		expect(new Set(seen).size).toBe(seen.length);
+		expect(ids.every((id) => seen.includes(id))).toBe(true);
+		await db.reliabilityIncident.deleteMany({ where: { id: { in: ids } } });
+	});
+	it("lists only the authorized service and supports a stable continuation cursor", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("list", { groupId: `${service.id}-list` }),
+		);
+		const previous = process.env.RELIABILITY_REVIEWER_MEMBERSHIPS;
+		process.env.RELIABILITY_REVIEWER_MEMBERSHIPS = JSON.stringify([
+			{ userId: 42, serviceIds: [service.id] },
+		]);
+		try {
+			const caller = reliabilityRouter.createCaller({ db, userId: 42 });
+			const result = await caller.list({ serviceId: service.id });
+			expect(result.items.some((item) => item.id === incident.id)).toBe(true);
+			expect(result.items.every((item) => item.serviceId === service.id)).toBe(
+				true,
+			);
+			expect(result.items.length).toBeLessThanOrEqual(50);
+			expect(result.items[0]).not.toHaveProperty("analysis");
+			const next = await caller.list({
+				serviceId: service.id,
+				cursor: incident.id,
+			});
+			expect(next.items.every((item) => item.id < incident.id)).toBe(true);
+			await expect(caller.list({ serviceId: "other" })).rejects.toMatchObject({
+				code: "FORBIDDEN",
+			});
+		} finally {
+			if (previous === undefined)
+				Reflect.deleteProperty(process.env, "RELIABILITY_REVIEWER_MEMBERSHIPS");
+			else process.env.RELIABILITY_REVIEWER_MEMBERSHIPS = previous;
+		}
+	});
+	it("serves an authorized preview through tRPC and rejects an outdated revision", async () => {
+		const groupId = `${service.id}-route-preview`;
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("route-preview", { groupId }),
+		);
+		const previous = process.env.RELIABILITY_REVIEWER_MEMBERSHIPS;
+		process.env.RELIABILITY_REVIEWER_MEMBERSHIPS = JSON.stringify([
+			{ userId: 42, serviceIds: [service.id] },
+		]);
+		try {
+			const caller = reliabilityRouter.createCaller({ db, userId: 42 });
+			const scope = {
+				incidentId: incident.id,
+				serviceId: service.id,
+				revision: incident.revision,
+			};
+			const preview = await caller.preview(scope);
+			expect(preview.status).toBe("preview");
+			if (preview.status !== "preview") throw new Error("Expected preview");
+			expect(preview.evidence).toContain("Recorded events: 1");
+			const { incident: updated } = await ingestReliabilityOccurrence(
+				db,
+				event("route-preview-next", { groupId }),
+			);
+			expect(await caller.preview(scope)).toEqual({ status: "not_available" });
+			const next = await caller.preview({
+				...scope,
+				revision: updated.revision,
+			});
+			expect(next.status).toBe("preview");
+			if (next.status !== "preview") throw new Error("Expected new preview");
+			expect(next.digest).not.toBe(preview.digest);
+			expect(next.evidence).toContain("Recorded events: 2");
+		} finally {
+			if (previous === undefined)
+				Reflect.deleteProperty(process.env, "RELIABILITY_REVIEWER_MEMBERSHIPS");
+			else process.env.RELIABILITY_REVIEWER_MEMBERSHIPS = previous;
+		}
+	});
+	it("previews a scoped incident draft without claiming delivery or approving it", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("preview", { groupId: `${service.id}-preview` }),
+		);
+		const scope = {
+			incidentId: incident.id,
+			serviceId: service.id,
+			revision: incident.revision,
+		};
+		const principal = { actorId: "reviewer", serviceIds: [service.id] };
+		expect(
+			await previewReliabilityIncident(db, scope, {
+				...principal,
+				serviceIds: [],
+			}),
+		).toEqual({ status: "forbidden" });
+		const preview = await previewReliabilityIncident(db, scope, principal);
+		expect(preview.status).toBe("preview");
+		if (preview.status !== "preview") throw new Error("Expected preview");
+		expect(preview.digest).toMatch(/^[a-f0-9]{64}$/);
+		expect(preview.evidence).toContain("Recorded events: 1");
+		expect(await previewReliabilityIncident(db, scope, principal)).toEqual(
+			preview,
+		);
+		const stored = await db.reliabilityIncident.findUniqueOrThrow({
+			where: { id: incident.id },
+			include: { deliveries: true },
+		});
+		expect(stored.analysis).toBeNull();
+		expect(
+			stored.deliveries.every(
+				(delivery) => delivery.status === "PENDING" && delivery.attempts === 0,
+			),
+		).toBe(true);
+	});
+	it("stores one unapproved evidence draft without overwriting existing analysis", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("draft", {
+				groupId: `${service.id}-draft`,
+			}),
+		);
+		const scope = {
+			incidentId: incident.id,
+			serviceId: service.id,
+			revision: incident.revision,
+		};
+		expect(
+			await initializeReliabilityEvidenceDraft(db, {
+				...scope,
+				serviceId: "other",
+			}),
+		).toEqual({ status: "not_available" });
+		expect(
+			await initializeReliabilityEvidenceDraft(db, {
+				...scope,
+				revision: scope.revision + 1,
+			}),
+		).toEqual({ status: "not_available" });
+		const results = await Promise.all([
+			initializeReliabilityEvidenceDraft(db, scope),
+			initializeReliabilityEvidenceDraft(db, scope),
+		]);
+		expect(results.filter((r) => r.status === "saved")).toHaveLength(1);
+		const stored = await db.reliabilityIncident.findUniqueOrThrow({
+			where: { id: incident.id },
+		});
+		expect(stored.analysis).toMatchObject({
+			state: "DRAFT",
+			packet: { revision: incident.revision, incidentId: incident.id },
+		});
+		expect(stored.revision).toBe(incident.revision);
+		expect(await initializeReliabilityEvidenceDraft(db, scope)).toEqual({
+			status: "not_saved",
+		});
+	});
+	it("builds an evidence snapshot only for the requested service and revision", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("packet", {
+				groupId: `${service.id}-packet`,
+				impact: "workflow_blocked",
+				evidence: { deploymentId: "deployment-1", rawLog: "private payload" },
+			}),
+		);
+		const scope = {
+			incidentId: incident.id,
+			serviceId: service.id,
+			revision: incident.revision,
+		};
+		const packet = await getReliabilityEvidencePacket(db, scope);
+		expect(packet?.routing).toBe("urgent_investigation");
+		expect(packet?.counts.events.value).toBe(1);
+		expect(packet?.evidenceReferences[0]?.correlation).toEqual({
+			deploymentId: "deployment-1",
+		});
+		expect(packet?.evidenceReferences[0]?.impact).toBe("workflow_blocked");
+		expect(JSON.stringify(packet)).not.toContain("private payload");
+		expect(packet?.counts.operations).toEqual({
+			value: null,
+			precision: "unknown",
+		});
+		expect(
+			await getReliabilityEvidencePacket(db, { ...scope, serviceId: "other" }),
+		).toBeNull();
+		expect(
+			await getReliabilityEvidencePacket(db, {
+				...scope,
+				revision: scope.revision + 1,
+			}),
+		).toBeNull();
+	});
 	it("reserves one recovery scan and preserves uncertainty during cooldown", async () => {
 		const { incident } = await ingestReliabilityOccurrence(
 			db,

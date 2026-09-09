@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 "use client";
 
+import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import type { ProductionOrderPresentation } from "@sales/production-order-presentation";
 import { Icons } from "@gnd/ui/icons";
 import {
@@ -40,6 +41,8 @@ type Props = {
 	presentation: ProductionOrderPresentation;
 	orderNo: string;
 	customer?: string | null;
+	priority?: string | null;
+	suppressHover?: boolean;
 	lockReason?: string | null;
 	salesOrderId?: number;
 };
@@ -48,7 +51,7 @@ function AttentionDetails({
 	presentation,
 	orderNo,
 	customer,
-	lockReason,
+	priority,
 	materialActionsExpanded = false,
 }: Props & { materialActionsExpanded?: boolean }) {
 	return (
@@ -57,6 +60,7 @@ function AttentionDetails({
 				{orderNo}
 				{customer ? ` · ${customer}` : ""}
 			</p>
+			<SalesPriorityBadge priority={priority} />
 			<p>
 				{presentation.primary.label}
 				{presentation.primary.detail ? ` · ${presentation.primary.detail}` : ""}
@@ -64,12 +68,6 @@ function AttentionDetails({
 			{presentation.primary.basis === "reported" && !materialActionsExpanded ? (
 				<p className="text-muted-foreground">
 					Reported work; approval is still required for pending submissions.
-				</p>
-			) : null}
-			{lockReason ? (
-				<p className="flex items-start gap-2">
-					<span aria-hidden="true">🔒</span>
-					<span>{lockReason}</span>
 				</p>
 			) : null}
 			{presentation.attention.length ? (
@@ -145,26 +143,34 @@ export function ProductionAttentionButton({
 			: !props.presentation.attention.length && !openCalendarDetails
 	)
 		return null;
+	if (isLock)
+		return (
+			<button
+				type="button"
+				disabled
+				aria-label={`Dragging unavailable for ${props.orderNo}`}
+				className="relative ml-1 inline-flex shrink-0 cursor-not-allowed items-center justify-center rounded px-1 font-semibold text-muted-foreground opacity-40"
+			>
+				<span aria-hidden="true">⠿</span>
+				<svg aria-hidden="true" viewBox="0 0 20 20" className="pointer-events-none absolute inset-0 size-full" fill="none">
+					<path d="M3 17 17 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+				</svg>
+			</button>
+		);
 	if (openCalendarDetails)
 		return (
 			<button
 				type="button"
 				className="inline-flex shrink-0 items-center justify-center rounded p-1 focus-visible:ring-2 focus-visible:ring-ring"
 				aria-haspopup="dialog"
-				aria-label={
-					isLock
-						? `Why ${props.orderNo} cannot be rescheduled`
-						: `Material details for ${props.orderNo}`
-				}
+				aria-label={`Material details for ${props.orderNo}`}
 				onPointerDown={(event) => event.stopPropagation()}
 				onClick={(event) => {
 					event.stopPropagation();
 					openCalendarDetails();
 				}}
 			>
-				{isLock ? (
-					<span aria-hidden="true">🔒</span>
-				) : props.presentation.attention.length ? (
+				{props.presentation.attention.length ? (
 					<Icons.AlertTriangle className="size-3.5" aria-hidden="true" />
 				) : (
 					<Icons.Info className="size-3.5" aria-hidden="true" />
@@ -176,19 +182,11 @@ export function ProductionAttentionButton({
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					className={`inline-flex shrink-0 items-center justify-center rounded p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isLock ? "ml-1 text-muted-foreground" : "text-red-600 dark:text-red-400"}`}
-					aria-label={
-						isLock
-							? `Why ${props.orderNo} cannot be rescheduled`
-							: `Attention required for ${props.orderNo}`
-					}
+					className="inline-flex shrink-0 items-center justify-center rounded p-1 text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-red-400"
+					aria-label={`Attention required for ${props.orderNo}`}
 					onClick={(event) => event.stopPropagation()}
 				>
-					{isLock ? (
-						<span aria-hidden="true">🔒</span>
-					) : (
-						<Icons.AlertTriangle className="size-3.5" aria-hidden="true" />
-					)}
+					<Icons.AlertTriangle className="size-3.5" aria-hidden="true" />
 				</button>
 			</PopoverTrigger>
 			<PopoverContent
@@ -207,6 +205,7 @@ function CalendarAttentionPopover({
 	...props
 }: Props & { children: ReactElement; salesOrderId: number }) {
 	const mobile = useIsMobile();
+	const suppressHover = props.suppressHover ?? false;
 	const [open, setOpen] = useState(false);
 	const [expanded, setExpanded] = useState(false);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -223,6 +222,13 @@ function CalendarAttentionPopover({
 		},
 		[],
 	);
+	useEffect(() => {
+		if (suppressHover) {
+			cancelTimer();
+			hovered.current = false;
+			setOpen(false);
+		}
+	}, [suppressHover]);
 	function leave() {
 		cancelTimer();
 		if (!expanded) timer.current = setTimeout(() => setOpen(false), 250);
@@ -321,11 +327,15 @@ function CalendarAttentionPopover({
 				<PopoverAnchor asChild>
 					<div
 						className="w-full min-w-0"
+						onPointerDownCapture={() => {
+							cancelTimer();
+							setOpen(false);
+						}}
 						onPointerEnter={(event) => {
-							if (event.pointerType !== "mouse") return;
+							if (suppressHover || event.pointerType !== "mouse" || !event.currentTarget.contains(event.target as Node)) return;
 							cancelTimer();
 							hovered.current = true;
-							timer.current = setTimeout(() => setOpen(true), 2_000);
+							timer.current = setTimeout(() => setOpen(true), 1_000);
 						}}
 						onPointerLeave={leave}
 					>

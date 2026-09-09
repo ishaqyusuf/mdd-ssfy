@@ -265,18 +265,16 @@ function PaymentReviewBadge({
 }: {
 	paymentReview: SalesOrderInvoicePresentation["latestPaymentReview"];
 }) {
-	if (!paymentReview) return null;
+	if (paymentReview?.origin !== "online") return null;
 
 	return (
 		<Badge
 			variant="outline"
 			className="h-4 max-w-full gap-1 rounded-full border-amber-200 bg-amber-50 px-1.5 text-[9px] font-semibold uppercase text-amber-700"
-			title={`${paymentReview.origin || "office"} payment needs review`}
+			title="online payment needs review"
 		>
 			<Icons.CheckCircle className="size-2.5 shrink-0" />
-			<span className="truncate">
-				{paymentReview.origin === "online" ? "Online" : "Office"}
-			</span>
+			<span className="truncate">Online</span>
 		</Badge>
 	);
 }

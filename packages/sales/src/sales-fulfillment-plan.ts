@@ -3246,7 +3246,7 @@ async function ensureBackorderInboundDemand(
 	};
 }
 
-async function recomputeLineItemComponentFulfillment(
+export async function recomputeLineItemComponentFulfillment(
 	db: DbLike,
 	lineItemComponentId: number,
 ) {
@@ -3444,13 +3444,14 @@ async function reserveAvailableStockForComponent(
 }
 
 /** Read-only stock budget for receipt quantities not yet reserved to scoped needs. */
-export async function planReceivedMaterialReservations(db: DbLike, needs: {componentId:number;inventoryVariantId:number;qty:number}[], pending: {inventoryStockId:number|null;qty:number}[] = []) {
+export async function planReceivedMaterialReservations(db: DbLike, needs: {componentId:number;inventoryVariantId:number;qty:number;requireFullCoverage?:boolean}[], pending: {inventoryStockId:number|null;qty:number}[] = []) {
 	const budgets = new Map<number, Awaited<ReturnType<typeof getAvailableStockRows>>>();
 	for (const variantId of new Set(needs.map(need => need.inventoryVariantId))) budgets.set(variantId, await getAvailableStockRows(db, variantId));
 	for (const rows of budgets.values()) for (const row of rows) row.availableQty = Math.max(0,row.availableQty - sumBy(pending.filter(item=>item.inventoryStockId===row.id),item=>item.qty));
 	const remaining = new Map([...budgets].map(([id, rows]) => [id, sumBy(rows, row => row.availableQty)]));
 	const rows = needs.flatMap(need => {
 		const qty = roundQuantity(Math.min(Math.max(0, need.qty), remaining.get(need.inventoryVariantId) ?? 0));
+		if (need.requireFullCoverage && qty + 0.000001 < need.qty) return [];
 		remaining.set(need.inventoryVariantId, roundQuantity((remaining.get(need.inventoryVariantId) ?? 0) - qty));
 		return qty > 0 ? [{...need, qty}] : [];
 	});

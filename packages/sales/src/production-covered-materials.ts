@@ -25,7 +25,11 @@ import { planReceivedMaterialReservations, applyReceivedMaterialReservations } f
 import {
 	getProductionInboundAllocationCoverage,
 	confirmProductionInboundAllocations,
+	validateProductionAllocationCoverage,
 } from "./production-inbound-allocation";
+import { planProductionAllocationRepairs, applyProductionAllocationRepairs, verifyProductionAllocationRepairs } from "./production-sync-allocation-repairs";
+import { getProductionClassificationRepairs, applyProductionClassificationRepairs } from "./production-sync-classification";
+import { getReviewScopeRefreshes, applyReviewScopeRefreshes } from "./production-sync-review-scope";
 
 type Client = Db | TransactionClient;
 export type CoveredProductionMaterialsActor = ProductionAvailabilityActor & {
@@ -43,6 +47,9 @@ const resultSchema = z.object({
 	appliedAllocationCount: z.number().default(0),
 	appliedReceivedQty: z.number().default(0),
 	appliedDemandCount: z.number().default(0),
+	repairedAllocationCount: z.number().default(0),
+	repairedClassificationCount: z.number().default(0),
+	refreshedReviewCount: z.number().default(0),
 	remainingMaterialQty: z.number().nullable().default(null),
 	remainingAllocationBlockCount: z.number().nullable().default(null),
 });
@@ -84,6 +91,8 @@ export async function getCoveredProductionMaterials(
 		},
 	});
 	const available = await getProductionAvailability(db, salesOrderId, actor);
+	const reviewScopePlan = await getReviewScopeRefreshes(db, reviews.slice(0, 100));
+	const canRefreshReviews = actor.canViewAll && actor.canReconcileMaterials;
 	let allocationEvidence: Awaited<
 		ReturnType<typeof getProductionInboundAllocationCoverage>
 	> | null = null;
@@ -103,12 +112,29 @@ export async function getCoveredProductionMaterials(
 		? actor.canEditInbound || actor.canMarkAvailable
 		: scope.policy.workerCanReceiveInbound;
 	const applicableAllocationCount = allocationEvidence?.ids.length ?? 0;
+	const classificationPlan = await getProductionClassificationRepairs(db, salesOrderId, scope.componentIds);
+	const canRepairClassification = actor.canViewAll && actor.canReconcileMaterials;
+	const allocationCandidates = allocationEvidence ? planProductionAllocationRepairs(allocationEvidence.components, allocationEvidence.blockedComponentIds, available.receivedNeeds) : [];
 	const pendingAllocations = allocationEvidence?.components.flatMap(component => component.stockAllocations.filter(allocation => allocationEvidence!.ids.includes(allocation.id))) ?? [];
 	const receivedPlan = await planReceivedMaterialReservations(db, available.receivedNeeds.filter(need => !allocationEvidence?.blockedComponentIds.includes(need.componentId)).map(need => {
 		const component = allocationEvidence?.components.find(component=>component.id===need.componentId);
 		const pendingQty = component?.stockAllocations.filter(allocation=>allocation.status==="pending_review").reduce((sum,allocation)=>sum+allocation.qty,0) ?? 0;
 		return {...need,qty:Math.max(0,need.qty-pendingQty)};
-	}), pendingAllocations);
+	}).concat(allocationCandidates.filter(row => row.qty > 0).map(row => ({ componentId: row.componentId, inventoryVariantId: row.inventoryVariantId, qty: row.qty, requireFullCoverage: true }))), pendingAllocations);
+	const allocationRepairs = allocationCandidates.filter(candidate => candidate.qty === 0 || receivedPlan.rows.some(row => row.componentId === candidate.componentId && row.qty + 0.000001 >= candidate.qty));
+	const repairableAllocationCount = allocationRepairs.reduce((sum, row) => sum + row.allocationIds.length, 0);
+	const repairableClassificationCount = canRepairClassification ? classificationPlan.rows.length : 0;
+	const blockers = [...classificationPlan.blocked.map(row => row.message)];
+	if (!canRepairClassification && classificationPlan.rows.length) blockers.push("A production supervisor must synchronize the inventory production classification.");
+	for (const component of allocationEvidence?.components ?? []) {
+		if (!allocationEvidence?.blockedComponentIds.includes(component.id) || allocationRepairs.some(row => row.componentId === component.id)) continue;
+		const name = available.needs.find(need => need.componentIds.includes(component.id));
+		try { validateProductionAllocationCoverage([component], allocationEvidence.stocks, allocationEvidence.committed); }
+		catch (error) {
+			if (!(error instanceof AppError)) throw error;
+			blockers.push(`${name ? [name.name, name.description].filter(Boolean).join(" • ") : "Material need"}: ${error.message}`);
+		}
+	}
 	const applicableReceivedQty = receivedPlan.rows.reduce((sum,row)=>sum+row.qty,0);
 	const applicableComponentIds =
 		allocationEvidence?.components
@@ -126,6 +152,7 @@ export async function getCoveredProductionMaterials(
 	for (const review of reviews.slice(0, 100)) {
 		const reviewScope = parseItemScope(review.assignmentScope);
 		const validated = validateProductionMaterialReviewAssignmentScope(review);
+		const scopeRefresh = canRefreshReviews ? reviewScopePlan.rows.find(row => row.reviewId === review.id) : null;
 		const allowed =
 			reviewTouchesReceivedComponents(
 				review.materialSnapshot,
@@ -133,12 +160,13 @@ export async function getCoveredProductionMaterials(
 			) &&
 			reviewScope.length > 0 &&
 			review.submissions.length > 0 &&
-			!validated.staleReasons.length &&
+			(!validated.staleReasons.length || !!scopeRefresh) &&
 			(actor.canViewAll ||
 				reviewScope.every(
 					(item) => item.assignmentId && assignments.has(item.assignmentId),
 				));
 		if (!allowed) {
+			blockers.push(`Submission review #${review.id}: assignment details or review evidence changed. A production supervisor must check the worker, quantities and labor rate.`);
 			candidates.push({ id: review.id, materialRevision: "", eligible: false });
 			continue;
 		}
@@ -158,14 +186,26 @@ export async function getCoveredProductionMaterials(
 	const eligibleReviewCount = candidates.filter(
 		(review) => review.eligible,
 	).length;
+	// Refresh only reviews whose materials are ready now, or become ready through
+	// the same repair transaction. Eligibility is recalculated after all repairs.
+	const repairableReviewCount = canRefreshReviews ? reviewScopePlan.rows.filter(row => candidates.some(candidate => candidate.id === row.reviewId && candidate.eligible)).length : 0;
 	return {
 		salesOrderId,
 		eligibleReviewCount,
+		eligibleReviewIds: candidates.filter(row => row.eligible).map(row => row.id),
 		applicableAllocationCount,
 		applicableReceivedQty,
 		applicableDemandCount:available.unappliedInboundNeeds.rows.length,
 		unappliedInboundNeeds:available.unappliedInboundNeeds,
 		receivedPlan,
+		allocationRepairs,
+		classificationPlan,
+		reviewScopePlan,
+		repairableReviewCount,
+		repairableAllocationCount,
+		repairableClassificationCount,
+		blockers,
+		canSynchronize: authority,
 		applicableComponentIds,
 		allocationBlocked,
 		pendingMaterialQty: available.pendingQty,
@@ -177,7 +217,7 @@ export async function getCoveredProductionMaterials(
 		canApply:
 			authority &&
 			reviews.length <= 100 &&
-			(eligibleReviewCount > 0 ||
+			(eligibleReviewCount > 0 || repairableClassificationCount > 0 || (canApplyAllocations && repairableAllocationCount > 0) ||
 				(canApplyAllocations && (applicableAllocationCount > 0 || applicableReceivedQty > 0 || available.unappliedInboundNeeds.rows.length > 0))) &&
 			!["readonly", "unknown"].includes(available.state),
 		revision: hash({
@@ -188,6 +228,11 @@ export async function getCoveredProductionMaterials(
 			allocationEvidence,
 			receivedPlan,
 			canApplyAllocations,
+			classificationPlan,
+			reviewScopePlan,
+			canRefreshReviews,
+			canRepairClassification,
+			allocationRepairs,
 		}),
 	};
 }
@@ -258,25 +303,36 @@ export async function applyCoveredProductionMaterials(
 				);
 			if (!preview.canApply)
 				conflict("No covered production reviews are ready to apply.");
-			const appliedDemandRows = preview.canApplyAllocations ? await applyScopedReceivedNeedsPlan(tx,preview.unappliedInboundNeeds) : [];
+			const classificationRepairs = actor.canViewAll && actor.canReconcileMaterials ? preview.classificationPlan.rows : [];
+			const allocationRepairs = preview.canApplyAllocations ? preview.allocationRepairs : [];
+			await applyProductionClassificationRepairs(tx, classificationRepairs);
+			await applyProductionAllocationRepairs(tx, allocationRepairs);
+			const repaired = classificationRepairs.length || allocationRepairs.length
+				? await getCoveredProductionMaterials(tx, input.salesOrderId, actor) : preview;
+			const appliedDemandRows = repaired.canApplyAllocations ? await applyScopedReceivedNeedsPlan(tx,repaired.unappliedInboundNeeds) : [];
 			const appliedAllocationIds =
-				preview.canApplyAllocations && preview.applicableAllocationCount > 0
+				repaired.canApplyAllocations && repaired.applicableAllocationCount > 0
 					? await confirmProductionInboundAllocations(
 							tx,
-							preview.applicableComponentIds,
+							repaired.applicableComponentIds,
 							"Physical stock verified through Apply covered materials.",
 						)
 					: [];
 			if (
-				preview.canApplyAllocations &&
-				appliedAllocationIds.length !== preview.applicableAllocationCount
+				repaired.canApplyAllocations &&
+				appliedAllocationIds.length !== repaired.applicableAllocationCount
 			)
 				conflict("Allocation evidence changed. Refresh and try again.");
-			const beforeReservation = appliedAllocationIds.length
+			const beforeReservation = appliedAllocationIds.length || appliedDemandRows.length
 				? await getCoveredProductionMaterials(tx, input.salesOrderId, actor)
-				: preview;
+				: repaired;
 			const receiptAllocations = preview.canApplyAllocations ? await applyReceivedMaterialReservations(tx, beforeReservation.receivedPlan.rows) : [];
-			const effective = receiptAllocations.length ? await getCoveredProductionMaterials(tx,input.salesOrderId,actor) : beforeReservation;
+			let effective = receiptAllocations.length ? await getCoveredProductionMaterials(tx,input.salesOrderId,actor) : beforeReservation;
+			await verifyProductionAllocationRepairs(tx, allocationRepairs);
+			const reviewScopeRefreshes = actor.canViewAll && actor.canReconcileMaterials
+				? effective.reviewScopePlan.rows.filter(row => effective.eligibleReviewIds.includes(row.reviewId)) : [];
+			await applyReviewScopeRefreshes(tx, reviewScopeRefreshes);
+			if (reviewScopeRefreshes.length) effective = await getCoveredProductionMaterials(tx, input.salesOrderId, actor);
 			const applied = await reconcileProductionInboundReviews(tx, {
 				salesOrderId: input.salesOrderId,
 				componentIds: scope.componentIds,
@@ -295,6 +351,9 @@ export async function applyCoveredProductionMaterials(
 				appliedAllocationCount: appliedAllocationIds.length,
 				appliedReceivedQty: receiptAllocations.reduce((sum,row)=>sum+row.qty,0),
 				appliedDemandCount:appliedDemandRows.length,
+				repairedAllocationCount: allocationRepairs.reduce((sum, row) => sum + row.allocationIds.length, 0),
+				repairedClassificationCount: classificationRepairs.length,
+				refreshedReviewCount: reviewScopeRefreshes.length,
 				remainingMaterialQty:effective.pendingMaterialQty,
 				remainingAllocationBlockCount:effective.blockedAllocationComponentCount,
 				remainingReviewCount:
@@ -314,6 +373,9 @@ export async function applyCoveredProductionMaterials(
 						allocationIds: appliedAllocationIds,
 						allocationReceipts: receiptAllocations,
 						demandApplications:appliedDemandRows,
+						allocationRepairs,
+						reviewScopeRefreshes,
+						classificationRepairs: classificationRepairs.map(row => ({ lineItemId: row.id, before: row.meta, salesItemId: row.salesItem!.id, rule: "canonical-sales-production-eligibility" })),
 					},
 				},
 			});

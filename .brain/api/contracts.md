@@ -2747,3 +2747,6 @@ reading active submissions; an active Production worker is required. Returns
 Partial transfers preserve reports and original ownership in a quantity split.
 Calendar rows add `hasReassignableQuantity` for the card's assignment scope.
 See `features/production-worker-reassignment.md` for lifecycle and review behavior.
+
+### Production Sync deterministic repairs (2026-09-09)
+`coveredProductionMaterials` adds repairableAllocationCount, repairableClassificationCount, canSynchronize and specific blockers. Actionability includes deterministic repair and eligible review snapshot refresh even when no new material application remains. Internal allocationRepairs, classificationPlan, reviewScopePlan and eligibleReviewIds are stripped by the router alongside existing receipt evidence. `applyCoveredProductionMaterials` adds repairedAllocationCount, repairedClassificationCount and refreshedReviewCount; these default to zero when replaying older event results. Repair and review refresh evidence contributes to expectedRevision. The same transaction repairs, revalidates, reserves and finalizes eligible reviews using established payroll behavior; event evidence retains before/after snapshots. No schema migration.

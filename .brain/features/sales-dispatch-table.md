@@ -621,6 +621,12 @@ Removed after import scans:
 
 ## 2026-08-29 Fulfillment queue finance/status parity
 
+- Presentation update (2026-09-09): the shared invoice cell shows a payment
+  review badge only for online payments. Office and missing-origin payments
+  have no badge. This applies to Sales Orders and its bin, Sales Production
+  tables/mobile cards, Sales Dispatch, and Dispatch Backlog. Invoice amounts,
+  tooltip breakdowns, and payment actions are unchanged.
+
 - Backlog columns are now Created, Order/Customer, Destination, Invoice,
   Status, and Actions. It intentionally has no schedule, driver, packing,
   delivery-mode, trip, or risk column because those concepts do not exist until

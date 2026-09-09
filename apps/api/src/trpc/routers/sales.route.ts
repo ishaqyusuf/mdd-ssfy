@@ -1123,7 +1123,7 @@ export const salesRouter = createTRPCRouter({
     coveredProductionMaterials: protectedProcedure
         .input(z.object({salesOrderId:z.number().int().positive()}))
         .query(async ({ctx,input}) => {
-            const {receivedPlan, applicableComponentIds, unappliedInboundNeeds, ...summary} = await getCoveredProductionMaterials(ctx.db,input.salesOrderId,await resolveProductionInboundActor(ctx));
+            const {receivedPlan, applicableComponentIds, unappliedInboundNeeds, allocationRepairs, classificationPlan, reviewScopePlan, eligibleReviewIds, ...summary} = await getCoveredProductionMaterials(ctx.db,input.salesOrderId,await resolveProductionInboundActor(ctx));
             return summary;
         }),
     applyCoveredProductionMaterials: protectedProcedure

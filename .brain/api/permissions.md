@@ -877,3 +877,19 @@ Applying pending allocations through the covered-material action additionally re
 Covered-review reconciliation uses editProduction for administrators, and workerCanReceiveInbound plus active assignment scope for workers. Authority is resolved again inside the transaction. editOrders alone does not grant this review action. Assignment snapshots, current material evidence and order lifecycle are validated before finalization; no general review-override permission is introduced.
 
 Availability reads and writes use authenticated server-derived Production assignment scope. Admin mark authority follows editOrders; worker mark authority follows workerCanReceiveInbound plus active assigned material scope. The mutation rechecks authority inside its transaction. Supplier reads expose only IDs/names. No general Inventory permission, arbitrary component ID or blanket submission-approval permission is added. Cancelled/fulfilled orders and unsynced setup cannot be marked available.
+# Reliability reviewer membership
+
+Route caller acceptance verifies absent sessions are UNAUTHORIZED, missing or
+cross-service membership is FORBIDDEN, and injected actor fields are BAD_REQUEST.
+
+`resolveReliabilityReviewer` accepts only a user ID from verified API session
+context and looks it up in server-owned `RELIABILITY_REVIEWER_MEMBERSHIPS` JSON:
+`[{"userId":4,"serviceIds":["gnd"]}]` (illustrative, not configured).
+No membership grants no reliability principal. Duplicate users/services, wildcard
+services, unknown fields and malformed configuration are rejected. At most 100
+users and 20 services per user are accepted. Actor identity is `user:<id>`.
+Protected tRPC `reliability.preview` now uses this resolver with the verified
+session user ID. The request cannot supply an actor or service membership list.
+
+### Production Sync repair scope (2026-09-09)
+Derived classification and timestamp-only modern review snapshot repair require full production visibility plus material reconciliation authority (editProduction). Allocation repair additionally follows existing inventory application permission (editInboundOrder or editOrders). Worker receiving/synchronization scope is unchanged; workers receive no new classification or stale-review refresh authority. All authority and assignment/material evidence is checked inside the transaction.

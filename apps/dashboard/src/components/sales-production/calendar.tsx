@@ -9,11 +9,11 @@ import { scheduleMoveLockLabel } from "@/components/operations-calendar/lock-rea
 import {
 	type OperationsCalendarView,
 	getOperationsCalendarPeriod,
-	isOperationsCalendarDatePastDue,
 	moveOperationsCalendarDate,
 	resolveOperationsCalendarDate,
 } from "@/components/operations-calendar/range";
-import { SalesPriorityBadge } from "@/components/sales-priority-control";
+import { normalizeSalesPriority } from "@sales/priority";
+import { CalendarDays, Ellipsis } from "lucide-react";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
@@ -95,6 +95,7 @@ function ProductionChip({
 	onReschedule?: (item: ProductionCalendarItem) => void;
 }) {
 	const overview = useSalesOverviewQuery();
+	const [actionsOpen, setActionsOpen] = useState(false);
 	const lockReason = !workerMode && !item.canReschedule
 		? scheduleMoveLockLabel(item.rescheduleLockReason)
 		: null;
@@ -105,13 +106,9 @@ function ProductionChip({
 	});
 	const colorClass =
 		STATUS_COLORS[item.orderPresentation.primary.code === "completed" ? "completed" : item.orderPresentation.primary.code === "in_production" ? "in progress" : item.orderPresentation.primary.code === "assigned" ? "assigned" : ["not_assigned", "partially_assigned"].includes(item.orderPresentation.primary.code) ? "unassigned" : "unknown"];
-	const isOverdue =
-		item.status !== "completed" && item.dueDate
-			? isOperationsCalendarDatePastDue(new Date(item.dueDate))
-			: false;
 
 	return (
-		<ProductionAttentionTooltip salesOrderId={item.orderId} presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} lockReason={lockReason}>
+		<ProductionAttentionTooltip suppressHover={actionsOpen} salesOrderId={item.orderId} presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} priority={item.priority} lockReason={lockReason}>
 		<div
 			ref={draggable.setNodeRef}
 			style={{
@@ -119,53 +116,36 @@ function ProductionChip({
 				opacity: draggable.isDragging ? 0.35 : undefined,
 			}}
 			className={cn(
-				"flex w-full min-w-0 items-start rounded border text-left text-xs transition-opacity focus-within:ring-2 focus-within:ring-ring hover:opacity-90",
+				"w-full min-w-0 rounded border text-left text-xs transition-opacity focus-within:ring-2 focus-within:ring-ring hover:opacity-90",
 				compact ? "px-1.5 py-1" : "px-2 py-1.5",
 				colorClass,
-				isOverdue && "ring-1 ring-red-400",
+				normalizeSalesPriority(item.priority) === "CRITICAL" && "border-red-500 dark:border-red-500",
+                normalizeSalesPriority(item.priority) === "HIGH" && "border-amber-500 dark:border-amber-500",
+                normalizeSalesPriority(item.priority) === "LOW" && "border-slate-400 dark:border-slate-400",
 			)}
 		>
    <div className="min-w-0 flex-1">
     <div className="flex min-w-0 items-center gap-1">
      <button type="button" className="min-w-0 flex-1 truncate text-left font-mono font-semibold uppercase focus-visible:outline-none" onClick={() => overview.open2(item.orderNo, workerMode ? "production-tasks" : "sales-production")}>{item.orderNo}</button>
-     {!workerMode ? <ReassignProductionWorker salesId={item.orderId} assignmentIds={item.assignmentIds} disabled={!item.hasReassignableQuantity} /> : null}
-     <ProductionAttentionButton presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} lockReason={lockReason} />
-     {compact ? null : <SalesPriorityBadge priority={item.priority} />}
+     {!workerMode ? <div className="flex shrink-0 items-center gap-0.5">
+      <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
+       <PopoverTrigger asChild><button type="button" className="rounded p-1 opacity-70 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Actions for ${item.orderNo}`} onPointerDown={event => event.stopPropagation()}><Ellipsis className="size-4" /></button></PopoverTrigger>
+       <PopoverContent align="end" className="w-64 p-1" onPointerDown={event => event.stopPropagation()}>
+        <ReassignProductionWorker menuItem salesId={item.orderId} assignmentIds={item.assignmentIds} disabled={!item.hasReassignableQuantity} />
+        <Button type="button" variant="ghost" className="w-full justify-start gap-2" disabled={!item.canReschedule} onClick={() => onReschedule?.(item)}><CalendarDays className="size-4" />Reschedule</Button>
+       </PopoverContent>
+      </Popover>
+      {item.canReschedule ? <button type="button" ref={draggable.setActivatorNodeRef} {...draggable.listeners} {...draggable.attributes} className="cursor-grab rounded px-1 font-semibold opacity-70 active:cursor-grabbing" aria-label={`Drag ${item.orderNo} to another production date`}>⠿</button> : <ProductionAttentionButton kind="lock" presentation={item.orderPresentation} orderNo={item.orderNo} lockReason={lockReason} />}
+     </div> : null}
     </div>
     <button type="button" className="w-full min-w-0 text-left focus-visible:outline-none" aria-label={`Open production for ${item.orderNo}`} onClick={() => overview.open2(item.orderNo, workerMode ? "production-tasks" : "sales-production")}>
      {compact ? null : <>
-      <div className="truncate opacity-70">{item.customer}</div>
-      <div className="truncate opacity-60">{item.assignedTo || "Unassigned"} · {item.assignmentCount} {item.assignmentCount === 1 ? "assignment" : "assignments"}</div>
+      <div className="block w-full whitespace-normal break-words opacity-70">{item.customer}</div>
+      <div className="block w-full whitespace-normal break-words opacity-60">{item.assignedTo || "Unassigned"} · {item.assignmentCount} {item.assignmentCount === 1 ? "assignment" : "assignments"}</div>
      </>}
      <div className="flex flex-wrap gap-1 text-[10px] font-medium"><span>{item.orderPresentation.primary.label}</span>{item.orderPresentation.primary.code === "in_production" && item.orderPresentation.primary.detail ? <span>{item.orderPresentation.primary.detail}</span> : null}</div>
     </button>
    </div>
-			{workerMode ? null : item.canReschedule ? (
-				<div className="ml-1 flex shrink-0 items-center gap-0.5">
-					<button
-						type="button"
-						className="rounded px-1 font-semibold opacity-70 hover:bg-background/50 hover:opacity-100 focus-visible:outline-none"
-						onClick={() => onReschedule?.(item)}
-						aria-label={`Reschedule ${item.orderNo}`}
-						title="Reschedule"
-					>
-						↗
-					</button>
-					<button
-						type="button"
-						ref={draggable.setActivatorNodeRef}
-						{...draggable.listeners}
-						{...draggable.attributes}
-						className="cursor-grab rounded px-1 font-semibold opacity-70 hover:bg-background/50 hover:opacity-100 focus-visible:outline-none active:cursor-grabbing"
-						aria-label={`Drag ${item.orderNo} to another production date`}
-						title="Drag to reschedule"
-					>
-						⠿
-					</button>
-				</div>
-			) : (
-				<ProductionAttentionButton kind="lock" presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} lockReason={lockReason} />
-			)}
 		</div>
   </ProductionAttentionTooltip>
 	);

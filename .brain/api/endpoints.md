@@ -814,3 +814,25 @@ alongside Trigger. Vercel reads its production `vercel-query` cursor and fails
 aggregate health on missing completion, stale watermark/success, or future clock
 values. Authentication and aggregate-only responses are unchanged. This is CLI
 discovery health, not proof of drain delivery freshness.
+# Reliability preview
+
+Protected `reliability.services` returns `{serviceIds}` for the current verified
+user from server-owned reviewer membership. Unlisted signed-in users receive an
+empty list. It exposes no other users, provider credentials or registration data.
+
+Local pagination acceptance traverses 53 incident fixtures across the 50-item
+boundary and verifies termination, no duplicates and no omitted fixtures.
+
+Protected `reliability.list` accepts `{serviceId, cursor?}` under the same explicit
+reviewer membership. Returns at most 50 incident summaries and `nextCursor`, in
+descending stable ID order (not severity or last-seen order). Each summary includes
+current revision for preview requests; raw evidence and analysis JSON are omitted.
+
+Local route acceptance covers an authorized reviewer, a newer ingested occurrence
+invalidating the prior revision, and a changed digest/count for the current preview.
+
+Protected tRPC query `reliability.preview` accepts strict
+`{incidentId, serviceId, revision}` input. Requires verified session user membership
+from `RELIABILITY_REVIEWER_MEMBERSHIPS`; absent membership is FORBIDDEN.
+Returns preview title/evidence/digest with service and revision, or not_available /
+informational. It performs no delivery, approval or credential acquisition.

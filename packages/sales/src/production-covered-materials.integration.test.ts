@@ -16,6 +16,57 @@ import {
 const localTest =
 	process.env.GND_AVAILABILITY_DB_TEST === "1" ? test : test.skip;
 
+localTest("Sync repairs stale proposals and derived classification before finalizing once", async () => {
+	const f = await fixture("sync-repair");
+	try {
+		await db.inventoryCategory.update({ where: { id: f.category.id }, data: { stockMode: "monitored" } });
+		await db.lineItem.update({ where: { id: f.line.id }, data: { meta: { production: { produceable: false }, inventorySync: { source: "copy-sales", productionProduceable: false } } } });
+		await db.lineItemComponents.update({ where: { id: f.component.id }, data: { inventoryCategoryId: f.category.id, qtyReceived: 10, qtyAllocated: 0 } });
+		await db.inboundDemand.updateMany({ where: { lineItemComponentId: f.component.id }, data: { qtyReceived: 10, status: "received" } });
+		await db.inboundShipment.update({ where: { id: f.inbound.id }, data: { status: "completed" } });
+		await db.inboundShipmentItem.update({ where: { id: f.item.id }, data: { qtyGood: 10 } });
+		const exhausted = await db.inventoryStock.create({ data: { inventoryVariantId: f.variant.id, qty: 0 } });
+		const received = await db.inventoryStock.create({ data: { inventoryVariantId: f.variant.id, qty: 10 } });
+		const suggestion = await db.stockAllocation.create({ data: { lineItemComponentId: f.component.id, inventoryVariantId: f.variant.id, inventoryStockId: exhausted.id, qty: 10, status: "pending_review" } });
+		await db.salesProductionSubmissionMaterialReview.updateMany({ where: { salesOrderId: f.sale.id, status: "PENDING" }, data: {
+			materialSnapshot: [{ componentId: f.component.id, readiness: "awaiting_inbound" }],
+			assignmentScope: [{ controlUid: f.control.uid, salesItemId: f.salesItem.id, assignmentId: f.assignment.id, assignedToId: f.assignment.assignedToId, assignmentUpdatedAt: f.assignment.updatedAt!.toISOString(), laborCost: f.assignment.laborCost }],
+		} });
+		await db.orderItemProductionAssignments.update({ where: { id: f.assignment.id }, data: { dueDate: new Date("2026-09-10T00:00:00Z") } });
+		const actor = { ...f.actor, canMarkAvailable: true, canReconcileMaterials: true };
+		await db.salesOrderItems.update({ where: { id: f.salesItem.id }, data: { meta: { produceable: false } } });
+		const explicitConflict = await getCoveredProductionMaterials(db, f.sale.id, actor);
+		expect(explicitConflict.repairableClassificationCount).toBe(0);
+		expect(explicitConflict.blockers.join(" ")).toContain("sales configuration excludes production");
+		await db.salesOrderItems.update({ where: { id: f.salesItem.id }, data: { meta: {} } });
+		expect((await getCoveredProductionMaterials(db, f.sale.id, { ...actor, canViewAll: false })).repairableClassificationCount).toBe(0);
+		const preview = await getCoveredProductionMaterials(db, f.sale.id, actor);
+		expect(preview).toMatchObject({ canApply: true, repairableAllocationCount: 1, repairableClassificationCount: 1, eligibleReviewCount: 0 });
+		await db.inventoryStock.update({ where: { id: received.id }, data: { qty: 5 } });
+		expect((await getCoveredProductionMaterials(db, f.sale.id, actor)).repairableAllocationCount).toBe(0);
+		await expect(applyCoveredProductionMaterials(db, { salesOrderId: f.sale.id, expectedRevision: preview.revision, idempotencyKey: crypto.randomUUID() }, async () => actor)).rejects.toThrow("changed");
+		expect((await db.stockAllocation.findUniqueOrThrow({ where: { id: suggestion.id } })).status).toBe("pending_review");
+		await db.inventoryStock.update({ where: { id: received.id }, data: { qty: 10 } });
+		const current = await getCoveredProductionMaterials(db, f.sale.id, actor);
+		const input = { salesOrderId: f.sale.id, expectedRevision: current.revision, idempotencyKey: crypto.randomUUID() };
+		const results = await Promise.all([applyCoveredProductionMaterials(db, input, async () => actor), applyCoveredProductionMaterials(db, input, async () => actor)]);
+		const result = results.find(row => !row.replayed)!;
+		expect(results.filter(row => row.replayed)).toHaveLength(1);
+		expect(result).toMatchObject({ repairedAllocationCount: 1, repairedClassificationCount: 1, refreshedReviewCount: 1, resolvedCount: 1, remainingMaterialQty: 0, remainingReviewCount: 0, remainingAllocationBlockCount: 0 });
+		expect((await db.stockAllocation.findUniqueOrThrow({ where: { id: suggestion.id } })).status).toBe("cancelled");
+		expect((await db.stockAllocation.aggregate({ where: { lineItemComponentId: f.component.id, status: "reserved", deletedAt: null }, _sum: { qty: true } }))._sum.qty).toBe(10);
+		expect(await applyCoveredProductionMaterials(db, input, async () => actor)).toMatchObject({ replayed: true, repairedAllocationCount: 1 });
+		expect((await getCoveredProductionMaterials(db, f.sale.id, actor)).canApply).toBe(false);
+		expect((await db.inventoryStock.findUniqueOrThrow({ where: { id: received.id } })).qty).toBe(10);
+		expect(await db.stockMovement.count({ where: { inventoryVariantId: f.variant.id } })).toBe(0);
+	} finally {
+		await db.event.deleteMany({ where: { type: "production_covered_materials_applied", data: { path: "$.salesOrderId", equals: f.sale.id } } });
+		await db.payrollHistory.deleteMany({ where: { payroll: { orderId: f.sale.id } } });
+		await db.payroll.deleteMany({ where: { orderId: f.sale.id } });
+		await cleanup(f);
+	}
+}, 60000);
+
 localTest(
 	"scoped shipment application excludes issues and preserves another order's received demand",
 	async () => {
