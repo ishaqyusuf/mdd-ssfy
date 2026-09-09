@@ -1991,3 +1991,6 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 
 ### [Production table inline overdue date](2026-09-09-production-inline-overdue-date.md)
 - Status: Done
+
+### [Sales door swap and search](2026-09-09-sales-door-swap-search.md)
+- Status: Done

@@ -1,7 +1,7 @@
 # Task: Sales door swap and search
 
 ## Status
-In Progress
+Done
 
 ## Priority
 Medium
@@ -19,7 +19,7 @@ Medium
 Fix Swap Door failing to open when the sales form contains more than one item. Add search to the swap modal.
 
 ## Implementation Progress
-- Completion: 75%
+- Completion: 100%
 - Current Checklist: 4/4 — Update Brain and commit
 - Blockers: None
 
@@ -27,7 +27,7 @@ Fix Swap Door failing to open when the sales form contains more than one item. A
 - [x] Diagnose multi-item opening and establish regression coverage
 - [x] Fix opening and add searchable door candidates
 - [x] Run focused/full relevant tests, typechecking, and code review
-- [ ] Update Brain and commit on the current branch
+- [x] Update Brain and commit on the current branch
 
 ## Validation Evidence
 - Clean checkout on master before work.
@@ -41,3 +41,5 @@ Fix Swap Door failing to open when the sales form contains more than one item. A
 - Brain impact: feature and task/status documentation only; no API/schema/ADR required for this UI correction.
 
 - Code review: Standards — no violations, only optional minor repetition observations; Spec — no findings. Keyboard Escape dismissal verified.
+
+- Implementation committed on master: 77f0a8da6. No order data changes or deployment.
