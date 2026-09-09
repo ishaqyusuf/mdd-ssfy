@@ -1,5 +1,245 @@
 # Progress
 
+## 2026-09-09 — Post-scheduler reliability verification
+
+- All 37 local integration tests / 229 assertions pass; observability typecheck
+  passes. Hosted activation, evidence analysis, Slack delivery, and remaining task
+  checklist requirements are still open.
+
+## 2026-09-09 — Stop recovery batches on throttling
+
+- Recovery stops issuing further batch requests after a rate-limit result.
+  Three tests / 10 assertions pass. Cross-delivery cooldown persistence remains open.
+
+## 2026-09-09 — Bounded GitHub recovery schedule
+
+- Added opt-in production schedule and serial five-delivery batch. Four tests /
+  18 assertions pass. Scheduler is code-only; no deployment or activation occurred.
+
+## 2026-09-09 — Expired sender recovery
+
+- Recovery can now discover and retire expired sender leases into UNCERTAIN
+  without a new incident revision. Six local assertions pass; scheduling remains open.
+
+## 2026-09-09 — Due recovery selection
+
+- Added bounded service-scoped recovery selection respecting persisted cooldowns.
+  Twelve local recovery assertions pass. Scheduling and expired sender handling remain open.
+
+## 2026-09-09 — Durable recovery deadline acceptance
+
+- Verified provider deadlines persist monotonically and prevent early scans.
+  Nine local recovery assertions pass. Scheduled execution remains pending.
+
+## 2026-09-09 — Provider recovery retry deadlines
+
+- Preserve GitHub Retry-After/quota-reset deadlines and connect monotonic cooldown
+  extension. Six transport tests / 20 assertions pass. Database deadline acceptance
+  remains pending; no provider requests occurred.
+
+## 2026-09-09 — Serialized recovery cooldown
+
+- Added persisted scan reservations and fixed a concurrent double-reservation race
+  by locking before transaction snapshot reads. Two local tests / 10 assertions pass.
+  Provider-specific cooldown hints and scheduling remain pending.
+
+## 2026-09-09 — Configured read-only recovery acceptance
+
+- Verified independent recovery from App credentials through database receipt
+  restoration with publication disabled. Six local assertions pass; no real HTTP used.
+
+## 2026-09-09 — Read-only GitHub recovery credentials
+
+- Recovery now requests Issues read; publication retains Issues write. Returned
+  permissions must match exactly. Four credential tests / 19 assertions pass.
+
+## 2026-09-09 — Independent configured recovery
+
+- Added a separate production recovery opt-in and pre-credential eligibility check.
+  Four local assertions pass. Read-only token narrowing and scheduling remain open.
+
+## 2026-09-09 — Configured GitHub publication acceptance
+
+- Verified App signing through scoped token exchange and durable issue publication
+  with fixture-only HTTP. Eight assertions pass. No hosted activation occurred.
+
+## 2026-09-09 — Configured publication entry point
+
+- Connected registered credentials, scoped claims, and GitHub create/update dispatch
+  behind production opt-in. Three disabled-boundary assertions pass. Enabled-path
+  verification and scheduling remain pending; no publication activated.
+
+## 2026-09-09 — Registered GitHub credential acquisition
+
+- Connected registration, app signing, and token exchange. Eight fixture assertions
+  pass. Unknown services perform no HTTP; configured execution remains pending.
+
+## 2026-09-09 — GitHub service registration
+
+- Added strict service-to-repository/App binding with separate key references.
+  Two tests / 10 assertions pass. Registration runbook added; no activation occurred.
+
+## 2026-09-09 — Scoped GitHub installation tokens
+
+- Added bounded token exchange with returned repository/permission/expiry checks.
+  Two tests / 8 assertions pass. No real credentials used; registration and hosted
+  authentication remain pending.
+
+## 2026-09-09 — GitHub App signing
+
+- Added short-lived RS256 app credential signing. Two tests / 5 assertions pass
+  with locally generated fixture keys. Installation-token exchange remains pending;
+  no real app credentials were accessed.
+
+## 2026-09-09 — Durable lost-comment acceptance
+
+- Verified one attempted update, blocked duplicate publication, and recovered
+  comment receipt with the original issue identity preserved. Nine local database
+  assertions pass. No real GitHub writes occurred; activation remains pending.
+
+## 2026-09-09 — Comment discovery and recovery routing
+
+- Recovery now scans the stored issue's comments for uncertain updates and detects
+  duplicate comments across pages. Three tests / 10 assertions pass. Durable
+  comment-path acceptance and scheduled execution remain pending.
+
+## 2026-09-09 — Comment receipt validation
+
+- Added exact-issue comment receipt validation and duplicate-comment detection.
+  Three tests / 11 assertions and scoped Biome pass. Comment discovery remains open.
+
+## 2026-09-09 — GitHub create/update dispatch
+
+- Added receipt-based publication routing with no create fallback for invalid IDs.
+  Two tests / 9 assertions pass. Registry-bound execution and comment recovery remain open.
+
+## 2026-09-09 — GitHub evidence comments
+
+- Added marked comment updates for existing issues without rewriting human content.
+  Five transport tests / 31 assertions pass. Comment recovery and dispatch remain open.
+
+## 2026-09-09 — GitHub request contract typecheck
+
+- Fixed Bun-specific fetch type leakage in injectable GitHub transports.
+  Observability typecheck passes; jobs retains existing sales/UI diagnostics only.
+  No runtime behavior or external configuration changed.
+
+## 2026-09-09 — Durable GitHub recovery
+
+- Connected scoped delivery lookup to discovery and receipt persistence. Twelve
+  local integration assertions pass, including no read for wrong service or already
+  recovered delivery. Scheduling/backoff and larger-scan continuation remain open.
+
+## 2026-09-09 — GitHub recovery scan
+
+- Connected up to four bounded discovery pages to receipt validation. Two tests /
+  6 assertions pass. Early matches cannot hide later conflicts; incomplete scans
+  remain unresolved. Durable recovery wiring remains pending.
+
+## 2026-09-09 — GitHub receipt discovery transport
+
+- Added bounded read-only repository issue pages and shared bounded response parsing.
+  Six transport tests / 34 assertions pass. Recovery orchestration remains pending;
+  no real GitHub requests were made.
+
+## 2026-09-09 — GitHub recovery receipt validation
+
+- Added scoped candidate validation and duplicate-match detection. Two tests /
+  8 assertions pass; scoped Biome passes. Remote discovery remains pending.
+
+## 2026-09-09 — Unknown publication recovery acceptance
+
+- Verified unknown worker results block duplicate writes until matching receipt
+  recovery. Full local reliability suite: 31 tests / 179 assertions pass.
+  Remote receipt discovery and configured scheduling remain pending.
+
+## 2026-09-09 — Publication worker orchestration
+
+- Connected scoped claims, publication callbacks, and receipt settlement. Seven
+  local database assertions pass for single creation and later receipt reuse.
+  Configured scheduling, credentials, and update transport remain pending.
+
+## 2026-09-09 — Publication claim scope
+
+- Added service/revision checks under the incident lock and matching-revision
+  candidate selection. Four local database assertions and scoped Biome pass.
+  Active work is now checklist 10; earlier provider/hosted gates remain open.
+
+## 2026-09-09 — GitHub transport/outbox acceptance
+
+- Verified persisted throttle delay, attempt continuity, and successful remote
+  receipt through the real adapter and local outbox with simulated HTTP. Seven
+  assertions pass. Worker orchestration remains pending; no GitHub writes occurred.
+
+## 2026-09-09 — GitHub secondary-limit classification
+
+- Recognize body-only throttling through a bounded error response read, keeping
+  permission failures distinct. Four transport tests / 26 assertions and scoped
+  Biome pass. Durable worker wiring remains pending; no external writes occurred.
+
+## 2026-09-09 — GitHub throttling deferral
+
+- Added provider-aware retry timing and exponential backoff for recognized rate
+  limits. Three transport tests / 21 assertions pass; scoped Biome passes.
+  Durable execution and body-only secondary-limit recognition remain pending.
+
+## 2026-09-09 — GitHub incident create transport
+
+- Added bounded create transport and conservative uncertain-result handling.
+  Two tests / 16 assertions pass. No real GitHub requests performed; credentials,
+  rate-limit handling, outbox wiring, and recovery remain pending.
+
+## 2026-09-09 — GitHub evidence ownership
+
+- Added bounded incident evidence block formatting and safe replacement preserving
+  surrounding human text. Two tests / 8 assertions pass. Publication transport and
+  remote concurrency handling remain pending; no GitHub writes performed.
+
+## 2026-09-09 — Historical replay health
+
+- Added separate Sentry/Trigger historical cursor monitoring. Seven API tests /
+  32 assertions and scoped Biome pass. Incremental success cannot mask stale replay.
+  Runbooks include hourly replay thresholds; external monitoring remains pending.
+
+## 2026-09-09 — Client call note capture
+
+- Opened `.brain/intake/2026-09-09-client-call-notes.md` for ongoing client-call
+  bugs, tasks, features, and clarifications. Captured requests to remove items
+  from an existing inbound and verify inbound Adjust accuracy. Both await triage;
+  this session remains note capture.
+
+## 2026-09-09 — Sentry discovery health
+
+- Added Sentry to the independent health registry using the exact incremental
+  discovery cursor. Six API tests / 24 assertions pass; registration documents
+  distinguish project ID from slug. Historical/push freshness remains pending.
+
+## 2026-09-09 — Vercel discovery health
+
+- Extended the independent health probe to Vercel cursor coverage. Six API tests /
+  23 assertions and local database recovery/health acceptance / 9 assertions pass.
+  Monitor registration documented; external monitoring and drain freshness remain open.
+
+## 2026-09-09 — Vercel CLI deployment packaging
+
+- Added pinned CLI build dependency and lazy runtime defaults, retaining explicit
+  path overrides. Three configuration tests / 8 assertions and scoped Biome pass.
+  Updated registration instructions. Image installation and hosted reads remain
+  unverified; no deployment or provider query performed.
+
+## 2026-09-09 — Vercel evidence recovery acceptance
+
+- Verified saved query evidence survives a later window failure and resumes without
+  duplicate occurrences or premature watermark advancement. All 27 local reliability
+  integration tests / 150 assertions pass; scoped Biome passes. Runtime packaging
+  and hosted acceptance remain pending.
+
+## 2026-09-09 — Vercel polling schedule and config cleanup
+
+- Connected the opt-in schedule and isolated CLI configuration lifecycle. Three
+  tests / 10 assertions pass; runbook updated. Runtime packaging and hosted checks
+  remain pending, and no provider query/deployment occurred.
+
 ## 2026-09-09 — Vercel polling registry
 
 - Added validated production opt-in configuration and bounded source execution.
@@ -17012,3 +17252,12 @@ Reviewed local order 09602PC: 4 uncovered needs / 58 pending units, zero inbound
 - Focused suite: 199 pass; isolated local database coverage: 13 pass. Browser partial4 then quick6 succeeded on a disposable order; 09602PC unchanged. Review findings on historical demand replay, merged caps and split allocation provenance resolved.
 - Added calendar View material actions expansion and Apply covered materials reconciliation to the same ticket, preserving current checklist work. New addendum explicitly distinguishes existing receipt-triggered automatic reconciliation from historical pending-review repair.
 - [Task](tasks/2026-09-09-production-missing-inbound-and-quick-availability.md) · [Feature](features/production-material-availability.md)
+
+### 2026-09-09 — Production worker reassignment
+
+Added shared pencil/worker picker to assignment rows and calendar cards. The new
+permission-checked, locked transaction transfers unsubmitted total/LH/RH quantities
+and preserves original reports, worker, labor and dates on partial splits. Sixteen
+focused tests pass. Sales typecheck validation and live acceptance limitations are
+recorded in `tasks/2026-09-09-production-worker-reassignment.md`; no schema changes,
+production data changes or deployment.

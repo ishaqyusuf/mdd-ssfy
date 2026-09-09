@@ -13,9 +13,11 @@
   Subtotal, adjustments, tax, refunds and card details live in View breakdown.
 - Special Orders have one signature-state disclosure; non-Special Orders omit
   the row. Order actions retains permission-aware enrollment and management.
-- One sticky action bar owns Preview, Edit and More. More groups Send, Print,
-  Order/Quote actions and permission-gated Troubleshooting. The redundant V2
-  footer is removed; Delete/Copy/Move and payment entry remain available.
+- One fixed General tab footer owns Preview, Edit and More (restored on
+  2026-09-09). It uses the sheet's primary footer portal so actions remain
+  visible while content scrolls. More groups Send, Print, Order/Quote actions
+  and permission-gated Troubleshooting; Delete/Copy/Move and payment entry
+  remain available.
 - User authorized all simplification areas; implementation/validation contract:
   `.brain/plans/2026-09-08-sales-ui-simplification.md`.
 

@@ -2736,3 +2736,14 @@ Covered-review extension: `sales.coveredProductionMaterials({salesOrderId})` ret
 - `sales.productionAvailabilitySuppliers({salesOrderId})`: all nondeleted supplier IDs/names after the same scoped authority check.
 - `sales.markProductionMaterialsAvailable`: salesOrderId, expectedRevision, UUID idempotencyKey, nullable supplierId, receivedDate YYYY-MM-DD, selection all or selected `{id,qty}` rows, optional note. Returns inboundId, receivedQty, remainingQty, needsReview and replayed. Stale revisions/invalid scope fail transactionally. Identical actor/key/payload retries return the original result; changed payload conflicts.
 - Audit Event type `production_materials_available` stores request hash, selection, supplier/date, result and receipt allocation quantities with component/stock identity. Existing schema only. Central mutation events refresh inventory/inbound and sales pipeline/Production surfaces.
+
+## Production worker reassignment (2026-09-09)
+
+`reassignProductionAction({ salesId, assignmentIds, assignedToId })` requires
+positive integer identifiers and 1–500 assignment IDs. The authenticated actor
+must have editProduction. Each assignment is locked and rebound to salesId before
+reading active submissions; an active Production worker is required. Returns
+`{ moved }` for the unsubmitted quantity transferred, or rejects an empty transfer.
+Partial transfers preserve reports and original ownership in a quantity split.
+Calendar rows add `hasReassignableQuantity` for the card's assignment scope.
+See `features/production-worker-reassignment.md` for lifecycle and review behavior.

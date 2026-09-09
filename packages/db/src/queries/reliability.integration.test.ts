@@ -1,21 +1,34 @@
 import { afterAll, describe, expect, it } from "bun:test";
-import { createHash, createHmac, randomUUID } from "node:crypto";
 import {
+	createHash,
+	createHmac,
+	generateKeyPairSync,
+	randomUUID,
+} from "node:crypto";
+import {
+	createReliabilityGithubIssue,
 	prepareIncidentIntake,
 	prepareSentryAlert,
 	prepareTriggerRun,
+	prepareVercelQueryPage,
+	publishGithubIncident,
 } from "@gnd/observability/reliability";
 import { handleVercelDrainRequest } from "../../../../apps/api/src/rest/reliability-vercel";
 import { handleVercelDeploymentRequest } from "../../../../apps/api/src/rest/reliability-vercel-deployment";
+import { publishConfiguredGithubIncident } from "../../../jobs/src/reliability/configured-github-publication";
+import { recoverConfiguredGithubDelivery } from "../../../jobs/src/reliability/configured-github-recovery";
+import { deliverReliabilityIncident } from "../../../jobs/src/reliability/deliver-incident";
 import { reconcileSentrySource } from "../../../jobs/src/reliability/reconcile-sentry";
 import { reconcileTriggerSource } from "../../../jobs/src/reliability/reconcile-trigger";
 import { reconcileVercelSource } from "../../../jobs/src/reliability/reconcile-vercel";
+import { recoverGithubDelivery } from "../../../jobs/src/reliability/recover-github";
 import { createDatabaseClient } from "../index";
 import {
 	getReliabilityIncident,
 	ingestReliabilityOccurrence,
 } from "./reliability";
 import { applyReliabilityAction } from "./reliability-actions";
+import { getReliabilityCursorHealth } from "./reliability-cursor";
 import {
 	claimReliabilityCursor,
 	deferReliabilityCursor,
@@ -23,8 +36,12 @@ import {
 } from "./reliability-cursor";
 import {
 	claimReliabilityDelivery,
+	expireGithubSender,
+	extendGithubRecoveryCooldown,
 	getReliabilityDeliveryHealth,
+	listDueGithubRecoveries,
 	recordReliabilityDeliveryReceipt,
+	reserveGithubRecoveryScan,
 	settleReliabilityDelivery,
 } from "./reliability-delivery";
 import {
@@ -101,6 +118,869 @@ afterAll(async () => {
 });
 
 describe.skipIf(!enabled)("durable reliability intake", () => {
+	it("reserves one recovery scan and preserves uncertainty during cooldown", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("recovery-cooldown", {
+				groupId: `${service.id}-recovery-cooldown`,
+			}),
+		);
+		const clock = new Date(Date.now() + 1000);
+		await deliverReliabilityIncident(db, {
+			incidentId: incident.id,
+			serviceId: service.id,
+			revision: incident.revision,
+			destination: "GITHUB",
+			now: () => clock,
+			publish: async () => ({
+				status: "UNCERTAIN",
+				errorCode: "RESPONSE_LOST",
+			}),
+		});
+		const row = await db.reliabilityDelivery.findFirstOrThrow({
+			where: { incidentId: incident.id, destination: "GITHUB" },
+		});
+		const input = { deliveryId: row.id, serviceId: service.id, now: clock };
+		expect(
+			(
+				await listDueGithubRecoveries(db, {
+					serviceIds: [service.id],
+					now: clock,
+					limit: 1,
+				})
+			).map((value) => value.id),
+		).toEqual([row.id]);
+		expect(
+			await listDueGithubRecoveries(db, {
+				serviceIds: ["wrong-service"],
+				now: clock,
+				limit: 1,
+			}),
+		).toEqual([]);
+		const claims = await Promise.all([
+			reserveGithubRecoveryScan(db, input),
+			reserveGithubRecoveryScan(db, input),
+		]);
+		expect(claims.filter(Boolean)).toHaveLength(1);
+		expect(
+			await listDueGithubRecoveries(db, {
+				serviceIds: [service.id],
+				now: clock,
+				limit: 1,
+			}),
+		).toEqual([]);
+		expect(
+			await reserveGithubRecoveryScan(db, {
+				...input,
+				now: new Date(clock.getTime() + 299_000),
+			}),
+		).toBe(false);
+		expect(
+			(
+				await db.reliabilityDelivery.findUniqueOrThrow({
+					where: { id: row.id },
+				})
+			).status,
+		).toBe("UNCERTAIN");
+		expect(
+			await reserveGithubRecoveryScan(db, {
+				...input,
+				now: new Date(clock.getTime() + 300_000),
+			}),
+		).toBe(true);
+		const providerDeadline = new Date(clock.getTime() + 1_200_000);
+		expect(
+			await extendGithubRecoveryCooldown(db, {
+				deliveryId: row.id,
+				serviceId: service.id,
+				retryAt: providerDeadline,
+			}),
+		).toBe(true);
+		expect(
+			await extendGithubRecoveryCooldown(db, {
+				deliveryId: row.id,
+				serviceId: service.id,
+				retryAt: new Date(clock.getTime() + 900_000),
+			}),
+		).toBe(false);
+		expect(
+			await reserveGithubRecoveryScan(db, {
+				...input,
+				now: new Date(clock.getTime() + 1_199_000),
+			}),
+		).toBe(false);
+		expect(
+			(
+				await db.reliabilityDelivery.findUniqueOrThrow({
+					where: { id: row.id },
+				})
+			).nextAttemptAt.getTime(),
+		).toBe(providerDeadline.getTime());
+		expect(
+			await reserveGithubRecoveryScan(db, { ...input, now: providerDeadline }),
+		).toBe(true);
+		await recordReliabilityDeliveryReceipt(db, {
+			deliveryId: row.id,
+			actionKey: row.actionKey,
+			remoteId: "96",
+			now: clock,
+		});
+	});
+	it("recovers configured delivery with read-only credentials while publication is disabled", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("configured-recovery", {
+				groupId: `${service.id}-configured-recovery`,
+			}),
+		);
+		const clock = new Date(Date.now() + 1000);
+		await deliverReliabilityIncident(db, {
+			incidentId: incident.id,
+			serviceId: service.id,
+			revision: incident.revision,
+			destination: "GITHUB",
+			now: () => clock,
+			publish: async () => ({
+				status: "UNCERTAIN",
+				errorCode: "RESPONSE_LOST",
+			}),
+		});
+		const delivery = await db.reliabilityDelivery.findFirstOrThrow({
+			where: { incidentId: incident.id, destination: "GITHUB" },
+		});
+		const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+		const entry = {
+			serviceId: service.id,
+			repository: "gnd/fixture",
+			repositoryId: 2,
+			installationId: 3,
+			actorId: 4,
+			clientId: "Iv1.fixture",
+			privateKeyEnv: "RELIABILITY_GITHUB_APP_KEY_FIXTURE",
+		};
+		const requests: string[] = [];
+		const result = await recoverConfiguredGithubDelivery(
+			db,
+			{
+				deliveryId: delivery.id,
+				serviceId: service.id,
+				environment: "PRODUCTION",
+				now: () => clock,
+				env: {
+					RELIABILITY_GITHUB_RECOVERY_ENABLED: "true",
+					RELIABILITY_GITHUB_REGISTRATIONS: JSON.stringify([entry]),
+					RELIABILITY_GITHUB_APP_KEY_FIXTURE: privateKey
+						.export({ type: "pkcs8", format: "pem" })
+						.toString(),
+				},
+			},
+			async (url, init) => {
+				requests.push(`${init?.method} ${new URL(String(url)).pathname}`);
+				if (requests.length === 1) {
+					expect(JSON.parse(String(init?.body)).permissions).toEqual({
+						issues: "read",
+					});
+					return Response.json(
+						{
+							token: "ghs_read_fixture",
+							expires_at: new Date(clock.getTime() + 3_600_000).toISOString(),
+							permissions: { issues: "read" },
+							repositories: [{ id: 2, full_name: entry.repository }],
+						},
+						{ status: 201 },
+					);
+				}
+				expect(new Headers(init?.headers).get("authorization")).toBe(
+					"Bearer ghs_read_fixture",
+				);
+				return Response.json([
+					{
+						number: 95,
+						html_url: "https://github.com/gnd/fixture/issues/95",
+						user: { id: 4 },
+						body: `<!-- reliability:${incident.id}:start -->\nEvidence\n<!-- reliability:${incident.id}:end -->\n<!-- reliability-action:${delivery.actionKey} -->`,
+					},
+				]);
+			},
+		);
+		expect(result.status).toBe("recovered");
+		expect(requests).toEqual([
+			"POST /app/installations/3/access_tokens",
+			"GET /repos/gnd/fixture/issues",
+		]);
+		const saved = await db.reliabilityDelivery.findUniqueOrThrow({
+			where: { id: delivery.id },
+		});
+		expect(saved.status).toBe("SENT");
+		expect(saved.remoteId).toBe("95");
+	});
+	it("keeps recovery independently disabled and skips credentials for ineligible deliveries", async () => {
+		let requests = 0;
+		const base = {
+			deliveryId: "missing",
+			serviceId: service.id,
+			now: () => now,
+		};
+		const request = async () => {
+			requests++;
+			throw new Error("Must not request");
+		};
+		expect(
+			(
+				await recoverConfiguredGithubDelivery(
+					db,
+					{
+						...base,
+						environment: "PRODUCTION",
+						env: { RELIABILITY_GITHUB_PUBLICATION_ENABLED: "true" },
+					},
+					request,
+				)
+			).status,
+		).toBe("disabled");
+		expect(
+			(
+				await recoverConfiguredGithubDelivery(
+					db,
+					{
+						...base,
+						environment: "DEVELOPMENT",
+						env: { RELIABILITY_GITHUB_RECOVERY_ENABLED: "true" },
+					},
+					request,
+				)
+			).status,
+		).toBe("disabled");
+		expect(
+			(
+				await recoverConfiguredGithubDelivery(
+					db,
+					{
+						...base,
+						environment: "PRODUCTION",
+						env: {
+							RELIABILITY_GITHUB_RECOVERY_ENABLED: "true",
+							RELIABILITY_GITHUB_REGISTRATIONS: "invalid",
+						},
+					},
+					request,
+				)
+			).status,
+		).toBe("not_eligible");
+		expect(requests).toBe(0);
+	});
+	it("publishes a configured incident using a scoped app token and persists its receipt", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("configured-github", {
+				groupId: `${service.id}-configured-github`,
+			}),
+		);
+		const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+		const clock = new Date(Date.now() + 1000);
+		const entry = {
+			serviceId: service.id,
+			repository: "gnd/fixture",
+			repositoryId: 2,
+			installationId: 3,
+			actorId: 4,
+			clientId: "Iv1.fixture",
+			privateKeyEnv: "RELIABILITY_GITHUB_APP_KEY_FIXTURE",
+		};
+		const paths: string[] = [];
+		const result = await publishConfiguredGithubIncident(
+			db,
+			{
+				env: {
+					RELIABILITY_GITHUB_PUBLICATION_ENABLED: "true",
+					RELIABILITY_GITHUB_REGISTRATIONS: JSON.stringify([entry]),
+					RELIABILITY_GITHUB_APP_KEY_FIXTURE: privateKey
+						.export({ type: "pkcs8", format: "pem" })
+						.toString(),
+				},
+				environment: "PRODUCTION",
+				incidentId: incident.id,
+				serviceId: service.id,
+				revision: incident.revision,
+				title: "Reviewed incident",
+				evidence: "Reviewed evidence",
+				now: () => clock,
+			},
+			async (url, init) => {
+				paths.push(new URL(String(url)).pathname);
+				if (paths.length === 1) {
+					expect(JSON.parse(String(init?.body))).toEqual({
+						repository_ids: [2],
+						permissions: { issues: "write" },
+					});
+					return Response.json(
+						{
+							token: "ghs_fixture",
+							expires_at: new Date(clock.getTime() + 3_600_000).toISOString(),
+							permissions: { issues: "write" },
+							repositories: [{ id: 2, full_name: "gnd/fixture" }],
+						},
+						{ status: 201 },
+					);
+				}
+				expect(new Headers(init?.headers).get("authorization")).toBe(
+					"Bearer ghs_fixture",
+				);
+				expect(JSON.parse(String(init?.body)).body).toContain(
+					`reliability:${incident.id}:start`,
+				);
+				return Response.json(
+					{ number: 94, html_url: "https://github.com/gnd/fixture/issues/94" },
+					{ status: 201 },
+				);
+			},
+		);
+		expect(result.status).toBe("SENT");
+		expect(paths).toEqual([
+			"/app/installations/3/access_tokens",
+			"/repos/gnd/fixture/issues",
+		]);
+		expect(JSON.stringify(result)).not.toContain("ghs_fixture");
+		const delivery = await db.reliabilityDelivery.findFirstOrThrow({
+			where: { incidentId: incident.id, destination: "GITHUB" },
+		});
+		expect(delivery.remoteId).toBe("94");
+		expect(delivery.status).toBe("SENT");
+	});
+	it("keeps configured GitHub publication inert outside its production opt-in", async () => {
+		let requests = 0;
+		for (const settings of [
+			{ environment: "PRODUCTION", env: {} },
+			{
+				environment: "DEVELOPMENT",
+				env: { RELIABILITY_GITHUB_PUBLICATION_ENABLED: "true" },
+			},
+		]) {
+			const result = await publishConfiguredGithubIncident(
+				db,
+				{
+					...settings,
+					incidentId: "unused",
+					serviceId: service.id,
+					revision: 1,
+					title: "Draft",
+					evidence: "Evidence",
+					now: () => now,
+				},
+				async () => {
+					requests++;
+					throw new Error("Must not request");
+				},
+			);
+			expect(result.status).toBe("disabled");
+		}
+		expect(requests).toBe(0);
+	});
+	it("recovers a lost evidence comment without recreating the issue or comment", async () => {
+		const groupId = `${service.id}-comment-recovery`;
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("comment-initial", { groupId }),
+		);
+		const clock = new Date(Date.now() + 1000);
+		const base = {
+			incidentId: incident.id,
+			serviceId: service.id,
+			revision: incident.revision,
+			destination: "GITHUB" as const,
+			now: () => clock,
+		};
+		await deliverReliabilityIncident(db, {
+			...base,
+			publish: async () => ({ status: "SENT", remoteId: "93" }),
+		});
+		const latest = await ingestReliabilityOccurrence(
+			db,
+			event("comment-next", { groupId }),
+		);
+		let writes = 0;
+		let commentBody = "";
+		const update = {
+			...base,
+			revision: latest.incident.revision,
+			publish: async (delivery: {
+				actionKey: string;
+				attempt: number;
+				remoteId: string | null;
+			}) =>
+				publishGithubIncident(
+					{
+						repository: "gnd/fixture",
+						token: "fixture",
+						incidentId: incident.id,
+						title: "Incident",
+						evidence: "Updated evidence",
+						...delivery,
+					},
+					async (url, init) => {
+						writes++;
+						expect(String(url)).toBe(
+							"https://api.github.com/repos/gnd/fixture/issues/93/comments",
+						);
+						commentBody = JSON.parse(String(init?.body)).body;
+						throw new Error("Response lost after comment creation");
+					},
+					() => clock,
+				),
+		};
+		expect((await deliverReliabilityIncident(db, update)).status).toBe(
+			"UNCERTAIN",
+		);
+		expect((await deliverReliabilityIncident(db, update)).status).toBe(
+			"not_claimed",
+		);
+		const uncertain = await db.reliabilityDelivery.findFirstOrThrow({
+			where: {
+				incidentId: incident.id,
+				destination: "GITHUB",
+				status: "UNCERTAIN",
+			},
+		});
+		expect(uncertain.remoteId).toBe("93");
+		const recovered = await recoverGithubDelivery(
+			db,
+			{
+				deliveryId: uncertain.id,
+				serviceId: service.id,
+				repository: "gnd/fixture",
+				token: "fixture",
+				actorId: 123,
+				now: () => clock,
+			},
+			async (url) => {
+				expect(new URL(String(url)).pathname).toBe(
+					"/repos/gnd/fixture/issues/93/comments",
+				);
+				return Response.json([
+					{
+						id: 991,
+						html_url:
+							"https://github.com/gnd/fixture/issues/93#issuecomment-991",
+						user: { id: 123 },
+						body: commentBody,
+					},
+				]);
+			},
+		);
+		expect(recovered.status).toBe("recovered");
+		expect(
+			(
+				await db.reliabilityDelivery.findUniqueOrThrow({
+					where: { id: uncertain.id },
+				})
+			).remoteId,
+		).toBe("93");
+		expect((await deliverReliabilityIncident(db, update)).status).toBe(
+			"not_claimed",
+		);
+		expect(writes).toBe(1);
+	});
+	it("holds a worker's unknown publication result until a matching receipt is recovered", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("worker-unknown", { groupId: `${service.id}-worker-unknown` }),
+		);
+		const clock = new Date(Date.now() + 1000);
+		let calls = 0;
+		const input = {
+			incidentId: incident.id,
+			serviceId: service.id,
+			revision: incident.revision,
+			destination: "GITHUB" as const,
+			now: () => clock,
+			publish: async () => {
+				calls++;
+				throw new Error(
+					"Remote write may have succeeded; private provider details",
+				);
+			},
+		};
+		expect((await deliverReliabilityIncident(db, input)).status).toBe(
+			"UNCERTAIN",
+		);
+		expect((await deliverReliabilityIncident(db, input)).status).toBe(
+			"not_claimed",
+		);
+		expect(calls).toBe(1);
+		const row = await db.reliabilityDelivery.findFirstOrThrow({
+			where: { incidentId: incident.id, destination: "GITHUB" },
+		});
+		expect(row.lastErrorCode).toBe("PUBLICATION_RESULT_UNKNOWN");
+		expect(
+			await recordReliabilityDeliveryReceipt(db, {
+				deliveryId: row.id,
+				actionKey: "wrong",
+				remoteId: "92",
+				now: clock,
+			}),
+		).toBe(false);
+		const recovery = {
+			deliveryId: row.id,
+			serviceId: service.id,
+			repository: "gnd/fixture",
+			token: "fixture",
+			actorId: 123,
+			now: () => clock,
+		};
+		let reads = 0;
+		const request = async () => {
+			reads++;
+			return Response.json([
+				{
+					number: 92,
+					html_url: "https://github.com/gnd/fixture/issues/92",
+					user: { id: 123 },
+					body: `<!-- reliability:${incident.id}:start -->\nEvidence\n<!-- reliability:${incident.id}:end -->\n<!-- reliability-action:${row.actionKey} -->`,
+				},
+			]);
+		};
+		expect(
+			(
+				await recoverGithubDelivery(
+					db,
+					{ ...recovery, serviceId: "wrong" },
+					request,
+				)
+			).status,
+		).toBe("not_eligible");
+		expect(reads).toBe(0);
+		expect((await recoverGithubDelivery(db, recovery, request)).status).toBe(
+			"recovered",
+		);
+		expect((await recoverGithubDelivery(db, recovery, request)).status).toBe(
+			"not_eligible",
+		);
+		expect(reads).toBe(1);
+		expect((await deliverReliabilityIncident(db, input)).status).toBe(
+			"not_claimed",
+		);
+		expect(calls).toBe(1);
+	});
+	it("orchestrates one scoped publication and carries the receipt to later revisions", async () => {
+		const groupId = `${service.id}-worker`;
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("worker-first", { groupId }),
+		);
+		const clock = new Date(Date.now() + 1000);
+		const base = {
+			incidentId: incident.id,
+			serviceId: service.id,
+			revision: incident.revision,
+			destination: "GITHUB" as const,
+			now: () => clock,
+		};
+		let creates = 0;
+		const publish = async (delivery: {
+			actionKey: string;
+			attempt: number;
+			remoteId: string | null;
+		}) => {
+			expect(delivery.remoteId).toBeNull();
+			creates++;
+			return createReliabilityGithubIssue(
+				{
+					repository: "gnd/fixture",
+					token: "fixture",
+					incidentId: incident.id,
+					title: "Incident",
+					evidence: "Safe evidence",
+					...delivery,
+				},
+				async () =>
+					Response.json(
+						{
+							number: 91,
+							html_url: "https://github.com/gnd/fixture/issues/91",
+						},
+						{ status: 201 },
+					),
+				() => clock,
+			);
+		};
+		expect(
+			(
+				await deliverReliabilityIncident(db, {
+					...base,
+					serviceId: "wrong",
+					publish,
+				})
+			).status,
+		).toBe("not_claimed");
+		expect(
+			(await deliverReliabilityIncident(db, { ...base, publish })).status,
+		).toBe("SENT");
+		expect(
+			(await deliverReliabilityIncident(db, { ...base, publish })).status,
+		).toBe("not_claimed");
+		const latest = await ingestReliabilityOccurrence(
+			db,
+			event("worker-next", { groupId }),
+		);
+		const updated = await deliverReliabilityIncident(db, {
+			...base,
+			revision: latest.incident.revision,
+			publish: async (delivery) => {
+				expect(delivery.remoteId).toBe("91");
+				return { status: "SENT", remoteId: "91" };
+			},
+		});
+		expect(updated.status).toBe("SENT");
+		expect(creates).toBe(1);
+	});
+	it("claims publication only for the current service-owned incident revision", async () => {
+		const groupId = `${service.id}-publication-scope`;
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("scope-first", { groupId }),
+		);
+		const base = {
+			incidentId: incident.id,
+			destination: "GITHUB" as const,
+			now: new Date(Date.now() + 1000),
+			leaseMs: 30_000,
+		};
+		expect(
+			await claimReliabilityDelivery(db, {
+				...base,
+				publication: {
+					serviceId: "wrong-service",
+					revision: incident.revision,
+				},
+			}),
+		).toBeNull();
+		const latest = await ingestReliabilityOccurrence(
+			db,
+			event("scope-next", { groupId }),
+		);
+		expect(
+			await claimReliabilityDelivery(db, {
+				...base,
+				publication: { serviceId: service.id, revision: incident.revision },
+			}),
+		).toBeNull();
+		const claim = await claimReliabilityDelivery(db, {
+			...base,
+			publication: {
+				serviceId: service.id,
+				revision: latest.incident.revision,
+			},
+		});
+		expect(claim?.revision).toBe(latest.incident.revision);
+		expect(claim?.attempts).toBe(1);
+		if (!claim?.leaseId) throw new Error("Expected current claim");
+		await settleReliabilityDelivery(db, {
+			deliveryId: claim.id,
+			leaseId: claim.leaseId,
+			now: base.now,
+			outcome: { status: "SUPPRESSED", errorCode: "TEST_COMPLETE" },
+		});
+	});
+	it("persists GitHub throttling and the eventual repository receipt through the outbox", async () => {
+		const { incident } = await ingestReliabilityOccurrence(
+			db,
+			event("github-create", { groupId: `${service.id}-github-create` }),
+		);
+		let clock = new Date(Date.now() + 1000);
+		const claimInput = {
+			incidentId: incident.id,
+			destination: "GITHUB" as const,
+			now: clock,
+			leaseMs: 30_000,
+		};
+		const first = await claimReliabilityDelivery(db, claimInput);
+		if (!first?.leaseId) throw new Error("Expected claim");
+		const draft = {
+			repository: "gnd/fixture",
+			token: "fixture",
+			incidentId: incident.id,
+			actionKey: first.actionKey,
+			attempt: first.attempts,
+			title: "Incident",
+			evidence: "Safe evidence",
+		};
+		const throttled = await createReliabilityGithubIssue(
+			draft,
+			async () =>
+				new Response(null, { status: 429, headers: { "retry-after": "120" } }),
+			() => clock,
+		);
+		expect(
+			await settleReliabilityDelivery(db, {
+				deliveryId: first.id,
+				leaseId: first.leaseId,
+				now: clock,
+				outcome: throttled,
+			}),
+		).toBe(true);
+		expect(
+			await claimReliabilityDelivery(db, {
+				...claimInput,
+				now: new Date(clock.getTime() + 60_000),
+			}),
+		).toBeNull();
+		clock = new Date(clock.getTime() + 121_000);
+		const retry = await claimReliabilityDelivery(db, {
+			...claimInput,
+			now: clock,
+		});
+		if (!retry?.leaseId) throw new Error("Expected retry");
+		expect(retry.attempts).toBe(2);
+		const sent = await createReliabilityGithubIssue(
+			{ ...draft, actionKey: retry.actionKey, attempt: retry.attempts },
+			async () =>
+				Response.json(
+					{ number: 42, html_url: "https://github.com/gnd/fixture/issues/42" },
+					{ status: 201 },
+				),
+			() => clock,
+		);
+		expect(
+			await settleReliabilityDelivery(db, {
+				deliveryId: retry.id,
+				leaseId: retry.leaseId,
+				now: clock,
+				outcome: sent,
+			}),
+		).toBe(true);
+		const saved = await db.reliabilityDelivery.findUniqueOrThrow({
+			where: { id: retry.id },
+		});
+		expect(saved.status).toBe("SENT");
+		expect(saved.remoteId).toBe("42");
+		expect(
+			await claimReliabilityDelivery(db, { ...claimInput, now: clock }),
+		).toBeNull();
+	});
+	it("retains Vercel query evidence and resumes after a later window fails", async () => {
+		const source = {
+			account: "vercel-query-retry",
+			project: "web",
+			operation: "sales.save",
+			service: {
+				...service,
+				sources: [
+					{
+						provider: "vercel" as const,
+						account: "vercel-query-retry",
+						project: "web",
+					},
+				],
+			},
+		};
+		let clock = new Date("2026-09-09T12:00:00Z");
+		const options = {
+			now: () => clock,
+			maxQueries: 5,
+			maxDurationMs: 20_000,
+			lookbackMs: 3_600_000,
+			limit: 1,
+		};
+		let calls = 0;
+		const first = await reconcileVercelSource(
+			db,
+			source,
+			options,
+			async (window) => {
+				calls++;
+				if (calls === 2) throw new Error("Provider unavailable");
+				return prepareVercelQueryPage(
+					Buffer.from(
+						JSON.stringify({
+							id: "req_recovery",
+							deploymentId: "dpl_recovery",
+							projectId: "web",
+							environment: "production",
+							source: "serverless",
+							timestamp: Date.parse("2026-09-09T11:15:00Z"),
+							level: "error",
+							logs: [],
+						}),
+					),
+					source,
+					window,
+					clock,
+				);
+			},
+		);
+		cursorIds.push(first.id);
+		expect(first.status).toBe("deferred");
+		expect(first.occurrences).toBe(1);
+		expect(
+			(
+				await getReliabilityCursorHealth(db, {
+					cursorId: first.id,
+					now: clock,
+					maxAgeMs: 900_000,
+				})
+			).reasons,
+		).toEqual(["DISCOVERY_NEVER_COMPLETED"]);
+		expect(
+			(
+				await db.reliabilityCursor.findUniqueOrThrow({
+					where: { id: first.id },
+				})
+			).watermark,
+		).toBeNull();
+		clock = new Date("2026-09-09T12:01:01Z");
+		const resumed = await reconcileVercelSource(
+			db,
+			source,
+			{ ...options, limit: 100 },
+			async (window) =>
+				prepareVercelQueryPage(
+					Buffer.from(
+						window.since.getTime() < Date.parse("2026-09-09T11:30:00Z")
+							? JSON.stringify({
+									id: "req_recovery",
+									deploymentId: "dpl_recovery",
+									projectId: "web",
+									environment: "production",
+									source: "serverless",
+									timestamp: Date.parse("2026-09-09T11:15:00Z"),
+									level: "error",
+									logs: [],
+								})
+							: "",
+					),
+					source,
+					window,
+					clock,
+				),
+		);
+		expect(resumed.status).toBe("complete");
+		expect(
+			(
+				await getReliabilityCursorHealth(db, {
+					cursorId: first.id,
+					now: clock,
+					maxAgeMs: 900_000,
+				})
+			).status,
+		).toBe("healthy");
+		expect(
+			(
+				await getReliabilityCursorHealth(db, {
+					cursorId: first.id,
+					now: new Date("2026-09-09T12:20:00Z"),
+					maxAgeMs: 900_000,
+				})
+			).reasons,
+		).toEqual(["DISCOVERY_BEHIND", "POLL_STALE"]);
+		const rows = await db.reliabilityOccurrence.findMany({
+			where: { account: source.account, incident: { serviceId: service.id } },
+		});
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.evidence).toEqual({
+			deploymentId: "dpl_recovery",
+			requestId: "req_recovery",
+		});
+	});
 	it("resumes subdivided Vercel discovery after its query budget expires", async () => {
 		const source = {
 			account: "vercel-cursor",
@@ -1392,13 +2272,44 @@ describe.skipIf(!enabled)("durable reliability intake", () => {
 		const first = event("crash", { groupId: `${service.id}-crash` });
 		const { incident } = await ingestReliabilityOccurrence(db, first);
 		const clock = new Date(Date.now() + 1000);
-		await claimReliabilityDelivery(db, {
+		const sending = await claimReliabilityDelivery(db, {
 			incidentId: incident.id,
 			destination: "GITHUB",
 			now: clock,
 			leaseMs: 1000,
 		});
 		const afterExpiry = new Date(clock.getTime() + 1001);
+		if (!sending) throw new Error("Expected sender");
+		expect(
+			await expireGithubSender(db, {
+				deliveryId: sending.id,
+				serviceId: service.id,
+				now: clock,
+			}),
+		).toBe(false);
+		expect(
+			await expireGithubSender(db, {
+				deliveryId: sending.id,
+				serviceId: "wrong",
+				now: afterExpiry,
+			}),
+		).toBe(false);
+		expect(
+			(
+				await listDueGithubRecoveries(db, {
+					serviceIds: [service.id],
+					now: afterExpiry,
+					limit: 10,
+				})
+			).some((row) => row.id === sending.id),
+		).toBe(true);
+		expect(
+			await expireGithubSender(db, {
+				deliveryId: sending.id,
+				serviceId: service.id,
+				now: afterExpiry,
+			}),
+		).toBe(true);
 		expect(
 			await claimReliabilityDelivery(db, {
 				incidentId: incident.id,

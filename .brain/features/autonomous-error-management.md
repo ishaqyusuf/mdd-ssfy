@@ -8,6 +8,62 @@ is the design source. No provider connections or publications are active yet.
 
 ## Intake boundary
 
+Recovery selection includes expired GitHub SENDING leases. A service-scoped,
+incident-locked transition marks them UNCERTAIN and eligible for receipt discovery;
+live leases stay untouched. Recovery does not require another incident revision.
+
+Configured GitHub recovery reserves a five-minute cooldown in delivery
+`nextAttemptAt` before credential acquisition. Reservations serialize on the incident
+lock, acquired before transaction snapshot reads. Failed or absent scans preserve
+UNCERTAIN and the cooldown; they do not enable another publication attempt.
+
+Existing GitHub issues can receive bounded marked evidence comments through
+`appendReliabilityGithubEvidence`, an update strategy allowed by the research.
+The adapter preserves the issue body/title and validates the returned comment URL
+against the intended issue. It shares timeout, rate-limit and uncertainty handling
+with creation. Comment recovery and production dispatch remain incomplete.
+
+`recoverGithubDelivery` reads only an UNCERTAIN GitHub delivery owned by the
+configured service, scans from five minutes before its creation, and persists only
+a uniquely validated receipt. Other results retain uncertainty. Repeated recovery
+of a completed delivery performs no provider read. Registry credentials, automated
+recovery scheduling/backoff, and large-scan continuation remain pending.
+
+GitHub receipt identification validates repository URL, automation actor ID,
+issue number, ordered unique incident/action markers, and absence of a PR marker.
+Multiple issue matches are ambiguous; no match stays unresolved and never permits
+recreation. Candidate discovery transport and recovery worker wiring remain open.
+
+`deliverReliabilityIncident` now orchestrates a scoped 30-second delivery claim,
+publisher callback, and lease-bound settlement. It passes the stable action key,
+attempt count, and prior remote receipt to the publisher; unknown publisher errors
+become UNCERTAIN. It does not schedule work or select credentials/drafts. GitHub
+update transport, uncertain recovery, and production publication gates remain open.
+
+Delivery claims accept an optional publication scope (`serviceId`, `revision`).
+Under the incident lock they reject a mismatched service, stale revision, resolved
+or informational incident, and claim only the matching pending revision. Production
+publication workers must supply this scope. This protects claim-time consistency;
+it does not hold a database lock across remote writes or replace credential checks.
+
+The GitHub create adapter now emits stable incident/action markers and validates
+the issue receipt against the configured repository. It bounds request duration
+and receipt size, blocks redirects, and returns UNCERTAIN after ambiguous writes.
+It does not retry creates inline. HTTP 429 and header-identified 403 throttling
+return PENDING with the later of exponential backoff, Retry-After, and exhausted
+quota reset. Malformed retry hints fail for review rather than retrying early.
+Body-only 403 secondary-rate-limit/abuse-detection messages are recognized through
+a bounded 16 KiB JSON read. Permission failures and unreadable/oversized 403 bodies
+remain FAILED; provider diagnostics are not returned to callers.
+App authentication, outbox execution,
+receipt reconciliation, and publication activation remain incomplete.
+
+GitHub evidence formatting now has an ownership boundary: stable incident markers
+delimit automation-owned text. Updates preserve all surrounding human text and
+reject missing, duplicated, reversed, or nested markers. Evidence/body budgets
+bound output. This formatter is not yet wired to publication; transport, concurrent
+remote-edit handling, credentials, and uncertain-response recovery remain open.
+
 `@gnd/observability/reliability` is a server-only subpath. It reconstructs a safe
 occurrence from an adapter-normalized event and a trusted service registration.
 The caller must verify provider signatures and map trusted impact evidence before
@@ -159,6 +215,11 @@ expiring snooze, and additional operator actions are pending. No public action
 endpoint is exposed yet.
 
 ## Validation
+
+The opt-in Vercel polling schedule now connects configuration, isolated temporary
+CLI config, bounded reads, and durable reconciliation. Cleanup is verified after
+success and failure. Three tests / 10 assertions pass. CLI deployment packaging and
+hosted acceptance remain pending; no live polling is enabled.
 
 Vercel polling configuration now validates all sources and runtime paths before
 execution, resolves separate token references, and enforces production opt-in plus

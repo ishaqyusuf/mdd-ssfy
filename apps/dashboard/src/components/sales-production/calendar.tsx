@@ -48,6 +48,7 @@ import { format, isPast, isSameMonth, isToday, startOfDay } from "date-fns";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { ProductionAttentionButton, ProductionAttentionTooltip } from "./order-attention";
+import { ReassignProductionWorker } from "./reassign-worker";
 import { productionCalendarColors } from "./calendar-colors";
 
 const PlanningCalendar = dynamic(() =>
@@ -127,6 +128,7 @@ function ProductionChip({
    <div className="min-w-0 flex-1">
     <div className="flex min-w-0 items-center gap-1">
      <button type="button" className="min-w-0 flex-1 truncate text-left font-mono font-semibold uppercase focus-visible:outline-none" onClick={() => overview.open2(item.orderNo, workerMode ? "production-tasks" : "sales-production")}>{item.orderNo}</button>
+     {!workerMode ? <ReassignProductionWorker salesId={item.orderId} assignmentIds={item.assignmentIds} disabled={!item.hasReassignableQuantity} /> : null}
      <ProductionAttentionButton presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} lockReason={lockReason} />
      {compact ? null : <SalesPriorityBadge priority={item.priority} />}
     </div>

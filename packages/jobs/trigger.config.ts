@@ -1,6 +1,7 @@
 import { PrismaInstrumentation } from "@prisma/instrumentation";
 import { sentryEsbuildPlugin } from "@sentry/esbuild-plugin";
 import { esbuildPlugin } from "@trigger.dev/build/extensions";
+import { additionalPackages } from "@trigger.dev/build/extensions/core";
 import { prismaExtension } from "@trigger.dev/build/extensions/prisma";
 import { defineConfig } from "@trigger.dev/sdk/v3";
 import { getSentrySourceMapUploadConfig } from "./src/observability/sentry";
@@ -32,6 +33,7 @@ export default defineConfig({
   },
   build: {
     extensions: [
+      additionalPackages({ packages: ["vercel@54.4.1"] }),
       ...(sentrySourceMapUpload
         ? [
             esbuildPlugin(

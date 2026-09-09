@@ -2,6 +2,20 @@
 
 Implementation exists; no live registration has been configured or verified.
 
+## Independent discovery health
+
+Add a `provider: "sentry"` entry to `RELIABILITY_MONITOR_SOURCES`, with `account`
+matching the polling organization, `project` set to its **projectId** (not its
+slug), the same `serviceId`, and `maxAgeMs` such as 900000. The authenticated
+`GET /api/reliability/health` checks the exact `sentry-events` production cursor.
+Missing completion, stale coverage/success, and future timestamps fail health.
+Omitting `mode` checks incremental discovery. Add a second entry with
+`mode: "historical"` and a threshold appropriate for hourly replay (for example
+7200000) to check backfill independently. Alert delivery freshness is not covered.
+External monitor deployment remains pending.
+
+## Alert registration
+
 The API reads `RELIABILITY_SENTRY_REGISTRATIONS` as a JSON array. Each entry
 selects a server-owned source and owner; callers cannot override them.
 

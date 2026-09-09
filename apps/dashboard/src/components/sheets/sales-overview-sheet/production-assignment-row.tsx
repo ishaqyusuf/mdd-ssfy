@@ -1,3 +1,4 @@
+import { ReassignProductionWorker } from "@/components/sales-production/reassign-worker";
 import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
 import { updateAssignmentDueDateUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-prod.use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
@@ -226,6 +227,7 @@ function Content({
 					className="min-h-16 gap-3 py-3 pl-2 pr-0 text-left hover:bg-muted/40 hover:no-underline focus-visible:relative focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring/50 sm:pl-3 sm:pr-0"
 					actions={
 						<TooltipProvider delayDuration={100}>
+                            {!queryCtx.assignedTo && !queryCtx.dispatchMode ? <ReassignProductionWorker salesId={assignment.orderId} assignmentIds={[assignment.id]} disabled={!hasPendingSubmissionQuantity || orderFulfilled} onUpdated={ctx.refreshAssignments} /> : null}
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<div
@@ -402,7 +404,8 @@ function Content({
 							<p className="text-sm font-medium uppercase">
 								{assignment.assignedTo}
 							</p>
-							{assignment.assignedTo && (
+							{!queryCtx.assignedTo && !queryCtx.dispatchMode ? <ReassignProductionWorker salesId={assignment.orderId} assignmentIds={[assignment.id]} disabled={!hasPendingSubmissionQuantity || orderFulfilled} onUpdated={ctx.refreshAssignments} /> : null}
+                            {assignment.assignedTo && (
 								<DatePicker
 									disabled={!!queryCtx.assignedTo || queryCtx.dispatchMode}
 									className="ml-2 h-6 w-auto rounded-sm p-0 px-1 text-xs"

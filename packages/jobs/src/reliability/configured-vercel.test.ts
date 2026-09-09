@@ -26,6 +26,9 @@ it("keeps unconfigured or nonproduction polling inert", async () => {
 				await runConfiguredVercelReconciliation({
 					...config,
 					now: () => new Date(),
+					resolveRuntime: () => {
+						throw new Error("Disabled polling must not resolve the CLI");
+					},
 					execute: async () => {
 						calls++;
 						return { status: "complete", queries: 0, occurrences: 0 };
@@ -35,6 +38,32 @@ it("keeps unconfigured or nonproduction polling inert", async () => {
 		).toBe("disabled");
 	}
 	expect(calls).toBe(0);
+});
+it("uses packaged runtime paths without requiring hosted path configuration", async () => {
+	let received: unknown;
+	const result = await runConfiguredVercelReconciliation({
+		env: {
+			...env,
+			RELIABILITY_VERCEL_NODE_PATH: undefined,
+			RELIABILITY_VERCEL_CLI_PATH: undefined,
+		},
+		environment: "PRODUCTION",
+		now: () => new Date(),
+		resolveRuntime: () => ({
+			nodePath: "/image/node",
+			cliPath: "/image/vercel/dist/vc.js",
+		}),
+		execute: async (_source, runtime) => {
+			received = runtime;
+			return { status: "complete", queries: 1, occurrences: 0 };
+		},
+	});
+	expect(result.status).toBe("complete");
+	expect(received).toEqual({
+		nodePath: "/image/node",
+		cliPath: "/image/vercel/dist/vc.js",
+		token: "fixture",
+	});
 });
 it("validates configuration before execution and sanitizes source failures", async () => {
 	await expect(

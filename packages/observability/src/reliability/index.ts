@@ -36,3 +36,14 @@ export {
 	TriggerReadError,
 	type TriggerReadSource,
 } from "./trigger-read";
+export { updateGithubEvidenceBlock } from "./github-evidence-block";
+export { createReliabilityGithubIssue } from "./github-create";
+export { identifyGithubDeliveryReceipt } from "./github-receipt";
+export { readGithubReceiptCandidates } from "./github-discovery";
+export { discoverGithubDeliveryReceipt } from "./github-recover";
+
+export type { GithubRequest } from "./github-response";
+export { appendReliabilityGithubEvidence } from "./github-create";
+export { publishGithubIncident } from "./github-publish";
+export { signGithubAppJwt } from "./github-app-jwt";
+export { exchangeGithubInstallationToken } from "./github-installation-token";

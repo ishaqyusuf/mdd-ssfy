@@ -4,7 +4,8 @@ The same opt-in also guards `reliability-trigger-historical-sweep`, scheduled ho
 at minute 35 UTC. It revisits a seven-day creation window using its own persisted
 cursor, resumes incomplete pages, and starts a new seven-day scan after completion.
 It does not retrieve the unfinished watch set; incremental polling handles that.
-Historical cursor health is not yet included in the external probe.
+Historical cursor health is available through a separate `mode: "historical"`
+monitor registration; configure it alongside incremental monitoring.
 
 ## Independent health probe
 
@@ -72,3 +73,11 @@ pagination recovery, and rate-limit handling against an authorized environment;
 establish independent stale-ingestion monitoring. A monitor running inside Trigger
 cannot independently detect Trigger's own scheduling outage. No hosted checks or
 configuration changes have been performed by this task.
+# Historical replay monitoring (2026-09-09)
+
+Add a second Trigger entry to `RELIABILITY_MONITOR_SOURCES` with the same source
+identity, `mode: "historical"`, and `maxAgeMs: 7200000` for the hourly replay.
+It checks the separate historical cursor; incremental polling cannot mask stale
+backfill. Omitted mode defaults to incremental and retains unfinished-run watch
+checks. Historical health checks only completed replay coverage. External monitor
+deployment remains pending.

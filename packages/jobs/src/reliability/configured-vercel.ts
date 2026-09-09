@@ -30,6 +30,7 @@ export async function runConfiguredVercelReconciliation(input: {
 	env: Record<string, string | undefined>;
 	environment: string;
 	now: () => Date;
+	resolveRuntime?: () => { nodePath: string; cliPath: string };
 	execute: (
 		source: VercelLogSource,
 		runtime: Runtime,
@@ -43,14 +44,19 @@ export async function runConfiguredVercelReconciliation(input: {
 		return { status: "disabled", results: [] };
 	let sources: { source: VercelLogSource; runtime: Runtime }[];
 	try {
+		const defaults =
+			!input.env.RELIABILITY_VERCEL_NODE_PATH ||
+			!input.env.RELIABILITY_VERCEL_CLI_PATH
+				? input.resolveRuntime?.()
+				: undefined;
 		const nodePath = z
 			.string()
 			.regex(/^\/[^\0]+$/)
-			.parse(input.env.RELIABILITY_VERCEL_NODE_PATH);
+			.parse(input.env.RELIABILITY_VERCEL_NODE_PATH ?? defaults?.nodePath);
 		const cliPath = z
 			.string()
 			.regex(/^\/[^\0]+$/)
-			.parse(input.env.RELIABILITY_VERCEL_CLI_PATH);
+			.parse(input.env.RELIABILITY_VERCEL_CLI_PATH ?? defaults?.cliPath);
 		const entries = schema.parse(
 			JSON.parse(input.env.RELIABILITY_VERCEL_READ_SOURCES ?? "null"),
 		);

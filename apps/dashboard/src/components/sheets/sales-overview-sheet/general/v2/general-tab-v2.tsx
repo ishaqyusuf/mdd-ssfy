@@ -1,5 +1,6 @@
 "use client";
 
+import Sheet from "@gnd/ui/custom/sheet-v2";
 import { Separator } from "@gnd/ui/separator";
 import { useSaleOverview } from "../../context";
 import { GeneralActionBar } from "../../general-action-bar";
@@ -26,13 +27,15 @@ export function GeneralTabV2({
 
 	return (
 		<div className="relative flex flex-col">
-			<div className="sticky top-0 z-10 border-b bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+			<Sheet.Portal>
+				<div className="border-t bg-background p-4 md:p-6">
 				<GeneralActionBar
 					salesNo={salesOverview.orderId}
 					type={salesOverview.type}
 					salesId={salesOverview.id}
 				/>
-			</div>
+				</div>
+			</Sheet.Portal>
 
 			<div className="grid min-w-0 grid-cols-1 items-stretch lg:grid-cols-[minmax(0,1.28fr)_minmax(280px,0.92fr)]">
 				<div className="flex min-w-0 flex-col gap-5 pb-5 pt-5 lg:border-r lg:pb-5 lg:pr-5">

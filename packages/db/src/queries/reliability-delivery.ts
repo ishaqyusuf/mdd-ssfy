@@ -54,6 +54,160 @@ function validateReceipt(remoteId: string) {
 		throw new Error("Invalid reliability receipt");
 }
 
+export function listDueGithubRecoveries(
+	db: Database,
+	input: {
+		serviceIds: readonly string[];
+		now: Date;
+		limit: number;
+	},
+) {
+	validateClock(input.now);
+	if (
+		input.serviceIds.length < 1 ||
+		input.serviceIds.length > 20 ||
+		input.serviceIds.some((id) => !id) ||
+		!Number.isInteger(input.limit) ||
+		input.limit < 1 ||
+		input.limit > 10
+	)
+		throw new Error("Invalid GitHub recovery selection");
+	return db.reliabilityDelivery.findMany({
+		where: {
+			destination: "GITHUB",
+			OR: [
+				{ status: "UNCERTAIN", nextAttemptAt: { lte: input.now } },
+				{ status: "SENDING", leaseExpiresAt: { lte: input.now } },
+			],
+			incident: { serviceId: { in: [...input.serviceIds] } },
+		},
+		orderBy: [{ nextAttemptAt: "asc" }, { id: "asc" }],
+		take: input.limit,
+		select: { id: true, incident: { select: { serviceId: true } } },
+	});
+}
+
+export async function expireGithubSender(
+	db: Database,
+	input: { deliveryId: string; serviceId: string; now: Date },
+) {
+	validateClock(input.now);
+	const delivery = await db.reliabilityDelivery.findUnique({
+		where: { id: input.deliveryId },
+		select: { incidentId: true },
+	});
+	if (!delivery) return false;
+	return db.$transaction(
+		async (tx) => {
+			if (!(await lockIncident(tx, delivery.incidentId))) return false;
+			const result = await tx.reliabilityDelivery.updateMany({
+				where: {
+					id: input.deliveryId,
+					destination: "GITHUB",
+					status: "SENDING",
+					leaseExpiresAt: { lte: input.now },
+					incident: { serviceId: input.serviceId },
+				},
+				data: {
+					status: "UNCERTAIN",
+					lastErrorCode: "LEASE_EXPIRED",
+					nextAttemptAt: input.now,
+				},
+			});
+			return result.count === 1;
+		},
+		{ timeout: 10_000 },
+	);
+}
+
+export function getUncertainGithubDelivery(
+	db: Database,
+	input: { deliveryId: string; serviceId: string },
+) {
+	return db.reliabilityDelivery.findFirst({
+		where: {
+			id: input.deliveryId,
+			destination: "GITHUB",
+			status: "UNCERTAIN",
+			incident: { serviceId: input.serviceId },
+		},
+		select: {
+			id: true,
+			incidentId: true,
+			actionKey: true,
+			createdAt: true,
+			remoteId: true,
+		},
+	});
+}
+
+/** Reserve one recovery scan without making the uncertain write eligible to resend. */
+export async function reserveGithubRecoveryScan(
+	db: Database,
+	input: {
+		deliveryId: string;
+		serviceId: string;
+		now: Date;
+	},
+) {
+	validateClock(input.now);
+	const recoveryDelivery = await db.reliabilityDelivery.findUnique({
+		where: { id: input.deliveryId },
+		select: { incidentId: true },
+	});
+	if (!recoveryDelivery) return false;
+	return db.$transaction(
+		async (tx) => {
+			if (!(await lockIncident(tx, recoveryDelivery.incidentId))) return false;
+			const result = await tx.reliabilityDelivery.updateMany({
+				where: {
+					id: input.deliveryId,
+					destination: "GITHUB",
+					status: "UNCERTAIN",
+					incident: { serviceId: input.serviceId },
+					nextAttemptAt: { lte: input.now },
+				},
+				data: { nextAttemptAt: new Date(input.now.getTime() + 300_000) },
+			});
+			return result.count === 1;
+		},
+		{ timeout: 10_000 },
+	);
+}
+
+export async function extendGithubRecoveryCooldown(
+	db: Database,
+	input: {
+		deliveryId: string;
+		serviceId: string;
+		retryAt: Date;
+	},
+) {
+	validateClock(input.retryAt);
+	const delivery = await db.reliabilityDelivery.findUnique({
+		where: { id: input.deliveryId },
+		select: { incidentId: true },
+	});
+	if (!delivery) return false;
+	return db.$transaction(
+		async (tx) => {
+			if (!(await lockIncident(tx, delivery.incidentId))) return false;
+			const changed = await tx.reliabilityDelivery.updateMany({
+				where: {
+					id: input.deliveryId,
+					destination: "GITHUB",
+					status: "UNCERTAIN",
+					incident: { serviceId: input.serviceId },
+					nextAttemptAt: { lt: input.retryAt },
+				},
+				data: { nextAttemptAt: input.retryAt },
+			});
+			return changed.count === 1;
+		},
+		{ timeout: 10_000 },
+	);
+}
+
 export async function recordReliabilityDeliveryReceipt(
 	db: Database,
 	input: {
@@ -174,9 +328,17 @@ export async function claimReliabilityDelivery(
 		destination: Destination;
 		now: Date;
 		leaseMs: number;
+		publication?: { serviceId: string; revision: number };
 	},
 ) {
 	validateClock(input.now);
+	if (
+		input.publication &&
+		(!input.publication.serviceId ||
+			!Number.isSafeInteger(input.publication.revision) ||
+			input.publication.revision < 1)
+	)
+		throw new Error("Invalid publication scope");
 	if (
 		!Number.isInteger(input.leaseMs) ||
 		input.leaseMs < 1000 ||
@@ -189,6 +351,19 @@ export async function claimReliabilityDelivery(
 	return db.$transaction(
 		async (tx) => {
 			if (!(await lockIncident(tx, input.incidentId))) return null;
+			if (input.publication) {
+				const current = await tx.reliabilityIncident.findFirst({
+					where: {
+						id: input.incidentId,
+						serviceId: input.publication.serviceId,
+						revision: input.publication.revision,
+						severity: { not: "INFO" },
+						status: { not: "RESOLVED" },
+					},
+					select: { id: true },
+				});
+				if (!current) return null;
+			}
 			const scope = {
 				incidentId: input.incidentId,
 				destination: input.destination,
@@ -217,6 +392,9 @@ export async function claimReliabilityDelivery(
 			const candidate = await tx.reliabilityDelivery.findFirst({
 				where: {
 					...scope,
+					...(input.publication
+						? { revision: input.publication.revision }
+						: {}),
 					status: "PENDING",
 					nextAttemptAt: { lte: input.now },
 				},

@@ -800,3 +800,17 @@ and `RELIABILITY_MONITOR_SOURCES` configured Trigger sources. Returns aggregate
 200/503 health with no-store caching; missing token returns 404, bad auth 401.
 Source registry validation and database reads run only after authentication.
 Currently covers Trigger discovery and unfinished-watch freshness only.
+# Vercel reliability discovery health update (2026-09-09)
+
+Sentry incremental discovery is also supported with `provider: "sentry"`; monitor
+`project` must be the registered Sentry project ID. It uses `sentry-events` cursor
+coverage with the same aggregate freshness rules. Sentry and Trigger also accept
+`mode: "historical"` to check the separate backfill cursor. Omitted mode defaults
+to incremental. Vercel historical mode is rejected until implemented. Trigger
+watch freshness applies to incremental monitoring only.
+
+`GET /api/reliability/health` now accepts `provider: "vercel"` monitor registrations
+alongside Trigger. Vercel reads its production `vercel-query` cursor and fails
+aggregate health on missing completion, stale watermark/success, or future clock
+values. Authentication and aggregate-only responses are unchanged. This is CLI
+discovery health, not proof of drain delivery freshness.

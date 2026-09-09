@@ -2,6 +2,35 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import type { Database } from "../index";
 
+/** Monitor completed coverage, not scheduler activity or an active lease. */
+export async function getReliabilityCursorHealth(
+	db: Database,
+	input: { cursorId: string; now: Date; maxAgeMs: number },
+) {
+	if (
+		!/^[a-f0-9]{64}$/.test(input.cursorId) ||
+		!Number.isFinite(input.now.getTime()) ||
+		!Number.isInteger(input.maxAgeMs) ||
+		input.maxAgeMs < 300_000 ||
+		input.maxAgeMs > 86_400_000
+	)
+		throw new Error("Invalid reliability health query");
+	const cursor = await db.reliabilityCursor.findUnique({
+		where: { id: input.cursorId },
+	});
+	const cutoff = new Date(input.now.getTime() - input.maxAgeMs);
+	const reasons: string[] = [];
+	if (!cursor?.watermark || !cursor.lastSuccessAt)
+		reasons.push("DISCOVERY_NEVER_COMPLETED");
+	else {
+		if (cursor.watermark > input.now || cursor.lastSuccessAt > input.now)
+			reasons.push("DISCOVERY_CLOCK_INVALID");
+		if (cursor.watermark < cutoff) reasons.push("DISCOVERY_BEHIND");
+		if (cursor.lastSuccessAt < cutoff) reasons.push("POLL_STALE");
+	}
+	return { status: reasons.length ? "stale" : "healthy", reasons };
+}
+
 type Checkpoint = {
 	windowStart: string;
 	windowEnd: string;

@@ -1,3 +1,4 @@
+import { productionReassignmentQuantities } from "./production-reassignment";
 import type { Db, Prisma } from "@gnd/db";
 import { sum, transformFilterDateToQuery } from "@gnd/utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
@@ -517,6 +518,9 @@ export async function getSalesProductionCalendar(
 				...group.row,
 				assignedTo: Array.from(group.assignedTo).join(" & ") || null,
 				assignmentCount: group.assignmentCount,
+                hasReassignableQuantity: group.assignments.some(assignment => {
+                    try { return productionReassignmentQuantities(assignment).remaining.qty > 0; } catch { return false; }
+                }),
 				assignmentIds: group.assignments
 					.map((assignment) => assignment.id)
 					.sort((a, b) => a - b),
