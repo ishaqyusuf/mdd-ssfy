@@ -67,7 +67,7 @@ describe("production assignment inventory readiness", () => {
 	it("passes the immediate submit action explicitly", () => {
 		assert.match(
 			itemMenuSource,
-			/if \(!submitPendingAssignments\) \{\s*submitAction\("submit"\);/,
+			/if \(!submitPendingAssignments\) \{\s*(?:void )?submitAction\("submit"\);/,
 		);
 	});
 

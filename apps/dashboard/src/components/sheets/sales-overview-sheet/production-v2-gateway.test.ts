@@ -38,13 +38,13 @@ test("routes every Production surface through the V2 gateway", () => {
 	expect(controllerSource).toContain(
 		'import { ProductionTabGateway } from "./production/production-tab-gateway";',
 	);
-	expect(controllerSource.match(/<ProductionTabGateway \/>/g)).toHaveLength(3);
+	expect(controllerSource.match(/<ProductionTabGateway onCreateInbound=\{onCreateInbound\} \/>/g)?.length).toBe(3);
 	expect(controllerSource).not.toContain("<ProductionTab />");
 });
 
 test("keeps Production V2 lazy and routes every user to it", () => {
 	expect(gatewaySource).toContain('import("./v2/production-tab-v2")');
-	expect(gatewaySource).toContain("return <ProductionTabV2 />");
+	expect(gatewaySource).toContain("return <ProductionTabV2 onCreateInbound={onCreateInbound} />");
 	expect(gatewaySource).not.toContain("return <ProductionTab />");
 });
 
@@ -105,7 +105,7 @@ test("uses the Midday content split and shadcn composition primitives", () => {
 	expect(productionDocumentSource).toContain("<Alert>");
 	expect(productionDocumentSource).toContain("<Empty");
 	expect(productionDocumentSource).toContain("<Separator />");
-	expect(productionDocumentSource).not.toMatch(/space-[xy]-/);
+	expect(/space-[xy]-/.test(productionDocumentSource)).toBe(false);
 });
 
 test("keeps exactly one V2 production item open and restores it from the URL", () => {

@@ -71,7 +71,7 @@ async function inputFor(
 }
 // Only replace the policy lookup with a private fixture row. Actual domain SQL,
 // independent transactions, authority scope and stock effects remain real.
-function workerClient(f: Fixture): Db {
+export function workerClient(f: Fixture): Db {
 	const scope = (client: TransactionClient) =>
 		new Proxy(client, {
 			get(target, key) {

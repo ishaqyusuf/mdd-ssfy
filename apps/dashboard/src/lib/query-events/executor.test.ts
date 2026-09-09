@@ -21,6 +21,7 @@ function procedure(path: string) {
 
 function createTRPCProxy() {
 	return {
+		notes: { activityTree: procedure("notes.activityTree") },
 		customers: {
 			customerInfoSearch: procedure("customers.customerInfoSearch"),
 			getCustomerDirectoryV2Summary: procedure(
@@ -44,6 +45,7 @@ function createTRPCProxy() {
 			list: procedure("pageTabs.list"),
 		},
 		sales: {
+			productions: procedure("sales.productions"),
 			accountingIndex: procedure("sales.accountingIndex"),
 			customersIndex: procedure("sales.customersIndex"),
 			getOrders: procedure("sales.getOrders"),
@@ -150,8 +152,8 @@ describe("query event executor", () => {
 		});
 
 		expect(results.every((result) => result.status === "fulfilled")).toBe(true);
-		expect(invalidated).toContainEqual([["customers", "getSalesCustomer"]]);
-		expect(invalidated).toContainEqual([["sales", "getSaleOverview"]]);
+		expect(invalidated.some(key => JSON.stringify(key) === JSON.stringify([["customers", "getSalesCustomer"]]))).toBe(true);
+		expect(invalidated.some(key => JSON.stringify(key) === JSON.stringify([["sales", "getSaleOverview"]]))).toBe(true);
 	});
 
 	it("deduplicates identical query targets before invalidating", async () => {

@@ -11,4 +11,4 @@ Allocate only newly received demand IDs, avoiding historical receipt replay. Per
 
 Received date is a calendar date normalized to business noon in America/New_York. Audit creation time remains actual save time. This uses existing receivedAt fields.
 
-Future calendar expansion will reuse these scoped contracts. Historical covered-review reconciliation is a separate no-new-receipt operation; GET/hover/expand must not mutate inventory or approve submissions.
+Production and explicitly expanded calendar details reuse these scoped contracts. The explicit Sync transaction applies eligible received shipment quantities, valid allocation proposals and received-stock reservations before finalizing eligible submissions. It creates no new receipt, stock movement or submission, retains residual attention, and uses durable replay evidence. Historical covered-review reconciliation is a separate no-new-receipt operation; GET/hover/expand must not mutate inventory or approve submissions.

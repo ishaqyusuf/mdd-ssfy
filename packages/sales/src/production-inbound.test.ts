@@ -65,6 +65,7 @@ test("a completed request replays without writing inventory again", async () => 
 		salesOrderId: 1,
 		replayed: true,
 		remainingBackorderQty: null,
+		needsSupervisor: false,
 	});
 });
 test("request identity cannot be reused for another shipment", async () => {

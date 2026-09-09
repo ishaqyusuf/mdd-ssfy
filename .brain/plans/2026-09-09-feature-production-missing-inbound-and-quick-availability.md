@@ -109,7 +109,7 @@ flowchart TD
 - [x] 5. Reuse the selection form with scoped data/mutation adapters for workers. Preserve quantities across recoverable failures/refetches; after Production saves close the pane, restore trigger focus, and stay on Production.
 - [x] 6. Build the reusable grouped availability control and menu → supplier submenu → received-date calendar flow. Include N/A, complete supplier loading, same-date double-click, keyboard/touch save, busy/error states, and count/scope text.
 - [x] 7. Centralize invalidation for pending-inbound summary, open Production items/reviews, inventory overview/inbounds, sales overview/header, calendar/table/analytics, and relevant activity. Cover async allocation completion and committed-save/refetch-failure distinction.
-- [ ] 8. Run focused domain/API/UI/query-event tests and isolated local transactional tests; verify admin and worker browser flows at desktop/tablet/phone widths. Update behavior/contracts/permissions docs and task evidence after implementation.
+- [x] 8. Run focused domain/API/UI/query-event tests and isolated local transactional tests; verify admin and worker browser flows at desktop/tablet/phone widths. Update behavior/contracts/permissions docs and task evidence after implementation.
 
 ## Affected Files Or Areas
 Paths below are repository-relative.
@@ -124,15 +124,15 @@ Paths below are repository-relative.
 - Existing `@gnd/ui` button group, dropdown, calendar/popover, and sheet primitives.
 
 ## Acceptance Criteria
-- [ ] Order 09602PC's observed state displays a top-level alert with 4 needs / 58 units for an authorized admin, even though three production items are reported complete.
-- [ ] Existing unfinished inbound information wins over missing-inbound information.
-- [ ] Main button opens selectable items and editable quantities for admin and authorized worker scope.
-- [ ] A partial save leaves truthful attention for remaining needs; complete material coverage hides only that attention, not unrelated review/history.
-- [ ] More menu has one item, supplier submenu begins with N/A, and supplier choice opens Received date without opening the full form.
-- [ ] Single-click never writes; double-click saves once with the chosen supplier/date and all eligible remaining quantities. Keyboard/touch Save is equivalent.
-- [ ] Both save paths close on success, remain on their originating tab, and refresh canonical Production/material data without manual reload.
-- [ ] General Inventory permissions are not widened; unauthorized, stale, cross-order, and out-of-assignment writes fail before side effects.
-- [ ] Ordinary inbound creation, receipt/cancellation history, submission approvals and stock accounting retain their established behavior.
+- [x] Order 09602PC's observed state displays a top-level alert with 4 needs / 58 units for an authorized admin, even though three production items are reported complete.
+- [x] Existing unfinished inbound information wins over missing-inbound information.
+- [x] Main button opens selectable items and editable quantities for admin and authorized worker scope.
+- [x] A partial save leaves truthful attention for remaining needs; complete material coverage hides only that attention, not unrelated review/history.
+- [x] More menu has one item, supplier submenu begins with N/A, and supplier choice opens Received date without opening the full form.
+- [x] Single-click never writes; double-click saves once with the chosen supplier/date and all eligible remaining quantities. Keyboard/touch Save is equivalent.
+- [x] Both save paths close on success, remain on their originating tab, and refresh canonical Production/material data without manual reload.
+- [x] General Inventory permissions are not widened; unauthorized, stale, cross-order, and out-of-assignment writes fail before side effects.
+- [x] Ordinary inbound creation, receipt/cancellation history, submission approvals and stock accounting retain their established behavior.
 
 ## Test Plan
 - Summary decision table: no inbound, partial coverage, completed history with remainder, unfinished inbound, zero needs, untracked/not-needed rows, loading/error, unknown projection, and cancelled/fulfilled orders.
@@ -175,7 +175,7 @@ Requested while the original availability implementation was undergoing final ve
 - The existing availability banner hides when material needs are covered. A separate ready-for-finalization summary/action is necessary; covered needs must not be received again just to trigger review reconciliation.
 
 ### Calendar interaction
-Implementation contract (Midday migration planner, implementation mode): reuse Midday's split sheet/content/form ownership and query-enabled detail loading, as inspected in `components/sheets/invoice-sheet.tsx` and `components/invoice-content.tsx` in the local reference repository. GND keeps its established custom sheet wrapper; shared material behavior lives in `availability/production-material-actions.tsx`, the covered-review control in `availability/covered-materials-action.tsx`, and the existing `inbound-create-pane.tsx` exposes an inline presentation with the same form state and mutation. Each mounted form gets a unique ID. Calendar attention owns expansion only; it must supply selected-order navigation and mount the shared panel/form on demand. API/domain ownership and query-event invalidation remain unchanged by presentation. Existing route shell, filters, table columns, selection bottom bar and calendar scheduling are not rebuilt because this extension changes only card detail actions. Required conformance checks: active-only queries, nested focus/escape, no order-open/drag from actions, admin/worker scope, partial saves, query refresh and responsive browser QA. Calendar integration and its conformance audit remain open.
+Implementation contract (Midday migration planner, implementation mode): reuse Midday's split sheet/content/form ownership and query-enabled detail loading, as inspected in `components/sheets/invoice-sheet.tsx` and `components/invoice-content.tsx` in the local reference repository. GND keeps its established custom sheet wrapper; shared material behavior lives in `availability/production-material-actions.tsx`, the covered-review control in `availability/covered-materials-action.tsx`, and the existing `inbound-create-pane.tsx` exposes an inline presentation with the same form state and mutation. Each mounted form gets a unique ID. Calendar attention owns expansion only; it must supply selected-order navigation and mount the shared panel/form on demand. API/domain ownership and query-event invalidation remain unchanged by presentation. Existing route shell, filters, table columns, selection bottom bar and calendar scheduling are not rebuilt because this extension changes only card detail actions. Required conformance checks: active-only queries, nested focus/escape, no order-open/drag from actions, admin/worker scope, partial saves, query refresh and responsive browser QA. Calendar integration and its conformance audit are complete; evidence is recorded in the linked task.
 
 Keep the collapsed hover content compact: order/customer, meaningful status and genuine blockers. Add a full-width **View material actions** button at the bottom. Do not fetch material detail on hover alone. Clicking expands a persistent, focusable popover (not an interactive ARIA tooltip) and loads the same scoped information used at the top of Production.
 
@@ -194,7 +194,7 @@ Retain automatic reconciliation on authoritative receipt/material-application wr
 - [x] Extract a reusable scoped material-actions panel/summary shared by Production and calendar, including pending inbound, missing/remaining needs and covered-review eligibility.
 - [x] Add full-width View material actions expansion, lazy reads and persistent nested interactions to calendar hover/touch details.
 - [x] Add Sync materials to assignments with idempotent transaction, live review validation, authoritative automatic reconciliation hooks and cross-surface refresh.
-- [ ] Verify lazy loading, no accidental order-open/drag, worker/admin scope, repeated clicks, covered-review/stock/payroll coherence, blocked reviews and desktop/tablet/phone behavior; update Brain evidence.
+- [x] Verify lazy loading, no accidental order-open/drag, worker/admin scope, repeated clicks, covered-review/stock/payroll coherence, blocked reviews and desktop/tablet/phone behavior; update Brain evidence.
 
 These are additions to the same ticket, not replacements for its existing availability implementation or checks.
 
@@ -217,3 +217,8 @@ Keep these checks under appended checklist items 11–14. Do not reset completed
 The user's clarification supersedes earlier references to a separate material-review step or an **Apply covered materials** button. Show **Received materials need to be synced to assignments** with one **Sync** button in Production and expanded calendar details. Explain that it applies received coverage and approves eligible submitted work in one step. Clicking executes the synchronization directly; no review screen or second approval step is required. On success, refresh the Production list and shared material summaries. Hide the notice only when its remaining work is resolved; partial application must retain accurate remaining attention. Preserve existing checklist progress and outstanding verification.
 
 The standalone material modal keeps Cancel and Mark as available in a fixed footer outside the scroll area. Only the form fields and item quantities scroll; the footer remains visible at narrow viewport sizes. The compact button label is **Sync**; the information above it explains synchronization to assignments.
+
+### Final acceptance audit — 2026-09-09
+All acceptance criteria above were checked against the implemented shared panels, scoped commands, query-event registry, local transactional results and browser evidence in the canonical task. Admin 09602PC shows4 needs/58 units; worker scope shows3/48. Pending inbound precedence is covered by summary tests. Disposable partial and complete saves verified origin retention, supplier/date persistence and automatic refresh. Shared form capability is backed by worker policy/assignment transaction tests; the actual worker browser correctly disables receiving under the current policy. No organization policy was changed for testing.
+
+Calendar expansion, direct Sync, residual attention, fixed footer and desktop/tablet/phone behavior are verified. Calendar hover now waits2 seconds; leaving cancels opening, while explicit click/keyboard access stays immediate. Ordinary receipt/cancellation compatibility passes54 local database tests/494 assertions, including compensation, concurrency, provenance, stock and later payment/dispatch safeguards. Full relevant suite and two-axis review evidence are recorded in the task. Existing repository typecheck failures are documented limitations, with no changed-runtime diagnostics.

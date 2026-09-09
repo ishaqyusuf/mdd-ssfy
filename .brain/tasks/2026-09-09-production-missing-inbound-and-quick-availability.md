@@ -25,8 +25,8 @@ In Progress
 User requested inspection of order 09602PC and a detailed checklist plan; then added a grouped Mark as available control with supplier submenu and received-date double-click save. Brain owns this task. Browser review found zero inbounds and four uncovered needs totaling 58 units.
 
 ## Implementation Progress
-- Completion: 71%
-- Current Checklist: 14/14 — Extension browser verification and final evidence
+- Completion: 93%
+- Current Checklist: 10/14 — Scoped commit and final requirement audit
 - Blockers: None.
 
 ## Implementation Checklist
@@ -37,22 +37,46 @@ User requested inspection of order 09602PC and a detailed checklist plan; then a
 - [x] Reuse partial-selection form and origin-aware success handling.
 - [x] Add grouped action, supplier submenu, and received-date quick save.
 - [x] Complete cross-surface invalidation and async completion handling.
-- [ ] Verify role/transaction/UI behavior and update Brain implementation docs.
+- [x] Verify role/transaction/UI behavior and update Brain implementation docs.
 
-- [ ] Complete final relevant suite and code review.
+- [x] Complete final relevant suite and code review.
 - [ ] Commit scoped work on the current branch and complete the requirement audit.
 - [x] Extend the shared Production material panel with covered-review eligibility for reuse in calendar details.
 - [x] Add the calendar's full-width View material actions expansion with lazy loading and persistent nested actions.
 - [x] Add Sync materials to assignments for safe, idempotent reconciliation of already covered submissions and refresh all affected Production surfaces.
-- [ ] Validate the calendar/reconciliation extension and update Brain evidence.
+- [x] Validate the calendar/reconciliation extension and update Brain evidence.
 
 
 ## Validation Evidence
+### Compatibility and requirement audit — 2026-09-09
+- Final local database regression passes54 tests /494 assertions across ordinary receipt, receipt/cancellation concurrency, availability and covered-material synchronization. This validates existing cancellation compensation, provenance, later dispatch/payment preservation, scoped worker authority, stock coherence and replay. Command completed successfully; log: /tmp/gnd-final-receipt-compatibility.log.
+- Audited all nine original acceptance criteria plus calendar/Sync/footer/hover additions against current code, test output and recorded browser checks. Plan acceptance and extension verification are now checked. Both final review agents remain complete with no actionable findings. The final two-second timing edit changes only the opening timer; cleanup and immediate explicit activation remain intact.
+- Brain impact: feature, plan, task and ADR updated; existing API contracts/permissions already describe the implemented authority. No schema or migration change. Scoped verification commit is the sole remaining checklist item.
+
+
+### Final worker check and hover adjustment — 2026-09-09
+- User approved Izri Production Quick Login. Verified actual worker calendar and Production: 09602PC shows only three assigned items / 48 units; disabled receiving policy hides Inventory, Mark as available and Sync actions and shows supervisor guidance. 09439PC preserves inconsistent-quantity information. Desktop, phone and tablet fit without horizontal overflow. Neither customer order was changed. Logged out and restored Pablo Cruz through Quick Login.
+- User requested a two-second hover delay. Calendar mouse hover now opens after 2,000ms; leaving cancels the timer, and explicit click/keyboard access remains immediate. Six existing attention tests pass /19 assertions. This narrow timing change was source-verified; the rendered tests do not measure elapsed browser time.
+- Items8 and14 are complete. Scoped commit and final requirement audit remain open (13/14,93%). Earlier pending-account and verification statements below are historical.
+
+
+### Final regression and review — 2026-09-09
+- Executed77 relevant test files independently to avoid cross-file mock contamination:462 passed,9 failed,125 opt-in tests skipped. The failures were stale expectations in5 files: missing query mocks, the replaced review panel, propagated form callback props, a voided submit promise, and the receipt replay DTO. Updated those checks; rerun passed35 tests /112 assertions. Remaining unsupported matcher types in touched tests were replaced with equivalent supported assertions; focused rerun passed.
+- Both Spec and Standards final reviews report no actionable findings. Previous residual-message and clipping findings are resolved. Midday conformance: existing shared primitives, active-only detail mounting, shared domain commands, fixed form footer with separate scrolling body, nested focus/Escape, selected-order navigation, and origin-preserving refresh were verified. Role-limited browser execution remains the last UI conformance check.
+- Root typecheck still fails on existing Square/Errors NodeNext import-extension errors. Sales retains copy-sales.ts:521 nullability. Dashboard retains repository-wide cache API, permission-shape and other errors; no changed runtime diagnostics were reported. Touched test matcher diagnostics were corrected.
+- The main implementation was incorporated into concurrent commit6f9831d09 while verification continued. Preserve that history and unrelated ongoing changes; final verification updates will be committed separately on master.
+- User authorized logout/Quick Fill for worker verification. Logged out of Pablo Cruz through the UI. Automatic approval review rejected selecting Izri Production because that specific account was not named. Explicit Izri account confirmation is pending; no workaround was attempted. The worker-view fixture was removed before logout. No disposable business fixture remains.
+
+### Worker synchronization authority — 2026-09-09
+- Added local transactional cases for worker synchronization with current receiving policy, removed assignment, and disabled policy. The enabled worker applies only the scoped pending allocation and replays once; revoked authority leaves the pending allocation untouched. All cases preserve physical stock and create no stock movement.
+- Combined receiving/synchronization run passes20 tests /164 assertions (29 unrelated opt-in tests skipped). The initial new test imported another test module dynamically during a test; changed it to a static helper import and the completed rerun passes.
+- Remaining: worker workspace browser interaction, final relevant suite/review, scoped commit and requirement audit. No active process or fixture remains.
+
 ### Disposable calendar saves and synchronization — 2026-09-09
 - Created local fixture QAAV-72b95e (sale27951), scheduled it on the calendar, and expanded its compact details. Main form saved4/10, closed automatically, retained calendar origin and displayed6 pending. More → Mark all → BHI → September8: a single click selected the date without saving; double-click saved the remaining6 and removed the availability alert.
 - Prepared a valid historical pending submission on that fixture after receipt coverage. The calendar showed the single Sync action; clicking it removed the resolved panel and showed successful synchronization. No review screen or second approval step appeared.
 - Seven database assertions confirmed exactly two receipts (4+6), the selected date/supplier, one synchronization, no remaining pending reviews, one payroll and ten stock units. Cleanup removed the complete fixture and its receipts/reviews/payroll; two cleanup assertions passed. Temporary fixture code and metadata were removed, and the browser search was cleared. Customer orders were not written.
-- The top summary count did not visibly change in the long-lived development tab. A new real TanStack QueryClient/QueryObserver + tRPC key + event transport test passes for both availability and Sync commands (2 tests / 10 assertions), proving active calendar, worker calendar, summary and material queries refetch through the production registry. A fresh-page browser check is still needed to distinguish hot-reload state from an actual runtime refresh defect.
+- The top summary count did not visibly change in the long-lived development tab. A new real TanStack QueryClient/QueryObserver + tRPC key + event transport test passes for both availability and Sync commands (2 tests / 10 assertions), proving active calendar, worker calendar, summary and material queries refetch through the production registry. Fresh-page browser verification subsequently passed: a second disposable covered order showed Awaiting review87 before Sync and86 immediately after, with the action panel removed. Local database confirmed zero pending reviews. The earlier observation was confined to the long-lived hot-reloaded tab; no production invalidation defect was reproduced. The second fixture was also fully cleaned up.
 - Calendar implementation item12 is complete. Remaining verification items8/14, final review9 and scoped commit10 stay open; completion is10/14 (71%).
 
 ### Fixed standalone footer and compact Sync label — 2026-09-09

@@ -325,7 +325,7 @@ function CalendarAttentionPopover({
 							if (event.pointerType !== "mouse") return;
 							cancelTimer();
 							hovered.current = true;
-							timer.current = setTimeout(() => setOpen(true), 250);
+							timer.current = setTimeout(() => setOpen(true), 2_000);
 						}}
 						onPointerLeave={leave}
 					>
