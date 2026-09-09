@@ -20,8 +20,13 @@ describe("Special Order fulfillment signal", () => {
 			["CUSTOMER_DECLINED", "Customer declined"],
 		] as const) {
 			expect(getSpecialOrderSignalState("YES", status)).toMatchObject({
-				label: "Not signed",
-				variant: "destructive",
+				label:
+					status === "CUSTOMER_DECLINED"
+						? "Declined"
+						: status === "REAPPROVAL_REQUIRED"
+							? "Reapproval required"
+							: "Awaiting signature",
+				variant: status === "CUSTOMER_DECLINED" ? "destructive" : "outline",
 				detail,
 			});
 		}

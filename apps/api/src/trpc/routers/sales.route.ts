@@ -1,3 +1,5 @@
+import { getProductionAvailability, getProductionAvailabilitySuppliers, markProductionMaterialsAvailable, productionAvailabilitySaveSchema } from "@gnd/sales";
+import { getCoveredProductionMaterials, applyCoveredProductionMaterials, applyCoveredProductionMaterialsSchema } from "@gnd/sales";
 import {
 	accountingIndex,
 	accountingIndexSchema,
@@ -194,6 +196,8 @@ import { createNoteAction } from "@notifications/note";
 import {
 	getProductionPendingInbounds,
 	receiveProductionInbound,
+	cancelProductionInbound,
+	productionInboundCancelSchema,
 	productionInboundQuerySchema,
 	productionInboundReceiveSchema,
 	SalesScheduleMoveError,
@@ -348,6 +352,8 @@ async function resolveProductionInboundActor(ctx: TRPCContext) {
 	return {
 		id: session.id,
 		canEditInbound: session.can.editInboundOrder === true,
+		canMarkAvailable: session.can.editOrders === true,
+		canReconcileMaterials: session.can.editProduction === true,
 		canViewAll:
 			session.can.viewOrders === true ||
 			session.can.editOrders === true ||
@@ -1108,6 +1114,27 @@ export const salesRouter = createTRPCRouter({
 					: props.input;
 			return getProductionOrderDetailV2(props.ctx.db, input);
 		}),
+	productionAvailability: protectedProcedure
+        .input(z.object({ salesOrderId: z.number().int().positive() }))
+        .query(async ({ctx,input}) => {
+            const {unappliedInboundNeeds, ...summary} = await getProductionAvailability(ctx.db,input.salesOrderId,await resolveProductionInboundActor(ctx));
+            return summary;
+        }),
+    coveredProductionMaterials: protectedProcedure
+        .input(z.object({salesOrderId:z.number().int().positive()}))
+        .query(async ({ctx,input}) => {
+            const {receivedPlan, applicableComponentIds, unappliedInboundNeeds, ...summary} = await getCoveredProductionMaterials(ctx.db,input.salesOrderId,await resolveProductionInboundActor(ctx));
+            return summary;
+        }),
+    applyCoveredProductionMaterials: protectedProcedure
+        .input(applyCoveredProductionMaterialsSchema)
+        .mutation(async ({ctx,input}) => applyCoveredProductionMaterials(ctx.db,input,tx => resolveProductionInboundActor({...ctx,db:tx as typeof ctx.db}))),
+    productionAvailabilitySuppliers: protectedProcedure
+        .input(z.object({ salesOrderId: z.number().int().positive() }))
+        .query(async ({ctx,input}) => getProductionAvailabilitySuppliers(ctx.db,input.salesOrderId,await resolveProductionInboundActor(ctx))),
+    markProductionMaterialsAvailable: protectedProcedure
+        .input(productionAvailabilitySaveSchema)
+        .mutation(async ({ctx,input}) => markProductionMaterialsAvailable(ctx.db,input,tx => resolveProductionInboundActor({...ctx,db:tx as typeof ctx.db}))),
 	productionPendingInbounds: protectedProcedure
 		.input(productionInboundQuerySchema)
 		.query(async ({ ctx, input }) =>
@@ -1125,6 +1152,13 @@ export const salesRouter = createTRPCRouter({
 			),
 		),
 
+	cancelProductionInbound: protectedProcedure
+		.input(productionInboundCancelSchema)
+		.mutation(async ({ ctx, input }) =>
+			cancelProductionInbound(ctx.db, input, (tx) =>
+				resolveProductionInboundActor({ ...ctx, db: tx as typeof ctx.db }),
+			),
+		),
 	productionSubmissionMaterialReviews: protectedProcedure
 		.input(productionSubmissionMaterialReviewQueueSchema)
 		.query(async (props) => {

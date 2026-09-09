@@ -37,6 +37,7 @@
 		"./sales-production": "./src/sales-production.ts",
 		"./sales-production-planning-calendar": "./src/sales-production-planning-calendar.ts",
 		"./production-date": "./src/production-date.ts",
+		"./production-availability-contract": "./src/production-availability-contract.ts",
 		"./production-workspace-query": "./src/production-workspace-query.ts",
 		"./sales-transaction": "./src/sales-transaction.ts",
 		"./shipping": "./src/shipping.ts",

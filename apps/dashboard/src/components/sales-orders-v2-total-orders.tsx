@@ -17,7 +17,6 @@ export function SalesOrdersV2TotalOrders() {
         <SalesOrdersV2Summary
             data={data}
             title="Orders"
-            subtitle="Filtered order count."
             icon={Icons.ClipboardList}
             value={data.totalOrders}
         />

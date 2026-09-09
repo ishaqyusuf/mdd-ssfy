@@ -3,6 +3,9 @@ import { createHash } from "node:crypto";
 import { type Db, Prisma, type TransactionClient } from "@gnd/db";
 import { DB_TRANSACTION_PROFILES } from "@gnd/db/transactions";
 import { receiveInboundShipment } from "@gnd/inventory/inbound";
+import { reconcileProductionInboundReviews } from "./production-inbound-review";
+import { getProductionInboundHistory } from "./production-inbound-history";
+import { captureProductionReceiptState, productionReceiptAuditJson } from "./production-inbound-audit";
 import { confirmProductionInboundAllocations } from "./production-inbound-allocation";
 import { getProductionReceivingSettings } from "@gnd/settings";
 import { z } from "zod";
@@ -21,6 +24,7 @@ export const productionInboundQuerySchema = z.object({
 	salesOrderId: z.number().int().positive(),
 	inboundId: z.number().int().positive().optional(),
 	cursor: z.number().int().positive().optional(),
+	receiptCursor: z.number().int().positive().optional(),
 	take: z.number().int().min(1).max(20).default(10),
 });
 export const productionInboundReceiveSchema = z.object({
@@ -30,7 +34,7 @@ export const productionInboundReceiveSchema = z.object({
 	idempotencyKey: z.string().uuid(),
 });
 
-async function scopeFor(
+export async function scopeFor(
 	db: Client,
 	salesOrderId: number,
 	actor: ProductionInboundActor,
@@ -121,6 +125,7 @@ async function scopeFor(
 const shipmentSelect = {
 	id: true,
 	reference: true,
+	expectedAt: true,
 	status: true,
 	updatedAt: true,
 	deletedAt: true,
@@ -134,6 +139,7 @@ const shipmentSelect = {
 			qty: true,
 			qtyGood: true,
 			qtyIssue: true,
+			inventoryVariantId: true,
 			updatedAt: true,
 			inventoryVariant: {
 				select: { uid: true, inventory: { select: { name: true } } },
@@ -245,6 +251,8 @@ function presentShipment(
 		reference: shipment.reference,
 		supplier: shipment.supplier?.name ?? "Supplier not specified",
 		status: shipment.status,
+		expectedAt: shipment.expectedAt,
+		totalQty: relevant.reduce((total, item) => total + item.qty, 0),
 		items: pending,
 		canReceive,
 		revision,
@@ -260,9 +268,25 @@ export async function getProductionPendingInbounds(
 	actor: ProductionInboundActor,
 ) {
 	const scope = await scopeFor(db, input.salesOrderId, actor);
+	const pendingReview = !actor.canViewAll && (await db.salesProductionSubmissionMaterialReview.count({
+		where: { salesOrderId: input.salesOrderId, status: "PENDING", submissions: { some: { deletedAt: null, assignmentId: { in: scope.assignments.map(assignment => assignment.id) } } } },
+	})) > 0;
+	const workerNeeds = !actor.canViewAll && scope.componentIds.length ? await db.lineItemComponents.findMany({
+		where: { id: { in: scope.componentIds }, status: { not: "cancelled" } },
+		select: { qty: true, stockAllocations: { where: { deletedAt: null, status: { in: ["approved", "reserved", "picked", "consumed"] } }, select: { qty: true } } },
+	}) : [];
+	const needsSupervisor = pendingReview || workerNeeds.some(need => Number(need.qty) > need.stockAllocations.reduce((sum, allocation) => sum + allocation.qty, 0) + 0.000001);
+	const history = await getProductionInboundHistory(db, {
+		salesOrderId: input.salesOrderId,
+		inboundId: input.inboundId,
+		cursor: input.receiptCursor,
+	}, actor.canViewAll, actor.canEditInbound);
 	if (!scope.componentIds.length)
 		return {
+			...history,
 			count: 0,
+			needsSupervisor,
+			workerMode: !actor.canViewAll,
 			rows: [],
 			nextCursor: null,
 			receivingEnabled:
@@ -285,6 +309,9 @@ export async function getProductionPendingInbounds(
 	});
 	return {
 		count: Number(counts[0]?.count ?? 0),
+		needsSupervisor,
+		...history,
+		workerMode: !actor.canViewAll,
 		receivingEnabled:
 			actor.canEditInbound || scope.policy.workerCanReceiveInbound,
 		rows: shipments.map((s) => presentShipment(s, scope, actor)),
@@ -347,6 +374,7 @@ export async function receiveProductionInbound(
 					inboundId: input.inboundId,
 					salesOrderId: input.salesOrderId,
 					replayed: true,
+					needsSupervisor: Boolean(event.needsSupervisor),
 					remainingBackorderQty:
 						typeof event.remainingBackorderQty === "number"
 							? event.remainingBackorderQty
@@ -411,6 +439,13 @@ export async function receiveProductionInbound(
 					publicMessage:
 						"Open inbound to apply this larger set of material needs.",
 				});
+			const auditScope = {
+				salesOrderId: input.salesOrderId,
+				inboundId: input.inboundId,
+				componentIds,
+				variantIds: [...new Set(items.map(item => item.inventoryVariantId))].sort((a, b) => a - b),
+			};
+			const beforeReceipt = await captureProductionReceiptState(tx, auditScope);
 			const receipt = await receiveInboundShipment(tx, {
 				inboundId: input.inboundId,
 				authorName: String(actor.id),
@@ -444,6 +479,12 @@ export async function receiveProductionInbound(
 					publicMessage:
 						"Material needs could not be applied. Open inbound to resolve the allocation.",
 				});
+   const reviewReconciliation = await reconcileProductionInboundReviews(tx, {
+    salesOrderId: input.salesOrderId,
+    componentIds,
+    actorId: actor.id,
+    authorizedAssignmentIds: actor.canViewAll ? null : scope.assignments.map(assignment => assignment.id),
+   });
 			const appliedNeeds = await tx.lineItemComponents.findMany({
 				where: { id: { in: componentIds }, status: { not: "cancelled" } },
 				select: {
@@ -475,7 +516,12 @@ export async function receiveProductionInbound(
 					type: "production_inbound_received",
 					userId: actor.id,
 					data: {
-						version: 1,
+						version: 2,
+						audit: productionReceiptAuditJson({
+							scope: auditScope,
+							before: beforeReceipt,
+							after: await captureProductionReceiptState(tx, auditScope),
+						}),
 						idempotencyKey: input.idempotencyKey,
 						salesOrderId: input.salesOrderId,
 						inboundId: input.inboundId,
@@ -490,7 +536,9 @@ export async function receiveProductionInbound(
 						})),
 						allocatedQty: application.allocatedQty,
 						remainingBackorderQty,
+						needsSupervisor: remainingBackorderQty > 0 || reviewReconciliation.skippedReviewIds.length > 0,
 						approvedAllocationIds,
+						reviewReconciliation,
 					},
 				},
 			});
@@ -520,6 +568,7 @@ export async function receiveProductionInbound(
 				inboundId: input.inboundId,
 				salesOrderId: input.salesOrderId,
 				replayed: false,
+				needsSupervisor: remainingBackorderQty > 0 || reviewReconciliation.skippedReviewIds.length > 0,
 				remainingBackorderQty,
 			};
 		},

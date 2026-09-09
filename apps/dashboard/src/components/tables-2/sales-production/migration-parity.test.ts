@@ -160,8 +160,8 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(calendar.includes('value="month"')).toBe(true);
 		expect(calendar.includes('item.status !== "completed"')).toBe(true);
 		expect(calendar.includes('scope: "all"')).toBe(true);
-		expect(calendar.includes("completed:")).toBe(true);
-		expect(calendar.includes("bg-emerald-100")).toBe(true);
+		expect(calendar.includes("productionCalendarColors")).toBe(true);
+		expect(readSource("components/sales-production/calendar-colors.ts").includes("bg-emerald-100")).toBe(true);
 		expect(calendar.includes("<Card")).toBe(true);
 		expect(calendar.includes('<Card className="overflow-auto">')).toBe(true);
 		expect(calendar.includes("<CardContent")).toBe(true);
@@ -273,9 +273,9 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(configSource.includes("rowHeight: 40")).toBe(true);
 		expect(configSource.includes('style: "compact"')).toBe(true);
 		expect(columnsSource.includes("sizes.custom(140, 200, 160)")).toBe(true);
-		expect(columnsSource.includes("sizes.custom(110, 170, 130)")).toBe(true);
+		expect(columnsSource.includes("sizes.custom(120, 190, 140)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(190, 340, 240)")).toBe(true);
-		expect(columnsSource.includes("sizes.custom(170, 320, 220)")).toBe(true);
+		expect(columnsSource.includes("sizes.custom(180, 320, 220)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(72, 96, 80)")).toBe(true);
 		expect(
 			columnsSource.includes("min-w-0 flex-1 truncate font-medium uppercase"),

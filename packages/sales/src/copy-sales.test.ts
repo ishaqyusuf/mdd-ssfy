@@ -19,6 +19,8 @@ function createTransactionLikeDb(
     createdItems: [] as Record<string, unknown>[],
     findFirstArgs: null as Record<string, unknown> | null,
     existingTargetReads: 0,
+    createdActivities: [] as any[],
+    createdContacts: [] as any[],
   };
 
   const sourceSale = {
@@ -84,6 +86,22 @@ function createTransactionLikeDb(
   };
 
   const db = {
+    users: {
+      findFirstOrThrow: async () => ({ id: 7, name: "Pablo Cruz", email: null }),
+    },
+    notePadContacts: {
+      findFirst: async () => null,
+      create: async ({ data }: { data: any }) => {
+        calls.createdContacts.push(data);
+        return { id: 70 };
+      },
+    },
+    notePad: {
+      create: async ({ data }: { data: any }) => {
+        calls.createdActivities.push(data);
+        return { id: 800 };
+      },
+    },
     $queryRaw: async () => [],
     salesOrders: {
       findFirst: async () => {
@@ -121,6 +139,65 @@ function createTransactionLikeDb(
 }
 
 describe("copySalesInTransaction", () => {
+  it("records destination activity with the immediate source and an author without email", async () => {
+    const { db, calls } = createTransactionLikeDb({
+      type: "order",
+      meta: { copySource: { salesOrderId: 1 } },
+    });
+    await copySalesInTransaction({
+      db: db as never, salesUid: "00010PC", type: "order", as: "order",
+      author: { id: 7, name: "Pablo Cruz" }, activityOperation: "copy",
+    }, readinessDependencies);
+    expect(calls.createdActivities).toHaveLength(1);
+    const activity = calls.createdActivities[0];
+    expect(activity.note).toBe("Copied from 00010PC");
+    expect(activity.senderContactId).toBe(70);
+    expect(calls.createdContacts).toEqual([{ profileId: 7, role: "employee", name: "Pablo Cruz" }]);
+    expect(Object.fromEntries(activity.tags.createMany.data.map((tag: any) => [tag.tagName, tag.tagValue]))).toEqual({
+      channel: "sales_info", source: "system", type: "system", status: "public", activity: "sales_copied",
+      salesId: "900", salesNo: "00012PC", orderNo: "00012PC",
+      sourceSalesId: "100", sourceSalesNo: "00010PC", sourceSalesType: "order", operation: "copy",
+    });
+  });
+
+  it("does not write another copy event when conversion returns an existing order", async () => {
+    const { db, calls } = createTransactionLikeDb({}, { id: 777, slug: "00077PC", isDyke: true });
+    await copySalesInTransaction({
+      db: db as never, salesUid: "00010PC", type: "quote", as: "order",
+      author: { id: 7, name: "Pablo Cruz" }, activityOperation: "copy",
+    }, readinessDependencies);
+    expect(calls.createdActivities).toHaveLength(0);
+  });
+
+  it("records one event for quote copies and move-created destinations", async () => {
+    for (const operation of ["copy", "move"] as const) {
+      const { db, calls } = createTransactionLikeDb();
+      await copySalesInTransaction({
+        db: db as never, salesUid: "00010PC", type: "quote", as: "quote",
+        author: { id: 7, name: "Pablo Cruz" }, activityOperation: operation,
+      }, readinessDependencies);
+      expect(calls.createdActivities).toHaveLength(1);
+      expect(calls.createdActivities[0].tags.createMany.data).toContainEqual({ tagName: "operation", tagValue: operation });
+    }
+  });
+
+  it("keeps history snapshots out of the user copy activity", async () => {
+    const { db, calls } = createTransactionLikeDb();
+    await copySalesInTransaction({
+      db: db as never, salesUid: "00010PC", type: "quote", as: "quote-hx",
+      author: { id: 7, name: "Pablo Cruz" }, activityOperation: "copy",
+    }, readinessDependencies);
+    expect(calls.createdActivities).toHaveLength(0);
+  });
+
+  it("propagates activity failure inside the copy transaction", async () => {
+    const { db } = createTransactionLikeDb();
+    db.notePad.create = async () => { throw new Error("audit unavailable"); };
+    await expect(copySalesInTransaction({
+      db: db as never, salesUid: "00010PC", type: "quote", as: "order",
+      author: { id: 7, name: "Pablo Cruz" }, activityOperation: "copy",
+    }, readinessDependencies)).rejects.toThrow("audit unavailable");
+  });
   it("copies a quote to an order without requiring a nested transaction", async () => {
     const { db, calls } = createTransactionLikeDb();
 

@@ -1608,7 +1608,7 @@ function computeLineItemComponentDemandState(input: {
     status = "cancelled";
   } else if (qtyReceived >= qtyInbound && qtyInbound > 0) {
     status =
-      qtyAllocated + qtyReceived >= qtyRequired ? "fulfilled" : "partially_received";
+      Math.max(qtyAllocated, qtyReceived) >= qtyRequired ? "fulfilled" : "partially_received";
   } else if (qtyReceived > 0) {
     status = "partially_received";
   } else if (qtyAllocated >= qtyRequired && qtyInbound <= 0) {
@@ -2068,6 +2068,45 @@ function projectInboundNeedsApplicationState(
     openDemandQty,
     activeApplicationEventId: activeSnapshot ? latestEvent?.id ?? null : null,
   };
+}
+
+/** Production synchronization reads only the actor's component scope, while
+ * accounting for receipt quantities already used by every order on the shipment. */
+export async function getScopedReceivedNeedsPlan(db: DbLike, componentIds: number[]) {
+  const active = await db.lineItemComponents.findMany({where:{id:{in:componentIds},status:{not:"cancelled"},parent:{deletedAt:null,sale:{deletedAt:null}}},select:{id:true}});
+  const scope = new Set(active.map(component=>component.id));
+  const shipments = await db.inboundShipment.findMany({
+    where: {deletedAt:null,status:"completed",items:{some:{deletedAt:null,inboundDemands:{some:{deletedAt:null,lineItemComponentId:{in:componentIds},status:{not:"cancelled"}}}}}},
+    orderBy:{id:"asc"}, take:101, select:inboundNeedsApplicationShipmentSelect,
+  });
+  if (shipments.length > 100) throw new Error("Too many received shipments to synchronize at once.");
+  const rows: {inboundId:number;itemId:number;demandId:number;componentId:number;beforeQty:number;afterQty:number;beforeStatus:string}[] = [];
+  for (const shipment of shipments) for (const item of shipment.items) {
+    let remaining = Math.max(0,positiveNumber(item.qtyGood)-item.inboundDemands.reduce((sum,demand)=>sum+positiveNumber(demand.qtyReceived),0));
+    for (const demand of item.inboundDemands) {
+      if (!scope.has(demand.lineItemComponentId) || remaining <= 0) continue;
+      const delta = Math.min(remaining,Math.max(0,positiveNumber(demand.qty)-positiveNumber(demand.qtyReceived)));
+      if (delta <= 0) continue;
+      rows.push({inboundId:shipment.id,itemId:item.id,demandId:demand.id,componentId:demand.lineItemComponentId,beforeQty:demand.qtyReceived,afterQty:demand.qtyReceived+delta,beforeStatus:demand.status});
+      remaining -= delta;
+    }
+  }
+  return {rows, evidence:shipments};
+}
+
+/** Caller owns the serializable transaction and revalidates this scoped plan. */
+export async function applyScopedReceivedNeedsPlan(db: DbLike, plan: Awaited<ReturnType<typeof getScopedReceivedNeedsPlan>>) {
+  for (const row of plan.rows) {
+    const demand = plan.evidence.flatMap(shipment=>shipment.items).find(item=>item.id===row.itemId)?.inboundDemands.find(demand=>demand.id===row.demandId);
+    if (!demand) throw new Error("Received demand evidence is missing.");
+    const updated = await db.inboundDemand.updateMany({
+      where:{id:row.demandId,deletedAt:null,lineItemComponentId:row.componentId,lineItemComponent:{status:{not:"cancelled"},parent:{deletedAt:null,sale:{deletedAt:null}}},qtyReceived:row.beforeQty,status:row.beforeStatus as InboundDemandQueueStatus,inboundShipmentItem:{id:row.itemId,deletedAt:null,inbound:{id:row.inboundId,deletedAt:null,status:"completed"}}},
+      data:{qtyReceived:row.afterQty,status:row.afterQty>=demand.qty?"received":"partially_received"},
+    });
+    if (updated.count!==1) throw new Error("Received material needs changed. Refresh and try again.");
+  }
+  for (const id of new Set(plan.rows.map(row=>row.componentId))) await recomputeLineItemComponentDemandState(db,id);
+  return plan.rows;
 }
 
 export async function applyInboundShipmentToNeeds(

@@ -143,3 +143,13 @@ filtering without duplicating backend project administration.
 ## Updated
 
 2026-08-30
+
+## Sales save integrity errors (2026-09-09)
+
+`SALES_RELATIONAL_REVIEW_REQUIRED` is now an explicit reportable domain error, transported as PRECONDITION_FAILED. It exposes a safe explanation that an approved change differs from saved items and asks for administrator reconciliation. The normalized public reference is retained in the Sentry `error_reference` tag. Expected validation/authorization failures remain intentionally unreported. Prisma classification requires a P plus four-digit code, so PRECONDITION_FAILED is no longer misclassified as an unknown database error.
+
+Validation: 27 focused shared error, observability, API transport and Sentry policy tests pass. This verifies code/report construction, not receipt in live Sentry. Local/preview remain disabled. Persistent form alert/copy details and deployed end-to-end capture verification remain pending.
+
+### Post-save statistics failures
+
+The form uses `refreshSavedSalesStatsAction`, which wraps failures in reportable `SALES_POST_SAVE_REFRESH_FAILED`. This matters for Prisma P2002, ordinarily classified as an expected conflict: an internal statistics refresh failure after a successful order save is unexpected and must be captured. The action returns the public envelope with the same `error_reference` used by Sentry. No customer fields or raw request payload are added to the report. Local/preview capture remains disabled; deployed receipt remains unverified.

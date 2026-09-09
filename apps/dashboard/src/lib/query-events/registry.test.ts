@@ -8,6 +8,16 @@ import {
 } from "./registry";
 
 describe("query event mutation registry", () => {
+	it("refreshes destination activity after copy and move", () => {
+		for (const route of ["copySale", "moveSale"]) {
+			const events = resolveMutationQueryEvents({
+				mutationKey: [["sales", route]],
+				data: { id: 44, slug: "08894LM" },
+				variables: { as: "quote", to: "quote", type: "order", salesUid: "08893LM" },
+			});
+			expect(events.flatMap(resolveQueryEventTargets).some(target => target.route === "notes.activityTree")).toBe(true);
+		}
+	});
 	it("refreshes admin Production invoices after payment and review changes", () => {
 		expect(resolveQueryEventTargets({ name: "sales.payment.changed" }).some(target => target.route === "sales.productions")).toBe(true);
 	});
@@ -15,7 +25,7 @@ describe("query event mutation registry", () => {
 		expect(resolveQueryEventTargets({ name: "sales.pipeline.changed" }).some(target => target.route === "notes.activityTree")).toBe(true);
 	});
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(102);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(105);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(16);
 	});
 
@@ -707,3 +717,22 @@ describe("query event mutation registry", () => {
  for (const route of ["sales.productionPendingInbounds", "sales.productionOverview", "sales.productionCalendar", "sales.productionTasks", "inventories.salesInventoryOverview", "inventories.orderInboundShipments"])
  expect(routes).toContain(route);
  });
+
+ it("refreshes production and inventory after receipt cancellation", () => {
+ const events = resolveMutationQueryEvents({mutationKey: [["sales", "cancelProductionInbound"]], data: {salesOrderId: 123, receiptId: 7}});
+ expect(events.map(event => event.name)).toEqual(["inventory.inbound.changed", "sales.pipeline.changed"]);
+ });
+
+it("availability saves refresh the material remainder and all production surfaces", () => {
+ const events=resolveMutationQueryEvents({mutationKey:[["sales","markProductionMaterialsAvailable"]],data:{salesOrderId:123,inboundId:7}});
+ expect(events.map(event=>event.name)).toEqual(["inventory.inbound.changed","sales.pipeline.changed"]);
+ const routes=events.flatMap(event=>resolveQueryEventTargets(event).map(target=>target.route));
+ for(const route of ["sales.productionAvailability","sales.productionPendingInbounds","sales.productionOverview","sales.productionCalendarTasks","sales.productionPlanningCalendar","sales.productionTasks","sales.productionSummary","inventories.salesInventoryOverview","inventories.orderInboundShipments","notes.activityTree"]) expect(routes).toContain(route);
+});
+
+it("covered-material reconciliation refreshes the shared panel and production lists", () => {
+ const events=resolveMutationQueryEvents({mutationKey:[["sales","applyCoveredProductionMaterials"]],data:{salesOrderId:123,resolvedCount:1}});
+ expect(events.map(event=>event.name)).toEqual(["inventory.inbound.changed","sales.pipeline.changed"]);
+ const routes=events.flatMap(event=>resolveQueryEventTargets(event).map(target=>target.route));
+ for(const route of ["sales.coveredProductionMaterials","sales.productionAvailability","sales.productionOverview","sales.productionCalendarTasks","sales.productionPlanningCalendar","sales.productionTasks","inventories.salesInventoryOverview"]) expect(routes).toContain(route);
+});

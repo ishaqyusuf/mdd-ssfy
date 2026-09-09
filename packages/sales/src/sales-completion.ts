@@ -631,20 +631,8 @@ export function resolveSalesCompletionProjectionFromOrder(
 
 export function salesCompletionLabels(projection: SalesCompletionProjection) {
 	return {
-		production:
-			projection.productionCompletionSource === "STATUS_ONLY"
-				? "Completed — status only"
-				: projection.productionCompletionSource === "IMPLIED_BY_FULFILLMENT"
-					? "Completed — implied by Fulfillment status only"
-					: projection.productionCompletionSatisfied
-						? "Completed"
-						: "Pending",
-		fulfillment:
-			projection.fulfillmentDisposition === "ADMINISTRATIVELY_COMPLETED"
-				? "Administratively completed"
-				: projection.fulfillmentDisposition === "FULFILLED"
-					? "Fulfilled"
-					: "Pending",
+		production: projection.productionCompletionSatisfied ? "Completed" : "Pending",
+		fulfillment: projection.fulfillmentCompletionSatisfied ? "Completed" : "Pending",
 	};
 }
 
@@ -1819,7 +1807,46 @@ export async function recordFullWorkflowCompletionIfProven(
 ) {
 	const requestId = input.requestId ?? randomUUID();
 	try {
-		return await runSerializable(db, async (tx) => {
+		return await runSerializable(db, (tx) =>
+   recordFullWorkflowCompletionIfProvenInTransaction(tx, { ...input, requestId }),
+  );
+	} catch (error) {
+		if (error instanceof SalesCompletionError) throw error;
+		if (hasPrismaCode(error, ["P2002"])) {
+			const projection = await getSalesCompletionProjection(db, {
+				salesOrderId: input.salesOrderId,
+			});
+			const activeRecord =
+				input.milestone === "PRODUCTION_COMPLETED"
+					? projection.activeProductionRecord
+					: projection.activeFulfillmentRecord;
+			if (activeRecord) {
+				return {
+					record: activeRecord,
+					projection,
+					recorded: activeRecord.completionMethod === "FULL_WORKFLOW",
+					idempotentReplay: activeRecord.completionMethod === "FULL_WORKFLOW",
+					reason:
+						activeRecord.completionMethod === "FULL_WORKFLOW"
+							? ("ALREADY_RECORDED" as const)
+							: ("ACTIVE_STATUS_ONLY" as const),
+				};
+			}
+		}
+		throw new SalesCompletionError(
+			"Full-workflow completion provenance could not be saved.",
+			"PERSISTENCE_FAILURE",
+		);
+	}
+}
+
+/** Composes canonical completion provenance with an owning workflow transaction. */
+export async function recordFullWorkflowCompletionIfProvenInTransaction(
+ tx: TransactionClient,
+ input: RecordFullWorkflowCompletionInput,
+) {
+ const requestId = input.requestId ?? randomUUID();
+
 			const projection = await getSalesCompletionProjection(tx, {
 				salesOrderId: input.salesOrderId,
 			});
@@ -1897,35 +1924,6 @@ export async function recordFullWorkflowCompletionIfProven(
 				idempotentReplay: false,
 				reason: "RECORDED" as const,
 			};
-		});
-	} catch (error) {
-		if (error instanceof SalesCompletionError) throw error;
-		if (hasPrismaCode(error, ["P2002"])) {
-			const projection = await getSalesCompletionProjection(db, {
-				salesOrderId: input.salesOrderId,
-			});
-			const activeRecord =
-				input.milestone === "PRODUCTION_COMPLETED"
-					? projection.activeProductionRecord
-					: projection.activeFulfillmentRecord;
-			if (activeRecord) {
-				return {
-					record: activeRecord,
-					projection,
-					recorded: activeRecord.completionMethod === "FULL_WORKFLOW",
-					idempotentReplay: activeRecord.completionMethod === "FULL_WORKFLOW",
-					reason:
-						activeRecord.completionMethod === "FULL_WORKFLOW"
-							? ("ALREADY_RECORDED" as const)
-							: ("ACTIVE_STATUS_ONLY" as const),
-				};
-			}
-		}
-		throw new SalesCompletionError(
-			"Full-workflow completion provenance could not be saved.",
-			"PERSISTENCE_FAILURE",
-		);
-	}
 }
 
 export async function cancelFullWorkflowCompletionInTransaction(

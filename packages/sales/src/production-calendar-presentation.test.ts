@@ -36,7 +36,11 @@ describe("canonical Production calendar palette", () => {
 		const evidence = source();
 		evidence.production.administrativeCompletion = { method: "FULL_WORKFLOW", recordedAt: "2026-09-07" };
 		const snapshot = resolveSalesPipelineSnapshot(evidence);
-		expect(getProductionCalendarPresentation(snapshot)).toEqual({ tone: "completed", label: "Production completed", statusOnly: false });
+		expect(getProductionCalendarPresentation(snapshot)).toEqual({
+			tone: "completed",
+			label: "Completed",
+			statusOnly: false,
+		});
 		expect(snapshot.production.completedQty).toBe(0);
 		expect(snapshot.production.assignmentIds).toEqual([]);
 	});
@@ -71,7 +75,7 @@ describe("canonical Production calendar palette", () => {
 		evidence.production.assignments[0]!.completedQty = 1;
 		expect(presentation()).toEqual({
 			tone: "completed",
-			label: "Production completed",
+			label: "Completed",
 			statusOnly: false,
 		});
 	});
@@ -91,7 +95,7 @@ describe("canonical Production calendar palette", () => {
 			getProductionCalendarPresentation(resolveSalesPipelineSnapshot(evidence)),
 		).toEqual({
 			tone: "completed",
-			label: "Production completed",
+			label: "Completed",
 			statusOnly: true,
 		});
 	});

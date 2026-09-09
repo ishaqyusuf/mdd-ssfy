@@ -4,6 +4,16 @@
 - Status: Done
 
 
+### 2026-09-08 — Sales UI simplification
+
+- All seven areas complete: operations, invoice, Special Order, actions,
+  material review, page copy, shared completion labels/filter.
+- 180 focused tests pass; Sales/API types and desktop/mobile browser checks
+  pass. Root/Dashboard baseline limitations documented in the execution plan.
+- Plan: `.brain/plans/2026-09-08-sales-ui-simplification.md`.
+- No deployment or operational data mutation.
+
+
 ### [Completion modal simplification and actor activity](2026-09-07-completion-modal-and-actor-activity.md)
 - Status: Done
 

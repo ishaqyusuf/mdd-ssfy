@@ -61,3 +61,22 @@ describe("error report contract", () => {
 		expect(shouldReportError(error)).toBe(false);
 	});
 });
+
+it("reports unexpected post-save constraint failures under a safe domain reason", () => {
+	const cause = Object.assign(new Error("Unique constraint failed"), {
+		code: "P2002",
+	});
+	const report = buildErrorReport(
+		new AppError({ code: "SALES_POST_SAVE_REFRESH_FAILED", cause }),
+		{
+			runtime: "dashboard",
+			source: "server-action",
+			operation: "sales.refreshSavedStats",
+		},
+	);
+	expect(report.classified.reportable).toBe(true);
+	expect(report.classified.publicMessage).toContain("order was saved");
+	expect(report.captureContext.tags.error_reference).toBe(
+		report.classified.referenceId,
+	);
+});

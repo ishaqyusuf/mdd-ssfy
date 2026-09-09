@@ -22,14 +22,13 @@ export function GeneralTabV2Skeleton() {
 				<Skeleton className="h-9 rounded-md" />
 			</div>
 			<div className="grid min-w-0 grid-cols-1 items-stretch lg:grid-cols-[minmax(0,1.28fr)_minmax(280px,0.92fr)]">
-				<div className="flex min-w-0 flex-col gap-6 pb-5 pt-5 lg:border-r lg:pb-24 lg:pr-5">
+				<div className="flex min-w-0 flex-col gap-6 pb-5 pt-5 lg:border-r lg:pb-5 lg:pr-5">
 					<section className="flex flex-col gap-3">
 						<div className="flex items-center justify-between gap-3">
 							<Skeleton className="h-4 w-24 rounded" />
 							<Skeleton className="h-8 w-28 rounded-md" />
 						</div>
 						<Skeleton className="h-6 w-52 rounded" />
-						<Skeleton className="h-4 w-32 rounded" />
 						<Skeleton className="h-14 w-full rounded" />
 					</section>
 					<section className="grid grid-cols-2 gap-4 border-t pt-5">
@@ -41,7 +40,6 @@ export function GeneralTabV2Skeleton() {
 						))}
 					</section>
 					<section className="flex flex-col gap-3 border-t pt-5">
-						<Skeleton className="h-4 w-32 rounded" />
 						<div className="flex items-center justify-between gap-3">
 							<Skeleton className="h-4 w-24 rounded" />
 							<Skeleton className="h-5 w-20 rounded-full" />
@@ -56,10 +54,9 @@ export function GeneralTabV2Skeleton() {
 						))}
 					</div>
 				</div>
-				<div className="flex min-w-0 flex-col gap-4 border-t bg-muted/20 pb-24 pt-5 lg:border-t-0 lg:px-5">
+				<div className="flex min-w-0 flex-col gap-4 border-t bg-muted/20 pb-5 pt-5 lg:border-t-0 lg:px-5">
 					<Skeleton className="h-5 w-32 rounded" />
 					<Skeleton className="h-10 w-40 rounded" />
-					<Skeleton className="h-1.5 w-full rounded" />
 					<Skeleton className="h-48 w-full rounded-md" />
 				</div>
 			</div>

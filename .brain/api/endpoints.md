@@ -1,5 +1,19 @@
 # API Endpoints
 
+## Reliability Sentry ingestion (2026-09-09)
+
+- `POST /api/webhooks/reliability/sentry/:registrationId` accepts integration-platform
+  issue alerts using exact-byte HMAC verification and configured installation,
+  project, and production scope. Application session cookies are not authorization.
+- No registration returns 404. Invalid signatures return 401; invalid events 400;
+  non-JSON requests 415; streamed bodies over 1 MiB 413. Durable insert failure
+  returns 503, and 200 is emitted only after the incident transaction completes.
+- `RELIABILITY_SENTRY_REGISTRATIONS` contains a JSON array of `{id, installationId,
+  account, projectId, operation, serviceId, owner, secretEnv}`. Each `secretEnv`
+  references a separate `RELIABILITY_SENTRY_SECRET_*` variable. No configuration
+  has been applied. Hosted latency, registration values, and live acceptance remain
+  unverified; bounded reconciliation is not implemented yet.
+
 ## Status-only Sales Completion (2026-09-01)
 
 - `sales.salesCompletionProjection` is a protected single-order read guarded by
@@ -766,3 +780,23 @@ Planning only; endpoint names may be refined during approved implementation.
 - Existing `inventories.resolveSalesInventoryLegacyStatus` remains available
   for explicit recovery and now requires `editOrders`; it is no longer called
   automatically by opening the Inventory tab.
+# Reliability ingestion health
+
+Deployment failure ingestion:
+`POST /api/webhooks/reliability/vercel-deployments/:registrationId` uses
+`RELIABILITY_VERCEL_DEPLOYMENTS` and separate webhook-secret references. It accepts
+signed deployment.error payloads and awaits persistence before 200. Other lifecycle
+types currently reject; explicit nonproduction targets are ignored after signature
+and scope validation. Hosted activation remains pending.
+
+Vercel ingestion: `POST /api/webhooks/reliability/vercel/:registrationId` resolves
+`RELIABILITY_VERCEL_DRAINS`, verifies its separately referenced signing secret,
+validates a bounded batch, and awaits occurrence persistence before 200. Unknown
+registration returns 404; invalid signature 401; invalid batch 400; storage failure
+503. See the Vercel registration runbook. Local code only; hosted setup is pending.
+
+`GET /api/reliability/health` uses `RELIABILITY_MONITOR_TOKEN` Bearer authentication
+and `RELIABILITY_MONITOR_SOURCES` configured Trigger sources. Returns aggregate
+200/503 health with no-store caching; missing token returns 404, bad auth 401.
+Source registry validation and database reads run only after authentication.
+Currently covers Trigger discovery and unfinished-watch freshness only.

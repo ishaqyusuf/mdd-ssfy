@@ -1,3 +1,4 @@
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { AuthGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
@@ -12,7 +13,14 @@ import { salesFormUrl } from "@/utils/sales-utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@gnd/ui/dialog";
+import { SpecialOrderOverviewControls } from "./special-order-overview-card";
 import { toast } from "sonner";
 import { useSaleOverview } from "./context";
 type SalesType = "order" | "quote";
@@ -22,8 +30,7 @@ const actionButtonClass =
 export function GeneralActionBar({ type, salesNo, salesId }) {
 	const { data } = useSaleOverview() as {
 		data?: {
-			pipeline?: import("@gnd/sales/sales-pipeline").SalesPipelineSnapshot | null;
-			archivedAt?: Date | string | null;
+			pipeline?: SalesPipelineSnapshot | null;
 			type?: SalesType | null;
 			id?: number | null;
 			customerId?: number | null;
@@ -34,6 +41,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 			customerPhone?: string | null;
 			displayName?: string | null;
 			inboundStatus?: string | null;
+			archivedAt?: Date | string | null;
 			orderStatus?: string | null;
 			prodStatus?: string | null;
 			deliveryStatus?: string | null;
@@ -69,6 +77,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		});
 	}
 	const [loading, startTransition] = useTransition();
+	const [specialOrderOpen, setSpecialOrderOpen] = useState(false);
 	const qs = useSalesOverviewQuery();
 
 	async function reset() {
@@ -86,114 +95,154 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		});
 	}
 	return (
-		<div aria-label="Sales actions" className="grid grid-cols-3 gap-2">
-			<Button
-				onClick={() => {
-					preview();
-				}}
-				size="sm"
-				variant="default"
-				className={actionButtonClass}
-			>
-				<Icons.Eye className="size-3.5" />
-				<span>Preview</span>
-			</Button>
-			<Button
-				size="sm"
-				variant="outline"
-				className={actionButtonClass}
-				disabled={!salesNo && !data?.orderId}
-				onClick={() => {
-					openLink(
-						salesFormUrl(
-							data?.type ?? type,
-							salesNo ?? data?.orderId,
-							data?.isDyke ?? true,
-						),
-						{},
-						true,
-					);
-				}}
-			>
-				<Icons.Edit className="size-3.5" />
-				<span>Edit</span>
-			</Button>
-			<SalesMenu
-				triggerVariant="outline"
-				trigger={
-					<Button
-						type="button"
-						size="sm"
-						variant="outline"
-						className={actionButtonClass}
-					>
-						<Icons.Menu className="size-3.5" />
-						<span>More</span>
-					</Button>
-				}
-				id={data?.id}
-				slug={data?.uuid}
-				type={data?.type}
-				orderNo={data?.orderId}
-				customerId={data?.customerId}
-				customerEmail={data?.email ?? null}
-				customerPhone={data?.customerPhone}
-				customerName={data?.displayName}
-			>
-				{isQuote ? (
-					<SalesMenu.QuoteEmailMenuItems />
-				) : (
-					<>
-						{canSendForPacking ? (
-							<>
-								<SendForPackingMenuItem
-									salesId={salesId}
-									orderNo={data?.orderId}
-								/>
+		<>
+			<div aria-label="Sales actions" className="grid grid-cols-3 gap-2">
+				<Button
+					onClick={() => {
+						preview();
+					}}
+					size="sm"
+					variant="default"
+					className={actionButtonClass}
+				>
+					<Icons.Eye className="size-3.5" />
+					<span>Preview</span>
+				</Button>
+				<Button
+					size="sm"
+					variant="outline"
+					className={actionButtonClass}
+					disabled={!salesNo && !data?.orderId}
+					onClick={() => {
+						openLink(
+							salesFormUrl(
+								data?.type ?? type,
+								salesNo ?? data?.orderId,
+								data?.isDyke ?? true,
+							),
+							{},
+							true,
+						);
+					}}
+				>
+					<Icons.Edit className="size-3.5" />
+					<span>Edit</span>
+				</Button>
+				<SalesMenu
+					triggerVariant="outline"
+					trigger={
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							className={actionButtonClass}
+						>
+							<Icons.Menu className="size-3.5" />
+							<span>More</span>
+						</Button>
+					}
+					id={data?.id}
+					slug={data?.uuid}
+					type={data?.type}
+					orderNo={data?.orderId}
+					customerId={data?.customerId}
+					customerEmail={data?.email ?? null}
+					customerPhone={data?.customerPhone}
+					customerName={data?.displayName}
+				>
+					<SalesMenu.Sub>
+						<SalesMenu.SubTrigger>Send</SalesMenu.SubTrigger>
+						<SalesMenu.SubContent>
+							{isQuote ? (
+								<SalesMenu.QuoteEmailMenuItems />
+							) : (
+								<SalesMenu.SalesEmailMenuItems />
+							)}
+							<SalesMenu.Share />
+						</SalesMenu.SubContent>
+					</SalesMenu.Sub>
+					<SalesMenu.Sub>
+						<SalesMenu.SubTrigger>Print</SalesMenu.SubTrigger>
+						<SalesMenu.SubContent>
+							<SalesMenu.SalesPrintMenuItems />
+						</SalesMenu.SubContent>
+					</SalesMenu.Sub>
+					{isQuote ? (
+						<SalesMenu.Sub>
+							<SalesMenu.SubTrigger>Quote actions</SalesMenu.SubTrigger>
+							<SalesMenu.SubContent>
+								<SalesMenu.Copy />
+								<SalesMenu.Move />
+								<SalesMenu.Delete onDeleted={() => qs.close()} />
+							</SalesMenu.SubContent>
+						</SalesMenu.Sub>
+					) : (
+						<>
+							<SalesMenu.Sub>
+								<SalesMenu.SubTrigger>Order actions</SalesMenu.SubTrigger>
+								<SalesMenu.SubContent>
+									{canSendForPacking ? (
+										<SendForPackingMenuItem
+											salesId={salesId}
+											orderNo={data?.orderId}
+										/>
+									) : null}
+									<SalesMenu.MarkAs
+										currentStatus={currentOrderStatus}
+										productionStatus={productionStatus}
+ pipeline={data?.pipeline}
+ pipelineCapabilities={data?.pipeline?.capabilities}
+ statusCandidates={[{salesId, status:currentOrderStatus,pipelineRevision:data?.pipeline?.revision,pipeline:data?.pipeline}]}
+ archiveOrders={data?.archivedAt !== undefined ? [{salesId,orderNo:data.orderId ?? salesNo,archived:data.archivedAt !== null}] : undefined}
+										hasFulfillmentDispatch={Boolean(data?.dispatchList?.length)}
+									/>
+									<SalesMenu.Item onSelect={() => setSpecialOrderOpen(true)}>
+										Special Order
+									</SalesMenu.Item>
+									<SalesMenu.Copy />
+									<SalesMenu.Move />
+									<SalesMenu.Separator />
+									<SalesMenu.Delete onDeleted={() => qs.close()} />
+								</SalesMenu.SubContent>
+							</SalesMenu.Sub>
+							<AuthGuard rules={[_perm.is("viewSalesResolution")]}>
 								<SalesMenu.Separator />
-							</>
-						) : null}
-						<SalesMenu.SalesEmailMenuItems />
-						<SalesMenu.MarkAs
-							pipeline={data?.pipeline}
-							pipelineCapabilities={data?.pipeline?.capabilities}
-							statusCandidates={[{salesId,status:currentOrderStatus,pipelineRevision:data?.pipeline?.revision,pipeline:data?.pipeline}]}
-							archiveOrders={data?.archivedAt !== undefined ? [{salesId,orderNo:data.orderId ?? salesNo,archived:data.archivedAt !== null}] : undefined}
-							currentStatus={currentOrderStatus}
-							productionStatus={productionStatus}
-							hasFulfillmentDispatch={Boolean(data?.dispatchList?.length)}
-						/>
-						<SalesMenu.Separator />
-						<SalesMenu.Share />
-						<SalesMenu.SalesPrintMenuItems />
-						<SalesMenu.Copy />
-						<SalesMenu.Move />
-						<SalesMenu.Separator />
-						<SalesMenu.Item onSelect={reset} disabled={loading}>
-							<Icons.RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
-							Reset Stats
-						</SalesMenu.Item>
-						<AuthGuard rules={[_perm.is("viewSalesResolution")]}>
-							<SalesMenu.Item
-								onSelect={(e) => {
-									e.preventDefault();
-									openLink(
-										"/sales-book/accounting/resolution-center",
-										{
-											salesNo: data.orderId,
-										},
-										true,
-									);
-								}}
-								disabled={loading}
-							>
-								<Icons.RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
-								Resolution Center
-							</SalesMenu.Item>
-						</AuthGuard>
-					</>
-				)}
-			</SalesMenu>
-		</div>
+								<SalesMenu.Sub>
+									<SalesMenu.SubTrigger>Troubleshooting</SalesMenu.SubTrigger>
+									<SalesMenu.SubContent>
+										<SalesMenu.Item onSelect={reset} disabled={loading}>
+											Reset Stats
+										</SalesMenu.Item>
+										<SalesMenu.Item
+											onSelect={(e) => {
+												e.preventDefault();
+												openLink(
+													"/sales-book/accounting/resolution-center",
+													{ salesNo: data?.orderId },
+													true,
+												);
+											}}
+											disabled={loading}
+										>
+											Resolution Center
+										</SalesMenu.Item>
+									</SalesMenu.SubContent>
+								</SalesMenu.Sub>
+							</AuthGuard>
+						</>
+					)}
+				</SalesMenu>
+			</div>
+			<Dialog open={specialOrderOpen} onOpenChange={setSpecialOrderOpen}>
+				<DialogContent aria-describedby={undefined}>
+					<DialogHeader>
+						<DialogTitle>Special Order</DialogTitle>
+					</DialogHeader>
+					{specialOrderOpen ? (
+						<SpecialOrderOverviewControls presentation="inline" />
+					) : null}
+				</DialogContent>
+			</Dialog>
+		</>
 	);
 }

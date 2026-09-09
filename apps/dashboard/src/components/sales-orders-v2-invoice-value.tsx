@@ -17,7 +17,6 @@ export function SalesOrdersV2InvoiceValue() {
         <SalesOrdersV2Summary
             data={data}
             title="Invoice Value"
-            subtitle="Total invoice amount."
             icon={Icons.CircleDollarSign}
             value={data.invoiceValue}
             money

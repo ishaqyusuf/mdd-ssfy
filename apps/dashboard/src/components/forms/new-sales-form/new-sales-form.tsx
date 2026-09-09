@@ -1,7 +1,9 @@
 "use client";
 
+import { createSaveFailure, type SaveFailure } from "./save-failure";
+import { SaveFailureAlert } from "./save-failure-alert";
 import { triggerEvent } from "@/actions/events";
-import { resetSalesStatAction } from "@/actions/reset-sales-stat";
+import { refreshSavedSalesStatsAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import type { SalesHistoryEntry } from "@/components/sales-hx";
 import { SalesMenu } from "@/components/sales-menu";
@@ -467,6 +469,7 @@ export function NewSalesForm(props: Props) {
     const [usePackageWorkflowPanel] = useState(
         resolveInitialPackageWorkflowPanelEnabled,
     );
+    const [saveFailure, setSaveFailure] = useState<SaveFailure | null>(null);
     const record = useNewSalesFormStore((s) => s.record);
     const dirty = useNewSalesFormStore((s) => s.dirty);
     const saveStatus = useNewSalesFormStore((s) => s.saveStatus);
@@ -805,6 +808,7 @@ export function NewSalesForm(props: Props) {
         dirty,
         payload,
         onSaving: () => {
+            setSaveFailure(null);
             markSaving();
         },
         onSaved: (resp, _savedPayload, hasPendingChanges) => {
@@ -823,6 +827,7 @@ export function NewSalesForm(props: Props) {
 						}
 					: {}),
             });
+            setSaveFailure(null);
             markSaved({
                 version: resp?.version,
                 updatedAt: resp?.updatedAt || new Date().toISOString(),
@@ -835,7 +840,9 @@ export function NewSalesForm(props: Props) {
             });
         },
         onStale: (error) => {
-            markStale(getErrorMessage(error, "Version conflict detected."));
+            const failure = createSaveFailure(error, "Save draft", record?.orderId);
+            setSaveFailure(failure);
+            markStale(failure.message);
             toast({
                 title: "This form is out of date",
                 description: "Reload latest data before continuing.",
@@ -843,7 +850,9 @@ export function NewSalesForm(props: Props) {
             });
         },
         onError: (error) => {
-            markError(getErrorMessage(error, "Autosave failed."));
+            const failure = createSaveFailure(error, "Save draft", record?.orderId);
+            setSaveFailure(failure);
+            markError(failure.message);
         },
     });
 
@@ -1041,6 +1050,7 @@ export function NewSalesForm(props: Props) {
 				summary: resp?.summary,
 				form: resp?.form,
             });
+            setSaveFailure(null);
             markSaved({
                 version: resp?.version,
                 updatedAt: resp?.updatedAt || new Date().toISOString(),
@@ -1058,7 +1068,8 @@ export function NewSalesForm(props: Props) {
                 } as CreateSalesHistorySchemaTask);
             }
             if (resp?.type === "order" && resp?.salesId && resp?.orderId) {
-                await resetSalesStatAction(resp.salesId, resp.orderId);
+                const stats = await refreshSavedSalesStatsAction(resp.salesId, resp.orderId);
+                if (!stats.ok) throw Object.assign(new Error(stats.error.message), { data: { appError: stats.error } });
                 await salesQueryClient.events.productionUpdated({
                     orderNo: resp.orderId,
                     salesId: resp.salesId,
@@ -1314,6 +1325,7 @@ export function NewSalesForm(props: Props) {
 		} catch (error) {
 			setChangeReviewOpen(false);
 			setChangeReview(null);
+            setSaveFailure(createSaveFailure(error, "Review changes", record?.orderId));
 			toast({
 				title: "Unable to review this change",
 				description: getErrorMessage(error, "Reload the sale and try again."),
@@ -1383,6 +1395,7 @@ export function NewSalesForm(props: Props) {
 			setPendingCommittedChangeSaveIntent(null);
 			setChangeReviewOpen(false);
 			setChangeReview(null);
+            setSaveFailure(null);
 			toast({
 				title: "Changes committed",
 				description: "The sale and affected inventory were updated.",
@@ -1397,6 +1410,8 @@ export function NewSalesForm(props: Props) {
 				guard: committedChangeContinuationGuardRef.current,
 			});
 		} catch (error) {
+            setChangeReviewOpen(false);
+            setSaveFailure(createSaveFailure(error, "Approve changes", record?.orderId));
 			toast({
 				title: "Unable to approve changes",
 				description: getErrorMessage(error, "Please try again."),
@@ -1484,6 +1499,8 @@ export function NewSalesForm(props: Props) {
         const currentRecord = recordOverride || record;
         if (!currentRecord) return;
         if (intent === "final") {
+            let committed = false;
+            setSaveFailure(null);
             markSaving();
             try {
                 const resp = await finalSave.mutateAsync({
@@ -1491,6 +1508,7 @@ export function NewSalesForm(props: Props) {
                     commitIntent: "final",
                     autosave: false,
                 });
+                committed = true;
                 await handlePostSaveSuccess(resp);
 				const inventoryOverviewOpened =
 					await continueToInventoryAfterSave(resp, true);
@@ -1506,12 +1524,15 @@ export function NewSalesForm(props: Props) {
                     if (editHref) router.push(editHref);
                 }
             } catch (error) {
-                const message = getErrorMessage(error, "Unable to save.");
-                if (message.toLowerCase().includes("out of date")) {
-                    markStale(message);
-                } else markError(message);
+                const failure = createSaveFailure(error, committed ? "Refresh after save" : "Save order", currentRecord.orderId, committed);
+                setSaveFailure(failure);
+                const message = failure.message;
+                if (!committed) {
+                    if (failure.code === "CONFLICT") markStale(message);
+                    else markError(message);
+                }
                 toast({
-                    title: "Save failed",
+                    title: committed ? "Order saved; follow-up needs attention" : "Save failed",
                     description: message || "Unable to save final form.",
                     variant: "destructive",
                 });
@@ -1521,6 +1542,7 @@ export function NewSalesForm(props: Props) {
 
         const mustFlush = intent === "draft" || dirty || Boolean(recordOverride);
         if (mustFlush) {
+            setSaveFailure(null);
             markSaving();
             const resp = await autosave.flush("manual-flush", {
                 force: intent === "draft" || Boolean(recordOverride),
@@ -1532,10 +1554,17 @@ export function NewSalesForm(props: Props) {
                     : {}),
             });
             if (!resp) return;
-            await handlePostSaveSuccess(resp);
-			const inventoryOverviewOpened =
-				await continueToInventoryAfterSave(resp, true);
-            await clearSelectedCustomerQuery();
+            let inventoryOverviewOpened = false;
+            try {
+                await handlePostSaveSuccess(resp);
+                inventoryOverviewOpened = await continueToInventoryAfterSave(resp, true);
+                await clearSelectedCustomerQuery();
+            } catch (error) {
+                const failure = createSaveFailure(error, "Refresh after save", resp.orderId, true);
+                setSaveFailure(failure);
+                toast({ title: "Saved; follow-up needs attention", description: failure.message, variant: "destructive" });
+                return;
+            }
             if (intent === "draft") {
 				toast({ title: "Draft saved", variant: "success" });
 				if (inventoryOverviewOpened) return;
@@ -2154,6 +2183,7 @@ export function NewSalesForm(props: Props) {
                         />
                     ),
                     RecoveryBanner:
+                        saveFailure ||
                         historyPreview ||
                         restoredHistoryEntry ||
 						(SHOW_LOCAL_RECOVERY_ALERT && recoverySnapshot) ||
@@ -2161,6 +2191,7 @@ export function NewSalesForm(props: Props) {
 						activeAdjustment ||
 						hasSavedFinancialDrift ? (
                             <div className="m-4 space-y-2 sm:m-6 lg:m-8">
+                                {saveFailure && <SaveFailureAlert key={saveFailure.referenceId} failure={saveFailure} onDismiss={() => setSaveFailure(null)} />}
 								{hasSavedFinancialDrift && financialReconciliation ? (
 									<output className="block rounded-lg border border-rose-400 bg-rose-50 p-3 text-sm text-rose-950 shadow-sm">
 										<div className="flex items-start gap-2">

@@ -17,7 +17,6 @@ export function SalesOrdersV2Outstanding() {
         <SalesOrdersV2Summary
             data={data}
             title="Outstanding"
-            subtitle="Open balance remaining."
             icon={Icons.Receipt}
             value={data.outstandingBalance}
             money

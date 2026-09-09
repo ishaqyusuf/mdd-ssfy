@@ -72,7 +72,8 @@ describe("Production assignment Ledger Accordion", () => {
 		assert.match(submissionsSource, /deleteSalesAssignmentSubmissionAction/);
 		assert.match(submissionsSource, /presentation === "ledger"\) return null/);
 		assert.doesNotMatch(submissionsSource, /Status \/ action/);
-		assert.match(submissionsSource, /No evidence note/);
+		assert.doesNotMatch(submissionsSource, /No evidence note/);
+		assert.match(submissionsSource, /submission.note \? \(/);
 	});
 
 	test("moves assignment creation beside the total badge", () => {

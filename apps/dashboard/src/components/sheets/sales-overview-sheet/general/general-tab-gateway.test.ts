@@ -116,10 +116,10 @@ describe("Sales Overview General rollout boundary", () => {
 		expect(layout.includes('className="w-full border-b border-border"')).toBe(
 			true,
 		);
-		expect(general.match(/pb-24/g)?.length).toBe(2);
-		expect(general.includes("lg:border-r lg:pb-24")).toBe(true);
+		expect(general.includes("GeneralFooter")).toBe(false);
+		expect(general.includes("lg:border-r lg:pb-5")).toBe(true);
 		expect(general.includes('className="border-t pt-4"')).toBe(false);
-		expect(skeleton.match(/pb-24/g)?.length).toBe(2);
+		expect(skeleton.includes("pb-24")).toBe(false);
 	});
 
 	test("uses compact customer and invoice dropdown controls", () => {

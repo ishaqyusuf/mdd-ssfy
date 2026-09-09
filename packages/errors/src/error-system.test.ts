@@ -200,3 +200,13 @@ describe("shared error system", () => {
 		});
 	});
 });
+
+it("does not mistake PRECONDITION_FAILED for a Prisma code", () => {
+	expect(
+		classifyError({
+			name: "TRPCError",
+			code: "PRECONDITION_FAILED",
+			message: "PRECONDITION_FAILED",
+		}).code,
+	).toBe("CONFLICT");
+});

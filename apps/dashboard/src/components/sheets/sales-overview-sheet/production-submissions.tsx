@@ -89,14 +89,9 @@ export function ProductionSubmissions({
 								<QtyStatus as="badge" qty={submission.qty} label="rh" />
 								<QtyStatus as="badge" qty={submission.qty} label="lh" />
 							</div>
-							<p
-								className={cn(
-									"text-muted-foreground",
-									!submission.note && "italic",
-								)}
-							>
-								{submission.note || "No evidence note"}
-							</p>
+							{submission.note ? (
+								<p className="text-muted-foreground">{submission.note}</p>
+							) : null}
 							<div className="flex items-center justify-between gap-2 md:justify-end">
 								<ConfirmBtn
 									disabled={

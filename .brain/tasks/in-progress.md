@@ -1,5 +1,11 @@
 # In Progress
 
+### [Autonomous production error management](2026-09-09-autonomous-production-error-management.md)
+- Status: In Progress
+
+### [Production receipt confirmation, cancellation and pending-review reconciliation](2026-09-08-production-receipt-follow-up-and-cancel-review.md)
+- Status: Blocked
+
 ### [Table Row Processing And Exit Feedback](2026-09-08-table-row-processing-exit-feedback.md)
 - Status: Blocked
 
@@ -685,3 +691,6 @@ Tracks the active work queue. Keep this focused and execution-ready.
   deploys to production. Before continuing, initialize Trigger staging and set
   its non-production `DATABASE_URL` plus required worker credentials. Do not
   copy the production database URL into staging.
+
+### [Production missing-inbound alert and quick availability](2026-09-09-production-missing-inbound-and-quick-availability.md)
+- Status: In Progress

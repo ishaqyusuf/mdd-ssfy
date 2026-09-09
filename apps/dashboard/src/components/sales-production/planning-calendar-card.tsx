@@ -70,9 +70,6 @@ export function PlanningCard({
 					? "Readiness unavailable"
 					: item.material.state}</strong>
 			</p>
-			{item.presentation.statusOnly ? (
-				<p className="font-semibold">Status only</p>
-			) : null}
 			{item.reviewMessage ? <p>{item.reviewMessage}</p> : null}
 			<div className="flex flex-wrap gap-2">
 				{item.canAssign ? (

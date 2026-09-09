@@ -1,4 +1,5 @@
 import type { Db, TransactionClient } from "@gnd/db";
+import { recordSalesCopyActivity } from "./copy-sales-activity";
 import { prepareSalesDocumentReadiness } from "./document-readiness";
 import { queueSalesInventoryLineItemsSync } from "./sales-inventory-sync-job";
 import type { SalesType } from "./types";
@@ -14,6 +15,8 @@ interface Props {
     id: number;
   };
   deferPostCommit?: (promise: Promise<unknown>) => void;
+  /** Explicit user command only; checkout and history own their own audit. */
+  activityOperation?: "copy" | "move";
 }
 
 type CopySalesWriteClient = Db | TransactionClient;
@@ -21,6 +24,8 @@ type SalesOrdersDelegate = CopySalesWriteClient["salesOrders"];
 const MAX_HISTORY_SLUG_COLLISION_RETRIES = 20;
 const SALES_COPY_SOURCE_SELECT = {
   id: true,
+  orderId: true,
+  type: true,
   meta: true,
   shippingAddressId: true,
   billingAddressId: true,
@@ -504,6 +509,21 @@ export async function copySalesInTransaction(
     forceEvaluate: true,
     stageProposal: true,
   });
+
+  if (props.activityOperation && !isHx) {
+    if (!props.author?.id) {
+      throw new Error("An authenticated author is required to record the copy activity.");
+    }
+    await recordSalesCopyActivity(db, {
+      authorId: props.author.id,
+      sourceId: sale.id,
+      sourceNumber: sale.orderId,
+      sourceType: sale.type,
+      salesId: newSales.id,
+      orderNo: orderId,
+      operation: props.activityOperation,
+    });
+  }
 
   return {
     id: newSales.id,

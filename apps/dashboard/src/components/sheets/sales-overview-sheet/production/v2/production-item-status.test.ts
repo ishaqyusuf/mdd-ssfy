@@ -133,3 +133,8 @@ test("material ready is superseded by any submitted or completed production", ()
 		}),
 	).toBe(false);
 });
+
+ test("worker reported completion omits review details", () => {
+  expect(labels(status({assigned:3, reported:3, workerMode:true}))).toEqual(["PRODUCTION COMPLETED"]);
+  expect(labels(status({assigned:3, reported:1, workerMode:true}))).toEqual(["1 OF 3 SUBMITTED"]);
+ });

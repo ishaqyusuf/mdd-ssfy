@@ -83,7 +83,7 @@ function isPrismaErrorLike(error: unknown) {
 	const record = asErrorRecord(error);
 	const code = readCode(error);
 	return (
-		Boolean(code?.startsWith("P")) ||
+		Boolean(code && /^P\d{4}$/.test(code)) ||
 		(typeof record?.name === "string" && record.name.startsWith("PrismaClient"))
 	);
 }

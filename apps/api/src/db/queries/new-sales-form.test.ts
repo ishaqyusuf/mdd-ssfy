@@ -2289,10 +2289,10 @@ describe("new-sales-form relational parity", () => {
     });
   });
 
-  it("rejects a stale manual quote revision", async () => {
-    const { ctx } = createMockContext();
+  it.each(["quote", "order"] as const)("rejects a stale manual %s revision", async (type) => {
+    const { ctx, state } = createMockContext();
     const payload = {
-      type: "quote" as const,
+      type,
       slug: null,
       salesId: null,
       version: null,
@@ -2338,6 +2338,7 @@ describe("new-sales-form relational parity", () => {
       meta: { ...payload.meta, po: "LATEST" },
     });
 
+    const beforeStaleAttempt = JSON.stringify(state);
     await expect(
       saveDraftNewSalesForm(ctx, {
         ...payload,
@@ -2347,6 +2348,7 @@ describe("new-sales-form relational parity", () => {
         meta: { ...payload.meta, po: "STALE" },
       }),
     ).rejects.toThrow("This form changed elsewhere");
+    expect(JSON.stringify(state)).toBe(beforeStaleAttempt);
   });
 
   it("saves and hydrates formSteps/shelfItems/housePackageTool/doors/molding", async () => {

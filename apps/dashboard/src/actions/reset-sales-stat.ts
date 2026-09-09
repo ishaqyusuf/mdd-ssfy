@@ -1,5 +1,10 @@
 "use server";
 
+import { AppError, toPublicError } from "@gnd/errors";
+import { buildErrorReport } from "@gnd/observability";
+import * as Sentry from "@sentry/nextjs";
+
+import { persistSalesQuantityStats } from "./sales-stat-persistence";
 import { QtyControlType } from "@/app-deps/(clean-code)/(sales)/types";
 import { Prisma, prisma } from "@/db";
 import { percent, sum } from "@/lib/utils";
@@ -95,12 +100,10 @@ export async function resetSalesStatAction(id, salesNo) {
                 });
             })
         );
-        await tx.qtyControl.createMany({
-            data: qc.map((d) => ({
-                ...d,
-                percentage: percent(d.qty, d.itemTotal),
-            })),
-        });
+        await persistSalesQuantityStats(tx, qc.map((d) => ({
+            ...d,
+            percentage: percent(d.qty, d.itemTotal),
+        })));
         const statTypes: QtyControlType[] = [
             "qty",
             "prodAssigned",
@@ -136,4 +139,20 @@ export async function resetSalesStatAction(id, salesNo) {
             }),
         });
     });
+}
+
+
+// Preserve the server reference when this follow-up is called after a committed save.
+export async function refreshSavedSalesStatsAction(id: number, salesNo: string) {
+    try {
+        await resetSalesStatAction(id, salesNo);
+        return { ok: true as const };
+    } catch (error) {
+        const report = buildErrorReport(
+            new AppError({ code: "SALES_POST_SAVE_REFRESH_FAILED", cause: error }),
+            { runtime: "dashboard", source: "server-action", operation: "sales.refreshSavedStats" },
+        );
+        Sentry.captureException(report.reportableError, report.captureContext);
+        return { ok: false as const, error: toPublicError(report.classified) };
+    }
 }

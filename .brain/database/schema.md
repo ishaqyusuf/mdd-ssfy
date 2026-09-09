@@ -1,5 +1,27 @@
 # Database Schema
 
+## Reliability ledger (2026-09-09, local implementation)
+
+`ReliabilityRunWatch.providerUpdatedAt` is nullable for existing rows and records
+the authoritative provider revision timestamp. Watch updates reject older
+snapshots and conflicting equal-timestamp statuses. Terminal failure evidence is
+persisted before retiring the run from the unfinished watch set.
+
+- Six additive models in `packages/db/src/schema/reliability.prisma` store
+  incidents, scoped occurrences, outbound delivery intents, transition audit,
+  unfinished Trigger run watches, and provider discovery cursors.
+- SHA-256 identity keys enforce unique problems, occurrences, outbound actions,
+  and transition actions. Date/time fields retain millisecond precision.
+- Incident revision and occurrence count update in the same serializable
+  transaction as occurrence insertion, transition audit, and outbound intents.
+- Occurrence rows reconstruct allowlisted metadata; no raw provider payload is
+  persisted by the current intake writer. JSON evidence/analysis fields are
+  reserved for later bounded implementations.
+- Local `db:push` succeeded. Migration history generation is unresolved due to
+  broad local schema/history drift; no reset or hosted deployment occurred.
+- [Canonical implementation task](../tasks/2026-09-09-autonomous-production-error-management.md)
+  records incomplete delivery, provider integration, and activation work.
+
 ## Sales Order workspace archiving (2026-09-02)
 
 - `SalesOrders.archivedAt` is a nullable second-precision timestamp. A null
@@ -649,3 +671,8 @@ Planning only; no Prisma model or database table has been created.
   required `Using where; Using filesort`. The post-push plan selects
   `idx_sales_order_pipeline_shadow_scan` with `Using index condition`; no
   column or row was added, removed, or rewritten.
+# Reliability occurrence evidence
+
+The existing ReliabilityOccurrence.evidence JSON column now stores reconstructed,
+bounded deploymentId/requestId/traceId/release identifiers when present. No schema
+change or migration was required; raw provider fields are not copied into this JSON.

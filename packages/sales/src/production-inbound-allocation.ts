@@ -84,18 +84,21 @@ export function validateProductionAllocationCoverage(
 	return ids;
 }
 
-// Called inside the serializable receipt transaction, before reserving more stock.
-export async function confirmProductionInboundAllocations(
-	tx: TransactionClient,
+/** Read-only coverage evidence shared by preview and transactional confirmation. */
+export async function getProductionInboundAllocationCoverage(
+	tx: Db | TransactionClient,
 	componentIds: number[],
+	allowPartial = false,
 ) {
 	const components = await tx.lineItemComponents.findMany({
 		where: { id: { in: componentIds }, status: { not: "cancelled" } },
+		orderBy: { id: "asc" },
 		select: {
 			id: true,
 			qty: true,
 			inventoryVariantId: true,
 			stockAllocations: {
+				orderBy: { id: "asc" },
 				where: {
 					deletedAt: null,
 					status: { in: ["pending_review", ...committedStatuses] },
@@ -126,6 +129,7 @@ export async function confirmProductionInboundAllocations(
 	const [stocks, committed] = await Promise.all([
 		tx.inventoryStock.findMany({
 			where: { id: { in: stockIds }, deletedAt: null },
+			orderBy: { id: "asc" },
 			select: { id: true, qty: true, inventoryVariantId: true },
 		}),
 		tx.stockAllocation.findMany({
@@ -135,17 +139,47 @@ export async function confirmProductionInboundAllocations(
 				status: { in: [...committedStatuses] },
 			},
 			select: { inventoryStockId: true, qty: true },
+			orderBy: { id: "asc" },
 		}),
 	]);
-	const ids = validateProductionAllocationCoverage(
-		components,
-		stocks,
-		committed,
-	);
+	const { ids, blockedComponentIds } = planProductionAllocationCoverage(components, stocks, committed, allowPartial);
+	return { ids, components, stocks, committed, blockedComponentIds };
+}
+
+export function planProductionAllocationCoverage(
+	components: Component[], stocks: Stock[],
+	committed: {inventoryStockId: number | null; qty: number}[], allowPartial: boolean,
+) {
+	const ids: number[] = [];
+	const blockedComponentIds: number[] = [];
+	if (!allowPartial) ids.push(...validateProductionAllocationCoverage(components, stocks, committed));
+	else {
+		const occupied = [...committed];
+		for (const component of components) {
+			try {
+				const approvedIds = validateProductionAllocationCoverage([component], stocks, occupied);
+				ids.push(...approvedIds);
+				occupied.push(...component.stockAllocations.filter(allocation => approvedIds.includes(allocation.id)).map(allocation => ({inventoryStockId:allocation.inventoryStockId,qty:allocation.qty})));
+			} catch (error) {
+				if (!(error instanceof AppError)) throw error;
+				blockedComponentIds.push(component.id);
+			}
+		}
+	}
+	return { ids, blockedComponentIds };
+}
+
+// Called inside a serializable material transaction, before reserving more stock.
+export async function confirmProductionInboundAllocations(
+	tx: TransactionClient,
+	componentIds: number[],
+	notes = "Physical stock verified during production inbound receipt.",
+) {
+	const { ids } = await getProductionInboundAllocationCoverage(tx, componentIds);
 	for (const id of ids) {
 		const result = await approveStockAllocation(tx as Db, {
 			allocationId: id,
-			notes: "Physical stock verified during production inbound receipt.",
+			notes,
 		});
 		if (result.skipped)
 			throw new AppError({

@@ -7,7 +7,7 @@ function percentage(value?: number | null) {
 
 function readableStatus(value?: string | null, fallback = "Pending") {
 	const status = String(value || fallback)
-		.replaceAll("-", " ")
+		.replace(/[_-]/g, " ")
 		.trim();
 	return status.replace(/\b\w/g, (character) => character.toUpperCase());
 }
@@ -21,21 +21,40 @@ export function createGeneralTabV2ViewModel(data: SalesOverviewData) {
 				? 100
 				: 0,
 	);
-	const productionPercentage = percentage(
-		data.pipeline?.production.requiredQty
-			? (data.pipeline.production.completedQty /
-					data.pipeline.production.requiredQty) *
-					100
-			: data.stats?.prodCompleted?.percentage,
+	const productionState =
+		data.pipeline?.production.state ?? data.status?.production?.status;
+	const fulfillmentState =
+		data.pipeline?.fulfillment.state ?? data.status?.delivery?.status;
+	const orderComplete = ["fulfilled", "administratively_completed"].includes(
+		data.pipeline?.headline?.code ?? "",
 	);
-	const fulfillmentPercentage = percentage(
-		data.pipeline?.fulfillment.requiredQty
-			? (data.pipeline.fulfillment.deliveredQty /
-					data.pipeline.fulfillment.requiredQty) *
-					100
-			: (data.stats?.dispatchCompleted?.percentage ??
-					(data.status?.delivery?.status === "completed" ? 100 : 0)),
-	);
+	const productionComplete =
+		(orderComplete && productionState === "not_required") ||
+		["completed", "administratively_completed"].includes(productionState ?? "");
+	const fulfillmentComplete =
+		(orderComplete && fulfillmentState === "not_required") ||
+		["completed", "fulfilled", "administratively_completed"].includes(
+			fulfillmentState ?? "",
+		);
+	const productionPercentage = productionComplete
+		? 100
+		: percentage(
+				data.pipeline?.production.requiredQty
+					? (data.pipeline.production.completedQty /
+							data.pipeline.production.requiredQty) *
+							100
+					: data.stats?.prodCompleted?.percentage,
+			);
+	const fulfillmentPercentage = fulfillmentComplete
+		? 100
+		: percentage(
+				data.pipeline?.fulfillment.requiredQty
+					? (data.pipeline.fulfillment.deliveredQty /
+							data.pipeline.fulfillment.requiredQty) *
+							100
+					: (data.stats?.dispatchCompleted?.percentage ??
+							(data.status?.delivery?.status === "completed" ? 100 : 0)),
+			);
 
 	return {
 		data,
@@ -48,16 +67,15 @@ export function createGeneralTabV2ViewModel(data: SalesOverviewData) {
 			data.paymentSummary?.methodLabel || data.paymentMethod || "Not selected",
 		pipeline: data.pipeline ?? null,
 		production: {
-			status: readableStatus(
-				data.pipeline?.production.state ?? data.status?.production?.status,
-				"Awaiting",
-			),
+			status: productionComplete
+				? "Completed"
+				: readableStatus(productionState, "Awaiting"),
 			percentage: productionPercentage,
 		},
 		fulfillment: {
-			status: readableStatus(
-				data.pipeline?.fulfillment.state ?? data.status?.delivery?.status,
-			),
+			status: fulfillmentComplete
+				? "Completed"
+				: readableStatus(fulfillmentState),
 			percentage: fulfillmentPercentage,
 		},
 	};

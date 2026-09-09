@@ -3,7 +3,6 @@
 import { Separator } from "@gnd/ui/separator";
 import { useSaleOverview } from "../../context";
 import { GeneralActionBar } from "../../general-action-bar";
-import { GeneralFooter } from "../../general-footer";
 import type { GeneralTabProps } from "../../general-tab";
 import { CustomerSection } from "./customer-section";
 import { FinancialRail } from "./financial-rail";
@@ -36,7 +35,7 @@ export function GeneralTabV2({
 			</div>
 
 			<div className="grid min-w-0 grid-cols-1 items-stretch lg:grid-cols-[minmax(0,1.28fr)_minmax(280px,0.92fr)]">
-				<div className="flex min-w-0 flex-col gap-5 pb-5 pt-5 lg:border-r lg:pb-24 lg:pr-5">
+				<div className="flex min-w-0 flex-col gap-5 pb-5 pt-5 lg:border-r lg:pb-5 lg:pr-5">
 					<CustomerSection
 						data={salesOverview}
 						onEditAddress={onEditAddress}
@@ -47,21 +46,23 @@ export function GeneralTabV2({
 					{!view.isQuote ? (
 						<>
 							<Separator />
+							{salesOverview.specialOrder?.declaration === "YES" ? (
+								<>
 							<FulfillmentSignalSection data={salesOverview} />
 							<Separator />
+								</>
+							) : null}
 							<OperationsSection
 								production={view.production}
 								fulfillment={view.fulfillment}
-								pipeline={view.pipeline}
 							/>
 						</>
 					) : null}
 				</div>
-				<aside className="min-w-0 border-t bg-muted/20 pb-24 pt-5 lg:border-t-0 lg:px-5">
+				<aside className="min-w-0 border-t bg-muted/20 pb-5 pt-5 lg:border-t-0 lg:px-5">
 					<FinancialRail {...view} onCreatePayment={onCreatePayment} />
 				</aside>
 			</div>
-			<GeneralFooter />
 		</div>
 	);
 }

@@ -685,6 +685,7 @@ describe("sales production priority sorting", () => {
 							{ ...assignment, assignedTo: { name: "Worker" }, order },
 						],
 					},
+					salesProductionSubmissionMaterialReview: { findMany: async () => reviewStatus === "PENDING" ? [{salesOrderId: 26701, classificationReason: "ALLOCATION_REVIEW"}] : [] },
 					salesOrders: { findMany: async () => [order] },
 				};
 				const result = await getSalesProductionCalendar(db as unknown as Db, {
@@ -696,6 +697,11 @@ describe("sales production priority sorting", () => {
 					orderNo: "09502PC",
 					status: expected,
 				});
+    if (reviewStatus === "PENDING") {
+     expect(result.scheduled[0]?.orderPresentation.primary.label).toBe("Production completed");
+     expect(result.scheduled[0]?.orderPresentation.attention.map(reason => reason.code)).toContain("allocation_review");
+    }
+
 			} finally {
 				if (previousReadMode === undefined) {
 					Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");

@@ -15,7 +15,6 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { format } from "date-fns";
 import { useState } from "react";
 import { SpecialOrderOverviewControls } from "../../special-order-overview-card";
-import { SectionHeading } from "./section-heading";
 import { getSpecialOrderSignalState } from "./special-order-signal";
 import type { SalesOverviewData } from "./types";
 
@@ -54,15 +53,7 @@ export function FulfillmentSignalSection({
 			: undefined);
 
 	return (
-		<section
-			className="flex flex-col gap-3"
-			aria-labelledby="general-v2-fulfillment-signal"
-		>
-			<SectionHeading
-				id="general-v2-fulfillment-signal"
-				icon={Icons.Star}
-				title="Fulfillment signal"
-			/>
+		<section className="flex flex-col gap-3" aria-label="Special Order">
 			<Collapsible open={open} onOpenChange={setOpen}>
 				<CollapsibleTrigger asChild>
 					<Button

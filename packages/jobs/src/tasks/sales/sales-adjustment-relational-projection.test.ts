@@ -68,9 +68,7 @@ describe("approved adjustment relational projection", () => {
 				],
 				proposedLineUids: new Set(),
 			}),
-		).toEqual([
-			{ lineUid: "removed-service", salesOrderItemId: 172467 },
-		]);
+		).toEqual([{ lineUid: "removed-service", salesOrderItemId: 172467 }]);
 
 		expect(() =>
 			getApprovedRemovedSalesLines({
@@ -177,7 +175,7 @@ describe("approved adjustment relational projection", () => {
 		const { tx, shelfUpdates, shelfCreates, shelfRetirements } =
 			createTransactionMock();
 
-		await projectApprovedShelfSalesLine({
+		const input = {
 			tx,
 			salesOrderItemId: 172467,
 			line: {
@@ -199,7 +197,11 @@ describe("approved adjustment relational projection", () => {
 					},
 				],
 			},
-		});
+		};
+		await projectApprovedShelfSalesLine(input);
+		expect(
+			input.line.shelfItems.map((row) => (row as { id?: number }).id),
+		).toEqual([392, 500]);
 
 		expect(shelfUpdates).toHaveLength(1);
 		expect(shelfCreates).toHaveLength(1);

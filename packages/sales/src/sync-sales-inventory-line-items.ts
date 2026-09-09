@@ -1872,16 +1872,19 @@ async function syncComponentFulfillment(
 			  }
 			| undefined;
 		if (existing) {
-			const shouldKeepApproved =
-				existing.status === "approved" && Number(existing.qty || 0) === qty;
+			const shouldKeepConfirmed =
+				(existing.status === "approved" || existing.status === "reserved") &&
+				Number(existing.qty || 0) === qty;
 			await db.stockAllocation.update({
 				where: {
 					id: existing.id,
 				},
 				data: {
 					qty,
-					status: shouldKeepApproved ? "approved" : "pending_review",
-					notes: shouldKeepApproved
+					status: shouldKeepConfirmed
+						? existing.status === "reserved" ? "reserved" : "approved"
+						: "pending_review",
+					notes: shouldKeepConfirmed
 						? existing.notes || undefined
 						: "Suggested allocation awaiting manual approval",
 					deletedAt: null,

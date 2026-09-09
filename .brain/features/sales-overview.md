@@ -1,5 +1,25 @@
 # Sales Overview
 
+## Sales UI simplification (2026-09-08)
+
+- General Operations shows only Production and Fulfillment status/progress.
+  Administrative and ordinary completion display Completed with 100% emerald
+  bars. A completed order's non-required stage also displays complete; required
+  unfinished stages retain their own progress. Internal quantities are unchanged.
+- Lifecycle evidence, revision identifiers, commercial/provenance summaries and
+  diagnostic messages are removed from Operations. Audit history remains intact.
+- Invoice shows Total, Paid and Balance due once. Credit balances are explicit;
+  the fee-inclusive payable amount stays visible when it differs from balance.
+  Subtotal, adjustments, tax, refunds and card details live in View breakdown.
+- Special Orders have one signature-state disclosure; non-Special Orders omit
+  the row. Order actions retains permission-aware enrollment and management.
+- One sticky action bar owns Preview, Edit and More. More groups Send, Print,
+  Order/Quote actions and permission-gated Troubleshooting. The redundant V2
+  footer is removed; Delete/Copy/Move and payment entry remain available.
+- User authorized all simplification areas; implementation/validation contract:
+  `.brain/plans/2026-09-08-sales-ui-simplification.md`.
+
+
 ## Purpose
 
 Sales Overview is the canonical order/quote detail surface opened from the
@@ -411,6 +431,16 @@ The temporary General renderer rollout is governed by
   `/sales-book/orders?sales-overview-id=09433PC&sales-type=order&mode=sales&salesTab=inventory`.
   Sales Overview opened with Inventory selected and no Configure Inventory
   dialog mounted.
+
+## Copy provenance activity (2026-09-08)
+
+Explicit Copy/Move commands now record “Copied from <source number>” on the
+new destination in the same transaction as the copy. The registered sales_info
+channel makes it visible to Activity, with source/destination identifiers,
+authenticated sender/creator and creation time. Author contacts do not require
+email. Order/quote change events refresh Activity after the mutation completes.
+Existing history/checkout audit paths and conversion deduplication are preserved.
+Historical missing-channel notes are not backfilled by this code change.
 
 ## Initial workflow calibration after save (2026-09-08)
 The existing sync-sales-inventory-line-items job now first locks the order, reconstructs derived item controls and totals from saved sale items and operational history, and refreshes the persisted order-list summary. Inventory sync follows separately; a failure remains retryable after the initial workflow summary has been published. New-form and old-form legacy saves queue this phase with skipInventory, preserving legacy inventory adaptation. Initial presentation is Ready when production is unnecessary and Not Assigned when required without assignment; missing generated requirements display Updating…. Missing item-type settings reject calibration instead of manufacturing no-production.

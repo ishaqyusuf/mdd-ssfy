@@ -784,7 +784,9 @@ export async function getSalesOrderFilters(
     optionFilter<T>(
       "lifecycle",
       "Lifecycle status",
-      SALES_ORDER_LIFECYCLE_STATUSES.map((status) => ({
+      SALES_ORDER_LIFECYCLE_STATUSES.filter(
+        (status) => status !== "administratively_completed",
+      ).map((status) => ({
         label: SALES_ORDER_LIFECYCLE_STATUS_META[status].label,
         value: status,
         color: getFilterOptionColorFromTone(

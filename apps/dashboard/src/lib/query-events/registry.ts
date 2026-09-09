@@ -33,6 +33,7 @@ const salesDashboardTargets = [
 ] as const;
 
 const salesOrderTargets = [
+	pathTarget("notes.activityTree"),
 	pathTarget("sales.getOrders"),
 	pathTarget("sales.getOrdersSummary"),
 	pathTarget("sales.getSalesHandoffActions"),
@@ -43,6 +44,7 @@ const salesOrderTargets = [
 ] as const;
 
 const salesQuoteTargets = [
+	pathTarget("notes.activityTree"),
 	pathTarget("sales.quotes"),
 	pathTarget("filters.salesQuotes"),
 	...salesDashboardTargets,
@@ -67,6 +69,8 @@ const salesMaterialReviewTargets = [
 
 const salesProductionTargets = [
 	pathTarget("sales.productionPendingInbounds"),
+	pathTarget("sales.productionAvailability"),
+	pathTarget("sales.coveredProductionMaterials"),
 	...salesOrderTargets,
 	...salesMaterialReviewTargets,
 	pathTarget("filters.salesProductions"),
@@ -142,6 +146,8 @@ const inventoryStockTargets = [
 
 const inventoryInboundTargets = [
 	pathTarget("sales.productionPendingInbounds"),
+	pathTarget("sales.productionAvailability"),
+	pathTarget("sales.coveredProductionMaterials"),
 	...inventoryStockTargets,
 	pathTarget("inventories.salesInventoryOverview"),
 	pathTarget("inventories.orderInboundShipments"),
@@ -351,7 +357,10 @@ export const MUTATION_QUERY_EVENTS = {
 	"sales.moveSale": ["sales.order.changed", "sales.quote.changed"],
 	"sales.resolvePayment": ["sales.payment.changed"],
 	"sales.reviewProductionSubmission": ["sales.pipeline.changed"],
+	"sales.markProductionMaterialsAvailable": ["inventory.inbound.changed", "sales.pipeline.changed"],
+	"sales.applyCoveredProductionMaterials": ["inventory.inbound.changed", "sales.pipeline.changed"],
 	"sales.receiveProductionInbound": ["inventory.inbound.changed", "sales.pipeline.changed"],
+	"sales.cancelProductionInbound": ["inventory.inbound.changed", "sales.pipeline.changed"],
 	"sales.setSalesOrdersArchived": ["sales.order.changed"],
 	"sales.transferSalesRep": ["sales.order.changed"],
 	"sales.updateSalesHandoffTrigger": ["sales.order.changed"],

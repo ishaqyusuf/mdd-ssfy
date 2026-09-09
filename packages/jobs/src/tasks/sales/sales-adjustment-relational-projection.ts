@@ -148,6 +148,7 @@ export async function projectApprovedShelfSalesLine(input: {
 				where: { id: existingId },
 				data,
 			});
+			shelf.id = existingId;
 			retainedIds.push(existingId);
 			retainedIdSet.add(existingId);
 			continue;
@@ -156,6 +157,7 @@ export async function projectApprovedShelfSalesLine(input: {
 			data,
 			select: { id: true },
 		});
+		shelf.id = created.id;
 		retainedIds.push(created.id);
 		retainedIdSet.add(created.id);
 	}

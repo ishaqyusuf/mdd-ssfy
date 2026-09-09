@@ -3,6 +3,8 @@ import { sum, transformFilterDateToQuery } from "@gnd/utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { salesOrderListProjectionVersion } from "./order-list-read-model";
+import { getProductionOrderPresentation } from "./production-order-presentation";
+import { getProductionOrderPresentations } from "./production-order-presentation-query";
 import { getProductionCalendarPresentation } from "./production-calendar-presentation";
 import { withProductionInvoices } from "./production-invoice-presentation";
 import {
@@ -416,6 +418,7 @@ export async function getSalesProductionCalendar(
 		db,
 		Array.from(new Set(candidateRows.map((row) => row.order.id))),
 	);
+	const orderPresentations = await getProductionOrderPresentations(db, calendarPipelineSnapshots);
 	const operationalDate = getProductionQueueBoundaries()
 		.today.gte.toISOString()
 		.slice(0, 10);
@@ -463,6 +466,7 @@ export async function getSalesProductionCalendar(
 						: "unassigned",
 			pipeline,
 			presentation: getProductionCalendarPresentation(pipeline),
+			orderPresentation: orderPresentations.get(row.order.id) ?? getProductionOrderPresentation(null),
 		};
 	};
 	const collapseCalendarRows = (rows: typeof scheduledRows) => {
@@ -1314,6 +1318,7 @@ async function attachCanonicalProductionPipelines<
 		db,
 		response.data.map((row) => row.id),
 	);
+	const orderPresentations = await getProductionOrderPresentations(db, snapshots);
 	return {
 		...response,
 		data: response.data.map((row: T["data"][number]) => {
@@ -1340,6 +1345,7 @@ async function attachCanonicalProductionPipelines<
 						}
 					: undefined,
 				pipeline,
+				orderPresentation: orderPresentations.get(row.id) ?? getProductionOrderPresentation(null),
 			};
 		}),
 	};

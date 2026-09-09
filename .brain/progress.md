@@ -1,5 +1,415 @@
 # Progress
 
+## 2026-09-09 — Vercel polling registry
+
+- Added validated production opt-in configuration and bounded source execution.
+  Two tests / 6 assertions pass. Scheduler and isolated config provisioning remain open.
+
+## 2026-09-09 — Durable Vercel discovery checkpoints
+
+- Connected subdivision, persistence, and leased cursor receipts. Local DB resume
+  acceptance passes with 5 assertions. Runtime scheduling and broader failure
+  acceptance remain pending; no provider queries or deployment occurred.
+
+## 2026-09-09 — Vercel resumable window subdivision
+
+- Added bounded subdivision/checkpoint planning and explicit density failure.
+  Two tests / 6 assertions pass. Durable database cursor wiring remains pending.
+
+## 2026-09-09 — Scoped Vercel query execution binding
+
+- Connected argument preparation, bounded process execution, and window-validated
+  intake using environment-only credentials. Two tests / 9 assertions pass; no
+  provider reads run. Runtime provisioning and durable orchestration remain open.
+
+## 2026-09-09 — Vercel query-page validation
+
+- Connected JSONL decoding to scoped intake with window enforcement and saturation
+  detection before filtering. Two tests / 5 assertions pass. Persistent subdivision
+  and actual scoped process invocation remain pending.
+
+## 2026-09-09 — Bounded CLI process runner
+
+- Added and tested shell-free execution, output limits, timeout termination, and
+  sanitized failures using local fixture processes. Two tests / 4 assertions pass.
+  Vercel execution binding and checkpoint orchestration remain pending.
+
+## 2026-09-09 — Vercel CLI request-summary normalization
+
+- Inspected installed CLI mapping and added nested-error/status normalization with
+  distinct request identity. Two tests / 7 assertions pass. No provider data read;
+  process execution and checkpoint integration remain open.
+
+## 2026-09-09 — Vercel query fallback contract
+
+- Verified installed CLI flags and added explicit scoped query preparation and
+  bounded JSONL saturation detection. Two tests / 10 assertions pass. No provider
+  queries were run; executor and discovery checkpoint wiring remain pending.
+
+## 2026-09-09 — Deployment webhook database acceptance
+
+- Verified distinct/repeated signed delivery IDs deduplicate to one failed
+  deployment occurrence and one pair of outbound intents (7 focused assertions).
+  Other lifecycle handling and hosted acceptance remain pending.
+
+## 2026-09-09 — Mounted deployment failure webhook
+
+- Added separate validated deployment registration and mounted the handler.
+  Four HTTP/config tests / 13 assertions pass. Endpoint/runbook documented;
+  hosted acceptance and other lifecycle events remain open.
+
+## 2026-09-09 — Deployment failure HTTP handling
+
+- Connected signed deployment normalization to awaited persistence. Two tests /
+  7 assertions pass; scoped Biome passes. Registration/route mounting remains open.
+
+## 2026-09-09 — Signed deployment failure adapter
+
+- Added raw-body authentication before deployment normalization and reused the
+  verifier across Vercel transports. Five tests / 20 assertions pass. HTTP route
+  and persistence wiring remain pending; no live configuration changed.
+
+## 2026-09-09 — Vercel deployment failure normalization
+
+- Verified current webhook fields and implemented scoped failure identity with
+  separate delivery ID. Two tests / 9 assertions pass. Signed transport and other
+  lifecycle events remain pending; nothing activated.
+
+## 2026-09-09 — Evidence validation and trace aliases
+
+- Verified bounded identifier evidence and fixed Vercel dotted trace aliases with
+  conflict rejection. All 28 reliability adapter tests / 118 assertions pass.
+  Observability/DB typechecks pass for evidence persistence; scoped Biome passes.
+
+## 2026-09-09 — Durable correlation identifiers
+
+- Safe identifier evidence now survives Vercel intake and database replay. Ten
+  unit tests / 43 assertions and one integration test / 13 assertions pass.
+  Actual grouping/correlation policy remains pending.
+
+## 2026-09-09 — Vercel delivery setup contract
+
+- Verified current sample-event validation API and documented compression none.
+  Compressed deliveries now return explicit 415 before parsing/storage. Three HTTP
+  tests / 9 assertions pass. Hosted sample compatibility remains unverified.
+
+## 2026-09-09 — Vercel partial-batch database recovery
+
+- Verified signed HTTP batch replay through real local persistence after a partial
+  write failure. Repeated retries preserve occurrence and outbound-intent uniqueness
+  and exclude raw messages (11 focused assertions). Hosted acceptance remains open.
+
+## 2026-09-09 — Mounted Vercel drain route
+
+- Added validated registration and mounted signed drain ingestion. Four tests /
+  13 assertions pass; endpoint and configuration runbook documented. Hosted setup
+  and local database batch replay acceptance remain pending.
+
+## 2026-09-09 — Vercel HTTP persistence boundary
+
+- Added bounded authenticated batch handling with validation before writes and
+  acknowledgement after persistence. Two HTTP tests / 6 assertions pass.
+- Route registration and local database batch-redelivery acceptance remain open.
+
+## 2026-09-09 — Vercel log normalization
+
+- Added production scope validation and safe error/5xx/crash candidate intake.
+  Two tests / 21 assertions pass. Durable route wiring and correlation remain open.
+
+## 2026-09-09 — Vercel drain authentication
+
+- Verified current Vercel signature/schema documentation and implemented bounded
+  raw-body authentication plus JSON/NDJSON decoding. Two tests / 8 assertions pass.
+- Next: registered production source normalization and durable ingestion. No live
+  route, provider configuration, or deployment was activated.
+
+## 2026-09-09 — Trigger historical database acceptance
+
+- Verified repeated seven-day replay, deduplicated old failures, and separate
+  incremental cursor identity against the local database (9 focused assertions).
+- Hosted acceptance and historical freshness coverage remain open. Next provider
+  implementation is Vercel; no external integrations were activated.
+
+## 2026-09-09 — Trigger historical discovery
+
+- Added independent hourly seven-day replay discovery, disabled by default.
+  Five scheduler tests / 21 assertions and scoped Biome pass. Historical database
+  acceptance and historical freshness monitoring remain pending.
+
+## 2026-09-09 — Mounted Trigger health probe
+
+- Mounted authenticated API monitoring route and validated source registration.
+  Five HTTP/configuration tests / 20 assertions pass. Updated endpoint/runbook
+  documentation. External monitor deployment and other-provider coverage remain open.
+
+## 2026-09-09 — Independent monitor HTTP boundary
+
+- Added authenticated, noncached aggregate health responses with fail-closed
+  database errors. Three tests / 12 assertions and scoped Biome pass.
+- Route/source wiring and external monitor activation remain pending. No live
+  endpoint or external integration was activated.
+
+## 2026-09-09 — Trigger freshness query
+
+- Added read-only discovery/poll/watch freshness assessment. Verified an old
+  watermark and overdue watch remain unhealthy despite recent polling or deferred
+  retries, then recover after successful observation. Focused local test: 5 assertions.
+- Independent scheduling and alert transport remain pending; no live activation.
+
+## 2026-09-09 — Trigger polling fairness
+
+- Reproduced discovery starvation under slow watched-run reads, then reserved
+  discovery time by ending new watch reads at half the processing budget.
+- Full local reliability suite passes: 21 tests / 105 assertions. Unvisited watches
+  remain due; independent freshness monitoring and hosted acceptance remain open.
+
+## 2026-09-09 — Trigger pagination recovery acceptance
+
+- Verified real local cursor persistence across provider rate limits: committed
+  page evidence, fixed-window resumption, and no HTTP access during cooldown.
+  Focused acceptance test passes with 11 assertions. No provider activation.
+- Next concern: preserve discovery time when many unfinished watches are due;
+  independent freshness reporting and hosted acceptance remain incomplete.
+
+## 2026-09-09 — Trigger polling scheduler
+
+- Added production-only, disabled-by-default polling in the existing Trigger job
+  system with validated source/task mapping and separate credential references.
+- Four focused tests / 18 assertions and scoped Biome pass. Added the registration
+  runbook; live activation and independent stale-feed monitoring remain pending.
+
+## 2026-09-09 — Trigger discovery and watch reconciliation
+
+- Connected bounded Trigger reads to durable watches and page checkpoints. Due
+  unfinished runs are checked first, including runs outside the discovery window.
+  Failed lookups remain nonterminal and are postponed so other runs can proceed.
+- Local reliability suite: 19 tests / 90 assertions pass; DB typecheck and scoped
+  Biome pass. Scheduling and hosted acceptance remain pending. No live integration
+  was activated, and work remains uncommitted.
+
+## 2026-09-09 — Trigger HTTP read adapter
+
+- Added bounded run discovery and watched-run retrieval using the installed SDK's
+  HTTP contract. Three reader tests / 12 assertions, observability typecheck, and
+  scoped Biome pass. Old watched runs are retrieved without a creation-time cutoff.
+- Combined polling/watch orchestration and hosted checks remain pending. Prior
+  continuation was verified progress; this turn added the read boundary without
+  activating provider access. Work remains uncommitted.
+
+## 2026-09-09 — Trigger run normalization and durable watches
+
+- Added scoped run normalization and an unfinished watch set that retains old runs
+  until terminal evidence is durable. Provider revision timestamps prevent stale
+  responses from rewinding state. Four normalizer tests, 18 database tests, and
+  observability/DB typechecks pass.
+- Nullable revision field applied locally; migration still exits on existing drift
+  without a reset. Trigger HTTP loops remain open. Task is In Progress at 10%;
+  this continuation made verified progress without hosted activation.
+
+## 2026-09-09 — Sentry historical sweep
+
+- Added an hourly seven-day rescan with an independent resumable cursor. Completed
+  sweeps revisit the full lookback; duplicate occurrences remain deduplicated.
+  Seventeen database tests / 79 assertions, six scheduler tests / 14 assertions,
+  and scoped Biome pass.
+- Hosted acceptance and stale-feed escalation remain open. No deployment or
+  configuration changes; this continuation made verified implementation progress.
+
+## 2026-09-09 — Sentry reconciliation schedule
+
+- Added the production-only five-minute task definition, default-off gate,
+  validated read-source configuration, separate token references, and batch limits.
+  Five scheduler tests / 12 assertions pass; no reliability errors appear in the
+  jobs typecheck, which retains 33 sales/UI dependency diagnostics.
+- No deployment or environment changes. Historical sweep and stale-feed escalation
+  remain open; canonical task stays In Progress at 10%. This continuation made
+  verified implementation progress.
+
+## 2026-09-09 — Bounded Sentry reconciliation
+
+- Added the read-only Sentry event adapter and polling loop with durable page
+  commits, rate-limit recovery, and page/time budgets. Three reader tests and
+  16 local integration tests pass; observability typecheck and scoped Biome pass.
+- Scheduling/configuration and hosted acceptance remain open. Jobs typecheck
+  reports 33 sales/UI dependency errors and no reliability-file diagnostics;
+  full output is retained at `/tmp/gnd-reliability-jobs-typecheck.log`.
+- Canonical task remains In Progress at 10%; this continuation made verified
+  progress and did not activate hosted providers.
+
+## 2026-09-09 — Durable reconciliation cursors
+
+- Added exclusive cursor leases, fixed-window resume checkpoints, terminal-page
+  watermarks, and cooldowns. Stale workers and repeated page receipts are rejected.
+  Fifteen database integration tests / 64 assertions and DB typecheck pass.
+- Provider pagination loops remain pending. Task remains In Progress at 10%;
+  this continuation made verified implementation progress without activation.
+
+## 2026-09-09 — Sentry HTTP ingestion boundary
+
+- Mounted the signed-alert endpoint with explicit server registration and separate
+  secret references. Success follows durable storage; storage failure returns 503.
+  Five HTTP/config tests / 13 assertions and focused Biome pass.
+- No registration was applied. Hosted timing and bounded reconciliation remain
+  pending; the canonical task remains In Progress at 10%. Prior continuation was
+  verified progress, and this turn added the transport boundary.
+- Verified all 14 database integration tests using GND's actual extended client.
+  API typecheck has one remaining error outside reliability in sales copying at
+  `packages/sales/src/copy-sales.ts:521`. Added the placeholder-only
+  [registration runbook](runbooks/reliability-sentry-registration.md).
+
+## 2026-09-09 — Signed Sentry alert adapter
+
+- Added raw-byte signature verification and installation/project/environment
+  checks, timestamp normalization, and safe intake reconstruction. Four adapter
+  tests / 15 assertions pass; signed-alert redelivery is verified through local
+  MySQL in the expanded 14-test / 49-assertion suite. Observability typecheck passes.
+- HTTP registration/route, one-second response validation, and reconciliation
+  remain open. Canonical task stays In Progress at 10%; no external provider was
+  activated. This continuation made verified implementation progress.
+
+## 2026-09-09 — Reliability incident actions
+
+- Internal acknowledgement and assign-to-self now enforce service authorization,
+  incident revisions, and actor-bound duplicate requests, with atomic audit and
+  delivery intents. Thirteen local-MySQL tests / 46 assertions, DB typechecks, and
+  focused Biome checks pass.
+- Canonical task remains In Progress at 10%; ownership configuration, Slack actor
+  mapping, snooze expiry, and provider adapters remain incomplete. Verified Sentry
+  payload/signature documentation to guide the next adapter slice. No external
+  messages or configuration changes; this continuation made implementation progress.
+
+## 2026-09-09 — Reliability delivery ledger safeguards
+
+- Added serialized destination claims, lease settlement, remote receipt recovery,
+  and integration health queries. Expired sends stay uncertain; five failed
+  attempts stop delivery even across fresh incident revisions.
+- Eleven local-MySQL integration tests / 31 assertions pass. Live transports,
+  provider receipt verification, failed-stream recovery, and migration history
+  resolution remain pending. The canonical reliability task remains In Progress
+  at 10%; this continuation made implementation progress without activation.
+
+## 2026-09-09 — Reliability intake and local ledger implementation
+
+- [Canonical task](tasks/2026-09-09-autonomous-production-error-management.md)
+  remains In Progress at 2/20 checklist items complete (10%).
+- Added server-only scoped intake, severity and safe metadata contracts; 7 tests
+  pass. Added six local ledger models and atomic occurrence/outbound-intent queries;
+  4 real-MySQL integration tests pass. Observability and DB typechecks and focused
+  Biome checks pass. Test boundaries were explicitly confirmed by the user.
+- Client generation and local schema push succeeded. Prisma migration generation
+  reported broad schema/history drift and requested a reset; no reset performed,
+  and deployable migration evidence remains unresolved. Local socket/DB access
+  needed escalation; no hosted provider data/configuration was changed.
+- Provider adapters, delivery execution, analysis, release/activation gates, final
+  review and commit remain incomplete. Only uniquely namespaced reliability test
+  fixtures were created/deleted. Existing business workflow edits remain untouched.
+
+## 2026-09-09 — Autonomous error-management research expanded
+
+- Compared the local Midday reference at `c511619e899a185c086ceb4b30610734942f12d1`
+  with GND and updated [the research](research/2026-09-03-autonomous-production-error-management.md).
+- Added Slack/GitHub ownership and delivery contracts, impact-based severity,
+  complete-run discovery/watch-set design, mature SRE practices, tool candidates,
+  and a shadow-to-ticket pilot before any automated fix phase.
+- Local baseline still lacks checked-in CI and retains coarse fingerprints and
+  ignored web build type errors. Production ingestion remains unverified in Brain;
+  no live provider state was queried or changed.
+- Research only: no application changes, external messages, tickets, or automation
+  activation. Documentation diff and local reference checks completed.
+
+## 2026-09-09 — Receipt follow-up acceptance blocked
+
+- Worker access and independent review gates resolved. Manual pointer-hover remains
+  pending after repeated turns; original local receipt/SKU attribution is unavailable.
+- Task remains 58%, now Blocked with uncommitted changes retained. No repeated
+  test loop or completion claim. Resume from remaining evidence in the task.
+
+## 2026-09-09 — Admin calendar drag confirmation
+
+- Restored original admin account through Quick Login. Keyboard drag opened the
+  expected three-assignment date confirmation; Cancel dismissed it with no save.
+- Pointer-hover confirmation remains pending; latest standards review is clear.
+- PT-023 clocked out at 02:21 Eastern.
+
+## 2026-09-09 — Remaining acceptance evidence audit
+
+- Recorded exact gaps for original receipt attribution, pointer interactions, state/device
+  coverage and final commit in the receipt follow-up ticket; no scope was removed.
+- Latest standards reviewer remains running. PT-023 clocked out at 02:18 Eastern.
+
+## 2026-09-09 — Worker acceptance milestone
+
+- Worker checklist item completed using live role/policy/receipt and 390px detail
+  evidence; receipt follow-up now 7/12 (58%).
+- Added two-inbound ID/revision selection regression; 9 tests/34 assertions pass.
+- Viewport restored. Requested manual pointer-hover confirmation, unsupported by
+  browser tools. Remaining acceptance and final commit stay open.
+
+## 2026-09-09 — Worker receipt policy browser validation
+
+- Disposable order 27804/inbound 841 verified disabled-policy waiting copy and
+  enabled-policy Yes, received in the actual Izri worker session. Saved received
+  quantity was 10; fixture cleanup passed and local policy restored to disabled.
+- No existing business orders changed. Remaining responsive/multiple-inbound and
+  pointer acceptance plus final commit stay open. PT-023 clocked out at 02:12 EDT.
+
+## 2026-09-09 — Worker Quick Sign and detail acceptance
+
+- Used user-authorized in-app Quick Login as Izri, resolving the worker access blocker.
+- Verified primary-only worker list/calendar. Fixed review wording leaking into
+  worker order header/item badges; live 09602PC now shows Production completed.
+- 112 Production UI tests pass; bounded spec recheck clear. Receipt/policy fixture
+  and remaining interaction acceptance continue. Time recorded in paytime.md PT-023
+  using Eastern time per user instruction. No business order changes or commit.
+
+## 2026-09-08 — Production acceptance blocked on worker access
+
+- Worker route recheck still redirects to Sales after three consecutive goal turns.
+  Independent bounded reviews are clear; worker sign-in request remains pending.
+- Receipt follow-up is Blocked at 50%, preserving remaining live interaction checks
+  and final scoped commit. No business data or permissions changed; test tab closed.
+
+## 2026-09-08 — Receipt follow-up review and documentation consistency
+
+- Bounded standards recheck of worker progress helper/integration and test typing
+  fixes is clear. The bounded spec recheck is also clear.
+- Confirmed the worker browser redirect follows the existing Production-role route
+  rule; did not broaden permissions to enable testing.
+- Consolidated sales-productions-v2.md to reflect implemented receipt reconciliation,
+  durable cancellation and verified interaction evidence, removing stale claims.
+  Full worker/pointer acceptance and commit remain open; task remains 50%.
+
+## 2026-09-08 — Calendar keyboard drag and worker access
+
+- Verified 09484DB visibly shows 5 of 9 submitted and its keyboard drag starts
+  and cancels without saving a schedule or opening an order.
+- Worker dashboard redirects the current browser account to Sales. Requested a
+  worker session for live acceptance; no permissions or existing order data changed.
+- Receipt follow-up remains at 50%; pointer-hover, full worker acceptance and
+  final review/commit remain open. Temporary browser tab closed.
+
+## 2026-09-08 — Worker reported-progress verification
+
+- Direct worker display tests cover pending/approved/legacy submissions,
+  rejected/cancelled exclusions, assignment caps and invalid quantities.
+- Current Production UI suite passes 111 tests / 412 assertions across 29 files;
+  scoped diff checks pass. Dashboard typecheck and remaining browser acceptance
+  are tracked in the receipt follow-up task, still In Progress at 50%.
+- Automatic repair on opening Production remains an unapproved proposal.
+  No existing business data changed during this validation.
+
+## 2026-09-08 — Copy order Activity investigation and proposed fix
+
+- Confirmed legacy copy notes omit the channel tag required by activityTree;
+  destination salesId already matches. Also found deferred failure/first-read
+  timing and email-dependent author resolution gaps.
+- Saved `plans/2026-09-08-copy-order-activity.md` with transactional audit,
+  provenance, refresh, history/conversion boundaries and evidence-based legacy
+  repair. Existing identity-filter tests pass (2 tests / 2 assertions).
+- Planning only; no application code or business data changed, and no specific
+  production copy record was inspected.
+
+
 ## 2026-09-08 — Row feedback implementation checkpoint
 
 - Shared opt-in ledger/hook and Sales Orders payment/task integration implemented.
@@ -12,6 +422,22 @@
   Additional pilot actions and wider rollout remain gated; task is Blocked at70%.
 - See `tasks/2026-09-08-table-row-processing-exit-feedback.md` and
   `decisions/2026-09-08-table-row-activity.md`. No business data or deployment changed.
+
+## 2026-09-08 — Row activity implementation started
+
+- Created the dedicated row-feedback task and began shared lifecycle, task-outcome
+  adapter, retained-row composer and table-local hook. Five focused tests pass;
+  UI/mutation/task integration remains in progress. No visible behavior is enabled
+  yet. See `tasks/2026-09-08-table-row-processing-exit-feedback.md`.
+
+## 2026-09-08 — Sales UI simplification complete
+
+- Completed all seven user-approved simplification areas; contract and
+  validation evidence in `.brain/plans/2026-09-08-sales-ui-simplification.md`.
+- Local order 09596PC now shows both completed green bars. Business facts and
+  audit records are unchanged. 180 focused tests pass; Sales/API types pass.
+- Desktop/mobile and material-review browser checks pass. Root/Dashboard
+  typechecks retain existing baseline errors; see the plan for exact evidence.
 
 ## 2026-09-08 — Table row exit feedback plan reviewed
 
@@ -16363,5 +16789,226 @@ and root baseline diagnostics are documented in the task. No deployment, hosted
 data mutation or worker-policy enablement. Follow-up cancellation/reconciliation
 and primary/secondary status presentation remain queued separately.
 
+### 2026-09-08 — Production progress and attention follow-up implementation
+
+Added shared primary/attention presentation plus bounded review reason lookup to
+calendar/table queries and UI. Read-only authenticated 09495PC verifies submitted
+completion plus allocation alert, with canonical Completed membership still zero.
+75 query regressions /237 assertions, 20 presentation/layout checks /51 assertions,
+and 17 approval decision checks /49 assertions pass. Sales/API types pass; broad
+Dashboard baseline errors remain, with no changed presentation file diagnostics.
+Extracted canonical review transaction primitive in preparation for atomic receipt
+reconciliation. Documented exact cancellation compensation contract. Follow-up
+remains In Progress; no new receipt approval, reversal, commit or deployment.
+
+### 2026-09-08 — Worker Production simplification approved
+
+User confirmed adding the simplified worker experience to the receipt follow-up
+ticket. Workers use primary progress and per-inbound “Yes, received” with supplier,
+expected date and quantity. Detailed secondary alerts, Open inbound and Cancel
+review remain admin-only; worker cancellation must be denied server-side.
+Recorded policy-off and supervisor-help states and role/refresh acceptance.
+Ticket checklist now 12 items, 2 complete (17%). Documentation update only for
+this clarification; no worker UI or permission implementation claimed.
+
+### 2026-09-08 — Requested production-to-local database sync
+
+Completed `bun run db:sync --from-prod --to-local -- --read-batch-size 100`
+against local MySQL `127.0.0.1:3307/gnd-prisma2`. Default-size dry runs failed
+on a production vtgate EOF while reading `SalesOrderListProjection`; its
+100-row-batch dry run passed (8,101 rows, zero writes). The apply encountered
+a local unique salesOrderId conflict in that derived table. The supported
+single-table `--on-duplicate reset` recovery restored all 8,101 source rows,
+then the full command resumed from saved checkpoints and exited successfully.
+The final pass inspected 292 tables, wrote 3,721 additional rows, and skipped
+30 static tables without timestamp cursors under the default sync policy.
+Production remained read-only. No schema, API, or application code changed.
+
+### 2026-09-08 — Calendar padlock tooltip requirement
+
+Added the user-requested rescheduling lock reason to the receipt follow-up ticket's
+whole-card calendar tooltip details. The tooltip must use the same reason as the
+padlock, including lock-only cards, and preserve worker secondary-alert suppression.
+Documentation only for this clarification; runtime implementation remains pending.
+
+The user clarified the tooltip layout: show the lock icon directly beside its
+reason (`🔒 [reason]`), and likewise the alert icon beside each alert reason.
+Added this to the same ticket, including shared table tooltip details and the
+existing worker secondary-alert suppression. Documentation only.
+
+### 2026-09-08 — Production tooltip reason implementation
+
+Implemented icon-and-reason rows in shared Production attention details and passed
+the canonical padlock reason from calendar cards to their tooltip and popover.
+Workers retain secondary-alert suppression. Focused lock-label/presentation tests
+passed: 10 tests, 27 assertions. Updated feature documentation and the current
+receipt follow-up ticket; full rendered acceptance and receipt cancellation remain
+open, with ticket completion unchanged at 25%.
+
+### 2026-09-08 — Durable Production receipt history
+
+Added paginated admin receipt history sourced from persisted events and rendered
+received confirmations with Open inbound even when no pending receipts remain.
+History is authorized after order scope and hidden from worker responses. Updated
+the ticket, API contract and Production feature docs. Three focused tests passed;
+Sales typecheck passed. Real same-key/different-key receipt tests verify one saved
+confirmation after requery. The full local suite failed a worker/admin case in two
+runs (latest: pending allocation lacks matching physical stock), so broader receipt
+validation remains open. Cancellation and its provenance are still unimplemented.
+
+### 2026-09-08 — Receipt fixture isolation corrected
+
+Diagnosed inconsistent receipt failures as local orphan allocation references being
+reused by fixture component AUTO_INCREMENT. New fixture IDs exceed existing
+component/allocation/demand reference maxima. Application stock guards remain intact.
+The full local transaction suite passed: 12 tests, 127 assertions. The ticket records
+the local-data caveat that earlier cleanup also removed collided orphan rows; no
+hosted database was used and no incomplete reconstruction was attempted. Cancellation
+remains the next implementation work; completion stays at 25%.
+
+### 2026-09-08 — Versioned receipt reversal evidence
+
+Receipt events now capture version 2 before/after evidence in their transaction,
+covering material/stock and review/payroll/payment-review/completion effects.
+Added bounded serialization and real-transaction assertions for exact item, stock
+and allocation changes. Sales typecheck and 5 focused unit tests passed; all 12
+local transaction tests passed with 143 assertions. Updated the task and API contract.
+The compensation command remains unimplemented and completion stays at 25%.
+
+### 2026-09-08 — Production receipt cancellation implemented
+
+Added admin-only cancellation with audit comparison, physical stock compensation,
+Needs/review/payroll/payment-review restoration, completion provenance cancellation,
+idempotent replay and projection refresh. Connected the API, admin button, cancelled
+history and shared query events. Receive/cancel/re-receive tests preserve submission
+and payroll identities. Sales/API types, six audit/history tests and 39 UI/query-event
+tests passed. Broader cancellation acceptance remains open. Updated contracts,
+feature docs and task; durable history is complete and overall progress is 33%.
+
+### 2026-09-08 — Cancellation concurrency and panel isolation
+
+All 21 local transaction tests passed (216 assertions), covering concurrent cancel
+keys, rollback after stock compensation and rejection after assignment/dispatch/
+payment/shared-stock changes. Fixed per-order/inbound receipt-panel state isolation;
+six rendering tests passed. Standards and Spec reviews are in progress. Automatic
+repair when opening Production remains a separate proposal awaiting user approval;
+it has not been added to the ticket or implemented.
+
+### 2026-09-08 — Cancellation review findings resolved
+
+Standards and Spec reviewers cleared the audit-validation, null-price and worker
+outcome findings after fixes. Current scoped shortage/review evidence drives worker
+guidance after reload and resolution; panel state resets between orders. All 28 local
+transaction tests passed (258 assertions), plus 13 panel/API tests (34 assertions).
+Updated task, API contract and feature docs. Cancellation checklist is complete;
+overall progress is 42%, with browser acceptance/final review/commit still open.
+
+### 2026-09-08 — Proposed Mark as eligibility and archive consolidation
+
+Saved `.brain/plans/2026-09-08-sales-mark-as-eligibility-and-archive.md` following
+read-only inspection of 09631PC and existing menu/archive implementations. The
+proposal covers canonical production eligibility, single/batch consistency,
+Archived/Restore active inside Mark as, and removal of the separate batch archive
+button. Includes confirmation, permissions, audit, refresh and acceptance cases.
+Planning only; no application code or order data changed.
+
+## 2026-09-08 — Copy order Activity fix
+
+Implemented shared transactional copy activity and removed the deferred legacy
+note. Uses registered sales_info channel (reader-contract test caught that Sales
+is only a category), authenticated email-independent contact/creator, destination
+identity and immediate source provenance. Copy/move events refresh Activity;
+conversion/history/checkout boundaries remain intact. Focused regressions cover
+writer/reader compatibility, failure propagation and cache refresh. No schema,
+business data or deployment changes. Historical recovery and live DB/browser
+acceptance remain separate; see plans/2026-09-08-copy-order-activity.md.
+
+Copy Activity final validation: 49 focused tests / 170 assertions pass; scoped
+tracked whitespace check passes. No typecheck, build or live browser run.
+
+## 2026-09-08 — Sales initial status calibration (in progress)
+- Updated the approved Mark as plan/task to generate initial status after save rather than expanding list queries.
+- Existing inventory job now starts with locked control reconstruction and order-summary publication. Simple-item production scope follows saved configuration rather than a hardcoded true. Inventory failure remains retryable after workflow publication.
+- Focused scope/history/coordinator tests pass; broader validation and all Mark as/archive acceptance remain open.
+
+## 2026-09-08 — Local Not synced diagnosis
+Read-only inspection found ready inventory projections with positive need counts but empty local requirement components for four sampled newly created orders. This directly explains Not synced via the existing applicability guard. The cause of missing component rows (source versus copy) is not yet proven. Background monitor showed Recording sales history, which does not establish completion of the original sale inventory sync. See the active Mark as/calibration task for evidence and review findings.
+
+### 2026-09-08 — Browser cancellation guard and feedback
+Disposable browser receipt survived reload, but cancellation found changed
+allocation evidence and was refused; no cancellation event was recorded. The
+fixture was cleaned and its absence verified. Added persistent inline admin error
+feedback, with red/green regression (8 panel tests, 28 assertions). Updated the
+Production feature and active receipt ticket; overall progress remains 42%.
+Allocation-change origin and complete browser acceptance remain open.
+
 ## 2026-09-08 — Sales Mark as and initial status validation
 Implemented post-save calibration, standard initial-status colors, production eligibility and consolidated archive/restore. Final focused suite: 76 tests pass. Local database and browser checks pass; review findings closed. Broader checks retain documented baseline errors. Implemented in 2c24408bb; task completed: tasks/2026-09-08-sales-mark-as-eligibility-and-archive.md.
+
+### 2026-09-08 — Browser receipt/cancel repeat
+Browser receive/cancel/reload passed on a disposable order. Corrected its production
+fixture eligibility and added cancellation preservation assertion; 28 transaction
+tests / 259 assertions pass. Inventory navigation separately reproduced changed
+allocation evidence and verified persistent refusal feedback. Existing Inventory
+auto-sync is the next trace point; representative fixture acceptance remains open.
+Updated the receipt task; progress remains 42%, no commit.
+
+### 2026-09-08 — Prevent Inventory sync from recreating receipt approval
+Traced the minimal fixture deletion to missing source mapping. A mapped monitored
+fixture then reproduced reserved-to-pending_review on sync. Fixed preservation of
+unchanged reservations and added a red/green real-transaction regression. 29 receipt
+transaction tests and 30 Inventory sync unit tests pass. Updated feature/task docs;
+full browser acceptance and final review remain open, progress 42%.
+
+### 2026-09-08 — Mapped receipt/cancel browser acceptance
+Mapped monitored fixture passed receive → Inventory (covered, received 10) → cancel
+→ reload → Inventory (awaiting inbound, received 0). Production items/submissions
+remained visible, cancellation history persisted, and fixture cleanup completed.
+Changed requirement quantities still return to review; 29 transaction tests / 268
+assertions pass. Updated receipt ticket: checklist 6 complete, 50% overall.
+Calendar/table/worker acceptance and final review/commit remain open.
+
+### 2026-09-08 — Calendar attention content acceptance
+Verified combined lock/alert popover and normal Production order opening in the
+local calendar. Added three rendering checks (11 assertions) for icon/reason rows,
+lock-only behavior and worker suppression; all pass. Updated receipt ticket;
+keyboard/touch/table acceptance remains open and completion stays 50%.
+
+### 2026-09-08 — Table status and worker parity checks
+Verified table primary status, separate order/customer attention and due-date
+schedule content. Updated obsolete full-review-panel parity assertion to the
+approved compact inbound detail contract and admin-only workspace review panel.
+Seven focused tests / 34 assertions pass. Updated receipt task; keyboard/hover
+mechanics and worker-role UI acceptance remain open, progress 50%.
+
+### 2026-09-08 — Live production keyboard acceptance
+Verified lock-only and combined calendar explanations via keyboard focus, Escape
+ dismissal and Enter popover activation. Table Status focus shows reported progress
+and blocker details; Tab away dismisses. Updated receipt ticket with exact evidence
+and remaining pointer/drag/responsive/worker checks. No business data changes.
+
+### 2026-09-08 — Lock-only touch details
+Made admin calendar padlocks open shared reason details, preserving worker
+suppression and avoiding false red alerts. Red/green rendering regression and
+390px browser fit/activation checks pass. Twelve focused tests / 30 assertions
+pass. Updated feature and receipt task; final acceptance remains open at 50%.
+
+### 2026-09-08 — Presentation Spec findings and broader regression
+Standards review clear within scope; Spec identified finalized worker counters and
+hidden partial quantities. Applied display-only fixes and requested bounded recheck.
+Updated stale UI contract assertions; 105 focused UI tests / 405 assertions pass.
+Updated receipt ticket; dedicated behavior/live worker verification remains open.
+
+## 2026-09-09 — Copied-sale save recurrence
+
+Implemented automatic unambiguous child-ID reconciliation, worker snapshot ID retention, persistent traceable save errors, and correct post-save failure status. Local09623 requested edits plus explicitly approved Delivery145 persisted and passed reload/repeat-save; fresh09635 saved with source totals intact. 67 focused tests pass plus two stale-version tests asserting no mutation; shared errors typecheck passes. Broad typechecks remain limited by workspace module-resolution errors and dashboard Node heap exhaustion. No production writes/deployments. Details: [investigation](plans/2026-09-08-copied-sale-confirm-save-investigation.md), [decision](decisions/2026-09-09-sales-save-identity-reconciliation.md).
+
+## 2026-09-09 — Production missing-inbound availability planning
+
+Reviewed local order 09602PC: 4 uncovered needs / 58 pending units, zero inbounds, three production items reported complete awaiting review and the last unassigned. Created a proposed plan and Roadmap task for the missing/remainder alert, scoped partial availability form, grouped mark-all supplier/date shortcut, receipt-date contract and refresh behavior. Inspection only; no order or application code changes. [Plan](plans/2026-09-09-feature-production-missing-inbound-and-quick-availability.md).
+
+### 2026-09-09 — Production availability implementation and ticket extension
+- Implemented scoped missing-inbound/remainder alert, shared partial form, supplier/date mark-all shortcut and transactional refresh behavior; current work is uncommitted and remains under verification.
+- Focused suite: 199 pass; isolated local database coverage: 13 pass. Browser partial4 then quick6 succeeded on a disposable order; 09602PC unchanged. Review findings on historical demand replay, merged caps and split allocation provenance resolved.
+- Added calendar View material actions expansion and Apply covered materials reconciliation to the same ticket, preserving current checklist work. New addendum explicitly distinguishes existing receipt-triggered automatic reconciliation from historical pending-review repair.
+- [Task](tasks/2026-09-09-production-missing-inbound-and-quick-availability.md) · [Feature](features/production-material-availability.md)

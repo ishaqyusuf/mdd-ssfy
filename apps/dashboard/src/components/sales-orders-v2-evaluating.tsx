@@ -17,7 +17,6 @@ export function SalesOrdersV2Evaluating() {
         <SalesOrdersV2Summary
             data={data}
             title="Evaluating"
-            subtitle="Still in review."
             icon={Icons.TimerReset}
             value={data.evaluatingOrders}
         />

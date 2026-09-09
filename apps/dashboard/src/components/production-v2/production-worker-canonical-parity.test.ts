@@ -73,8 +73,9 @@ describe("production worker canonical parity", () => {
 		expect(workerSurfaceSource.includes("ProductionMaterialReviewPanel")).toBe(
 			true,
 		);
-		expect(salesOverviewSource.includes("ProductionMaterialReviewPanel")).toBe(
-			true,
-		);
+		expect(salesOverviewSource.includes("ProductionPendingInbounds")).toBe(true);
+		expect(salesOverviewSource.includes("ProductionMaterialReviewPanel")).toBe(false);
+		expect(workerSurfaceSource.includes("workerMode ? null : <ProductionMaterialReviewPanel"))
+			.toBe(true);
 	});
 });

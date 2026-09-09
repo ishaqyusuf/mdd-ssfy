@@ -1,3 +1,5 @@
+import { hasUnprojectedApprovedCommercialSnapshot } from "./sales-commercial-consistency";
+import { AppError } from "@gnd/errors";
 import { getSalesCustomer } from "@api/db/queries/customer";
 import {
 	type BootstrapNewSalesFormSchema,
@@ -378,78 +380,6 @@ function roundCurrency(value: number) {
 	return roundMoney(value);
 }
 
-function hasUnprojectedApprovedCommercialSnapshot(
-	meta: NewSalesFormContainer,
-	canonicalLines: NewSalesFormLineItem[],
-) {
-	const persisted = meta.newSalesForm;
-	if (!persisted?.approvedAdjustmentId || !persisted.lineItems?.length) {
-		return false;
-	}
-	return (
-		JSON.stringify(commercialProjection(persisted.lineItems)) !==
-		JSON.stringify(commercialProjection(canonicalLines))
-	);
-}
-
-function commercialProjection(lines: unknown[]) {
-	return lines
-		.map((value) => {
-			const line = safeRecord(value);
-			const hpt = safeRecord(line.housePackageTool);
-			const doors = Array.isArray(hpt.doors) ? hpt.doors : [];
-			const shelves = Array.isArray(line.shelfItems) ? line.shelfItems : [];
-			return {
-				key:
-					Number(line.id || 0) > 0
-						? `id:${Number(line.id)}`
-						: `uid:${String(line.uid || "")}`,
-				qty: Number(line.qty || 0),
-				lineTotal: roundCurrency(Number(line.lineTotal || 0)),
-				doors: doors
-					.map((doorValue) => {
-						const door = safeRecord(doorValue);
-						return {
-							key:
-								Number(door.id || 0) > 0
-									? `id:${Number(door.id)}`
-									: [
-											normalizeSalesDoorDimension(
-												String(door.dimension || ""),
-											),
-											Number(door.stepProductId || 0),
-										].join("|"),
-							dimension: normalizeSalesDoorDimension(
-								String(door.dimension || ""),
-							),
-							lhQty: Number(door.lhQty || 0),
-							rhQty: Number(door.rhQty || 0),
-							totalQty: Number(door.totalQty || 0),
-							lineTotal: roundCurrency(Number(door.lineTotal || 0)),
-						};
-					})
-					.sort((left, right) => left.key.localeCompare(right.key)),
-				shelves: shelves
-					.map((shelfValue) => {
-						const shelf = safeRecord(shelfValue);
-						return {
-							key:
-								Number(shelf.id || 0) > 0
-									? `id:${Number(shelf.id)}`
-									: [
-											Number(shelf.categoryId || 0),
-											Number(shelf.productId || 0),
-											String(shelf.description || ""),
-										].join("|"),
-							qty: Number(shelf.qty || 0),
-							totalPrice: roundCurrency(Number(shelf.totalPrice || 0)),
-						};
-					})
-					.sort((left, right) => left.key.localeCompare(right.key)),
-			};
-		})
-		.sort((left, right) => left.key.localeCompare(right.key));
-}
 
 function uniquePositiveNumbers(values: Array<unknown>) {
 	return values
@@ -3633,9 +3563,9 @@ async function saveNewSalesFormInternal(
 					canonicalBefore.lineItems,
 				)
 			) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message:
+				throw new AppError({
+					code: "SALES_RELATIONAL_REVIEW_REQUIRED",
+					internalMessage:
 						"SALES_RELATIONAL_REVIEW_REQUIRED: An approved adjustment was not projected into the relational sales rows. This document is locked until the migration review reconciles it.",
 				});
 			}

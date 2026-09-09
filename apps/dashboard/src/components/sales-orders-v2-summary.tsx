@@ -12,7 +12,6 @@ type SalesOrdersV2SummaryData = RouterOutputs["sales"]["getOrdersSummary"];
 type Props = {
     data: SalesOrdersV2SummaryData;
     title: string;
-    subtitle: string;
     icon: Icon;
     value: number | string | null | undefined;
     money?: boolean;
@@ -27,7 +26,6 @@ export function SalesOrdersV2SummarySkeleton() {
             </CardHeader>
             <CardContent className="space-y-2 px-4 pb-4 pt-0">
                 <Skeleton className="h-8 w-20 rounded-md" />
-                <Skeleton className="h-4 w-full rounded-md" />
             </CardContent>
         </Card>
     );
@@ -36,7 +34,6 @@ export function SalesOrdersV2SummarySkeleton() {
 export function SalesOrdersV2Summary({
     data,
     title,
-    subtitle,
     icon: Icon,
     value,
     money = false,
@@ -73,9 +70,6 @@ export function SalesOrdersV2Summary({
                         {formattedValue}
                     </p>
                 )}
-                <p className="text-sm leading-6 text-muted-foreground">
-                    {subtitle}
-                </p>
             </CardContent>
         </Card>
     );

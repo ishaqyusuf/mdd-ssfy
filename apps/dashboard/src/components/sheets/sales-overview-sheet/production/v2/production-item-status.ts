@@ -29,6 +29,7 @@ export type ProductionItemStatusBadge = {
 };
 
 export type ProductionItemStatus = {
+	workerMode?: boolean;
 	assignmentCount: number;
 	assigned: number;
 	fulfilled: number;
@@ -52,6 +53,7 @@ export function getQuantityMatrixTotal(quantity?: QuantityMatrix | null) {
 }
 
 export function getProductionItemStatusBadges({
+	workerMode = false,
 	assignmentCount,
 	assigned,
 	fulfilled,
@@ -99,9 +101,9 @@ export function getProductionItemStatusBadges({
 		badges.push({
 			label:
 				reported >= total
-					? "COMPLETED · REVIEW PENDING"
-					: `${reported} OF ${total} SUBMITTED · REVIEW PENDING`,
-			variant: "secondary",
+					? (workerMode ? "PRODUCTION COMPLETED" : "COMPLETED · REVIEW PENDING")
+					: `${reported} OF ${total} SUBMITTED${workerMode ? "" : " · REVIEW PENDING"}`,
+			variant: workerMode && reported >= total ? "success" : "secondary",
 		});
 	} else if (submitted > 0 && submitted < total) {
 		badges.push({

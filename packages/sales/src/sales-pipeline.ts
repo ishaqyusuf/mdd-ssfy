@@ -260,8 +260,8 @@ export function getSalesPipelineProductionStateLabel(
 		assigned: "Assigned",
 		in_production: "In production",
 		awaiting_review: "Awaiting review",
-		administratively_completed: "Marked as completed",
-		completed: "Production completed",
+		administratively_completed: "Completed",
+		completed: "Completed",
 	};
 	return labels[state];
 }
@@ -279,8 +279,8 @@ export function getSalesPipelineFulfillmentStateLabel(
 			packed: "Packed",
 			in_transit: "In transit",
 			partially_fulfilled: "Partially fulfilled",
-			administratively_completed: "Marked as completed",
-			fulfilled: "Fulfilled",
+			administratively_completed: "Completed",
+			fulfilled: "Completed",
 		};
 	return labels[state];
 }
@@ -363,10 +363,10 @@ export const SALES_PIPELINE_HEADLINE_META: Record<
 	in_transit: { label: "In transit", tone: "sky" },
 	partially_fulfilled: { label: "Partially fulfilled", tone: "sky" },
 	administratively_completed: {
-		label: "Marked as completed",
-		tone: "stone",
+		label: "Completed",
+		tone: "emerald",
 	},
-	fulfilled: { label: "Fulfilled", tone: "emerald" },
+	fulfilled: { label: "Completed", tone: "emerald" },
 	unknown: { label: "Status unavailable", tone: "stone" },
 };
 
@@ -1123,6 +1123,15 @@ function nextOperationalDate(value: string) {
 	return date.toISOString().slice(0, 10);
 }
 
+/** The visible Completed filter includes both completion paths; saved administrative filters remain valid. */
+export function getSalesPipelineFilterHeadlines(
+	headlines: SalesPipelineHeadlineCode[] = [],
+) {
+	return headlines.includes("fulfilled")
+		? Array.from(new Set([...headlines, "administratively_completed" as const]))
+		: headlines;
+}
+
 /**
  * Exact lifecycle-filter predicate shared by list, count, summary, saved-tab,
  * and export adapters. Candidate SQL may return a superset, but this function
@@ -1135,7 +1144,9 @@ export function matchesCanonicalSalesPipelineFilter(
 ) {
 	if (
 		filter.headlines?.length &&
-		!filter.headlines.includes(snapshot.headline.code)
+		!getSalesPipelineFilterHeadlines(filter.headlines).includes(
+			snapshot.headline.code,
+		)
 	) {
 		return false;
 	}
@@ -1469,8 +1480,10 @@ export function resolveCanonicalDispatchWorkspaceMembership(input: {
 	const fulfillmentCompleted = isSalesPipelineFulfillmentCompleted(input.fulfillmentState);
 	if (["active", "due-today", "past-due", "completed"].includes(input.section) && input.fulfillmentApplicability === "not_required") return false;
 	if (input.section === "completed") {
-		return input.stage !== "cancelled" &&
-			(input.stage === "fulfilled" || fulfillmentCompleted);
+		return (
+			input.stage !== "cancelled" &&
+			(input.stage === "fulfilled" || fulfillmentCompleted)
+		);
 	}
 	if (
 		input.section !== "active" &&

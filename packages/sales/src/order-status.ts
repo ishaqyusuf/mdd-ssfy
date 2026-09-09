@@ -80,7 +80,7 @@ const STATUS_BADGE_CLASS_NAMES: Record<SalesOrderLifecycleStatus, string> = {
 	packed: "bg-teal-100 text-teal-700",
 	in_transit: "bg-sky-100 text-sky-700",
 	partially_fulfilled: "bg-cyan-100 text-cyan-700",
-	administratively_completed: "bg-stone-100 text-stone-700",
+	administratively_completed: "bg-emerald-100 text-emerald-700",
 	fulfilled: "bg-emerald-100 text-emerald-700",
 	cancelled: "bg-rose-100 text-rose-700",
 	conflict: "bg-rose-100 text-rose-700",

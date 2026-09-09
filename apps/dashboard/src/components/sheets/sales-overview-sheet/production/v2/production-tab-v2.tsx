@@ -54,7 +54,7 @@ import {
 import { ProductionItemStatusBadges } from "./production-item-status-badges";
 import { ProductionTabV2Skeleton } from "./production-tab-v2-skeleton";
 
-import { ProductionPendingInbounds } from "./production-pending-inbounds";
+import { ProductionMaterialActions } from "../../availability/production-material-actions";
 
 function ProductionV2Item({
 	item,
@@ -263,7 +263,11 @@ function ProductionV2Item({
 	);
 }
 
-function ProductionTabV2Content() {
+type AvailabilityProps = {
+	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
+};
+
+function ProductionTabV2Content({ onCreateInbound }: AvailabilityProps) {
 	const { data } = useProduction();
 	const queryCtx = useSalesOverviewQuery();
 	const workerMode = Boolean(queryCtx.assignedTo);
@@ -293,7 +297,12 @@ function ProductionTabV2Content() {
 
 	return (
 		<div className="flex flex-col gap-4 p-1">
-			<ProductionPendingInbounds key={data.orderId} salesOrderId={data.orderId} />
+			<ProductionMaterialActions
+				salesOrderId={data.orderId}
+				onOpenForm={
+					onCreateInbound ? () => onCreateInbound("mark_available") : undefined
+				}
+			/>
 			<Accordion
 				type="single"
 				collapsible
@@ -336,10 +345,10 @@ function ProductionTabV2Content() {
 	);
 }
 
-export function ProductionTabV2() {
+export function ProductionTabV2(props: AvailabilityProps) {
 	return (
 		<ProductionProvider args={[]}>
-			<ProductionTabV2Content />
+			<ProductionTabV2Content {...props} />
 			<AccessBased>
 				<ProductionTabFooter />
 			</AccessBased>

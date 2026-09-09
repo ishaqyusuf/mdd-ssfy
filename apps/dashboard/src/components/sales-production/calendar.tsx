@@ -47,6 +47,7 @@ import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { format, isPast, isSameMonth, isToday, startOfDay } from "date-fns";
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { ProductionAttentionButton, ProductionAttentionTooltip } from "./order-attention";
 import { productionCalendarColors } from "./calendar-colors";
 
 const PlanningCalendar = dynamic(() =>
@@ -93,19 +94,23 @@ function ProductionChip({
 	onReschedule?: (item: ProductionCalendarItem) => void;
 }) {
 	const overview = useSalesOverviewQuery();
+	const lockReason = !workerMode && !item.canReschedule
+		? scheduleMoveLockLabel(item.rescheduleLockReason)
+		: null;
 	const draggable = useDraggable({
 		id: `production:${item.orderId}:${item.sourceDate || item.id}`,
 		data: { item },
 		disabled: workerMode || !item.canReschedule,
 	});
 	const colorClass =
-		STATUS_COLORS[item.presentation.tone] ?? STATUS_COLORS.unknown;
+		STATUS_COLORS[item.orderPresentation.primary.code === "completed" ? "completed" : item.orderPresentation.primary.code === "in_production" ? "in progress" : item.orderPresentation.primary.code === "assigned" ? "assigned" : ["not_assigned", "partially_assigned"].includes(item.orderPresentation.primary.code) ? "unassigned" : "unknown"];
 	const isOverdue =
 		item.status !== "completed" && item.dueDate
 			? isOperationsCalendarDatePastDue(new Date(item.dueDate))
 			: false;
 
 	return (
+		<ProductionAttentionTooltip salesOrderId={item.orderId} presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} lockReason={lockReason}>
 		<div
 			ref={draggable.setNodeRef}
 			style={{
@@ -118,40 +123,21 @@ function ProductionChip({
 				colorClass,
 				isOverdue && "ring-1 ring-red-400",
 			)}
-			title={`${item.orderNo} · ${item.customer}`}
 		>
-			<button
-				type="button"
-				className="min-w-0 flex-1 text-left focus-visible:outline-none"
-				onClick={() =>
-					overview.open2(
-						item.orderNo,
-						workerMode ? "production-tasks" : "sales-production",
-					)
-				}
-			>
-				<div className="flex min-w-0 items-center justify-between gap-1">
-					<span className="truncate font-mono font-semibold uppercase">
-						{item.orderNo}
-					</span>
-					{compact ? null : <SalesPriorityBadge priority={item.priority} />}
-				</div>
-				{compact ? null : (
-					<>
-						<div className="truncate opacity-70">{item.customer}</div>
-						<div className="truncate opacity-60">
-							{item.assignedTo || "Unassigned"} · {item.assignmentCount}{" "}
-							{item.assignmentCount === 1 ? "assignment" : "assignments"}
-						</div>
-					</>
-				)}
-				<div className="flex flex-wrap gap-1 text-[10px] font-medium">
-					<span>{item.presentation.label}</span>
-					{item.presentation.statusOnly ? (
-						<span className="rounded border px-1">Status only</span>
-					) : null}
-				</div>
-			</button>
+   <div className="min-w-0 flex-1">
+    <div className="flex min-w-0 items-center gap-1">
+     <button type="button" className="min-w-0 flex-1 truncate text-left font-mono font-semibold uppercase focus-visible:outline-none" onClick={() => overview.open2(item.orderNo, workerMode ? "production-tasks" : "sales-production")}>{item.orderNo}</button>
+     <ProductionAttentionButton presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} lockReason={lockReason} />
+     {compact ? null : <SalesPriorityBadge priority={item.priority} />}
+    </div>
+    <button type="button" className="w-full min-w-0 text-left focus-visible:outline-none" aria-label={`Open production for ${item.orderNo}`} onClick={() => overview.open2(item.orderNo, workerMode ? "production-tasks" : "sales-production")}>
+     {compact ? null : <>
+      <div className="truncate opacity-70">{item.customer}</div>
+      <div className="truncate opacity-60">{item.assignedTo || "Unassigned"} · {item.assignmentCount} {item.assignmentCount === 1 ? "assignment" : "assignments"}</div>
+     </>}
+     <div className="flex flex-wrap gap-1 text-[10px] font-medium"><span>{item.orderPresentation.primary.label}</span>{item.orderPresentation.primary.code === "in_production" && item.orderPresentation.primary.detail ? <span>{item.orderPresentation.primary.detail}</span> : null}</div>
+    </button>
+   </div>
 			{workerMode ? null : item.canReschedule ? (
 				<div className="ml-1 flex shrink-0 items-center gap-0.5">
 					<button
@@ -176,15 +162,10 @@ function ProductionChip({
 					</button>
 				</div>
 			) : (
-				<span
-					className="ml-1 shrink-0 px-1 opacity-60"
-					title={scheduleMoveLockLabel(item.rescheduleLockReason)}
-					aria-label={scheduleMoveLockLabel(item.rescheduleLockReason)}
-				>
-					🔒
-				</span>
+				<ProductionAttentionButton kind="lock" presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} lockReason={lockReason} />
 			)}
 		</div>
+  </ProductionAttentionTooltip>
 	);
 }
 

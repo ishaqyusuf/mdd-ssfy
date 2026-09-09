@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { validateProductionAllocationCoverage } from "./production-inbound-allocation";
+import { validateProductionAllocationCoverage, planProductionAllocationCoverage } from "./production-inbound-allocation";
 
 const pending = {
 	id: 1,
@@ -72,4 +72,11 @@ test("does not count the same stock twice across current-order components", () =
 			[],
 		),
 	).toThrow("exceed available physical stock");
+});
+
+test("partial reconciliation skips invalid components and shares physical capacity across valid candidates", () => {
+ const invalid={...component,id:99,qty:1,stockAllocations:[{...pending,id:9}]};
+ const competing={...component,id:101,stockAllocations:[{...pending,id:2}]};
+ expect(planProductionAllocationCoverage([invalid,component,competing],[stock],[],true)).toEqual({ids:[1],blockedComponentIds:[99,101]});
+ expect(()=>planProductionAllocationCoverage([invalid,component],[stock],[],false)).toThrow("exceed material needs");
 });

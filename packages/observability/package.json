@@ -10,7 +10,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./reliability": "./src/reliability/index.ts"
 	},
 	"dependencies": {
 		"@gnd/errors": "workspace:*"

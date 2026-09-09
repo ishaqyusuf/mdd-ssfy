@@ -197,6 +197,34 @@ export async function decideProductionSubmissionMaterialReview(
 	actor: ReviewDecisionActor,
 	dependencies: ReviewDecisionDependencies = {},
 ) {
+	const { result, completedSalesOrderId } = await db.$transaction((tx) =>
+		decideProductionSubmissionMaterialReviewInTransaction(
+			tx as Db,
+			input,
+			actor,
+			dependencies,
+		),
+	);
+	if (result.status === "APPROVED" && completedSalesOrderId) {
+		await (
+			dependencies.recordFullWorkflowCompletion ??
+			recordFullWorkflowCompletionIfProven
+		)(db as never, {
+			salesOrderId: completedSalesOrderId,
+			milestone: "PRODUCTION_COMPLETED",
+			actor,
+		});
+	}
+	return result;
+}
+
+/** Caller owns the transaction and subsequent full-workflow completion recording. */
+export async function decideProductionSubmissionMaterialReviewInTransaction(
+	db: Db,
+	input: DecideProductionSubmissionMaterialReviewInput,
+	actor: ReviewDecisionActor,
+	dependencies: ReviewDecisionDependencies = {},
+) {
 	const decisionNote =
 		input.note?.trim() ||
 		`Material review action ${input.action} requested by employee ${actor.id}.`;
@@ -211,7 +239,8 @@ export async function decideProductionSubmissionMaterialReview(
 	const onApproved = dependencies.onApproved ?? runApprovalCompletionEffects;
 	let completedSalesOrderId: number | null = null;
 
-	const result = await db.$transaction(async (tx) => {
+	const tx = db;
+	const result = await (async () => {
 		const review =
 			await tx.salesProductionSubmissionMaterialReview.findUniqueOrThrow({
 				where: { id: input.reviewId },
@@ -673,16 +702,6 @@ export async function decideProductionSubmissionMaterialReview(
 			status: "APPROVED" as const,
 			materialRevision: after.materialRevision,
 		};
-	});
-	if (result.status === "APPROVED" && completedSalesOrderId) {
-		await (
-			dependencies.recordFullWorkflowCompletion ??
-			recordFullWorkflowCompletionIfProven
-		)(db as never, {
-			salesOrderId: completedSalesOrderId,
-			milestone: "PRODUCTION_COMPLETED",
-			actor,
-		});
-	}
-	return result;
+	})();
+	return { result, completedSalesOrderId };
 }

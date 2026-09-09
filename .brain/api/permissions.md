@@ -860,3 +860,20 @@ Receipt bypass audit: general inbound detail/order lists now require inventory
 fulfillment viewer authority; general allocation decisions require the existing
 received-backorder operator authority. Status and issue changes require inbound
 editing. Workers use the dedicated assigned-material query/command.
+
+## Reliability action boundary — 2026-09-09
+
+Internal incident acknowledgement and assign-to-self require a server-resolved
+actor with explicit authorization for the incident's persisted service ID.
+Request bodies must never supply trusted membership lists. Requests carry an
+expected revision and scoped request ID; stale or conflicting repeats fail.
+Assignment uses the authenticated actor, and acknowledgement does not resolve
+the incident. Audit and delivery intents commit atomically with each action.
+Slack identity resolution and public action routes remain unimplemented.
+
+## Scoped material availability — 2026-09-09
+Applying pending allocations through the covered-material action additionally requires editInboundOrder or editOrders for administrators; editProduction alone only allows eligible review reconciliation. Worker allocation application remains limited to workerCanReceiveInbound and active assignment scope. Shared physical stock capacity and component quantities are revalidated transactionally.
+
+Covered-review reconciliation uses editProduction for administrators, and workerCanReceiveInbound plus active assignment scope for workers. Authority is resolved again inside the transaction. editOrders alone does not grant this review action. Assignment snapshots, current material evidence and order lifecycle are validated before finalization; no general review-override permission is introduced.
+
+Availability reads and writes use authenticated server-derived Production assignment scope. Admin mark authority follows editOrders; worker mark authority follows workerCanReceiveInbound plus active assigned material scope. The mutation rechecks authority inside its transaction. Supplier reads expose only IDs/names. No general Inventory permission, arbitrary component ID or blanket submission-approval permission is added. Cancelled/fulfilled orders and unsynced setup cannot be marked available.

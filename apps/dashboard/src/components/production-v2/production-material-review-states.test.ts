@@ -26,18 +26,18 @@ describe("production material review state matrix", () => {
 	});
 
 	it("makes stale and conflicting evidence explicit", () => {
-		expect(source.includes("Material evidence changed")).toBe(true);
-		expect(source.includes("Stale writes are rejected")).toBe(true);
-		expect(source.includes("Material evidence conflict")).toBe(true);
+		expect(source.includes("Refresh material evidence before approving.")).toBe(true);
+		expect(source.includes("expectedUpdatedAt: new Date(detail.updatedAt)")).toBe(true);
+		expect(source.includes("Assignment history needs checking before approval.")).toBe(true);
 		expect(source.includes('"eligibility_conflict", "ambiguous"')).toBe(true);
 	});
 
 	it("separates read-only and permission-limited controls", () => {
-		expect(source.includes("Material review is read-only")).toBe(true);
-		expect(source.includes("Some material actions are unavailable")).toBe(true);
+		expect(source.includes("Read-only access")).toBe(true);
+		expect(source.includes("Receiving materials requires Inventory permission.")).toBe(true);
 		expect(source.includes("!capabilities.canReview")).toBe(true);
 		expect(source.includes("!capabilities.canReceiveInbound")).toBe(true);
 		expect(source.includes("!capabilities.canMarkAvailable")).toBe(true);
-		expect(source.includes("{isReadOnly ? null : (")).toBe(true);
+		expect(source.includes("{isReadOnly ? null : orderContext ? (")).toBe(true);
 	});
 });

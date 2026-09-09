@@ -539,7 +539,7 @@ export function buildSalesOverviewInventoryGroups(
 				const qtyPending =
 					component.status === "fulfilled"
 						? 0
-						: Math.max(0, qtyRequired - qtyAllocated - qtyReceived);
+						: Math.max(0, qtyRequired - Math.max(qtyAllocated, qtyReceived));
 				const qtyInStock = sumBy(component.inventoryVariant?.stocks, (stock) =>
 					positiveNumberValue(stock.qty),
 				);

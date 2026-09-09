@@ -11,6 +11,20 @@
 - Review metadata stays separate from invoice/payment totals and full payment
   history. Request/response field names and mutation permissions are unchanged.
 
+## Sales completion presentation (2026-09-08)
+
+- Shared production, fulfillment and headline display labels now use Completed
+  for operational and administrative completion, with emerald completion tone.
+  This supersedes the earlier Ticket 19 Marked as completed display wording.
+- Materialized Sales Orders reads refresh labels/tone from current canonical
+  metadata; no persisted snapshot rewrite or data migration is required.
+- The single visible Completed lifecycle option uses `fulfilled` and matches
+  both `fulfilled` and `administratively_completed` in indexed candidate queries
+  and the shared final predicate. Saved administrative-only filters still work.
+  Counts, summaries, lists and exports use that same filter expansion.
+- Stored codes, revisions, audit records, completion commands and workspace
+  eligibility are unchanged. No request shape or permission contract changes.
+
 ## Completion confirmation (Ticket21, local implementation)
 
 Direct, bulk and explicit-fallback status-only completion inputs accept omitted
@@ -2621,7 +2635,46 @@ capabilities and evidence revisions. `sales.receiveProductionInbound` accepts
 order/inbound IDs, expected revision and request UUID; physical receipt, scoped
 Needs allocation, allocation confirmation and audit run transactionally. A failed
 application rolls back receiving. Replayed successful requests do not receive twice.
-Production submissions are not approved by this command.
+Linked eligible pending reviews now finalize through the canonical transaction-level
+review command after allocation; invalid scopes and unresolved material evidence
+remain pending. This includes exactly-once payroll and canonical completion effects.
+
+The query also returns admin-only `receipts` with originating `receiptId`,
+`inboundId`, `receivedAt` and a cancellation-unavailable explanation. Independent
+`receiptCursor`/`nextReceiptCursor` paginate saved events, 20 per page, newest first.
+Order authorization precedes history access; workers receive no admin history.
+The Production panel retains receipt confirmations and Open inbound after reload.
+Cancellation is still under implementation and is not exposed as an executable action.
+
+New `production_inbound_received` events are version 2 and include transactional
+before/after receipt provenance (shipment, materials, stock, reviews, payroll,
+payment-review fields, completion records and assignment/submission scope). Evidence
+is capped at 500 rows per collection and 1 MB; excess rolls back the command.
+This audit is internal and is not returned in the history response. Legacy version
+1 events remain unchanged. The audit alone does not enable cancellation.
+
+`sales.cancelProductionInbound` now accepts `salesOrderId`, originating `receiptId`
+and an idempotency UUID. It re-resolves actor permissions inside a Serializable
+transaction and requires both admin Production visibility and inbound editing.
+The command compares current evidence with the complete version 2 audit, restores
+only receipt changes, appends reversing stock movements, restores eligible pending
+reviews/payment-review fields, soft-deletes new pending payroll, cancels originating
+full-workflow completion records and refreshes projections. Replays do not reverse
+twice. Legacy/incomplete evidence, changed state or payroll in payment processing
+refuses cancellation. Audit now includes commercial order state, other stock
+commitments, dispatches and packing reports for downstream-change comparison.
+
+History rows add `cancelled` and `canCancel`; legacy rows expose a reason instead.
+The UI renders admin-only Cancel review and updates to receipt cancelled after
+success. Both receipt mutations publish Inventory and Production query events.
+Broader downstream/race/browser acceptance is still in progress.
+
+Cancellation additionally validates complete before-state group structure, immutable
+row ownership, dates, nonnegative quantities, receipt totals and monotonic deltas
+before restoration. Original null stock prices are preserved. Pending-inbound reads
+return worker `needsSupervisor` from current scoped shortages and pending reviews;
+receipt results persist/replay this outcome. The UI uses refreshed query evidence,
+so guidance survives reload and disappears when the underlying condition is resolved.
 
 Receipt review refinement: use Serializable isolation, validate pending allocation
 Need/variant/physical-stock capacity before confirmation, and return remaining
@@ -2631,7 +2684,55 @@ The command requires one persisted projection; a skipped refresh rolls back rece
 allocation and audit so success cannot leave the order list stale. Inbound item
 selection is scoped before limiting.
 
+### Production order presentation follow-up (2026-09-08, in progress)
+
+Production calendar and order table responses now add `orderPresentation` with
+`primary` (`code`, `label`, `detail`, `basis`), `attention` (ordered distinct
+`code`/`message` entries) and `reportedQty`. Pending review classifications are
+loaded once for the displayed orders' active pending submissions. This is a
+read-only presentation contract; canonical pipeline fields and filter membership
+remain unchanged. Reported completion is explicitly distinguished from finalized
+completion in details. Missing/stale evidence keeps an unknown primary state.
+Receipt reconciliation/cancellation remain under implementation in
+`tasks/2026-09-08-production-receipt-follow-up-and-cancel-review.md`.
+
+## Explicit sale copy activity (2026-09-08)
+
+sales.copySale and the copy phase of sales.moveSale opt into the shared copy
+transaction's activityOperation=copy|move. A newly created destination requires
+one NotePad activity to persist before copy success; audit errors roll back the
+copy transaction and use the existing error response. No public input change.
+The note carries channel=sales_info, source=system, type=system,
+activity=sales_copied, status=public, destination salesId/salesNo/orderNo,
+sourceSalesId/sourceSalesNo/sourceSalesType and operation. Sender contact and
+createdById resolve from the authenticated employee without an email requirement.
+Returning an existing converted order emits no new copy event. Checkout and
+*-hx copies do not opt into this writer. Move's later source soft-delete retains
+its existing separate transaction behavior; the activity proves the destination
+copy, not atomic completion of the entire move. No historical data repair.
+
 ## Post-save sales job calibration (2026-09-08)
 `sync-sales-inventory-line-items` accepts optional `skipInventory: boolean`. Every run calibrates saved sales controls and the persisted list summary first; true skips ordinary inventory synchronization for legacy/PO-only saves. Existing callers that omit it continue inventory synchronization after calibration. The list query gains no saved-item requirement joins. Calibration uses the SalesOrders row lock shared by workflow commands and rebuilds derived totals rather than issuing assignments or completion commands.
 
 Sales Orders and General overview now expose `archivedAt` independently of the pipeline snapshot. The persisted order-list payload includes it at projection version 6, so an unavailable workflow summary does not prevent authorized archive/restore actions. No additional database relation is loaded for archive state.
+
+## Sales save identity reconciliation and errors — 2026-09-09
+
+- Approved snapshot consistency checking resolves only missing child door/shelf IDs through unique same-parent semantic matching. It does not substitute known IDs or change commercial values. Ambiguous/genuine mismatches return reportable `SALES_RELATIONAL_REVIEW_REQUIRED` via PRECONDITION_FAILED with safe administrator guidance.
+- `PRECONDITION_FAILED` is no longer mistaken for a Prisma P-code; Prisma code recognition requires P followed by four digits.
+- Dashboard `refreshSavedSalesStatsAction` returns `{ok:true}` or `{ok:false,error:PublicError}`. Failures use reportable `SALES_POST_SAVE_REFRESH_FAILED` and preserve a single reference through server capture and UI display. The form treats this as a post-commit failure, preserving the saved status.
+- No schema/auth/approval-policy changes. Existing commitment and stale-version guards remain enforced. Dashboard/API and adjustment-worker changes require coordinated rollout.
+
+## Production material availability — 2026-09-09
+
+Completed-shipment application is now supported in the synchronization command. Preview exposes applicableDemandCount, while internal unappliedInboundNeeds evidence is stripped from public availability/covered-material responses. The transaction applies only scoped active demand rows up to remaining good receipt capacity, recomputes their components, reserves available stock and finalizes eligible submissions. Result appliedDemandCount and audit demandApplications capture the guarded before/after quantities. Issue quantities and other orders' demand rows are never applied by this scope.
+
+Received reservation extension: coveredProductionMaterials exposes applicableReceivedQty; internal stock evidence and reservation/component plans are omitted from the API response. Apply covered materials now reserves received-but-unallocated quantities through canonical stock primitives and returns appliedReceivedQty. Reservation budgets subtract prior receipt-attributed allocations and account for pending allocations approved in the same transaction. Its audit allocationReceipts is recognized by availability reads, preventing historical receipt reuse. Completed shipments with unapplied demand receipt quantities remain a separate unfinished path.
+
+Allocation application extension: coveredProductionMaterials additionally returns applicableAllocationCount, applicableComponentIds, allocationBlocked and canApplyAllocations. The command approves only existing pending allocations backed by matching physical stock and remaining component need, counts already committed stock across orders, and re-evaluates reviews afterward. Invalid components remain untouched while valid components may proceed. Results include appliedAllocationCount and the durable audit includes allocationIds. Read-only previews never apply stock; quantities without a valid allocation proposal still require the remaining received-Needs application work.
+
+Covered-review extension: `sales.coveredProductionMaterials({salesOrderId})` returns scoped pending/eligible/blocked review counts, actor capability and an evidence revision without writes. `sales.applyCoveredProductionMaterials({salesOrderId,expectedRevision,idempotencyKey})` revalidates authority and live evidence in a serializable transaction, invokes established review reconciliation, records `production_covered_materials_applied`, and refreshes canonical pipeline/list projections. It returns resolvedCount, remainingReviewCount and replayed. Identical actor/request retries return the prior result; different payloads under the same key conflict. Current implementation handles already-covered reviews; received-but-unapplied Needs application and UI integration remain open.
+- `sales.productionAvailability({salesOrderId})`: minimal scoped needs, per-component eligible quantities, actual/pending inbound counts, state, worker flag, capability and revision. No prices or contact data.
+- `sales.productionAvailabilitySuppliers({salesOrderId})`: all nondeleted supplier IDs/names after the same scoped authority check.
+- `sales.markProductionMaterialsAvailable`: salesOrderId, expectedRevision, UUID idempotencyKey, nullable supplierId, receivedDate YYYY-MM-DD, selection all or selected `{id,qty}` rows, optional note. Returns inboundId, receivedQty, remainingQty, needsReview and replayed. Stale revisions/invalid scope fail transactionally. Identical actor/key/payload retries return the original result; changed payload conflicts.
+- Audit Event type `production_materials_available` stores request hash, selection, supplier/date, result and receipt allocation quantities with component/stock identity. Existing schema only. Central mutation events refresh inventory/inbound and sales pipeline/Production surfaces.

@@ -34,5 +34,14 @@ export function getSpecialOrderSignalState(
 			: status === "CUSTOMER_DECLINED"
 				? "Customer declined"
 				: "Signature pending";
-	return { label: "Not signed", variant: "destructive", detail };
+	return {
+		label:
+			status === "CUSTOMER_DECLINED"
+				? "Declined"
+				: status === "REAPPROVAL_REQUIRED"
+					? "Reapproval required"
+					: "Awaiting signature",
+		variant: status === "CUSTOMER_DECLINED" ? "destructive" : "outline",
+		detail,
+	};
 }

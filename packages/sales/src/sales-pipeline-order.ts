@@ -7,6 +7,7 @@ import {
 } from "./sales-pipeline";
 
 export const salesPipelineOrderSelect = {
+
 	id: true,
 	orderId: true,
 	status: true,

@@ -51,3 +51,28 @@ describe("tRPC error contract", () => {
 		);
 	});
 });
+
+it("preserves a reportable sales integrity reason and reference through transport", async () => {
+	const { AppError } = await import("@gnd/errors");
+	const { buildErrorReport } = await import("@gnd/observability");
+	const error = new AppError({
+		code: "SALES_RELATIONAL_REVIEW_REQUIRED",
+		referenceId: "ERR-SALES-REVIEW",
+		internalMessage: "Internal projection details",
+	});
+	const normalized = normalizeTrpcError(error, "newSalesForm.saveFinal");
+	const envelope = getTrpcPublicError(normalized);
+	const report = buildErrorReport(normalized, {
+		runtime: "api",
+		source: "trpc",
+		operation: "newSalesForm.saveFinal",
+	});
+	expect(normalized.code).toBe("PRECONDITION_FAILED");
+	expect(envelope.code).toBe("SALES_RELATIONAL_REVIEW_REQUIRED");
+	expect(envelope.message).toContain("previously approved change");
+	expect(envelope.message).not.toContain("Internal projection details");
+	expect(envelope.retryable).toBe(false);
+	expect(report.classified.reportable).toBe(true);
+	expect(report.captureContext.tags.error_reference).toBe(envelope.referenceId);
+	expect(envelope.referenceId).toBe("ERR-SALES-REVIEW");
+});

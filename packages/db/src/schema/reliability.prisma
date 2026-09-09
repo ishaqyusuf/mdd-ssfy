@@ -1,0 +1,114 @@
+model ReliabilityIncident {
+    id             String                  @id @default(cuid())
+    problemKey     String                  @unique @db.VarChar(64)
+    serviceId      String                  @db.VarChar(160)
+    owner          String                  @db.VarChar(160)
+    severity       String                  @db.VarChar(16)
+    status         String                  @db.VarChar(40)
+    revision       Int                     @default(1)
+    occurrenceCount Int                    @default(1)
+    firstSeenAt    DateTime                 @db.DateTime(3)
+    lastSeenAt     DateTime                 @db.DateTime(3)
+    resolvedAt     DateTime?                @db.DateTime(3)
+    observation    Json?
+    analysis       Json?
+    createdAt      DateTime                 @default(now()) @db.DateTime(3)
+    updatedAt      DateTime                 @updatedAt @db.DateTime(3)
+    occurrences    ReliabilityOccurrence[]
+    deliveries     ReliabilityDelivery[]
+    transitions    ReliabilityTransition[]
+
+    @@index([status, severity, lastSeenAt])
+    @@index([serviceId, lastSeenAt])
+}
+
+model ReliabilityOccurrence {
+    id             String              @id @default(cuid())
+    occurrenceKey  String              @unique @db.VarChar(64)
+    incidentId     String
+    provider       String              @db.VarChar(32)
+    account        String              @db.VarChar(160)
+    project        String              @db.VarChar(160)
+    environment    String              @db.VarChar(32)
+    providerEventId String             @db.VarChar(160)
+    providerGroupId String             @db.VarChar(160)
+    operation      String              @db.VarChar(160)
+    impact         String              @db.VarChar(40)
+    occurredAt     DateTime            @db.DateTime(3)
+    receivedAt     DateTime            @default(now()) @db.DateTime(3)
+    evidence       Json?
+    incident       ReliabilityIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+
+    @@index([incidentId, occurredAt])
+    @@index([provider, receivedAt])
+}
+
+model ReliabilityDelivery {
+    id             String              @id @default(cuid())
+    actionKey      String              @unique @db.VarChar(64)
+    incidentId     String
+    destination    String              @db.VarChar(32)
+    action         String              @db.VarChar(40)
+    revision       Int
+    status         String              @default("PENDING") @db.VarChar(32)
+    attempts       Int                 @default(0)
+    nextAttemptAt  DateTime            @default(now()) @db.DateTime(3)
+    leaseId        String?             @db.VarChar(64)
+    leaseExpiresAt DateTime?           @db.DateTime(3)
+    remoteId       String?             @db.VarChar(255)
+    lastErrorCode  String?             @db.VarChar(80)
+    completedAt    DateTime?           @db.DateTime(3)
+    createdAt      DateTime            @default(now()) @db.DateTime(3)
+    updatedAt      DateTime            @updatedAt @db.DateTime(3)
+    incident       ReliabilityIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+
+    @@index([status, nextAttemptAt])
+    @@index([incidentId, destination, revision])
+    @@index([leaseExpiresAt])
+}
+
+model ReliabilityTransition {
+    id             String              @id @default(cuid())
+    actionKey      String              @unique @db.VarChar(64)
+    incidentId     String
+    actor          String              @db.VarChar(160)
+    action         String              @db.VarChar(40)
+    fromStatus     String?             @db.VarChar(40)
+    toStatus       String              @db.VarChar(40)
+    revision       Int
+    occurredAt     DateTime            @default(now()) @db.DateTime(3)
+    incident       ReliabilityIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+
+    @@index([incidentId, revision])
+}
+
+model ReliabilityRunWatch {
+    id             String    @id @default(cuid())
+    watchKey       String    @unique @db.VarChar(64)
+    serviceId      String    @db.VarChar(160)
+    account        String    @db.VarChar(160)
+    project        String    @db.VarChar(160)
+    environment    String    @db.VarChar(32)
+    runId          String    @db.VarChar(160)
+    providerStatus String    @db.VarChar(40)
+    terminal       Boolean   @default(false)
+    providerCreatedAt DateTime @db.DateTime(3)
+    providerUpdatedAt DateTime? @db.DateTime(3)
+    lastCheckedAt  DateTime?  @db.DateTime(3)
+    nextCheckAt    DateTime   @default(now()) @db.DateTime(3)
+    createdAt      DateTime   @default(now()) @db.DateTime(3)
+    updatedAt      DateTime   @updatedAt @db.DateTime(3)
+
+    @@index([terminal, nextCheckAt])
+}
+
+model ReliabilityCursor {
+    id             String    @id @db.VarChar(64)
+    watermark      DateTime? @db.DateTime(3)
+    lastSuccessAt  DateTime? @db.DateTime(3)
+    lastErrorCode  String?   @db.VarChar(80)
+    leaseId        String?   @db.VarChar(64)
+    leaseExpiresAt DateTime? @db.DateTime(3)
+    checkpoint     Json?
+    updatedAt      DateTime  @updatedAt @db.DateTime(3)
+}

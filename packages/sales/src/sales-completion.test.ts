@@ -81,7 +81,7 @@ function resolve(
 }
 
 describe("sales completion projection", () => {
-	test("resolves order rows once and labels status-only completion explicitly", () => {
+	test("resolves order rows once and presents completion normally while preserving status-only evidence", () => {
 		const projection = resolveSalesCompletionProjectionFromOrder({
 			id: 91,
 			orderId: "091LRG",
@@ -95,9 +95,7 @@ describe("sales completion projection", () => {
 		});
 		expect(projection.productionCompletionSatisfied).toBe(true);
 		expect(projection.operationalProductionCompleted).toBe(false);
-		expect(salesCompletionLabels(projection).production).toBe(
-			"Completed — status only",
-		);
+		expect(salesCompletionLabels(projection).production).toBe("Completed");
 	});
 
 	test("uses the latest completion record revision for persisted projection freshness", () => {
@@ -662,7 +660,10 @@ describe("status-only completion batches", () => {
 		expect(fixture.records).toHaveLength(2);
 		expect(fixture.history).toHaveLength(3);
 		expect(fixture.activities).toHaveLength(2);
-		expect(fixture.activities.map(item => item.headline)).toEqual(["Marked as completed by Admin", "Marked as completed by Admin"]);
+		expect(fixture.activities.map((item) => item.headline)).toEqual([
+			"Marked as completed by Admin",
+			"Marked as completed by Admin",
+		]);
 	});
 
 	test("rejects a changed batch payload under the same request", async () => {

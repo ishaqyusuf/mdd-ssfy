@@ -1,10 +1,13 @@
 import type { CopySaleSchema, MoveSaleSchema } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
-import { createNoteAction } from "@notifications/note";
 import { copySales } from "@sales/copy-sales";
 import { waitUntil } from "@vercel/functions";
 
-export async function copySale(ctx: TRPCContext, input: CopySaleSchema) {
+export async function copySale(
+	ctx: TRPCContext,
+	input: CopySaleSchema,
+	operation: "copy" | "move" = "copy",
+) {
 	if (!ctx.userId) {
 		throw new Error("Unauthorized");
 	}
@@ -24,35 +27,8 @@ export async function copySale(ctx: TRPCContext, input: CopySaleSchema) {
 			name: author.name || "",
 		},
 		deferPostCommit: waitUntil,
+		activityOperation: operation,
 	});
-
-	if (result.id) {
-		waitUntil(
-			createNoteAction({
-				db: ctx.db,
-				authorId: ctx.userId,
-				note: `Copied from ${input.salesUid}`,
-				headline: "Copy Action",
-				type: "general",
-				tags: [
-					{
-						tagName: "salesId",
-						tagValue: String(result.id),
-					},
-					{
-						tagName: "type",
-						tagValue: "general",
-					},
-					{
-						tagName: "status",
-						tagValue: "public",
-					},
-				],
-			}).catch((error) => {
-				console.error("Unable to record sales copy note", error);
-			}),
-		);
-	}
 
 	return {
 		error: result.error,
@@ -64,11 +40,15 @@ export async function copySale(ctx: TRPCContext, input: CopySaleSchema) {
 }
 
 export async function moveSale(ctx: TRPCContext, input: MoveSaleSchema) {
-	const copied = await copySale(ctx, {
-		salesUid: input.salesUid,
-		as: input.to,
-		type: input.type,
-	});
+	const copied = await copySale(
+		ctx,
+		{
+			salesUid: input.salesUid,
+			as: input.to,
+			type: input.type,
+		},
+		"move",
+	);
 
 	if (copied.error || !copied.id) {
 		return copied;

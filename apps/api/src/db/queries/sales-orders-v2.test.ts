@@ -98,7 +98,7 @@ function materializedPipelineFixture() {
 		headline: {
 			code: "partially_fulfilled",
 			label: "Partially fulfilled",
-			tone: "warning",
+			tone: "sky",
 		},
 		production: { state: "completed" },
 		fulfillment: { state: "partially_fulfilled" },
@@ -148,7 +148,7 @@ describe("materialized sales pipeline rollout", () => {
 			productionState: "completed",
 			productionLabel: "Completed",
 			fulfillmentState: "partially_fulfilled",
-			fulfillmentLabel: "Partially Fulfilled",
+			fulfillmentLabel: "Partially fulfilled",
 		});
 	});
 });
@@ -342,8 +342,8 @@ describe("sales orders default query contract", () => {
 		);
 		expect(row.productionState).toBe("unknown");
 		expect(row.fulfillmentState).toBe("N/A");
-		expect(row.productionLabel).toContain("implied by Fulfillment");
-		expect(row.fulfillmentLabel).toBe("Administratively completed");
+		expect(row.productionLabel).toBe("Completed");
+		expect(row.fulfillmentLabel).toBe("Completed");
 		expect(row.completion.fulfillmentEffectiveAt).toBeNull();
 	});
 	it("keeps cohort-excluded read requests on legacy and emits one safe event", async () => {
@@ -866,4 +866,28 @@ describe("sales orders default query contract", () => {
 			},
 		});
 	});
+});
+
+it("refreshes stored completion labels without changing canonical state or evidence", () => {
+	const pipeline = materializedPipelineFixture();
+	pipeline.headline = {
+		...pipeline.headline,
+		code: "administratively_completed",
+		label: "Marked as completed",
+		tone: "stone",
+	};
+	pipeline.production.state = "administratively_completed";
+	pipeline.fulfillment.state = "fulfilled";
+	const row = applyMaterializedSalesPipelineReadMode({ pipeline });
+	expect(row).toMatchObject({
+		status: "administratively_completed",
+		statusLabel: "Completed",
+		statusTone: "emerald",
+		productionLabel: "Completed",
+		fulfillmentLabel: "Completed",
+	});
+	expect((row.pipeline as SalesPipelineSnapshot).evidence).toBe(
+		pipeline.evidence,
+	);
+	expect(pipeline.headline.label).toBe("Marked as completed");
 });

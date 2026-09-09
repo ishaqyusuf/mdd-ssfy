@@ -93,3 +93,12 @@ describe("canonical Sales Pipeline database queries", () => {
 		});
 	});
 });
+
+it("Completed candidates include both canonical completion paths", () => {
+	const where = buildCanonicalSalesPipelineFilterWhere({
+		headlines: ["fulfilled"],
+	});
+	expect(JSON.stringify(where)).toContain(
+		'"pipelineHeadline":{"in":["fulfilled","administratively_completed"]}',
+	);
+});

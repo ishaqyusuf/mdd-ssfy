@@ -1,5 +1,7 @@
 "use client";
 
+import { AvailabilityActionGroup } from "@/components/sheets/sales-overview-sheet/availability/availability-action-group";
+
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { InboundNeedsApplicationActions } from "@/components/inventory/inbound-needs-application-actions";
@@ -1155,10 +1157,8 @@ function InventoryActionBar({
 					>
 						Create inbound
 					</Button>
-					<Button
-						type="button"
-						size="sm"
-						variant="outline"
+					<AvailabilityActionGroup
+						salesOrderId={salesOrderId}
 						disabled={!canMarkNeedsAvailable}
 						title={
 							!capabilities.canMarkAvailable
@@ -1168,7 +1168,7 @@ function InventoryActionBar({
 									? "No pending inventory needs require manual fulfillment."
 									: undefined
 						}
-						onClick={() => {
+						onOpenForm={() => {
 							if (onCreateInbound) {
 								onCreateInbound("mark_available");
 							} else if (
@@ -1184,9 +1184,7 @@ function InventoryActionBar({
 								setIsInboundFormOpen(true);
 							}
 						}}
-					>
-						Mark as available
-					</Button>
+					/>
 				</div>
 			</div>
 			{isInboundFormVisible ? (
@@ -2046,6 +2044,7 @@ function InventoryLineRow({
 }) {
 	const isNeed = isInventoryNeedRow(row);
 	const coverage = resolveInventoryCoverageDisplay({
+		qtyPending: row.qtyPending,
 		qtyRequired: row.qtyRequired,
 		qtyAllocated: row.qtyAllocated,
 		qtyReceived: row.qtyReceived,

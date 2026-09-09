@@ -36,7 +36,7 @@ describe("canonical item material badge", () => {
 				import.meta.url,
 			),
 		).text();
-		expect(productionTab).toContain('audience="worker"');
+		expect(productionTab).toContain("ProductionPendingInbounds");
 		expect(productionTab).not.toContain("ItemMaterialStatusDetail");
 		expect(productionTab).not.toContain("ProductionInboundSummary");
 	});

@@ -133,3 +133,80 @@ describe("General V2 view model", () => {
 		expect(view.paymentStatus).toBe("Settled");
 	});
 });
+
+describe("completed operations presentation", () => {
+	for (const productionState of [
+		"completed",
+		"administratively_completed",
+	] as const) {
+		for (const fulfillmentState of [
+			"fulfilled",
+			"administratively_completed",
+		] as const) {
+			for (const qty of [0, 4, 10]) {
+				test(`${productionState}/${fulfillmentState} renders complete with ${qty} recorded units`, () => {
+					const pipeline = {
+						production: {
+							state: productionState,
+							requiredQty: 10,
+							completedQty: qty,
+						},
+						fulfillment: {
+							state: fulfillmentState,
+							requiredQty: 10,
+							deliveredQty: qty,
+						},
+					} as SalesOverviewData["pipeline"];
+					const view = createGeneralTabV2ViewModel(overview({ pipeline }));
+					expect(view.production).toEqual({
+						status: "Completed",
+						percentage: 100,
+					});
+					expect(view.fulfillment).toEqual({
+						status: "Completed",
+						percentage: 100,
+					});
+					expect(pipeline?.production.completedQty).toBe(qty);
+				});
+			}
+		}
+	}
+	test("production completion leaves unfinished fulfillment independent", () => {
+		const view = createGeneralTabV2ViewModel(
+			overview({
+				pipeline: {
+					production: {
+						state: "administratively_completed",
+						requiredQty: 10,
+						completedQty: 0,
+					},
+					fulfillment: {
+						state: "in_transit",
+						requiredQty: 10,
+						deliveredQty: 4,
+					},
+				} as SalesOverviewData["pipeline"],
+			}),
+		);
+		expect(view.production).toEqual({ status: "Completed", percentage: 100 });
+		expect(view.fulfillment).toEqual({ status: "In Transit", percentage: 40 });
+	});
+});
+
+test("a completed order's non-required production stage is visually complete", () => {
+	const view = createGeneralTabV2ViewModel(
+		overview({
+			pipeline: {
+				headline: { code: "administratively_completed" },
+				production: { state: "not_required", requiredQty: 0, completedQty: 0 },
+				fulfillment: {
+					state: "administratively_completed",
+					requiredQty: 3,
+					deliveredQty: 0,
+				},
+			} as SalesOverviewData["pipeline"],
+		}),
+	);
+	expect(view.production).toEqual({ status: "Completed", percentage: 100 });
+	expect(view.fulfillment).toEqual({ status: "Completed", percentage: 100 });
+});

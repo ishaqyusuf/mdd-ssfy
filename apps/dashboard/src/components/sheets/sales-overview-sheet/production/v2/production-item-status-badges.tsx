@@ -26,7 +26,7 @@ export function ProductionItemStatusBadges({
 	const staffedAssignmentCount =
 		assignments.filter((assignment) => assignment.assignedTo?.id).length || 0;
 	const badges = getProductionItemStatusBadges({
-		assignmentCount,
+		workerMode,		assignmentCount,
 		assigned: getQuantityMatrixTotal(stats?.prodAssigned),
 		fulfilled: getQuantityMatrixTotal(stats?.dispatchCompleted),
 		shippable: Boolean(item.itemConfig?.shipping),
@@ -36,7 +36,7 @@ export function ProductionItemStatusBadges({
 		total: getQuantityMatrixTotal(workerMode ? stats?.prodAssigned : item.qty),
 	});
 
-	const showMaterialBadge = shouldShowProductionMaterialBadge({
+	const showMaterialBadge = !workerMode && shouldShowProductionMaterialBadge({
 		code: item.materialStatus?.code,
 		reported: item.analytics?.reportedSubmitQty,
 		completed: getQuantityMatrixTotal(stats?.prodCompleted),

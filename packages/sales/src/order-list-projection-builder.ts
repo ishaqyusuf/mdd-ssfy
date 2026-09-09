@@ -20,6 +20,10 @@ import { readSalesFormPo } from "./sales-form/application/legacy-metadata";
 import { resolveSalesInventoryApplicability } from "./sales-inventory-applicability";
 import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
+import {
+	getSalesPipelineProductionStateLabel,
+	getSalesPipelineFulfillmentStateLabel,
+} from "./sales-pipeline";
 import { getSalesPipelineSnapshots } from "./sales-pipeline-order";
 import { getSpecialOrderStatusLabel } from "./special-order";
 import { withSalesControl } from "./utils/with-sales-control";
@@ -623,17 +627,13 @@ export async function refreshSalesOrderListProjections(
 			...payload,
 			pipeline: canonicalPipeline,
 			productionState: selectedPipeline?.production.state ?? "unknown",
-			productionLabel: row.completion.productionCompletionSatisfied
-				? row.productionLabel
-				: selectedPipeline?.production.state === "administratively_completed"
-					? "Administratively completed"
-					: productionLabel(selectedPipeline?.production.state ?? "unknown"),
+			productionLabel: getSalesPipelineProductionStateLabel(
+				selectedPipeline?.production.state ?? "unknown",
+			),
 			fulfillmentState: selectedPipeline?.fulfillment.state ?? "unknown",
-			fulfillmentLabel: row.completion.fulfillmentCompletionSatisfied
-				? row.fulfillmentLabel
-				: selectedPipeline?.fulfillment.state === "administratively_completed"
-					? "Administratively completed"
-					: titleCaseStatus(selectedPipeline?.fulfillment.state ?? "unknown"),
+			fulfillmentLabel: getSalesPipelineFulfillmentStateLabel(
+				selectedPipeline?.fulfillment.state ?? "unknown",
+			),
 			status: selectedPipeline?.headline.code ?? "unknown",
 			statusLabel: getSalesOrderStatusPresentation(selectedPipeline).label,
 			statusTone: getSalesOrderStatusPresentation(selectedPipeline).tone,

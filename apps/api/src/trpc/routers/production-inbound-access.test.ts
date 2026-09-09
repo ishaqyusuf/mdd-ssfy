@@ -5,6 +5,8 @@ import { salesRouter } from "./sales.route";
 
 function context(permissions: string[], enabled = false): TRPCContext {
 	const tx = {
+		event: { findMany: async () => [] },
+		salesProductionSubmissionMaterialReview: { count: async () => 0 },
 		$queryRaw: async () => [],
 		users: {
 			findFirstOrThrow: async () => ({
@@ -76,10 +78,19 @@ test("worker can read their scoped empty pending list without Inventory editing 
 	const caller = salesRouter.createCaller(context(["viewProduction"]));
 	expect(await caller.productionPendingInbounds({ salesOrderId: 1 })).toEqual({
 		count: 0,
+		needsSupervisor: false,
+		workerMode: true,
+		receipts: [],
+		nextReceiptCursor: null,
 		rows: [],
 		nextCursor: null,
 		receivingEnabled: false,
 	});
+});
+
+for (const enabled of [false, true]) test(`worker cancellation is denied by actual API route (receiving enabled: ${enabled})`, async () => {
+	const caller = salesRouter.createCaller(context(["viewProduction"], enabled));
+	await expect(caller.cancelProductionInbound({ salesOrderId: 1, receiptId: 1, idempotencyKey: "40c03435-1820-4b1c-8e44-07d19af2bb08" })).rejects.toThrow("Only an administrator");
 });
 
 test("Inventory-only permission does not grant general Production dashboard access", async () => {
@@ -93,4 +104,15 @@ test("Inventory-only permission does not grant general Production dashboard acce
 	} catch (error) {
 		expect((error as { code: string }).code).toBe("FORBIDDEN");
 	}
+});
+
+test("availability shortcut does not grant production workers broad inventory authority", async () => {
+ const caller = salesRouter.createCaller(context(["viewProduction"]));
+ await expect(caller.markProductionMaterialsAvailable({salesOrderId:1,expectedRevision:"a".repeat(64),idempotencyKey:crypto.randomUUID(),supplierId:null,receivedDate:"2026-09-08",selection:{mode:"all"}})).rejects.toThrow("cannot mark materials available");
+ await expect(caller.productionAvailabilitySuppliers({salesOrderId:1})).rejects.toThrow("cannot mark materials available");
+});
+
+test("covered-material reconciliation rejects disabled workers at the actual API boundary", async () => {
+ const caller=salesRouter.createCaller(context(["viewProduction"]));
+ await expect(caller.applyCoveredProductionMaterials({salesOrderId:1,expectedRevision:"a".repeat(64),idempotencyKey:crypto.randomUUID()})).rejects.toThrow("cannot apply covered production materials");
 });

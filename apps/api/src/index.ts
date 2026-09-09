@@ -2,6 +2,7 @@ import "./instrument";
 
 import { randomUUID } from "node:crypto";
 import { db } from "@gnd/db";
+import { getTriggerReconciliationHealth, ingestReliabilityOccurrence } from "@gnd/db/queries";
 import type { DevLogEntry } from "@gnd/dev-logger";
 import { classifyError } from "@gnd/errors";
 import { verifySquareWebhookSignature } from "@gnd/square";
@@ -12,6 +13,14 @@ import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { captureApiError, captureTrpcError } from "./observability/sentry";
 import { getRestErrorResponse } from "./rest/error-response";
+import { handleReliabilityHealthRequest } from "./rest/reliability-health";
+import { readConfiguredReliabilityHealth } from "./rest/reliability-health-sources";
+import { resolveSentryRegistration } from "./rest/reliability-registration";
+import { handleSentryAlertRequest } from "./rest/reliability-sentry";
+import { handleVercelDrainRequest } from "./rest/reliability-vercel";
+import { handleVercelDeploymentRequest } from "./rest/reliability-vercel-deployment";
+import { resolveVercelDeploymentRegistration } from "./rest/reliability-vercel-deployment-registration";
+import { resolveVercelDrainRegistration } from "./rest/reliability-vercel-registration";
 import type { Context } from "./rest/types";
 import { createTRPCContext } from "./trpc/init";
 import { appRouter } from "./trpc/routers/_app";
@@ -25,6 +34,45 @@ app.use("*", async (c, next) => {
 	c.set("requestId", requestId);
 	c.header("x-request-id", requestId);
 	await next();
+});
+app.get("/api/reliability/health", (c) =>
+	handleReliabilityHealthRequest(c.req.raw, {
+		token: process.env.RELIABILITY_MONITOR_TOKEN ?? null,
+		read: () => readConfiguredReliabilityHealth(process.env.RELIABILITY_MONITOR_SOURCES, new Date(), (source, input) => getTriggerReconciliationHealth(db, source, input)),
+	}),
+);
+app.post("/api/webhooks/reliability/vercel/:registrationId", async (c) => {
+	try {
+		return await handleVercelDrainRequest(c.req.raw, {
+			registration: resolveVercelDrainRegistration(c.req.param("registrationId"), process.env),
+			now: () => new Date(),
+			persist: (intake) => ingestReliabilityOccurrence(db, intake),
+		});
+	} catch { return c.json({ error: "CONFIGURATION_UNAVAILABLE" }, 503); }
+});
+app.post("/api/webhooks/reliability/vercel-deployments/:registrationId", async (c) => {
+	try {
+		return await handleVercelDeploymentRequest(c.req.raw, {
+			registration: resolveVercelDeploymentRegistration(c.req.param("registrationId"), process.env),
+			now: () => new Date(),
+			persist: (intake) => ingestReliabilityOccurrence(db, intake),
+		});
+	} catch { return c.json({ error: "CONFIGURATION_UNAVAILABLE" }, 503); }
+});
+app.post("/api/webhooks/reliability/sentry/:registrationId", async (c) => {
+	try {
+		const registration = resolveSentryRegistration(
+			c.req.param("registrationId"),
+			process.env,
+		);
+		return await handleSentryAlertRequest(c.req.raw, {
+			registration,
+			now: () => new Date(),
+			persist: (intake) => ingestReliabilityOccurrence(db, intake),
+		});
+	} catch {
+		return c.json({ error: "CONFIGURATION_UNAVAILABLE" }, 503);
+	}
 });
 if (process.env.NODE_ENV === "development")
 	app.use(

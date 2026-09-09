@@ -1,5 +1,27 @@
 # Database Migrations
 
+## 2026-09-09: Reliability ledger local push; migration unresolved
+
+Follow-up: added nullable `ReliabilityRunWatch.providerUpdatedAt`. Client generation
+and verified local `db:push` succeeded. Required migration attempt
+`reliability_watch_provider_revision` exited 130 on the same broad schema/history
+drift and requested a reset; no reset or history rewrite was performed. The
+deployable migration artifact remains unresolved. The expanded 18-test local
+integration suite passes, including stale watch revision rejection.
+
+- `bun run db:generate` and `bun run db:push` succeeded against verified local
+  target `mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d`.
+- `bun run db:migrate -- -- --name autonomous_reliability_ledger` initially
+  could not access Docker under the sandbox. Retrying with local access reached
+  MySQL but reported broad schema/history drift, including existing business
+  tables and the six new reliability tables already added by the local push.
+- Prisma requested a database reset; no reset was performed. No migration was
+  manually authored, no migration-history rows were changed, and no generated
+  deployable migration artifact is claimed. This gate remains open.
+- Four real local-MySQL reliability tests pass and clean up only uniquely
+  namespaced reliability fixtures. This proves current query behavior against
+  the pushed schema, not migration-history correctness or hosted readiness.
+
 ## 2026-09-02: Sales Order workspace archive
 
 - Generated and locally applied additive migration

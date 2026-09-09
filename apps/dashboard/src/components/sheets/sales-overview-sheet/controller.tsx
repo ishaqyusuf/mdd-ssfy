@@ -111,7 +111,7 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "production",
 					label: "Productions",
-					content: <ProductionTabGateway />,
+					content: <ProductionTabGateway onCreateInbound={onCreateInbound} />,
 				},
 				{
 					value: "inventory",
@@ -137,7 +137,7 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "production",
 					label: "Productions",
-					content: <ProductionTabGateway />,
+					content: <ProductionTabGateway onCreateInbound={onCreateInbound} />,
 				},
 				{
 					value: "packing",
@@ -179,7 +179,7 @@ export function createLegacySalesOverviewTabs({
 					label: "Productions",
 					hidden: isQuote,
 					badge: prodBadge ? (prodBadge as ReactNode) : undefined,
-					content: <ProductionTabGateway />,
+					content: <ProductionTabGateway onCreateInbound={onCreateInbound} />,
 				},
 				{
 					value: "transactions",

@@ -9,6 +9,8 @@ import {
 	getSingleInventoryInboundId,
 } from "@/components/sales-inbound-status-badge";
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
+import type { SalesPipelineSnapshot } from "@sales/sales-pipeline";
+import { getProductionOrderPresentation } from "@sales/production-order-presentation";
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 import { SalesPrioritySelect } from "@/components/sales-priority-control";
 import {
@@ -41,6 +43,7 @@ import type {
 type SalesOverviewHeaderData = NonNullable<
 	ReturnType<typeof useSaleOverview>["data"]
 > & {
+	pipeline?: SalesPipelineSnapshot | null;
 	inventoryInboundOwnership?: InventoryInboundOwnershipLike | null;
 	generalViewVersion?: "v1" | "v2";
 	priority?: string | null;
@@ -76,6 +79,9 @@ export function LegacySalesOverviewHeader({
 		isQuote,
 	});
 	const documentStatus = getSalesOverviewDocumentStatus(data);
+	const headerStatusLabel = mode === "assigned-production"
+		? getProductionOrderPresentation(data?.pipeline).primary.label
+		: documentStatus.label;
 	const hasInventoryInbound =
 		!!data?.inventoryInboundOwnership?.hasInventoryInbound;
 	const selectedInventoryInboundId = getSingleInventoryInboundId(
@@ -109,7 +115,7 @@ export function LegacySalesOverviewHeader({
 							</SheetTitle>
 							<div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
 								<span className="font-medium text-foreground/80">
-									{documentStatus.label}
+									{headerStatusLabel}
 								</span>
 								{showInboundStatus ? (
 									<>

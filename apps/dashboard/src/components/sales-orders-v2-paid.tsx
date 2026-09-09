@@ -17,7 +17,6 @@ export function SalesOrdersV2Paid() {
         <SalesOrdersV2Summary
             data={data}
             title="Paid"
-            subtitle="Orders cleared in full."
             icon={Icons.ShieldCheck}
             value={data.paidOrders}
         />

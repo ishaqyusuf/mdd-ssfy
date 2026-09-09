@@ -1,5 +1,9 @@
 "use client";
 
+import {
+	ProductionAttentionButton,
+	ProductionAttentionTooltip,
+} from "@/components/sales-production/order-attention";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
@@ -128,6 +132,11 @@ const salesColumn: Column = {
 				<span className="shrink-0 font-mono text-xs font-medium uppercase text-muted-foreground">
 					{item.orderId}
 				</span>
+				<ProductionAttentionButton
+					presentation={item.orderPresentation}
+					orderNo={item.orderId}
+					customer={item.customer}
+				/>
 				<SalesPriorityBadge priority={item.priority} />
 			</div>
 		);
@@ -151,6 +160,11 @@ const customerColumn: Column = {
 				<span className="truncate font-mono text-sm font-semibold">
 					{row.original.orderId}
 				</span>
+				<ProductionAttentionButton
+					presentation={row.original.orderPresentation}
+					orderNo={row.original.orderId}
+					customer={row.original.customer}
+				/>
 				<SalesPriorityBadge priority={row.original.priority} />
 			</div>
 			<TextWithTooltip
@@ -241,10 +255,7 @@ const invoiceColumn: Column = {
 const statusColumn: Column = {
 	id: "productionStatus",
 	header: "Status",
-	accessorFn: (row) =>
-		row.pipeline?.production.state ||
-		row.status?.production?.workflow?.label ||
-		row.status?.production?.status,
+	accessorFn: (row) => row.orderPresentation.primary.label,
 	...sizes.custom(120, 190, 140),
 	enableResizing: true,
 	meta: {
@@ -252,23 +263,23 @@ const statusColumn: Column = {
 		headerLabel: "Status",
 		className: sizeClass(sizes.custom(120, 190, 140)),
 	},
-	cell: ({ row }) => {
-		const production = row.original.status?.production;
-		const pipeline = row.original.pipeline;
-
-		return (
-			<Progress>
-				<Progress.Status badge>
-					{pipeline?.production.state
-						?.replaceAll("_", " ")
-						.replace(/\b\w/g, (letter) => letter.toUpperCase()) ||
-						production?.workflow?.label ||
-						production?.status ||
-						"Not assigned"}
-				</Progress.Status>
-			</Progress>
-		);
-	},
+	cell: ({ row }) => (
+		<ProductionAttentionTooltip
+			presentation={row.original.orderPresentation}
+			orderNo={row.original.orderId}
+			customer={row.original.customer}
+		>
+			<div
+				tabIndex={0}
+				className="flex min-h-8 w-full items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			>
+				<Badge variant="outline" className="whitespace-normal">
+					{row.original.orderPresentation.primary.label}
+					{row.original.orderPresentation.primary.code === "in_production" && row.original.orderPresentation.primary.detail ? ` · ${row.original.orderPresentation.primary.detail}` : ""}
+				</Badge>
+			</div>
+		</ProductionAttentionTooltip>
+	),
 };
 
 const materialsColumn: Column = {
@@ -370,11 +381,34 @@ export const columns: Column[] = [
 
 export const workerColumns: Column[] = [
 	dueDateColumn,
-	salesColumn,
+	{
+		...salesColumn,
+		cell: ({ row }) => (
+			<div className="min-w-0">
+				<p className="font-mono font-medium">{row.original.orderId}</p>
+				<p className="truncate text-xs text-muted-foreground">
+					{row.original.customer}
+				</p>
+			</div>
+		),
+	},
 	salesRepColumn,
-	materialsColumn,
-	statusColumn,
-	progressColumn,
+	{
+		...statusColumn,
+		cell: ({ row }) => (
+			<Badge variant="outline">
+				{row.original.orderPresentation.primary.label}
+					{row.original.orderPresentation.primary.code === "in_production" && row.original.orderPresentation.primary.detail ? ` · ${row.original.orderPresentation.primary.detail}` : ""}
+			</Badge>
+		),
+	},
+	{
+  ...progressColumn,
+  accessorFn: row => row.orderPresentation.reportedQty,
+  cell: ({row}) => <div className="max-w-[112px]" aria-label={`${row.original.orderPresentation.reportedQty} submitted`}>
+   <Progress><Progress.ProgressBar className="w-20" score={row.original.orderPresentation.reportedQty} total={row.original.status?.production?.total || 0}/></Progress>
+  </div>,
+ },
 	actionsColumn,
 ];
 
@@ -458,12 +492,12 @@ function Actions({ item }: { item: SalesProductionRow }) {
 			}
 		>
 			<SalesMenu.MarkAs
-					pipeline={item.pipeline}
 				asSubmenu={false}
 				showUnavailableFulfilled
 				currentStatus={item.lifecycleStatus}
 				productionStatus={item.status?.production?.status}
 				pipelineCapabilities={item.pipeline?.capabilities}
+				pipeline={item.pipeline}
 				statusCandidates={[
 					{
 						salesId: item.id,

@@ -34,6 +34,7 @@ import { resolveSalesInventoryTrackingPolicy } from "@gnd/sales/sales-inventory-
 import {
 	type CanonicalSalesPipelineFilter,
 	type SalesPipelineSnapshot,
+	SALES_PIPELINE_HEADLINE_META,
 	getSalesPipelineFulfillmentStateLabel,
 	getSalesPipelineProductionStateLabel,
 	matchesCanonicalSalesPipelineFilter,
@@ -961,30 +962,25 @@ export function applyMaterializedSalesPipelineReadMode(
 			fulfillmentLabel: "Status unavailable",
 		};
 	}
+	const headline = {
+		...canonical.headline,
+		...SALES_PIPELINE_HEADLINE_META[canonical.headline.code],
+	};
 	return {
 		...row,
-		pipeline: canonical,
-		status: canonical.headline.code,
+		pipeline: { ...canonical, headline },
+		status: headline.code,
 		statusLabel: getSalesOrderStatusPresentation(canonical).label,
 		statusTone: getSalesOrderStatusPresentation(canonical).tone,
 		productionState: canonical.production.state,
-		productionLabel:
-			canonical.production.state === "administratively_completed"
-				? "Administratively completed"
-				: formatMaterializedStageLabel(canonical.production.state),
+		productionLabel: getSalesPipelineProductionStateLabel(
+			canonical.production.state,
+		),
 		fulfillmentState: canonical.fulfillment.state,
-		fulfillmentLabel:
-			canonical.fulfillment.state === "administratively_completed"
-				? "Administratively completed"
-				: formatMaterializedStageLabel(canonical.fulfillment.state),
+		fulfillmentLabel: getSalesPipelineFulfillmentStateLabel(
+			canonical.fulfillment.state,
+		),
 	};
-}
-
-function formatMaterializedStageLabel(value: string) {
-	return value
-		.split("_")
-		.map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-		.join(" ");
 }
 
 async function queueSalesOrderListProjectionWarm(

@@ -11,7 +11,7 @@ export function getProductionCalendarPresentation(
 	if (state === "completed" || state === "administratively_completed") {
 		return {
 			tone: "completed" as const,
-			label: "Production completed",
+			label: "Completed",
 			statusOnly,
 		};
 	}

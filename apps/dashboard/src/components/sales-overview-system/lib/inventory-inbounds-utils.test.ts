@@ -351,3 +351,14 @@ describe("sales overview inventory inbound helpers", () => {
 		).toBe(true);
 	});
 });
+
+it("uses canonical pending quantity without adding a receipt to its allocation twice", () => {
+	expect(
+		resolveInventoryCoverageDisplay({
+			qtyRequired: 10,
+			qtyPending: 6,
+			qtyAllocated: 4,
+			qtyReceived: 4,
+		}),
+	).toMatchObject({ coveredQty: 4, orderedOfQty: 6 });
+});

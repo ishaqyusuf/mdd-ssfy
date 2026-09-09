@@ -2,7 +2,10 @@ import type { Prisma } from "@gnd/db";
 import { salesOrderListProjectionVersion } from "./order-list-read-model";
 import { getProductionQueueBoundaries } from "./production-date";
 import type { CanonicalSalesPipelineFilter } from "./sales-pipeline";
-import { SALES_PIPELINE_CONTRACT_VERSION } from "./sales-pipeline";
+import {
+	getSalesPipelineFilterHeadlines,
+	SALES_PIPELINE_CONTRACT_VERSION,
+} from "./sales-pipeline";
 
 /** Exclude only trusted terminal projections; unavailable evidence is resolved in batches. */
 export function buildOpenDispatchFulfillmentCandidateWhere(): Prisma.SalesOrdersWhereInput {
@@ -51,7 +54,11 @@ function projectionStateClauses(
 ): Prisma.SalesOrderListProjectionWhereInput[] {
 	const clauses: Prisma.SalesOrderListProjectionWhereInput[] = [];
 	if (filter.headlines?.length) {
-		clauses.push({ pipelineHeadline: { in: filter.headlines } });
+		clauses.push({
+			pipelineHeadline: {
+				in: getSalesPipelineFilterHeadlines(filter.headlines),
+			},
+		});
 	}
 	if (filter.production === "pending") {
 		clauses.push({

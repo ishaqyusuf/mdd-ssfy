@@ -49,12 +49,27 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ComponentProps } from "react";
+
+import { availabilityBusinessDate } from "@gnd/sales/production-availability-contract";
+import { useAvailabilitySave } from "./availability/use-availability-save";
 
 type Overview = RouterOutputs["inventories"]["salesInventoryOverview"];
 type Row = NonNullable<Overview>["rows"][number];
 
-function orderableQty(row: Row) {
+type FormRow = Pick<
+	Row,
+	| "id"
+	| "componentName"
+	| "stepName"
+	| "variantName"
+	| "qtyPending"
+	| "qtyInboundLinkedOpen"
+	| "componentIds"
+	| "pendingInboundDemandIds"
+>;
+
+function orderableQty(row: FormRow) {
 	return Math.max(
 		0,
 		Number(row.qtyPending || 0) - Number(row.qtyInboundLinkedOpen || 0),
@@ -75,12 +90,14 @@ export function InboundCreatePane({
 	salesOrderId,
 	orderNumber,
 	mode = "create_inbound",
+	presentation = "sheet",
 	onClose,
 	onCreated,
 }: {
 	salesOrderId: number;
 	orderNumber: string;
 	mode?: "create_inbound" | "mark_available";
+	presentation?: "sheet" | "inline";
 	onClose: () => void;
 	onCreated: (inboundId: number) => void;
 }) {
@@ -89,40 +106,85 @@ export function InboundCreatePane({
 	const queryClient = useQueryClient();
 	const reference = resolveInboundReference(orderNumber);
 	const overviewQuery = useQuery(
-		trpc.inventories.salesInventoryOverview.queryOptions({ salesOrderId }),
+		trpc.inventories.salesInventoryOverview.queryOptions(
+			{ salesOrderId },
+			{ enabled: !isMarkAvailable },
+		),
 	);
 	const suppliersQuery = useQuery(
-		trpc.inventories.inboundSuppliers.queryOptions(),
+		trpc.inventories.inboundSuppliers.queryOptions(undefined, {
+			enabled: !isMarkAvailable,
+		}),
 	);
-	const rows = useMemo(
+	const availabilityQuery = useQuery(
+		trpc.sales.productionAvailability.queryOptions(
+			{ salesOrderId },
+			{ enabled: isMarkAvailable },
+		),
+	);
+	const availabilitySuppliers = useQuery(
+		trpc.sales.productionAvailabilitySuppliers.queryOptions(
+			{ salesOrderId },
+			{ enabled: isMarkAvailable },
+		),
+	);
+	const [reviewedAvailability, setReviewedAvailability] = useState<
+		RouterOutputs["sales"]["productionAvailability"] | null
+	>(null);
+	useEffect(() => {
+		if (isMarkAvailable && availabilityQuery.data && !reviewedAvailability)
+			setReviewedAvailability(availabilityQuery.data);
+	}, [isMarkAvailable, availabilityQuery.data, reviewedAvailability]);
+	const rows = useMemo<FormRow[]>(
 		() =>
-			(overviewQuery.data?.rows ?? []).filter(
-				(row) =>
-					row.actions.includes("create_inbound") &&
-					isInventoryNeedRow(row) &&
-					orderableQty(row) > 0 &&
-					((row.pendingInboundDemandIds?.length || 0) > 0 ||
-						(row.componentIds?.length || 0) > 0),
-			),
-		[overviewQuery.data?.rows],
+			isMarkAvailable
+				? (reviewedAvailability?.needs ?? [])
+						.filter((row) => row.qtyAvailableToMark > 0)
+						.map((row) => ({
+							id: row.id,
+							componentName: row.name,
+							stepName: null,
+							variantName: row.description,
+							qtyPending: row.qtyAvailableToMark,
+							qtyInboundLinkedOpen: 0,
+							componentIds: row.componentIds,
+							pendingInboundDemandIds: [],
+						}))
+				: (overviewQuery.data?.rows ?? []).filter(
+						(row) =>
+							row.actions.includes("create_inbound") &&
+							isInventoryNeedRow(row) &&
+							orderableQty(row) > 0 &&
+							((row.pendingInboundDemandIds?.length || 0) > 0 ||
+								(row.componentIds?.length || 0) > 0),
+					),
+		[overviewQuery.data?.rows, reviewedAvailability?.needs, isMarkAvailable],
 	);
 	const [selected, setSelected] = useState<string[]>([]);
 	const [quantities, setQuantities] = useState<Record<string, number>>({});
 	const [supplierId, setSupplierId] = useState("none");
-	const [expectedAt, setExpectedAt] = useState(
-		getDefaultInventoryExpectedDateValue,
+	const [expectedAt, setExpectedAt] = useState(() =>
+		isMarkAvailable
+			? availabilityBusinessDate()
+			: getDefaultInventoryExpectedDateValue(),
 	);
 	const [status, setStatus] = useState<NewInboundShipmentStatus>("pending");
 	const [note, setNote] = useState("");
 	const supplierItems = useMemo(
 		() =>
-			(suppliersQuery.data ?? []).map((supplier) => ({
+			(isMarkAvailable
+				? (availabilitySuppliers.data ?? [])
+				: (suppliersQuery.data ?? [])
+			).map((supplier) => ({
 				id: String(supplier.id),
 				label: supplier.name,
 			})),
-		[suppliersQuery.data],
+		[suppliersQuery.data, availabilitySuppliers.data, isMarkAvailable],
 	);
-	const selectedSupplier = supplierItems.find((item) => item.id === supplierId);
+	const selectedSupplier =
+		isMarkAvailable && supplierId === "none"
+			? { id: "none", label: "N/A" }
+			: supplierItems.find((item) => item.id === supplierId);
 	const createSupplier = useMutation(
 		trpc.inventories.saveInventorySupplier.mutationOptions({
 			onSuccess: async (supplier) => {
@@ -144,7 +206,10 @@ export function InboundCreatePane({
 				}),
 		}),
 	);
+	const initialized = useRef(false);
 	useEffect(() => {
+		if (!rows.length || initialized.current) return;
+		initialized.current = true;
 		setSelected(rows.map((row) => row.id));
 		setQuantities(
 			Object.fromEntries(rows.map((row) => [row.id, orderableQty(row)])),
@@ -215,13 +280,23 @@ export function InboundCreatePane({
 				}),
 		}),
 	);
-	const formId = `sales-${salesOrderId}-inbound-create`;
+	const availabilitySave = useAvailabilitySave(onCreated);
+	const saving = createInbound.isPending || availabilitySave.isPending;
+	const activeQuery = isMarkAvailable ? availabilityQuery : overviewQuery;
+	const suppliersLoading = isMarkAvailable
+		? availabilitySuppliers.isLoading
+		: suppliersQuery.isLoading;
+	const instanceId = useId();
+	const formId = `sales-${salesOrderId}-inbound-create-${instanceId}`;
+	const Content = presentation === "inline" ? InlineContent : Sheet.SecondaryContent;
+	const Header = presentation === "inline" ? InlineHeader : Sheet.SecondaryHeader;
+	const Footer = presentation === "inline" ? InlineFooter : Sheet.SecondaryFooter;
 
 	return (
-		<Sheet.SecondaryContent
+		<Content
 			className="px-1"
 			Header={
-				<Sheet.SecondaryHeader
+				<Header
 					title={isMarkAvailable ? "Mark as available" : "Create inbound"}
 					description={
 						isMarkAvailable
@@ -231,40 +306,70 @@ export function InboundCreatePane({
 				/>
 			}
 			Footer={
-				<Sheet.SecondaryFooter className="flex-row justify-end gap-3">
+				<Footer className="flex-row justify-end gap-3">
 					<Button
 						type="button"
 						variant="outline"
 						onClick={onClose}
-						disabled={createInbound.isPending}
+						disabled={saving}
 					>
 						Cancel
 					</Button>
 					<Button
 						type="submit"
 						form={formId}
-						disabled={createInbound.isPending || !selectedRows.length}
+						disabled={
+							saving ||
+							!selectedRows.length ||
+							(isMarkAvailable && !availabilityQuery.data?.canMarkAvailable)
+						}
 					>
-						{createInbound.isPending
+						{saving
 							? "Saving…"
 							: isMarkAvailable
 								? "Mark as available"
 								: "Create inbound"}
 					</Button>
-				</Sheet.SecondaryFooter>
+				</Footer>
 			}
 		>
-			{overviewQuery.isLoading ? (
+			{activeQuery.isLoading ? (
 				<div className="space-y-3 py-4">
 					<Skeleton className="h-20" />
 					<Skeleton className="h-56" />
 				</div>
+			) : activeQuery.isError ? (
+				<Button variant="outline" onClick={() => activeQuery.refetch()}>
+					Retry material items
+				</Button>
 			) : (
 				<form
 					id={formId}
 					className="space-y-7 py-2"
 					onSubmit={(event) => {
 						event.preventDefault();
+						if (saving) return;
+						if (isMarkAvailable) {
+							if (!reviewedAvailability?.canMarkAvailable) return;
+							availabilitySave.save({
+								salesOrderId,
+								expectedRevision: reviewedAvailability!.revision,
+								supplierId: supplierId === "none" ? null : Number(supplierId),
+								receivedDate: expectedAt,
+								selection: {
+									mode: "selected",
+									items: selectedRows.map((row) => ({
+										id: row.id,
+										qty: Math.min(
+											orderableQty(row),
+											Number(quantities[row.id]),
+										),
+									})),
+								},
+								note: note.trim() || undefined,
+							});
+							return;
+						}
 						createInbound.mutate({
 							supplierId: supplierId === "none" ? null : Number(supplierId),
 							demandSelections,
@@ -279,6 +384,30 @@ export function InboundCreatePane({
 						});
 					}}
 				>
+					{availabilitySave.error && (
+						<div role="alert" className="space-y-2 text-sm text-destructive">
+							<p>{availabilitySave.error.message}</p>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={saving || availabilityQuery.isFetching}
+								onClick={async () => {
+									const fresh = await availabilityQuery.refetch();
+									if (fresh.data) {
+										setReviewedAvailability(fresh.data);
+										availabilitySave.reset();
+									}
+								}}
+							>
+								Refresh materials
+							</Button>
+						</div>
+					)}
+					{isMarkAvailable && availabilityQuery.data?.workerMode && (
+						<p className="text-sm text-muted-foreground">
+							Materials for your assigned work only.
+						</p>
+					)}
 					<FieldGroup>
 						<div className="grid gap-5 sm:grid-cols-2">
 							<Field>
@@ -298,28 +427,40 @@ export function InboundCreatePane({
 							<Field>
 								<FieldLabel htmlFor="inbound-supplier">Supplier</FieldLabel>
 								<ComboboxDropdown
-									items={supplierItems}
+									items={
+										isMarkAvailable
+											? [{ id: "none", label: "N/A" }, ...supplierItems]
+											: supplierItems
+									}
 									selectedItem={selectedSupplier}
 									placeholder={
-										suppliersQuery.isLoading
+										suppliersLoading
 											? "Loading suppliers"
 											: "Supplier (optional)"
 									}
-									searchPlaceholder="Search or create supplier"
-									isLoading={suppliersQuery.isLoading}
+									searchPlaceholder={
+										isMarkAvailable
+											? "Search suppliers"
+											: "Search or create supplier"
+									}
+									isLoading={suppliersLoading}
 									disabled={createSupplier.isPending}
 									onSelect={(item) => setSupplierId(item.id)}
-									onCreate={(value) => {
-										const name = value.trim();
-										if (name) createSupplier.mutate({ name });
-									}}
+									onCreate={
+										isMarkAvailable
+											? undefined
+											: (value) => {
+													const name = value.trim();
+													if (name) createSupplier.mutate({ name });
+												}
+									}
 									emptyResults="No supplier found."
 									popoverProps={{ align: "start" }}
 								/>
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="inbound-expected">
-									Expected date
+									{isMarkAvailable ? "Received date" : "Expected date"}
 								</FieldLabel>
 								<Popover>
 									<PopoverTrigger asChild>
@@ -339,6 +480,15 @@ export function InboundCreatePane({
 									<PopoverContent className="w-auto p-0" align="start">
 										<Calendar
 											mode="single"
+											disabled={
+												isMarkAvailable
+													? {
+															after: new Date(
+																`${availabilityBusinessDate()}T23:59:59`,
+															),
+														}
+													: undefined
+											}
 											selected={
 												expectedAt
 													? new Date(`${expectedAt}T00:00:00`)
@@ -477,7 +627,7 @@ export function InboundCreatePane({
 											/>
 										</label>
 										<ItemContent className="min-w-0">
-											<ItemTitle className="truncate text-sm font-medium">
+											<ItemTitle className="max-w-full min-w-0 truncate text-sm font-medium">
 												{row.componentName}
 											</ItemTitle>
 											<ItemDescription className="mt-1 line-clamp-none text-xs">
@@ -566,6 +716,22 @@ export function InboundCreatePane({
 					</section>
 				</form>
 			)}
-		</Sheet.SecondaryContent>
+		</Content>
 	);
+}
+
+function InlineContent({ Header, Footer, children }: ComponentProps<typeof Sheet.SecondaryContent>) {
+	return (
+		<section className="flex min-h-0 min-w-0 flex-1 flex-col gap-4" aria-label="Select available materials">
+			<div className="shrink-0">{Header}</div>
+			<div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+			{Footer}
+		</section>
+	);
+}
+function InlineHeader({ title, description }: ComponentProps<typeof Sheet.SecondaryHeader>) {
+	return <header className="space-y-1"><h3 className="text-sm font-medium">{title}</h3><p className="text-xs text-muted-foreground">{description}</p></header>;
+}
+function InlineFooter({ children }: ComponentProps<typeof Sheet.SecondaryFooter>) {
+	return <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t bg-background pt-3">{children}</div>;
 }

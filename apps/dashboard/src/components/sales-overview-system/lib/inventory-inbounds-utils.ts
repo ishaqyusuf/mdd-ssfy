@@ -16,6 +16,7 @@ export type InventoryCoverageDisplay = {
 };
 
 export function resolveInventoryCoverageDisplay(input: {
+	qtyPending?: number;
 	qtyRequired?: number | null;
 	qtyAllocated?: number | null;
 	qtyReceived?: number | null;
@@ -24,8 +25,10 @@ export function resolveInventoryCoverageDisplay(input: {
 	const requiredQty = Math.max(0, Number(input.qtyRequired || 0));
 	const coveredQty = Math.min(
 		requiredQty,
-		Math.max(0, Number(input.qtyAllocated || 0)) +
-			Math.max(0, Number(input.qtyReceived || 0)),
+		input.qtyPending != null
+			? Math.max(0, requiredQty - input.qtyPending)
+			: Math.max(0, Number(input.qtyAllocated || 0)) +
+					Math.max(0, Number(input.qtyReceived || 0)),
 	);
 	const orderedOfQty = Math.max(0, requiredQty - coveredQty);
 	const orderedQty = Math.min(

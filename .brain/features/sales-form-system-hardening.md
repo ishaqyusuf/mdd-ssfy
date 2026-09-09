@@ -848,3 +848,11 @@ for phase ownership and rollout requirements.
 - Focused summary, step-hydration, and print-helper coverage passes 11 tests / 17
   assertions. No schema, migration, permission, or customer data contract
   changed.
+
+## Save reconciliation and diagnostics (2026-09-09)
+
+New Sales Form save automatically tolerates missing approved child IDs only when one saved door/shelf row uniquely matches within the same parent item. Existing IDs, quantities, handing, dimensions and money remain checked. The adjustment worker records assigned child IDs into its snapshot in the existing transaction, preventing the same mismatch on the next edit.
+
+Draft/final/review/approval failures display persistent safe details with operation, order, code, reference, timestamp and Copy error details. A successful persistence followed by failed statistics refresh is labeled saved, with follow-up requiring attention; it does not mark the order unsaved or invite resubmission. Statistics refresh uses keyed quantity-control persistence instead of duplicate-prone bulk insertion.
+
+Verified local 09623PC edit/save/reload/repeat-save and fresh09635PC copy/save. See `../plans/2026-09-08-copied-sale-confirm-save-investigation.md` for values, tests and rollout limitations.

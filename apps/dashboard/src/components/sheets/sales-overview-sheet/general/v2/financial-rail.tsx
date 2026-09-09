@@ -6,7 +6,6 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
-import { Progress } from "@gnd/ui/progress";
 import { Separator } from "@gnd/ui/separator";
 import type { GeneralV2FinancialLine } from "./financial-composer";
 
@@ -58,7 +57,6 @@ export function FinancialRail({
 	invoicePendingCents,
 	payableDueCents,
 	balanceCents,
-	paymentPercentage,
 	paymentStatus,
 	paymentMethod,
 	onCreatePayment,
@@ -83,115 +81,95 @@ export function FinancialRail({
 	paymentMethod: string;
 	onCreatePayment?: () => void;
 }) {
+	const detailLines = invoiceLines.filter(
+		(line) =>
+			!["invoice-total", "invoice-paid", "invoice-net-paid"].includes(line.key),
+	);
 	return (
 		<section
 			aria-label="Financial summary"
 			className="min-w-0 lg:sticky lg:top-14"
 		>
-			<header className="flex flex-col gap-2">
-				<div className="flex items-center justify-between gap-3">
-					<h2 className="text-xs font-semibold uppercase tracking-wider">
-						Financial control
-					</h2>
-					<Badge variant={payableDueCents > 0 ? "outline" : "secondary"}>
-						{isQuote ? "Quote" : paymentStatus}
-					</Badge>
-				</div>
-				<p className="text-sm text-muted-foreground">
-					{isQuote
-						? "Current quoted value"
-						: `${paymentPercentage.toFixed(0)}% settled`}
-				</p>
+			<header className="flex items-center justify-between gap-3">
+				<h2 className="text-xs font-semibold uppercase tracking-wider">
+					Invoice
+				</h2>
+				<Badge variant={payableDueCents > 0 ? "outline" : "secondary"}>
+					{isQuote ? "Quote" : paymentStatus}
+				</Badge>
 			</header>
 			<div className="mt-4 flex flex-col gap-4">
-				<div className="flex flex-col gap-2 border-y border-foreground/70 py-4">
-					<div className="flex items-end justify-between gap-3">
-						<strong className="text-3xl tracking-tight">
-							<Money
-								value={(isQuote ? invoiceTotalCents : payableDueCents) / 100}
-							/>
-						</strong>
-						<span className="pb-1 text-xs text-muted-foreground">
-							{isQuote ? "quote total" : "due now"}
-						</span>
+				<dl className="space-y-3 text-sm">
+					<div className="flex items-center justify-between gap-3">
+						<dt className="text-muted-foreground">Total</dt>
+						<dd className="font-medium tabular-nums">
+							<Money value={invoiceTotalCents / 100} />
+						</dd>
 					</div>
 					{!isQuote ? (
 						<>
-							<p className="text-xs text-muted-foreground">
-								<Money value={invoicePaidCents / 100} /> paid of{" "}
-								<Money value={invoiceTotalCents / 100} />
-							</p>
-							<Progress
-								value={paymentPercentage}
-								aria-label={`Invoice ${paymentPercentage.toFixed(0)} percent settled`}
-								className="h-1.5"
-							/>
+							<div className="flex items-center justify-between gap-3">
+								<dt className="text-muted-foreground">Paid</dt>
+								<dd className="font-medium tabular-nums">
+									<Money value={invoicePaidCents / 100} />
+								</dd>
+							</div>
+							<div className="flex items-baseline justify-between gap-3 border-y py-4">
+								<dt>{balanceCents < 0 ? "Credit balance" : "Balance due"}</dt>
+								<dd className="text-2xl font-semibold tabular-nums">
+									<Money value={Math.abs(balanceCents) / 100} />
+								</dd>
+							</div>
+							{payableDueCents !== balanceCents ? (
+								<div className="flex items-center justify-between gap-3">
+									<dt className="text-muted-foreground">Due with card fee</dt>
+									<dd className="font-semibold tabular-nums">
+										<Money value={payableDueCents / 100} />
+									</dd>
+								</div>
+							) : null}
 						</>
 					) : null}
-				</div>
-
-				<section
-					className="flex flex-col gap-3"
-					aria-labelledby="general-v2-invoice"
-				>
-					<div className="flex items-center justify-between gap-3">
-						<h3
-							id="general-v2-invoice"
-							className="text-xs font-semibold uppercase tracking-wide"
-						>
-							Invoice
-						</h3>
+				</dl>
+				{!isQuote ? (
+					<div className="flex items-center justify-between gap-3 text-xs">
+						<span className="text-muted-foreground">Payment method</span>
 						<SalesOverviewPaymentMethodSelect
 							salesId={data.id}
 							value={
 								invoicePendingCents <= 0 ? paymentMethod : data.paymentMethod
 							}
-							disabled={isQuote || invoicePendingCents <= 0}
+							disabled={invoicePendingCents <= 0}
 							variant="inline"
 						/>
 					</div>
-					<FinancialLines lines={invoiceLines} />
-				</section>
-
-				{cardLines.length ? (
-					<>
-						<Separator />
-						<section
-							className="flex flex-col gap-3"
-							aria-labelledby="general-v2-card-settlement"
-						>
-							<h3
-								id="general-v2-card-settlement"
-								className="text-xs font-semibold uppercase tracking-wide"
-							>
-								{cardHeading}
-							</h3>
-							<FinancialLines lines={cardLines} />
-						</section>
-					</>
 				) : null}
-
-				{!isQuote ? (
-					<div className="flex items-center justify-between border px-3 py-2.5 text-sm">
-						<span className="text-muted-foreground">Balance</span>
-						<strong className="tabular-nums">
-							<Money value={balanceCents / 100} />
-						</strong>
+				<details className="text-xs">
+					<summary className="cursor-pointer py-2 font-medium">
+						View breakdown
+					</summary>
+					<div className="flex flex-col gap-4 pt-3">
+						<FinancialLines lines={detailLines} />
+						{cardLines.length ? (
+							<>
+								<Separator />
+								<section className="space-y-3" aria-label={cardHeading}>
+									<h3 className="font-semibold">{cardHeading}</h3>
+									<FinancialLines lines={cardLines} />
+								</section>
+							</>
+						) : null}
 					</div>
-				) : null}
-
+				</details>
 				{!isQuote && payableDueCents > 0 ? (
-					<>
-						<Separator />
-						<Button
-							type="button"
-							disabled={!onCreatePayment}
-							onClick={onCreatePayment}
-						>
-							<Icons.payment className="size-4" />
-							Pay
-						</Button>
-					</>
+					<Button
+						type="button"
+						disabled={!onCreatePayment}
+						onClick={onCreatePayment}
+					>
+						<Icons.payment className="size-4" />
+						Pay
+					</Button>
 				) : null}
 			</div>
 		</section>

@@ -2,6 +2,7 @@
 
 import { batchAssignProductionOrdersAction } from "@/actions/batch-assign-production-orders";
 import Img from "@/components/(clean-code)/img";
+import { ProductionPendingInbounds } from "@/components/sheets/sales-overview-sheet/production/v2/production-pending-inbounds";
 import { ItemMaterialStatusBadge } from "@/components/production-v2/item-material-status-badge";
 import {
 	type ProductionMaterialStatus,
@@ -102,6 +103,7 @@ import {
 } from "react";
 import { useInView } from "react-intersection-observer";
 
+import { getWorkerReportedProgress } from "./worker-reported-progress";
 import { selectMaterialReview } from "./material-review-presentation";
 
 type Scope = "worker" | "admin";
@@ -333,23 +335,11 @@ const productionV2FilterParams = {
 };
 
 export function ProductionWorkerDashboardV2() {
-	return (
-		<ProductionV2Board
-			scope="worker"
-			title="Production Dashboard"
-			description="A worker-first production screen with inline order detail, activity, and action zones."
-		/>
-	);
+	return <ProductionV2Board scope="worker" title="Production Dashboard" />;
 }
 
 export function ProductionAdminBoardV2() {
-	return (
-		<ProductionV2Board
-			scope="admin"
-			title="Production Board"
-			description="Admin production oversight with quick assign, completed labels, and inline order expansion."
-		/>
-	);
+	return <ProductionV2Board scope="admin" title="Production Board" />;
 }
 
 export function ProductionMaterialReviewPanel({
@@ -480,7 +470,6 @@ export function ProductionMaterialReviewPanel({
 	useEffect(() => {
 		if (queueQuery.isPending && !requestedReviewId) return;
 		const nextId = selectMaterialReview({
-		queueQuery.isPending,
 			orderContext,
 			requestedId: requestedReviewId ?? null,
 			selectedId: selectedReviewId,
@@ -493,6 +482,7 @@ export function ProductionMaterialReviewPanel({
 		selectedReviewId,
 		rows,
 		selectReview,
+		queueQuery.isPending,
 	]);
 
 	const detail = detailQuery.data as unknown as
@@ -764,8 +754,6 @@ export function ProductionMaterialReviewPanel({
 								? "No matching material reviews"
 								: "Material review is clear"}
 						</p>
-	const ReviewShell = orderContext ? "div" : Card;
-	const ReviewBody = orderContext ? "div" : CardContent;
 						<p className="max-w-md text-sm text-muted-foreground">
 							{normalizedSearch
 								? "Try a different order number or worker name."
@@ -778,6 +766,8 @@ export function ProductionMaterialReviewPanel({
 		return null;
 	}
 
+	const ReviewShell = orderContext ? "div" : Card;
+	const ReviewBody = orderContext ? "div" : CardContent;
 	const content = (
 		<div className="flex flex-col gap-3">
 			{isReadOnly || isPermissionLimited ? (
@@ -1274,11 +1264,9 @@ export function ProductionMaterialReviewPanel({
 function ProductionV2Board({
 	scope,
 	title,
-	description,
 }: {
 	scope: Scope;
 	title: string;
-	description: string;
 }) {
 	const trpc = useTRPC();
 	const [filters, setFilters] = useQueryStates(productionV2FilterParams);
@@ -1505,9 +1493,6 @@ function ProductionV2Board({
 							<h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-950 lg:text-4xl">
 								{title}
 							</h1>
-							<p className="max-w-2xl text-sm leading-6 text-slate-600">
-								{description}
-							</p>
 						</div>
 					</div>
 					<div className="flex flex-col gap-3 xl:items-end">
@@ -2338,10 +2323,10 @@ function ProductionOrderDetailInline({
 				</div>
 
 				<TabsContent value="productions" className="mt-0 space-y-4">
-					<ProductionMaterialsNotice
+					{scope === "worker" ? <ProductionPendingInbounds salesOrderId={detail.salesId} /> : <ProductionMaterialsNotice
 						unavailable={detail.materialsState === "unavailable"}
 						materials={productionItems.flatMap((item) => item.materials || [])}
-					/>
+					/>}
 					{productionItems.length ? (
 						<ProductionItemsGrid
 							scope={scope}
@@ -2628,11 +2613,11 @@ function ProductionItemCard({
 									</Badge>
 								) : null}
 							</div>
-							<ItemMaterialStatusBadge
+							{scope === "admin" && <ItemMaterialStatusBadge
 								status={item.materialStatus}
 								audience={scope}
 								className="mt-2"
-							/>
+							/>}
 						</div>
 					</div>
 					{scope === "admin" ? (
@@ -4360,15 +4345,7 @@ function formatSubmitAllLabel(qty: { qty?: number; lh?: number; rh?: number }) {
 function getWorkerItemCompletionSummary(items: ProductionDetail["items"]) {
 	const productionItems = items.filter((item) => item.isProduction);
 	const total = productionItems.length;
-	const completed = productionItems.filter((item) => {
-		const assignmentProgress = (item.assignments || []).map((assignment) =>
-			buildAssignmentSubmissionProgress(assignment),
-		);
-		return (
-			assignmentProgress.length > 0 &&
-			assignmentProgress.every((entry) => entry.isCompleted)
-		);
-	}).length;
+	const completed = productionItems.filter((item) => getWorkerAssignmentStatus(item).isCompleted).length;
 
 	return {
 		completed,
@@ -4378,26 +4355,13 @@ function getWorkerItemCompletionSummary(items: ProductionDetail["items"]) {
 }
 
 function getWorkerAssignmentStatus(item: ProductionDetail["items"][number]) {
-	const assignmentProgress = (item.assignments || []).map((assignment) =>
-		buildAssignmentSubmissionProgress(assignment),
-	);
-	const assignedTotal = assignmentProgress.reduce(
-		(total, assignment) => total + assignment.assignmentQty.qty,
-		0,
-	);
-	const completedTotal = assignmentProgress.reduce(
-		(total, assignment) => total + assignment.finalizedQty.qty,
-		0,
-	);
-	const normalizedCompleted = Math.min(completedTotal, assignedTotal);
-
-	return {
-		isCompleted: assignedTotal > 0 && normalizedCompleted >= assignedTotal,
-		label:
-			assignedTotal > 0
-				? `${normalizedCompleted}/${assignedTotal} completed`
-				: "No assigned qty",
-	};
+ return getWorkerReportedProgress((item.assignments || []).map(assignment => ({
+  assignedQty: normalizeQtyMatrix(assignment.qty).qty,
+  submissions: (assignment.submissions || []).map(submission => ({
+   qty: normalizeQtyMatrix(submission.qty).qty,
+   reviewStatus: submission.materialReview?.status,
+  })),
+ })));
 }
 
 function chunkProductionItems<T>(items: T[], size: number) {

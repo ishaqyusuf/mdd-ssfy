@@ -407,3 +407,11 @@ Planning only; no relationship has been added to Prisma.
   accounting tables. The projection builder reloads those domain-owned
   relations from `SalesOrders`, and the cache may be rebuilt or restored
   without rewriting them.
+## Reliability relationships added locally (2026-09-09)
+
+`ReliabilityIncident` has many `ReliabilityOccurrence`, `ReliabilityDelivery`,
+and `ReliabilityTransition` records with indexed incident references and restricted
+deletion. The existing Prisma relation mode remains authoritative. Cursor and
+run-watch records stand independently so discovery can precede incident creation.
+No business-order, payment, inventory, or user relationship is added; owner/actor
+identities are operational identifiers awaiting the authorization adapter.

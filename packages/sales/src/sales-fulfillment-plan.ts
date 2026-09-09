@@ -605,6 +605,8 @@ export type PlannedReceivedBackorderAllocation = {
 };
 
 export type AllocateReceivedInboundToBackordersInput = {
+	/** Limit application to a newly received demand; historical receipts are excluded. */
+	inboundDemandIds?: number[];
 	salesOrderId?: number | null;
 	lineItemComponentIds?: number[];
 	inventoryVariantId?: number | null;
@@ -3304,7 +3306,7 @@ async function recomputeLineItemComponentFulfillment(
 		status = "partially_received";
 	} else if (qtyReceived >= qtyInbound && qtyInbound > 0) {
 		status =
-			qtyAllocated + qtyReceived >= qtyRequired
+			Math.max(qtyAllocated, qtyReceived) >= qtyRequired
 				? "fulfilled"
 				: "partially_received";
 	} else if (qtyAllocated >= qtyRequired && qtyInbound <= 0) {
@@ -3441,6 +3443,32 @@ async function reserveAvailableStockForComponent(
 	};
 }
 
+/** Read-only stock budget for receipt quantities not yet reserved to scoped needs. */
+export async function planReceivedMaterialReservations(db: DbLike, needs: {componentId:number;inventoryVariantId:number;qty:number}[], pending: {inventoryStockId:number|null;qty:number}[] = []) {
+	const budgets = new Map<number, Awaited<ReturnType<typeof getAvailableStockRows>>>();
+	for (const variantId of new Set(needs.map(need => need.inventoryVariantId))) budgets.set(variantId, await getAvailableStockRows(db, variantId));
+	for (const rows of budgets.values()) for (const row of rows) row.availableQty = Math.max(0,row.availableQty - sumBy(pending.filter(item=>item.inventoryStockId===row.id),item=>item.qty));
+	const remaining = new Map([...budgets].map(([id, rows]) => [id, sumBy(rows, row => row.availableQty)]));
+	const rows = needs.flatMap(need => {
+		const qty = roundQuantity(Math.min(Math.max(0, need.qty), remaining.get(need.inventoryVariantId) ?? 0));
+		remaining.set(need.inventoryVariantId, roundQuantity((remaining.get(need.inventoryVariantId) ?? 0) - qty));
+		return qty > 0 ? [{...need, qty}] : [];
+	});
+	return {rows, stockEvidence: [...budgets]};
+}
+
+/** Caller provides a freshly validated scoped receipt plan inside a serializable transaction. */
+export async function applyReceivedMaterialReservations(tx: TransactionClient, rows: {componentId:number;inventoryVariantId:number;qty:number}[]) {
+	const allocations: AllocateReceivedInboundToBackordersResult["allocations"] = [];
+	for (const row of rows) {
+		const result = await reserveAvailableStockForComponent(tx, {lineItemComponentId:row.componentId,inventoryVariantId:row.inventoryVariantId,qty:row.qty,note:"Reserved from received inbound stock."});
+		if (Math.abs(result.reservedQty-row.qty)>0.000001) throw new Error("Received material stock changed. Refresh and try again.");
+		allocations.push(...result.allocations);
+		await recomputeLineItemComponentFulfillment(tx,row.componentId);
+	}
+	return allocations;
+}
+
 export async function allocateReceivedInboundToBackorders(
 	db: Db,
 	input: AllocateReceivedInboundToBackordersInput = {},
@@ -3457,6 +3485,7 @@ export async function allocateReceivedInboundToBackordersInTransaction(
 	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
 	const demands = await tx.inboundDemand.findMany({
 		where: {
+			id: input.inboundDemandIds ? { in: input.inboundDemandIds } : undefined,
 			deletedAt: null,
 			status: {
 				in: ["partially_received", "received"],
