@@ -268,3 +268,12 @@ absence. No API changes are needed to preserve this distinction.
   cleaned up. A disposable fulfillment order identity/setup is still needed.
 - Removed temporary generated public preview artifacts after visual acceptance;
   source harness and builder remain committed. No business data changed this turn.
+
+- 2026-09-09 resumed acceptance audit: current checkout contains subsequent
+  project commits; no changes since visual approval were found in the checked
+  row-activity, task-trigger/notification, Sales Orders table or bulk-fulfillment
+  paths. Focused current-checkout regression passes27 tests/60 assertions across
+  ten files. No new business-data mutation or generated public artifact remains.
+- Timing/colors remain approved. Successful full-workflow fulfillment QA still
+  requires a disposable local order with suitable operational data. No such
+  order identity or authorization to fulfill an existing real order was supplied.
