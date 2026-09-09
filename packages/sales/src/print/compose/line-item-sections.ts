@@ -36,12 +36,12 @@ function getLineItemComponentDetails(item: PrintSalesItem): SectionDetail[] {
 	return (item.formSteps || [])
 		.filter((formStep) => {
 			const title = String(formStep.step?.title || "").trim();
-			return title && !["Door", "Item Type", "Moulding"].includes(title);
+			return title && !["Door", "Item Type", "Moulding", "House Package Tool"].includes(title);
 		})
 		.map((formStep) => {
 			const label = String(formStep.step?.title || "").trim();
 			const value = String(
-				formStep.component?.name || formStep.value || "",
+				formStep.component?.name?.trim() || formStep.value || "",
 			).trim();
 
 			return value ? { label, value } : null;

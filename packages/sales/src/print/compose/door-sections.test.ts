@@ -33,6 +33,46 @@ function formStepGeneration(offset: number, updatedAt: string) {
 }
 
 describe("composeDoorSections", () => {
+	for (const showPrices of [true, false]) {
+		for (const cutdown of ["No Cutdown", "Cut to 78 inches"]) {
+			it(`prints bifold configurations with ${cutdown} and prices=${showPrices}`, () => {
+				const selections = [
+					["Item Type", "Bifold", null],
+					["Height", "6-8", null],
+					["Door Type", "HC Molded", null],
+					["Door", "Carrara", null],
+					["Cutdown Height", "  ", cutdown],
+					["House Package Tool", "Package", null],
+					["Casing", null, null],
+					["Bore", "", ""],
+					["Hinge Finish", "  ", " \t "],
+					["Moulding", "Hidden", null],
+				];
+				const sale = {
+					items: [{
+						id: 1,
+						meta: { doorType: "Bifold" },
+						housePackageTool: { doorType: "Bifold", doors: [] },
+						formSteps: selections.map(([title, name, value], index) => ({
+							id: index + 1,
+							stepId: index + 1,
+							step: { title },
+							component: name === null ? null : { name },
+							value,
+						})),
+					}],
+				} as unknown as PrintSalesData;
+
+				const [section] = composeDoorSections(sale, { ...config, showPrices }, null);
+				expect(section?.details).toEqual([
+					{ label: "Height", value: "6-8" },
+					{ label: "Door Type", value: "HC Molded" },
+					{ label: "Cutdown Height", value: cutdown },
+				]);
+			});
+		}
+	}
+
 	it("prints only the current HPT child generation when prior saves left active rows", () => {
 		const sale = {
 			items: [
@@ -115,8 +155,6 @@ describe("composeDoorSections", () => {
 			"Hinge Finish",
 			"Cutdown Height",
 			"Casing Y/N",
-			"Casing",
-			"House Package Tool",
 		]);
 		expect(section?.rows).toHaveLength(2);
 		expect(section?.rows.map((row) => row.cells[2]?.value)).toEqual([

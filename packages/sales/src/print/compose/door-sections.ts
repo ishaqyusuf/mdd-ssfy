@@ -113,17 +113,16 @@ export function composeDoorSections(
     }
 
     // Build configuration details
-    const details: SectionDetail[] = is.bifold
-      ? []
-      : currentFormSteps
+    const details: SectionDetail[] = currentFormSteps
           .filter(
             (t) =>
-              !["Door", "Item Type", "Moulding"].includes(t.step.title ?? ""),
+              !["Door", "Item Type", "Moulding", "House Package Tool"].includes(t.step.title?.trim() ?? ""),
           )
           .map((conf) => ({
             label: conf.step?.title ?? "",
-            value: conf.component?.name ?? conf?.value ?? "",
-          }));
+            value: conf.component?.name?.trim() || conf.value?.trim() || "",
+          }))
+          .filter((detail) => detail.value.length > 0);
 
     // Build rows
     const rows: DoorRow[] = [];

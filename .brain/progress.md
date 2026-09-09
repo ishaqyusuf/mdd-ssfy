@@ -1,5 +1,18 @@
 # Progress
 
+## 2026-09-09 — Sales print bifold configurations
+
+- Removed the blanket bifold configuration exclusion so populated selections,
+  including custom Cutdown Height and No Cutdown, follow general door rules.
+- Configuration details omit empty values and always exclude House Package Tool
+  in door and generic line-item composition. Blank component names fall back to
+  saved step values.
+- Validation: focused door/line-item print tests passed (9 tests, 20 assertions),
+  covering priced/unpriced bifolds, custom/default cutdown, empty values, and
+  existing door revision/total behavior. Live preview/PDF visual QA was not run.
+- Brain impact: feature behavior documented in sales-pdf-system.md; no schema,
+  endpoint, permission, or architecture changes.
+
 ## 2026-09-09 — Remove Office invoice badge
 
 - The shared invoice payment-review badge now renders only for online payments;

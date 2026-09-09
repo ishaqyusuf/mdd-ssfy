@@ -12,6 +12,16 @@ Build a clean, isolated sales PDF system with zero legacy dependencies, typed da
 
 One shared data pipeline produces typed `PrintPage` payloads. Templates never touch the database.
 
+Sales print configuration details use the same visibility rules for bifolds
+and other doors: populated Height, Door Type, and Cutdown Height selections
+remain visible, including custom cutdown text and `No Cutdown`. Item Type,
+Door, Moulding, and House Package Tool are excluded from configuration details;
+the door/package data is already represented in the item table. Empty or
+whitespace-only values are omitted, preferring a nonblank component name then
+the saved step value. Generic line-item details also exclude House Package Tool.
+These rules apply to newly composed HTML/PDF payloads; existing stored print
+snapshots require the normal refresh/invalidation path to reflect the change.
+
 The print query projects only the `DealerSales` fields used by dealer pricing
 (`dealerSalesPercentage` and `dueAmount`) instead of loading every scalar
 column. This keeps invoice and quote generation compatible while additive
