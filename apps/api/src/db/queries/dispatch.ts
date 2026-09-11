@@ -1,3 +1,5 @@
+import { readFulfillmentAssignmentScope } from "@gnd/sales/fulfillment-assignment-scope";
+import { capFulfillmentDeliverables, scopeFulfillmentPackingTargets } from "@gnd/sales/fulfillment-packing-targets";
 import { getDispatchInventoryManifest } from "@api/db/queries/dispatch-inventory";
 import { dispatchSortField } from "./dispatch-sort";
 import {
@@ -2787,10 +2789,11 @@ export async function getDispatchOverviewV2(
 			];
 		},
 	);
-	const dispatchItems = [
+	const assignmentHeader = await ctx.db.orderDelivery.findFirstOrThrow({ where: { id: dispatch.id, salesOrderId: order.id, deletedAt: null }, select: { meta: true } });
+	const dispatchItems = scopeFulfillmentPackingTargets([
 		...mergedLegacyDispatchItems,
 		...inventoryOnlyDispatchItems,
-	];
+	], assignmentHeader.meta).map(item => readFulfillmentAssignmentScope(assignmentHeader.meta).state === "resolved" ? ({ ...item, deliverables: capFulfillmentDeliverables(item.deliverables, item.deliverableQty) }) : item);
 
 	controlDebugLog("getDispatchOverviewV2.dispatchItems", {
 		salesId: order.id,
@@ -2815,6 +2818,7 @@ export async function getDispatchOverviewV2(
 	const summary = dispatchItems.reduce(
 		(acc, item) => {
 			const packing = resolveDispatchPackingTotals({
+				assigned: readFulfillmentAssignmentScope(assignmentHeader.meta).state === "resolved" ? qtyTotal(item.totalQty) : undefined,
 				ordered: qtyTotal(item.totalQty),
 				listed: qtyTotal(item.listedQty),
 				packed: qtyTotal(item.packedQty),
@@ -2935,23 +2939,28 @@ export async function getDispatchOverviewV2(
 			readiness: item.inventoryReadiness,
 		}));
 	const hasNoDispatchItems = dispatchItems.length === 0;
+	const incompleteAssignmentScope = readFulfillmentAssignmentScope(assignmentHeader.meta).state === "resolved" && (summary.total <= 0 || summary.packed < summary.total);
 	const hasUnresolvedInventoryScope =
 		inventoryManifest.scope.inventoryLineCount > 0 &&
 		!inventoryManifest.scope.resolved;
 	const dispatchReadiness = {
 		...legacyDispatchReadiness,
+		incompleteAssignmentScope,
 		canDispatch:
 			legacyDispatchReadiness.canDispatch &&
+			!incompleteAssignmentScope &&
 			!hasNoDispatchItems &&
 			!hasUnresolvedInventoryScope &&
 			inventoryBlockingItems.length === 0,
 		state: hasNoDispatchItems
 			? ("missing items" as const)
+			: incompleteAssignmentScope ? ("cant dispatch" as const)
 			: hasUnresolvedInventoryScope || inventoryBlockingItems.length > 0
 				? ("inventory review" as const)
 				: legacyDispatchReadiness.state,
 		reason: hasNoDispatchItems
 			? "This dispatch has no active manifest items. Add or restore its item scope before starting the trip."
+			: incompleteAssignmentScope ? "Pack the assigned quantities or confirm the short load before starting this trip."
 			: hasUnresolvedInventoryScope
 				? "Inventory scope is ambiguous because this sale has multiple active dispatches. Assign exact items before packing."
 				: inventoryBlockingItems.length > 0
@@ -2984,6 +2993,8 @@ export async function getDispatchOverviewV2(
 		: null;
 
 	return {
+		assignmentScoped: readFulfillmentAssignmentScope(assignmentHeader.meta).state === "resolved",
+		scopeRevision: readFulfillmentAssignmentScope(assignmentHeader.meta).scope?.revision ?? null,
 		dispatch: dispatch
 			? withDriverDuePresentation({
 					id: dispatch.id,

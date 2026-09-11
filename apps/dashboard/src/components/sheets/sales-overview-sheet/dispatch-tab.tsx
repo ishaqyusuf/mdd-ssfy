@@ -10,6 +10,8 @@ import {
 } from "@gnd/ui/collapsible";
 import { Icons } from "@gnd/ui/icons";
 
+import { FulfillmentQuantitySummary } from "./fulfillment-quantity-summary";
+
 import { DispatchProvider, useDispatch } from "./context";
 import { DispatchFooter } from "./dispatch-footer";
 import { DispatchForm } from "./dispatch-form";
@@ -29,6 +31,7 @@ function Content() {
 	return (
 		<DataSkeletonProvider value={{ loading: !data?.id }}>
 			<div className="space-y-6">
+				{data?.fulfillmentQuantities ? <FulfillmentQuantitySummary data={data.fulfillmentQuantities} /> : null}
 				{openForm || <DispatchProgressChart data={data?.progress || {}} />}
 				<Collapsible open={openForm} onOpenChange={setOpenForm}>
 					<div

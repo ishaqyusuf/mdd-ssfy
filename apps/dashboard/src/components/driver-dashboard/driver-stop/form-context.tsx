@@ -10,7 +10,7 @@ import {
 } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
-export const DRIVER_PROOF_DRAFT_VERSION = 1;
+export const DRIVER_PROOF_DRAFT_VERSION = 2;
 
 export type DriverProofAttachment = {
 	clientId: string;
@@ -28,6 +28,7 @@ export type DriverProofAttachment = {
 export type DriverProofFormValues = {
 	requestId: string;
 	receivedBy: string;
+	receivedDate: string;
 	note: string;
 	noteType: "dispatch" | "pickup";
 	signaturePath: string;
@@ -45,6 +46,7 @@ type DriverProofDraftContextValue = {
 	savedAt: string | null;
 	storageError: string | null;
 	clearDraft: () => void;
+	saveDraft: (values: DriverProofFormValues) => void;
 };
 
 const DriverProofDraftContext =
@@ -54,18 +56,27 @@ function createRequestId() {
 	return `dispatch:${Date.now()}:${Math.random().toString(36).slice(2, 12)}`;
 }
 
-function draftKey(dispatchId: number) {
-	return `gnd.driver-proof-draft.v${DRIVER_PROOF_DRAFT_VERSION}:${dispatchId}`;
+function localDateValue(date = new Date()) {
+	const offset = date.getTimezoneOffset() * 60_000;
+	return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function draftKey(dispatchId: number, manifestRevision: string) {
+	return `gnd.driver-proof-draft.v${DRIVER_PROOF_DRAFT_VERSION}:${dispatchId}:${manifestRevision}`;
 }
 
 export function DriverStopFormContext({
 	dispatchId,
+	manifestRevision,
 	defaultReceivedBy,
+	defaultReceivedDate,
 	defaultNoteType,
 	children,
 }: {
 	dispatchId: number;
+	manifestRevision: string;
 	defaultReceivedBy?: string | null;
+	defaultReceivedDate?: string | null;
 	defaultNoteType: "dispatch" | "pickup";
 	children: ReactNode;
 }) {
@@ -73,12 +84,13 @@ export function DriverStopFormContext({
 		() => ({
 			requestId: createRequestId(),
 			receivedBy: defaultReceivedBy || "",
+			receivedDate: defaultReceivedDate || localDateValue(),
 			note: "",
 			noteType: defaultNoteType,
 			signaturePath: "",
 			attachments: [],
 		}),
-		[defaultNoteType, defaultReceivedBy],
+		[defaultNoteType, defaultReceivedBy, defaultReceivedDate],
 	);
 	const form = useForm<DriverProofFormValues>({ defaultValues: defaults });
 	const [draftRecovered, setDraftRecovered] = useState(false);
@@ -87,11 +99,13 @@ export function DriverStopFormContext({
 
 	useEffect(() => {
 		try {
-			const raw = window.localStorage.getItem(draftKey(dispatchId));
+			const raw = window.localStorage.getItem(
+				draftKey(dispatchId, manifestRevision),
+			);
 			if (!raw) return;
 			const parsed = JSON.parse(raw) as DraftEnvelope;
 			if (parsed.version !== DRIVER_PROOF_DRAFT_VERSION || !parsed.values) {
-				window.localStorage.removeItem(draftKey(dispatchId));
+				window.localStorage.removeItem(draftKey(dispatchId, manifestRevision));
 				return;
 			}
 			form.reset(parsed.values);
@@ -100,7 +114,7 @@ export function DriverStopFormContext({
 		} catch {
 			setStorageError("A saved proof draft could not be restored.");
 		}
-	}, [dispatchId, form]);
+	}, [dispatchId, manifestRevision, form]);
 
 	useEffect(() => {
 		let timer: ReturnType<typeof setTimeout> | undefined;
@@ -115,7 +129,7 @@ export function DriverStopFormContext({
 						values: values as DriverProofFormValues,
 					};
 					window.localStorage.setItem(
-						draftKey(dispatchId),
+						draftKey(dispatchId, manifestRevision),
 						JSON.stringify(envelope),
 					);
 					setSavedAt(nextSavedAt);
@@ -131,19 +145,40 @@ export function DriverStopFormContext({
 			clearTimeout(timer);
 			subscription.unsubscribe();
 		};
-	}, [dispatchId, form]);
+	}, [dispatchId, manifestRevision, form]);
 
 	const clearDraft = () => {
-		window.localStorage.removeItem(draftKey(dispatchId));
+		window.localStorage.removeItem(draftKey(dispatchId, manifestRevision));
 		form.reset({ ...defaults, requestId: createRequestId() });
 		setDraftRecovered(false);
 		setSavedAt(null);
 		setStorageError(null);
 	};
 
+	const saveDraft = (values: DriverProofFormValues) => {
+		const nextSavedAt = new Date().toISOString();
+		try {
+			window.localStorage.setItem(
+				draftKey(dispatchId, manifestRevision),
+				JSON.stringify({
+					version: DRIVER_PROOF_DRAFT_VERSION,
+					savedAt: nextSavedAt,
+					values,
+				} satisfies DraftEnvelope),
+			);
+			setSavedAt(nextSavedAt);
+			setStorageError(null);
+		} catch {
+			const message =
+				"Unable to save proof for recovery. Enable browser storage before completing.";
+			setStorageError(message);
+			throw new Error(message);
+		}
+	};
+
 	return (
 		<DriverProofDraftContext.Provider
-			value={{ draftRecovered, savedAt, storageError, clearDraft }}
+			value={{ draftRecovered, savedAt, storageError, clearDraft, saveDraft }}
 		>
 			<FormProvider {...form}>{children}</FormProvider>
 		</DriverProofDraftContext.Provider>

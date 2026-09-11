@@ -21,6 +21,7 @@ import { inventoriesRouter } from "./inventories.route";
 import { jobRoutes } from "./jobs.route";
 import { masterPasswordLoginAuditsRouter } from "./master-password-login-audits.route";
 import { newSalesFormRouter } from "./new-sales-form.route";
+import { salesRequestRouter } from "./sales-request.route";
 import { notesRouter } from "./notes.route";
 import { orgs } from "./organization.route";
 import { pageTabsRouter } from "./page-tabs.route";
@@ -78,6 +79,7 @@ export const appRouter = createTRPCRouter({
 	masterPasswordLoginAudits: masterPasswordLoginAuditsRouter,
 	notes: notesRouter,
 	newSalesForm: newSalesFormRouter,
+	salesRequest: salesRequestRouter,
 	print: printRouter,
 	sales: salesRouter,
 	salesFinance: salesFinanceRouter,

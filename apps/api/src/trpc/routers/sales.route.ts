@@ -1,3 +1,6 @@
+import { getProductionInboundOverview } from "@gnd/sales";
+import { getInboundActivityQuery } from "@api/db/queries/inbound-receiving";
+import { getSenderId } from "@api/db/queries/note";
 import { getProductionAvailability, getProductionAvailabilitySuppliers, markProductionMaterialsAvailable, productionAvailabilitySaveSchema } from "@gnd/sales";
 import { getCoveredProductionMaterials, applyCoveredProductionMaterials, applyCoveredProductionMaterialsSchema } from "@gnd/sales";
 import {
@@ -1135,6 +1138,28 @@ export const salesRouter = createTRPCRouter({
     markProductionMaterialsAvailable: protectedProcedure
         .input(productionAvailabilitySaveSchema)
         .mutation(async ({ctx,input}) => markProductionMaterialsAvailable(ctx.db,input,tx => resolveProductionInboundActor({...ctx,db:tx as typeof ctx.db}))),
+
+ productionInboundOverview: protectedProcedure
+  .input(z.object({salesOrderId: z.number().int().positive(), inboundId: z.number().int().positive()}))
+  .query(async ({ctx, input}) => getProductionInboundOverview(ctx.db, input, await resolveProductionInboundActor(ctx))),
+ productionInboundActivity: protectedProcedure
+  .input(z.object({salesOrderId: z.number().int().positive(), inboundId: z.number().int().positive()}))
+  .query(async ({ctx, input}) => {
+   await getProductionInboundOverview(ctx.db, input, await resolveProductionInboundActor(ctx));
+   return getInboundActivityQuery(ctx, input.inboundId);
+  }),
+ addProductionInboundNote: protectedProcedure
+  .input(z.object({salesOrderId: z.number().int().positive(), inboundId: z.number().int().positive(), note: z.string().trim().min(1).max(10000)}))
+  .mutation(async ({ctx, input}) => ctx.db.$transaction(async tx => {
+   const scopedCtx = {...ctx, db: tx as typeof ctx.db};
+   await getProductionInboundOverview(tx, input, await resolveProductionInboundActor(scopedCtx));
+   const senderId = await getSenderId(scopedCtx);
+   return tx.notePad.create({data: {
+    headline: "Inbound note", subject: "Comment", note: input.note,
+    senderContact: {connect: {id: senderId}},
+    tags: {createMany: {data: [{tagName: "inboundId", tagValue: String(input.inboundId)}]}},
+   }, select: {id: true}});
+  })),
 	productionPendingInbounds: protectedProcedure
 		.input(productionInboundQuerySchema)
 		.query(async ({ ctx, input }) =>

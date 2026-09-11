@@ -1,3 +1,33 @@
+import {
+	assertFulfillmentHasPackedItems,
+	FulfillmentEmptyLoadError,
+} from "@gnd/sales";
+import { lockPackingDispatchScope } from "@gnd/sales/packing-report-review";
+import { deliverOrQueueFulfillmentNotices } from "@api/utils/fulfillment-notice-recovery";
+import {
+	createFulfillmentAssignmentSchema,
+	updateFulfillmentAssignmentSchema,
+} from "@gnd/sales/fulfillment-assignment-command";
+import { updateFulfillmentAssignmentInTransaction } from "@gnd/sales/fulfillment-assignment-update";
+import {
+	confirmFulfillmentShortLoadSchema,
+	confirmFulfillmentShortLoadInTransaction,
+} from "@gnd/sales/fulfillment-short-load-confirm";
+import { createFulfillmentAssignmentInTransaction } from "@gnd/sales/fulfillment-assignment-create";
+import { whereEmployees } from "@api/prisma-where";
+import {
+	getFulfillmentCompletionReview,
+	getFulfillmentShortLoadPreview,
+	getFulfillmentDetail,
+	getFulfillmentExceptions,
+	getFulfillmentProof,
+	getFulfillmentRoute,
+	getFulfillmentActivity,
+	getFulfillmentAssignmentOptions,
+	getFulfillmentEditOptions,
+	getFulfillmentOrder,
+	getFulfillmentOrders,
+} from "@api/db/queries/fulfillment-orders";
 import { getDispatchCalendar } from "@api/db/queries/dispatch-calendar";
 import {
 	bulkAssignDispatchDriver,
@@ -53,6 +83,7 @@ import {
 	getDispatchProofFilename,
 	isDispatchCompletionProofStale,
 	mergeDispatchCompletionProof,
+	resolveDispatchProofDeliveryDate,
 } from "@api/db/queries/dispatch-proof-completion";
 import {
 	getDispatchBacklog,
@@ -176,6 +207,7 @@ async function sendDispatchCreatedNotifications(
 	ctx: TRPCContext,
 	dispatch: CreatedDispatchNotification,
 	deliveryMode: DeliveryOption,
+	skipDriverInApp = false,
 ) {
 	await getDispatchNotificationService(ctx).send("sales_dispatch_created", {
 		payload: {
@@ -199,6 +231,8 @@ async function sendDispatchCreatedNotifications(
 			dueDate: dispatch.dueDate || undefined,
 			driverId: dispatch.driverId,
 		},
+		undefined,
+		skipDriverInApp,
 	);
 }
 
@@ -483,8 +517,9 @@ async function getMobileDispatchProjection(
 		pendingReportCount > 0 &&
 		blockingPendingReportCount === 0;
 	const readinessBlocked =
-		overview.dispatchReadiness?.canDispatch === false &&
-		!guardedPhysicalVerification;
+		overview.dispatchReadiness?.incompleteAssignmentScope ||
+		(overview.dispatchReadiness?.canDispatch === false &&
+			!guardedPhysicalVerification);
 	const destinationBlocked =
 		dispatch?.deliveryMode !== "pickup" &&
 		!hasDriverDestination(overview.address) &&
@@ -891,6 +926,176 @@ export const dispatchRouters = createTRPCRouter({
 		.query(async (props) => {
 			await requireDispatchManager(props.ctx);
 			return getDispatchBacklog(props.ctx, props.input);
+		}),
+	fulfillmentOrders: protectedProcedure
+		.input(dispatchWorkspaceListSchema)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			return getFulfillmentOrders(ctx, input);
+		}),
+	fulfillmentOrder: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				cursor: z.number().int().nonnegative().default(0),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const order = await getFulfillmentOrder(ctx, input);
+			if (!order)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment order not found",
+				});
+			return order;
+		}),
+	fulfillmentShortLoadPreview: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				fulfillmentId: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireAssignedDispatchOrManager(ctx, input.fulfillmentId);
+			const result = await getFulfillmentShortLoadPreview(ctx, input);
+			if (!result)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment not found for this order.",
+				});
+			return result;
+		}),
+	fulfillmentEditOptions: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				fulfillmentId: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const result = await getFulfillmentEditOptions(ctx, input);
+			if (!result)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment not found for this order",
+				});
+			return result;
+		}),
+	fulfillmentAssignmentOptions: protectedProcedure
+		.input(z.object({ salesId: z.number().int().positive() }))
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const result = await getFulfillmentAssignmentOptions(ctx, input);
+			if (!result)
+				throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+			return result;
+		}),
+	fulfillmentActivity: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				fulfillmentId: z.number().int().positive(),
+				cursor: z.number().int().nonnegative().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const result = await getFulfillmentActivity(ctx, input);
+			if (!result)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment not found for this order",
+				});
+			return result;
+		}),
+	fulfillmentRoute: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				fulfillmentId: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const result = await getFulfillmentRoute(ctx, input);
+			if (!result)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment not found for this order",
+				});
+			return result;
+		}),
+	fulfillmentProof: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				fulfillmentId: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const result = await getFulfillmentProof(ctx, input);
+			if (!result)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment not found for this order",
+				});
+			return result;
+		}),
+	fulfillmentExceptions: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				fulfillmentId: z.number().int().positive(),
+				cursor: z.number().int().positive().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const result = await getFulfillmentExceptions(ctx, input);
+			if (!result)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment not found for this order",
+				});
+			return result;
+		}),
+	fulfillmentDetail: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				fulfillmentId: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const detail = await getFulfillmentDetail(ctx, input);
+			if (!detail)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment not found for this order",
+				});
+			return detail;
+		}),
+	fulfillmentCompletionReview: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number().int().positive(),
+				fulfillmentId: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await requireDispatchManager(ctx);
+			const review = await getFulfillmentCompletionReview(ctx, input);
+			if (!review)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Fulfillment not found for this order",
+				});
+			return review;
 		}),
 	list: protectedProcedure
 		.input(dispatchWorkspaceListSchema)
@@ -1688,6 +1893,12 @@ export const dispatchRouters = createTRPCRouter({
 			);
 			let ownsStagedRequest =
 				existingCompletion?.requestId === props.input.requestId;
+			const receivedDate = resolveDispatchProofDeliveryDate(
+				props.input.receivedDate,
+				completion.startedAt,
+				new Date(),
+				process.env.BUSINESS_TIME_ZONE || process.env.TZ,
+			);
 			const persistCompletion = async () => {
 				await props.ctx.db.$transaction(
 					async (tx) => {
@@ -2041,6 +2252,18 @@ export const dispatchRouters = createTRPCRouter({
 					operation: "api.dispatch.complete-with-proof",
 				},
 				async (transactionDb) => {
+					await lockPackingDispatchScope(transactionDb, dispatch.id);
+					const reviewedRevision = await getDispatchPackingCommandRevision(
+						transactionDb,
+						dispatch.id,
+					);
+					if (reviewedRevision !== props.input.expectedManifestRevision) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message:
+								"This dispatch changed while proof was uploading. Refresh and review before completing.",
+						});
+					}
 					await assertSpecialOrderOperationAllowedForApi(transactionDb, {
 						salesOrderId: dispatch.salesOrderId,
 						operation: "DISPATCH",
@@ -2056,17 +2279,33 @@ export const dispatchRouters = createTRPCRouter({
 							authorName: session.name || `User ${props.ctx.userId}`,
 							source: "api.dispatch.complete-pickup-packing",
 						});
-						await packDispatchItemTask(transactionDb, {
-							meta,
-							packItems: {
-								dispatchId: dispatch.id,
-								dispatchStatus:
-									(dispatch.status as SalesDispatchStatus) || "queue",
-								packMode: "all",
-								replaceExisting: true,
-							},
-						} as UpdateSalesControl);
+						await packDispatchItemTask(
+							transactionDb,
+							{
+								meta,
+								packItems: {
+									dispatchId: dispatch.id,
+									dispatchStatus:
+										(dispatch.status as SalesDispatchStatus) || "queue",
+									packMode: "all",
+									replaceExisting: true,
+								},
+							} as UpdateSalesControl,
+							{},
+							{ preparation: "existing_only" },
+						);
 					}
+					await assertFulfillmentHasPackedItems(transactionDb, {
+						salesId: dispatch.salesOrderId,
+						fulfillmentId: dispatch.id,
+					}).catch((cause) => {
+						if (!(cause instanceof FulfillmentEmptyLoadError)) throw cause;
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: cause.message,
+							cause,
+						});
+					});
 					return submitDispatchTask(
 						transactionDb,
 						{
@@ -2074,7 +2313,7 @@ export const dispatchRouters = createTRPCRouter({
 							submitDispatch: {
 								dispatchId: dispatch.id,
 								receivedBy: props.input.receivedBy,
-								receivedDate: new Date(),
+								receivedDate,
 								note: props.input.note,
 								noteType:
 									dispatch.deliveryMode === "pickup" ? "pickup" : "dispatch",
@@ -2097,12 +2336,39 @@ export const dispatchRouters = createTRPCRouter({
 				: { idempotent: true };
 			await refreshDispatchPipelineProjection(props.ctx, dispatch.salesOrderId);
 
+			const completionNotice = await props.ctx.db.salesHistory.findFirst({
+				where: {
+					salesId: dispatch.salesOrderId,
+					AND: [
+						{ data: { path: "$.event", equals: "FULFILLMENT_COMPLETED" } },
+						{ data: { path: "$.dispatchId", equals: dispatch.id } },
+						{
+							data: {
+								path: "$.completionRequestId",
+								equals: props.input.requestId,
+							},
+						},
+					],
+				},
+				orderBy: { createdAt: "desc" },
+				select: { id: true },
+			});
+			const noticeRecovery = completionNotice
+				? await deliverOrQueueFulfillmentNotices(
+						props.ctx.db,
+						completionNotice.id,
+						async (requestId) => {
+							await tasks.trigger("deliver-fulfillment-notices", { requestId });
+						},
+					)
+				: null;
 			let notificationQueued = response.idempotent;
 			if (!response.idempotent) {
 				try {
 					await getDispatchNotificationService(props.ctx).send(
 						"sales_dispatch_completed",
 						{
+							skipActivities: Boolean(completionNotice),
 							payload: {
 								salesId: dispatch.salesOrderId,
 								orderNo: dispatch.order?.orderId || undefined,
@@ -2126,6 +2392,8 @@ export const dispatchRouters = createTRPCRouter({
 					notificationQueued = false;
 				}
 			}
+			if (noticeRecovery && !noticeRecovery.delivered && !noticeRecovery.queued)
+				notificationQueued = false;
 
 			return {
 				status: "completed" as const,
@@ -2807,6 +3075,289 @@ export const dispatchRouters = createTRPCRouter({
 			};
 			await submitNonProductionsTask(props.ctx.db as Db, submitPayload);
 			return { ok: true };
+		}),
+	confirmFulfillmentShortLoad: protectedProcedure
+		.input(confirmFulfillmentShortLoadSchema)
+		.mutation(async ({ ctx, input }) => {
+			const session = await requireAssignedDispatchOrManager(
+				ctx,
+				input.fulfillmentId,
+			);
+			await enforceSpecialOrderForSale(
+				ctx,
+				input.salesId,
+				"DISPATCH",
+				"api.dispatch.confirmFulfillmentShortLoad",
+			);
+			const manager = Boolean(session.can.editPickup || session.can.editOrders);
+			const committed = await ctx.db.$transaction(
+				async (tx) => {
+					await tx.$queryRaw`SELECT id FROM SalesOrders WHERE id=${input.salesId} FOR UPDATE`;
+					await tx.$queryRaw`SELECT id FROM OrderDelivery WHERE salesOrderId=${input.salesId} ORDER BY id FOR UPDATE`;
+					const delivery = await tx.orderDelivery.findFirst({
+						where: {
+							id: input.fulfillmentId,
+							salesOrderId: input.salesId,
+							deletedAt: null,
+						},
+						select: {
+							driverId: true,
+							dueDate: true,
+							deliveryMode: true,
+							order: { select: { orderId: true } },
+						},
+					});
+					if (!delivery)
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Fulfillment not found for this order.",
+						});
+					if (!manager && delivery.driverId !== ctx.userId)
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "This fulfillment is no longer assigned to you.",
+						});
+					const result = await confirmFulfillmentShortLoadInTransaction(
+						tx,
+						input,
+						{ id: ctx.userId!, name: session.name || `User ${ctx.userId}` },
+					);
+					return { result, delivery };
+				},
+				{ isolationLevel: "ReadCommitted", timeout: 30000 },
+			);
+			const noticeDelivery = await deliverOrQueueFulfillmentNotices(
+				ctx.db,
+				input.requestId,
+				(requestId) =>
+					tasks.trigger(
+						"deliver-fulfillment-notices",
+						{ requestId },
+						{
+							idempotencyKey: `fulfillment-notices:${requestId}`,
+							idempotencyKeyTTL: "1h",
+						},
+					),
+			);
+			let notificationFailed = !noticeDelivery.delivered;
+			if (
+				!committed.result.idempotentReplay &&
+				committed.result.releasedQty > 0 &&
+				committed.delivery.driverId
+			) {
+				const sent = await sendDispatchLifecycleNotification(
+					ctx.db,
+					ctx.userId!,
+					committed.delivery.driverId,
+					"sales_dispatch_updated",
+					{
+						dispatchId: input.fulfillmentId,
+						orderNo: committed.delivery.order.orderId,
+						driverId: committed.delivery.driverId,
+						dueDate: committed.delivery.dueDate,
+						deliveryMode:
+							committed.delivery.deliveryMode === "pickup"
+								? "pickup"
+								: "delivery",
+					},
+					undefined,
+					true,
+				);
+				notificationFailed ||= !sent.sent;
+			}
+			return { ...committed.result, notificationFailed };
+		}),
+	updateFulfillment: protectedProcedure
+		.input(updateFulfillmentAssignmentSchema)
+		.mutation(async ({ ctx, input }) => {
+			const session = await requireDispatchManager(ctx);
+			await enforceSpecialOrderForSale(
+				ctx,
+				input.salesId,
+				"DISPATCH",
+				"api.dispatch.updateFulfillment",
+			);
+			if (input.driverId)
+				await assertDispatchAssignmentDestinations(ctx, {
+					salesIds: [input.salesId],
+					deliveryMode: input.deliveryMode,
+				});
+			const result = await ctx.db.$transaction(
+				async (tx) => {
+					if (input.driverId) {
+						const eligibility = whereEmployees({
+							can: ["viewDelivery"],
+							cannot: ["editOrders"],
+							accessStatus: "active",
+						});
+						if (!eligibility)
+							throw new TRPCError({
+								code: "INTERNAL_SERVER_ERROR",
+								message: "Driver eligibility could not be checked.",
+							});
+						const driver = await tx.users.findFirst({
+							where: {
+								AND: [{ id: input.driverId, deletedAt: null }, eligibility],
+							},
+							select: { id: true },
+						});
+						if (!driver)
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "Choose an active delivery driver.",
+							});
+					}
+					return updateFulfillmentAssignmentInTransaction(tx, input, {
+						id: ctx.userId!,
+						name: session.name || `User ${ctx.userId}`,
+					});
+				},
+				{ isolationLevel: "ReadCommitted", timeout: 30000 },
+			);
+			let notificationFailed = false;
+			const noticeDelivery = await deliverOrQueueFulfillmentNotices(
+				ctx.db,
+				input.requestId,
+				(requestId) =>
+					tasks.trigger(
+						"deliver-fulfillment-notices",
+						{ requestId },
+						{
+							idempotencyKey: `fulfillment-notices:${requestId}`,
+							idempotencyKeyTTL: "1h",
+						},
+					),
+			);
+			notificationFailed = !noticeDelivery.delivered;
+			if (result.changed && !result.idempotentReplay) {
+				const order = await ctx.db.salesOrders.findUniqueOrThrow({
+					where: { id: input.salesId },
+					select: { orderId: true },
+				});
+				const payload = {
+					orderNo: order.orderId,
+					dispatchId: result.fulfillmentId,
+					deliveryMode: input.deliveryMode,
+					dueDate: input.dueDate
+						? new Date(`${input.dueDate}T00:00:00.000Z`)
+						: null,
+				};
+				if (
+					result.previousDriverId !== input.driverId &&
+					result.previousDriverId
+				) {
+					const sent = await sendDispatchLifecycleNotification(
+						ctx.db,
+						ctx.userId!,
+						result.previousDriverId,
+						"sales_dispatch_unassigned",
+						{ ...payload, driverId: result.previousDriverId },
+						undefined,
+						true,
+					);
+					notificationFailed ||= !sent.sent;
+				}
+				if (input.driverId) {
+					const sent = await sendDispatchLifecycleNotification(
+						ctx.db,
+						ctx.userId!,
+						input.driverId,
+						result.previousDriverId === input.driverId
+							? "sales_dispatch_updated"
+							: "sales_dispatch_assigned",
+						{ ...payload, driverId: input.driverId },
+						undefined,
+						true,
+					);
+					notificationFailed ||= !sent.sent;
+				}
+			}
+			return {
+				fulfillmentId: result.fulfillmentId,
+				changed: result.changed,
+				idempotentReplay: result.idempotentReplay,
+				notificationFailed,
+			};
+		}),
+	createFulfillment: protectedProcedure
+		.input(createFulfillmentAssignmentSchema)
+		.mutation(async ({ ctx, input }) => {
+			const session = await requireDispatchManager(ctx);
+			await enforceSpecialOrderForSale(
+				ctx,
+				input.salesId,
+				"DISPATCH",
+				"api.dispatch.createFulfillment",
+			);
+			if (input.driverId)
+				await assertDispatchAssignmentDestinations(ctx, {
+					salesIds: [input.salesId],
+					deliveryMode: input.deliveryMode,
+				});
+			const result = await ctx.db.$transaction(
+				async (tx) => {
+					if (input.driverId) {
+						const eligibility = whereEmployees({
+							can: ["viewDelivery"],
+							cannot: ["editOrders"],
+							accessStatus: "active",
+						});
+						if (!eligibility)
+							throw new TRPCError({
+								code: "INTERNAL_SERVER_ERROR",
+								message: "Driver eligibility could not be checked.",
+							});
+						const driver = await tx.users.findFirst({
+							where: {
+								AND: [{ id: input.driverId, deletedAt: null }, eligibility],
+							},
+							select: { id: true },
+						});
+						if (!driver)
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "Choose an active delivery driver.",
+							});
+					}
+					return createFulfillmentAssignmentInTransaction(tx, input, {
+						id: ctx.userId!,
+						name: session.name || `User ${ctx.userId}`,
+					});
+				},
+				{ isolationLevel: "ReadCommitted", timeout: 30000 },
+			);
+			let notificationFailed = false;
+			const noticeDelivery = await deliverOrQueueFulfillmentNotices(
+				ctx.db,
+				input.requestId,
+				(requestId) =>
+					tasks.trigger(
+						"deliver-fulfillment-notices",
+						{ requestId },
+						{
+							idempotencyKey: `fulfillment-notices:${requestId}`,
+							idempotencyKeyTTL: "1h",
+						},
+					),
+			);
+			notificationFailed = !noticeDelivery.delivered;
+			if (!result.idempotentReplay) {
+				const dispatch = await ctx.db.orderDelivery.findUniqueOrThrow({
+					where: { id: result.fulfillmentId },
+					include: { order: { select: { orderId: true } } },
+				});
+				try {
+					await sendDispatchCreatedNotifications(
+						ctx,
+						dispatch,
+						input.deliveryMode,
+						true,
+					);
+				} catch {
+					notificationFailed = true;
+				}
+			}
+			return { ...result, notificationFailed };
 		}),
 	createDispatch: protectedProcedure
 		.input(createDispatchSchema)

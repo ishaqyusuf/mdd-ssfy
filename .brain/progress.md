@@ -1,4 +1,838 @@
+### 2026-09-11 — Expanded Production item divider stabilized
+
+Replaced the V2 Production list's parent `divide-y` rule with an explicit top
+border on each displayed item after the first. The following item's top border
+now supplies the boundary below an expanded item, while the parent retains the
+outer top and bottom borders.
+
+### 2026-09-11 — Worker selection footer and owned bulk actions restored
+
+The active Production V2 list now shows worker checkboxes before sequential
+item numbers. Selecting an assigned item conditionally opens the footer; clearing
+the selection removes it. Worker actions are limited to Submit All and Delete
+Submissions. Submission uses authenticated-worker assignment scope, and deletion
+uses explicit submission IDs protected by the existing ownership authorization.
+Authenticated Chrome verification at the iPad Mini width confirmed checkbox →
+number ordering, the expanded two-pane layout, conditional footer, selected
+count, and the absence of worker assignment actions.
+
+### 2026-09-11 — Worker split and numbering moved to active V2 renderer
+
+Chrome verification showed the production-worker sheet uses Production V2,
+while the initial split and numbering changes targeted the legacy renderer.
+The active V2 item document now uses Details in the left column and Submissions
+plus Notes/activity in the right column when fullscreen. V2 headers show `N.`
+numbering. The item list now owns one outer border with child dividers, and
+individual items no longer add full borders when opened.
+
+### 2026-09-11 — Production items numbered
+
+Sales Overview Production item cards now display sequential 1-based numbers at
+the start of each header. The numbering follows the filtered displayed order,
+is available to admins and production workers, and includes an accessible item
+label without changing item identity or actions.
+
+### 2026-09-11 — Worker expanded-layout detection corrected
+
+The first two-pane implementation detected worker mode only through
+`assignedTo`. Production workers with broader order permissions can have no
+assigned-only marker while the sheet still opens in explicit
+`production-tasks` mode. Expanded item detail now recognizes either signal, so
+those accounts receive Details on the left and Submissions plus Notes/activity
+on the right. The Priority menu label was corrected to `Priority`.
+
+### 2026-09-11 — Persistent Sales Overview expansion implemented
+
+Added a persisted Zustand preference and a top-right Expand/Collapse control to
+Sales Overview for admins and workers. The shared sheet can now fill the
+viewport and restore its normal width. Expanded assigned-worker Production item
+details use a two-column landscape layout with Details on the left and
+Submissions plus Notes/activities on the right; admins retain existing tabs.
+The Priority selector now includes the `Priority` group label. Focused
+source coverage was added; authenticated tablet validation remains pending.
+
+### 2026-09-11 — Worker Calendar search receives compact rule
+
+Extended the Calendar-only `max-xl:hidden` search behavior to the separate
+production-worker workspace. The worker search wrapper now forwards a scoped
+search-form class, so Calendar hides search at `lg` and below while worker list
+views retain it. The admin behavior remains unchanged.
+
+### 2026-09-11 — Tablet Calendar columns reduced to 1.5× width
+
+Revised the landscape tablet Calendar grid after visual feedback. The shared
+minimum is now 1470px instead of 1960px, changing each of seven equal day
+columns from roughly 280px to 210px while retaining the 980px baseline,
+bounded landscape breakpoint, and Schedule/Planning/skeleton parity.
+
+### 2026-09-11 — All compact page tabs moved into the rail
+
+Below `xl`, PageTabs now uses the full resolved-tab count as its visible limit,
+so every page tab participates in the horizontal rail and the `+N` saved-tabs
+menu is not produced. At `xl` and above, configured visible limits and the
+desktop overflow menu remain unchanged. Physical rail overflow continues to
+control the compact chevron buttons.
+
+### 2026-09-11 — Overflow-aware page-tab controls added
+
+Page tabs now measure real horizontal overflow and display fixed left/right
+chevron controls around the rail below `xl`. Each click moves by 80% of the
+visible rail width, edge controls disable appropriately, and a ResizeObserver
+plus passive scroll listener keeps state current after resizing or swiping.
+
+### 2026-09-11 — Page-tab scrollbar breakpoint corrected
+
+The page-tab scrollbar remained visible in the target `lg` viewport because
+the first rule stopped at `md`. The rail now applies `scrollbar-hide` at every
+breakpoint while preserving `overflow-x-auto` and `touch-pan-x`, so mouse,
+trackpad, and touch navigation remain available without visible scroll chrome.
+
+### 2026-09-11 — Compact Calendar search hidden
+
+Production Calendar mode now hides the search input below `xl`, covering `lg`
+and smaller layouts. Wider Calendar layouts and every non-Calendar Production
+view retain search. The shared search/filter component accepts a scoped form
+class so this responsive behavior does not affect other pages.
+
+### 2026-09-11 — Compact page-tab interaction simplified
+
+The shared page-tab rail now keeps native horizontal touch panning while hiding
+its visible scrollbar at `md` and below. Saved-tab Edit and Save controls are
+hidden below `xl`, covering the full `lg` range. The overflow-tab menu and tab
+navigation remain available. Source regression coverage was updated; device
+validation remains part of the progressive Production Calendar tablet task.
+
+### 2026-09-11 — Production Calendar tablet layout implemented
+
+Implemented the first two tickets in the progressive tablet task. Calendar day
+grids now expand from 980px to 1470px across the bounded landscape tablet range,
+with matching Schedule, Planning, and skeleton widths. Viewports below `xl`
+hide both mode selectors and resolve the Calendar to Schedule Week while
+preserving URL-backed desktop selections. Source regression coverage was
+updated; authenticated landscape and touch-interaction validation remains open.
+
+### 2026-09-11 — Production Calendar tablet-landscape task opened
+
+Created a dedicated progressive Brain task for Production Calendar tablet and
+iPad landscape optimization. Ticket 01 proposes doubling the seven-column grid
+from 980px to 1960px only in the bounded landscape tablet range, retaining
+Calendar-owned horizontal scrolling and parity across admin, worker, Week,
+Month, Planning, and loading states. This entry records the original task
+intake; later progress entries record implementation.
+
+### 2026-09-10 — Completion quantity review read boundary
+
+Added manager-protected fulfillmentCompletionReview with explicit order/fulfillment pairing. It projects physical evidence and delegates assigned/packed/left-behind quantities to the shared sales validator through buildFulfillmentCompletionReview. Unknown scopes, overpacking and unresolved physical evidence return a blocked review instead of guessed quantities. Two shared review tests pass with nine assertions. This is a quantity-only preview, not inventory/evidence/permission readiness to complete. UI consumption, delivered/order remainder context, manifest binding and protected-query integration remain unfinished.
+
+### 2026-09-10 — Current completion API typecheck completed
+
+`bun run --cwd apps/api typecheck` completed with exit 2. The only reported diagnostic is the existing packages/sales/src/copy-sales.ts:521 nullable string assignment; no diagnostics were reported for the changed proof schema, manifest query, route, or regression fixture. Log: /private/tmp/gnd-fulfillment-api-current.log. This is not a clean repository typecheck and does not replace protected-route or end-to-end acceptance.
+
+### 2026-09-10 — Empty-load proof guard applies to delivery and pickup
+
+Moved the shared positive-packed-quantity guard outside the pickup-only branch of proof finalization. Both delivery and pickup now require a nondeleted positive packed row for the paired order/fulfillment before completion. This prevents legacy delivery scopes with no packing from being marked delivered through proof submission. Seventeen focused proof/guard tests pass with 39 assertions; these are helper tests, not protected-route persistence evidence. Explicit historical recovery must still confirm and pack actual delivered quantities through the canonical workflow.
+
+### 2026-09-10 — Existing fulfillment overview and legacy scope inspected live
+
+Read-only IAB verification of order 27100 / fulfillment 4659 confirms secondary overview tabs and lazy packing panel load after the client import fix. Overview reports Planned Needs review because no saved plan exists; packing shows legacy order-wide total 83, deliverable 58, available 83, packed 0. This does not prove full-assignment quantities for new scoped fulfillments. Legacy scope must be explicitly confirmed before adopting quantity-scoped completion, rather than inferring the entire order from an absent plan. Existing row actions currently expose Edit/Change date/Change driver only; completion/reversal menu actions remain unfinished. No packing, trip or assignment mutation performed.
+
+### 2026-09-10 — Browser crash fixed and creation form reverified
+
+Live fulfillment hydration exposed PrismaClient bundled into the browser through sales-print-service -> settings barrel -> sales-request-generation-defaults. Changed the print service to import its pure normalizer/type from @gnd/settings/schema. Reload then opened the actual order creation sheet successfully. Verified Partial Fulfillment off displays all 17 available units, toggling on preselects all six item rows and their LH/RH quantities, fixed Cancel/Assign footer is visible, and Cancel returns to parent without mutation. Parent with zero fulfillments shows Assigned 0 and Backlog 0. This is read-only interaction verification, not creation/completion acceptance. Local dev session 86713 remains running; IAB tab 4 marked for handoff.
+
+### 2026-09-10 — Local dashboard runtime restored
+
+Fresh IAB navigation initially confirmed no registered app. The default dev launcher failed because sandbox Docker socket access was denied, not because the daemon was necessarily stopped. Approved escalated `bun run dev --filter dashboard` started existing local MySQL and dashboard successfully. Live exec session 86713 reported Next ready and https://gndprodesk.localhost. Fresh IAB tab 3 loaded Fulfillment | GND with filters/table shell. This restores runtime access; it is not full workflow QA. Keep this process and poll its handle rather than restarting. No shared proxy reconfiguration or real-order mutation occurred.
+
+### 2026-09-10 — Planned-scope manifest regression exercised
+
+Added a query-adapter test that executes getDispatchPackingCommandRevision and the inventory manifest builder with an empty physical load. Proof checkpoint metadata preserves the revision; planned quantity/revision edits and delivery-mode changes invalidate it. Eight packing-command tests pass with 21 assertions. This is an in-memory adapter fixture, not database concurrency proof. Browser inventory currently has no in-app tabs; existing local Chrome tabs show 404, which alone is not a fresh runtime request.
+
+### 2026-09-10 — Manifest revision includes planned fulfillment scope
+
+Packing command revision now includes the parsed fulfillment assignment scope (revision, selection mode and quantities) and delivery mode, in addition to driver, physical packing, inventory and pending reports. Previously a planned-quantity-only edit could leave an earlier proof review apparently current. Unrelated metadata such as proof-upload checkpoints is deliberately excluded. Existing packing/proof suites pass 22 tests / 54 assertions; these regressions do not yet exercise a persisted quantity edit against the manifest query. Existing drafts receive a changed revision on rollout and must be reviewed again.
+
+### 2026-09-10 — Proof finalization rechecks the reviewed load
+
+The canonical proof completion callback now locks the fulfillment header and recomputes its packing manifest revision before pickup packing or submitDispatchTask. A change during media upload returns CONFLICT instead of completing from the pre-upload review. The existing early completed-request replay remains separate. Isolated route transpilation passed; concurrent database and protected-route acceptance remain unverified. This guard relies on competing packing/edit commands participating in the same locking protocol; it does not establish proof that every legacy writer does so.
+
+### 2026-09-10 — Proof retry identity includes reviewed manifest
+
+Proof completion now requires expectedManifestRevision, and its payload fingerprint binds retries to that reviewed load. A reused request with a different manifest rejects before staged proof is reused. Focused proof suite passes 15 tests / 36 assertions. This is schema/helper evidence only; finalization-time locking and protected-route/browser acceptance remain pending. Existing checkpoints using the earlier fingerprint require a fresh request.
+
+### 2026-09-10 — Recovered proof is bound to manifest revision
+
+Driver proof storage keys and context mounting now include manifestRevision. A fulfillment/driver/packing revision change opens a fresh form instead of restoring a signature captured for another load; same-revision drafts remain recoverable. Earlier unversioned-per-manifest drafts are left in storage but not silently reused. This uses the existing server packing revision, which includes driver identity. Changed TSX files pass isolated Bun transpilation; browser restoration/reassignment acceptance remains pending.
+
+### 2026-09-10 — Proof submission checkpoints draft synchronously
+
+Existing driver proof draft context exposes saveDraft and the proof form calls it before invoking the completion mutation. Browser-storage failure sets the existing storage error and aborts submission, rather than relying on the 300ms autosave timer to persist recovery evidence after the request begins. Both changed TSX files pass isolated Bun transpilation; this verifies syntax only. Browser interrupted-submit/reload acceptance and full typechecking remain pending. No completion form or ticket is claimed complete.
+
+### 2026-09-10 — Empty-load guard moved to shared sales domain
+
+Extracted assertFulfillmentHasPackedItems beside the canonical packing guard and exposed it through the sales boundary. Pickup API now owns only error translation; the domain owns paired-row quantity eligibility. A typed empty-load error distinguishes missing quantities from database failures, which propagate unchanged. Two focused guard tests pass with three assertions. Actual database row filtering and protected-route execution remain pending.
+
+### 2026-09-10 — Pickup proof rejects empty physical loads
+
+Added an in-transaction guard after pickup packing and before completion: at least one nondeleted packed row for the paired order/fulfillment must have positive scalar/LH/RH quantity. This also protects legacy scopes where the scoped-quantity guard cannot establish a saved assignment. An empty load rejects rather than writing delivered status. Protected-route persistence verification is still pending; this count is only the empty-load guard, not proof of complete scope or inventory readiness.
+
+### 2026-09-10 — Pickup proof uses existing-deliverables packing
+
+Pickup proof completion now invokes shared packing with existing_only preparation, preserving its proof/inventory authorities while preventing automatic production/non-production creation or material-review release from the proof shortcut. Nineteen proof/document-caller tests pass with 98 assertions; these include helper and structural checks, not persisted pickup execution. A local pickup fixture remains required to prove the complete route and inventory rollback behavior.
+
+### 2026-09-10 — Proof requires a named recipient
+
+The proof completion schema now rejects missing/whitespace-only recipient names and trims valid values. Existing driver form adds matching field validation/inline error and sends the confirmed trimmed recipient. Updated media-validation fixtures with valid recipients so their original checks remain meaningful. Fourteen proof tests pass with 34 assertions. This improves the existing proof form; it does not connect the unfinished admin quantity-confirmed completion form or historical attestation flow. Browser acceptance remains pending.
+
+### 2026-09-10 — Proof retries bind completion facts as well as media
+
+Proof payload fingerprints now include recipient, supplied delivery date, note and note type, preventing changed completion facts from reusing a staged/completed request. The driver proof form no longer supplies a fresh timestamp on each retry; absent explicit date selection it uses the API's stable staged timestamp. Thirteen helper tests pass with 31 assertions. Existing checkpoints produced by the earlier media-only fingerprint will conflict rather than silently accept changed semantics and need a fresh request; no migration or live data edits performed. Explicit historical-date UI and complete recovery acceptance remain open.
+
+### 2026-09-10 — Proof completion preserves supplied delivery date
+
+Proof finalization previously discarded receivedDate and wrote the current time. It now validates the supplied date before proof uploads and forwards it to completion; omitted dates use the existing staged request's startedAt for a stable fallback across retries. Twelve proof-helper tests pass with 27 assertions, including historical date preservation, stable fallback and future-date rejection. This is API date handling, not a finished historical-attestation permission contract or date-entry UI. The current driver form still supplies the current time and needs the explicit delivery-date flow.
+
+### 2026-09-10 — Proof completion uses durable inbox delivery
+
+Found completeDispatchWithProof still emitted an ordinary completion inbox activity in addition to the newly persisted recovery intent. It now resolves the exact order/fulfillment/request audit, invokes durable delivery/recovery on first execution and replay, and sends external channels with skipActivities when that audit exists. Recovery enqueue failure remains visible through notificationQueued. Ten focused recovery/receipt/schema tests pass with 25 assertions; actual protected proof-route execution remains unverified. Existing driver proof form owns signature/photo staging and must be reused through its proof-finalization authority, not reduced to plain completion fields.
+
+### 2026-09-10 — Dashboard validation completed with repository diagnostics
+
+The 8GB-heap typecheck session 36881 finished with exit 2. Diagnostics include cache API argument changes and permission-type mismatches across the repository. No diagnostic names use-sales-packing.ts, fulfillment-completion-attempt.ts, queries/dispatch.ts or fulfillment-orders.ts. This is not a clean overall typecheck; log /private/tmp/gnd-completion-dashboard-types-8g.log remains the source of all reported errors.
+
+### 2026-09-10 — Dashboard validation exhausted default Node heap
+
+Dashboard typecheck session 80557 exited 134/SIGABRT with “JavaScript heap out of memory,” not a clean or source-error result. Restarted the terminal process with NODE_OPTIONS=--max-old-space-size=8192 as session 36881, log /private/tmp/gnd-completion-dashboard-types-8g.log. It remains live at last poll; follow that handle rather than restarting. Authorization inspection confirms markAsCompleted requires viewMarkSalesOrderFulfilled and is not the driver's assigned-dispatch submission path, so administrator attribution follows that current permission-gated shortcut. Driver recovery still requires its own completed flow.
+
+### 2026-09-10 — Ticket 10 status reconciled with actual work
+
+Updated local Ticket 10 from queued to in progress, explicitly retaining unfinished acceptance for the quantity/recipient/date/evidence form and durable packing-stage orchestration. Existing packing prototype contains a delivery-confirmation placeholder, not implementation evidence. Dashboard typecheck started as session 80557, log /private/tmp/gnd-completion-dashboard-types.log; it remains live at the last poll with no diagnostics yet. Do not restart it merely because observation times out. Changed hook/helper whitespace check passes. No ticket marked complete.
+
+### 2026-09-10 — Completion retry identity survives same-tab reload
+
+Packing completion now saves request ID/date in sessionStorage before dispatch and restores it by fulfillment/revision/actor/action after remount. No recipient/contact data is stored. Storage failure prevents dispatch with an existing toast error so an uncertain attempt is not knowingly sent without retained identity. Two focused tests pass with six assertions, covering remount recovery, actor isolation and clock advancement. This does not implement cross-device/offline queued submission or the required explicit historical-delivery form; browser runtime verification remains pending.
+
+### 2026-09-10 — Packing completion buttons retain retry identity
+
+Existing packing provider now retains completionRequestId and receivedDate for each dispatch/scope/actor/action attempt and sends both through packed-only and pack-all completion. Repeated clicks or retries in the mounted provider reuse the exact timestamp instead of generating a fingerprint conflict as time advances. Scope/action changes start a new identity. Five focused client-attempt/domain-idempotency tests pass with ten assertions. Persistence across remount/offline recovery and the explicit quantity/recipient/date confirmation form remain required; current legacy buttons still use their existing recipient behavior.
+
+### 2026-09-10 — Existing packing completion actions send scope revision
+
+Driver-compatible dispatchOverviewV2 now exposes the saved scope revision. The existing packing provider passes that revision for both pack-all completion and packed-only submission, connecting the current screen to server stale-scope checks without changing its UI. Manager detail uses the same contract independently. Browser verification remains blocked by local services; this does not supply the still-missing quantity/evidence preview, stable request identity or approved Pack & complete footer. Diff whitespace check passes.
+
+### 2026-09-10 — Detail exposes saved fulfillment revision
+
+The existing manager-protected fulfillmentDetail query now returns scopeRevision from its saved scope, null for unknown/invalid legacy scope, without an extra query. This supplies the completion preview with the server revision accepted by the completion command. Added an assertion to the rollback integration fixture, but did not execute the DB suite because its approval/runtime blockers remain. UI wiring is still pending.
+
+### 2026-09-10 — Completion request accepts reviewed scope revision
+
+Added optional positive expectedFulfillmentRevision to completion input, included it in retry fingerprinting, and enforced it before queued admin packing and inside locked finalization. The new stale-preview regression rejects before preparation/packing. Existing callers remain compatible when the field is omitted; the approved UI still needs to send the preview revision. Fifty-five focused transaction/idempotency tests pass with 194 assertions. This closes the server contract portion, not the quantity-preview UI or complete Ticket 10 acceptance.
+
+### 2026-09-10 — Completion rejects scope changes during orchestration
+
+Scoped admin shortcut passes its initial assignment revision into finalization. The completion authority compares the locked persisted scope before effects and rejects a changed/missing revision; committed identical-request replay remains permitted. A command regression changes revision between shortcut entry and finalization and verifies rejection without packing or completion writes. Fifty transaction tests pass with 185 assertions. This protects one orchestration attempt; the approved preview's client-to-command revision contract and durable staging identity remain unfinished.
+
+### 2026-09-10 — Inventory failure retry verified at command seam
+
+Extended packed/in-progress scoped completion regressions to inject inventory-finalization failure, assert no completion update/history/note, then retry the identical command. The second attempt produces one completion update and one durable notice audit without entering packing or production submission. Forty-nine transaction tests pass with 182 assertions. This uses injected inventory failure before writes; it does not prove database rollback after partial inventory writes or real concurrent execution. Those integration checks remain open.
+
+### 2026-09-10 — Packed completion resumes at finalization
+
+Scoped admin completion now routes persisted packed state directly to the locked completion authority, alongside in-progress states. If packing committed but finalization failed, the next attempt no longer re-enters packing/preparation; persisted scope-versus-packed validation still runs before inventory consumption. Extended the existing completion regression across packed and in-progress states: 49 transaction tests pass with 170 assertions. Full stage request identity and real rollback/retry orchestration remain required; persisted status alone does not prove Ticket 10 complete.
+
+### 2026-09-10 — Scoped completion packs existing approved deliverables only
+
+Added an internal existing_only preparation option to the shared packing task and selected it for scoped admin completion. It skips automatic assignments, production/non-production preparation and automatic material-review release; selected-item shortages reject without preparation. Ordinary packing retains its existing preparation behavior. Legacy unscoped completion still follows its old preparation path and remains a required migration gap, not a completed shortcut. Forty-eight transaction tests pass with 164 assertions, including no production-evidence creation in existing-only mode. Full scoped persisted packing/completion and historical attestation acceptance remain pending.
+
+### 2026-09-10 — Browser verification blocked by stopped local services
+
+Fresh in-app browser navigation to /sales-book/fulfillment/v2 shows Portless “No app registered for gndprodesk.localhost.” Previous dev session 46788 no longer exists. Authorized root bun run dev --filter dashboard started as session 92652, found port 3010 free, attempted Docker startup and exited 1 after 30 Engine checks. No proxy configuration changed. Do not infer a live dashboard from earlier session history. Source inspection identifies dispatch-packing-overview/packing-side-sheet.tsx as the actual Pack footer; sales-overview-sheet/packing-footer.tsx only owns print/share preview controls. Ticket 10 needs resumable command integration before adding its approved completion action. Local source/test work can continue while Docker blocks browser acceptance.
+
+### 2026-09-10 — Legacy repeat completion cannot rerun effects
+
+Completed fulfillments without a retry request ID now conflict instead of continuing through inventory, note and financial effects. Admin shortcuts route every completed header directly to shared replay/conflict handling before any packing, including legacy headers without saved scope. The explicit internal signature-replacement path remains separate. Fifty-one idempotency/transaction tests pass with 166 assertions, including a legacy completed header rejecting before packing or writes. This does not replace the still-required audited completion reversal workflow.
+
+### 2026-09-10 — Completion retries compare saved evidence
+
+New request-ID completions persist a SHA-256 fingerprint of dispatch, recipient, delivery date, note/type, signature and sorted attachment paths. A completed request with a saved fingerprint rejects changed evidence under the same ID; older records retain their existing replay behavior. Admin pre-packing now validates the date before preparing or packing items. Fifty-two focused date/idempotency/transaction tests pass with 169 assertions. Real concurrent database verification and pre-completion resumable command identity remain open; this fingerprint guards committed completion retries, not every staging step.
+
+### 2026-09-10 — Completion rejects future business dates
+
+Shared completion now validates receivedDate after replay/conflict resolution and before packing, inventory or completion effects, using the same configured business timezone as completion date context. Invalid dates and future business days reject; earlier dates and the current business day are allowed, without inventing historical attestation permission. Date boundary tests and the command rejection regression pass alongside the existing transaction suite (47 tests, 159 assertions). Actual historical evidence/role policy, quantity confirmation and approved footer wiring remain unfinished under Ticket 10.
+
+### 2026-09-10 — Completion state is read after dispatch locking
+
+Moved completion's existing dispatch lock and packing-report guard ahead of its header read. Previously a request waiting for the lock could retain pre-completion status/meta and repeat completion effects after another writer finished. The regression exposes completed state only after lock acquisition and verifies the same-request replay performs no completion update. Forty-four transaction tests pass with 149 assertions. This proves command ordering with a fake transaction; real concurrent database execution is still pending.
+
+### 2026-09-10 — Completion inbox cutover and recovery discovery connected
+
+Completion worker finds the paired order/fulfillment completion audit (matching completionRequestId when provided), delivers its saved intent through transactional receipts, and queues recovery on delivery failure. The existing notification job now carries validated skipActivities so external channels continue without a second inbox write; completions without a durable audit retain legacy delivery. The pending sweep includes FULFILLMENT_COMPLETED. Durable completion inbox targets the snapshotted driver; the former subscriber inbox broadcast is suppressed for these events while external subscriber delivery remains. Ten focused schema/receipt/pagination tests pass with 23 assertions. Jobs typecheck reports existing dependency errors and none in touched modules. Actual worker execution, SQL discovery for completion, concurrency, external retry behavior and legacy completion paths still need acceptance proof; Tickets 09/11 remain open.
+
+### 2026-09-10 — Completion transaction persists driver notice intent
+
+submitDispatchTask now writes FULFILLMENT_COMPLETED history with a UUID notice identity and immutable driver/date/mode/admin attribution in the same transaction as completion, inventory consumption and financial side effects. Completed replay and signature replacement do not create another intent. markAsCompleted supplies administrator attribution through its internal command options. The scoped admin completion regression verifies the audit payload alongside inventory completion; 43 transaction tests pass with 147 assertions. Recovery sweep and immediate sender cutover are deliberately still pending to avoid duplicate notices while the old sender remains active. Real database persistence/recovery remains unverified.
+
+### 2026-09-10 — Durable consumer accepts completion notices
+
+Extended the existing intent planner, validated receipt boundary and notification renderer to accept completion events and preserve completedByAdmin. Completion targets only the current driver, never emits reassignment side effects, and receipt replay prevents a second activity. Ten focused tests pass with 28 assertions, including completion attribution and receipt replay using the transaction fake. The completion command still needs to persist the intent atomically and connect recovery; this consumer support alone does not make completion notifications durable end to end. No UI changes.
+
+### 2026-09-10 — Addressed completion notices require inbox delivery
+
+The notification worker now uses the existing forceInAppRecipients option for completion notices with explicit recipient IDs, including the assigned driver emitted by the completion worker. Existing subscriber delivery is preserved; the option applies to resolved contacts for that notice. Completion broadcasts without explicit recipients retain preference behavior. Six focused recipient-policy/template tests pass with eight assertions. Actual worker delivery and durable completion receipts remain unverified/incomplete; this does not close Tickets 09 or 11.
+
+### 2026-09-10 — Admin completion notice path connected
+
+Found update-sales-control sent completion notices only for submitDispatch, skipping markAsCompleted. It now handles both payloads, pairs the dispatch lookup with its order, explicitly includes the assigned driver recipient, and marks admin-shortcut notifications completedByAdmin. Existing completion schema/tags and in-app/WhatsApp templates preserve that flag and say completed by an administrator; ordinary completion wording remains unchanged. Two template tests pass/four assertions. Durable completion intents/receipts, forced driver inbox delivery and full worker execution proof remain open; this closes the missing emit path but not Ticket 09 or 11.
+
+### 2026-09-10 — Short-load confirmation records recoverable notices
+
+Short-load confirmation now snapshots the locked fulfillment's driver/date/mode and saves one updated-notice intent when its scope changes. No-op confirmations record none. Its API calls durable delivery on first execution and replay, queues failure recovery, and suppresses duplicate in-app creation on the existing external-channel send. Eight local short-load-plan/intent/recovery tests pass with 21 assertions; direct persisted short-load notice proof remains pending along with the previously rejected DB rerun. API typecheck reports only existing copy-sales.ts:521. Log: /private/tmp/gnd-shortload-notices-types.log.
+
+### 2026-09-10 — Pending-notice recovery sweep implemented, final DB assertion pending
+
+Added a paginated missing-receipt query using MySQL JSON_TABLE and stable receipt IDs. The sweep queues up to 100 commands per page, continues by ID, and has a five-minute production schedule in code; nothing has been deployed or activated. Local integration passed 107 assertions proving missing-intent discovery. A subsequent receipt-exclusion assertion was added but its database run was rejected by automatic approval review because the approval service reported its usage limit; do not claim that assertion passed or bypass the rejection. Nine local pagination/receipt/recovery tests pass with 19 assertions. Jobs typecheck reports existing sales/shared UI dependency errors. Remaining work includes that DB assertion, real concurrency, queue failure/continuation verification, query performance review and live worker acceptance.
+
+### 2026-09-10 — Failed in-app delivery queues a retry task
+
+Added the deliver-fulfillment-notices Trigger task with eight retry attempts, bounded backoff and concurrency four. Create/update API routes now attempt immediate durable delivery and enqueue the original request ID on failure using an hour-scoped idempotency key. Failed queue submission remains notificationFailed; operational mutations are not repeated. Six recovery/receipt tests pass with 16 assertions. This is code wiring only: no live worker was triggered or deployed, crash/queue-outage recovery still needs a durable sweep, and external channel retries remain separate. API/jobs typechecks finished with existing dependency errors and no diagnostics in the new recovery/task modules. Logs: /private/tmp/gnd-notice-recovery-api-types.log and /private/tmp/gnd-notice-recovery-job-types.log.
+
+### 2026-09-10 — Create/edit in-app delivery uses durable receipts
+
+Create/update fulfillment routes now call deliverFulfillmentNotices after commit on both first execution and command replay. Missing inbox activities can recover without rewriting operational state; existing receipts avoid duplicate activities. Existing external channel sends remain first-execution-only and pass the new skipActivities option so email/WhatsApp delivery does not create another inbox notice. Generic dispatch-created notices remain intact. Automatic retry worker/sweep, short-load and completion intent wiring, and end-to-end duplicate/concurrency proof remain required; external-channel retries are still the existing best-effort behavior. Thirteen focused lifecycle/intent/receipt tests pass with 42 assertions. API typecheck reports only existing copy-sales.ts:521. Log: /private/tmp/gnd-notice-cutover-types.log.
+
+### 2026-09-10 — Delayed notices preserve delivery mode
+
+Assignment intent now snapshots deliveryMode alongside dueDate. The renderer prefers that immutable value; earlier version-1 intents without the field retain current-header fallback. Rollback integration changes a fixture header to pickup after assignment and verifies its queued delivery notice still renders delivery, then restores the fixture. Integration passes 106 assertions; six intent/receipt tests pass with 18 assertions. Sales typecheck reports only existing copy-sales.ts:521. API cutover, external-channel parity and automatic retry scheduling remain open.
+
+### 2026-09-10 — Existing in-app renderer connected to durable delivery boundary
+
+Added notifications/fulfillment-delivery, reusing existing assigned/unassigned/updated handlers, contact resolution, activity validation and note writer. Contact resolution and activity creation now accept a transaction client. The adapter creates only the explicit recipient's in-app activity, tags its stable event key, and performs no external I/O. deliverFulfillmentNotices composes it with the sales-domain receipt boundary; API callers and retry scheduling are not yet switched over. Notification package typecheck has existing dependency errors but no diagnostics in the changed renderer/contact/activity files. Local rollback integration verifies rendered subject, single fixture recipient, and JSON-encoded event-key tag.
+
+### 2026-09-10 — Transactional notification receipt boundary added
+
+Added deliverFulfillmentNotificationIntents in the shared sales domain. It locks the command audit, validates each versioned intent against command/order/fulfillment identity, and atomically creates delivery receipts keyed by the stable event key. Existing receipts return activity IDs without redelivery. The injected delivery operation must create its in-app activity using the same transaction and perform no external I/O. Six intent/delivery tests pass with 18 assertions, including replay, receipt rollback after failure, and mismatched intent rejection. Tests use a transaction fake; real renderer integration, database concurrency proof and retry worker remain incomplete. Sales typecheck reports only existing copy-sales.ts:521. Log: /private/tmp/gnd-notice-receipts-types.log.
+
+### 2026-09-10 — Assignment notification intent persisted with audit
+
+Create/edit assignment commands now store immutable notificationIntents in their existing transactional SalesHistory audit. Shared planning gives each notice a stable request/channel/recipient event key and preserves actor/order/fulfillment/date identity. Reassignment records old-driver removal plus new-driver assignment; same-driver edits record one update; no-op and unassigned creation record no notices. Added three focused tests/seven assertions. Local rollback integration passes 101 assertions, including a driver-assigned follow-up intent retained through command replay. The existing immediate sender is unchanged: durable consumption, delivery receipts, idempotent activity creation and retry scheduling remain required before Ticket 09 is complete. Sales typecheck reports only existing copy-sales.ts:521.
+
+### 2026-09-10 — Retained short load passes trip inventory readiness
+
+Extended the rollback integration to call assertDispatchInventoryReadyToStart after confirmed release and before consumption. Existing readiness correctly counts only picked allocations: the retained four inventory units cover two packed order units while the released two-unit audit row is ignored. Integration passes 100 assertions. Notification recovery discovery confirms the current lifecycle helper sends after commit and has no durable event idempotency; existing SpecialOrderNotificationDelivery is special-order-specific and must not be repurposed for fulfillment events. Ticket 09 still requires a dedicated durable delivery boundary and retry wiring.
+
+### 2026-09-10 — Short-load released inventory excluded from consumption
+
+consumeDispatchBoundInventory previously loaded released allocation audit rows and rejected completion because those rows were not picked. Its bound-allocation query now excludes released/cancelled rows while retaining rejection of reserved/approved/unpicked active stock. The rollback integration now executes the real consumption service after short-load reconciliation instead of setting allocation status directly: four retained inventory units become consumed, the two-unit released record remains unchanged, and the one-unit order remainder remains assignable. Integration passes 99 assertions; inventory transition suite passes 24 tests/47 assertions. Sales typecheck reports only existing copy-sales.ts:521. This proves persisted release/consumption and follow-up planning, not the entire completion shortcut's financial/notification side effects.
+
+### 2026-09-10 — Scoped completion shortcut consumes bound inventory
+
+Successful-path review found markAsCompletedTask omitted submitDispatchTask's inventory completion dependency. Scoped shortcuts now supply the same consumeDispatchBoundInventory service used by normal delivery completion, inside the completion transaction. New success regression verifies inventory consumption precedes completed status, consumed allocation evidence is stored, and no new packing/production occurs for in-progress scope. Transaction suite passes 43 tests/146 assertions. This is a command-wiring test with mocked inventory writes; actual released-allocation handling after short-load reconciliation needs review because the existing consume service queries all nondeleted bound rows. Full worker and inventory persistence acceptance remain open. Sales typecheck reports only existing copy-sales.ts:521. Log: /private/tmp/gnd-shortcut-inventory-types.log.
+
+### 2026-09-10 — Completion shortcut respects in-progress packing
+
+markAsCompletedTask now routes scoped in-progress fulfillments directly to submitDispatchTask instead of invoking packing again (which correctly rejects in-progress packing). The existing completion command validates saved scope/physical quantities and inventory before completion. Scoped completed requests with an explicit request ID also reach its replay/conflict checks without repacking. Added shortcut shortage and completed-replay regressions; transaction suite passes 42 tests/141 assertions. Successful in-progress persistence, actor races, and full bulk worker acceptance remain open. Sales typecheck reports only existing copy-sales.ts:521 after adding an explicit fulfillment-ID guard. Log: /private/tmp/gnd-completion-transit-types.log.
+
+### 2026-09-10 — Bulk execution includes all active fulfillments
+
+Bulk resolver now returns every active fulfillment ID plus any newly created remainder, excluding completed/delivered/cancelled/canceled history. Shared round planning deduplicates IDs and places only one fulfillment per order in each batch. The worker awaits each round, refreshes pipeline revisions, uses fulfillment-specific child idempotency keys, stops remaining work for failed orders, and evaluates order completion only after the last planned fulfillment. Ten helper/planning tests pass with 29 assertions; local rollback integration passes 16 assertions including completed-history exclusion, an existing active scope plus a newly added remainder, and exact quantity persistence. Full worker execution/failure/retry coverage and in-progress fulfillment completion behavior remain to verify. Jobs typecheck completed with the existing copy-sales.ts:521 and shared React type conflicts; no diagnostics in the changed bulk modules. Log: /private/tmp/gnd-bulk-rounds-types.log.
+
+### 2026-09-10 — Bulk success requires order-level completion
+
+Found bulk-mark-sales-fulfilled marked an order succeeded solely from one successful child fulfillment job. It now reloads authoritative pipeline snapshots after the batch and uses the shared sales-domain outcome resolver: fulfilled means succeeded, administrative completion means already_fulfilled, and partial/unresolved/missing evidence means review_required. Batch status includes review-required outcomes as completed_with_errors. Four focused tests pass with 11 assertions. This prevents partial completion from being reported as whole-order success; executing all existing disjoint fulfillments in a single bulk request remains required work. Jobs typecheck completed with unrelated copy-sales.ts:521 and shared UI duplicate React-type errors; no diagnostics name the changed bulk modules. Log: /private/tmp/gnd-bulk-outcome-types.log.
+
+### 2026-09-10 — Bulk scope and audit persistence verified
+
+Added a local-only, rollback integration test for the shared bulk resolver. It verifies first assignment of five units, order-date persistence, reuse without duplicate history, and a two-unit follow-up after a persisted three-unit completion even when order deliveredAt exists. Completed history remains unchanged; both creation audits retain exact quantities and actor identity. The production resolver now exposes its transaction body for transaction composition and this test; its public Serializable retry wrapper remains unchanged. Integration passes 13 assertions; eight helper/bulk tests pass with 22 assertions. Sales typecheck reports only existing copy-sales.ts:521. This does not verify concurrent requests or the complete multi-fulfillment bulk completion workflow; those remain open.
+
+### 2026-09-10 — Bulk-created fulfillment audit connected
+
+Bulk ensure helper writes FULFILLMENT_ASSIGNED history in the same serializable transaction as a new scoped header, recording source, actor ID, fulfillment ID, date, planned total and exact lines. Reused active/already-fulfilled results do not add assignment history. Eight helper/bulk tests pass with 22 assertions, including one audit on creation and none on reuse. Actual persisted helper rollback and full bulk workflow acceptance remain open.
+
+### 2026-09-10 — Bulk schedule and closure parity
+
+Bulk ensure helper now defaults new fulfillment dueDate from the order's deliveryDueDate, preserving null instead of inventing today's schedule. Cancelled orders reject before creation; active order-level completion records return already_fulfilled without reopening work. Added schedule/cancelled-order regression; eight helper/bulk tests pass with 18 assertions. Persisted helper integration, creation audit and remaining full bulk execution parity remain open.
+
+### 2026-09-10 — Bulk helper new fulfillment scope migrated
+
+Bulk ensure helper now always reads canonical quantities, rejects unresolved evidence, and saves exact all-remaining scope for new headers including first fulfillments. It reuses existing active fulfillment only when no additional unassigned capacity remains. Added first-fulfillment metadata assertion; helper and bulk tests pass. Serializable transaction retry remains in place. Full bulk execution, scheduling/audit parity and order-closure rules still need acceptance checks before Ticket 08 completion.
+
+### 2026-09-10 — Bulk helper completed-history shortcut replaced
+
+ensureSalesOrderFulfillmentDispatch now inspects canonical quantities when deliveredAt or completed delivery history exists. It returns already_fulfilled only when all ordered axes are delivered, rejects unresolved evidence, and creates a saved all-remaining assignment scope for available remainder. Active reserved scope remains excluded by the projection. Four helper tests pass, including five ordered/three delivered creating exactly two despite deliveredAt. New-order legacy creation and full bulk end-to-end/audit coverage remain to migrate. Sales typecheck running, log /private/tmp/gnd-bulk-remainder-types.log.
+
+### 2026-09-10 — Legacy bulk remainder blocker located
+
+Inspected ensure-fulfillment-dispatch.ts, used by bulk-fulfillment.ts: resolveInTransaction returns already_fulfilled when sale.deliveredAt exists or any delivery has completed/delivered status. This contradicts quantity-based follow-up assignment and is explicitly covered by an old test named treats a completed dispatch as an idempotent fulfillment. New assignment command passes the 96-assertion remainder test, but the bulk helper is not migrated. Next implementation must replace this shortcut with canonical aggregate quantity evidence, preserve unresolved review behavior, and create an exact remaining scope without reopening delivered or active allocations. No completion claim for Ticket 08.
+
+### 2026-09-10 — Follow-up assignment after delivered short load verified
+
+Extended rollback integration to model completed short-load evidence (proof and consumed inventory), then create the one-unit remainder while a disjoint seven-unit fulfillment remains active. Follow-up creation/replay reserves exactly one, clears backlog, and preserves completed history and the active scope. Initial fixture omitted completion evidence and correctly remained unresolved; the fixture now uses the existing full evidence contract. Integration passes 96 assertions. This models persisted completion state rather than executing completion side effects, and does not close all Ticket 08 entrypoint/mobile acceptance.
+
+### 2026-09-10 — Completion shares persisted packing guard
+
+Extracted persisted assigned-versus-packed validation into fulfillment-packed-guard.ts and reused it in trip start and completion. Completion rejects an unconfirmed shortage before inventory consumption/status/audit side effects; exact completed-request replay retains existing behavior. Added direct completion regression with in-progress status but only three of five assigned units packed and no completion/reset write. Transaction suite passes 41 tests. This is a lifecycle invariant, not the unfinished pack-and-complete/admin completion feature.
+
+### 2026-09-10 — Trip-start command validates persisted assigned packing
+
+Shared startDispatchTask now reloads the paired header and physical scope inside its transaction, rejects invalid scope or non-packed scoped status, and requires every assigned axis to be physically packed. Empty/incomplete scope cannot start through a stale UI or direct call; explicit short-load confirmation supplies the reduced scope. Direct regression sets packed status with three physical units against five assigned and verifies no start/reset write. Transaction suite passes 40 tests. Remaining legacy routes, actor races and full completion tickets remain open.
+
+### 2026-09-10 — Driver readiness checks actual assignment completion
+
+Confirmed mobile manifest derives from scoped dispatchOverviewV2, preserving planned targets even before physical rows. Overview dispatchReadiness now explicitly blocks empty/incomplete assignment scope and explains that packing or short-load confirmation is required. Mobile projection treats this blocker independently of the guarded physical-verification exception, so that exception cannot bypass an incomplete assignment. API typecheck running in current turn, log /private/tmp/gnd-assignment-start-types.log. Direct start-command regression and remaining driver/slip consumers still need verification.
+
+### 2026-09-10 — Replacement shortage command regression verified
+
+Added direct packing-task regression with five requested, two currently packed and one fresh deliverable. The non-production action receives a two-unit preparation limit, then refreshed availability plus reusable packing builds five units. Transaction suite passes 39 tests/130 assertions. This verifies command wiring with mocked writes, not committed replacement persistence. Latest Sales typecheck reports only existing copy-sales.ts:521. Persisted replacement and full preparation/packing atomicity remain open.
+
+### 2026-09-10 — Replacement preparation subtracts existing packed scope
+
+When scoped selected replacement packing needs preparation, it reloads canonical physical evidence for that fulfillment and subtracts already-packed quantities as well as fresh deliverables from the requested target. Unresolved physical evidence blocks preparation. This prevents preparing the entire replacement target again. Combined transaction/demand suites pass 41 tests. Direct persisted replacement-shortage coverage and transaction coordination remain open. Sales typecheck running session 97679, log /private/tmp/gnd-replacement-demand-types.log.
+
+### 2026-09-10 — Replacement packing excludes unpacked audit rows
+
+Found selected replacement packing treated historical unpacked rows as reusable physical stock. Its reusable allocation filter now excludes unpacked records, matching the automatic path. Regression places nine unpacked audit units before the current one-unit packing and verifies only the current submission is reused, without non-production preparation. Transaction suite passes 38 tests. Replacement shortage demand still needs to subtract reusable packed quantities before preparation; remaining tickets stay open.
+
+### 2026-09-10 — Selected non-production fallback quantity limits connected
+
+Selected scoped packing now passes requested-item demand minus existing deliverables into its non-production preparation fallback. Non-production action reuses the shared production submission planner, preserving its existing pending-quantity calculation while applying per-item capacity and excluding production items. Legacy callers omit limits. Planner/transaction suites pass 41 tests/135 assertions; direct persisted non-production quantity and replacement-reuse scenarios still need dedicated coverage. Sales typecheck running session 13836, log /private/tmp/gnd-nonprod-limits-types.log. This does not close Ticket 07 or preparation atomicity.
+
+### 2026-09-10 — Scoped packing lifecycle transition tightened
+
+Scoped packing validates persisted fulfillment status before preparation and again inside the packing transaction, rejecting in-progress/closed fulfillments. Scoped status updates derive from validated quantities even when the client omits dispatchStatus; legacy status-trigger behavior remains queue/missing-items only. Added regression proving completed scope rejects before information reads or packing writes. Transaction suite passes 38 tests. Reversal flows and other legacy lifecycle entrypoints remain separate ticket work.
+
+### 2026-09-10 — Partial packing status no longer implies trip readiness
+
+Planned packing now validates persisted actual quantities and keeps incomplete scope in packing queue instead of marking any positive load packed. Full scope becomes packed; explicit short-load confirmation marks the reduced nonempty scope packed (empty scope stays packing queue). Added transaction-path assertion for incomplete persisted load and rollback integration assertion for confirmed-short-load packed status. Transaction tests pass; rollback integration passes 90 assertions. Driver manifest scope and legacy status paths still need the remaining Ticket 07 audit.
+
+### 2026-09-10 — Production Calendar status legend hidden
+
+Removed the status-color legend from the Production Calendar header while
+retaining status labels and status-colored borders on individual cards. The
+Critical fill behavior and week/month controls are unchanged. Scoped diff
+validation passes; no runtime test was needed for this static removal.
+
+### 2026-09-10 — Production and Fulfillment analytics cards hidden
+
+Hidden the analytics-card rows from the canonical admin Production workspace,
+the production-worker workspace, and both current Fulfillment workspace
+compositions. Matching skeleton rows are suppressed. Production/Fulfillment tab
+counts, filters, tables, calendars, and overdue warnings remain intact, and no
+API, permission, or stored-data behavior changed. Source-level parity
+expectations were updated; execution was deferred under the Bun monorepo
+command-discipline rule.
+
+### 2026-09-10 — Critical Production Calendar fill softened
+
+Reduced the visual intensity of Critical Calendar cards from an opaque red-600
+surface to deep red at controlled opacity: red-700/90 in light mode and
+red-800/80 in dark mode. White foreground text and the 2px canonical status
+border remain unchanged. Focused expectations were updated; execution was
+deferred under the Bun monorepo command-discipline rule.
+
+### 2026-09-10 — Critical Production Calendar cards use priority fill and status borders
+
+Production Calendar schedule and planning cards now render Critical orders with
+a solid red surface and white foreground while preserving the canonical status
+color as a 2px border. All priorities use the same border width, and the shared
+helper also styles compact planning cards and the drag preview. The Calendar
+legend documents fill and border meaning. Focused color and planning-card tests
+were extended; execution was deferred under the Bun monorepo command-discipline
+rule.
+
+### 2026-09-10 — Packing item status uses explicit assignment target
+
+Found the item-row status text/color independently used listed quantities and could still show green Packed 3/3 for a five-unit scope. Scoped manifest adapter now carries explicit assignedQty; shared item presentation target uses it for both text and row color. Legacy fallback is retained. Twelve item-presentation/packing-target tests pass with 24 assertions, including Partially packed 3/5 and Packed 3/3 after scope reduction. Browser rendering and remaining readiness consumers remain to verify.
+
+### 2026-09-10 — Scoped packing readiness denominator fixed
+
+Found the shared packing totals helper switched to listed quantity once packing began, causing a five-unit fulfillment with three listed/packed units to appear 3/3. Added optional explicit assigned target and connected it in dispatchOverviewV2 for resolved scope. It now remains 3/5 until short-load confirmation changes the saved scope to three, then reads 3/3. Legacy totals remain unchanged. Six totals tests pass/eight assertions. Other manifest/readiness consumers and remaining ticket acceptance still need verification.
+
+### 2026-09-10 — Scoped production retry identity corrected
+
+Automatic fulfillment preparation now includes the fulfillment identity/revision and canonical planned production quantities in its generated idempotency key. Previously the item scope alone could identify different quantity commands as the same submission. Ordinary production command keys remain unchanged. Shared quantity evidence sorts by item/assignment and is reused for freshness comparison. Focused planner plus transaction suites pass 40 tests; tests cover quantity changes and order-insensitive comparison. Remaining packing/preparation atomicity and ticket scope are unchanged.
+
+### 2026-09-10 — Production availability revalidated before writes
+
+Scoped preparation now reloads production information without derived-state persistence inside the transaction, recomputes outstanding fulfillment demand and compares the resulting submission/assignment quantities with the planned operation. Changed availability rejects before material review or production writes. Direct regression adds two available units after planning five and proves no review/submission occurs. Transaction suite passes 37 tests/124 assertions; Sales typecheck reports only copy-sales.ts:521. Legacy production writers that do not share these locks and the separate packing transaction remain concurrency follow-up work.
+
+### 2026-09-10 — Production preparation fulfillment revision lock
+
+Automatic scoped packing captures fulfillment evidence revision and passes it internally to submitAllTask. Before material review or submission writes, the production transaction locks the order and fulfillment headers, reloads evidence and rejects a missing fulfillment, unresolved evidence or changed revision. Added regression proving stale preparation takes both locks but performs neither material review nor submission writes. Transaction suite passes 36 tests. Production availability changes independent of fulfillment evidence and the separate preparation/packing transactions still require coordination; this does not complete concurrency work.
+
+### 2026-09-10 — Production demand helper extracted and verified
+
+Moved assigned-minus-packed-minus-available production calculation into fulfillment-production-limits.ts, keeping the packing task orchestration thin. The helper rejects negative/non-finite deliverables and preserves independent LH/RH capacity. Three regressions cover five assigned/two packed/one available leaving two to prepare, excess LH not satisfying RH demand, and negative evidence rejection. Combined helper and transaction suites pass 38 tests. Sales typecheck is running as session recorded in the current turn, log /private/tmp/gnd-production-demand-types.log. Preparation concurrency and remaining Ticket 07 integration remain open.
+
+### 2026-09-10 — Selected packing preflight scope guard
+
+Planned selected-item packing now pairs sales item ID with optional control UID and validates requested quantities against saved fulfillment scope before attempting non-production preparation. Duplicate/out-of-scope/excess requests fail early; the existing post-write validation remains authoritative for final physical totals. Added direct transaction-path regression for six requested against five assigned with no deliverables: only the initial information read occurs and packing never runs. Transaction suite passes 35 tests. Selection preparation quantity scoping and preparation concurrency remain open.
+
+### 2026-09-10 — Scoped automatic production preparation connected
+
+Planned all/available packing now computes production limits from assigned quantity minus this fulfillment's packed quantity and existing deliverables. It bypasses the old whole-order preliminary assignment creation and supplies the limits to submitAllTask. Automatic non-production review lookup receives only assigned items. Updated the packing fixture for the preparation read; 36 focused tests pass. Preparation still precedes the final packing transaction, so locking/revision checks around preparation and precise historical material-review release scoping remain open. Selection-mode non-production preparation is also still separate work. Sales typecheck running as session 48863, log /private/tmp/gnd-packing-prep-types.log.
+
+### 2026-09-10 — Production submission quantity limits
+
+Production submission planner now accepts internal quantity limits and allocates each item's shared capacity across existing pending submissions first, then new production assignments. Unrelated items and explicit empty scope produce no work. submitAllTask forwards the internal option consistently to planning and execution. Two focused tests pass (five assertions). Packing must still calculate the outstanding preparation capacity and pass these limits; whole-order preliminary assignment/material-release paths also remain to be narrowed. This capability alone does not close Ticket 07. Sales typecheck is running as session 28755, log /private/tmp/gnd-production-limits-types.log.
+
+### 2026-09-10 — Per-fulfillment physical revision regression
+
+Verified the revision hashes complete persisted fulfillment evidence, including items, rather than only declared header fields. Added regression for packing redistribution from two/three to three/two across fulfillments with the same aggregate projection: revision changes, while header ordering alone does not. Six command tests pass. Inspection also confirms automatic packing still performs whole-order production preparation before scoped packing; this remains required Ticket 07 work and is not closed by inventory reconciliation.
+
+### 2026-09-10 — Inventory-backed short-load persistence verified
+
+Extended disposable local rollback integration with actual inventory category, variant, component, and picked allocation records. Ten ordered items require twenty component units; two packed items retain four of six picked units and release two. Preview reports the physical-return requirement; confirmation rejects absent inventory revision and unchecked return confirmation without reducing allocation quantity. Successful confirmation persists the split, releases one order unit to backlog, and exact replay does not repeat it; changed confirmation under the same request UUID is rejected. Integration passes 89 assertions. Dashboard typecheck with 8 GB heap completed with existing workspace errors and no short-load-dialog diagnostics. Browser save, concurrency and the remaining fulfillment tickets are still open.
+
+### 2026-09-10 — Short-load inventory dialog wired
+
+Existing shadcn short-load dialog now submits the inventory revision and exposes an unchecked physical-return confirmation only when the preview requires it. Confirmation is tied to the current inventory revision, clears on reopening, and gates submit. Request identity includes fulfillment revision, inventory revision and confirmation to preserve retry matching. Restored stopped dashboard through the existing shared Portless proxy (dev session 46788); in-app browser verified the order workspace loads. Actual short-load dialog save verification remains pending. Dashboard typecheck exhausted its default heap (SIGABRT); retry with 8 GB heap is running as session 18601, log /private/tmp/gnd-short-return-ui-types-8g.log. No business records changed.
+
+### 2026-09-10 — Short-load inventory command and preview connected
+
+Short-load confirmation accepts an optional inventory revision and explicit return confirmation, requires a revision when active allocations exist, and invokes inventory reconciliation before scope/audit writes in the enclosing transaction. Audit records released allocation quantities and return confirmation; request replay also checks these input fields. Preview now returns inventory revision, release quantities and physical-return requirement, or the inventory review error. The dialog still needs to submit the new fields and collect return confirmation; inventory-backed browser completion is not ready. Rollback integration passes 82 assertions including changed-confirmation replay rejection; five focused planner/executor tests pass. Sales and API typechecks report only the existing copy-sales.ts:521 error. Inventory-backed successful persistence and concurrency integration remain pending.
+
+### 2026-09-10 — Inventory execution guards verified
+
+Added internal short-load inventory executor that locks component/allocation rows, reloads the inventory context, rejects stale previews, requires explicit physical-return confirmation for excess picked stock, and delegates releases to the existing inventory transition. Ownership validation rejects bound allocations outside the order's loaded components. Three executor tests pass with seven assertions: stale inventory and missing return confirmation perform no allocation writes; fully retained stock requires no release. This is not yet connected to the short-load command or UI, and successful release persistence/concurrency still needs integration coverage. Latest Sales typecheck reports only the existing copy-sales.ts:521 nullable-string error. No business records changed.
+
+### 2026-09-10 — Persisted inventory reconciliation context
+
+Added read-only context loader for actual packed rows and dispatch-bound inventory components. Uses existing dispatchItemQuantity/scaleDispatchComponentQuantity to convert finished-item quantities before planning retained/released allocations, rejects missing conversion identities, and fingerprints the allocation context. Two tests verify three packed items retain six of ten component units and missing conversion fails. Sales typecheck reports only copy-sales.ts:521. Locked execution, full inventory identity checks and confirmation UI integration remain pending.
+
+### 2026-09-10 — Short-load inventory reconciliation planner
+
+Added a pure component-unit planner that retains picked inventory covering the actual packed load, releases unused reservations, and flags excess picked quantities for physical return. It rejects consumed/pending inventory and shortages of picked coverage. Three focused tests pass. Component conversion, locked execution and return-confirmation UI are not connected yet; active inventory short-load confirmation remains blocked pending that work.
+
+### 2026-09-10 — Partial inventory release primitive
+
+Extended the existing inventory dispatch transition's guarded quantity split to release actions when a dispatch-bound allocation selection is smaller than the allocation. It retains the original remainder/status and creates a released row for only the selected quantity, then recomputes component fulfillment. Added regression: three picked, one released leaves two picked. Inventory transition suite passes 24 tests/47 assertions. Short-load component reconciliation and explicit physical return confirmation are not yet connected; active allocations remain blocked there.
+
+### 2026-09-10 — Confirmed short-load driver notification
+
+Short-load confirmation now captures the assigned driver and notification details under transaction locks, then sends the existing fulfillment-updated notification only after a new nonzero release commits. Replays and zero releases do not send. Failed delivery is returned separately and displayed as a success-toast description without implying the backlog release failed. Durable notification retry remains Ticket 09 work; direct endpoint side-effect coverage remains pending.
+
+### 2026-09-10 — Physical packing revision fixed
+
+Found and fixed evidence revision omission: packed quantities were absent even though short-load confirmation depends on them. Shared revision now includes per-line packed quantities, so packing-only changes invalidate assignment/edit/short-load previews. Five command tests pass; rollback integration adds stale-confirmation rejection after two packed becomes three with no audit write, then restores fixture packing and confirms normally. No real records changed.
+
+### 2026-09-10 — Inventory blocker eligibility corrected
+
+Inspected StockAllocation states and existing transition implementation: allocation quantity splitting is implemented for assignment; generic release does not supply the partial reconciliation this workflow needs. Short-load preview and confirmation now count only non-deleted allocations excluding released/cancelled, so returned stock no longer remains blocked by historical allocation rows. Active allocations still require reconciliation. Existing rollback integration remains the check; dedicated returned-stock fixture coverage and partial inventory release remain open.
+
+### 2026-09-10 — Short-load confirmation UI connected
+
+Added shared packing-screen confirmation dialog using existing shadcn AlertDialog/Button. For planned non-terminal fulfillments with fewer packed than assigned units, it lazily loads the named quantity preview, shows assigned/packed/left-behind values, reuses request identity for retries, and invalidates dispatch queries after confirmation. Pending saves disable dismissal; errors offer quantity refresh. The overview exposes assignmentScoped to gate the action. Live browser save validation and inventory reconciliation remain pending. Dashboard typecheck completed with unrelated workspace errors and no diagnostics in touched short-load/overview files; log /private/tmp/gnd-short-ui-types.log.
+
+### 2026-09-10 — Short-load preview endpoint
+
+Added assigned-driver/manager-protected preview returning named assigned, packed and left-behind line quantities, released total, eligibility reason and the evidence revision consumed by confirmation. Existing edit lifecycle restrictions, pending packing/report and inventory guards are reflected in preview. Rollback integration checks preview release and revision parity. Confirmation UI and inventory reconciliation remain pending.
+
+### 2026-09-10 — Short-load confirmation authorization connected
+
+Exposed confirmFulfillmentShortLoad with assigned-driver/manager and special-order policy guards. Rechecks paired identity and driver ownership after order/header locks before invoking the internal confirmation, including replay requests. Client supplies evidence revision and request UUID but no actual packed quantities. UI, inventory reconciliation, notifications and direct endpoint authorization-race tests remain pending.
+
+### 2026-09-10 — Internal short-load confirmation persisted
+
+Added internal enclosing-transaction confirmation with order/header locks, paired identity, lifecycle/revision checks, pending packing/report guards, physical evidence re-read, scope update and atomic FULFILLMENT_SHORT_LOAD_CONFIRMED audit. Exact request replay returns prior release. Rollback integration passes 76 assertions including three assigned/two packed releasing one and replay retaining one backlog. Sales typecheck reports only copy-sales.ts:521. No endpoint exposed yet: actor authorization, inventory allocation return/reconciliation (currently explicitly blocked), UI and notifications remain pending.
+
+### 2026-09-10 — Confirmed short-load planning
+
+Added shared short-load plan builder using validated physical quantities and expected scope revision. Preserves original scope for audit, narrows active scope to actual packed lines, increments revision only when units are released, and leaves unchanged reconfirmations alone. Two tests/nine assertions prove five assigned/three packed yields two backlog through the canonical persisted projection and unchanged reconfirmation releases zero. Not yet exposed or persisted: locked confirmation, inventory-return checks, request audit and UI remain required.
+
+### 2026-09-10 — Automatic packing direct regression verified
+
+Added transaction-path coverage with five assigned, two already packed, eight available on the assigned item and twenty available on another item. The packing action receives exactly three units from the assigned item's submission and no unrelated lines, using the transaction client. Suite passes 34 tests/114 assertions. This mocked action test proves command allocation, not committed database state; physical integration, replacements and shortages remain pending.
+
+### 2026-09-10 — Automatic packing scope connected
+
+Within the existing packing transaction, planned auto-packing now rebuilds submission lines from assigned UIDs and caps them to saved scope minus already packed quantities. Replacement loads prioritize reusable current-dispatch submissions before fresh availability. The persisted post-write guard remains authoritative. Existing 33 transaction tests pass; Sales typecheck reports only copy-sales.ts:521. Dedicated auto-scope transaction fixtures, production-preparation side-effect scoping and atomic short-load release remain open; this does not close Ticket 07.
+
+### 2026-09-10 — Scoped manifest consistency guards
+
+The scoped packing adapter now rejects duplicate assigned UIDs and listed/packed quantities above the saved assignment instead of hiding inconsistent physical evidence through capped displays. Six focused tests/16 assertions pass. This does not complete command auto-allocation or shortage release; Ticket 07 remains in progress.
+
+### 2026-09-10 — Scoped deliverable row allocation
+
+The planned fulfillment overview now caps submission-backed deliverable rows against a shared remaining capacity, preserving submission identities and LH/RH sides. A capacity of three across rows of two and four exposes two plus one, rather than independently allowing three per row. Legacy manifests are unchanged. Five focused target/allocation tests pass with 13 assertions. Packing auto-build commands and shortage release are still separate unfinished integration paths.
+
+### 2026-09-10 — Scoped packing overview targets connected
+
+dispatchOverviewV2 now applies persisted assignment metadata through a shared packing-target adapter before summary/readiness calculations. It filters unassigned lines, replaces ordered/total targets, caps additional availability by assigned minus listed quantities, and preserves exact LH/RH axes. Missing assigned evidence or out-of-scope physical allocations require review; legacy headers retain existing behavior. Three focused tests/nine assertions pass including 5-of-10 target, two listed leaving three, and handed capacities. API typecheck reports only existing copy-sales.ts:521. Inventory component internals, deliverable allocation, other manifest/slip paths, Expo and shortage commits remain open; browser acceptance of scoped packing is pending.
+
+### 2026-09-10 — Packing guard regression coverage
+
+Added direct transaction-path regression cases for corrupt assignment metadata and scope revision changing between initial read and locked packing. Verified corrupt scope stops before production preparation, and stale scope stops before existing packing replacement, packing writes or reset. Suite passes 33 tests/112 assertions. Actual persisted-overlimit rollback still needs integration coverage; scoped manifests, target allocation and shortage release remain open.
+
+### 2026-09-10 — Packing transaction assignment guard connected
+
+packDispatchItemTask now reads persisted scope, rejects invalid metadata and rechecks scope revision inside the existing packing transaction. For planned fulfillments it validates actual persisted packing quantities against assigned lines before the transaction commits; unresolved/excessive packing throws and rolls back the packing transaction. Existing legacy behavior is retained when no scope exists. Existing tasks.transaction suite passes. Scoped auto-planning/read projections, earlier side-effect coordination, driver race coverage and atomic shortage release remain pending; this guard alone does not complete Ticket 07.
+
+### 2026-09-10 — Ticket 07 packing scope validator started
+
+Added a shared pure validator against persisted assignment scope and revision. Rejects unrelated/duplicate lines, excessive, negative and wrong-axis quantities; returns original assigned, actual packed and exact left-behind quantities without modifying the plan. Two tests/ten assertions pass, including five assigned packed as three and handed remainder preservation. Inspection confirmed dispatchOverviewV2 still builds legacy whole-order targets; the validator is not yet connected to packing reads or writes. Transactional shortage release, driver authorization, manifest/readiness/slip integration and Expo remain required. No runtime behavior or business data changed.
+
+### 2026-09-10 — Edit prefill lifecycle parity
+
+Edit options now include order cancellation in canEdit/blockedReason, matching the existing transactional guard. Item labels reuse commercial descriptions and subtitles when quantity evidence has no display label; lookup is indexed by UID. The rollback integration passes 73 assertions including cancelled-order disabled state and item title. No business records changed. Ticket 06 remains open for successful browser editing and endpoint/race coverage.
+
+### 2026-09-10 — Full assignment totals and persisted edit guards verified
+
+Extended rollback-only integration to 70 assertions. After a three-unit assignment, all_remaining with empty client lines persists the remaining seven; the order overview projection resolves Assigned=10 and Backlog=0, and the new fulfillment reports Planned=7. Unchanged date-only saves now compare calendar dates, preserving legacy time-of-day instead of triggering a spurious edit/notification. Verified unchanged scope revision, preserved stored date, and rejection of a reduction below two packed units without an audit record or scope mutation. All fixture records rolled back; real orders untouched. Legacy creation-path coordination and first-full-assignment browser acceptance remain open.
+
+### 2026-09-10 — Ticket 06 shared edit form and row menus
+
+Added fulfillmentForm=edit navigation, a dedicated edit loader and shared fulfillment-form used by create/edit loaders. Saved driver/date/partial scope prefill the form; capacity excludes the current reservation; updates use updateFulfillment and invalidate dispatch queries. Edit Cancel returns to detail without saving. Desktop/mobile rows expose the existing shadcn dropdown with Edit, Change date and Change driver (delivery only); all open the shared editor. Browser verified the row menu trigger and legacy09602 edit restriction with disabled controls and fixed Save fulfillment footer. Dashboard typecheck found no errors in touched fulfillment files but remains red on unrelated workspace errors. Successful edit UI submission, field focus shortcuts, completion/reversal actions and concurrency QA remain pending. No business records changed.
+
+### 2026-09-10 — Ticket 06 authorized edit endpoint and updated channel
+
+Connected dispatch.updateFulfillment to the locked shared edit transaction with manager, special-order, active-driver and destination guards. The locked result retains previousDriverId for post-commit reassignment notifications. Changed assignments notify the existing driver through the new sales_dispatch_updated channel; reassignment notifies the old and new drivers. No-op/replay skips notification sends, and send failures return notificationFailed. Registered the channel through schemas, handler, notification center, shared enum and existing dashboard icon treatment. Eight notification tests pass (31 assertions); rollback integration passes 60 assertions. API typecheck reports only existing copy-sales.ts:521. Edit UI, endpoint authorization/race tests and durable notification retries remain pending; no real notifications or business mutations performed.
+
+### 2026-09-10 — Ticket 06 shared edit input validation
+
+Added updateFulfillmentAssignmentSchema using Zod safeExtend so paired fulfillment identity retains all creation refinements and strict unknown-field rejection. The internal edit transaction now consumes this shared schema. Fourteen focused command/plan/edit-plan tests pass with 35 assertions, including invalid identity, empty partial selection, pickup/driver mismatch, invalid date and injected status rejection. Existing notification channels cover assignment/unassignment/date updates; a general updated channel and the authorized edit endpoint remain pending. No UI or business data changed.
+
+### 2026-09-10 — Ticket 06 internal edit transaction verified
+
+Added updateFulfillmentAssignmentInTransaction with order/header locks, paired identity, lifecycle and revision guards, destination check, own-reservation capacity, physical quantity floors, preserved metadata and atomic audit/replay record. Returns changed=false for identical values so notification wrapper can suppress no-op sends. Local rollback fixture passes 60 assertions including 5-to-3 reduction leaving 7 backlog and replay without duplicate update. Sales typecheck reports existing copy-sales.ts:521 only. API authorization wrapper, notifications, edit UI and broader packed/concurrent tests remain pending.
+
+### 2026-09-10 — Ticket 06 persisted edit context verified
+
+Extended the canonical persisted quantity adapter with excludeDeliveryId and added manager-protected paired fulfillmentEditOptions. Returns saved driver/date/scope/revision plus capacity excluding own reservation. Unknown scope, closed order or non-pre-trip fulfillment is non-editable. Local rollback fixture passes 57 assertions, including five planned with ten editable capacity, cross-order rejection and in-progress edit restriction. API typecheck reports existing copy-sales.ts:521 only. Save mutation, physical-floor integration, notifications and edit UI remain pending.
+
+### 2026-09-10 — Ticket 06 edit quantity validator started
+
+Added shared edit-plan validator that excludes the current fulfillment reservation when computing editable capacity, retains other reservations, increments scope revision and protects per-axis packed/delivered floors. Four tests/eight assertions pass for safe reduction, excessive increase rejection, full-mode capacity and completed-state rejection. This is not wired to a mutation or UI yet; persisted adapter, in-transit guards, driver/date editing, audit and reassignment notifications remain pending.
+
+### 2026-09-10 — Fixed secondary creation footer
+
+Moved Cancel and Assign fulfillment into the shared sheet-v2 SecondaryContent Footer/SecondaryFooter slots. Submit remains associated with the form by a React-generated form ID, preserving validation and pending-state disabling. Browser screenshot verifies actions pinned at the secondary pane bottom. No business records changed.
+
+### 2026-09-10 — Creation form aligned with existing shadcn packing controls
+
+Applied user direction: Partial Fulfillment replaces Selected fulfillment in the form. Replaced native select/checkbox/date/quantity inputs with shared shadcn Select/Checkbox, existing DeliveryDatePicker, packing ItemGroup/Item components and SalesFormQuantityStepper. Browser verified the switch and exact packing steppers. Initial valid order 09640PC showed 17 assignable units and zero existing backlog; deselecting a unit previews one backlog after assignment. No submit/business mutation. Table Assign backlog now opens the new secondary form.
+
+### 2026-09-10 — Corrected backlog semantics per user
+
+An order without previous non-cancelled fulfillment is unassigned, not backlog. Shared quantity projection now keeps availableToAssign for initial creation while backlogQty stays zero. Partial planning still creates immediate backlog; cancelled-only history does not. Updated creation guard, options availableQty, post-assignment preview and initial Assign availability so the first fulfillment remains possible. Corrected incomplete-control projection discovered in browser: missing quantity controls now block both the list and form consistently. 32 focused tests pass; rollback fixture passes 53 assertions including zero initial backlog, ten assignable units and five backlog after partial assignment. Column labels distinguish Unassigned. No business records changed.
+
+### 2026-09-10 — Ticket 05 authorized create endpoint connected
+
+Added dispatch.createFulfillment with manager and special-order checks, existing destination preflight, active driver eligibility matching HRM filters, ReadCommitted transaction wrapper and locked destination revalidation. Saves the authenticated actor name. Sends existing creation/assignment notifications only after a new commit; returns notificationFailed rather than claiming a committed save failed. Replay skips duplicate notification sends; durable failed-notification retries remain Ticket 09 work. Local rollback fixture still passes 51 assertions. Form integration, endpoint permission tests, concurrent multi-connection tests and legacy writer coordination remain pending.
+
+### 2026-09-10 — Ticket 05 form defaults endpoint verified
+
+Added manager-protected fulfillmentAssignmentOptions with explicit nullable order date, delivery mode, named remaining scalar/handed quantities, availability reason and canonical evidence revision. The options revision matches the transactional validator. Local rollback fixture passes 51 assertions including full initial remainder and missing-date preservation. API typecheck remains red only on existing copy-sales.ts:521. New form rendering, authorized mutation wrapper, notifications and concurrent integration checks remain pending.
+
+### 2026-09-10 — Ticket 05 internal transactional reservation step verified
+
+Added createFulfillmentAssignmentInTransaction: validates command input, locks SalesOrders then existing OrderDelivery headers, reloads canonical evidence, rejects closed/no-backlog/stale-revision orders, creates planned-scope metadata without physical packing, and stores structured assignment audit plus fingerprint under request UUID atomically. Exact retry returns the original fulfillment; changed retry is rejected. Local rollback fixture passes 47 assertions including one persisted assignment after replay, 5-of-10 leaves 5 backlog, stale competing input rejection and changed retry rejection. This verifies sequential stale/replay behavior, not a multi-connection race. Sales typecheck only reports existing copy-sales.ts:521. The function is internal and not exposed via API: authorization/order/destination/driver checks, transaction wrapper, notification integration, legacy command coordination and form remain pending.
+
+### 2026-09-10 — Ticket 05 command input and revision contract
+
+Added strict create-assignment input schema, stable quantity/header evidence revision and request payload fingerprint. Nullable date remains explicit, invalid dates and pickup/driver mismatch are rejected, and fingerprinting distinguishes changed command payloads. Nine focused tests / 19 assertions pass. Sales typecheck reports only existing copy-sales.ts:521 error. No mutation is exposed yet; transaction lock, durable retry lookup, reservations and form integration remain required.
+
+### 2026-09-10 — Ticket 05 planned-selection validator started
+
+Added shared buildFulfillmentAssignmentPlan for form preview and future transaction guard. Full mode derives all remaining quantities from canonical evidence; selected mode rejects empty, zero, duplicate, foreign, negative, wrong-axis and excessive quantities. Unknown legacy scope blocks planning. Six tests/12 assertions pass including 5-of-10 leaves 5 backlog and exact handed remainders. This helper is not yet connected to a mutation or form; concurrency, idempotency, authorization and notifications remain unimplemented for the new planned workflow. Ticket 04 remaining proof/action/QA work stays open.
+
+### 2026-09-10 — Removed duplicate fulfillment pane padding
+
+Applied user correction to both primary and secondary sheets: removed nested 24px horizontal padding and extra header padding, leaving shared sales-overview sheet-v2 pane insets. Browser screenshot verified the order and packing views align to the shared pane edges. Styling-only change; git diff --check passes.
+
+### 2026-09-10 — Fulfillment secondary sheet aligned with sales overview
+
+Applied user correction: replaced nested independent Radix dialogs with the same shared sheet-v2 primary/secondary layout used by sales overview. Order remains in primary pane; fulfillment overview uses SecondaryContent, with shared responsive stacking. Tabs now match sales overview compact uppercase styling and mobile dropdown. Browser screenshot confirmed side-by-side panes; Back to order, reopen and Overview navigation pass. Dashboard typecheck remains red on unrelated errors with no errors in either changed sheet. No business-data changes.
+
+### 2026-09-10 — Ticket 04 structured activity history verified
+
+Added lazy Activity view backed by manager-protected paired fulfillmentActivity query. Shows creation context and paginated SalesHistory records whose structured dispatchId matches the fulfillment, excluding general order notes. Schedule date changes show old/new dates; raw audit payloads are not returned. Local rollback fixture passes 42 assertions including exact history scoping and unrelated-parent rejection. Browser verified creation and no-additional-audit state for 09602PC / 4659. Future assignment/completion writers must emit structured history. Proof previews, full action menus and remaining responsive/access checks are still pending.
+
+### 2026-09-10 — Ticket 04 route destination verified
+
+Added lazy Route tab and paired manager-only fulfillmentRoute query using the shared driver destination resolver. Displays primary versus driver-confirmed destination, original address when different, pickup behavior and confirmation requirement. Local rollback fixture passes 39 assertions including confirmed-destination precedence and cross-order denial. Browser verified missing-destination state for 09602PC / 4659. No business-data changes. Proof preview/download, activity and action menus remain pending.
+
+### 2026-09-10 — Ticket 04 proof registration summary verified
+
+Added lazy Proof tab and manager-protected paired proof read. Uses existing completion metadata reader and checks registered documents belong to this dispatch, are ready and are not deleted. Displays uploading/completed proof state, signature registration, photo count and document names without raw paths/request keys. Local rollback fixture passes 37 assertions including unrelated-parent and foreign-document rejection. Browser verified proof deep link and accurate no-proof state for 09602PC / 4659. API/dashboard checks remain red on unrelated errors with no changed proof/detail/hook/query errors. Proof preview/download, route/activity and action menus remain pending; this is not a complete Ticket 04.
+
+### 2026-09-10 — Ticket 04 paginated exceptions view verified
+
+Added lazy URL-backed Exceptions tab and manager-protected paired fulfillmentExceptions query. Records include status, notes, reported/resolved timestamps and resolution note; reads use 20-row ID cursor pages. Local rollback fixture passes 33 assertions including cross-order denial and 21 exceptions across two pages without duplicates. Browser restored the Exceptions deep link and showed the correct empty state for 09602PC / 4659. API and dashboard typechecks remain red on existing unrelated errors; no changed exception/sheet/hook errors reported. No business records changed. Route, proof, activity and full action menus remain pending.
+
+### 2026-09-10 — Ticket 04 lazy packing view connected
+
+Added URL-backed Overview/Packing navigation and lazy reuse of DispatchPackingOverview with paired order/fulfillment input. Browser verified the packing view loads in the nested admin sheet for 09602PC / 4659; no commands submitted. Legacy packing quantities remain until Ticket 07. Remaining Ticket 04 panels and action menus are pending. Updated feature documentation and local migration contract.
+
+### 2026-09-10 — Secondary fulfillment overview and admin navigation verified
+
+Added manager-protected paired order/fulfillment detail lookup and lazy secondary summary sheet. Local rollback fixture passes 27 assertions, including cross-order rejection. In-app admin verification confirms Back to order retains the parent and search filters, and refresh restores both sheets for order 09602PC / fulfillment 4659. No business records changed. Dashboard typecheck has existing unrelated errors; no fulfillment sheet/hook errors were reported. Ticket 04 is in progress: packing, route, proof, exceptions, activity and capability-aware actions remain; Ticket 03 mobile/access journeys remain open.
+
+### 2026-09-10 — Ticket 03 order sheet implemented; remaining sheet journeys pending
+
+Added a lazily mounted order-first fulfillment sheet with independent URL identity, customer/destination/date/mode/lifecycle/exception context, aggregate quantities, expandable named backlog items and paginated fulfillment history. History uses a desktop ledger and mobile cards; planned/packed/delivered quantities remain separate and delivery requires canonical completion evidence. Added manager-protected `dispatch.fulfillmentOrder`, scoped to one SalesOrder, with 20-entry history pages. Corrected the route prefetch left over from Ticket 02 to hydrate the order query instead of the old dispatch query. Ten pure tests pass; local rollback fixture passes 23 assertions including 23 history entries across pages and title enrichment. Browser verified no-fulfillment order, backlog expansion/menu, direct Assign opening existing form, and close retaining filters. The legacy Assign form still awaits replacement in Ticket 05; secondary fulfillment interaction and mobile/restricted-access checks remain. Ticket 03 stays active. Latest dashboard check has no errors in new sheet/history/hook/route files and remains red on existing unrelated failures. No business-data writes.
+
+### 2026-09-10 — Ticket 02 complete; Ticket 03 active
+
+Cut over admin All/Active/Due Today/Past Due/Completed/Backlog views to the order-grain table, sharing query input/cache with header counts and stage cards. Preserved virtual rows, column controls, invoice/payment presentation and order-level bulk Mark as. Added same-order navigation, backlog action menu, stable completion-date sorting and page-only invoice enrichment. Nine pure tests pass; explicit-local rollback fixture passes 13 assertions. In-app browser verified search/count parity, clear filters preserving Backlog, row navigation, selection/menu and invoice rendering. A stale development API module needed a dashboard-only restart; shared Portless proxy unchanged. Dashboard typecheck completes with existing repository errors; no changed table/hook/header/summary errors remain. Ticket 03 is the next frontier. No business records changed.
+
+### 2026-09-10 — Fulfillment Ticket 01 complete; Ticket 02 active
+
+Connected Backlog filtering/counting to canonical quantities in 100-order evidence batches before pagination. Fixed legacy shipping quantity input discovered by the real database fixture. Validation: 36 focused tests pass; explicit-local transaction fixture passes 12 assertions and rolls back all records. Browser Backlog and expanded order breakdown verified. Scoped sales typecheck only reports untouched copy-sales.ts:521; root check fails at existing @gnd/square/@gnd/errors NodeNext imports, and dashboard default heap check is unresolved. No changed-file type errors in scoped sales check. Ticket 02 order-grain list/query work is now the frontier. Updated API/feature/ADR/task records.
+
+### 2026-09-10 — Ticket 01 overview UI and inventory evidence verified
+
+Reused inventory command sales-unit packing rows, added the expandable order quantity display and verified it through the local admin UI. Twenty focused tests pass. 09602PC currently has fulfillment #4659 with missing planned scope; UI correctly reports Needs review. No business-data writes. Added ADR for planned scope ownership and updated API/feature documentation. Backlog query/count integration remains in progress.
+
+### 2026-09-10 — Ticket 01 persisted scope and overview adapter
+
+Added strict versioned assignment metadata reader and physical packing adapter; orderDispatchOverview now includes fulfillmentQuantities. Nineteen focused tests pass. Sales package typecheck reports only untouched `src/copy-sales.ts:521` nullable-string failure. Inventory component conversion and Backlog/UI integration remain unfinished; Ticket 01 remains in progress. Updated API, schema-contract and feature documentation. No database writes.
+
+### 2026-09-10 — Ticket 01 quantity calculator started
+
+Added the initial shared quantity projection and ten passing focused tests. No existing API or UI calls it yet. Persistence/legacy mapping, overview and Backlog integration remain the next steps before Ticket 01 can be completed.
+
+### 2026-09-10 — Ticket 00 deleted; Ticket 01 implementation started
+
+User approved packing then explicitly instructed deletion of Ticket 00, removal of its blockers and immediate implementation of Ticket 01. Deleted the ticket, updated all 14 statuses/dependency index and superseded the design gate in the migration contract. Approved previews remain references; unfinished completion prototype is not an approved contract. Ticket 01 canonical quantities and backlog is now in progress.
+
+### 2026-09-10 — Fulfillment planned versus packed schema inspection
+
+Recorded the separation required between new assignment quantities and existing physical packing/inventory records. Existing packing command has inventory/review guards and bounded replay records that must survive the overhaul. Migration contract remains draft; packing design approval still pending. No schema or application edits.
+
+### 2026-09-10 — Fulfillment notification contract inspection
+
+While Decision 4 awaits approval, inspected existing notification helper, handlers and notification-center action metadata. Recorded channel reuse and remaining gaps: content changes, admin completion wording, durable retry/deduplication and safe removed-driver navigation. Updated the local migration contract; no application or order mutations.
+
+### 2026-09-10 — Fulfillment Decision 4 ready for review
+
+Decision 3 fulfillment forms approval preserved. Built and browser-checked the driver packing preview: assigned quantity limits, shortage reason, confirmed backlog release and saved quantity review. Decision 4 awaits user approval; completion confirmation remains the next design decision. Local prototype only; no application or business-data changes.
+
 # Progress
+
+## Fulfillment design Decision 3 approved
+
+- User explicitly approved the fulfillment form review. Decisions 1–3 are now
+  approved; packing, completion/reversal, notifications and final QA remain.
+- Next review covers assignment-scoped driver packing and confirmed shortages.
+
+## Fulfillment design Decision 3 prepared
+
+- Preserved the approved order workspace and recorded its hash/approval locally.
+- Created a separate fulfillment create/edit form preview with selected items,
+  exact quantities, driver/date, backlog totals and edit validation examples.
+- Verified full 83-unit default, partial-selection totals, packed-quantity
+  protection and missing-date feedback in the in-app browser.
+- Decision 3 awaits review; application implementation remains unstarted.
+
+## Fulfillment design Decision 2 approved
+
+- User approved the revised order workspace with Fulfillments menus and
+  expandable backlog. Recorded the approval separately from action behavior.
+- Next frontier: create/edit fulfillment forms, driver/date selection, selected
+  items/quantities and edit conflicts. No application implementation started.
+
+## Fulfillment order-sheet design revised from user feedback
+
+- Renamed the order history list to Fulfillments and added per-row/card action
+  dropdowns, including status-aware Cancel complete.
+- Replaced the remainder alert with expandable “X units backlog,” item quantities
+  and backlog actions for completion or assignment. Checked both menus and
+  expansion in the in-app browser.
+- Recorded completion-reversal design/validation requirements in Ticket 11.
+  Changes are local design artifacts only; Decision 2 remains under review.
+
+## Fulfillment design Decision 2 ready for review
+
+- Built a separate Option A order-workspace preview, preserving the approved
+  layout-family artifact. Recorded the explicit Option A approval locally.
+- Added interactive synthetic order counts/filters/selection, multi-assignment
+  history, empty history, and loading/error examples. Verified core review
+  interactions in the in-app browser and checked JavaScript syntax with Bun.
+- User clarified scope: update only required fulfillment areas; existing app
+  shell, navigation and unrelated features remain. No application code changed.
+- Decision 2 awaits approval; assignment and completion form approvals follow.
+
+## Fulfillment design Decision 1 approved
+
+- User explicitly approved Option A, Compact ledger, revision 1.
+- Preserved that layout approval separately from the remaining UI decisions.
+  Next review covers the order list and order sheet details in Option A.
+- Application implementation remains behind the full Ticket 00 approval gate.
+
+## 2026-09-10 — Fulfillment waiting at requested design gate
+
+- Layout Decision 1 remains unapproved after three consecutive goal turns
+  containing the same approval gate. Rechecked draft.json: approved is null.
+- Stop automatic goal execution as blocked on user selection, honoring the
+  requested pause for each UI decision. No layout choice is inferred.
+- Resume with an explicit choice A–E; an explicit unqualified user resume
+  approves recommended A's layout family only. Detailed UI gates and tickets
+  01–14 remain unfinished. The full implementation objective is preserved.
+
+## 2026-09-10 — Fulfillment architecture contract draft
+
+- Recorded the 14-section Midday migration contract in the local ticket folder,
+  mapping order/assignment sheets, URL navigation, forms, table adapters, shared
+  quantity authority, API boundaries, cache refresh and validation.
+- Documented remaining inspection and UI approval gates explicitly. Automatic
+  continuation did not approve layout A or authorize starting implementation.
+- Current frontier remains Ticket 00, Decision 1. No application code changed.
+
+## 2026-09-10 — Fulfillment Ticket 00 layout options
+
+- Created five standalone local HTML layout options and a responsive comparison
+  lab at `~/.gstack/projects/gnd/designs/fulfillment-assignments-20260910/`.
+- Recommended A, Compact ledger, for continuity with the existing admin tables
+  and order context. Decision 1 selects the family only; all detailed UI gates
+  and the complete Midday migration contract remain open.
+- Inspected live driver detail and packing, then checked prototype assignment
+  navigation, accessibility isolation and selected-quantity footer updates.
+- Added the multi-assignment Dispatch Sweeper compatibility requirement to
+  Ticket 13. Captured evidence and limitations in the local design-review.md.
+- No application implementation, business mutations or external publication.
+
+## 2026-09-10 — Fulfillment ticket dependencies reconciled
+
+- Local ticket index now includes Ticket 00 and makes it the explicit blocker
+  for Ticket 01. All 14 implementation tickets are queued behind design approval
+  and their feature dependencies; removed stale breakdown-approval status.
+- The local dashboard is running. Inspected the admin dispatch workspace and
+  batch form, then signed in through Dev Quick Login as a driver and inspected
+  the driver route dashboard. No business records were changed.
+- Design options and approval are still pending. All tickets remain local.
+
+## 2026-09-10 — Fulfillment Ticket 00 design gate
+
+- User authorized all implementation tickets with a mandatory design-first gate:
+  five consistent HTML options, in-app admin/driver inspection, Midday migration
+  contract and explicit approval of every UI decision before implementation.
+- Added Ticket 00 and made it the active frontier in the local ticket index.
+- Local dashboard was absent from the shared proxy; started its dev launcher,
+  which reported Docker unavailable and attempted to open Docker Desktop.
+- No design has been presented or approved yet; no application code changed.
+
+## 2026-09-10 — Local fulfillment implementation tickets
+
+- Expanded the local specification into 14 separate draft tickets and a
+  dependency index under `.scratch/fulfillment-quantity-scoped-assignments/`.
+- Each ticket includes acceptance and validation criteria. Explicitly separate
+  planned from packed quantities and release confirmed short-packing remainder
+  before delivery, while retaining reservations during unsaved packing drafts.
+- Breakdown approval remains pending under the requested ticket workflow.
+  No application implementation, GitHub publication or operational data change.
+
+## 2026-09-10 — Fulfillment quantity-scoped assignment specification
+
+- Synthesized the order-first Fulfillment, multi-assignment, selected-quantity,
+  partial-assignment Backlog, underpacking Backlog, assignment notification,
+  Pack & complete, and admin/driver recovery-completion requirements into a
+  14-ticket ready-for-agent checklist.
+- Kept `OrderDelivery` / `OrderItemDelivery` as canonical shipment records and
+  selected the protected fulfillment command plus post-command projections as
+  the primary acceptance seam.
+- Documented order 09602PC only as a safe acceptance example. No application
+  code, schema, API behavior, or operational business data changed.
+- Retained the specification and its implementation checklist locally only.
 
 ## 2026-09-09 — Sales print bifold configurations
 
@@ -17287,3 +18121,309 @@ production data changes or deployment.
 - 2026-09-09: Completed [Production Sync repairs](tasks/2026-09-09-production-sync-repair-dead-end.md), including one-click review-only finalization. Local09602PC interior48 units now approved; exterior10 remain assigned. Focused transaction21 and UI/planner12 tests pass. Existing typecheck failures documented; no deployment.
 
 - 2026-09-09: Simplified production calendar card controls into actions menu plus drag handle, priority border/overview, and full-width wrapping names. Local worker/reschedule menu checks passed without data writes;7 focused tests passed.
+
+- Ticket 01 validation limitation: `bun run typecheck` in apps/dashboard exhausted the default Node heap (SIGABRT) before producing a typecheck result. The local page compiled/rendered and the focused domain tests passed; these do not substitute for a completed dashboard typecheck. Log: /private/tmp/gnd-fulfillment-dashboard-typecheck.log.
+### 2026-09-10 — Ticket 02 order query verified; table cutover pending
+
+Added manager-protected `dispatch.fulfillmentOrders` with one parent per order, canonical backlog quantities, all active drivers, same-child compound filters and order-level section counts. Fixed selected-section leakage into All counts, added schedule ranges, stable multi-sort with null schedules last, and business-day risk filtering. Evidence scans use 100-order batches and retain only the requested sorted prefix. Nine pure workspace tests pass; local transaction integration passes 12 assertions covering two fulfillments, two pages and filtered count parity, then rolls back all fixtures. API typecheck reports only existing `packages/sales/src/copy-sales.ts:521`. Admin table/header cutover and browser validation remain; Ticket 02 stays in progress.
+
+### 2026-09-10 — Production worker inbound visibility
+Removed worker Inventory navigation, restored worker item material badges and retained completed/closed linked inbound rows in the scoped Production read. Shared panel now shows expected date, quantity and status to both audiences, with no receiving action for completed/closed rows. Updated feature and API contract documentation; no schema or mutation authorization changes. Focused validation recorded in the task response; browser verification remains manual.
+
+### 2026-09-10 — Inbound card visual refinement
+Simplified shared production inbound cards to supplier, expected date, quantity and status. Removed reference and conversational prompts; preserved authorized receipt controls. Updated production-material-availability feature documentation.
+
+Follow-up: removed the enclosing inbound material card and individual card styling at user request. Supplier, date, quantity and status remain in plain divided rows.
+
+### 2026-09-10 — Production secondary inbound navigation
+Connected Production gateway/material list to the existing secondary inbound pane. Worker detail uses the scoped Production read/receipt contract with explicit inbound ID; admins retain full overview. Added callback navigation and exact-detail receiving-policy regressions.
+
+Inbound title follow-up: shared Production rows now read “{quantity} qty from {supplier}”.
+
+Inbound subtitle refinement: date and status now share one muted line beneath the quantity/supplier title; removed duplicate quantity and status pill.
+
+Inbound status polish: subtitle status now uses state-specific text color only, without a badge, border or background.
+
+### 2026-09-10 — Reuse Inventory overview for production workers
+Replaced compact worker inbound detail with shared Inventory overview, disabled Adjust, hid lifecycle controls except authorized receipt, and preserved activity notes through a new exact-inbound comment endpoint. Added scoped overview/activity reads and note authorization. Seven domain and fifteen dashboard tests pass. API typecheck reports existing copy-sales.ts:521 only. Dashboard typecheck completed with existing workspace errors, including the pre-existing upload MIME and Icons.Spinner errors in inbound-overview-content; no new overview/query diagnostics. Browser verification remains manual. No schema migration.
+
+### Inbound creation activity — 2026-09-10
+Added durable creator-attributed first activity for new inbound creation in direct, demand, availability and user-triggered automatic preparation paths. Creation activity is part of the caller transaction and replaces post-save creation activity generation. Dedicated helper tests pass; API typecheck retains existing copy-sales.ts:521 only. Existing inbound history is not fabricated or backfilled.
+### 2026-09-10 — Admin completion review opens from fulfillment actions
+
+Fulfillment row actions now include Mark as completed for nonterminal fulfillments and open a URL-owned secondary sheet. The sheet lazily loads a manager-protected, paired completion review, shows assigned/packed/backlog quantities, and reuses the existing recoverable signature/photo proof form when ready. Legacy or unresolved quantities and unconfirmed short loads are blocked without mutation. The shared proof form now captures an explicit actual delivery date, enabling prior-day recording through the same canonical proof authority. Live IAB verification on order 09602PC confirmed the menu, secondary navigation, and safe legacy block; no fulfillment was changed. The rollback-only local DB fixture passes with 113 assertions; completion/proof unit suites pass 17 tests with 49 assertions. Dashboard default typecheck exhausted its 4 GB heap; an 8 GB retry is running as session 63936.
+
+The 8 GB dashboard typecheck completed with the repository's broad existing diagnostics. No diagnostic names the new completion sheet, fulfillment history/order sheet, URL hook, proof form/context, completion query, or shared review module. The earlier client-crash fix required an explicit `@gnd/settings/schema` package export, which is now present. The completion proof draft version is 2 so older drafts without an actual delivery date are not silently restored. Full-dashboard typecheck is not clean; focused builds and tests remain the evidence for this slice.
+
+### 2026-09-10 — Active is the default fulfillment workspace
+
+Removed the visible All tab from the normal fulfillment tab row. Active is now the default when no section is present, while **All fulfillments** remains available at the end of the overflow menu through the explicit `dispatches` section. Summary-card filters now target that explicit all-orders section. Live in-app browser verification confirmed Active selected with one overflow item, **All fulfillments** in that menu with its count, and navigation to `section=dispatches`. The focused cutover suite passes 12 tests / 158 assertions.
+### 2026-09-10 — Sales request preview hydration experiment superseded
+
+An API-specific authoritative hydration experiment was wired and verified, then
+removed after product clarification: maintaining a second AI expansion/pricing path
+would duplicate the new sales form. The preview now returns only a validated native
+NewSalesFormSeed after configuration freshness checks. Expansion will belong to one
+generic shared new-form initializer. Super Admin-only clearable defaults remain.
+No sale, invoice, inventory or payment is written. Cache publication and the shared
+initializer remain open, and local publication is still blocked by duplicate step
+UID `wUGhI` plus the unresolved authoritative settings-row choice.
+### 2026-09-10 — AI output boundary moved to a native new-sales-form seed
+
+User clarified that the generated result must be the editor's own partial form
+shell so future form changes do not require a parallel AI mapping/pricing service.
+Code inspection supports this direction: `hydrateSalesFormRecord` normalizes and
+reprices already-resolved state but does not map numeric step/component identities
+or load authoritative catalog rows. The selected design is therefore a versioned
+`NewSalesFormSeed` using native lineItems/formSteps/HPT fields and a generic shared
+sales-form initializer that replays existing workflow mutations. The earlier
+verbose proposal DTO is not the intended durable public boundary. Implementation
+is being reshaped; no UI or persistence behavior changed in this entry.
+### 2026-09-10 — Offline sales-request evaluation harness added
+
+Added synthetic English, Spanish and ambiguous two-opening cases plus a mock-first
+evaluation runner. The final native-seed run passes 15/15 expected fields and 3/3
+whole orders with zero unsafe guesses while reporting latency and token counters.
+This proves the scorer/fixtures and does not measure live-model accuracy. The
+fixtures are being aligned to the newly selected NewSalesFormSeed contract; image
+and explicit live-provider runs remain open and no customer data is included.
+### 2026-09-10 — Tuple JSON selected over CSV for sales-request configuration
+
+The deterministic format benchmark built from the local diagnostic configuration
+measured canonical tuple JSON at 27,834 UTF-8 bytes and CSV at 37,699 bytes, making
+CSV 1.354x larger. CSV needed 631 typed rows, quote/delimiter parsing and eight
+embedded JSON cells for route/visibility graphs; semantic round-trip passed. No
+compatible tokenizer is installed, so this is byte/character evidence rather than
+a token-cost claim. Ambiguous local routes were skipped instead of resolved. JSON
+is retained for the model/cache; CSV remains suitable only for separate flat exports.
+### 2026-09-10 — Request-image scope clarified as secondary input
+
+Pasted customer-request text is the primary rollout path. Image support is Phase 2
+and specifically covers handwritten request photos/scans plus screenshots or snapped
+images of emails/orders, not product imagery. Both paths use the same native
+NewSalesFormSeed contract. Cropped, blurry or illegible facts must be unresolved
+instead of guessed; image accuracy evaluation follows the text-first backend work.
+### 2026-09-10 — Seed-only preview input no longer accepts pricing context
+
+Removed `customerProfileId` from `salesRequest.generatePreview`. The endpoint now
+returns only a native seed and neither hydrates nor prices it, so accepting profile
+context was unused surface area. Strict input validation now rejects client profile
+and settings IDs; the normal new-form bootstrap will supply pricing context when the
+shared seed initializer is connected. Focused schema/preview/router tests pass 12
+tests / 32 assertions, plus the explicit profile rejection assertion.
+### 2026-09-10 — Shared New Sales Form seed initializer implemented
+
+Added `initializeNewSalesFormSeed` in the sales-form application layer, not the AI
+API. It validates an unsaved base record, resolves authoritative route/components,
+replays existing scalar and multi-select mutations, applies defaults only to true
+omissions, retains unresolved blocks, reuses shared profile/tier/HPT pricing and
+record hydration, and follows dynamic redirects. Six focused tests / 23 assertions
+cover interior/exterior doors, multi-select snapshots, defaults, hidden dependencies
+and redirect state. Targeted Biome passes; Sales typecheck reaches only the known
+unrelated `copy-sales.ts:521` baseline. UI/API bootstrap binding remains open.
+### 2026-09-10 — Sales request structural cache and single initializer boundary
+
+Wired the protected request-generation snapshot to the shared Redis cache using a
+scope plus price-free structural revision. Component title/add/delete, configured
+route flags, defaults, redirects, visibility rules and step identity invalidate;
+prices/images/unrelated metadata do not. Pre/post probes prevent stale publication,
+concurrent changes retry, cached JSON is validated and Redis outages fall back to a
+fresh database projection. This still reads scoped structural rows to compute the
+revision and therefore does not eliminate all DB reads. Removed the superseded
+proposal, selection-plan, AI hydrator, door hydration and unused cache-wrapper
+modules, leaving the strict native seed plus generic New Sales Form initializer as
+the only expansion architecture. Pasted text remains primary; handwriting photos/
+scans and screenshots/snapped request images are secondary and use the same seed.
+The consolidated feature suite passes 98 tests / 268 assertions across 20 files and
+targeted Biome passes 41 files; Cache typecheck is clean,
+Sales/API retain only the unrelated `copy-sales.ts:521` diagnostic, and Settings
+exposes only existing `packages/errors` NodeNext extension diagnostics. Live
+provider/image accuracy and save/reopen proof remain open; no UI or database data
+changed.
+### 2026-09-10 — Native seed save and reopen compatibility proved
+
+Extended the generic New Sales Form seed initializer test through the existing
+save-payload composer, canonical form schemas and ordinary record rehydration.
+Selected component snapshots, HPT door pricing and totals remain stable. Seven
+initializer tests pass with 30 assertions. This is backend, non-persisting
+compatibility evidence; UI apply/undo and an authenticated database save smoke test
+remain deferred. Checklist progress is 9/11 (82%).
+### 2026-09-11 — Responsive Sales Form item chassis implemented
+
+Converted the shared House Package Tool, Moulding, and Service row editors from
+minimum-width scrolling tables to compact card rows below the desktop large
+breakpoint. The existing desktop tables, door headers, quantity mutations,
+pricing menus, calculators, permission gates, totals, and remove confirmations
+remain intact. Mobile and tablet rows now expose visible field labels, full-width
+quantity controls, grouped totals, and touch-sized actions without horizontal
+scrolling. `git diff --check` passed for the three shared editor files; per the
+requested fast Bun workflow, dev-server, browser, build, test, lint, and typecheck
+validation were not run.
+
+Follow-up correction restored every original desktop table class as the default
+and moved all chassis presentation into explicit `max-lg` overrides. This prevents
+the responsive card structure, spacing, backgrounds, and touch sizing from leaking
+into the wider Sales Form while keeping the compact behavior below the large
+breakpoint.
+
+The missing runtime breakpoint behavior was traced to Tailwind v4 source
+discovery: the shared stylesheet did not scan `packages/sales`, so newly added
+`max-lg` display utilities were absent from generated CSS. Added the sales source
+path to `packages/ui/src/styles/globals.css`; no editor behavior changed.
+
+Compact HPT/Moulding estimate breakdowns now open in a reusable shadcn bottom
+Sheet at widths up to 1023px; desktop retains the existing Menu presentation.
+Editable HPT base prices follow the same breakpoint contract, using a bottom
+Sheet on compact screens and the original Popover on desktop. Existing pricing,
+draft, permission, and save behavior is unchanged.
+
+Compact estimate breakdown cards now explicitly expand to the full bottom-sheet
+content width and drop their nested border/shadow. Desktop estimate menus retain
+the original fixed 320px card width.
+
+Refined the compact row hierarchy: HPT actions now sit beside Size; Moulding
+removal sits beside the product title, with Quantity/Estimate/Line Total sharing
+one row from the medium breakpoint; Service removal sits beside the name input,
+Tax/Production occupy the next row, and Quantity/Unit Price/read-only Line Total
+share the bottom row. Small Moulding screens retain their stacked metrics.
+
+Flattened compact HPT, Moulding, and Service row collections by removing the
+individual rounded row borders and gaps, replacing them with list dividers.
+Input, checkbox, stepper, and other interactive-control borders remain intact.
+The compact HPT size-delete glyph now matches the normal service-delete icon
+scale while retaining its existing touch target.
+HPT compact dividers now use an explicit per-row bottom border because the
+previous row-level border reset cancelled the parent `divide-y` rule.
+Moulding compact rows now use the same explicit bottom-divider treatment, with
+the final row left borderless.
+
+### 2026-09-11 — Sales request configuration authority and text evaluation
+
+Made New Sales Form settings reads deterministic and soft-delete aware, with the AI
+using the same lowest-active-ID authority. Read-only local evidence resolved legacy
+duplicate step UID `wUGhI` to current step 41 by established usage; both editor and
+projection now use the highest active numeric ID for duplicate UIDs without deleting
+history. The complete row-3 price-free export succeeds and drops permanently
+unreachable visibility branches tied only to deleted candidates. The offline text
+evaluation remains 3/3 with zero unsafe guesses; image extraction is deferred by
+product direction. Independent Sol review findings were resolved: duplicate-step
+default authority, unresolved/default suppression, deleted `isNot` semantics,
+transient-UID-neutral scoring, and fail-closed cache confirmation. The consolidated
+suite passes 142 tests / 340 assertions across 22 files and 45 directly owned files
+pass Biome. Cache typecheck is clean; Sales/API and Settings retain only recorded unrelated
+baseline diagnostics. Live provider measurement remains blocked by an unconfigured
+`OPENAI_API_KEY`; no customer data or database writes were used. Decision: ADR-087.
+
+### 2026-09-11 — Compact HPT estimate sizing
+
+Compact HPT estimate controls now size to their displayed value, and the
+redundant total-quantity display is hidden below the large breakpoint when LH/RH
+controls are present. Desktop table behavior remains unchanged.
+Compact service rows now align the description input and delete action in one
+horizontal, bottom-aligned flex row; the desktop Actions cell remains unchanged.
+
+### 2026-09-11 — Provider-agnostic Sales Request AI settings
+
+Completed the provider/model configuration slice for Sales Request generation.
+The authoritative Sales Settings metadata now stores an allowlisted OpenAI,
+Anthropic, DeepSeek or Google Gemini selection, editable through a minimal Super
+Admin settings route. Generation resolves only that persisted selection, loads the
+matching server-only `SALES_REQUEST_*_API_KEY`, and uses one Vercel AI SDK structured
+output adapter. Configuration revision and provider/model are bound and rechecked
+across each paid request. Invalid retired selections remain repairable in the admin
+UI while generation fails closed, and providers without credentials cannot be saved.
+The consolidated feature suite passes 143 tests / 365
+assertions across 23 files; targeted Biome is clean. API typecheck retains only the
+unrelated `packages/sales/src/copy-sales.ts:521` baseline. Live provider acceptance
+remains an operational gate until credentials are configured. Image evaluation and
+the request paste/apply UI remain deferred by product direction. Decision: ADR-088.
+
+### 2026-09-11 — Sparse, stable Sales Request evaluation input
+
+Reduced the price-free model configuration to meaningful fields: null/empty
+visibility metadata is omitted, custom components use a sparse tuple marker, and
+only active component rows are queried. Components are ranked by persisted
+`DykeStepProducts.sortIndex` with deterministic title/UID fallback; the index stays
+out of the prompt but participates in cache invalidation. Explicit route defaults
+remain the only automatic fallback, so list position cannot silently select an
+order component. The first DeepSeek case was regenerated in prepare-only mode at
+61,481 prompt characters (74,322-byte artifact, down from 97,401); no provider call
+or token usage occurred. Focused validation passes 47 tests / 120 assertions.
+
+### 2026-09-11 — Proposed custom-value and published-catalog optimization
+
+Audited the difference between the Sales Request snapshot and the normal New Sales
+Form picker. The reviewed snapshot contains 594 candidates, including 266 custom
+rows; Jamb Size alone contains 247 custom rows among 267 candidates. The form
+normally hides unselected custom rows, explaining most strange prompt values.
+Proposed excluding all persisted custom rows, marking only custom-capable steps,
+and allowing a source-grounded native custom value that is persisted through the
+existing authorized upsert only after explicit apply. Proposed a safe candidate
+eligibility closure using sales usage plus defaults, rule dependencies, route
+necessities, pins, and a new-component grace period rather than a usage-only gate.
+Also proposed a revisioned published artifact with Super Admin regeneration and
+server-only diagnostics. No implementation, provider call, or database write ran.
+
+### 2026-09-11 — Sales Request native v2 and compact published catalog
+
+Implemented both approved tickets: sparse step custom capability, exclusion of
+persisted custom history, safe candidate eligibility, Sales Settings policy/manual
+regeneration, native custom/service/delivery seed fields, and a separate structured
+names-only service cache. Existing form selectors/calculators own hydration and
+preview remains write-free.
+
+The final first-case prepare-only artifact is
+`2026-09-11T-input-review-interior-solid-core-slabs-compact-v7`: 9 routes, 21 steps,
+40 standard tuples, 3 custom-capable steps, 12 visibility entries, and 7 eligible
+service names. No DeepSeek/provider call occurred. Sales/API typechecks retain only
+the recorded unrelated `packages/sales/src/copy-sales.ts:521` baseline. The final
+focused suite passes 127 tests / 354 assertions. Settings
+retains the unrelated `@gnd/errors` ESM-extension baseline. Decision: ADR-089.
+
+Follow-up review hardening bound every generated custom value, service label,
+delivery option, and Delivery amount to normalized customer-text evidence; rejects
+services outside the configured Services route; prevents transport duplication;
+and emits blocking initialization issues for transient custom, zero-priced service,
+and delivery-without-price placeholders. Service history is deduplicated once per
+order and rejects address/recipient-like labels; cache reads/writes now fail over to
+the bounded database result. Manual publication stores the exact combined artifact
+under its published revision. Evaluation now scores v2 services/delivery/costs and
+requires one explicit case for paid live mode. The final prepare-only `compact-v10`
+packet contains the exact 12,803-byte model configuration with 6 service names;
+no provider call occurred. Consolidated verification passes 188 tests / 488
+assertions; Cache typecheck passes, while Sales/API and Settings retain only their
+recorded unrelated baselines.
+
+### 2026-09-11 — First DeepSeek Sales Request live attempt
+
+Ran exactly one authorized paid corpus case, `interior-solid-core-slabs`, using
+setting 3 and `deepseek-v4-flash`; no other sample or retry ran. The provider
+operation ended after 34,918.67 ms before structured output reached validation.
+The run safely recorded `provider-output.json` as `null`, validation as failed,
+hydration as not run, and no token usage because the failed operation returned no
+usage object. Official DeepSeek API documentation confirms the model identifier is
+valid. Before another paid attempt, add privacy-safe failure classification and use
+the v2-only provider output schema. Artifact:
+`.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-deepseek-v1`.
+
+Implemented privacy-safe provider failure diagnostics and changed only the provider
+generation contract to v2 while preserving the internal v1 reader. Focused tests
+pass 37/37, API typecheck retains only the unrelated `copy-sales.ts:521` baseline,
+and `compact-v11` reduced recorded model input from 28,302 to 20,336 bytes (28.1%).
+One authorized retry of the same case ended at the 45-second timeout with classified
+stage `aborted`, `provider-output.json` null, and no reported token usage; no second
+sample or additional retry ran. The next proposed correction is explicit DeepSeek
+Flash non-thinking mode before reconsidering the timeout. Artifact:
+`.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-deepseek-v2`.
+
+### 2026-09-11 — Progressive AI chat platform plan
+
+Created a proposed Midday-grounded plan for GND chat, a domain-grouped tool catalog,
+permission- and schema-aware query execution, canonical PDFs and order drafting,
+versioned personal actions, and consented developer requests with AI engineering
+analysis and release subscriptions. Includes seven phased implementation checklists,
+a Mermaid flow, proposed persistence/API contracts, rollout defaults, evaluation
+and access/retry acceptance gates. Reuses existing Sales Request AI and preserves
+MySQL/Prisma and current domain authorities. Companion task is Roadmap, 0% implemented.
+No application code, schema, database data or external notifications changed.
+Plan: `.brain/plans/2026-09-11-feature-progressive-ai-chat-platform.md`.

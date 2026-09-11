@@ -1,5 +1,9 @@
 # Database Schema
 
+## Fulfillment assignment scope — Ticket 01, work in progress (2026-09-10)
+
+A strict version-1 contract is defined for `OrderDelivery.meta.fulfillmentAssignment`: revision, selectionMode (all_remaining/selected), and unique sales-control-UID lines with mutually exclusive scalar or LH/RH quantities. This contract has a reader only; no assignment writer, backfill or schema migration has run. Planned scope does not create OrderItemDelivery packing records. Legacy or invalid metadata stays explicitly unresolved.
+
 ## Reliability ledger (2026-09-09, local implementation)
 
 `ReliabilityRunWatch.providerUpdatedAt` is nullable for existing rows and records
@@ -676,3 +680,18 @@ Planning only; no Prisma model or database table has been created.
 The existing ReliabilityOccurrence.evidence JSON column now stores reconstructed,
 bounded deploymentId/requestId/traceId/release identifiers when present. No schema
 change or migration was required; raw provider fields are not copied into this JSON.
+
+Planned fulfillment creation (internal helper, not API-exposed): writes OrderDelivery.meta.fulfillmentAssignment using the versioned scope contract and an atomic SalesHistory row whose id is the request UUID. Audit data includes event=FULFILLMENT_ASSIGNED, dispatchId, fingerprint, actor/driver, targetDate and planned/backlog totals. No relational schema migration; no physical packing rows are created by planning.
+# Fulfillment short-load audit (2026-09-10)
+
+Internal confirmation uses existing SalesHistory request UUID with event FULFILLMENT_SHORT_LOAD_CONFIRMED, dispatchId, actorId, expectedRevision, originalScope, new scope, per-line assigned/packed/leftBehind and releasedQty. It writes this atomically with OrderDelivery.meta.fulfillmentAssignment. No schema migration. Public command integration remains pending.
+
+### Inbound creation activity — 2026-09-10
+Inbound creation activities reuse NotePad, NotePadContacts and inboundId/activityType tags; no schema or migration changes. Creator employee contacts are resolved from the authenticated user; missing contact names are populated from the user record.
+# Fulfillment notification intent metadata
+
+New intents also snapshot `deliveryMode` so delayed rendering preserves the original assignment context. Existing version-1 intents without that field are readable and fall back to the current header's mode.
+
+The delivery boundary writes separate SalesHistory receipts with event `FULFILLMENT_NOTICE_DELIVERED`, eventKey, dispatchId, recipientId and activityId. Receipt IDs are SHA-256 hashes of the notice event key with a fulfillment-notice prefix. Command-row locking serializes consumers; receipt and in-app activity must commit together. The immutable command intent is not overwritten. Consumer renderer and scheduling are not yet connected.
+
+Assignment create/edit SalesHistory data includes `notificationIntents`: immutable versioned records with eventKey (request/channel/recipient), channel, recipientId, actorId, salesId, fulfillmentId and dueDate. These records are committed with the command audit and are preserved by command replay. No-op/unassigned changes produce an empty list. This uses the existing JSON column; no schema migration. Delivery receipt storage and retry consumption are not implemented yet.

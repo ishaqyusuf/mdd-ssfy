@@ -95,6 +95,11 @@ import {
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { generateRandomString } from "@gnd/utils";
 import { TRPCError } from "@trpc/server";
+import {
+	getSalesRequestServiceVocabulary as loadSalesRequestServiceVocabulary,
+	getSalesRequestServiceVocabularyNames as loadSalesRequestServiceVocabularyNames,
+	type GetSalesRequestServiceVocabularyInput,
+} from "@api/services/sales-request-service-vocabulary";
 import { getNewSalesFormCommitmentSnapshot } from "./new-sales-form-adjustments";
 import {
 	captureNewSalesFormSaveFailure,
@@ -1354,7 +1359,9 @@ export async function bootstrapNewSalesForm(
 		ctx.db.settings.findFirst({
 			where: {
 				type: "sales-settings",
+				deletedAt: null,
 			},
+			orderBy: { id: "asc" },
 			select: {
 				meta: true,
 			},
@@ -1696,7 +1703,9 @@ export async function getNewSalesForm(
 		ctx.db.settings.findFirst({
 			where: {
 				type: "sales-settings",
+				deletedAt: null,
 			},
+			orderBy: { id: "asc" },
 			select: {
 				meta: true,
 			},
@@ -1800,7 +1809,9 @@ async function fetchNewSalesFormStepRoutingFromDb(ctx: TRPCContext) {
 		ctx.db.settings.findFirst({
 			where: {
 				type: "sales-settings",
+				deletedAt: null,
 			},
+			orderBy: { id: "asc" },
 			select: {
 				id: true,
 				meta: true,
@@ -1841,6 +1852,7 @@ async function fetchNewSalesFormStepRoutingFromDb(ctx: TRPCContext) {
 					},
 				},
 			},
+			orderBy: { id: "asc" },
 		}),
 	]);
 
@@ -3022,6 +3034,26 @@ export async function searchNewSalesFormServiceSuggestions(
 		}));
 }
 
+/**
+ * Read the bounded Sales Request vocabulary independently from interactive
+ * autocomplete. This seam intentionally uses only structured
+ * `newSalesForm.lineItems[].meta.serviceRows` and returns no historical row
+ * metadata.
+ */
+export async function getSalesRequestServiceVocabulary(
+	ctx: TRPCContext,
+	input: GetSalesRequestServiceVocabularyInput = {},
+) {
+	return loadSalesRequestServiceVocabulary(ctx.db, input);
+}
+
+export async function getSalesRequestServiceVocabularyNames(
+	ctx: TRPCContext,
+	input: GetSalesRequestServiceVocabularyInput = {},
+) {
+	return loadSalesRequestServiceVocabularyNames(ctx.db, input);
+}
+
 export async function recalculateNewSalesForm(
 	ctx: TRPCContext,
 	input: RecalculateNewSalesFormSchema,
@@ -3030,7 +3062,9 @@ export async function recalculateNewSalesForm(
 	const setting = await ctx.db.settings.findFirst({
 		where: {
 			type: "sales-settings",
+			deletedAt: null,
 		},
+		orderBy: { id: "asc" },
 		select: {
 			meta: true,
 		},
@@ -3179,7 +3213,9 @@ async function saveNewSalesFormInternal(
 	const setting = await ctx.db.settings.findFirst({
 		where: {
 			type: "sales-settings",
+			deletedAt: null,
 		},
+		orderBy: { id: "asc" },
 		select: {
 			meta: true,
 		},

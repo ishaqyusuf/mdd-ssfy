@@ -20,15 +20,20 @@ describe("fulfillment V2 cutover contracts", () => {
 			'{ title: "Backlog", params: { section: "backlog" } }',
 		);
 		expect(tabs).toContain(
-			'{ title: "All", params: { section: null }, clearQuery: true }',
+			'{ title: "All fulfillments", params: { section: "dispatches" } }',
 		);
 		expect(pageTabs).toContain(
 			"if (tab.clearQuery) return normalizePagePath(basePath);",
 		);
-		expect(tabs).not.toContain('params: { section: "dispatches" }');
-		expect(tabs.indexOf('title: "Backlog"')).toBeLessThan(
-			tabs.indexOf('title: "All"'),
+		expect(tabs).not.toContain('{ title: "All",');
+		expect(tabs.indexOf('title: "Exceptions"')).toBeLessThan(
+			tabs.indexOf('title: "All fulfillments"'),
 		);
+		const filterParams = readDashboard("hooks/use-dispatch-filter-params.ts");
+		expect(filterParams).toContain(
+			"parseAsStringLiteral(dispatchWorkspaceSections).withDefault(",
+		);
+		expect(filterParams).toContain('"active",');
 		expect(tabs).not.toContain('title: "Dashboard"');
 		expect(tabs).not.toContain('title: "Dispatches"');
 		const header = readDashboard(
@@ -55,9 +60,7 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(backlog).toContain("sort: backlogSort");
 		expect(backlog).toContain("sortState={{");
 		expect(backlog).toContain("createSortQuery: handleSort");
-		expect(
-			backlogView.indexOf("<DispatchAdminSummaryBoundary />"),
-		).toBeLessThan(backlogView.indexOf("<DispatchAdminHeader />"));
+		expect(backlogView).not.toContain("DispatchAdminSummaryBoundary");
 		expect(backlogView.indexOf("<DispatchAdminHeader />")).toBeLessThan(
 			backlogView.indexOf("<DataTable />"),
 		);
@@ -111,7 +114,9 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(page).toContain(
 			'if (filters.section !== "calendar") {\n\t\tvoid batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);\n\t}',
 		);
-		expect(calendar).toContain("createDispatchCalendarQueryInput(filters, { from: period.from, to: period.to })");
+		expect(calendar).toContain(
+			"createDispatchCalendarQueryInput(filters, { from: period.from, to: period.to })",
+		);
 		expect(page).not.toContain("trpc.dispatch.calendar.infiniteQueryOptions");
 		expect(workspace).toContain(
 			'import("@/components/dispatch-admin/views/dispatch-calendar-section")',
@@ -364,7 +369,7 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(workspace).toContain('filters.section === "completed"');
 		expect(workspace).toContain("<DispatchCompletedView");
 		expect(activeView).not.toContain("activeDispatchStages");
-		expect(completedView).toContain("<DataTable workspace");
+		expect(completedView).toContain("<DataTable initialSettings");
 		expect(dataTable).toContain("section: filters.section");
 		expect(summaryQuery).toContain("active: activeIds.size");
 		expect(summaryQuery).toContain("dueToday: dueTodayIds.size");
@@ -376,9 +381,7 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(dispatchQuery).toContain('["today"]');
 		expect(dispatchQuery).toContain('["overdue"]');
 		expect(workspace).toContain("<DispatchCalendarSection");
-		expect(
-			calendarView.indexOf("<DispatchAdminSummaryBoundary />"),
-		).toBeLessThan(calendarView.indexOf("<DispatchAdminHeader />"));
+		expect(calendarView).not.toContain("DispatchAdminSummaryBoundary");
 		expect(calendarView.indexOf("<DispatchAdminHeader />")).toBeLessThan(
 			calendarView.indexOf("<DispatchCalendarView />"),
 		);

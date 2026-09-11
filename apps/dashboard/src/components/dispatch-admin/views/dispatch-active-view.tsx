@@ -2,7 +2,7 @@
 
 import { DispatchDataBoundary } from "@/components/dispatch-admin/dispatch-admin-boundaries";
 import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
-import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
+import { DataTable } from "@/components/tables-2/fulfillment-orders/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import type { TableSettings } from "@/utils/table-settings";
 
@@ -17,11 +17,7 @@ export function DispatchActiveView({
 			<DispatchDataBoundary
 				fallback={<SalesDispatchSkeleton initialSettings={initialSettings} />}
 			>
-				<DataTable
-					workspace
-					initialSettings={initialSettings}
-					enableSalesMarkAs
-				/>
+				<DataTable initialSettings={initialSettings} />
 			</DispatchDataBoundary>
 		</div>
 	);

@@ -876,6 +876,7 @@ export type NotificationTypes = {
 	sales_dispatch_in_progress: SalesDispatchInProgressInput;
 	sales_dispatch_trip_canceled: SalesDispatchTripCanceledInput;
 	sales_dispatch_date_updated: SalesDispatchDateUpdatedInput;
+	sales_dispatch_updated: SalesDispatchUpdatedInput;
 	sales_dispatch_unassigned: SalesDispatchUnassignedInput;
 	sales_marked_as_production_completed: SalesMarkedAsProductionCompletedInput;
 	sales_production_all_completed: SalesProductionAllCompletedInput;
@@ -1090,6 +1091,7 @@ export const salesDispatchCompletedSchema = z.object({
 	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
 	dueDate: z.date().optional(),
 	driverId: z.number().optional(),
+	completedByAdmin: z.boolean().optional(),
 	packedBy: z.string().optional(),
 	receivedBy: z.string().optional(),
 	signature: z.string().optional(),
@@ -1106,6 +1108,7 @@ export const salesDispatchCompletedTags = actityTagsSchema.extend({
 	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
 	dueDate: z.date().optional(),
 	driverId: z.number().optional(),
+	completedByAdmin: z.boolean().optional(),
 	packedBy: z.string().optional(),
 	receivedBy: z.string().optional(),
 	signature: z.string().optional(),
@@ -1233,6 +1236,24 @@ export const salesDispatchDateUpdatedTags = actityTagsSchema.extend({
 export type SalesDispatchDateUpdatedTags = z.infer<
 	typeof salesDispatchDateUpdatedTags
 >;
+export const salesDispatchUpdatedSchema = z.object({
+	orderNo: z.string().optional(),
+	dispatchId: z.number(),
+	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+	dueDate: z.date().optional(),
+	driverId: z.number().optional(),
+});
+export type SalesDispatchUpdatedInput = z.infer<
+	typeof salesDispatchUpdatedSchema
+>;
+export const salesDispatchUpdatedTags = actityTagsSchema.extend({
+	dispatchId: z.number(),
+	orderNo: z.string().optional(),
+	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+	dueDate: z.coerce.date().optional(),
+	driverId: z.number().optional(),
+});
+export type SalesDispatchUpdatedTags = z.infer<typeof salesDispatchUpdatedTags>;
 export const salesMarkedAsProductionCompletedSchema = z.object({
 	salesId: z.number(),
 	orderNo: z.string().optional(),
@@ -1629,6 +1650,7 @@ export const baseNotificationJobSchema = z.object({
 		role: z.enum(["customer", "employee"]).default("employee"),
 	}),
 	testEmailMode: z.boolean().optional(),
+	skipActivities: z.boolean().optional(),
 	recipients: z
 		.array(
 			z.object({
@@ -1852,6 +1874,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_dispatch_date_updated"),
 		payload: salesDispatchDateUpdatedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_dispatch_updated"),
+		payload: salesDispatchUpdatedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_marked_as_production_completed"),

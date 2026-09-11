@@ -8,6 +8,7 @@ import {
 	combineInventoryPackingRequests,
 	commandFingerprint,
 	isPackingCommandReplay,
+	getDispatchPackingCommandRevision,
 } from "./dispatch-packing-command";
 
 const command = {
@@ -27,6 +28,27 @@ const command = {
 };
 
 describe("dispatch packing command guards", () => {
+	test("planned quantity edits invalidate review while proof checkpoints preserve it", async () => {
+		const dispatch = {
+			id: 41, salesOrderId: 9, status: "queue", driverId: 7, deliveryMode: "delivery",
+			meta: { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "door-9", quantity: { qty: 5, lh: 0, rh: 0 } }] } } as Record<string, unknown>,
+		};
+		// Query adapter fixture: execute both manifest builders without persisted writes.
+		const db = {
+			orderDelivery: { findFirst: async () => dispatch, findMany: async () => [dispatch] },
+			orderItemDelivery: { findMany: async () => [] },
+			lineItem: { findMany: async () => [] },
+			salesPackingReport: { findMany: async () => [] },
+		} as unknown as Parameters<typeof getDispatchPackingCommandRevision>[0];
+		const original = await getDispatchPackingCommandRevision(db, dispatch.id);
+		dispatch.meta.completionProof = { status: "uploading", signaturePathname: "signature.svg" };
+		expect(await getDispatchPackingCommandRevision(db, dispatch.id)).toBe(original);
+		dispatch.meta.fulfillmentAssignment = { version: 1, revision: 2, selectionMode: "selected", lines: [{ uid: "door-9", quantity: { qty: 3, lh: 0, rh: 0 } }] };
+		expect(await getDispatchPackingCommandRevision(db, dispatch.id)).not.toBe(original);
+		const edited = await getDispatchPackingCommandRevision(db, dispatch.id);
+		dispatch.deliveryMode = "pickup";
+		expect(await getDispatchPackingCommandRevision(db, dispatch.id)).not.toBe(edited);
+	});
 	test("keeps legacy packing, inventory picking, and guarded reports inside one transaction", () => {
 		const source = readFileSync(
 			new URL("./dispatch-packing-command.ts", import.meta.url),

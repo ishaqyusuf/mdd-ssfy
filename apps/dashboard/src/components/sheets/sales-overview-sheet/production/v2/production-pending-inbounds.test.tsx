@@ -128,15 +128,15 @@ test("empty, loading and error states remain distinct", () => {
 	query = { data: { receipts: [], nextReceiptCursor: null, count: 0 } };
 	expect(
 		renderToStaticMarkup(<ProductionPendingInbounds salesOrderId={123} />),
-	).toBe("");
+	).toContain("No linked inbounds");
 	query = { isLoading: true };
 	expect(
 		renderToStaticMarkup(<ProductionPendingInbounds salesOrderId={123} />),
-	).toContain("Loading pending inbounds");
+	).toContain("Loading inbounds");
 	query = { isError: true };
 	expect(
 		renderToStaticMarkup(<ProductionPendingInbounds salesOrderId={123} />),
-	).toContain("Retry pending inbounds");
+	).toContain("Retry inbounds");
 });
 
 test("saved admin receipt stays visible with cancellation after pending inbounds disappear", () => {
@@ -150,7 +150,7 @@ test("saved admin receipt stays visible with cancellation after pending inbounds
 test("worker pending materials show only receipt confirmation and no admin navigation", () => {
 	query = { data: { count: 1, workerMode: true, receivingEnabled: true, rows: [row], receipts: [], nextReceiptCursor: null } };
 	const html = renderToStaticMarkup(<ProductionPendingInbounds salesOrderId={123} />);
-	expect(html).toContain("Have these materials arrived?");
+	expect(html).not.toContain("Have these materials arrived?");
 	expect(html).toContain("Yes, received");
 	expect(html).not.toContain("Open inbound");
 	expect(html).not.toContain("Cancel review");
@@ -190,3 +190,37 @@ test("cancellation conflict remains visible beside the unchanged receipt", () =>
   confirmations[0]!.onClick!();
   expect(receivedInputs.map(value=>[value.inboundId,value.expectedRevision])).toEqual([[8,"b".repeat(64)],[7,"a".repeat(64)]]);
  });
+
+for (const workerMode of [false, true]) {
+ test(`received inbound retains details for ${workerMode ? "worker" : "admin"}`, () => {
+  query = { data: { count: 1, workerMode, receivingEnabled: true, receipts: [], rows: [{ ...row, status: "completed", totalQty: 8, expectedAt: null, items: [], canReceive: false }] } };
+  const html = renderToStaticMarkup(<ProductionPendingInbounds salesOrderId={123} />);
+  expect(html).toContain("Test supplier");
+  expect(html).not.toContain("IN-7");
+  expect(html).toContain("Not scheduled");
+  expect(html).toContain("8 qty from Test supplier");
+  expect(html).toContain("Received");
+  expect(html).not.toContain("Yes, received");
+  expect(html).not.toContain("Mark as received");
+  if (workerMode) expect(html).not.toContain("Open inbound");
+ });
+}
+
+test("worker opens exact inbound through secondary pane callback without changing tabs", () => {
+ query = {data: {count: 1, workerMode: true, receivingEnabled: true, receipts: [], rows: [row]}};
+ const opened: number[] = [];
+ renderToStaticMarkup(<ProductionPendingInbounds salesOrderId={123} onOpenInventory={id => { if (id) opened.push(id); }} />);
+ buttons.find(button => button.children === "Open inbound")!.onClick!();
+ expect(opened).toEqual([7]);
+ expect(navigation).toEqual([]);
+});
+test("worker secondary pane queries exact inbound and retains setting-gated receipt", () => {
+ query = {data: {count: 1, workerMode: true, receivingEnabled: true, receipts: [], rows: [row]}};
+ const html = renderToStaticMarkup(<ProductionPendingInbounds salesOrderId={123} exactInboundId={7} />);
+ expect(input).toMatchObject({salesOrderId: 123, inboundId: 7});
+ expect(html).toContain("Assigned door");
+ expect(html).toContain("Mark as received");
+ expect(html).not.toContain("Open inbound");
+ query = {data: {count: 1, workerMode: true, receivingEnabled: false, receipts: [], rows: [row]}};
+ expect(renderToStaticMarkup(<ProductionPendingInbounds salesOrderId={123} exactInboundId={7} />)).not.toContain("Mark as received");
+});

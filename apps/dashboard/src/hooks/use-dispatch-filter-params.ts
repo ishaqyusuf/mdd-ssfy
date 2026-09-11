@@ -34,7 +34,7 @@ const detailTabs = ["overview", "items", "route", "proof", "activity"] as const;
 
 export const dispatchFilterParamsSchema = {
 	section: parseAsStringLiteral(dispatchWorkspaceSections).withDefault(
-		"dispatches",
+		"active",
 	),
 	stages: parseAsArrayOf(parseAsStringLiteral(dispatchWorkspaceStages)),
 	tab: parseAsStringLiteral(["all", "pending", "completed", "calendar"]),

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { transformNotifications } from "../src/notification-center";
 import { salesDispatchAssigned } from "../src/types/sales-dispatch-assigned";
+import { salesDispatchUpdated } from "../src/types/sales-dispatch-updated";
 import { salesDispatchDateUpdated } from "../src/types/sales-dispatch-date-updated";
 import { salesDispatchUnassigned } from "../src/types/sales-dispatch-unassigned";
 
@@ -46,6 +47,7 @@ describe("dispatch assignment notification", () => {
 
 	it("surfaces unassignment and date-change lifecycle events", () => {
 		const handlers = [
+			{ type: "sales_dispatch_updated", handler: salesDispatchUpdated },
 			{
 				type: "sales_dispatch_unassigned",
 				handler: salesDispatchUnassigned,

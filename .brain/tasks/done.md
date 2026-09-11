@@ -1,5 +1,11 @@
 # Done
 
+### Sales Request compact catalog, custom values, services, and delivery
+
+- [Catalog/custom task](2026-09-11-sales-request-custom-values-and-published-catalog.md) — Done, 8/8.
+- [Services/delivery task](2026-09-11-sales-request-services-and-delivery.md) — Done, 8/8.
+- The final prepare-only DeepSeek-shaped packet was generated without a provider call; request paste/apply UI and live provider evaluation remain separately gated.
+
 ### [Production status clarity and worker inbound receipt](2026-09-08-production-status-and-worker-inbound-receipt.md)
 - Status: Done
 

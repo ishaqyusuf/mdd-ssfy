@@ -1,6 +1,16 @@
-import { createHash } from "node:crypto";
+import { assertFulfillmentScopePacked } from "../fulfillment-packed-guard";
+import { consumeDispatchBoundInventory } from "../sales-fulfillment-plan";
+import { fulfillmentProductionLimits } from "../fulfillment-production-limits";
+import { fulfillmentAssignmentRevision } from "../fulfillment-assignment-command";
+import { readFulfillmentAssignmentScope } from "../fulfillment-assignment-scope";
+import { capFulfillmentDeliverables } from "../fulfillment-packing-targets";
+import { validateFulfillmentPackingScope } from "../fulfillment-packing-scope";
+import { fulfillmentBacklogEvidenceSelect, projectBacklogEvidence } from "../fulfillment-backlog-query";
+import { createHash, randomUUID } from "node:crypto";
+import { buildFulfillmentNotificationIntents } from "../fulfillment-notification-intents";
+import { assertSalesCompletionDate } from "../sales-completion-date";
 
-import type { Prisma, TransactionClient } from "@gnd/db";
+import { Prisma, type TransactionClient } from "@gnd/db";
 import { runDbTransaction } from "@gnd/db/transactions";
 import { repairReceivedInboundNeedsForSalesOrder } from "@gnd/inventory/inbound";
 import type { RenturnTypeAsync } from "@gnd/utils";
@@ -34,13 +44,14 @@ import {
 import {
 	type CreateSalesAssignmentProps,
 	buildProductionSubmissionPlan,
+	productionSubmissionPlanQuantities,
 	createSalesAssignmentAction,
 	packDispatchItemsAction,
 	resetSalesAction,
 	submitAssignmentsAction,
 	submitNonProductionsAction,
 } from "./actions";
-import { resolveDispatchCompletionAttempt } from "./dispatch-completion";
+import { dispatchCompletionFingerprint, resolveDispatchCompletionAttempt } from "./dispatch-completion";
 import { getSaleInformation } from "./get-sale-information";
 import { getSalesSetting } from "./settings";
 
@@ -59,6 +70,8 @@ type SubmitAllTaskDependencies = {
 
 type SubmitAllTaskOptions = {
 	emptySubmissionBehavior?: "error" | "skip";
+	quantityLimits?: Parameters<typeof buildProductionSubmissionPlan>[0]["quantityLimits"];
+	fulfillmentPreparation?: { dispatchId: number; expectedRevision: string };
 };
 
 export async function submitAllTask(
@@ -72,6 +85,7 @@ export async function submitAllTask(
 		throw new Error("Production submission details are required.");
 	const effectiveSubmitArgs = {
 		...submitArgs,
+		quantityLimits: options.quantityLimits,
 		assignedToId: data.meta.allowProductionSubmissionForOthers
 			? submitArgs.assignedToId
 			: data.meta.authorId,
@@ -102,6 +116,7 @@ export async function submitAllTask(
 					salesOrderId: data.meta.salesId,
 					submittedById: data.meta.authorId,
 					itemScope: submissionPlan.itemScope,
+					...(options.fulfillmentPreparation ? { fulfillmentPreparation: options.fulfillmentPreparation, quantities: productionSubmissionPlanQuantities(submissionPlan) } : {}),
 				}),
 			)
 			.digest("hex")}`;
@@ -112,6 +127,26 @@ export async function submitAllTask(
 			profile: "workflow",
 		},
 		async (tx) => {
+			if (options.fulfillmentPreparation) {
+				await tx.$queryRaw(Prisma.sql`SELECT id FROM SalesOrders WHERE id=${data.meta.salesId} FOR UPDATE`);
+				await tx.$queryRaw(Prisma.sql`SELECT id FROM OrderDelivery WHERE salesOrderId=${data.meta.salesId} ORDER BY id FOR UPDATE`);
+				const evidence = await tx.salesOrders.findUniqueOrThrow({ where: { id: data.meta.salesId }, select: fulfillmentBacklogEvidenceSelect });
+				const projection = projectBacklogEvidence(evidence).projection;
+				const delivery = evidence.deliveries.find(row => row.id === options.fulfillmentPreparation!.dispatchId);
+				if (!delivery || !projection.resolved || fulfillmentAssignmentRevision({ salesId: evidence.id, projection, fulfillments: evidence.deliveries }) !== options.fulfillmentPreparation.expectedRevision)
+					throw new Error("Fulfillment changed. Refresh before production preparation.");
+				const freshInfo = await getSaleInformation(tx as any, {
+					salesId: data.meta.salesId,
+					assignedToId: effectiveSubmitArgs.assignedToId ?? undefined,
+				}, { persistDerivedState: false });
+				const scope = readFulfillmentAssignmentScope(delivery.meta).scope;
+				if (!scope) throw new Error("Review fulfillment quantities before production preparation.");
+				const physical = projectBacklogEvidence({ ...evidence, deliveries: [delivery] }).projection;
+				const freshLimits = fulfillmentProductionLimits({ planned: scope.lines, packed: physical.lines, items: freshInfo.items });
+				const freshPlan = buildProductionSubmissionPlan({ authorId: data.meta.authorId, data: freshInfo, ...effectiveSubmitArgs, quantityLimits: freshLimits });
+				if (JSON.stringify(productionSubmissionPlanQuantities(freshPlan)) !== JSON.stringify(productionSubmissionPlanQuantities(submissionPlan)))
+					throw new Error("Production availability changed. Refresh before packing.");
+			}
 			const review = await (
 				dependencies.prepareMaterialReview ??
 				prepareProductionSubmissionMaterialReview
@@ -328,6 +363,7 @@ export async function createAssignmentsTask(
 export async function submitNonProductionsTask(
 	db: Db,
 	data: UpdateSalesControl,
+	quantityLimits?: SubmitAllTaskOptions["quantityLimits"],
 ) {
 	const info = await getSaleInformation(
 		db,
@@ -346,6 +382,7 @@ export async function submitNonProductionsTask(
 			const resp = await submitNonProductionsAction(tx as any, {
 				data: info,
 				authorId: data.meta.authorId,
+				quantityLimits,
 			});
 			await resetSalesAction(tx as any, data.meta.salesId);
 			return resp;
@@ -577,6 +614,12 @@ export async function startDispatchTask(
 			orderDeliveryId,
 			salesOrderId: data.meta.salesId,
 		});
+		const header = await tx.orderDelivery.findFirst({ where: { id: orderDeliveryId, salesOrderId: data.meta.salesId, deletedAt: null }, select: { meta: true, status: true } });
+		if (!header) throw new Error("Dispatch was not found for this order.");
+		const assigned = readFulfillmentAssignmentScope(header.meta);
+		if (assigned.state === "invalid") throw new Error("Review fulfillment quantities before starting this trip.");
+		if (assigned.scope && header.status !== "packed") throw new Error("Complete packing before starting this trip.");
+        await assertFulfillmentScopePacked(tx as TransactionClient, { salesId: data.meta.salesId, fulfillmentId: orderDeliveryId, meta: header.meta });
 		const started = await tx.orderDelivery.updateMany({
 			where: {
 				id: orderDeliveryId,
@@ -599,6 +642,8 @@ export async function submitDispatchTask(
 	db: Db,
 	data: UpdateSalesControl,
 	internal?: {
+		completedByAdmin?: boolean;
+		expectedFulfillmentRevision?: number;
 		allowCompletedResign?: boolean;
 		saveNoteAction?: typeof saveNote;
 		recordFullWorkflowCompletion?: typeof recordFullWorkflowCompletionIfProven;
@@ -634,6 +679,11 @@ export async function submitDispatchTask(
 			profile: "workflow",
 		},
 		async (tx) => {
+			await lockAndAssertNoPendingPackingReports(
+				tx as Db,
+				{ dispatchId: task.dispatchId!, salesOrderId: data.meta.salesId },
+				{ allowDeliveryWhilePending: true },
+			);
 			const currentDispatch = await tx.orderDelivery.findFirst({
 				where: {
 					id: task.dispatchId!,
@@ -642,6 +692,9 @@ export async function submitDispatchTask(
 				select: {
 					status: true,
 					deliveredAt: true,
+					driverId: true,
+					dueDate: true,
+					deliveryMode: true,
 					salesOrderId: true,
 					meta: true,
 				},
@@ -652,16 +705,8 @@ export async function submitDispatchTask(
 			if (currentDispatch.salesOrderId !== data.meta.salesId) {
 				throw new Error("Dispatch does not belong to this sales order.");
 			}
-			await lockAndAssertNoPendingPackingReports(
-				tx as Db,
-				{
-					dispatchId: task.dispatchId!,
-					salesOrderId: currentDispatch.salesOrderId,
-				},
-				{ allowDeliveryWhilePending: true },
-			);
-
 			const completionRequestId = task.completionRequestId?.trim();
+			const completionFingerprint = completionRequestId ? dispatchCompletionFingerprint(task) : undefined;
 			const currentMeta = asJsonRecord(currentDispatch.meta);
 			const currentCompletion = asJsonRecord(currentMeta.dispatchCompletion);
 			const completionAttempt = internal?.allowCompletedResign
@@ -670,6 +715,7 @@ export async function submitDispatchTask(
 						status: currentDispatch.status,
 						meta: currentDispatch.meta,
 						requestId: completionRequestId,
+						fingerprint: completionFingerprint,
 					});
 			if (completionAttempt === "replay") {
 				return {
@@ -680,11 +726,20 @@ export async function submitDispatchTask(
 			if (completionAttempt === "conflict") {
 				throw new Error("Dispatch was already completed by another request.");
 			}
+			const expectedFulfillmentRevision = task.expectedFulfillmentRevision ?? internal?.expectedFulfillmentRevision;
+			if (expectedFulfillmentRevision !== undefined &&
+				readFulfillmentAssignmentScope(currentDispatch.meta).scope?.revision !== expectedFulfillmentRevision) {
+				throw new Error("Fulfillment changed. Review its quantities before completing.");
+			}
+			assertSalesCompletionDate(task.receivedDate, new Date(), process.env.BUSINESS_TIME_ZONE || process.env.TZ);
+
+            await assertFulfillmentScopePacked(tx as TransactionClient, { salesId: currentDispatch.salesOrderId, fulfillmentId: task.dispatchId!, meta: currentDispatch.meta });
 
 			const completionMeta = completionRequestId
 				? ({
 						...currentCompletion,
 						requestId: completionRequestId,
+						fingerprint: completionFingerprint,
 						status: "completed",
 						signaturePathname: task.signature || undefined,
 						attachments: Array.isArray(currentCompletion.attachments)
@@ -763,6 +818,34 @@ export async function submitDispatchTask(
 						: {}),
 				},
 			});
+			if (currentDispatch.driverId && currentDispatch.status !== "completed") {
+				const noticeRequestId = randomUUID();
+				await tx.salesHistory.create({
+					data: {
+						id: noticeRequestId,
+						salesId: data.meta.salesId,
+						authorName: data.meta.authorName,
+						name: "Fulfillment completed",
+						data: {
+							event: "FULFILLMENT_COMPLETED",
+							dispatchId: task.dispatchId!,
+							completionRequestId: completionRequestId ?? null,
+							notificationIntents: buildFulfillmentNotificationIntents({
+								requestId: noticeRequestId,
+								salesId: data.meta.salesId,
+								fulfillmentId: task.dispatchId!,
+								actorId: data.meta.authorId,
+								driverId: currentDispatch.driverId,
+								kind: "completed",
+								changed: true,
+								completedByAdmin: internal?.completedByAdmin ?? false,
+								dueDate: currentDispatch.dueDate?.toISOString().slice(0, 10) ?? null,
+								deliveryMode: currentDispatch.deliveryMode === "pickup" ? "pickup" : "delivery",
+							}),
+						},
+					},
+				});
+			}
 			// await resetSalesTask(tx as any, data.meta.salesId);
 			const salesId = data.meta.salesId;
 			await resetSalesAction(tx as any, salesId);
@@ -999,6 +1082,7 @@ function buildSelectionPackingLinesFromRequestedItems(
 					.flatMap((delivery) => delivery.items || [])
 					.filter(
 						(item) =>
+							item.packingStatus !== "unpacked" &&
 							item.submission?.assignment?.salesItemControlUid ===
 							matchedItem.controlUid,
 					)
@@ -1046,6 +1130,7 @@ export async function packDispatchItemTask(
 	db: Db,
 	data: UpdateSalesControl,
 	dependencies: SubmitAllTaskDependencies = {},
+	options: { preparation?: "existing_only" } = {},
 ) {
 	const dispatchId = data.packItems!.dispatchId;
 	const dispatchScope = await db.orderDelivery.findFirst({
@@ -1054,11 +1139,18 @@ export async function packDispatchItemTask(
 			salesOrderId: data.meta.salesId,
 			deletedAt: null,
 		},
-		select: { id: true },
+		select: { id: true, meta: true, status: true },
 	});
 	if (!dispatchScope) {
 		throw new Error("Packing dispatch was not found for this sales order.");
 	}
+	const assignmentScope = readFulfillmentAssignmentScope(dispatchScope.meta);
+	if (assignmentScope.state === "invalid") throw new Error("Review fulfillment quantities before packing.");
+    const assertPackingLifecycle = (status: string | null | undefined) => {
+        if (assignmentScope.scope && status && !["queue", "packing", "packing queue", "missing items", "packed"].includes(status.toLowerCase()))
+            throw new Error("This fulfillment is in progress or closed for packing.");
+    };
+    assertPackingLifecycle(dispatchScope.status);
 	await assertNoPendingPackingReports(db, {
 		dispatchId,
 		salesOrderId: data.meta.salesId,
@@ -1066,7 +1158,23 @@ export async function packDispatchItemTask(
 	const packMode = data.packItems?.packMode!;
 	const requestedDispatchStatus = data.packItems?.dispatchStatus;
 	let assignmentInfo: RenturnTypeAsync<typeof getSaleInformation> | null = null;
-	if (packMode == "all") {
+	let productionLimits: SubmitAllTaskOptions["quantityLimits"];
+	let fulfillmentPreparation: SubmitAllTaskOptions["fulfillmentPreparation"];
+	if (assignmentScope.scope && (packMode === "all" || packMode === "available")) {
+		assignmentInfo = await getSaleInformation(db, { salesId: data.meta.salesId }, { persistDerivedState: true });
+		const evidence = await db.salesOrders.findUniqueOrThrow({ where: { id: data.meta.salesId }, select: fulfillmentBacklogEvidenceSelect });
+		fulfillmentPreparation = { dispatchId, expectedRevision: fulfillmentAssignmentRevision({ salesId: evidence.id, projection: projectBacklogEvidence(evidence).projection, fulfillments: evidence.deliveries }) };
+		const physical = projectBacklogEvidence({ ...evidence, deliveries: evidence.deliveries.filter(delivery => delivery.id === dispatchId) }).projection;
+		if (!physical.resolved) throw new Error("Packing quantities need review before production preparation.");
+		productionLimits = fulfillmentProductionLimits({
+            planned: assignmentScope.scope.lines,
+            packed: physical.lines,
+            items: assignmentInfo.items,
+        });
+		const assignedUids = new Set(assignmentScope.scope.lines.map(line => line.uid));
+		assignmentInfo = { ...assignmentInfo, items: assignmentInfo.items.filter(item => assignedUids.has(item.controlUid)) };
+	}
+	if (packMode == "all" && !assignmentScope.scope && options.preparation !== "existing_only") {
 		assignmentInfo = await getSaleInformation(
 			db,
 			{
@@ -1103,7 +1211,7 @@ export async function packDispatchItemTask(
 			);
 		}
 	}
-	if (packMode == "all" || packMode == "available")
+	if ((packMode == "all" || packMode == "available") && options.preparation !== "existing_only")
 		await submitAllTask(
 			db,
 			{
@@ -1114,9 +1222,9 @@ export async function packDispatchItemTask(
 				},
 			},
 			dependencies,
-			{ emptySubmissionBehavior: "skip" },
+			{ emptySubmissionBehavior: "skip", quantityLimits: productionLimits, fulfillmentPreparation },
 		);
-	if (packMode == "all" && assignmentInfo)
+	if (packMode == "all" && assignmentInfo && options.preparation !== "existing_only")
 		await releaseAutomaticNonProductionMaterialReviews(
 			db,
 			data,
@@ -1133,6 +1241,20 @@ export async function packDispatchItemTask(
 		data.packItems?.packMode === "selection" &&
 		(data.packItems?.requestedItems?.length || 0) > 0
 	) {
+		if (assignmentScope.scope) {
+			validateFulfillmentPackingScope({
+				meta: dispatchScope.meta,
+				expectedScopeRevision: assignmentScope.scope.revision,
+				lines: data.packItems!.requestedItems!.map(request => {
+					const item = info.items.find(item => item.itemId === request.salesItemId && (!request.itemUid || item.controlUid === request.itemUid));
+					if (!item) throw new Error("Packing item identity does not match this order.");
+					const qty = recomposeQty(request.qty as any);
+					const lh = Number(qty.lh ?? 0);
+					const rh = Number(qty.rh ?? 0);
+					return { uid: item.controlUid, quantity: { qty: lh + rh > 0 ? 0 : Number(qty.qty ?? 0), lh, rh } };
+				}),
+			});
+		}
 		let built = buildSelectionPackingLinesFromRequestedItems(
 			info,
 			data.packItems!.requestedItems!,
@@ -1140,9 +1262,26 @@ export async function packDispatchItemTask(
 		);
 
 		if (built.insufficient.length) {
+			if (options.preparation === "existing_only") {
+				throw new Error("Completion requires approved deliverables for every selected item.");
+			}
+			let reusablePacked: Parameters<typeof fulfillmentProductionLimits>[0]["packed"] = [];
+			if (assignmentScope.scope && data.packItems?.replaceExisting) {
+				const evidence = await db.salesOrders.findUniqueOrThrow({ where: { id: data.meta.salesId }, select: fulfillmentBacklogEvidenceSelect });
+				const physical = projectBacklogEvidence({ ...evidence, deliveries: evidence.deliveries.filter(delivery => delivery.id === dispatchId) }).projection;
+				if (!physical.resolved) throw new Error("Review current packing before preparing replacement quantities.");
+				reusablePacked = physical.lines;
+			}
 			await submitNonProductionsTask(db, {
 				meta: data.meta,
-			} as UpdateSalesControl);
+			} as UpdateSalesControl, assignmentScope.scope ? fulfillmentProductionLimits({
+				planned: data.packItems!.requestedItems!.map(request => {
+					const item = info.items.find(item => item.itemId === request.salesItemId && (!request.itemUid || item.controlUid === request.itemUid))!;
+					const qty = recomposeQty(request.qty as any);
+					const lh = Number(qty.lh ?? 0), rh = Number(qty.rh ?? 0);
+					return { uid: item.controlUid, quantity: { qty: lh + rh > 0 ? 0 : Number(qty.qty ?? 0), lh, rh } };
+				}), packed: reusablePacked, items: info.items,
+			}) : undefined);
 			const refreshed = await getSaleInformation(
 				db,
 				{
@@ -1185,12 +1324,33 @@ export async function packDispatchItemTask(
 					salesOrderId: data.meta.salesId,
 					deletedAt: null,
 				},
-				select: { id: true },
+				select: { id: true, meta: true, status: true },
 			});
 			if (!activeDispatch) {
 				throw new Error(
 					"Packing dispatch scope changed before it was updated.",
 				);
+			}
+            assertPackingLifecycle(activeDispatch.status);
+            if (assignmentScope.scope) {
+                const currentScope = readFulfillmentAssignmentScope(activeDispatch.meta).scope;
+                if (!currentScope || currentScope.revision !== assignmentScope.scope.revision)
+                    throw new Error("Fulfillment changed. Refresh before packing.");
+            }
+			if (assignmentScope.scope && data.packItems?.packMode !== "selection") {
+				const evidence = await tx.salesOrders.findUniqueOrThrow({ where: { id: data.meta.salesId }, select: fulfillmentBacklogEvidenceSelect });
+				const physical = projectBacklogEvidence({ ...evidence, deliveries: evidence.deliveries.filter(delivery => delivery.id === dispatchId) }).projection;
+				if (!physical.resolved) throw new Error("Packing quantities need review before saving.");
+				data.packItems!.packingLines = assignmentScope.scope.lines.flatMap(line => {
+					const item = info.items.find(item => item.controlUid === line.uid);
+					if (!item?.itemId) throw new Error("Assigned item is missing from packing information.");
+					const packed = data.packItems?.replaceExisting ? null : physical.lines.find(item => item.uid === line.uid)?.packed;
+					const lh = Math.max(0, line.quantity.lh - (packed?.lh ?? 0));
+					const rh = Math.max(0, line.quantity.rh - (packed?.rh ?? 0));
+					const qty = line.quantity.lh + line.quantity.rh > 0 ? lh + rh : Math.max(0, line.quantity.qty - (packed?.qty ?? 0));
+					const reusable = data.packItems?.replaceExisting ? (info.deliveries ?? []).filter(delivery => delivery.id === dispatchId).flatMap(delivery => delivery.items ?? []).filter(row => row.submission?.assignment?.salesItemControlUid === item.controlUid && row.packingStatus !== "unpacked").map(row => ({ submissionId: row.orderProductionSubmissionId!, qty: transformQtyHandle(row) })) : [];
+                    return capFulfillmentDeliverables([...reusable, ...(item.deliverables ?? [])].filter(deliverable => Boolean(deliverable.submissionId)).map(deliverable => ({ ...deliverable, qty: { qty: Number(deliverable.qty?.qty ?? 0), lh: Number(deliverable.qty?.lh ?? 0), rh: Number(deliverable.qty?.rh ?? 0) } })), { qty, lh, rh }).map(deliverable => ({ salesItemId: item.itemId!, submissionId: deliverable.submissionId, qty: deliverable.qty }));
+				});
 			}
 			if (data.packItems?.replaceExisting) {
 				await tx.orderItemDelivery.updateMany({
@@ -1214,11 +1374,17 @@ export async function packDispatchItemTask(
 				authorName: data.meta.authorName,
 				update: true,
 			});
+            let scopedPackingComplete = true;
+            if (assignmentScope.scope) {
+                const evidence = await tx.salesOrders.findUniqueOrThrow({ where: { id: data.meta.salesId }, select: fulfillmentBacklogEvidenceSelect });
+                const projection = projectBacklogEvidence({ ...evidence, deliveries: evidence.deliveries.filter(delivery => delivery.id === dispatchId) }).projection;
+                if (!projection.resolved) throw new Error("Packing quantities need review before saving.");
+                const validated = validateFulfillmentPackingScope({ meta: activeDispatch.meta, expectedScopeRevision: assignmentScope.scope.revision, lines: projection.lines.filter(line => line.packed.qty + line.packed.lh + line.packed.rh > 0).map(line => ({ uid: line.uid, quantity: line.packed })) });
+                scopedPackingComplete = validated.length > 0 && validated.every(line => line.leftBehind.qty + line.leftBehind.lh + line.leftBehind.rh === 0);
+            }
 			if (
-				requestedDispatchStatus &&
-				["queue", "missing items"].includes(
-					requestedDispatchStatus as string,
-				) &&
+				(assignmentScope.scope || (requestedDispatchStatus &&
+				["queue", "missing items"].includes(requestedDispatchStatus as string))) &&
 				(resp.created > 0 || resp.skipped > 0)
 			) {
 				await tx.orderDelivery.update({
@@ -1226,7 +1392,7 @@ export async function packDispatchItemTask(
 						id: data.packItems!.dispatchId,
 					},
 					data: {
-						status: "packed" as SalesDispatchStatus,
+						status: (scopedPackingComplete ? "packed" : "packing queue") as SalesDispatchStatus,
 						deliveredAt: null,
 					},
 				});
@@ -1568,8 +1734,40 @@ export async function markAsCompletedTask(
 	args: UpdateSalesControl,
 	dependencies: SubmitAllTaskDependencies & {
 		saveNoteAction?: typeof saveNote;
+		completeInventoryDispatch?: typeof consumeDispatchBoundInventory;
 	} = {},
 ) {
+	const dispatchId = args.markAsCompleted?.dispatchId;
+	if (!dispatchId) throw new Error("Select a fulfillment to complete.");
+	const current = await db.orderDelivery.findFirst({
+		where: { id: dispatchId, salesOrderId: args.meta.salesId, deletedAt: null },
+		select: { status: true, meta: true },
+	});
+	const scope = readFulfillmentAssignmentScope(current?.meta);
+	const finish = () => submitDispatchTask(
+		db,
+		{ meta: args.meta, submitDispatch: args.markAsCompleted },
+		{
+			completedByAdmin: true,
+			expectedFulfillmentRevision: scope.scope?.revision,
+			autoReviewSalesPayments: dependencies.autoReviewSalesPayments,
+			recognizeSalesTax: dependencies.recognizeSalesTax,
+			saveNoteAction: dependencies.saveNoteAction,
+			completeInventoryDispatch: scope.scope
+				? (dependencies.completeInventoryDispatch ?? consumeDispatchBoundInventory)
+				: undefined,
+		},
+	);
+	const status = String(current?.status).trim().toLowerCase();
+	if (status === "completed" || (scope.scope && ["packed", "in progress", "in-progress", "in transit", "dispatched"].includes(status))) {
+		await finish();
+		return;
+	}
+	assertSalesCompletionDate(args.markAsCompleted?.receivedDate, new Date(), process.env.BUSINESS_TIME_ZONE || process.env.TZ);
+	if (args.markAsCompleted?.expectedFulfillmentRevision !== undefined &&
+		scope.scope?.revision !== args.markAsCompleted.expectedFulfillmentRevision) {
+		throw new Error("Fulfillment changed. Review its quantities before completing.");
+	}
 	const packing = await packDispatchItemTask(
 		db,
 		{
@@ -1581,6 +1779,7 @@ export async function markAsCompletedTask(
 			},
 		},
 		dependencies,
+		scope.scope ? { preparation: "existing_only" } : {},
 	);
 	if (packing.created === 0) {
 		const packedItemCount = await db.orderItemDelivery.count({
@@ -1611,16 +1810,5 @@ export async function markAsCompletedTask(
 			);
 		}
 	}
-	await submitDispatchTask(
-		db,
-		{
-			meta: args.meta,
-			submitDispatch: args.markAsCompleted,
-		},
-		{
-			autoReviewSalesPayments: dependencies.autoReviewSalesPayments,
-			recognizeSalesTax: dependencies.recognizeSalesTax,
-			saveNoteAction: dependencies.saveNoteAction,
-		},
-	);
+	await finish();
 }

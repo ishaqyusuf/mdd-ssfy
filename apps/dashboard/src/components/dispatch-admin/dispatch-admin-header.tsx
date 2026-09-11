@@ -7,6 +7,7 @@ import { SearchFilterTRPC } from "@/components/midday-search-filter/search-filte
 import { PageTabs } from "@/components/page-tabs";
 import { SalesDispatchColumnVisibility } from "@/components/tables-2/sales-dispatch/column-visibility";
 import { useDriversList } from "@/hooks/use-data-list";
+import { useFulfillmentOrdersOptions } from "@/hooks/use-fulfillment-orders";
 import {
 	dispatchSearchFilterParams,
 	useDispatchFilterParams,
@@ -25,7 +26,7 @@ import {
 	getDeliveryFilterOptionColor,
 	getStatusFilterOptionColor,
 } from "@gnd/utils/filter-option-colors";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -100,6 +101,21 @@ export function DispatchAdminHeader() {
 	const trpc = useTRPC();
 	const { filters, setFilters } = useDispatchFilterParams();
 	const drivers = useDriversList(true);
+	const orderOptions = useFulfillmentOrdersOptions();
+	const isOrderView = [
+		"backlog",
+		"dashboard",
+		"dispatches",
+		"active",
+		"due-today",
+		"past-due",
+		"completed",
+	].includes(filters.section);
+	const orderList = useInfiniteQuery({
+		...orderOptions,
+		enabled: isOrderView,
+	});
+	const orderCounts = orderList.data?.pages[0]?.counts;
 	const summary = useQuery(
 		trpc.dispatch.workspaceSummary.queryOptions(undefined, {
 			staleTime: 30_000,
@@ -129,27 +145,29 @@ export function DispatchAdminHeader() {
 			dispatchAdminPageTabs.map((tab) => {
 				const summaryData = isHydrated ? summary.data : undefined;
 				const countBySection = {
-					backlog: summaryData?.backlog,
-					active: summaryData?.active,
-					"due-today": summaryData?.dueToday,
-					"past-due": summaryData?.pastDue,
-					completed: summaryData?.completed,
+					backlog: isOrderView ? orderCounts?.backlog : summaryData?.backlog,
+					active: isOrderView ? orderCounts?.active : summaryData?.active,
+					dispatches: isOrderView ? orderCounts?.all : summaryData?.all,
+					"due-today": isOrderView
+						? orderCounts?.dueToday
+						: summaryData?.dueToday,
+					"past-due": isOrderView ? orderCounts?.pastDue : summaryData?.pastDue,
+					completed: isOrderView
+						? orderCounts?.completed
+						: summaryData?.completed,
 					drivers: summaryData?.driverCount,
 					exceptions: summaryData?.openExceptions,
 				} as const;
 				const section = tab.params?.section;
-				if (section === null) return { ...tab, count: summaryData?.all };
 				if (!section || !(section in countBySection)) return tab;
 				return {
 					...tab,
 					count: countBySection[section as keyof typeof countBySection],
 				};
 			}),
-		[isHydrated, summary.data],
+		[isHydrated, summary.data, orderCounts, isOrderView],
 	);
-	const activeSection = ["dashboard", "dispatches"].includes(filters.section)
-		? null
-		: filters.section;
+	const activeSection = filters.section;
 	const showsTableTools = ["dashboard", "dispatches"].includes(filters.section);
 
 	return (
@@ -167,7 +185,7 @@ export function DispatchAdminHeader() {
 							tabs={tabs}
 							showAll={false}
 							activeParams={{ section: activeSection }}
-							maxVisible={{ base: 3, lg: 7, "2xl": 9 }}
+							maxVisible={{ base: 3, lg: 7, "2xl": 8 }}
 						/>
 					}
 					toolbarActions={

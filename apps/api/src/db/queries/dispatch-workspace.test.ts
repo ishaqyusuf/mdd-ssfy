@@ -172,9 +172,13 @@ describe("getDispatchWorkspaceSummary", () => {
 				},
 			},
 			salesOrders: {
-				findMany: async (args: { where: { id: { in: number[] } } }) => {
-					evidenceReads.push(args.where.id.in);
-					return args.where.id.in.map(pipelineOrder);
+				findMany: async (args: { where: { id?: { in: number[] }; AND?: unknown[] } }) => {
+					if (args.where.AND) return [201, 202, 203].map((id) => ({
+						id, completionRecords: [], deliveries: [],
+						itemControls: [{ uid: `item-${id}`, orderItemId: id, title: "Backlog item", shippable: true, qtyControls: [{ qty: 1, lh: 0, rh: 0, total: 1 }] }],
+					}));
+					evidenceReads.push(args.where.id!.in);
+					return args.where.id!.in.map(pipelineOrder);
 				},
 			},
 			dispatchException: { count: async () => 2 },

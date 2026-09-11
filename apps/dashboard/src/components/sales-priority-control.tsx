@@ -8,7 +8,9 @@ import { Icons } from "@gnd/ui/icons";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
@@ -156,11 +158,14 @@ export function SalesPrioritySelect({
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					{SALES_PRIORITY_OPTIONS.map((option) => (
-						<SelectItem key={option.value} value={option.value}>
-							{option.label}
-						</SelectItem>
-					))}
+					<SelectGroup>
+						<SelectLabel>Priority</SelectLabel>
+						{SALES_PRIORITY_OPTIONS.map((option) => (
+							<SelectItem key={option.value} value={option.value}>
+								{option.label}
+							</SelectItem>
+						))}
+					</SelectGroup>
 				</SelectContent>
 			</Select>
 			{updatePriority.isPending ? (

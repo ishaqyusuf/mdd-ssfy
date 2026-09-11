@@ -59,6 +59,7 @@ export const dispatchForm = z.object({
 	noteType: z.enum(["dispatch", "pickup"]).optional().nullable(),
 	signature: z.string().optional().nullable(),
 	completionRequestId: z.string().min(12).max(100).optional().nullable(),
+	expectedFulfillmentRevision: z.number().int().positive().optional(),
 	attachments: z
 		.array(
 			z.object({

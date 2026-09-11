@@ -12,6 +12,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
+import { useFulfillmentParams } from "@/hooks/use-fulfillment-params";
 import type { TableSettings } from "@/utils/table-settings";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -29,12 +30,21 @@ const DispatchCalendarSection = dynamic(
 	},
 );
 
+const FulfillmentOrderSheet = dynamic(
+	() =>
+		import("./fulfillment-order-sheet").then(
+			(module) => module.FulfillmentOrderSheet,
+		),
+	{ ssr: false },
+);
+
 export function DispatchAdminWorkspaceClient({
 	initialSettings,
 }: {
 	initialSettings?: Partial<TableSettings>;
 }) {
 	const { filters } = useDispatchFilterParams();
+	const { fulfillmentOrderId } = useFulfillmentParams();
 	const showsOverview = ["dashboard", "dispatches"].includes(filters.section);
 	const ownsHeader =
 		showsOverview ||
@@ -87,6 +97,7 @@ export function DispatchAdminWorkspaceClient({
 					{content}
 				</Suspense>
 			</ErrorBoundary>
+			{fulfillmentOrderId ? <FulfillmentOrderSheet /> : null}
 		</div>
 	);
 }

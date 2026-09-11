@@ -24,6 +24,9 @@ const operationsRouteSource = readSource(
 const specialOrdersRouteSource = readSource(
 	"../../app/(sidebar)/settings/sales/special-orders/page.tsx",
 );
+const requestGenerationRouteSource = readSource(
+	"../../app/(sidebar)/settings/sales/request-generation/page.tsx",
+);
 const sidebarSource = readSource("../sidebar-links.ts");
 
 describe("Sales Settings route-backed navigation", () => {
@@ -34,6 +37,7 @@ describe("Sales Settings route-backed navigation", () => {
 			["Operations", "/settings/sales/operations"],
 			["Dealer orders", "/settings/sales/dealer-orders"],
 			["Special orders", "/settings/sales/special-orders"],
+			["Request AI", "/settings/sales/request-generation"],
 		]) {
 			expect(layoutSource.includes(`label: "${label}"`)).toBe(true);
 			expect(layoutSource.includes(`path: "${path}"`)).toBe(true);
@@ -87,6 +91,11 @@ describe("Sales Settings route-backed navigation", () => {
 		expect(specialOrdersRouteSource.includes("getSpecialOrderSettings")).toBe(
 			false,
 		);
+		expect(
+			requestGenerationRouteSource.includes(
+				"<SalesRequestGenerationSettingsPage />",
+			),
+		).toBe(true);
 	});
 
 	it("provides metadata, hydration, loading, and error boundaries per route", () => {
@@ -101,6 +110,10 @@ describe("Sales Settings route-backed navigation", () => {
 			[
 				specialOrdersRouteSource,
 				"../../app/(sidebar)/settings/sales/special-orders",
+			],
+			[
+				requestGenerationRouteSource,
+				"../../app/(sidebar)/settings/sales/request-generation",
 			],
 		]) {
 			expect(routeSource.includes("generateMetadata")).toBe(true);

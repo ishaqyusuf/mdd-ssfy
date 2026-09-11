@@ -1,4 +1,4 @@
-import { Db, Prisma } from "@gnd/db";
+import { Db, Prisma, type TransactionClient } from "@gnd/db";
 import { UserData } from "./base";
 
 type RecipientRole = "employee" | "customer" | "address";
@@ -188,7 +188,7 @@ export async function getSubscribersForNotificationType(
 }
 
 export async function getSubscriberAccount(
-  db: Db,
+  db: Db | TransactionClient,
   profileId: number,
   role: RecipientRole = "employee",
 ): Promise<{

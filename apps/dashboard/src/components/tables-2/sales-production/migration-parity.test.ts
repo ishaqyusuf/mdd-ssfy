@@ -110,8 +110,13 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		const columns = readSource(
 			"components/tables-2/sales-production/columns.tsx",
 		);
+		const pageTabs = readSource("components/page-tabs/page-tabs.tsx");
+		const savePageTabButton = readSource(
+			"components/page-tabs/save-page-tab-button.tsx",
+		);
 
 		expect(workspace.includes("SalesProductionHeader")).toBe(true);
+		expect(workspace.includes("SalesProductionSummary")).toBe(false);
 		expect(header.includes("<PageTabs")).toBe(true);
 		expect(header.includes("showAll={false}")).toBe(true);
 		expect(header.includes("tabs={pageTabs}")).toBe(true);
@@ -120,6 +125,11 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		).toBe(true);
 		expect(header.includes("SalesProductionDisplayToggle")).toBe(false);
 		expect(header.includes("hiddenFilterKeys")).toBe(true);
+		expect(
+			header.includes(
+				'searchClassName={isCalendar ? "max-xl:hidden" : undefined}',
+			),
+		).toBe(true);
 		expect(tabs.includes('title: "Due Today"')).toBe(true);
 		expect(tabs.includes('title: "Past Due"')).toBe(true);
 		expect(tabs.includes('title: "Review"')).toBe(true);
@@ -142,6 +152,20 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		);
 		expect(columns.includes('item.alert?.text || "Open"')).toBe(false);
 		expect(columns.includes("function AssignedToBadge")).toBe(true);
+		expect(pageTabs.includes("touch-pan-x")).toBe(true);
+		expect(pageTabs.includes("overflow-x-auto scrollbar-hide")).toBe(true);
+		expect(pageTabs.includes('aria-label="Scroll tabs left"')).toBe(true);
+		expect(pageTabs.includes('aria-label="Scroll tabs right"')).toBe(true);
+		expect(pageTabs.includes("new ResizeObserver(updateScrollState)")).toBe(true);
+		expect(pageTabs.includes("rail.scrollBy({")).toBe(true);
+		expect(pageTabs.includes("const isXl = useMediaQuery(screens.xl)")).toBe(true);
+		expect(
+			pageTabs.includes(
+				"responsiveReady && !isXl ? resolvedTabs.length : visibleTabLimit",
+			),
+		).toBe(true);
+		expect(pageTabs.includes("max-xl:hidden")).toBe(true);
+		expect(savePageTabButton.includes("max-xl:hidden")).toBe(true);
 		expect(
 			columns.includes('variant={assignedTo ? "secondary" : "outline"}'),
 		).toBe(true);
@@ -149,24 +173,86 @@ describe("Sales Production Sales Orders table migration parity", () => {
 
 	it("keeps the calendar as a responsive week and month production board", () => {
 		const calendar = readSource("components/sales-production/calendar.tsx");
+		const calendarLayout = readSource(
+			"components/sales-production/calendar-layout.ts",
+		);
+		const planningCalendar = readSource(
+			"components/sales-production/planning-calendar.tsx",
+		);
 
 		expect(calendar.includes("getOperationsCalendarPeriod")).toBe(true);
 		expect(calendar.includes("OperationsCalendarPeriodPicker")).toBe(true);
 		expect(calendar.includes("Previous ${calendarView}")).toBe(true);
 		expect(calendar.includes("Next ${calendarView}")).toBe(true);
-		expect(calendar.includes("min-w-[980px]")).toBe(true);
+		expect(calendarLayout.includes("min-w-[980px]")).toBe(true);
+		expect(
+			calendarLayout.includes(
+				"lg:max-[1400px]:landscape:min-w-[1470px]",
+			),
+		).toBe(true);
+		expect(calendarLayout.includes("(max-width: 1279px)")).toBe(true);
+		expect(calendar.includes("PRODUCTION_CALENDAR_GRID_WIDTH")).toBe(true);
+		expect(calendar.includes("compactCalendar ? \"week\"")).toBe(true);
+		expect(calendar.includes('className="max-xl:hidden"')).toBe(true);
+		expect(
+			planningCalendar.includes("PRODUCTION_CALENDAR_GRID_WIDTH"),
+		).toBe(true);
 		expect(calendar.includes("grid-cols-7")).toBe(true);
 		expect(calendar.includes('value="week"')).toBe(true);
 		expect(calendar.includes('value="month"')).toBe(true);
 		expect(calendar.includes('item.status !== "completed"')).toBe(true);
 		expect(calendar.includes('scope: "all"')).toBe(true);
-		expect(calendar.includes("productionCalendarColors")).toBe(true);
+		expect(calendar.includes("productionCalendarCardClasses")).toBe(true);
 		expect(readSource("components/sales-production/calendar-colors.ts").includes("bg-emerald-100")).toBe(true);
 		expect(calendar.includes("<Card")).toBe(true);
 		expect(calendar.includes('<Card className="overflow-auto">')).toBe(true);
 		expect(calendar.includes("<CardContent")).toBe(true);
 		expect(calendar.includes('"sales-production"')).toBe(true);
 		expect(calendar.includes("period.days.map((day)")).toBe(true);
+	});
+
+	it("supports a persistent expanded Sales Overview for production workers", () => {
+		const overview = readSource(
+			"components/sheets/sales-overview-sheet/index.tsx",
+		);
+		const overviewHeader = readSource(
+			"components/sheets/sales-overview-sheet/layout.tsx",
+		);
+		const itemDetail = readSource(
+			"components/sheets/sales-overview-sheet/production-item-detail.tsx",
+		);
+		const overviewStore = readSource("store/sales-overview-ui.ts");
+		const priority = readSource("components/sales-priority-control.tsx");
+
+		expect(overviewStore.includes('name: "sales-overview-ui"')).toBe(true);
+		expect(overview.includes("fullscreen={expanded}")).toBe(true);
+		expect(overviewHeader.includes('aria-label={')).toBe(true);
+		expect(overviewHeader.includes('"Expand sales overview"')).toBe(true);
+		expect(overviewHeader.includes('"Collapse sales overview"')).toBe(true);
+		expect(
+			itemDetail.includes('queryCtx.params.mode === "production-tasks"'),
+		).toBe(true);
+		expect(itemDetail.includes("workerMode && overviewExpanded")).toBe(true);
+		expect(itemDetail.includes("lg:grid-cols-2")).toBe(true);
+		expect(itemDetail.includes("Notes and activities")).toBe(true);
+		const productionTab = readSource(
+			"components/sheets/sales-overview-sheet/production-tab.tsx",
+		);
+		const productionTabV2 = readSource(
+			"components/sheets/sales-overview-sheet/production/v2/production-tab-v2.tsx",
+		);
+		const productionDocumentV2 = readSource(
+			"components/sheets/sales-overview-sheet/production/v2/production-item-document.tsx",
+		);
+		expect(productionTab.includes("itemNumber={i + 1}")).toBe(true);
+		expect(productionTabV2.includes("itemNumber={index + 1}")).toBe(true);
+		expect(productionTabV2.includes("Production item ${itemNumber}")).toBe(true);
+		expect(productionTabV2.includes("divide-y divide-border")).toBe(true);
+		expect(productionDocumentV2.includes("lg:grid-cols-2")).toBe(true);
+		expect(productionDocumentV2.includes("lg:divide-x")).toBe(true);
+		expect(priority.includes("<SelectLabel>Priority</SelectLabel>")).toBe(
+			true,
+		);
 	});
 
 	it("keeps the production workspace on the new tables-2 surface with compact table padding", () => {
@@ -178,7 +264,16 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(source.includes("SalesProductionColumnVisibility")).toBe(true);
 		expect(source.includes("SalesProductionSkeleton")).toBe(true);
 		expect(source.includes('className="flex flex-col gap-3"')).toBe(true);
+		expect(
+			source.includes(
+				'workerView === "calendar" ? "max-xl:hidden" : undefined',
+			),
+		).toBe(true);
 		expect(source.includes("initialTableSettings")).toBe(true);
+		expect(source.includes('aria-label="My production analytics"')).toBe(true);
+		expect(source.includes("const SHOW_PRODUCTION_ANALYTICS_CARDS = false")).toBe(
+			true,
+		);
 		expect(
 			source.includes("components/tables/sales-production/data-table"),
 		).toBe(false);

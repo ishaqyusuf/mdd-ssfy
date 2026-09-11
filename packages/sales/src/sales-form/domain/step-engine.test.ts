@@ -4,8 +4,8 @@ import {
 	buildSelectedProdUidsByStepUid,
 	customNextStepTitle,
 	getRedirectableRoutes,
-	isWorkflowRedirectDisabledStep,
 	isComponentVisibleByRules,
+	isWorkflowRedirectDisabledStep,
 	resolveComponentPriceByDeps,
 } from "./step-engine";
 
@@ -270,6 +270,20 @@ describe("step-engine domain", () => {
 		);
 		expect(resolved.salesPrice).toBe(320);
 		expect(resolved.basePrice).toBe(210);
+	});
+
+	it("does not turn missing direct prices into configured zero prices", () => {
+		const missing = resolveComponentPriceByDeps(
+			{ uid: "missing", salesPrice: null, basePrice: null },
+			{},
+		);
+		const free = resolveComponentPriceByDeps(
+			{ uid: "free", salesPrice: 0, basePrice: 0 },
+			{},
+		);
+
+		expect(missing).toEqual({ salesPrice: null, basePrice: null });
+		expect(free).toEqual({ salesPrice: 0, basePrice: 0 });
 	});
 
 	it("resolves dependency bucket when pricing key order differs", () => {

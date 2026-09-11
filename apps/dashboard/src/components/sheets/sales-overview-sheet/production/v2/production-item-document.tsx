@@ -3,6 +3,8 @@
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
+import { useSalesOverviewUi } from "@/store/sales-overview-ui";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useId, useRef, useState } from "react";
 
 import { getProductionDispatchMutationPolicy } from "@gnd/sales/production-dispatch-policy";
@@ -68,7 +70,8 @@ function ProductionV2RecordsSection() {
 	const { item, queryCtx } = useProductionItem();
 	const saleOverview = useSaleOverview();
 	const { data, error, refreshAssignments } = useProductionAssignments();
-	const workerMode = Boolean(queryCtx.assignedTo);
+	const workerMode =
+		Boolean(queryCtx.assignedTo) || queryCtx.params.mode === "production-tasks";
 	const orderFulfilled =
 		getSalesOverviewDocumentStatus(saleOverview.data).status === "fulfilled";
 	const label = workerMode ? "Submissions" : "Assignments";
@@ -376,21 +379,39 @@ function ProductionV2NotesSection() {
 
 export function ProductionV2ItemDocument() {
 	const { item } = useProductionItem();
+	const queryCtx = useSalesOverviewQuery();
+	const overviewExpanded = useSalesOverviewUi((state) => state.expanded);
+	const workerMode =
+		Boolean(queryCtx.assignedTo) || queryCtx.params.mode === "production-tasks";
 	const configs = getMeaningfulProductionConfigs(item.configs);
 
 	return (
 		<ProductionItemAssignmentsProvider args={[]}>
-			<div>
-				<ProductionV2RecordsSection />
-				{configs.length ? (
-					<>
-						<Separator />
-						<ProductionV2DetailsSection configs={configs} />
-					</>
-				) : null}
-				<Separator />
-				<ProductionV2NotesSection />
-			</div>
+			{workerMode && overviewExpanded ? (
+				<div className="grid min-h-0 lg:grid-cols-2 lg:divide-x lg:divide-border">
+					<div className="min-w-0">
+						{configs.length ? (
+							<ProductionV2DetailsSection configs={configs} />
+						) : null}
+					</div>
+					<div className="min-w-0 divide-y divide-border">
+						<ProductionV2RecordsSection />
+						<ProductionV2NotesSection />
+					</div>
+				</div>
+			) : (
+				<div>
+					<ProductionV2RecordsSection />
+					{configs.length ? (
+						<>
+							<Separator />
+							<ProductionV2DetailsSection configs={configs} />
+						</>
+					) : null}
+					<Separator />
+					<ProductionV2NotesSection />
+				</div>
+			)}
 		</ProductionItemAssignmentsProvider>
 	);
 }

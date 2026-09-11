@@ -5,6 +5,7 @@ export type DispatchLifecycleNotificationChannel =
 	| "sales_dispatch_assigned"
 	| "sales_dispatch_unassigned"
 	| "sales_dispatch_date_updated"
+	| "sales_dispatch_updated"
 	| "sales_dispatch_approval_pending_released"
 	| "sales_dispatch_queued"
 	| "sales_dispatch_in_progress"
@@ -27,6 +28,7 @@ export async function sendDispatchLifecycleNotification(
 	channel: DispatchLifecycleNotificationChannel,
 	payload: DispatchLifecycleNotificationPayload,
 	notificationClient?: Pick<Notifications, "create">,
+	skipInApp = false,
 ) {
 	if (!recipientId) return { sent: false as const, reason: "NO_RECIPIENT" };
 
@@ -47,9 +49,10 @@ export async function sendDispatchLifecycleNotification(
 				includeChannelSubscribers: false,
 				allowFallbackRecipient: false,
 				forceInAppRecipients: true,
+				...(skipInApp ? { skipActivities: true } : {}),
 			},
 		);
-		if (!result.activities) {
+		if (!skipInApp && !result.activities) {
 			return {
 				sent: false as const,
 				reason: "NO_ACTIVITY",

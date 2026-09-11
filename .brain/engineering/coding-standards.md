@@ -65,3 +65,7 @@ Agents must treat these global coding rule references as non-negotiable:
 
 Project-specific exceptions require an ADR in `.brain/decisions/` before agents may diverge.
 <!-- personal-coding-rules:end -->
+
+## Existing UI controls
+
+User direction: always use the project's shadcn UI standards. Reuse existing packing item/list, quantity stepper, input and date components for fulfillment forms instead of native substitutes or independently styled equivalents.

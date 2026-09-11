@@ -189,6 +189,7 @@ export async function markProductionMaterialsAvailable(
 					"The selected materials changed. Refresh before marking them available.",
 				);
 			const shipment = await createInboundShipmentFromDemands(tx, {
+				creatorUserId: actor.id,
 				supplierId: input.supplierId,
 				reference: preview.orderNumber,
 				demandIds,

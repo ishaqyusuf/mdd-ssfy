@@ -5,10 +5,8 @@ import {
 	DispatchDataBoundary,
 } from "@/components/dispatch-admin/dispatch-admin-boundaries";
 import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
-import { allDispatchStages } from "@/components/dispatch-admin/dispatch-list-presets";
-import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
+import { DataTable } from "@/components/tables-2/fulfillment-orders/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
-import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import type { TableSettings } from "@/utils/table-settings";
 
 export function DispatchDashboardView({
@@ -16,7 +14,6 @@ export function DispatchDashboardView({
 }: {
 	initialSettings?: Partial<TableSettings>;
 }) {
-	const { filters } = useDispatchFilterParams();
 	return (
 		<div className="flex flex-col gap-4">
 			<DispatchAdminSummaryBoundary showOverdueAlert />
@@ -24,18 +21,7 @@ export function DispatchDashboardView({
 			<DispatchDataBoundary
 				fallback={<SalesDispatchSkeleton initialSettings={initialSettings} />}
 			>
-				<DataTable
-					workspace
-					initialSettings={initialSettings}
-					defaultFilters={
-						filters.stages?.length
-							? undefined
-							: {
-									stages: allDispatchStages,
-								}
-					}
-					enableSalesMarkAs
-				/>
+				<DataTable initialSettings={initialSettings} />
 			</DispatchDataBoundary>
 		</div>
 	);

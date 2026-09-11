@@ -38,6 +38,32 @@ export type ResolveWorkflowCatalogComponentsInput<
 	"includeCustomComponents"
 >;
 
+export function resolveWorkflowSalesPrice({
+	salesPrice,
+	basePrice,
+	profileCoefficient,
+	pricingView = "internal",
+	dealerSalesPercentage = 0,
+}: {
+	salesPrice?: number | null;
+	basePrice?: number | null;
+	profileCoefficient: number;
+	pricingView?: "internal" | "dealer";
+	dealerSalesPercentage?: number | null;
+}) {
+	const internalSalesPrice = profileAdjustedSalesPrice(
+		salesPrice,
+		basePrice,
+		profileCoefficient,
+	);
+	return pricingView === "dealer"
+		? sumMoney([
+				internalSalesPrice,
+				percentageMoney(internalSalesPrice, dealerSalesPercentage),
+			])
+		: internalSalesPrice;
+}
+
 export function resolveWorkflowCatalogComponents<
 	TComponent extends WorkflowComponentRecord = WorkflowComponentRecord,
 >({
@@ -94,18 +120,15 @@ export function resolveWorkflowCatalogComponents<
 				override?.salesPrice == null
 					? (price.salesPrice ?? component?.salesPrice)
 					: override?.salesPrice;
-			const internalSalesPrice = profileAdjustedSalesPrice(
-				resolvedSalesPrice,
-				resolvedBasePrice,
+			const priceMissing =
+				resolvedBasePrice == null && resolvedSalesPrice == null;
+			const salesPrice = resolveWorkflowSalesPrice({
+				salesPrice: resolvedSalesPrice,
+				basePrice: resolvedBasePrice,
 				profileCoefficient,
-			);
-			const salesPrice =
-				pricingView === "dealer"
-					? sumMoney([
-							internalSalesPrice,
-							percentageMoney(internalSalesPrice, dealerSalesPercentage),
-						])
-					: internalSalesPrice;
+				pricingView,
+				dealerSalesPercentage,
+			});
 			const metadata = readSalesFormObjectMetadata(component?._metaData);
 			const custom = isWorkflowComponentCustom(component);
 			const visible = isComponentVisibleByRules(
@@ -122,6 +145,7 @@ export function resolveWorkflowCatalogComponents<
 					...metadata,
 					custom,
 					visible,
+					priceMissing,
 				},
 			} as TComponent;
 		});

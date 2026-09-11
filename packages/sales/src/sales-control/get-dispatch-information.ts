@@ -1,3 +1,4 @@
+import { buildFulfillmentQuantityOverview } from "./fulfillment-quantity-overview";
 import { sum } from "@gnd/utils";
 import { Db, ItemControlData, SalesDispatchStatus } from "../types";
 import { getSaleInformation } from "./get-sale-information";
@@ -157,6 +158,18 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
     deliveryItemsByDispatch.set(item.orderDeliveryId, current);
   }
 
+  const quantityHeaders = deliveryIds.length
+    ? await db.orderDelivery.findMany({
+        where: { id: { in: deliveryIds }, salesOrderId: overview.order.id, deletedAt: null },
+        select: { id: true, status: true, meta: true, _count: { select: { stockAllocations: { where: { deletedAt: null, status: { not: "cancelled" } } } } } },
+      })
+    : [];
+  const fulfillmentQuantities = buildFulfillmentQuantityOverview({
+    items: overview.items,
+    headers: quantityHeaders,
+    packing: deliveryItems,
+  });
+
   const deliveries = overview.deliveries.map((delivery) => {
     return {
       ...delivery,
@@ -190,6 +203,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
     id: overview.orderId,
     orderUid: overview.orderNo,
     dispatchables,
+    fulfillmentQuantities,
     deliveries,
     order: overview.order,
     // orderRequiresUpdate: overview.orderRequiresUpdate,

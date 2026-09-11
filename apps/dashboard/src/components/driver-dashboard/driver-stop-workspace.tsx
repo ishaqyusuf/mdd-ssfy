@@ -41,6 +41,8 @@ export function DriverStopWorkspace({
 		<div className="flex h-full min-h-0 flex-col bg-background">
 			<DriverStopHeader detail={detail} modal={modal} onClose={close} />
 			<DriverStopFormContext
+				key={`${detail.dispatch.id}:${detail.manifestRevision}`}
+				manifestRevision={detail.manifestRevision}
 				dispatchId={detail.dispatch.id}
 				defaultReceivedBy={
 					detail.order.customer?.businessName || detail.order.customer?.name

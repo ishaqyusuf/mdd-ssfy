@@ -1,18 +1,9 @@
 import type { Prisma } from "@gnd/db";
+import { buildOpenDispatchFulfillmentCandidateWhere } from "./sales-pipeline-query";
 
+/** Candidate predicate only. Resolve quantity membership before pagination/counts. */
 export function buildSalesDispatchBacklogWhere(
-	deliveryModes: readonly string[] = ["delivery", "pickup"],
+ deliveryModes: readonly string[] = ["delivery", "pickup"],
 ): Prisma.SalesOrdersWhereInput {
-	return {
-		deletedAt: null,
-		type: "order",
-		deliveryOption: { in: [...deliveryModes] },
-		deliveredAt: null,
-		deliveries: {
-			none: {
-				deletedAt: null,
-				status: { notIn: ["cancelled"] },
-			},
-		},
-	};
+ return { AND: [buildOpenDispatchFulfillmentCandidateWhere(), { deliveryOption: { in: [...deliveryModes] } }] };
 }

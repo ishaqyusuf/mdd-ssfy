@@ -2,6 +2,13 @@
 
 ## Status
 
+2026-09-10 owner amendment: follow
+`../plans/2026-09-10-mobile-appearance-redesign-program.md` for current sequencing
+and delivery policy. Three directions replace five; startup precedes sign-in;
+Sales, Dispatch and Jobs lead module rollout. Preserve Classic through per-screen
+appearance selection and review all flows in one canvas. The older counts below
+are a prior inventory pending revalidation, not a completed runtime audit.
+
 In progress from 2026-09-04. The authoritative inventory contains 41
 production screen packages represented by 47 rendered route files, plus three
 redirect-only routes. No production redesign has been implemented. Screen 01,
@@ -27,7 +34,7 @@ approval state live under `.scratch/gnd-mobile-screen-redesign/`:
 
 - Every screen starts from an unchanged Android emulator and iOS simulator
   baseline.
-- Five directions must differ in hierarchy, composition, navigation emphasis,
+- Three directions must differ in hierarchy, composition, navigation emphasis,
   and visual story, not only palette.
 - Each direction supports 390x844 Android and iOS views in Light and Dark.
 - Comparison uses top-right previous/next chevrons, not a select field.
@@ -73,9 +80,9 @@ Registered but orphaned routes remain in scope until explicitly retired.
 
 ## Current Frontier
 
+Startup/loading baseline and three-direction preparation now precede
 `GND-ENTRY-001` Sign In. The root protected navigator exposes the auth stack
 without a token; the auth stack starts at `sign-in`; production renders
 `LoginTemplate0`. The first turn must capture both native baselines, publish
-five Android/iOS Light/Dark directions, recommend one, and stop for owner choice
+three Android/iOS Light/Dark directions, recommend one, and stop for owner choice
 without modifying production source.
-

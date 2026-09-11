@@ -7,6 +7,7 @@ type QuantityLike = {
 };
 
 type DispatchPackingItemLike = {
+	assignedQty?: QuantityLike | null;
 	availableQty?: QuantityLike | null;
 	handingLabel?: string | null;
 	itemConfig?: { production?: boolean | null } | null;
@@ -29,13 +30,17 @@ function quantityTotal(qty: QuantityLike | null | undefined) {
 	return single || left + right;
 }
 
+export function getDispatchPackingItemTarget(item: DispatchPackingItemLike) {
+	if (item.assignedQty) return quantityTotal(item.assignedQty);
+	const listed = quantityTotal(item.listedQty);
+	return listed > 0 ? listed : quantityTotal(item.packedQty) + quantityTotal(item.availableQty);
+}
+
 export function getDispatchPackingItemStatusText(
 	item: DispatchPackingItemLike,
 ) {
 	const packed = quantityTotal(item.packedQty);
-	const listed = quantityTotal(item.listedQty);
-	const available = quantityTotal(item.availableQty);
-	const target = listed > 0 ? listed : packed + available;
+	const target = getDispatchPackingItemTarget(item);
 
 	if (target <= 0) {
 		return item.itemConfig?.production !== false &&

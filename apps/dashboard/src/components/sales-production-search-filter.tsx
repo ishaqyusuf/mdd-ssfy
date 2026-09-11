@@ -12,12 +12,14 @@ import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 
 type Props = {
 	initialFilterList?: PageFilterData[];
+	searchClassName?: string;
 	workerMode?: boolean;
 	showSavedViews?: boolean;
 };
 
 export function SalesProductionSearchFilter({
 	initialFilterList,
+	searchClassName,
 	workerMode = false,
 	showSavedViews = true,
 }: Props) {
@@ -31,6 +33,7 @@ export function SalesProductionSearchFilter({
 		>
 			<Content
 				initialFilterList={initialFilterList}
+				searchClassName={searchClassName}
 				workerMode={workerMode}
 				showSavedViews={showSavedViews}
 			/>
@@ -39,6 +42,7 @@ export function SalesProductionSearchFilter({
 }
 function Content({
 	initialFilterList,
+	searchClassName,
 	workerMode = false,
 	showSavedViews = true,
 }: Props) {
@@ -59,6 +63,7 @@ function Content({
 		<>
 			<SearchFilterTRPC
 				placeholder={"Search Order Production Information"}
+				searchClassName={searchClassName}
 				filterList={trpcFilterData}
 				loading={shouldFetch && isFetching}
 				pageTabs={showSavedViews ? undefined : null}

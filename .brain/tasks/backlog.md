@@ -1,7 +1,11 @@
 # Backlog
 
-### [Capture customer requests and build example-guided sales generation](2026-09-09-sales-customer-request-learning.md)
-- Status: Backlog
+### [Fulfillment quantity-scoped assignments, backlog, and recovery completion](../plans/2026-09-10-spec-fulfillment-quantity-scoped-assignments-and-backlog.md)
+- Status: In progress — Tickets 01–02 complete, Ticket 03 active; design gate removed by user
+- Tickets: [Local dependency index: 14 implementation tickets](../../.scratch/fulfillment-quantity-scoped-assignments/README.md)
+- Priority: High
+- Description: Build the order-first Fulfillment workspace, exact quantity-scoped assignments, partial-assignment and underpacking Backlog membership, secondary assignment sheets, lifecycle notifications, Pack & complete, and guarded admin/driver recovery completion through one canonical command boundary.
+
 
 
 ## Purpose

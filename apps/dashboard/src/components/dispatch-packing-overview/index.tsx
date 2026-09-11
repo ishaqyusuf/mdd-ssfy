@@ -1,4 +1,5 @@
 "use client";
+import { ShortLoadConfirmation } from "./short-load-confirmation";
 
 import { Icon, Icons } from "@gnd/ui/icons";
 
@@ -52,6 +53,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
 	getDispatchPackingItemPresentation,
 	getDispatchPackingItemStatusText,
+	getDispatchPackingItemTarget,
 } from "./item-presentation";
 import {
 	canShowPackingReviewActions,
@@ -64,6 +66,7 @@ import {
 	PackingSideSheetSkeleton,
 } from "./packing-side-sheet";
 type Props = {
+	salesId?: number;
 	dispatchId?: number | null;
 	packItemsOpen: boolean;
 	packingReviewOpen?: boolean;
@@ -74,6 +77,7 @@ type Props = {
 };
 
 export function DispatchPackingOverview({
+	salesId,
 	dispatchId,
 	packItemsOpen,
 	packingReviewOpen = false,
@@ -88,6 +92,7 @@ export function DispatchPackingOverview({
 			{
 				dispatchId: dispatchId || undefined,
 				salesNo: salesNo || undefined,
+				salesId,
 			},
 			{
 				enabled: surface === "admin" && !!dispatchId,
@@ -387,6 +392,7 @@ function DispatchPackingOverviewContent({
 				</div>
 				<div className="pt-3">
 					<PackingProgress />
+                    {data?.assignmentScoped && order?.id && dispatch?.id && !isTerminalDispatch && summary.packed < summary.total && <ShortLoadConfirmation salesId={order.id} fulfillmentId={dispatch.id} />}
 				</div>
 			</section>
 
@@ -826,9 +832,7 @@ function ItemRow({
 	showSeparator: boolean;
 }) {
 	const packed = qtyTotal(item?.packedQty);
-	const listed = qtyTotal(item?.listedQty);
-	const available = qtyTotal(item?.availableQty);
-	const target = listed > 0 ? listed : packed + available;
+	const target = getDispatchPackingItemTarget(item);
 	const statusText = getDispatchPackingItemStatusText(item);
 
 	const statusClass =

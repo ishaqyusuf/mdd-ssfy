@@ -146,13 +146,24 @@ Provide a cleaner production operations surface for both admins and production w
 - Submission records retain their nested ledger treatment, with vertically
   centered content and compact icon actions.
 
+## Analytics-card visibility (2026-09-10)
+
+- Production analytics cards are hidden on both the canonical admin workspace
+  and the production-worker workspace. Their loading skeletons are also hidden
+  so the page does not reserve an empty analytics row during hydration.
+- Queue tabs, tab counts, calendar data, overdue attention content, filters, and
+  table results remain available. Existing summary reads that supply those
+  remaining controls are unchanged.
+- The reusable analytics-card component remains in place for future reuse; this
+  is a page-composition change rather than a removal of the underlying metrics.
+
 ## Canonical Admin Workspace (2026-08-18)
 
 - Canonical route: `/sales-book/productions`.
 - Compatibility route: `/sales-book/productions/v2`, implemented as a
   query-preserving local redirect to the canonical route.
 - The admin workspace follows the Sales Finance page system: compact title,
-  separate summary cards, shared `PageTabs` inside the Midday search/filter
+  shared `PageTabs` inside the Midday search/filter
   toolbar, Tables-2 queue, and isolated Suspense/error boundaries.
 - Work-state PageTabs are ordered `Due Today`, `Calendar`, `Unscheduled`,
   `Active`, `Past Due`, `Review`, and `Completed`; every work-state tab displays
@@ -188,7 +199,7 @@ Provide a cleaner production operations surface for both admins and production w
 - Canonical admin shell: `apps/dashboard/src/components/sales-production/workspace.tsx`
 - Admin title, summary, header, calendar, and reviews:
   `apps/dashboard/src/components/sales-production/*`
-- Admin and worker analytics reuse the compact admin card component at
+- The hidden admin and worker analytics implementations reuse the compact card component at
   `apps/dashboard/src/components/sales-production/analytics-card.tsx` so the
   small radius, inline icon, monospaced count, compact description, hover, and
   active-filter treatments stay synchronized.
@@ -209,9 +220,9 @@ Provide a cleaner production operations surface for both admins and production w
   reference; they are not the canonical admin list surface.
 
 ## Canonical Admin UX
-- Shared Production analytics cards for Unassigned, Past due, Due today, and
-  Awaiting review. The worker dashboard reuses this compact admin design while
-  both surfaces retain their own labels, counts, and filter actions.
+- Production analytics cards for Unassigned, Past due, Due today, and Awaiting
+  review are currently hidden. The worker dashboard cards are also hidden.
+  Their tab labels, counts, and filter controls remain available.
 - Due Today/Calendar/Unscheduled/Active/Past Due/Review/Completed PageTabs in
   the shared search/filter toolbar.
 - The Calendar page tab supports URL-backed Week and Month periods, a centered
@@ -953,6 +964,24 @@ Provide a cleaner production operations surface for both admins and production w
 - Focused Sales production and operations-calendar suites pass 32 tests / 68
   assertions. No schema, mutation, permission, or migration contract changed.
 
+## Critical-priority Calendar treatment (2026-09-10)
+
+- Critical priority has presentation precedence over the normal Calendar card
+  surface: schedule and planning cards use a restrained, translucent deep-red
+  background with a white foreground in both light and dark themes.
+- The 2px card border continues to communicate the canonical Production status:
+  amber for unassigned, purple for assigned, blue for in progress, emerald for
+  completed, rose for conflict, and slate for unknown. A completed Critical
+  order therefore remains red with an emerald border and its Completed label.
+- Non-Critical cards retain their existing status background and foreground,
+  while using the same 2px border width to avoid layout changes when priority
+  changes. The Calendar header does not render a status-color legend; status
+  remains explicit in each card's text and border treatment.
+- Schedule cards, planning cards, compact planning cards, and the schedule drag
+  preview share the same presentation helper. This is a UI-only rule and does
+  not change priority normalization, lifecycle status, queries, permissions, or
+  stored production data.
+
 ## Review Queue Sidebar Pagination (2026-08-29)
 
 - The canonical Review tab loads pending material reviews in bounded 20-row
@@ -1081,3 +1110,51 @@ gaps. See [implementation](sales-productions-v2.md) and the
 - Saving uses the existing guarded batch assignment-edit action for one order, updating only active incomplete assignment due dates. It supplies no ownership or quantity changes and normalizes the selected calendar day with the shared Production date helper.
 - Successful saves close the picker and invalidate active Production lists, worker lists, summaries and calendars, plus the scoped pipeline event for open order details. A refresh failure is reported as a saved date needing refresh, not a failed save.
 - Mobile date controls sit outside the order-opening button. No new API, database migration, permission or background job is introduced. Validation is recorded in the linked [task](../tasks/2026-09-09-production-inline-overdue-date.md).
+
+## Production Calendar tablet landscape — 2026-09-11
+
+- Schedule and Planning calendars share a responsive grid-width contract. The
+  seven-day grid keeps its `980px` baseline and expands to `1470px` between
+  `lg` and `1400px` in landscape orientation, giving each day approximately
+  one and a half times its former width while keeping horizontal scrolling
+  inside the Calendar.
+- At `lg` sizes and below, defined as viewports narrower than `xl`, the
+  Schedule/Planning and Week/Month selectors are hidden and the effective mode
+  is Schedule Week. URL-backed desktop selections are retained and become
+  active again when the viewport reaches `xl`.
+- The rule applies to admin and production-worker calendars. Schedule Week,
+  Schedule Month, Planning Week/Month, and the Schedule skeleton use the same
+  width contract. No API, permission, database, or Calendar data contract
+  changed. Progress and remaining device validation are recorded in the
+  [tablet optimization task](../tasks/2026-09-11-production-calendar-tablet-landscape-optimization.md).
+- The shared page-tab rail retains native horizontal touch panning while its
+  visible scrollbar is hidden at every breakpoint. Saved-tab Edit and Save
+  controls are hidden below `xl`, keeping the `lg` tablet range focused on
+  navigation rather than tab configuration.
+- Calendar mode hides its search input below `xl` in both admin and
+  production-worker workspaces. Search remains available on wider Calendar
+  layouts and in Production list, review, and completed views.
+- Below `xl`, overflowing page tabs expose fixed left and right chevron buttons
+  around the scrollable rail. The controls move by most of the visible width,
+  respond to resize and direct scrolling, and disable at the corresponding edge.
+- Below `xl`, all resolved page tabs render in the horizontal rail instead of
+  collapsing into the `+N` saved-tabs menu. Desktop layouts at `xl` and above
+  retain their configured visible-tab limits and overflow menu.
+- Sales Overview now has a persistent Expand/Collapse control for every user.
+  Fullscreen state is stored locally and restored on later openings. In assigned
+  production-worker mode, expanded Production item details use two columns from
+  `lg`: Details on the left, with Submissions and Notes/activities on the right.
+  Admin expanded views retain the established item tabs. Worker presentation is
+  recognized from assigned-only access or explicit `production-tasks` mode. The
+  Priority selector now labels its option group `Priority`.
+- Sales Overview Production item headers include compact sequential numbers in
+  their displayed order for both admin and production-worker views.
+- The active V2 list owns one rounded outer border and uses child dividers;
+  individual items no longer draw their own full borders when expanded.
+- V2 child dividers are explicit top borders on every displayed item after the
+  first, so opening any non-final accordion item preserves its lower boundary.
+- Production workers can select assigned items with the checkbox shown before
+  each sequential number. Their footer exists only while a selection is active
+  and exposes only submission actions. Bulk submit is scoped to the signed-in
+  worker, while bulk deletion sends explicit owned submission IDs that the
+  server authorization layer verifies; assignment actions remain admin-only.

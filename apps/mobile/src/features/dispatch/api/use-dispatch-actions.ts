@@ -75,12 +75,14 @@ export function useDispatchActions() {
 			return result;
 		},
 		onSubmitDispatch(input: SubmitDispatchInput) {
+			const receivedBy = input.receivedBy?.trim();
+			if (!receivedBy) return Promise.reject(new Error("Recipient name is required."));
 			return submitDispatch.mutateAsync({
 				dispatchId: input.dispatchId,
 				requestId: input.requestId,
 				expectedManifestRevision: input.expectedManifestRevision,
 				expectedPipelineRevision: input.expectedPipelineRevision || undefined,
-				receivedBy: input.receivedBy || undefined,
+				receivedBy,
 				note: input.note,
 				signaturePath: input.signaturePath,
 				attachments: input.attachments || [],

@@ -1,6 +1,18 @@
 import { createHash } from "node:crypto";
 import type { Prisma } from "@gnd/db";
 import { z } from "zod";
+import { assertSalesCompletionDate } from "@gnd/sales";
+
+export function resolveDispatchProofDeliveryDate(
+	receivedDate: Date | undefined,
+	startedAt: string,
+	now = new Date(),
+	timeZone?: string,
+) {
+	const date = receivedDate ?? new Date(startedAt);
+	assertSalesCompletionDate(date, now, timeZone);
+	return date;
+}
 
 export const dispatchProofMimeTypes = [
 	"image/png",
@@ -39,9 +51,9 @@ export const completeDispatchWithProofSchema = z
 	.object({
 		dispatchId: z.number().int().positive(),
 		requestId: requestIdSchema,
-		expectedManifestRevision: z.string().trim().min(16).max(128).optional(),
+		expectedManifestRevision: z.string().trim().min(16).max(128),
 		expectedPipelineRevision: z.string().trim().min(16).max(128).optional(),
-		receivedBy: z.string().trim().max(200).optional(),
+		receivedBy: z.string().trim().min(1, "Recipient name is required.").max(200),
 		receivedDate: z.coerce.date().optional(),
 		note: z.string().max(5_000).optional(),
 		noteType: z.enum(["dispatch", "pickup"]).optional(),
@@ -235,9 +247,15 @@ export function createDispatchCompletionProof(
 }
 
 export function getDispatchCompletionPayloadFingerprint(
-	input: Pick<CompleteDispatchWithProofInput, "signaturePath" | "attachments">,
+	input: Pick<CompleteDispatchWithProofInput, "signaturePath" | "attachments"> &
+		Partial<Pick<CompleteDispatchWithProofInput, "receivedBy" | "receivedDate" | "note" | "noteType" | "expectedManifestRevision">>,
 ) {
 	const hash = createHash("sha256");
+	hash.update(JSON.stringify({ manifestRevision: input.expectedManifestRevision ?? null }));
+	hash.update("\0");
+	// Include completion facts as well as media so a resumed request cannot change its meaning.
+	hash.update(JSON.stringify({ receivedBy: input.receivedBy ?? null, receivedDate: input.receivedDate?.toISOString() ?? null, note: input.note ?? null, noteType: input.noteType ?? null }));
+	hash.update("\0");
 	hash.update(input.signaturePath);
 	for (const attachment of [...input.attachments].sort((a, b) =>
 		a.clientId.localeCompare(b.clientId),

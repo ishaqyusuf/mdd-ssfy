@@ -1,5 +1,14 @@
 # In Progress
 
+### [Production Calendar Tablet Landscape Optimization](2026-09-11-production-calendar-tablet-landscape-optimization.md)
+- Status: In Progress
+
+### [Generate sales form drafts from requests and live configuration](2026-09-09-sales-customer-request-learning.md)
+- Status: In Progress
+
+### [Fulfillment quantity-scoped workflow](../../.scratch/fulfillment-quantity-scoped-assignments/README.md)
+- Status: In Progress — 2/14 implementation tickets complete; Ticket 03 active. Design gate removed by user.
+
 ### [Autonomous production error management](2026-09-09-autonomous-production-error-management.md)
 - Status: In Progress
 
@@ -691,3 +700,5 @@ Tracks the active work queue. Keep this focused and execution-ready.
   deploys to production. Before continuing, initialize Trigger staging and set
   its non-production `DATABASE_URL` plus required worker credentials. Do not
   copy the production database URL into staging.
+# [Sales Request DeepSeek Evaluation Corpus](2026-09-11-sales-request-deepseek-evaluation-corpus.md)
+- Status: In Progress

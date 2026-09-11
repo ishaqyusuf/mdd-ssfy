@@ -16,7 +16,9 @@
     "./upstash-rest": "./src/upstash-rest.ts",
     "./health": "./src/health.ts",
     "./sales-filter-options-cache": "./src/sales-filter-options-cache.ts",
-    "./sales-workflow-cache": "./src/sales-workflow-cache.ts"
+    "./sales-workflow-cache": "./src/sales-workflow-cache.ts",
+    "./sales-request-configuration-cache": "./src/sales-request-configuration-cache.ts",
+    "./sales-request-service-vocabulary-cache": "./src/sales-request-service-vocabulary-cache.ts"
   },
   "devDependencies": {
     "@gnd/tsconfig": "workspace:*",

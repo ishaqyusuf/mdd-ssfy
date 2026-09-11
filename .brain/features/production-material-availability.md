@@ -44,3 +44,19 @@ Calendar card cleanup: scheduled cards show only the actions ellipsis and drag g
 Validation:7 attention tests/22 assertions pass, including completed-order priority. Local browser verified worker choices and the reschedule dialog through the menu; cancelled without changing assignments or dates.
 
 Calendar actions follow-up: both menu rows use the same default button padding and icon sizing. The controlled actions-open state suppresses/cancels the card hover timer for the whole menu interaction, including nested worker selection; portaled pointer events cannot start a card hover. Local menu-open verification showed no material overview after the delay. Focused attention tests:7 passed/22 assertions.
+
+## Production inbound visibility (2026-09-10)
+Production workers no longer have an Inventory tab; stale Inventory tab selection falls back to Production. Item material badges use the existing worker-safe presentation, including Awaiting inbound. The shared Production inbound panel retains linked completed/closed shipments after receipt and displays supplier, expected date, quantity and status for both audiences. Empty orders show No linked inbounds. Completed shipments have no receipt action; existing assignment scope, receiving policy and admin-only cancellation history remain enforced. Lists remain paginated and cancelled/deleted shipments are excluded.
+
+Inbound card presentation: “{quantity} qty from {supplier}” is the uppercase headline, expected date and status share a subtitle below it. The date is muted; status uses bold uppercase text with color only (received green, issues red, in progress blue, pending amber, other states muted), without badge borders or backgrounds. Quantity is shown only in the title. Both audiences use the same plain rows separated by subtle dividers, without an enclosing card, row borders or background fills. Inbound reference and conversational receipt prompts are omitted; authorized receipt actions remain available.
+
+Production Open inbound now opens the exact inbound in the existing secondary pane without changing tabs. Admins retain the full inbound overview and its receipt controls. Assigned workers receive an exact-ID, assignment-scoped detail panel with material contents and Mark as received controlled by the existing server receiving policy/capability. No Inventory tab or general inventory authority is granted.
+
+The Inbound materials section heading has no count subtitle; individual inbound date/status subtitles remain.
+
+## Shared worker inbound overview (2026-09-10)
+The worker secondary sheet now renders the same InboundOverviewContent as Inventory/admin, replacing the compact worker detail panel. Shipment details, item cards, quantities and activity use the shared layout. Workers cannot change lifecycle status or apply Needs, and Adjust is disabled. Receive stock appears only for unfinished stock with the receiving policy enabled; eligibility and revision come from the scoped Production query and the existing transactional receiving command revalidates all permissions. Completed/closed/cancelled shipments cannot be received.
+Worker detail reads retain only assigned material demands. Notes are plain-text comments on the exact inbound and do not modify shipment or order inventory status. Worker note attachments are not enabled. Admin overview behavior remains unchanged.
+
+### Inbound creation activity — 2026-09-10
+Inbound creation now persists an Inbound created activity with the authenticated creator contact/name inside the creation transaction. Applies to direct creation, demand creation, quick material availability and user-triggered automatic inbound preparation. The activity is tagged to the exact inbound and does not depend on notification recipients. Existing inbounds are not backfilled with inferred creator identities.

@@ -8,8 +8,10 @@ export function ProductionMaterialActions({
 	salesOrderId,
 	onOpenForm,
 	onOpenInventory,
+	onViewInbound,
 }: {
 	salesOrderId: number;
+	onViewInbound?: (inboundId: number) => void;
 	onOpenForm?: () => void;
 	onOpenInventory?: (inboundId?: number) => void;
 }) {
@@ -18,7 +20,7 @@ export function ProductionMaterialActions({
 			<ProductionPendingInbounds
 				key={salesOrderId}
 				salesOrderId={salesOrderId}
-				onOpenInventory={onOpenInventory}
+				onOpenInventory={onViewInbound ? (id) => { if (id) onViewInbound(id); } : onOpenInventory}
 			/>
 			<ProductionMaterialAvailability
 				salesOrderId={salesOrderId}

@@ -87,6 +87,7 @@ interface Props {
 	filterList?: Array<PageFilterData | FilterDefinition>;
 	loading?: boolean;
 	SearchTips?: ReactNode;
+	searchClassName?: string;
 	searchKey?: string;
 	debounceMs?: number;
 	afterSearch?: ReactNode;
@@ -119,6 +120,7 @@ export function SearchFilterTRPC({
 	filterList,
 	loading,
 	SearchTips,
+	searchClassName,
 	searchKey: searchKeyProp,
 	debounceMs = 400,
 	afterSearch,
@@ -345,7 +347,10 @@ export function SearchFilterTRPC({
 			>
 				{usesAdaptivePageTabs && stackPageTabs ? stackedPageTabsContent : null}
 				{usesAdaptivePageTabs ? null : pageTabsContent}
-				<form className="relative w-full lg:w-auto" onSubmit={handleSubmit}>
+				<form
+					className={cn("relative w-full lg:w-auto", searchClassName)}
+					onSubmit={handleSubmit}
+				>
 					<Icons.Search className="pointer-events-none absolute left-3 top-[11px] size-4" />
 					<Input
 						ref={inputRef}

@@ -98,6 +98,7 @@ function Content() {
 						>
 							<ItemCard
 								item={item}
+								itemNumber={i + 1}
 								key={item?.controlUid || `item-${i}`}
 								onToggle={() => toggleItem(item.controlUid)}
 								opened={expandedItemUids.includes(item.controlUid)}
@@ -115,10 +116,12 @@ export interface ItemCardProps {
 }
 function ItemCard({
 	item,
+	itemNumber,
 	onToggle,
 	opened,
 	workerMode,
 }: ItemCardProps & {
+	itemNumber: number;
 	onToggle: () => void;
 	opened: boolean;
 	workerMode: boolean;
@@ -140,6 +143,12 @@ function ItemCard({
 						className={cn("space-y-3 px-4 pb-2 pt-4", opened && "border-b")}
 					>
 						<div className="flex items-start gap-4">
+							<span
+								className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums text-muted-foreground"
+								aria-label={`Production item ${itemNumber}`}
+							>
+								{itemNumber}
+							</span>
 							<AccessBased>
 								<div className="mt-1">
 									<Checkbox

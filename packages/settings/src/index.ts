@@ -9,6 +9,51 @@ export {
 	updateGuardedPackingSettings,
 } from "./guarded-packing-settings";
 export {
+	getSalesRequestGenerationDefaults,
+	updateSalesRequestGenerationDefault,
+} from "./sales-request-generation-defaults";
+export type {
+	SalesRequestGenerationDefaultUpdate,
+	SalesRequestGenerationDefaults,
+	UpdateSalesRequestGenerationDefaultInput,
+} from "./sales-request-generation-defaults";
+export {
+	DEFAULT_SALES_REQUEST_AI_SELECTION,
+	SALES_REQUEST_AI_PROVIDER_CATALOG,
+	SALES_REQUEST_AI_PROVIDERS,
+	getSalesRequestAIProviderOption,
+	isSalesRequestAIModel,
+	salesRequestAISelectionSchema,
+} from "./sales-request-ai-catalog";
+export type {
+	SalesRequestAIModelOption,
+	SalesRequestAIProvider,
+	SalesRequestAIProviderOption,
+	SalesRequestAISelection,
+} from "./sales-request-ai-catalog";
+export {
+	getSalesRequestAISettings,
+	updateSalesRequestAISettings,
+} from "./sales-request-ai-settings";
+export {
+	beginSalesRequestCatalogRegeneration,
+	completeSalesRequestCatalogRegeneration,
+	failSalesRequestCatalogRegeneration,
+	getSalesRequestCatalogSettings,
+	salesRequestCatalogPolicySchema,
+	updateSalesRequestCatalogPolicy,
+} from "./sales-request-catalog-settings";
+export type {
+	SalesRequestCatalogPolicy,
+	SalesRequestCatalogPublication,
+	SalesRequestCatalogSettings,
+} from "./sales-request-catalog-settings";
+export type {
+	SalesRequestAISettings,
+	SalesRequestAISettingsUpdate,
+	UpdateSalesRequestAISettingsInput,
+} from "./sales-request-ai-settings";
+export {
 	DEFAULT_GUARDED_PACKING_POLICY,
 	DEFAULT_SALES_HANDOFF_TRIGGER_POLICY,
 	DEFAULT_SPECIAL_ORDER_SETTINGS,
@@ -108,4 +153,9 @@ export async function updateSettingsMeta<T extends keyof SettingsTypes>(
 	});
 }
 
-export { getProductionReceivingSettings, updateProductionReceivingSettings, normalizeProductionReceivingPolicy, productionReceivingPolicyInputSchema } from "./production-receiving-settings";
+export {
+	getProductionReceivingSettings,
+	updateProductionReceivingSettings,
+	normalizeProductionReceivingPolicy,
+	productionReceivingPolicyInputSchema,
+} from "./production-receiving-settings";

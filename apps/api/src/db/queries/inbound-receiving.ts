@@ -1601,29 +1601,8 @@ export async function createInboundShipmentQuery(
 	},
 ) {
 	const actor = await getInboundActor(ctx);
-	const supplier = input.supplierId
-		? await ctx.db.supplier.findFirst({
-				where: {
-					id: input.supplierId,
-					deletedAt: null,
-				},
-				select: {
-					id: true,
-					name: true,
-				},
-			})
-		: null;
 
-	const inbound = await createInboundShipment(ctx.db, input);
-	await createInboundActivity(ctx, {
-		inboundId: inbound.id,
-		supplierId: supplier?.id ?? input.supplierId ?? null,
-		supplierName: supplier?.name ?? null,
-		reference: inbound.reference,
-		activityType: "created",
-		subject: "Inbound created",
-		headline: `${actor.name || "Unknown"} created inbound #${inbound.id}${supplier?.name ? ` for ${supplier.name}` : ""}.`,
-	});
+	const inbound = await ctx.db.$transaction(tx => createInboundShipment(tx, {...input, creatorUserId: actor.id}));
 
 	return inbound;
 }
@@ -1722,6 +1701,7 @@ export async function createInboundShipmentFromDemandsQuery(
 				}
 			}
 			const result = await createShipmentFromDemands(tx, {
+				creatorUserId: actor.id,
 				supplierId: input.supplierId,
 				demandIds,
 				reference: input.reference,
@@ -1822,7 +1802,7 @@ export async function createInboundShipmentFromDemandsQuery(
 		},
 	});
 
-	await createActivity(ctx, {
+	if (isMarkAvailable) await createActivity(ctx, {
 		inboundId: result.inboundId,
 		supplierId: supplier?.id ?? input.supplierId ?? null,
 		supplierName: supplier?.name ?? null,

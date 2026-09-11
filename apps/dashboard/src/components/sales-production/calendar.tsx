@@ -42,6 +42,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { useMediaQuery } from "@gnd/ui/hooks/use-media-query";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { format, isPast, isSameMonth, isToday, startOfDay } from "date-fns";
@@ -49,7 +50,14 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { ProductionAttentionButton, ProductionAttentionTooltip } from "./order-attention";
 import { ReassignProductionWorker } from "./reassign-worker";
-import { productionCalendarColors } from "./calendar-colors";
+import {
+	productionCalendarCardClasses,
+	type ProductionCalendarTone,
+} from "./calendar-colors";
+import {
+	PRODUCTION_CALENDAR_COMPACT_QUERY,
+	PRODUCTION_CALENDAR_GRID_WIDTH,
+} from "./calendar-layout";
 
 const PlanningCalendar = dynamic(() =>
 	import("./planning-calendar").then(
@@ -63,16 +71,6 @@ type ProductionMoveProposal = CalendarScheduleMoveProposal & {
 	item: ProductionCalendarItem;
 };
 
-const STATUS_COLORS = productionCalendarColors;
-
-const LEGEND_STATUSES = [
-	"unassigned",
-	"assigned",
-	"in progress",
-	"completed",
-	"conflict",
-	"unknown",
-];
 const CALENDAR_SKELETON_KEYS = [
 	"monday",
 	"tuesday",
@@ -82,6 +80,17 @@ const CALENDAR_SKELETON_KEYS = [
 	"saturday",
 	"sunday",
 ];
+
+function scheduleTone(item: ProductionCalendarItem): ProductionCalendarTone {
+	const status = item.orderPresentation.primary.code;
+	if (status === "completed") return "completed";
+	if (status === "in_production") return "in progress";
+	if (status === "assigned") return "assigned";
+	if (status === "not_assigned" || status === "partially_assigned") {
+		return "unassigned";
+	}
+	return "unknown";
+}
 
 function ProductionChip({
 	item,
@@ -104,8 +113,11 @@ function ProductionChip({
 		data: { item },
 		disabled: workerMode || !item.canReschedule,
 	});
-	const colorClass =
-		STATUS_COLORS[item.orderPresentation.primary.code === "completed" ? "completed" : item.orderPresentation.primary.code === "in_production" ? "in progress" : item.orderPresentation.primary.code === "assigned" ? "assigned" : ["not_assigned", "partially_assigned"].includes(item.orderPresentation.primary.code) ? "unassigned" : "unknown"];
+	const isCritical = normalizeSalesPriority(item.priority) === "CRITICAL";
+	const colorClass = productionCalendarCardClasses(
+		scheduleTone(item),
+		item.priority,
+	);
 
 	return (
 		<ProductionAttentionTooltip suppressHover={actionsOpen} salesOrderId={item.orderId} presentation={item.orderPresentation} orderNo={item.orderNo} customer={item.customer} priority={item.priority} lockReason={lockReason}>
@@ -116,12 +128,10 @@ function ProductionChip({
 				opacity: draggable.isDragging ? 0.35 : undefined,
 			}}
 			className={cn(
-				"w-full min-w-0 rounded border text-left text-xs transition-opacity focus-within:ring-2 focus-within:ring-ring hover:opacity-90",
+				"w-full min-w-0 rounded text-left text-xs transition-shadow focus-within:ring-2 focus-within:ring-ring hover:shadow-md",
 				compact ? "px-1.5 py-1" : "px-2 py-1.5",
 				colorClass,
-				normalizeSalesPriority(item.priority) === "CRITICAL" && "border-red-500 dark:border-red-500",
-                normalizeSalesPriority(item.priority) === "HIGH" && "border-amber-500 dark:border-amber-500",
-                normalizeSalesPriority(item.priority) === "LOW" && "border-slate-400 dark:border-slate-400",
+				isCritical && "focus-within:ring-white",
 			)}
 		>
    <div className="min-w-0 flex-1">
@@ -129,19 +139,19 @@ function ProductionChip({
      <button type="button" className="min-w-0 flex-1 truncate text-left font-mono font-semibold uppercase focus-visible:outline-none" onClick={() => overview.open2(item.orderNo, workerMode ? "production-tasks" : "sales-production")}>{item.orderNo}</button>
      {!workerMode ? <div className="flex shrink-0 items-center gap-0.5">
       <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
-       <PopoverTrigger asChild><button type="button" className="rounded p-1 opacity-70 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Actions for ${item.orderNo}`} onPointerDown={event => event.stopPropagation()}><Ellipsis className="size-4" /></button></PopoverTrigger>
+       <PopoverTrigger asChild><button type="button" className="rounded p-1 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-current" aria-label={`Actions for ${item.orderNo}`} onPointerDown={event => event.stopPropagation()}><Ellipsis className="size-4" /></button></PopoverTrigger>
        <PopoverContent align="end" className="w-64 p-1" onPointerDown={event => event.stopPropagation()}>
         <ReassignProductionWorker menuItem salesId={item.orderId} assignmentIds={item.assignmentIds} disabled={!item.hasReassignableQuantity} />
         <Button type="button" variant="ghost" className="w-full justify-start gap-2" disabled={!item.canReschedule} onClick={() => onReschedule?.(item)}><CalendarDays className="size-4" />Reschedule</Button>
        </PopoverContent>
       </Popover>
-      {item.canReschedule ? <button type="button" ref={draggable.setActivatorNodeRef} {...draggable.listeners} {...draggable.attributes} className="cursor-grab rounded px-1 font-semibold opacity-70 active:cursor-grabbing" aria-label={`Drag ${item.orderNo} to another production date`}>⠿</button> : <ProductionAttentionButton kind="lock" presentation={item.orderPresentation} orderNo={item.orderNo} lockReason={lockReason} />}
+      {item.canReschedule ? <button type="button" ref={draggable.setActivatorNodeRef} {...draggable.listeners} {...draggable.attributes} className="cursor-grab rounded px-1 font-semibold active:cursor-grabbing" aria-label={`Drag ${item.orderNo} to another production date`}>⠿</button> : <ProductionAttentionButton kind="lock" presentation={item.orderPresentation} orderNo={item.orderNo} lockReason={lockReason} />}
      </div> : null}
     </div>
     <button type="button" className="w-full min-w-0 text-left focus-visible:outline-none" aria-label={`Open production for ${item.orderNo}`} onClick={() => overview.open2(item.orderNo, workerMode ? "production-tasks" : "sales-production")}>
      {compact ? null : <>
-      <div className="block w-full whitespace-normal break-words opacity-70">{item.customer}</div>
-      <div className="block w-full whitespace-normal break-words opacity-60">{item.assignedTo || "Unassigned"} · {item.assignmentCount} {item.assignmentCount === 1 ? "assignment" : "assignments"}</div>
+      <div className={cn("block w-full whitespace-normal break-words", !isCritical && "opacity-70")}>{item.customer}</div>
+      <div className={cn("block w-full whitespace-normal break-words", !isCritical && "opacity-60")}>{item.assignedTo || "Unassigned"} · {item.assignmentCount} {item.assignmentCount === 1 ? "assignment" : "assignments"}</div>
      </>}
      <div className="flex flex-wrap gap-1 text-[10px] font-medium"><span>{item.orderPresentation.primary.label}</span>{item.orderPresentation.primary.code === "in_production" && item.orderPresentation.primary.detail ? <span>{item.orderPresentation.primary.detail}</span> : null}</div>
     </button>
@@ -333,16 +343,19 @@ export function SalesProductionCalendar({
 }) {
 	const { filters, setFilters } = useSalesProductionFilterParams();
 	const auth = useAuth();
+	const compactCalendar = useMediaQuery(PRODUCTION_CALENDAR_COMPACT_QUERY);
 	const canPlan =
 		!workerMode &&
 		Boolean(
 			auth.can.viewOrders || auth.can.editOrders || auth.can.editProduction,
 		);
-	const planning = canPlan && filters.calendarMode === "planning";
+	const planning =
+		!compactCalendar && canPlan && filters.calendarMode === "planning";
 	return (
 		<div className="flex flex-col gap-3">
 			{canPlan ? (
 				<Tabs
+					className="max-xl:hidden"
 					value={planning ? "planning" : "schedule"}
 					onValueChange={(value) =>
 						void setFilters({
@@ -371,6 +384,7 @@ function ProductionScheduleCalendar({
 	workerMode?: boolean;
 }) {
 	const trpc = useTRPC();
+	const compactCalendar = useMediaQuery(PRODUCTION_CALENDAR_COMPACT_QUERY);
 	const [moveProposal, setMoveProposal] =
 		useState<ProductionMoveProposal | null>(null);
 	const [activeItem, setActiveItem] = useState<ProductionCalendarItem | null>(
@@ -404,7 +418,7 @@ function ProductionScheduleCalendar({
 		}),
 	);
 	const { filters, setFilters } = useSalesProductionFilterParams();
-	const calendarView = filters.calendarView;
+	const calendarView = compactCalendar ? "week" : filters.calendarView;
 	const anchorDate = resolveOperationsCalendarDate(
 		filters.calendarDate || filters.date,
 	);
@@ -550,22 +564,7 @@ function ProductionScheduleCalendar({
 						)}
 					</div>
 
-					<div className="flex items-center gap-3">
-						<div className="hidden items-center gap-3 text-xs xl:flex">
-							{LEGEND_STATUSES.map((status) => (
-								<div key={status} className="flex items-center gap-1">
-									<div
-										className={cn(
-											"size-2.5 rounded border",
-											STATUS_COLORS[status],
-										)}
-									/>
-									<span className="capitalize text-muted-foreground">
-										{status}
-									</span>
-								</div>
-							))}
-						</div>
+					<div className="flex items-center gap-3 max-xl:hidden">
 						<Tabs value={calendarView} onValueChange={setCalendarView}>
 							<TabsList className="min-h-9 rounded-md p-0.5 max-lg:border max-lg:bg-muted/60">
 								<TabsTrigger value="week" className="min-h-8 rounded px-3 py-1">
@@ -585,7 +584,12 @@ function ProductionScheduleCalendar({
 				<p className="text-sm text-muted-foreground">{data.scheduled.length} schedule groups · Assignment production due dates.</p>
 				<Card className="overflow-auto">
 					{calendarView === "week" ? (
-						<div className="grid min-w-[980px] grid-cols-7 divide-x">
+						<div
+							className={cn(
+								"grid grid-cols-7 divide-x",
+								PRODUCTION_CALENDAR_GRID_WIDTH,
+							)}
+						>
 							{period.days.map((day) => (
 								<DayColumn
 									key={day.toISOString()}
@@ -597,7 +601,7 @@ function ProductionScheduleCalendar({
 							))}
 						</div>
 					) : (
-						<div className="min-w-[980px]">
+						<div className={PRODUCTION_CALENDAR_GRID_WIDTH}>
 							<div className="grid grid-cols-7 border-b bg-muted/30">
 								{period.days.slice(0, 7).map((day) => (
 									<div
@@ -631,11 +635,19 @@ function ProductionScheduleCalendar({
 				/>
 				<DragOverlay>
 					{activeItem ? (
-						<div className="max-w-64 rounded border border-primary bg-background px-3 py-2 text-xs shadow-lg">
+						<div
+							className={cn(
+								"max-w-64 rounded px-3 py-2 text-xs shadow-lg",
+								productionCalendarCardClasses(
+									scheduleTone(activeItem),
+									activeItem.priority,
+								),
+							)}
+						>
 							<p className="font-mono font-semibold uppercase">
 								{activeItem.orderNo}
 							</p>
-							<p className="truncate text-muted-foreground">
+							<p className="truncate">
 								{activeItem.customer}
 							</p>
 						</div>
@@ -648,9 +660,14 @@ function ProductionScheduleCalendar({
 
 export function SalesProductionCalendarSkeleton() {
 	return (
-		<Card>
+		<Card className="overflow-auto">
 			<CardContent className="p-4">
-				<div className="grid grid-cols-7 gap-2">
+				<div
+					className={cn(
+						"grid grid-cols-7 gap-2",
+						PRODUCTION_CALENDAR_GRID_WIDTH,
+					)}
+				>
 					{CALENDAR_SKELETON_KEYS.map((key) => (
 						<Skeleton key={key} className="h-64 w-full" />
 					))}

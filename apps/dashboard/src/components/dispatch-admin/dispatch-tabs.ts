@@ -15,8 +15,8 @@ export const dispatchAdminPageTabs = [
 		title: "Completed",
 		params: { section: "completed", sort: "deliveredAt.desc" },
 	},
-	{ title: "All", params: { section: null }, clearQuery: true },
 	{ title: "Calendar", params: { section: "calendar" } },
 	{ title: "Drivers", params: { section: "drivers" } },
 	{ title: "Exceptions", params: { section: "exceptions" } },
+	{ title: "All fulfillments", params: { section: "dispatches" } },
 ] satisfies PageTabItem[];

@@ -108,6 +108,22 @@ describe("workflow visible components", () => {
 		expect(components[0]?.salesPrice).toBe(6);
 	});
 
+	it("distinguishes an unpriced component from an intentional zero-price component", () => {
+		const components = resolveWorkflowCatalogComponents({
+			components: [
+				{ uid: "missing", title: "Missing", salesPrice: null, basePrice: null },
+				{ uid: "free", title: "Free", salesPrice: 0, basePrice: 0 },
+			],
+			steps: [],
+			activeStep: null,
+			overrides: new Map(),
+			profileCoefficient: 1,
+		});
+
+		expect(components[0]?._metaData?.priceMissing).toBe(true);
+		expect(components[1]?._metaData?.priceMissing).toBe(false);
+	});
+
 	it("keeps current catalogue pricing when an edit snapshot has null pricing", () => {
 		const components = resolveWorkflowVisibleComponents({
 			components: [

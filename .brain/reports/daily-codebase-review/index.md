@@ -1,5 +1,7 @@
 # Daily Codebase Review Index
 
+- [2026-09-11](./2026-09-11.md) - Typecheck still fails in `@gnd/settings`; fulfillment quantity-scope work is progressing, while public sales/Square/task-event route boundaries remain top risk.
+- [2026-09-10](./2026-09-10.md) - Typecheck still fails in `@gnd/settings`; top risks remain public sales/Square/task-event route boundaries, mock Active Sessions, and dealer/mobile readiness gaps.
 - [2026-09-09](./2026-09-09.md) - Typecheck still fails in `@gnd/settings`; production receipt work is stronger but worker acceptance is blocked, while public legacy sales/Square/task-event routes remain top risk.
 - [2026-09-08](./2026-09-08.md) - Typecheck still fails in `@gnd/settings`; sales lifecycle is done, but top risks remain public legacy sales/Square routes, mock Active Sessions, and dealer/mobile readiness gaps.
 - [2026-09-07](./2026-09-07.md) - Typecheck still fails in `@gnd/settings`; top risks are public legacy sales writes, public Square terminal/device-code side effects, mock Active Sessions, and mobile/dealer readiness gaps.

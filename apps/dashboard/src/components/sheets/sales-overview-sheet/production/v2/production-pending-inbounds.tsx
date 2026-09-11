@@ -13,13 +13,15 @@ export function ProductionPendingInbounds({
 	salesOrderId,
 	inventoryMode = false,
 	onOpenInventory,
-}: { salesOrderId: number; inventoryMode?: boolean; onOpenInventory?: (inboundId?: number) => void }) {
+	exactInboundId,
+}: { salesOrderId: number; inventoryMode?: boolean; onOpenInventory?: (inboundId?: number) => void; exactInboundId?: number }) {
 	const { selectedInventoryInboundId } = useSalesInventorySegmentQuery();
 	return <ProductionInboundPanel
-		key={`${salesOrderId}:${inventoryMode ? `inbound:${selectedInventoryInboundId ?? "all"}` : "production"}`}
+		key={`${exactInboundId ?? "all"}:${salesOrderId}:${inventoryMode ? `inbound:${selectedInventoryInboundId ?? "all"}` : "production"}`}
 		salesOrderId={salesOrderId}
 		inventoryMode={inventoryMode}
 		onOpenInventory={onOpenInventory}
+		exactInboundId={exactInboundId}
 	/>;
 }
 
@@ -27,7 +29,8 @@ function ProductionInboundPanel({
 	salesOrderId,
 	inventoryMode,
 	onOpenInventory,
-}: { salesOrderId: number; inventoryMode: boolean; onOpenInventory?: (inboundId?: number) => void }) {
+	exactInboundId,
+}: { salesOrderId: number; inventoryMode: boolean; onOpenInventory?: (inboundId?: number) => void; exactInboundId?: number }) {
 	const trpc = useTRPC();
 	const client = useQueryClient();
 	const { setParams } = useSalesOverviewQuery();
@@ -39,9 +42,9 @@ function ProductionInboundPanel({
 	const query = useQuery(
 		trpc.sales.productionPendingInbounds.queryOptions({
 			salesOrderId,
-			inboundId: inventoryMode
+			inboundId: exactInboundId ?? (inventoryMode
 				? (selectedInventoryInboundId ?? undefined)
-				: undefined,
+				: undefined),
 			cursor,
 			receiptCursor,
 			take: 10,
@@ -97,12 +100,12 @@ function ProductionInboundPanel({
 	);
 	if (query.isLoading)
 		return (
-			<p className="text-sm text-muted-foreground">Loading pending inbounds…</p>
+			<p className="text-sm text-muted-foreground">Loading inbounds…</p>
 		);
 	if (query.isError)
 		return (
 			<Button variant="outline" onClick={() => query.refetch()}>
-				Retry pending inbounds
+				Retry inbounds
 			</Button>
 		);
 	if (!query.data?.count && !query.data?.receipts.length)
@@ -112,25 +115,22 @@ function ProductionInboundPanel({
 					? "Contact your supervisor. Some production details still need checking."
 					: "Materials received."}
 			</p>
-		) : inventoryMode ? (
+		) : (
 			<p className="text-sm text-muted-foreground">
-				No pending receipt is available for this inbound.
+				No linked inbounds.
 			</p>
-		) : null;
+		);
 	return (
-		<section className="space-y-3" aria-label="Materials need verification">
+		<section className="space-y-3" aria-label="Inbound materials">
 			{!workerMode && cancel.error && (
 				<p role="alert" className="text-sm text-destructive">
 					Unable to cancel receipt. {cancel.error.message}
 				</p>
 			)}
-			{query.data.count > 0 && <div>
+			{<div>
 				<h3 className="text-sm font-medium">
-					{workerMode ? "Materials" : "Materials need verification"}
+					Inbound materials
 				</h3>
-				<p className="text-xs text-muted-foreground">
-					{query.data.count} pending inbound{query.data.count === 1 ? "" : "s"}
-				</p>
 			</div>}
 			{!workerMode && query.data.receipts.map((receipt) => (
 				<div key={receipt.receiptId} className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -161,34 +161,16 @@ function ProductionInboundPanel({
 				{query.data.rows.map((inbound) => (
 					<div
 						key={inbound.id}
-						className="flex flex-wrap items-center justify-between gap-2 py-2"
+						className="flex flex-wrap items-center justify-between gap-3 py-3"
 					>
-						<div className="min-w-0">
-							<p className="text-sm font-medium">
-								{inbound.reference || `Inbound #${inbound.id}`}
+						<div className="min-w-0 flex-1 basis-56">
+							<p className="break-words text-sm font-semibold uppercase">{inbound.totalQty} qty from {inbound.supplier}</p>
+							<p className="mt-1 text-xs text-muted-foreground">
+								{inbound.expectedAt ? formatDate(inbound.expectedAt) : "Not scheduled"}
+								{" · "}
+								<span className={`font-bold uppercase ${inbound.status === "completed" ? "text-emerald-700" : inbound.status === "issue_open" ? "text-red-700" : inbound.status === "in_progress" ? "text-blue-700" : inbound.status === "pending" ? "text-amber-700" : "text-muted-foreground"}`}>{inbound.status === "completed" ? "Received" : inbound.status?.replaceAll("_", " ") || "Pending"}</span>
 							</p>
-							<p className="text-xs text-muted-foreground">
-								{inbound.supplier}
-							</p>
-							{workerMode ? (
-								<p className="text-xs text-muted-foreground">
-									Expected:{" "}
-									{inbound.expectedAt
-										? formatDate(inbound.expectedAt)
-										: "Not scheduled"}{" "}
-									· Quantity: {inbound.totalQty}
-								</p>
-							) : null}
-							{workerMode ? (
-								<p className="mt-1 text-sm">
-									{!query.data.receivingEnabled
-										? "Waiting for material confirmation"
-										: inbound.canReceive
-											? "Have these materials arrived?"
-											: "Contact your supervisor. These materials need checking."}
-								</p>
-							) : null}
-							{inventoryMode && (
+							{(inventoryMode || exactInboundId) && (
 								<ul className="mt-2 text-sm">
 									{inbound.items.map((item) => (
 										<li key={item.id}>
@@ -199,7 +181,7 @@ function ProductionInboundPanel({
 							)}
 						</div>
 						<div className="flex gap-2">
-							{!workerMode && (
+							{!exactInboundId && (!workerMode || onOpenInventory) && (
 								<Button
 									size="sm"
 									variant="outline"
@@ -217,7 +199,7 @@ function ProductionInboundPanel({
 									{inventoryMode ? "Back to production" : "Open inbound"}
 								</Button>
 							)}
-							{query.data.receivingEnabled && (
+							{query.data.receivingEnabled && inbound.items.length > 0 && !["closed", "completed"].includes(inbound.status) && (
 								<Button
 									size="sm"
 									disabled={!inbound.canReceive || receive.isPending || cancel.isPending}
@@ -239,7 +221,7 @@ function ProductionInboundPanel({
 									receive.variables &&
 									receive.variables.inboundId === inbound.id
 										? "Receiving…"
-										: workerMode
+										: workerMode && !exactInboundId
 											? "Yes, received"
 											: "Mark as received"}
 								</Button>

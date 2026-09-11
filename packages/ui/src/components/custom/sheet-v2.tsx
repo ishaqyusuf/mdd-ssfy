@@ -30,6 +30,7 @@ import {
 
 interface Props extends Omit<SheetContentProps, "children"> {
 	children?: ReactNode;
+	fullscreen?: boolean;
 	onCloseSecondary?: () => void;
 	onOpenChange?: (open: boolean) => void;
 	onSecondaryExited?: () => void;
@@ -43,6 +44,7 @@ interface Props extends Omit<SheetContentProps, "children"> {
 
 type CustomSheetContextValue = {
 	activeSurfaceWidthRem: number;
+	fullscreen: boolean;
 	isSideBySide: boolean;
 	multiContentId: string;
 	nodeId: string;
@@ -86,6 +88,7 @@ function useCustomSheetContextValue(props: Props): CustomSheetContextValue {
 
 	return {
 		activeSurfaceWidthRem: layout.activeSurfaceWidthRem,
+		fullscreen: Boolean(props.fullscreen),
 		isSideBySide,
 		multiContentId: `${idBase}-multi-content`,
 		nodeId: idBase,
@@ -126,6 +129,7 @@ type CustomSheetCSSProperties = CSSProperties & {
 function CustomSheetBase({
 	children,
 	className,
+	fullscreen,
 	hideClose,
 	onCloseSecondary: _onCloseSecondary,
 	onOpenChange,
@@ -181,8 +185,9 @@ function CustomSheetBase({
 		"--sheet-primary-pane-width": `${sheet.primaryWidthRem}rem`,
 		"--sheet-secondary-pane-width": `${sheet.secondaryWidthRem}rem`,
 		transitionDuration: `${sheet.secondaryOpened ? CUSTOM_SHEET_OPEN_MS : CUSTOM_SHEET_CLOSE_MS}ms`,
-		width:
-			"min(100dvw, calc(var(--sheet-active-surface-width) + var(--sheet-frame-width)))",
+		width: fullscreen
+			? "100dvw"
+			: "min(100dvw, calc(var(--sheet-active-surface-width) + var(--sheet-frame-width)))",
 	} as CustomSheetCSSProperties;
 
 	return (
@@ -227,6 +232,7 @@ function CustomSheetBase({
 				className={cn(
 					"flex h-dvh max-w-none flex-col gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none sm:max-w-none",
 					"[--sheet-frame-width:0rem] md:[--sheet-frame-width:2rem] md:p-4",
+					fullscreen && "!w-dvw md:[--sheet-frame-width:0rem] md:p-0",
 					tabletFullscreen &&
 						"md:max-lg:!w-dvw md:max-lg:[--sheet-frame-width:0rem] md:max-lg:p-0",
 					"transition-[width] ease-out motion-reduce:transition-none",
@@ -237,6 +243,7 @@ function CustomSheetBase({
 					data-slot="custom-sheet-surface"
 					className={cn(
 						"relative flex h-full w-full min-w-0 flex-col overflow-hidden border bg-background p-4 shadow-lg md:rounded-[10px] md:p-6",
+						fullscreen && "rounded-none border-0 md:rounded-none",
 						tabletFullscreen &&
 							"md:max-lg:rounded-none md:max-lg:border-0 md:max-lg:p-4",
 						className,
@@ -323,7 +330,9 @@ export function MultiSheetContent({
 	const durationMs = sheet.secondaryOpened
 		? CUSTOM_SHEET_OPEN_MS
 		: CUSTOM_SHEET_CLOSE_MS;
-	const primaryBasis = sheet.isSideBySide
+	const primaryBasis = sheet.fullscreen && !sheet.secondaryOpened
+		? "100%"
+		: sheet.isSideBySide
 		? "var(--sheet-primary-pane-width)"
 		: sheet.secondaryOpened
 			? "0rem"

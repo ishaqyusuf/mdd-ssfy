@@ -36,7 +36,7 @@ export function ProductionItemStatusBadges({
 		total: getQuantityMatrixTotal(workerMode ? stats?.prodAssigned : item.qty),
 	});
 
-	const showMaterialBadge = !workerMode && shouldShowProductionMaterialBadge({
+	const showMaterialBadge = shouldShowProductionMaterialBadge({
 		code: item.materialStatus?.code,
 		reported: item.analytics?.reportedSubmitQty,
 		completed: getQuantityMatrixTotal(stats?.prodCompleted),

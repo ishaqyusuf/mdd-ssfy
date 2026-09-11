@@ -216,7 +216,7 @@ function renderHeaderContent<TData>(
 	tableScroll?: TableScrollState,
 ) {
 	const meta = header.column.columnDef.meta as TableColumnMeta | undefined;
-	const sortField = meta?.sortField ?? tableConfig.sortFieldMap[columnId];
+	const sortField = header.column.columnDef.enableSorting === false ? undefined : meta?.sortField ?? tableConfig.sortFieldMap[columnId];
 	const isRightAligned = meta?.className?.split(/\s+/).includes("text-right");
 
 	if (columnId === "select") {

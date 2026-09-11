@@ -37,7 +37,7 @@ import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 const statuses = [
 	"pending",
@@ -130,7 +130,10 @@ function DetailMetric({ label, value }: { label: string; value: string }) {
 	);
 }
 
-export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
+export function InboundOverviewContent({ inboundId, productionSalesOrderId }: { inboundId: number; productionSalesOrderId?: number }) {
+	const workerMode = productionSalesOrderId != null;
+	const productionInput = {salesOrderId: productionSalesOrderId ?? 0, inboundId};
+	const receiptRequests = useRef(new Map<string, string>());
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [statusNote, setStatusNote] = useState("");
@@ -148,9 +151,13 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 	const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
 	const [isUploading, setIsUploading] = useState(false);
 
-	const detailQuery = useQuery(
-		trpc.inventories.inboundShipmentDetail.queryOptions({ inboundId }),
+	const inventoryDetailQuery = useQuery(
+		trpc.inventories.inboundShipmentDetail.queryOptions({ inboundId }, {enabled: !workerMode}),
 	);
+	const productionDetailQuery = useQuery(trpc.sales.productionInboundOverview.queryOptions(productionInput, {enabled: workerMode}));
+ const detailQuery = workerMode ? productionDetailQuery : inventoryDetailQuery;
+ const productionReceiptQuery = useQuery(trpc.sales.productionPendingInbounds.queryOptions({...productionInput, take: 1}, {enabled: workerMode}));
+ const productionActivityQuery = useQuery(trpc.sales.productionInboundActivity.queryOptions(productionInput, {enabled: workerMode}));
 	const treeActivityQuery = useQuery(
 		trpc.notes.activityTree.queryOptions({
 			filter: activityTag("inboundId", String(inboundId)),
@@ -158,13 +165,14 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 			includeChildren: true,
 			pageSize: 40,
 			maxDepth: 4,
-		}),
+		}, {enabled: !workerMode}),
 	);
-	const legacyActivityQuery = useQuery(
-		trpc.inventories.inboundActivity.queryOptions({ inboundId }),
+	const inventoryActivityQuery = useQuery(
+		trpc.inventories.inboundActivity.queryOptions({ inboundId }, {enabled: !workerMode}),
 	);
+	const legacyActivityQuery = workerMode ? productionActivityQuery : inventoryActivityQuery;
 	const activityRows = useMemo(() => {
-		const treeData = (treeActivityQuery.data?.data || []) as ActivityHistoryNode[];
+		const treeData = ((!workerMode && treeActivityQuery.data?.data) || []) as ActivityHistoryNode[];
 		if (treeData.length > 0) return treeData;
 
 		const legacyItems = legacyActivityQuery.data ?? [];
@@ -179,10 +187,13 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 			tags: activity.tags || {},
 			children: [],
 		}));
-	}, [treeActivityQuery.data, legacyActivityQuery.data]);
+	}, [workerMode, treeActivityQuery.data, legacyActivityQuery.data]);
 
 	const refresh = async () => {
 		await Promise.all([
+			queryClient.invalidateQueries({queryKey: trpc.sales.productionInboundOverview.queryKey(productionInput)}),
+			queryClient.invalidateQueries({queryKey: trpc.sales.productionInboundActivity.queryKey(productionInput)}),
+			queryClient.invalidateQueries({queryKey: trpc.sales.productionPendingInbounds.pathKey()}),
 			queryClient.invalidateQueries({
 				queryKey: trpc.inventories.inboundShipmentDetail.queryKey({
 					inboundId,
@@ -202,6 +213,14 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 			}),
 		]);
 	};
+	const workerNote = useMutation(trpc.sales.addProductionInboundNote.mutationOptions({
+  onSuccess: async () => {setCommentText(""); setIsChatOpen(false); await refresh(); toast({title: "Comment added", variant: "success"});},
+  onError: error => toast({title: "Unable to add comment", description: error.message, variant: "destructive"}),
+ }));
+ const workerReceive = useMutation(trpc.sales.receiveProductionInbound.mutationOptions({
+  onSuccess: async () => {await refresh(); toast({title: "Inbound received", variant: "success"});},
+  onError: async error => {toast({title: "Unable to receive inbound", description: error.message, variant: "destructive"}); await refresh();},
+ }));
 	const uploadMutation = useMutation(trpc.storage.upload.mutationOptions());
 	const saveInboundNoteMutation = useMutation(
 		trpc.notes.saveInboundNote.mutationOptions({
@@ -271,6 +290,7 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 	const handleSendComment = () => {
 		if (!commentText.trim() && !chatAttachments.length) return;
 		if (!detailQuery.data) return;
+		if (workerMode) {if (!workerNote.isPending && commentText.trim()) workerNote.mutate({...productionInput, note: commentText.trim()}); return;}
 
 		const detail = detailQuery.data;
 		const salesId =
@@ -377,7 +397,7 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 	const canReceive =
 		!["completed", "closed", "cancelled"].includes(detail.status) &&
 		receivedQty + issueQty < orderedQty;
-	const canAdjustDemand = !["completed", "closed", "cancelled"].includes(
+	const canAdjustDemand = !workerMode && !["completed", "closed", "cancelled"].includes(
 		detail.status,
 	);
 	const parsedTargetQty = Number(targetQty);
@@ -426,6 +446,15 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 						</div>
 					</CardContent>
 				</Card>
+                {workerMode ? (productionReceiptQuery.data?.receivingEnabled && canReceive ? (
+                  <Button disabled={!productionReceiptQuery.data.rows[0]?.canReceive || workerReceive.isPending} onClick={() => {
+                    const row = productionReceiptQuery.data?.rows[0];
+                    if (!row?.canReceive || workerReceive.isPending) return;
+                    const key = receiptRequests.current.get(row.revision) ?? crypto.randomUUID();
+                    receiptRequests.current.set(row.revision, key);
+                    workerReceive.mutate({...productionInput, expectedRevision: row.revision, idempotencyKey: key});
+                  }}><Icons.Warehouse className="mr-2 size-4" />{workerReceive.isPending ? "Receiving…" : "Receive stock"}</Button>
+                ) : null) : (<>
 				<Card>
 					<CardHeader className="pb-3">
 						<CardTitle className="text-base">Lifecycle controls</CardTitle>
@@ -485,6 +514,7 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 						</div>
 					</CardContent>
 				</Card>
+                </>)}
 				<section className="space-y-3">
 					<h3 className="text-sm font-semibold">Inbound items</h3>
 					{detail.items.map((item) => (
@@ -576,7 +606,7 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 						<div className="flex flex-col rounded-xl border border-border bg-card p-2 shadow-xs">
 							<Attachments attachments={chatAttachments} onRemove={handleRemoveAttachment} />
 							<div className="flex items-center gap-2">
-								<label htmlFor="inbound-collapsible-chat-upload" className="cursor-pointer">
+								{!workerMode && <label htmlFor="inbound-collapsible-chat-upload" className="cursor-pointer">
 									<Button
 										type="button"
 										variant="ghost"
@@ -594,7 +624,7 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 											<span className="sr-only">Add attachment</span>
 										</span>
 									</Button>
-								</label>
+								</label>}
 								<input
 									id="inbound-collapsible-chat-upload"
 									type="file"
@@ -620,12 +650,12 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 									size="icon"
 									className="size-8 shrink-0 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
 									disabled={
-										saveInboundNoteMutation.isPending ||
+										(workerMode ? workerNote.isPending : saveInboundNoteMutation.isPending) ||
 										(!commentText.trim() && !chatAttachments.length)
 									}
 									onClick={handleSendComment}
 								>
-									{saveInboundNoteMutation.isPending ? (
+									{(workerMode ? workerNote.isPending : saveInboundNoteMutation.isPending) ? (
 										<Icons.Spinner className="size-4 animate-spin" />
 									) : (
 										<Icons.Send className="size-4" />
@@ -638,8 +668,8 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 				</Collapsible>
 				<ActivityHistory
 					data={activityRows}
-					isPending={treeActivityQuery.isPending && legacyActivityQuery.isPending}
-					isError={treeActivityQuery.isError && legacyActivityQuery.isError}
+					isPending={workerMode ? legacyActivityQuery.isPending : treeActivityQuery.isPending && legacyActivityQuery.isPending}
+					isError={workerMode ? legacyActivityQuery.isError : treeActivityQuery.isError && legacyActivityQuery.isError}
 					title="Activity History"
 					emptyText="No activity history yet"
 					headerAction={

@@ -1,4 +1,5 @@
 import type { FulfillmentDispatchResolution } from "./sales-control/ensure-fulfillment-dispatch";
+import type { SalesPipelineSnapshot } from "./sales-pipeline";
 
 export const BULK_FULFILLMENT_LIMIT = 40;
 
@@ -22,6 +23,24 @@ export type BulkFulfillmentResult = {
 	outcomes: BulkFulfillmentOutcome[];
 };
 
+export function resolveBulkFulfillmentCompletionOutcome(
+	item: { salesId: number; orderNo: string; dispatchId: number },
+	state: SalesPipelineSnapshot["fulfillment"]["state"] | undefined,
+): BulkFulfillmentOutcome {
+	if (state === "fulfilled") return { ...item, status: "succeeded" };
+	if (state === "administratively_completed") {
+		return { ...item, status: "already_fulfilled" };
+	}
+	return {
+		...item,
+		status: "review_required",
+		error:
+			state === undefined
+				? "Unable to verify the order after fulfillment. Refresh and review its fulfillments."
+				: "The fulfillment completed, but the order still has outstanding quantities or completion checks. Review its remaining fulfillments.",
+	};
+}
+
 export function normalizeBulkFulfillmentSalesIds(salesIds: readonly number[]) {
 	const normalized = Array.from(
 		new Set(
@@ -44,8 +63,12 @@ export function normalizeBulkFulfillmentSalesIds(salesIds: readonly number[]) {
 export function prepareBulkFulfillmentResolution(
 	resolutions: readonly FulfillmentDispatchResolution[],
 ) {
-	const ready: Array<{ salesId: number; orderNo: string; dispatchId: number }> =
-		[];
+	const ready: Array<{
+		salesId: number;
+		orderNo: string;
+		dispatchId: number;
+		dispatchIds?: number[];
+	}> = [];
 	const outcomes: BulkFulfillmentOutcome[] = [];
 	for (const resolution of resolutions) {
 		if (resolution.state === "already_fulfilled") {
@@ -71,9 +94,41 @@ export function prepareBulkFulfillmentResolution(
 			salesId: resolution.salesId,
 			orderNo: resolution.orderNo,
 			dispatchId: resolution.dispatchId,
+			...(resolution.dispatchIds
+				? { dispatchIds: resolution.dispatchIds }
+				: {}),
 		});
 	}
 	return { ready, outcomes };
+}
+
+export function buildBulkFulfillmentRounds(
+	items: ReturnType<typeof prepareBulkFulfillmentResolution>["ready"],
+) {
+	const rounds: Array<
+		Array<{
+			salesId: number;
+			orderNo: string;
+			dispatchId: number;
+			final: boolean;
+		}>
+	> = [];
+	for (const item of items) {
+		const dispatchIds = [
+			...new Set(
+				item.dispatchIds?.length ? item.dispatchIds : [item.dispatchId],
+			),
+		];
+		for (const [index, dispatchId] of dispatchIds.entries()) {
+			(rounds[index] ??= []).push({
+				salesId: item.salesId,
+				orderNo: item.orderNo,
+				dispatchId,
+				final: index === dispatchIds.length - 1,
+			});
+		}
+	}
+	return rounds;
 }
 
 export function summarizeBulkFulfillmentResult(input: {

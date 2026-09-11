@@ -2,7 +2,8 @@ import { useTRPC } from "@/trpc/client";
 import createContextFactory from "@/utils/context-factory";
 import { printSalesData } from "@/utils/sales-print-utils";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { restoreFulfillmentCompletionAttempt, type FulfillmentCompletionAttempt } from "@/utils/fulfillment-completion-attempt";
 import { useTaskTrigger } from "./use-task-trigger";
 import {
     dispatchForm,
@@ -19,6 +20,7 @@ interface Props {
 export const { Provider: PackingProvider, useContext: usePacking } =
     createContextFactory(({ data }: Props) => {
         const [packItemUid, setPackItemUid] = useState(null);
+        const completionAttempt = useRef<FulfillmentCompletionAttempt | null>(null);
         const qc = useQueryClient();
         const trpc = useTRPC();
         const invalidate = () =>
@@ -233,6 +235,19 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             });
         };
         const onCompleteDispatch = (mode: "packed_only" | "pack_all") => {
+            let attempt: FulfillmentCompletionAttempt;
+            try {
+                attempt = restoreFulfillmentCompletionAttempt(sessionStorage, completionAttempt.current, {
+                dispatchId: Number(data?.dispatch?.id || 0),
+                scopeRevision: data?.scopeRevision ?? null,
+                actorId: Number(auth.id || 0),
+                mode,
+                });
+            } catch {
+                toast({ variant: "destructive", title: "Unable to save completion attempt", description: "Enable browser storage and try again." });
+                return;
+            }
+            completionAttempt.current = attempt;
             if (mode === "pack_all") {
                 completeAllTrigger.trigger({
                     taskName: "update-sales-control",
@@ -245,8 +260,10 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                         },
                         markAsCompleted: {
                             dispatchId: Number(data?.dispatch?.id || 0),
+                            expectedFulfillmentRevision: data?.scopeRevision ?? undefined,
+                            completionRequestId: attempt.completionRequestId,
                             receivedBy: auth?.name || "System",
-                            receivedDate: new Date(),
+                            receivedDate: attempt.receivedDate,
                         },
                     } as UpdateSalesControl,
                 });
@@ -261,8 +278,10 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 },
                 submitDispatch: {
                     dispatchId: Number(data?.dispatch?.id || 0),
+                    expectedFulfillmentRevision: data?.scopeRevision ?? undefined,
+                    completionRequestId: attempt.completionRequestId,
                     receivedBy: auth?.name || "System",
-                    receivedDate: new Date(),
+                    receivedDate: attempt.receivedDate,
                 },
             });
         };

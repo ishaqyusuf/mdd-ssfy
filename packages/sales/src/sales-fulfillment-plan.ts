@@ -4152,7 +4152,7 @@ export async function transitionInventoryDispatchAllocationsInTransaction(
 			throw new Error("INVENTORY_DISPATCH_ALLOCATION_QUANTITY_EXCEEDED");
 		}
 		if (
-			action === "assign" &&
+			(action === "assign" || action === "release") &&
 			input.orderDeliveryId &&
 			selectedQty !== undefined &&
 			selectedQty < allocationQty
@@ -4419,6 +4419,7 @@ export async function consumeDispatchBoundInventory(
 		where: {
 			orderDeliveryId: input.orderDeliveryId,
 			deletedAt: null,
+			status: { notIn: ["released", "cancelled"] },
 		},
 		orderBy: { id: "asc" },
 		select: {

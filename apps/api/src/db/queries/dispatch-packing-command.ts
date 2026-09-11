@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { TRPCContext } from "@api/trpc/init";
 import { Prisma, type TransactionClient } from "@gnd/db";
+import { readFulfillmentAssignmentScope } from "@gnd/sales/fulfillment-assignment-scope";
 import {
 	type PackingPlanItem,
 	buildGuardedPackingPlan,
@@ -194,7 +195,7 @@ export async function getDispatchPackingCommandRevision(
 ) {
 	const dispatch = await db.orderDelivery.findFirst({
 		where: { id: dispatchId, deletedAt: null },
-		select: { id: true, salesOrderId: true, status: true, driverId: true },
+		select: { id: true, salesOrderId: true, status: true, driverId: true, meta: true, deliveryMode: true },
 	});
 	if (!dispatch) {
 		throw new DispatchPackingCommandError(
@@ -234,6 +235,8 @@ export async function getDispatchPackingCommandRevision(
 					salesOrderId: dispatch.salesOrderId,
 					status: dispatch.status,
 					driverId: dispatch.driverId,
+					deliveryMode: dispatch.deliveryMode,
+					assignment: readFulfillmentAssignmentScope(dispatch.meta),
 				},
 				inventoryRevision: inventory.revision,
 				packingRows,

@@ -22,7 +22,7 @@ export function getNotificationRecipientOptions(
 	recipients: NotificationJobInput["recipients"],
 ): Pick<
 	NotificationOptions,
-	"recipients" | "includeChannelSubscribers" | "allowFallbackRecipient"
+	"recipients" | "includeChannelSubscribers" | "allowFallbackRecipient" | "forceInAppRecipients"
 > {
 	if (isDirectRecipientEmailChannel(channel)) {
 		return {
@@ -33,6 +33,9 @@ export function getNotificationRecipientOptions(
 	}
 
 	return {
+		...(channel === "sales_dispatch_completed" && recipients?.some((recipient) => recipient.ids.length > 0)
+			? { forceInAppRecipients: true }
+			: {}),
 		recipients:
 			recipients?.map((recipient) => ({
 				ids: recipient.ids,

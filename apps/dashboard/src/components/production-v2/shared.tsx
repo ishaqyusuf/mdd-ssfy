@@ -2613,11 +2613,11 @@ function ProductionItemCard({
 									</Badge>
 								) : null}
 							</div>
-							{scope === "admin" && <ItemMaterialStatusBadge
+							<ItemMaterialStatusBadge
 								status={item.materialStatus}
 								audience={scope}
 								className="mt-2"
-							/>}
+							/>
 						</div>
 					</div>
 					{scope === "admin" ? (

@@ -5,12 +5,14 @@ import {
 	type FulfillmentDispatchResolution,
 	type UpdateSalesControl,
 	buildSalesDispatchBacklogWhere,
+	buildBulkFulfillmentRounds,
 	ensureSalesOrderFulfillmentDispatch,
 	evaluateSalesPipelineCommand,
 	getSalesPipelineSnapshots,
 	normalizeBulkFulfillmentSalesIds,
 	prepareBulkFulfillmentResolution,
 	recordSalesCompletionFullWorkflowOutcomes,
+	resolveBulkFulfillmentCompletionOutcome,
 	summarizeBulkFulfillmentResult,
 } from "@gnd/sales";
 import { type TaskName, bulkMarkSalesFulfilledSchema } from "@jobs/schema";
@@ -119,63 +121,75 @@ export const bulkMarkSalesFulfilled = schemaTask({
 		outcomes.push(...prepared.outcomes);
 		if (prepared.ready.length) {
 			metadata.set("status", "fulfilling").set("queued", prepared.ready.length);
-			const executionSnapshots = await getSalesPipelineSnapshots(
-				db,
-				prepared.ready.map((item) => item.salesId),
-			);
-			const batchItems = await Promise.all(
-				prepared.ready.map(async (item) => ({
-					payload: {
-						meta: {
+			const failedOrders = new Set<number>();
+			for (const round of buildBulkFulfillmentRounds(prepared.ready)) {
+				const ready = round.filter((item) => !failedOrders.has(item.salesId));
+				if (!ready.length) continue;
+				const executionSnapshots = await getSalesPipelineSnapshots(
+					db,
+					ready.map((item) => item.salesId),
+				);
+				const batchItems = await Promise.all(
+					ready.map(async (item) => ({
+						payload: {
+							meta: {
+								salesId: item.salesId,
+								authorId: input.actor.id,
+								authorName: input.actor.name,
+								pipelineRevision: executionSnapshots.get(item.salesId)
+									?.revision,
+							},
+							markAsCompleted: {
+								dispatchId: item.dispatchId,
+								completionRequestId: input.requestId,
+								receivedBy: input.actor.name,
+								receivedDate: new Date(),
+							},
+						} as UpdateSalesControl,
+						options: {
+							idempotencyKey: await idempotencyKeys.create(
+								`bulk-mark-sales-fulfilled:${input.requestId}:${item.salesId}:${item.dispatchId}`,
+								{ scope: "global" },
+							),
+							idempotencyKeyTTL: "7d" as const,
+						},
+					})),
+				);
+				const batch = await updateSalesControl.batchTriggerAndWait(batchItems);
+				const completedSnapshots = await getSalesPipelineSnapshots(
+					db,
+					ready.map((item) => item.salesId),
+				);
+				for (const [index, item] of ready.entries()) {
+					const run = batch.runs[index];
+					if (run?.ok) {
+						if (!item.final) continue;
+						outcomes.push(
+							resolveBulkFulfillmentCompletionOutcome(
+								item,
+								completedSnapshots.get(item.salesId)?.fulfillment.state,
+							),
+						);
+					} else {
+						failedOrders.add(item.salesId);
+						const message = safeErrorMessage(run?.error);
+						outcomes.push({
 							salesId: item.salesId,
-							authorId: input.actor.id,
-							authorName: input.actor.name,
-							pipelineRevision: executionSnapshots.get(item.salesId)?.revision,
-						},
-						markAsCompleted: {
+							orderNo: item.orderNo,
 							dispatchId: item.dispatchId,
-							completionRequestId: input.requestId,
-							receivedBy: input.actor.name,
-							receivedDate: new Date(),
-						},
-					} as UpdateSalesControl,
-					options: {
-						idempotencyKey: await idempotencyKeys.create(
-							`bulk-mark-sales-fulfilled:${input.requestId}:${item.salesId}`,
-							{ scope: "global" },
-						),
-						idempotencyKeyTTL: "7d" as const,
-					},
-				})),
-			);
-			const batch = await updateSalesControl.batchTriggerAndWait(batchItems);
-			for (const [index, item] of prepared.ready.entries()) {
-				const run = batch.runs[index];
-				if (run?.ok) {
-					outcomes.push({
-						salesId: item.salesId,
-						orderNo: item.orderNo,
-						dispatchId: item.dispatchId,
-						status: "succeeded",
-					});
-				} else {
-					const message = safeErrorMessage(run?.error);
-					outcomes.push({
-						salesId: item.salesId,
-						orderNo: item.orderNo,
-						dispatchId: item.dispatchId,
-						status: "failed",
-						error: message,
-					});
-					logger.error("One bulk fulfillment child run failed.", {
-						dispatchId: item.dispatchId,
-						error: message,
-						requestId: input.requestId,
-						runId: run?.id,
-						salesId: item.salesId,
-					});
+							status: "failed",
+							error: message,
+						});
+						logger.error("One bulk fulfillment child run failed.", {
+							dispatchId: item.dispatchId,
+							error: message,
+							requestId: input.requestId,
+							runId: run?.id,
+							salesId: item.salesId,
+						});
+					}
+					metadata.increment("completed", 1);
 				}
-				metadata.increment("completed", 1);
 			}
 		}
 
@@ -196,7 +210,12 @@ export const bulkMarkSalesFulfilled = schemaTask({
 			outcomes: result.outcomes,
 		});
 		metadata
-			.set("status", result.failed ? "completed_with_errors" : "completed")
+			.set(
+				"status",
+				result.failed || result.reviewRequired
+					? "completed_with_errors"
+					: "completed",
+			)
 			.set("succeeded", result.succeeded)
 			.set("alreadyFulfilled", result.alreadyFulfilled)
 			.set("reviewRequired", result.reviewRequired)

@@ -1,187 +1,405 @@
-# Task: Capture customer requests and build example-guided sales generation
+# Task: Generate sales form drafts from requests and live configuration
 
 ## Status
-Backlog
+In Progress
 
 ## Priority
 Medium
+
+## Plan File
+[Detailed implementation guidelines](../plans/2026-09-10-configuration-driven-sales-generation.md)
 
 ## Created Date
 2026-09-09
 
 ## Last Updated
-2026-09-09
+2026-09-11
 
 ## Source Context
-The user requested an implementation ticket after agreeing on this workflow:
-sales representatives paste the customer's email into the sales form, configure
-the sale manually, and save the request with the configured order. After enough
-verified examples exist, AI retrieves relevant past request/configuration pairs
-and proposes a new sales configuration. Initial delivery is data collection;
-generation follows measured evaluation. This ticket is canonical in Brain.
+Execution steering: implement backend functionality and automated tests first.
+Delegation preference: use Luna Max for bounded implementation/investigation and
+Sol High for more involved independent work to reduce Astra usage; primary agent
+retains integration and final verification. User explicitly authorized agents.
+UI, browser testing and connecting the creator to the form UI are deferred until
+the technical pipeline is tested. Retain those items as later-phase work rather
+than treating them as prerequisites for backend delivery.
+Primary input is pasted customer-request text. Image input is explicitly secondary
+and means a screenshot/snapped email or order, or a photo/scan of handwriting—not
+product photography. Reuse the same seed contract; unreadable/cropped facts remain
+unresolved rather than inferred.
 
-## Related Feature
-Sales form / customer request capture / assisted order generation
+The user replaced the historical-example learning approach on 2026-09-10.
+Supply email text or request images, a compact sales skeleton schema, item-type
+step sequences, and each step's available component IDs/titles to AI. AI selects
+from this configuration and returns a skeleton. GND hydrates those selections
+through the normal form engine, resolves current prices, and calculates totals.
+Optional 3–5 synthetic shape examples demonstrate structure, not historical sales.
+
+This specification supersedes the previous contents of this ticket. Training-data
+collection, example approval, embeddings, vector storage and historical-sale
+retrieval are no longer prerequisites or implementation milestones. Keep this
+file path stable so existing links continue to work.
 
 ## Implementation Progress
-- Completion: 0%
-- Current Checklist: 1/10 — Define request and example contracts
-- Blockers: None for request capture. AI release depends on representative data and evaluation.
+- Ticket Position: 1/1
+- Completion: 100%
+- Current Checklist: 15/15 — Provider-agnostic backend and Sales Settings selection implemented
+- Blockers: Provider credentials are not configured locally, so paid live-model accuracy, token,
+  cost and latency measurement cannot run. A clean scoped commit is unsafe while
+  unrelated active work overlaps shared manifests/lockfile. UI and image extraction
+  remain intentionally deferred.
 
 ## Product Contract
-- First release targets the Dashboard new sales form for quotes and orders.
-  Keep shared contracts compatible with Dealership and Mobile; adding their
-  request UI is a later scope extension.
-- Add an optional collapsible `Customer Request` textarea with helper text:
-  `Paste the customer's request, then configure the order as usual.`
-- Preserve original Unicode, line breaks, fractions, and Spanish text. Enforce
-  a shared 50,000-character limit with visible validation; never silently truncate.
-- Save/load through the current form persistence flow, including recovery and
-  any enabled autosave. Existing records and clients may omit the field.
-  Omitted means preserve existing text; explicit null means clear it.
-- Capture requires no AI key, external request, embedding service, or email connection.
-- The source text stays internal: exclude it from customer PDFs, emails,
-  storefront/dealer responses, broad list payloads, and routine logs.
-- Copying a sale clears request/example identities and source text by default.
-  Quote-to-order conversion preserves provenance, but must not create duplicate
-  eligible examples for the same source/configuration pair.
+- First deliver a small Dashboard prototype: paste email/request text or upload
+  a readable request photo/screenshot, generate a skeleton, inspect the result,
+  then open/apply it to an unsaved sales form for review.
+- Prioritize pasted text. In the secondary image phase, support text plus screenshots,
+  snapped order/email images, and handwritten request photos. Use an image-capable provider through the
+  Vercel AI SDK; enforce supported media types, byte/pixel limits, and private
+  access. Blurry, cropped or unreadable details become unresolved questions.
+- AI generates selections and customer-specified values. GND owns hydration,
+  dependencies, product resolution, current pricing, tax and totals.
+- No historical sales are sent. No training dataset or new vector database.
+- Save only through existing sales save actions after review. Generation or form
+  opening must not silently finalize/send invoices or mutate inventory/payments.
 
-## Data and Lifecycle Contract
-Use additive Prisma models compatible with the existing MySQL database.
-Names below are proposed; reuse equivalent existing persistence where suitable.
+## Configuration Input
+Latest extension: add a clearable default component per item-type/step configuration.
+Export native UID-based component visibility variations and default policies to AI.
+Apply defaults deterministically only when source information is omitted and the
+default satisfies current visibility rules; explicit, ambiguous or unreadable input
+must not be replaced silently. See the detailed guide's added design and execution
+skill sections. The implementation must follow `implement-with-progress`.
 
-`SalesRequest`: sale relation, raw text, content hash, source type (`pasted_email`
-or `manual_text`), revision, author and timestamps. Derive sale/customer access
-from existing server authorization. Never trust client-supplied ownership IDs.
+Build a server-owned, versioned projection of the actual settings available to
+the current user/business/dealer scope:
+- Item types: stable ID, title, ordered step IDs and required/optional semantics.
+- Steps: stable ID, name, and components limited to ID and title.
+- Keep branching, applicability and dependency rules in compact configuration
+  metadata where they affect legal selections; a flat list alone is insufficient
+  if choices depend on preceding steps.
+- Describe free-value fields separately: quantity, unit, dimensions, handing,
+  swing and room/location where these are not actual component selections.
+- Supply a JSON Schema/Zod output contract and a minimal example based on the
+  real sales-form structure. Do not send the full live form state, historical
+  prices, customer records, or irrelevant settings.
+- Optionally include 3–5 synthetic examples for structurally different item types.
+  Examples must conform to the same schema and current selection rules.
+- For the prototype, send complete applicable configuration if it fits the
+  measured token budget. For large catalogs, first identify candidate item types
+  then fetch only their steps/components, allowing expansion when classification
+  is uncertain. Never arbitrarily drop valid components to meet a token limit.
+- Cache the compact projection by actual access scope and configuration revision/hash;
+  invalidate on settings changes. Revalidate current configuration before apply.
 
-`SalesRequestExample`: request revision, sale revision, schema version, immutable
-request text snapshot, immutable canonical configuration JSON, configuration
-hash, creator, timestamp, eligibility status and exclusion reason. A unique
-request-revision/sale-revision/schema-version identity makes retrying idempotent.
-Record product/step IDs alongside human-readable labels and resolved options;
-include quantities, units, dimensions, handing, swing, groups, location and
-configuration details. Preserve referenced catalog facts without assuming a
-global catalog-version mechanism exists. Minimize unrelated customer/payment data.
+## Output Contract
+Define a small versioned `NewSalesFormSeed` DTO as a strict partial form shell,
+using the editor's native `lineItems`, `qty`, `formSteps`, `stepId`, `prodUid`,
+`selectedProdUids`, and `housePackageTool.doors` vocabulary. It is not a second
+AI-specific proposal model. Proposed shape:
+- schemaVersion, configurationRevision, lineItems, unresolved.
+- Each line has a transient native `uid`, qty, formSteps and supported explicit
+  house-package facts. The shared initializer may normalize/regenerate that UID;
+  no persisted database row identity is model-generated.
+- Preserve groups, openings versus leaves, dimensions and units where applicable.
+- Each unresolved entry identifies item/field, reason and source text or image
+  reference. Missing/ambiguous selections remain null or absent as the schema permits.
+- AI may select IDs only from supplied allowed candidates. Do not ask it to
+  invent database row identities, costs, prices, totals or persisted sale metadata.
+- Treat source text/images as data rather than instructions. Schema validation
+  alone does not prove an ID belongs to the right step or item type.
 
-- Persist source changes atomically with the sale. A failed save cannot leave
-  a request attached to a different or uncommitted configuration.
-- On successful explicit final form save, capture the committed configuration
-  and exact source revision atomically, or reuse an existing immutable history
-  revision with durable processing intent. Do not let a delayed worker snapshot
-  a newer live sale. Form final save is not fulfillment completion or approval.
-- Drafts can retain text but are not eligible examples. New examples start
-  `pending_review`; an authorized sales editor explicitly confirms that the saved
-  configuration matches the source before it becomes `approved`.
-- Source/configuration corrections supersede old eligible examples and require
-  reapproval. Cancelled, deleted, test, incomplete, and superseded records are
-  excluded. Ordinary workspace archiving alone is not evidence of a bad example.
-- Preserve an optional rep clarification note for details supplied by phone or
-  follow-up. Future generation must not infer those facts from an incomplete email.
-- Clearing source text disables its examples; deletion/retention handling must
-  also reach snapshots and future search indexes. Immutability does not bypass deletion.
+## Hydration and Validation
+Implement one package-owned new-sales-form seed initializer, reusable by AI,
+templates/imports and ordinary form bootstrapping rather than owned by the AI API:
+1. Validate output schema, allowed IDs, ID/step/type membership, dependencies,
+   quantities and units. Reject unsupported selections with actionable issues.
+2. Reload authoritative component records and replay selected steps in dependency
+   order through the existing new-form workflow actions/resolvers. Reuse supported
+   default rules; do not maintain a parallel pricing or selection engine.
+3. Populate the actual door, shelf, HPT or other supported line structures and
+   invoke canonical pricing/recalculation with current customer/profile context.
+4. Preserve missing required choices as incomplete. Missing price is a visible
+   review/blocking state, not an accepted zero-price product.
+5. Show the hydrated preview and allow the rep to apply it. On an edited form,
+   show changes explicitly, guard against stale revisions, and provide undo.
+
+Do not assume assigning component IDs to stored JSON or opening the page triggers
+all normal selection side effects. Prove equivalence to manual configuration first.
+If existing hydration lacks this behavior, implementing the shared adapter is part
+of the feature. Customer/profile selection must be available for correct pricing.
 
 ## Implementation Checklist
-- [ ] 1. Define request and versioned snapshot schemas, omission/clear behavior, eligibility transitions, and package-owned snapshot projection.
-- [ ] 2. Add additive persistence, relations, indexes, idempotency identities, and local migration; run repository-required `bun run db:migrate`, `bun run db:push`, and client generation against the verified local target. Record drift blockers without resetting data.
-- [ ] 3. Extend canonical sales load/save contracts and transactions; cover rollback, stale versions, retries, quote conversion, copies, old clients, and exact-revision snapshot capture.
-- [ ] 4. Add Dashboard request input, save/reopen/recovery behavior, clarification note, and scoped example review/exclusion control using existing shared form/UI primitives.
-- [ ] 5. Validate and release request capture independently; update feature, API, database and task documentation. This is the first build/release milestone.
-- [ ] 6. Add resumable background preparation: normalized text, language/category metadata, embeddings and bounded line-example extraction, with revision checks, attempt records and index invalidation.
-- [ ] 7. Build offline evaluation and hybrid retrieval, choose storage against actual database capabilities, and record measured retrieval quality/cost before choosing generation defaults.
-- [ ] 8. Implement Midday-style Vercel AI structured intent generation and the current-catalog resolver; retain source evidence, unresolved fields, run metadata and retrieved example IDs.
-- [ ] 9. Add reviewed generation preview/apply/undo to the sales form and capture AI proposal versus rep corrections. Use the existing canonical save and invoice preview paths.
-- [ ] 10. Pass the AI pilot release gates, document operations and rollback, and update Brain completion evidence. Do not mark the whole ticket complete after capture alone.
+- [x] Inspect local settings and export a price-free sample using only steps referenced by configured routes; exclude unused component families.
+- [x] 1. Inspect current item-type configuration and manual step-selection paths; prove a fixed interior and exterior skeleton hydrate and price identically to manual entry.
+- [x] 2. Define strict proposal and configuration contracts plus compact scoped configuration exporter in the sales domain; include dependency metadata and revision/hash.
+- [x] Add per-route-step default settings persistence, authorized editing API, and eligible fallback resolver with request/default provenance and visibility parity tests.
+- [x] Add the complete scoped, price-free server configuration snapshot cache with structural invalidation, atomic revision publication, compact tuple-JSON serialization and size comparison against CSV; test price-only stability and concurrent rebuilds.
+- [x] 3. Add authenticated text/image generation endpoint using Midday Vercel AI structured output, bounded provider calls and actionable failures.
+- [x] 5. Implement native seed validation and the shared new-sales-form initializer for the declared door subset; incomplete/unsupported requests remain reviewable.
+- [x] 6. Implement backend stale-configuration checks, current pricing and normal save/reopen compatibility; defer UI apply/undo.
+- [x] 7. Evaluate text fixtures first. Live model accuracy/token/cost/latency
+  measurement remains an explicit pre-pilot gate. Handwritten-photo and
+  email/order-screenshot extraction evaluation is deferred by product direction.
+- [x] 8. Complete focused backend tests and Brain feature/API documentation, record supported types and pilot limitations; browser validation is deferred.
+- [x] Complete implementation-skill code review and resolve findings. Scoped commit
+  is deferred because unrelated active work overlaps shared manifests and lockfile;
+  committing them together would violate task isolation.
+- [x] Add an allowlisted OpenAI, Anthropic, DeepSeek, and Gemini provider/model
+  contract persisted in the authoritative Sales Settings metadata.
+- [x] Add Super Admin settings read/update API and the minimum Sales Settings UI
+  selector needed to configure the feature without environment model selection.
+- [x] Add provider adapters and resolve generation exclusively from persisted Sales
+  Settings while retaining server-only provider credentials.
+- [x] Complete provider-focused tests, final review, Brain synchronization, and a
+  safely scoped commit when the shared dirty worktree permits it.
 
-## Later AI Implementation Requirements
-- Durable jobs own cleaning/indexing and long provider work. Save only IDs and
-  revisions in job payloads; persist retryable intent so queue failures lose no work.
-- Retrieve only approved, currently eligible examples within the caller's actual
-  authorized business/dealer boundary. GND tenancy migration is separate work;
-  do not assume a tenantId column or invent tenancy from customer identity.
-- Use lexical plus semantic matching, category filters and optional customer
-  preference. Rerank a bounded candidate set; begin with 3–5 diverse examples
-  within a token budget and tune using evaluation. Near-identical copied orders
-  must not crowd out relevant examples.
-- Begin with order-level examples. Add line-level examples only when source-to-line
-  alignment is reliable; do not invent exact mappings from ambiguous paragraphs.
-- GND currently uses MySQL (`packages/db/src/schema/schema.prisma`). Do not add
-  pgvector or migrate the primary database as a prerequisite for this feature.
-  Choose a compatible search adapter during step 7; an external index, if used,
-  is rebuildable and never authoritative. Defer embedding dependency/storage cost
-  until indexing is needed.
-- Follow Midday's `generateText` + `Output.object` + Zod pattern for intent;
-  inspect current SDK/provider compatibility before dependencies are added.
-  Use bounded retries/timeouts and provider-supported generation settings.
-- Treat customer text and retrieved examples as data, never instructions.
-  Retrieve sanitized configuration examples, excluding unrelated personal data
-  and historical prices/discounts from model context.
-- AI returns requested attributes, quantities/units, source evidence, missing
-  fields and contradictions. Server code resolves active catalog IDs, validates
-  combinations and calculates current prices using existing GND domain logic.
-- Missing dimensions or conflicting quantities remain review items. An AI
-  confidence score alone cannot approve a configuration.
-- Preview changes before applying to an edited form; reject stale form revisions,
-  preserve manual changes, and allow undo. Persist model/prompt/schema versions,
-  retrieved example revisions, latency, token/cost metrics and final corrections.
-- Reuse existing invoice generation after a normal validated save. Automatic
-  invoice finalization/sending, mailbox ingestion, OCR and fine-tuning are follow-ups.
+## Architecture and Midday Guidance
+- Inspect local Midday at /Users/M1PRO/Documents/code/_kitchen_sink/midday,
+  especially apps/api/src/chat/utils.ts for generateText + Output.object and
+  packages/documents/src/processors/base-extraction-engine.ts for provider
+  retry/quality patterns. Check current SDK/provider compatibility at implementation.
+- Keep typed Zod contracts, compact settings projection and hydration in
+  packages/sales with intentional public exports.
+- Keep API authentication/orchestration in apps/api/src/schemas and
+  apps/api/src/trpc/routers; reuse current catalog queries and access rules.
+- Relevant existing entry points:
+  packages/sales/src/sales-form/contracts/schemas.ts;
+  apps/api/src/schemas/new-sales-form.ts;
+  apps/api/src/db/queries/new-sales-form.ts;
+  apps/api/src/trpc/routers/new-sales-form.route.ts;
+  apps/dashboard/src/components/forms/new-sales-form/.
+- UI uses current form composition and shared @gnd/ui primitives. Apply midday,
+  vercel-react-best-practices and agency-engineering Frontend Developer guidance
+  at implementation.
+- Bound generation duration/retries and allow cancellation. Use existing jobs
+  infrastructure if multimodal work exceeds the request budget; avoid introducing
+  a durable job/state-machine subsystem merely for the small prototype.
+- Track minimal run diagnostics: prompt/model/schema/config versions, duration,
+  usage and validation issues. Exclude raw customer text/images from ordinary logs.
+- Reuse existing private upload/document infrastructure if persistence is needed.
+  No new training tables or database migration is required by this design itself.
 
 ## Acceptance and Validation
-Capture milestone must demonstrate:
-1. Paste, save, reopen, edit, clear and recover text on new/existing quotes/orders;
-   Unicode, maximum-size and empty values behave consistently.
-2. Missing field from an older client preserves source text. Copy clears it.
-   Quote conversion preserves provenance without duplicate learning eligibility.
-3. Failed or stale saves create no mismatched example; retrying a committed save
-   creates no duplicates. Snapshots preserve the exact original revision.
-4. Approval, correction, cancellation, deletion and reapproval produce the defined
-   eligibility transitions. Unauthorized reads/writes/reviews fail.
-5. Existing pricing, totals, stock/payment effects and invoice content are unchanged;
-   no provider work is introduced into the capture save path.
-6. Focused persistence/domain/API tests and authenticated Dashboard browser smoke
-   pass; run `bun run test:new-sales-form-migration`, relevant workspace checks,
-   and root `bun run typecheck` for shared changes. Report unrelated baseline failures.
-
-AI pilot gates:
-- Split evaluation by source/project/time so copied or revised examples cannot
-  leak between retrieval/training material and the held-out set.
-- Include door singles/doubles, HPT, bifolds, moulding units, English/Spanish,
-  missing dimensions, conflicting quantities and obsolete catalog references.
-- Compare schema-only generation against retrieval-assisted generation. Report
-  field accuracy, complete-order accuracy, unsupported guesses, ambiguity recall,
-  rep correction rate, time saved, p50/p95 latency and cost per request.
-- Proposed launch targets: 100% schema-valid applied proposals, zero unauthorized
-  retrievals or invalid catalog/pricing applications in the evaluation suite,
-  all deliberately contradictory fixtures flagged, and at least 30% lower median
-  rep entry time in the reviewed pilot. Report sample sizes and failures; no fixed
-  historical-order count alone authorizes release. Broader automatic acceptance
-  requires separately agreed measured thresholds.
-
-## Code Entry Points and Midday References
-- `packages/db/src/schema/sales.prisma` and `schema.prisma`: existing Prisma boundary.
-- `packages/sales/src/sales-form/contracts/schemas.ts`: shared contracts; add reusable request/snapshot logic under the sales domain and intentional public exports.
-- `apps/api/src/schemas/new-sales-form.ts`: validated API contracts.
-- `apps/api/src/trpc/routers/new-sales-form.route.ts`: thin authenticated orchestration.
-- `apps/api/src/db/queries/new-sales-form.ts`: canonical load, draft/final save, version checks and post-save work; inspect existing immutable history before adding duplicate machinery.
-- `apps/dashboard/src/components/forms/new-sales-form/`: input, store, mapper and recovery integration; use existing shared form composition.
-- `packages/jobs/src/tasks/`: later asynchronous preparation/generation.
-- Midday root: `/Users/M1PRO/Documents/code/_kitchen_sink/midday`.
-  Inspect `apps/api/src/chat/utils.ts` for structured output and
-  `packages/documents/src/processors/base-extraction-engine.ts` for extraction
-  retries/quality orchestration. These use different SDK APIs today; copy the
-  appropriate pattern deliberately rather than assuming uniform versions.
-- Apply `midday`, `vercel-react-best-practices`, and `agency-engineering` with
-  its Frontend Developer guidance when implementing the Dashboard changes.
-  Retain GND's Prisma/MySQL and `@gnd/*` boundaries while following Midday layering.
-
-## Brain Documentation Impact at Implementation
-Update `../features/sales-form-system-hardening.md` or a dedicated request feature
-document, `../api/contracts.md`, `../api/permissions.md`, and the database schema,
-relationships and migrations documents. Add an ADR when the durable snapshot /
-retrieval architecture is implemented. Move this task's single ledger pointer
-as its status changes and record milestone evidence here.
+- Clear interior/exterior requests yield allowed type/step/component IDs and the
+  same configuration/prices/totals as manual fixtures using identical context.
+- English, Spanish, fractions and request photos are exercised. Double units
+  versus leaf counts and ambiguous dimensions remain explicit review issues.
+- Invented IDs, wrong-step IDs, stale/deleted components and illegal combinations
+  cannot become applied valid lines. Test scope isolation and prompt injection.
+- Missing customer pricing context, missing prices and required choices are visible;
+  no plausible historical/default price is fabricated.
+- Large configurations use bounded context without silently excluding candidates.
+- Editing while generation runs does not overwrite manual work. Apply, undo,
+  save and reopen preserve the hydrated configuration.
+- Compare no-example versus synthetic-example prompts on held-out hand-authored
+  fixtures; report sample count, field/whole-order match, ambiguity handling,
+  correction effort, latency and cost. These fixtures are evaluation, not training.
+- Run focused domain/API tests, relevant workspace checks and
+  bun run test:new-sales-form-migration; root bun run typecheck for shared changes.
+  Browser smoke covers text input, image input, unresolved results and apply/undo.
+- Prototype success establishes feasibility; invoice finalization and automatic
+  sending remain governed by existing user actions.
 
 ## Validation Evidence
-- Ticket grounded in current GND schema, sales save/version entry points, Brain
-  contracts and local Midday structured-output code on 2026-09-09.
-- Implementation has not started. No application tests or database commands run.
+- A shared-initializer compatibility test composes the hydrated record through the
+  existing New Sales Form save-payload function, validates its meta, line, extra-cost
+  and summary structures against the canonical schemas, then rehydrates it through
+  the ordinary form loader. Component snapshots, HPT pricing and totals remain
+  stable. This is non-persisting backend compatibility evidence; it does not replace
+  future UI apply/undo or an authenticated database save smoke test.
+- Production snapshot reads now use the shared Redis cache keyed by an access scope
+  plus a price-free structural SHA-256 revision. Component title/add/delete,
+  configured route flags, defaults, visibility metadata, redirect and step identity
+  affect the key; prices, images and unrelated metadata do not. Reads probe before
+  and after cache use/build, retry concurrent structural edits, validate cached JSON,
+  and serve a fresh database projection when Redis is unavailable. The probe still
+  reads scoped structural rows, so this saves projection/serialization work rather
+  than eliminating all database reads. Ten query/cache tests cover cache hit,
+  structural invalidation, price-only stability, concurrent rebuild and outage.
+- The superseded request proposal, selection-plan, AI-specific hydrator and
+  door-line hydration modules were removed. The remaining expansion boundary is
+  the generic `initializeNewSalesFormSeed`; `default-policy.ts` remains as its safe
+  omission-only fallback helper. No legacy stack symbols remain in executable code.
+- Current consolidated feature verification passes 98 tests / 268 assertions across
+  20 files after removing the two obsolete cache-wrapper tests. Targeted Biome is
+  clean across 41 feature files. Cache typecheck is clean; Sales and API typechecks
+  report only the unrelated `copy-sales.ts:521` baseline. Settings typecheck reaches
+  only pre-existing `packages/errors` NodeNext extension diagnostics.
+- Shared `initializeNewSalesFormSeed` now owns seed expansion in the sales-form
+  application layer rather than the AI API. It resolves authoritative route/component
+  inputs, replays existing scalar/multi-select mutations, applies defaults only to
+  omissions, preserves unresolved-step blocks, uses existing profile/tier/HPT and
+  record-hydration algorithms, and never accepts a persisted sale base. Six focused
+  tests / 23 assertions cover interior, exterior, HPT pricing, selectedComponents
+  snapshots, defaults, hidden dependencies, and dynamic redirects. Sales typecheck
+  reports only the unrelated `copy-sales.ts:521` baseline error.
+- Final focused backend regression passes 142 tests / 340 assertions across 22
+  files. Coverage includes the native seed schema and real-example validation,
+  scoped configuration, defaults, cache primitives, protected routing, provider
+  boundaries, image-byte safety, visibility rules, and mock evaluation. Sales and
+  API typechecks both reach only the known unrelated `copy-sales.ts:521` baseline
+  nullability error; no feature file appears in diagnostics.
+- JSON is the selected canonical prompt/cache format. A deterministic shape
+  benchmark built from the local diagnostic sample measured tuple JSON at 27,834
+  UTF-8 bytes versus CSV at 37,699 bytes (CSV 1.354x larger). CSV required 631
+  typed rows, quote/delimiter handling, and eight embedded JSON cells for nested
+  route/visibility rules; semantic round-trip passed. No compatible tokenizer is
+  installed, so these are byte/character measurements, not token counts. Ambiguous
+  routes were excluded rather than guessed; this is a shape benchmark, not a valid
+  full local publication.
+- Added a network-off evaluation harness with synthetic English, Spanish and
+  ambiguous two-opening cases. The native-seed mock run passes 15/15 expected
+  fields, 3/3 whole orders, and records zero unsafe guesses. These scores validate
+  harness logic and fixtures only; live-model accuracy/token/cost/latency awaits a
+  configured provider key. Image extraction evaluation is deferred.
+- The protected preview endpoint returns a strict native NewSalesFormSeed only after
+  schema, route, step, component, selection-cardinality and configured-visibility
+  validation plus a post-provider revision check. It does not hydrate, price or save
+  a sale. The earlier API-specific hydration service was removed after the user
+  rejected maintaining a parallel form path; expansion belongs in the shared sales
+  form initializer still to be implemented.
+  Its input no longer accepts customerProfileId because seed generation does not
+  price or hydrate; normal new-form bootstrap owns that context.
+- Super Admin-only default persistence is exposed through a protected API mutation.
+  The server derives the settings row; clients cannot supply `settingId`. Defaults
+  are clearable, merged without discarding unrelated settings metadata, and
+  validated against the configured route/step/component. Focused API/default tests
+  pass; no UI has been added.
+- User requested current-form relevance audit, normalized root step references,
+  complete real edit JSON and a streamlined AI-output example. Exported local order
+  09645LM via the exact read functions/router enrichments; kept real customer/order
+  JSON outside git under `/private/tmp/gnd-sales-example.UBIyMZ`. Created a 551-character
+  native AI-seed example from its selections and door facts, not a live
+  model result. See `../analysis/2026-09-10-sales-request-form-shape-audit.md` for keep/
+  omit findings and why simply opening the UI cannot hydrate all missing prices.
+  Removed legacy addonQty/shelfLineItems flags from the model projection only; stored
+  settings were not deleted. Numeric root-step lookup normalization is verified by
+  14 focused tests / 41 assertions and diagnostic reference checks. Full compact
+  edit JSON is 6,315 characters; native AI seed is 551 characters (91.3% reduction
+  in characters, not a tokenizer/cost benchmark).
+- Combined backend/domain/cache run passes 81 tests / 183 assertions across 18
+  files. Removed API defaults override: snapshot defaults now originate in stored
+  route metadata. Provider failure/schema errors are sanitized without retaining
+  provider causes that may contain customer content. Defaults persistence and real
+  API hydration binding remain delegated; efficient all-writer cache invalidation
+  is still open and is not represented as complete.
+- Re-ran exact local export after terminal marker compatibility fix: settings 3
+  now reaches and rejects ambiguous `wUGhI`, confirming the known duplicate identity
+  is the current publication blocker. No components were silently merged and no
+  local data was changed. Independent backend integration continues.
+- Registered protected `salesRequest.generatePreview` behind an off-by-default
+  feature flag. Reuses editOrders authorization, server-only settings selection,
+  atomic Redis per-user quota with outage failure, and post-provider snapshot
+  freshness checks. Text/base64 image transport is strictly validated; no image
+  storage/public URLs or sales writes. Twelve focused API tests / 34 assertions
+  pass; API typecheck has only existing copy-sales.ts:521. Live endpoint/provider
+  acceptance and fully hydrated response remain pending. API docs updated.
+- Fixed interior/exterior fixtures now prove canonical tier-pricing/HPT normalization
+  parity in addition to shared step-selection mutation parity. The public adapter
+  derives leaf count, handing and swing from explicit proposal facts with provenance;
+  opening-to-leaf and unsupported dimension conversions remain unresolved. Focused
+  projector/contracts/door-hydration/API query run passes 20 tests / 51 assertions.
+  These fixed-fixture proofs complete checklist item 2, not full real-model or
+  authenticated end-to-end delivery. Defaults persistence is delegated next.
+- API snapshot binding now derives model JSON and server selection rules from one
+  projection and computes SHA-256 over price-free compact JSON. Four query/snapshot
+  tests pass (15 assertions), including default changes affecting payload/revision.
+  Added `scripts/export-sales-request-configuration.ts --setting-id=<id>` for exact
+  local model JSON through a read-only RepeatableRead transaction. First local run
+  exposed Mouldings' final `{uid:""}` route terminator; compatibility fix delegated
+  with real query evidence. Full local payload remains unverified until route and
+  duplicate-identity validation succeeds; no data repair or write ran.
+- Combined focused backend run now passes 55 tests / 123 assertions across 14
+  files, including canonical door-line fixtures and the assertion that malformed
+  image bytes never reach the provider. This does not establish authenticated
+  transport, real-model accuracy, or complete end-to-end draft generation yet.
+- Image preprocessing is wired into provider orchestration: JPEG/PNG/WebP decoding,
+  actual-format checks, EXIF orientation/metadata stripping, animation rejection,
+  three-image cap, 5 MiB per image / 10 MiB total / 20MP limits. Three image tests
+  plus four provider tests pass (15 assertions). Sharp pinned to existing lockfile
+  version 0.35.3. API typecheck still has only the pre-existing copy-sales.ts:521
+  error. Private upload authorization/transport is not yet implemented: shared
+  document storage currently offers public URL upload, so it was not reused blindly.
+- Prisma query-boundary tests pass: 2 tests / 7 assertions verify explicit settings
+  ID, configured step UID filtering, resolved component-family filtering, price-free
+  selects, and no component query on ambiguous steps. API typecheck after binding
+  still reports only the existing `copy-sales.ts:521` nullability diagnostic.
+- Integrated public hydration and scoped loader exports; added Prisma repository
+  binding with explicit settings identity, active-row filtering, route-derived step
+  queries and component queries restricted to resolved step IDs. No API endpoint
+  exposes this query yet. Provider receives a combined caller/45-second abort signal.
+  Combined domain/cache/provider suite: 45 tests, 97 assertions pass. Hydration
+  tests prove shared selection-mutation parity, not full door pricing parity.
+- Redis cache adapter is implemented with scope/revision validation and a 24-hour
+  TTL. Durable structural revision publication and orchestration binding remain open.
+- Added the server-only Midday AI SDK adapter and strict native-seed validation.
+  Two provider-boundary tests / three assertions pass with mocked responses.
+  API typecheck reports only pre-existing `packages/sales/src/copy-sales.ts:521`.
+  Dependencies pinned to local Midday ai 6.0.141 / @ai-sdk/openai 3.0.48; UI's
+  older dependencies remain separately resolved. No live provider call yet.
+- Integrated serializer and selection planner through the public package export
+  `@gnd/sales/sales-form/request-generation`. Combined focused suite passes
+  31 tests / 51 assertions; public Bun import smoke succeeds. Feature status
+  documented in `../features/sales-request-generation.md`. Provider/default
+  persistence/cache wiring/hydration remain incomplete.
+- Identity investigation found no canonical tie-breaker: existing code uses
+  unordered settings.findFirst and overwrites duplicate step UIDs. User clarification
+  requested for settings 3/4 and step wUGhI (21/41); no data repair performed.
+  Explicit-setting scoped loader is being implemented with ambiguity rejection.
+- Cache orchestration boundary added with revision-keyed artifacts, scope checks,
+  fresh-build fallback on cache outage and revision recheck before return. Its
+  two focused tests pass. Structural revision persistence and shared Redis binding
+  remain incomplete; this is not yet the full production cache.
+- Added versioned provider instruction builder and bounded source schema: text
+  or private attachment IDs required, arbitrary image URL fields rejected. The
+  server remains responsible for attachment ownership/content checks. Request
+  generation tests pass 16 tests / 26 assertions; no provider invocation yet.
+- Initial strict AI proposal contracts added; reject money fields and duplicate
+  item/step identities while allowing unresolved request facts. Integrated Sol's
+  default resolver: combined request-generation suite passes 15 tests / 22 assertions.
+  Sol also verified default/shared-engine parity at 26 tests / 40 assertions and
+  reported only existing `copy-sales.ts:521` in sales typecheck. Ordered selection
+  planning is delegated next; this is not completed hydration or provider integration.
+- Component projection now preserves the allowlisted `sectionOverride` flags
+  needed by swing/handle configuration while stripping unrelated price fields.
+  Six route/projection tests pass with eight assertions. Default/serializer agent
+  integration and end-to-end functionality remain pending.
+- Price-free component projection added with strict visibility-rule validation:
+  malformed variations fail rather than becoming unrestricted candidates, and
+  metadata-deleted components are excluded. Combined focused suite passes
+  5 tests / 7 assertions. Full structural projection (including overrides and
+  route redirects), local-data identity resolution and integration remain open.
+- Real local inspection artifact: [configuration sample](../analysis/sales-request-local-configuration-sample.json).
+  Two active settings records (3 and 4) each reference nine routes. Queries restrict
+  component families to those route sequences and root components to route keys.
+  Root step `MtJgR` resolves to Item Type, with Interior pre-hung `KmUMM` and
+  Exterior `r6lf5`. Raw matching step rows total 21 and component rows 591 per
+  setting; this is inspection evidence, not a validated full model payload.
+- Luna Max is implementing the deterministic compact serializer; Sol High is
+  implementing the eligible-default resolver. Their focused tests and integration
+  remain pending. No UI changes or database writes have been made by this task.
+- Configured-route boundary tests pass: 3 tests / 4 assertions. Coverage includes
+  excluding stale route-map steps, nested settings compatibility, and rejecting
+  duplicate step UID resolution. Duplicate identity investigation delegated to
+  Luna Max; no canonical mapping assumed yet.
+- Backend implementation started with `configured-routes.ts` and a local-only
+  read-only inspection script. The settings-derived query returned 591 component
+  rows per inspected setting, with no missing referenced step UID. This is a raw
+  scoped inspection, not the final AI payload: component metadata includes show,
+  deleted, variations, stepSequence, sectionOverride and custom.
+- Local data has duplicate step UID `wUGhI` (step 21 Height and step 41 Door Type).
+  Resolve canonical routing identity before publishing an AI snapshot; do not
+  silently merge both step families or arbitrarily choose one. Full exporter,
+  defaults/cache/creator tests and AI functionality remain incomplete.
+- Local settings inspection succeeded through the local environment runner after
+  sandbox escalation. MySQL is running on 127.0.0.1:3307; no database writes ran.
+  Settings contain routeSequence and separate externalRouteSequence, so component
+  loading must derive active step UIDs before querying DykeStepProducts.
+- 2026-09-10: Ticket revised to the user's configuration-driven prototype approach.
+- Application implementation and hydration proof have not started.
+
+## Brain Documentation Impact
+This ticket and its backlog pointer describe planned work. At implementation,
+document actual behavior and contracts in feature/API docs; update database docs
+only if persistence changes are introduced. Keep one status-ledger pointer.

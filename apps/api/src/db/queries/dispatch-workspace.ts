@@ -1,3 +1,4 @@
+import { getFulfillmentBacklogOrderIds } from "@gnd/sales/fulfillment-backlog-query";
 import { whereEmployees } from "@api/prisma-where";
 import type {
 	DispatchBacklogInput,
@@ -78,16 +79,7 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 				},
 			},
 		}),
-		ctx.db.salesOrderListProjection.count({
-			where: {
-				state: "ready",
-				version: salesOrderListProjectionVersion(),
-				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
-				pipelineFulfillmentApplicability: "required",
-				pipelineFulfillmentState: "backlog",
-				salesOrder: { is: buildSalesDispatchBacklogWhere() },
-			},
-		}),
+		getFulfillmentBacklogOrderIds(ctx.db, buildSalesDispatchBacklogWhere()).then((ids) => ids.length),
 		ctx.db.salesOrderListProjection.count({
 			where: {
 				state: "ready",
@@ -280,6 +272,8 @@ export async function getDispatchBacklog(
 				}
 			: {}),
 	};
+	const backlogIds = await getFulfillmentBacklogOrderIds(ctx.db, where);
+	where.AND = [...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []), { id: { in: backlogIds } }];
 	const { response, searchMeta } = await composeQueryData(
 		input,
 		where,

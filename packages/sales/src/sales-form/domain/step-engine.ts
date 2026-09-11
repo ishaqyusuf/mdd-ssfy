@@ -96,13 +96,13 @@ export function getRedirectableRoutes(routeData: any, scopedSteps?: any[]) {
 		: configuredSteps
 			? configuredSteps
 			: Object.keys(routeData?.stepsById || {})
-				.map((id) => Number(id))
-				.filter((id) => Number.isFinite(id))
-				.sort((a, b) => a - b)
-				.map((id) => {
-					const uid = routeData?.stepsById?.[id];
-					return uid ? routeData?.stepsByUid?.[uid] : null;
-				});
+					.map((id) => Number(id))
+					.filter((id) => Number.isFinite(id))
+					.sort((a, b) => a - b)
+					.map((id) => {
+						const uid = routeData?.stepsById?.[id];
+						return uid ? routeData?.stepsByUid?.[uid] : null;
+					});
 
 	const routes = orderedSteps
 		.filter(Boolean)
@@ -174,6 +174,11 @@ export function resolveComponentPriceByDeps(
 		selectedProdUidsByStepUid?: Record<string, string[]>;
 	},
 ) {
+	const finitePrice = (value: unknown) => {
+		if (value == null || value === "") return null;
+		const number = Number(value);
+		return Number.isFinite(number) ? number : null;
+	};
 	const pricing =
 		component?.pricing || component?.pricings || component?.priceData || null;
 	const componentMeta = readSalesFormObjectMetadata(component?.meta);
@@ -184,13 +189,13 @@ export function resolveComponentPriceByDeps(
 			: Array.isArray(componentMeta?.priceStepDeps)
 				? componentMeta.priceStepDeps
 				: [];
-	const directSales = Number(component?.salesPrice);
-	const directBase = Number(component?.basePrice);
+	const directSales = finitePrice(component?.salesPrice);
+	const directBase = finitePrice(component?.basePrice);
 
 	if (!pricing || typeof pricing !== "object") {
 		return {
-			salesPrice: Number.isFinite(directSales) ? directSales : null,
-			basePrice: Number.isFinite(directBase) ? directBase : null,
+			salesPrice: directSales,
+			basePrice: directBase,
 		};
 	}
 	const depValueGroups = deps
@@ -280,9 +285,7 @@ export function resolveComponentPriceByDeps(
 		}
 	}
 
-	const scoringValues = Array.from(
-		new Set(depCombos.flatMap((combo) => combo)),
-	);
+	const scoringValues = Array.from(new Set(depCombos.flat()));
 	if (raw == null && scoringValues.length) {
 		let best: { key: string; score: number } | null = null;
 		for (const key of Object.keys(pricingObj)) {
@@ -299,25 +302,25 @@ export function resolveComponentPriceByDeps(
 	}
 
 	const bucket = typeof raw === "number" ? { price: raw } : raw;
-	const salesPrice = Number(
+	const salesPrice = finitePrice(
 		bucket?.salesPrice ?? bucket?.price ?? bucket?.salesUnitCost,
 	);
-	const basePrice = Number(
+	const basePrice = finitePrice(
 		bucket?.basePrice ??
 			bucket?.price ??
 			bucket?.baseUnitCost ??
 			bucket?.salesPrice ??
 			bucket?.salesUnitCost,
 	);
-	if (!Number.isFinite(salesPrice) && !Number.isFinite(basePrice)) {
+	if (salesPrice == null && basePrice == null) {
 		return {
-			salesPrice: Number.isFinite(directSales) ? directSales : null,
-			basePrice: Number.isFinite(directBase) ? directBase : null,
+			salesPrice: directSales,
+			basePrice: directBase,
 		};
 	}
 	return {
-		salesPrice: Number.isFinite(salesPrice) ? salesPrice : null,
-		basePrice: Number.isFinite(basePrice) ? basePrice : null,
+		salesPrice,
+		basePrice,
 	};
 }
 export function customNextStepTitle(

@@ -11,7 +11,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@gnd/ui/card";
-import { Menu } from "@gnd/ui/custom/menu";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -65,6 +64,7 @@ import {
 	repairDoorRowProfilePriceDrift,
 } from "./door-utils";
 import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
+import { ResponsiveEstimateBreakdown } from "./responsive-estimate-breakdown";
 import type {
 	DoorStoredRow,
 	WorkflowComponentRecord,
@@ -389,12 +389,12 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 					</div>
 				) : (
 					<article className="overflow-hidden rounded-lg border bg-background">
-						<header className="flex items-center gap-3 border-b bg-muted/20 px-4 py-3">
+						<header className="flex items-center gap-3 border-b bg-muted/20 px-4 py-3 max-lg:gap-2 max-lg:px-3 max-lg:py-2.5">
 							<ComponentImageLightbox
 								imageSrc={doorImageSrc}
 								title={doorTitle}
 								alt={props.activeDoorComponent?.title || doorTitle}
-								className="size-12 rounded-md"
+								className="size-12 rounded-md max-lg:size-10 max-lg:shrink-0"
 								imageClassName="p-2"
 								fallback={<Icons.Ruler size={15} className="text-slate-500" />}
 							/>
@@ -464,9 +464,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 								</>
 							</div>
 						</header>
-						<div className="overflow-x-auto">
-							<table className="w-full min-w-[660px] table-fixed text-sm">
-								<thead>
+						<div className="overflow-x-auto max-lg:overflow-visible">
+							<table className="w-full min-w-[660px] table-fixed text-sm max-lg:min-w-0 max-lg:table-auto">
+								<thead className="max-lg:hidden">
 									<tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
 										<th className="whitespace-nowrap px-3 py-2">Size</th>
 										{props.hasSwing ? (
@@ -488,7 +488,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 										</th>
 									</tr>
 								</thead>
-								<tbody>
+								<tbody className="max-lg:grid">
 									{rowsForComponent.map((row, rowIndex) => {
 										const unitBreakdown = resolveHptDoorUnitPriceBreakdown(
 											row,
@@ -523,9 +523,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													row,
 													rowIndex,
 												)}
-												className="border-b border-slate-100 last:border-0"
+												className="border-b border-slate-100 last:border-0 max-lg:grid max-lg:grid-cols-2 max-lg:gap-x-2 max-lg:gap-y-3 max-lg:border-x-0 max-lg:border-t-0 max-lg:border-b max-lg:border-border max-lg:bg-transparent max-lg:p-3 max-lg:last:border-b-0"
 											>
-												<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800">
+											<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800 max-lg:col-span-1 max-lg:row-start-1 max-lg:p-0 max-lg:text-foreground">
+												<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Size</p>
 													<div className="flex items-center gap-1">
 														<span
 															className={
@@ -546,8 +547,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 														/>
 													</div>
 												</td>
-												{props.hasSwing ? (
-													<td className="px-2 py-2">
+											{props.hasSwing ? (
+												<td className="px-2 py-2 max-lg:col-span-2 max-lg:p-0">
+													<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Swing</p>
 														{props.swingOptions ? (
 															<Select
 																value={
@@ -588,8 +590,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 														)}
 													</td>
 												) : null}
-												{props.noHandle ? (
-													<td className="px-2 py-2">
+											{props.noHandle ? (
+												<td className="px-2 py-2 max-lg:col-span-2 max-lg:p-0">
+													<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Quantity</p>
 														<SalesFormQuantityStepper
 															label={`Quantity for ${row.dimension || "door size"}`}
 															value={row.totalQty}
@@ -604,13 +607,14 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																!props.pricingReady ||
 																isDoorRowPriceMissing(row)
 															}
-															className="w-32"
+															className="w-32 max-lg:h-10 max-lg:w-full"
 															min={0}
 														/>
 													</td>
 												) : (
 													<>
-														<td className="px-2 py-2">
+													<td className="px-2 py-2 max-lg:min-w-0 max-lg:p-0">
+														<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Left hand</p>
 															<SalesFormQuantityStepper
 																label={`LH quantity for ${row.dimension || "door size"}`}
 																value={row.lhQty}
@@ -623,11 +627,12 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	!props.pricingReady ||
 																	isDoorRowPriceMissing(row)
 																}
-																className="w-32"
+															className="w-32 max-lg:h-10 max-lg:w-full"
 																min={0}
 															/>
 														</td>
-														<td className="px-2 py-2">
+													<td className="px-2 py-2 max-lg:min-w-0 max-lg:p-0">
+														<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Right hand</p>
 															<SalesFormQuantityStepper
 																label={`RH quantity for ${row.dimension || "door size"}`}
 																value={row.rhQty}
@@ -640,16 +645,17 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	!props.pricingReady ||
 																	isDoorRowPriceMissing(row)
 																}
-																className="w-32"
+															className="w-32 max-lg:h-10 max-lg:w-full"
 																min={0}
 															/>
 														</td>
-														<td className="px-2 py-2 text-right text-xs font-semibold text-slate-700">
-															{Number(row.totalQty || 0)}
+											<td className="px-2 py-2 text-right text-xs font-semibold text-slate-700 max-lg:hidden">
+												{Number(row.totalQty || 0)}
 														</td>
 													</>
 												)}
-												<td className="px-2 py-2">
+											<td className="px-2 py-2 max-lg:border-t max-lg:pt-3">
+												<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Estimate</p>
 													<DoorPriceCell
 														row={row}
 														profileCoefficient={props.profileCoefficient}
@@ -676,10 +682,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 														}
 													/>
 												</td>
-												<td className="px-3 py-2 text-right text-xs font-semibold text-slate-900">
-													<Menu
-														noSize
-														Icon={null}
+											<td className="px-3 py-2 text-right text-xs font-semibold text-slate-900 max-lg:border-t max-lg:pt-3 max-lg:text-foreground">
+												<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Line total</p>
+													<ResponsiveEstimateBreakdown
+														title="Estimate breakdown"
 														label={
 															<span className="cursor-pointer underline decoration-dotted underline-offset-2">
 																<CostPriceBreakdownHover
@@ -694,7 +700,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 															</span>
 														}
 													>
-														<Card className="w-[320px] rounded-lg text-left">
+														<Card className="w-[320px] rounded-lg text-left max-lg:w-full max-lg:border-0 max-lg:shadow-none">
 															<CardHeader className="flex-row items-start justify-between gap-3 p-3">
 																<div className="min-w-0">
 																	<CardTitle>Estimate breakdown</CardTitle>
@@ -864,9 +870,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																</span>
 															</CardFooter>
 														</Card>
-													</Menu>
+													</ResponsiveEstimateBreakdown>
 												</td>
-												<td className="w-14 px-1 py-2 text-right">
+											<td className="w-14 px-1 py-2 text-right max-lg:col-start-2 max-lg:row-start-1 max-lg:flex max-lg:w-auto max-lg:items-start max-lg:justify-end max-lg:p-0">
 													<>
 														<div className="flex items-center justify-end gap-1">
 															{props.canEditPricing && profilePriceDrift ? (
@@ -877,7 +883,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																		type="button"
 																		size="icon"
 																		variant="ghost"
-																		className="size-6 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+																		className="size-6 text-amber-600 hover:bg-amber-50 hover:text-amber-700 max-lg:size-10"
 																		disabled={!props.pricingReady}
 																		onClick={() => {
 																			const repaired =
@@ -902,11 +908,11 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																type="button"
 																size="icon"
 																variant="ghost"
-																className="size-6 text-slate-500 hover:text-red-600"
+														className="size-6 text-slate-500 hover:text-red-600 max-lg:size-10"
 																onClick={() => props.onRemoveSizeRow(row)}
 																aria-label={`Remove ${row.dimension || "door size"}`}
 															>
-																<Icons.Trash2 className="size-3" />
+														<Icons.Trash2 className="size-4" />
 															</Button>
 														</div>
 													</>

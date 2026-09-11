@@ -9,6 +9,7 @@ const salesSettingsItems = [
 	{ path: "/settings/sales/operations", label: "Operations" },
 	{ path: "/settings/sales/dealer-orders", label: "Dealer orders" },
 	{ path: "/settings/sales/special-orders", label: "Special orders" },
+	{ path: "/settings/sales/request-generation", label: "Request AI" },
 ];
 
 export default function SalesSettingsLayout({

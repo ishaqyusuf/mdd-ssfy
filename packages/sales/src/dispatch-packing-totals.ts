@@ -2,6 +2,7 @@ export type DispatchPackingTotalsInput = {
 	ordered: number | string | null | undefined;
 	listed: number | string | null | undefined;
 	packed: number | string | null | undefined;
+	assigned?: number;
 };
 
 export function isCurrentDispatchPackingAllocation(input: {
@@ -19,8 +20,8 @@ function quantity(
 
 /**
  * Resolves one packing denominator across unstarted, partially packed, and
- * completed dispatches. Listed quantity becomes authoritative once packing
- * starts; before that, ordered/remaining quantity is the target.
+ * completed dispatches. Explicit assignment scope remains authoritative;
+ * legacy dispatches use listed quantity after packing starts.
  */
 export function resolveDispatchPackingTotals(
 	input: DispatchPackingTotalsInput,
@@ -28,7 +29,9 @@ export function resolveDispatchPackingTotals(
 	const packed = quantity(input.packed);
 	const listed = quantity(input.listed);
 	const ordered = quantity(input.ordered);
-	const total = Math.max(packed, listed > 0 ? listed : ordered);
+	const total = input.assigned !== undefined
+		? Math.max(packed, quantity(input.assigned))
+		: Math.max(packed, listed > 0 ? listed : ordered);
 
 	return {
 		packed,

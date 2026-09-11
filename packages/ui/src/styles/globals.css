@@ -9,6 +9,7 @@
 @import "shadcn/tailwind.css";
 @source "../**/*.{ts,tsx}";
 @source "../../../pdf/src/**/*.{ts,tsx}";
+@source "../../../sales/src/**/*.{ts,tsx}";
 @source "../../../site-nav/src/**/*.{ts,tsx}";
 @source "../../../../apps/dashboard/src/**/*.{ts,tsx}";
 @source "../../../../apps/site/src/**/*.{ts,tsx}";

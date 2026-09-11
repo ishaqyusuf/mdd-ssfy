@@ -19,6 +19,7 @@ export const salesDispatchCompleted: NotificationHandler = {
 			deliveryMode,
 			dueDate,
 			driverId,
+			completedByAdmin,
 			packedBy,
 			receivedBy,
 			signature,
@@ -36,6 +37,7 @@ export const salesDispatchCompleted: NotificationHandler = {
 			deliveryMode,
 			dueDate,
 			driverId,
+			completedByAdmin,
 			packedBy,
 			receivedBy,
 			signature,
@@ -51,14 +53,14 @@ export const salesDispatchCompleted: NotificationHandler = {
 			type: "sales_dispatch_completed",
 			source: "user",
 			subject: "Dispatch completed",
-			headline: `Dispatch ${dispatchId} for order ${orderNo || "-"} has been completed.`,
+			headline: `Dispatch ${dispatchId} for order ${orderNo || "-"} has been completed${completedByAdmin ? " by an administrator" : ""}.`,
 			authorId: author.id,
 			tags: payload,
 		};
 	},
 	createWhatsApp(data) {
 		return {
-			message: `Dispatch #${data.dispatchId} for order ${data.orderNo || "-"} has been completed.`,
+			message: `Dispatch #${data.dispatchId} for order ${data.orderNo || "-"} has been completed${data.completedByAdmin ? " by an administrator" : ""}.`,
 		};
 	},
 };

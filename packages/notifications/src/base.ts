@@ -101,6 +101,8 @@ export type NotificationOptions = {
 	includeChannelSubscribers?: boolean;
 	allowFallbackRecipient?: boolean;
 	forceInAppRecipients?: boolean;
+	/** External delivery only when the in-app activity already has a durable receipt. */
+	skipActivities?: boolean;
 	testEmailMode?: boolean;
 	// priority?: number;
 	// sendEmail?: boolean;

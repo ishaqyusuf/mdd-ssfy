@@ -2,9 +2,18 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
+import { useMediaQuery } from "@gnd/ui/hooks/use-media-query";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@gnd/ui/sheet";
 import { useEffect, useState } from "react";
 import {
 	roundMoney,
@@ -147,6 +156,7 @@ export function DoorPriceCell({
 	const [open, setOpen] = useState(false);
 	const [draft, setDraft] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
+	const isCompact = useMediaQuery("(max-width: 1023px)");
 	const baseUnit = resolveDoorPriceEditorBasePrice(row, basePrice);
 	const hasStoredBasePrice = baseUnit != null;
 	const isMissingPrice = Boolean(row.meta?.priceMissing);
@@ -163,7 +173,7 @@ export function DoorPriceCell({
 		displayUnitPrice: displayDoorPrice,
 	});
 	const readOnlyPrice = (
-		<div className="flex h-8 w-full min-w-[92px] items-center justify-end px-2 text-right">
+		<div className="flex h-8 w-full min-w-[92px] items-center justify-end px-2 text-right max-lg:w-fit max-lg:min-w-0">
 			<span className="block text-sm font-semibold text-foreground">
 				{isMissingPrice ? "Missing" : currency(displayDoorPrice)}
 			</span>
@@ -195,36 +205,105 @@ export function DoorPriceCell({
 		);
 	}
 
-	return (
-		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
+	const trigger = (
+		<Button
+			type="button"
+			disabled={isSaving}
+			variant={
+				isMissingPrice
+					? "destructive"
+					: Number(row.unitPrice || 0) > 0
+						? "outline"
+						: "secondary"
+			}
+			className="h-8 w-full min-w-[92px] justify-end rounded-lg border-slate-300 px-2 text-right max-lg:h-10 max-lg:w-fit max-lg:min-w-0"
+		>
+			<CostPriceBreakdownHover
+				breakdown={{
+					costPrice: baseUnit,
+					displayPrice: displayDoorPrice,
+				}}
+				context={priceBreakdown}
+			>
+				<span className="text-sm font-semibold">
+					{isMissingPrice && !readOnly
+						? "Add Price"
+						: currency(displayDoorPrice)}
+				</span>
+			</CostPriceBreakdownHover>
+		</Button>
+	);
+	const editor = (
+		<>
+			<div className="space-y-2">
+				<Label htmlFor={`door-base-${row.dimension || "row"}`}>
+					Base Price
+				</Label>
+				<Input
+					id={`door-base-${row.dimension || "row"}`}
+					type="number"
+					step="0.01"
+					value={draft}
+					onChange={(event) => setDraft(event.target.value)}
+					className="max-lg:h-11"
+				/>
+			</div>
+			<div className="flex items-center justify-between text-xs text-muted-foreground">
+				<span>Door sales price</span>
+				<span className="font-semibold text-foreground">
+					{currency(doorSalesPrice)}
+				</span>
+			</div>
+			<div className="flex justify-end gap-2">
+				<Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+					Cancel
+				</Button>
 				<Button
 					type="button"
 					disabled={isSaving}
-					variant={
-						isMissingPrice
-							? "destructive"
-							: Number(row.unitPrice || 0) > 0
-								? "outline"
-								: "secondary"
-					}
-					className="h-8 w-full min-w-[92px] justify-end rounded-lg border-slate-300 px-2 text-right"
+					size="sm"
+					onClick={async () => {
+						const nextBase = toNumber(draft, Number.NaN);
+						if (!Number.isFinite(nextBase) || nextBase < 0) return;
+						try {
+							setIsSaving(true);
+							await onSave(nextBase);
+							setOpen(false);
+						} finally {
+							setIsSaving(false);
+						}
+					}}
 				>
-					<CostPriceBreakdownHover
-						breakdown={{
-							costPrice: baseUnit,
-							displayPrice: displayDoorPrice,
-						}}
-						context={priceBreakdown}
-					>
-						<span className="text-sm font-semibold">
-							{isMissingPrice && !readOnly
-								? "Add Price"
-								: currency(displayDoorPrice)}
-						</span>
-					</CostPriceBreakdownHover>
+					{isSaving ? "Saving..." : "Save"}
 				</Button>
-			</PopoverTrigger>
+			</div>
+		</>
+	);
+
+	if (isCompact) {
+		return (
+			<Sheet open={open} onOpenChange={setOpen}>
+				<SheetTrigger asChild>{trigger}</SheetTrigger>
+				<SheetContent side="bottom" className="rounded-t-xl">
+					<SheetHeader className="text-left">
+						<SheetTitle>
+							{isMissingPrice || !hasStoredBasePrice
+								? "Set Base Price"
+								: "Edit Base Price"}
+						</SheetTitle>
+						<SheetDescription>
+							Final price keeps the current surcharge delta and updates from this base.
+						</SheetDescription>
+					</SheetHeader>
+					<div className="mt-5 space-y-4">{editor}</div>
+				</SheetContent>
+			</Sheet>
+		);
+	}
+
+	return (
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>{trigger}</PopoverTrigger>
 			<PopoverContent align="end" className="w-72 space-y-3 p-4">
 				<div className="space-y-1">
 					<p className="text-sm font-semibold text-foreground">
@@ -237,52 +316,7 @@ export function DoorPriceCell({
 						base.
 					</p>
 				</div>
-				<div className="space-y-2">
-					<Label htmlFor={`door-base-${row.dimension || "row"}`}>
-						Base Price
-					</Label>
-					<Input
-						id={`door-base-${row.dimension || "row"}`}
-						type="number"
-						step="0.01"
-						value={draft}
-						onChange={(event) => setDraft(event.target.value)}
-					/>
-				</div>
-				<div className="flex items-center justify-between text-xs text-muted-foreground">
-					<span>Door sales price</span>
-					<span className="font-semibold text-foreground">
-						{currency(doorSalesPrice)}
-					</span>
-				</div>
-				<div className="flex justify-end gap-2">
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						onClick={() => setOpen(false)}
-					>
-						Cancel
-					</Button>
-					<Button
-						type="button"
-						size="sm"
-						disabled={isSaving}
-						onClick={async () => {
-							const nextBase = toNumber(draft, Number.NaN);
-							if (!Number.isFinite(nextBase) || nextBase < 0) return;
-							try {
-								setIsSaving(true);
-								await onSave(nextBase);
-								setOpen(false);
-							} finally {
-								setIsSaving(false);
-							}
-						}}
-					>
-						{isSaving ? "Saving..." : "Save"}
-					</Button>
-				</div>
+				{editor}
 			</PopoverContent>
 		</Popover>
 	);

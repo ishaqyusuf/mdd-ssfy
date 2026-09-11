@@ -49,6 +49,7 @@ export const channelNames = [
 	"sales_dispatch_trip_canceled",
 	"sales_dispatch_created",
 	"sales_dispatch_date_updated",
+	"sales_dispatch_updated",
 	"sales_dispatch_queued",
 	"sales_dispatch_unassigned",
 	"sales_marked_as_production_completed",

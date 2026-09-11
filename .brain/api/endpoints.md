@@ -1,5 +1,16 @@
 # API Endpoints
 
+## Sales Request configuration administration (2026-09-11)
+
+- `salesRequest.getAISettings` returns catalog policy/publication status with the
+  provider/model selection.
+- `salesRequest.updateCatalogPolicy` is Super Admin-only and marks publication
+  stale.
+- `salesRequest.regenerateConfiguration` is a Super Admin-only zero-provider
+  mutation retaining the last good revision on failure.
+- `salesRequest.generatePreview` binds the component catalog and separately cached
+  names-only service vocabulary into one SHA-256 context revision.
+
 ## Reliability Sentry ingestion (2026-09-09)
 
 - `POST /api/webhooks/reliability/sentry/:registrationId` accepts integration-platform

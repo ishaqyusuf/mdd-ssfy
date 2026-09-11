@@ -342,6 +342,12 @@ export const channelsConfig: Partial<{
 		priority: 2,
 		category: "Sales",
 	},
+	sales_dispatch_updated: {
+		name: "Fulfillment Updated",
+		description: "Send when assigned fulfillment items or details change.",
+		priority: 2,
+		category: "Sales",
+	},
 	sales_dispatch_date_updated: {
 		name: "Dispatch Date Updated",
 		description: "Send when a dispatch due date is updated.",

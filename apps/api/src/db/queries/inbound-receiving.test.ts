@@ -202,6 +202,7 @@ describe("createInboundShipmentFromDemandsQuery", () => {
 		expect(demandReadCount).toBe(2);
 		expect(shipmentInputs).toEqual([
 			{
+				creatorUserId: 1,
 				supplierId: undefined,
 				demandIds: [701],
 				reference: "08661LM",
@@ -336,6 +337,7 @@ describe("createInboundShipmentFromDemandsQuery", () => {
 		]);
 		expect(shipmentInputs).toEqual([
 			{
+				creatorUserId: 1,
 				supplierId: undefined,
 				demandIds: [702],
 				reference: undefined,

@@ -63,3 +63,4 @@ export * from "./production-inbound";
 export { cancelProductionInbound, productionInboundCancelSchema } from "./production-inbound-cancel";
 
 export * from "./production-availability";
+export { assertFulfillmentHasPackedItems, FulfillmentEmptyLoadError } from "./fulfillment-packed-guard";

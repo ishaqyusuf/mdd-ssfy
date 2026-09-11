@@ -20,7 +20,7 @@ import type { PrintMode } from "@gnd/sales/print/types";
 import {
 	type SalesPrintSettings,
 	normalizeSalesPrintSettings,
-} from "@gnd/settings";
+} from "@gnd/settings/schema";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 import { ATTACHMENT_OVERLAY } from "./feature-flags";

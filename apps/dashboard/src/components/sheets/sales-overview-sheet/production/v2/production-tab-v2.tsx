@@ -58,15 +58,17 @@ import { ProductionMaterialActions } from "../../availability/production-materia
 
 function ProductionV2Item({
 	item,
+	itemNumber,
+	showTopDivider,
 	opened,
 	workerMode,
-	followedByOpened,
 	onToggle,
 }: {
 	item: ProductionItem;
+	itemNumber: number;
+	showTopDivider: boolean;
 	opened: boolean;
 	workerMode: boolean;
-	followedByOpened: boolean;
 	onToggle: () => void;
 }) {
 	const production = useProduction();
@@ -157,11 +159,8 @@ function ProductionV2Item({
 				ref={itemRef}
 				value={item.controlUid}
 				className={cn(
-					"overflow-hidden bg-background transition-[border-radius,border-color]",
-					opened
-						? "rounded-md border border-border"
-						: "rounded-none border border-x-transparent border-t-transparent border-b-border",
-					followedByOpened && "border-b-transparent",
+					"overflow-hidden border-0 bg-background",
+					showTopDivider && "border-t border-border",
 					!item.itemConfig?.production && "hidden",
 				)}
 			>
@@ -175,19 +174,23 @@ function ProductionV2Item({
 				>
 					<ItemGroup>
 						<Item className="relative flex-nowrap items-start border-0 p-0">
-							<AccessBased>
-								<ItemMedia>
-									<Checkbox
-										checked={production.selections?.[item.controlUid]}
-										onCheckedChange={() =>
-											production.setSelections((current) => ({
-												...current,
-												[item.controlUid]: !current?.[item.controlUid],
-											}))
-										}
-									/>
-								</ItemMedia>
-							</AccessBased>
+							<ItemMedia>
+								<Checkbox
+									checked={production.selections?.[item.controlUid]}
+									onCheckedChange={() =>
+										production.setSelections((current) => ({
+											...current,
+											[item.controlUid]: !current?.[item.controlUid],
+										}))
+									}
+								/>
+							</ItemMedia>
+							<span
+								className="shrink-0 pt-0.5 text-sm font-semibold tabular-nums"
+								aria-label={`Production item ${itemNumber}`}
+							>
+								{itemNumber}.
+							</span>
 							<ItemContent className="relative min-w-0">
 								<ItemTitle>
 									<button
@@ -264,13 +267,15 @@ function ProductionV2Item({
 }
 
 type AvailabilityProps = {
+	onViewInbound?: (inboundId: number) => void;
 	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 };
 
-function ProductionTabV2Content({ onCreateInbound }: AvailabilityProps) {
+function ProductionTabV2Content({ onCreateInbound, onViewInbound }: AvailabilityProps) {
 	const { data } = useProduction();
 	const queryCtx = useSalesOverviewQuery();
-	const workerMode = Boolean(queryCtx.assignedTo);
+	const workerMode =
+		Boolean(queryCtx.assignedTo) || queryCtx.params.mode === "production-tasks";
 	const productionItems = getProductionTabItems(data?.items);
 	const items = workerMode
 		? productionItems.filter(
@@ -298,6 +303,7 @@ function ProductionTabV2Content({ onCreateInbound }: AvailabilityProps) {
 	return (
 		<div className="flex flex-col gap-4 p-1">
 			<ProductionMaterialActions
+				onViewInbound={onViewInbound}
 				salesOrderId={data.orderId}
 				onOpenForm={
 					onCreateInbound ? () => onCreateInbound("mark_available") : undefined
@@ -315,7 +321,7 @@ function ProductionTabV2Content({ onCreateInbound }: AvailabilityProps) {
 					const openedItemUid = expandedItemUids[0];
 					if (openedItemUid) toggleItem(openedItemUid);
 				}}
-				className="flex flex-col gap-3"
+				className="overflow-hidden rounded-md border border-border"
 			>
 				{items.length ? null : (
 					<Empty className="h-[60vh]">
@@ -331,12 +337,10 @@ function ProductionTabV2Content({ onCreateInbound }: AvailabilityProps) {
 					<ProductionV2Item
 						key={item.controlUid}
 						item={item}
+						itemNumber={index + 1}
+						showTopDivider={index > 0}
 						opened={expandedItemUids.includes(item.controlUid)}
 						workerMode={workerMode}
-						followedByOpened={
-							index < items.length - 1 &&
-							expandedItemUids.includes(items[index + 1]?.controlUid || "")
-						}
 						onToggle={() => toggleItem(item.controlUid)}
 					/>
 				))}
@@ -349,9 +353,7 @@ export function ProductionTabV2(props: AvailabilityProps) {
 	return (
 		<ProductionProvider args={[]}>
 			<ProductionTabV2Content {...props} />
-			<AccessBased>
-				<ProductionTabFooter />
-			</AccessBased>
+			<ProductionTabFooter />
 		</ProductionProvider>
 	);
 }

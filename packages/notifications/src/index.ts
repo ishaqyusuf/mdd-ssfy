@@ -72,6 +72,7 @@ import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
 import { salesDispatchCompleted } from "./types/sales-dispatch-completed";
 import { salesDispatchCreated } from "./types/sales-dispatch-created";
+import { salesDispatchUpdated } from "./types/sales-dispatch-updated";
 import { salesDispatchDateUpdated } from "./types/sales-dispatch-date-updated";
 import { salesDispatchDuplicateAlert } from "./types/sales-dispatch-duplicate-alert";
 import { salesDispatchInProgress } from "./types/sales-dispatch-in-progress";
@@ -164,6 +165,7 @@ const handlers = {
 	sales_dispatch_in_progress: salesDispatchInProgress,
 	sales_dispatch_trip_canceled: salesDispatchTripCanceled,
 	sales_dispatch_date_updated: salesDispatchDateUpdated,
+	sales_dispatch_updated: salesDispatchUpdated,
 	sales_dispatch_unassigned: salesDispatchUnassigned,
 	sales_marked_as_production_completed: salesMarkedAsProductionCompleted,
 	sales_production_all_completed: salesProductionAllCompleted,
@@ -522,7 +524,6 @@ export class Notifications {
 			(contacts || [])
 				.filter((user) => user.inAppNotification)
 				.map(async (user: UserData) => {
-
 					const rawActivityInput = handler.createActivity(
 						validatedData,
 						author,
@@ -897,7 +898,7 @@ export class Notifications {
 			// Generate a single group ID for all related activities
 
 			// Create activities for each user
-			const activities = handler.skipActivity
+			const activities = handler.skipActivity || options?.skipActivities
 				? []
 				: await this.#createActivities(
 						handler,

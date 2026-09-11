@@ -54,11 +54,15 @@ export function LegacySalesOverviewHeader({
 	tabs,
 	activeTab,
 	mode,
+	expanded,
+	onExpandedChange,
 	onTabChange,
 }: {
 	tabs: LegacySalesOverviewTabDefinition[];
 	activeTab: LegacySalesOverviewTabId;
 	mode: LegacySalesOverviewMode;
+	expanded: boolean;
+	onExpandedChange: (expanded: boolean) => void;
 	onTabChange?: (tab: LegacySalesOverviewTabId) => void;
 }) {
 	const { data: contextData } = useSaleOverview();
@@ -99,7 +103,7 @@ export function LegacySalesOverviewHeader({
 		<SheetHeader>
 			<DataSkeletonProvider value={skeletonContext}>
 				{isV2Header ? (
-					<div className="flex min-w-0 items-start justify-between gap-3 pr-7">
+					<div className="flex min-w-0 items-start justify-between gap-3 pr-12">
 						<div className="min-w-0">
 							<p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
 								Sales overview · {isQuote ? "Quote" : "Order"}
@@ -157,15 +161,34 @@ export function LegacySalesOverviewHeader({
 								) : null}
 							</div>
 						</div>
-						{!isQuote && !query.assignedTo ? (
-							<SalesPrioritySelect
-								salesId={data?.id}
-								orderId={data?.orderId}
-								priority={data?.priority}
-								triggerClassName="w-[112px] rounded-md"
-								showBadge={false}
-							/>
-						) : null}
+						<div className="flex shrink-0 items-center gap-2">
+							{!isQuote && !query.assignedTo ? (
+								<SalesPrioritySelect
+									salesId={data?.id}
+									orderId={data?.orderId}
+									priority={data?.priority}
+									triggerClassName="w-[112px] rounded-md"
+									showBadge={false}
+								/>
+							) : null}
+							<Button
+								type="button"
+								variant="outline"
+								size="icon"
+								className="size-8 shrink-0"
+								onClick={() => onExpandedChange(!expanded)}
+								aria-label={
+									expanded ? "Collapse sales overview" : "Expand sales overview"
+								}
+								title={expanded ? "Collapse" : "Expand"}
+							>
+								{expanded ? (
+									<Icons.Condense className="size-4" />
+								) : (
+									<Icons.OpenInFull className="size-4" />
+								)}
+							</Button>
+						</div>
 					</div>
 				) : (
 					<SheetTitle>

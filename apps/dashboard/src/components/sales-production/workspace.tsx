@@ -15,10 +15,8 @@ import {
 	SalesProductionCalendar,
 	SalesProductionCalendarSkeleton,
 } from "./calendar";
-import { SalesProductionAnalyticsCardSkeleton } from "./analytics-card";
 import { SalesProductionHeader } from "./header";
 import { SalesProductionReviews } from "./reviews";
-import { SalesProductionSummary } from "./summary";
 
 type SalesProductionInput = RouterInputs["sales"]["productions"];
 
@@ -34,11 +32,6 @@ export function SalesProductionWorkspace({
 
 	return (
 		<div className="flex min-w-0 flex-col gap-4">
-			<ErrorBoundary errorComponent={ErrorFallback}>
-				<Suspense fallback={<SummarySkeleton />}>
-					<SalesProductionSummary />
-				</Suspense>
-			</ErrorBoundary>
 			<ErrorBoundary errorComponent={ErrorFallback}>
 				<Suspense fallback={<HeaderSkeleton />}>
 					<SalesProductionHeader />
@@ -72,16 +65,6 @@ export function SalesProductionWorkspace({
 
 function HeaderSkeleton() {
 	return <Skeleton className="h-10 w-full rounded-md" />;
-}
-
-function SummarySkeleton() {
-	return (
-		<div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-			{Array.from({ length: 4 }).map((_, index) => (
-				<SalesProductionAnalyticsCardSkeleton key={index.toString()} />
-			))}
-		</div>
-	);
 }
 
 function ViewSkeleton({

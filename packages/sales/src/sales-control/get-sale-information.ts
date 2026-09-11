@@ -209,6 +209,7 @@ export function composeSalesItemControl(
     .flat()!;
   const prodOverride = doorMeta?.prodOverride;
   const computedItemConfig = getItemStatConfig({
+    qty: baseItem.qty ? { qty: baseItem.qty } : undefined,
     isDyke: !!order.isDyke,
     formSteps: baseItem.formSteps,
     setting: setting.data,

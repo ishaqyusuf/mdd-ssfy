@@ -10,9 +10,42 @@ import {
 	getDispatchProofFilename,
 	isDispatchCompletionProofStale,
 	mergeDispatchCompletionProof,
+	resolveDispatchProofDeliveryDate,
 } from "./dispatch-proof-completion";
 
 describe("dispatch proof completion", () => {
+	test("requires the reviewed manifest and binds retries to that manifest", () => {
+		const input = { dispatchId: 42, requestId: "dispatch:42:manifest", signaturePath: "M1 1 L2 2", receivedBy: "Customer", attachments: [] };
+		expect(completeDispatchWithProofSchema.safeParse(input).success).toBe(false);
+		const reviewed = completeDispatchWithProofSchema.parse({ ...input, expectedManifestRevision: "manifest-revision-1" });
+		const fingerprint = getDispatchCompletionPayloadFingerprint(reviewed);
+		const staged = createDispatchCompletionProof({}, input.requestId, new Date(), fingerprint);
+		expect(() => createDispatchCompletionProof(
+			mergeDispatchCompletionProof({}, staged), input.requestId, new Date(),
+			getDispatchCompletionPayloadFingerprint({ ...reviewed, expectedManifestRevision: "manifest-revision-2" }),
+		)).toThrow("different proof content");
+	});
+	test("requires a nonblank recipient for delivery proof", () => {
+		const input = { expectedManifestRevision: "manifest-revision-1", dispatchId: 42, requestId: "dispatch:42:recipient", signaturePath: "M1 1 L2 2" };
+		expect(completeDispatchWithProofSchema.safeParse(input).success).toBe(false);
+		expect(completeDispatchWithProofSchema.safeParse({ ...input, receivedBy: "   " }).success).toBe(false);
+		expect(completeDispatchWithProofSchema.parse({ ...input, receivedBy: " Customer " }).receivedBy).toBe("Customer");
+	});
+	test("proof identity includes recipient, delivery date and completion note", () => {
+		const input = { signaturePath: "M0 0 L1 1", attachments: [], receivedBy: "Customer", receivedDate: new Date("2026-09-09T12:00:00Z"), note: "At reception" };
+		const original = getDispatchCompletionPayloadFingerprint(input);
+		for (const change of [{ receivedBy: "Someone else" }, { receivedDate: new Date("2026-09-08T12:00:00Z") }, { note: "At warehouse" }]) {
+			expect(getDispatchCompletionPayloadFingerprint({ ...input, ...change })).not.toBe(original);
+		}
+		expect(getDispatchCompletionPayloadFingerprint({ ...input })).toBe(original);
+	});
+	test("preserves a historical delivery date and stable staging fallback", () => {
+		const now = new Date("2026-09-10T15:00:00Z");
+		const supplied = new Date("2026-09-09T16:00:00Z");
+		expect(resolveDispatchProofDeliveryDate(supplied, "2026-09-10T14:00:00Z", now)).toEqual(supplied);
+		expect(resolveDispatchProofDeliveryDate(undefined, "2026-09-09T12:00:00Z", now).toISOString()).toBe("2026-09-09T12:00:00.000Z");
+		expect(() => resolveDispatchProofDeliveryDate(new Date("2026-09-12T12:00:00Z"), "2026-09-10T14:00:00Z", now)).toThrow("after today");
+	});
 	test("keeps one resumable proof stage for the same request", () => {
 		const payloadFingerprint = "fingerprint-request-1";
 		const started = createDispatchCompletionProof(
@@ -101,6 +134,8 @@ describe("dispatch proof completion", () => {
 
 	test("validates bounded image proof and a safe signature path", () => {
 		const parsed = completeDispatchWithProofSchema.parse({
+				expectedManifestRevision: "manifest-revision-1",
+				receivedBy: "Customer",
 			dispatchId: 42,
 			requestId: "dispatch:42:request-1",
 			signaturePath: "M 1.0 2.0 L 3.0 4.0",
@@ -117,6 +152,8 @@ describe("dispatch proof completion", () => {
 		expect(parsed.attachments).toHaveLength(1);
 		expect(() =>
 			completeDispatchWithProofSchema.parse({
+				expectedManifestRevision: "manifest-revision-1",
+				receivedBy: "Customer",
 				dispatchId: 42,
 				requestId: "dispatch:42:request-1",
 				signaturePath: 'M 1 2"/><script>',
@@ -124,6 +161,8 @@ describe("dispatch proof completion", () => {
 		).toThrow();
 		expect(() =>
 			completeDispatchWithProofSchema.parse({
+				expectedManifestRevision: "manifest-revision-1",
+				receivedBy: "Customer",
 				dispatchId: 42,
 				requestId: "dispatch:42:request-1",
 				signaturePath: "M 1 2 L 3 4",
@@ -145,6 +184,8 @@ describe("dispatch proof completion", () => {
 		).toThrow("client ids must be unique");
 		expect(() =>
 			completeDispatchWithProofSchema.parse({
+				expectedManifestRevision: "manifest-revision-1",
+				receivedBy: "Customer",
 				dispatchId: 42,
 				requestId: "dispatch:42:request-1",
 				signaturePath: "M 1 2 L 3 4",
@@ -164,6 +205,8 @@ describe("dispatch proof completion", () => {
 		const base64 = "A".repeat(6_800_000);
 		expect(() =>
 			completeDispatchWithProofSchema.parse({
+				expectedManifestRevision: "manifest-revision-1",
+				receivedBy: "Customer",
 				dispatchId: 42,
 				requestId: "dispatch:42:aggregate-limit",
 				signaturePath: "M 1 2 L 3 4",

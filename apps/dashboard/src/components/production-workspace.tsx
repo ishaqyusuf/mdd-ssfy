@@ -37,6 +37,7 @@ import { Skeleton } from "@gnd/ui/skeleton";
 
 type WorkspaceMode = "admin" | "worker";
 type SalesProductionInput = RouterInputs["sales"]["productions"];
+const SHOW_PRODUCTION_ANALYTICS_CARDS = false;
 
 interface Props {
 	mode: WorkspaceMode;
@@ -141,11 +142,6 @@ export function ProductionWorkspaceSkeleton({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-				{Array.from({ length: 4 }).map((_, index) => (
-					<SalesProductionAnalyticsCardSkeleton key={index.toString()} />
-				))}
-			</section>
 			<Skeleton className="h-10 w-full rounded-md" />
 			<ProductionTableSkeleton
 				initialSettings={initialTableSettings}
@@ -359,10 +355,11 @@ export function ProductionWorkspace({
 
 			{workerMode ? (
 				<>
-					<section
-						aria-label="My production analytics"
-						className="grid grid-cols-2 gap-3 xl:grid-cols-4"
-					>
+					{SHOW_PRODUCTION_ANALYTICS_CARDS ? (
+						<section
+							aria-label="My production analytics"
+							className="grid grid-cols-2 gap-3 xl:grid-cols-4"
+						>
 						{dashboardQuery.isPending || !dashboard ? (
 							Array.from({ length: 4 }).map((_, index) => (
 								<SalesProductionAnalyticsCardSkeleton key={index.toString()} />
@@ -407,7 +404,8 @@ export function ProductionWorkspace({
 								/>
 							</>
 						)}
-					</section>
+						</section>
+					) : null}
 					<section className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
 						<PageTabs
 							portal={false}
@@ -429,11 +427,17 @@ export function ProductionWorkspace({
 							className="xl:flex-1"
 						/>
 						<div className="min-w-0 w-full xl:ml-auto xl:w-auto xl:min-w-[360px]">
-							<SalesProductionSearchFilter workerMode showSavedViews={false} />
+							<SalesProductionSearchFilter
+								workerMode
+								showSavedViews={false}
+								searchClassName={
+									workerView === "calendar" ? "max-xl:hidden" : undefined
+								}
+							/>
 						</div>
 					</section>
 				</>
-			) : (
+			) : SHOW_PRODUCTION_ANALYTICS_CARDS ? (
 				<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 					{dashboardQuery.isPending || !dashboard ? (
 						Array.from({ length: 4 }).map((_, index) => (
@@ -504,7 +508,7 @@ export function ProductionWorkspace({
 						</>
 					)}
 				</section>
-			)}
+			) : null}
 
 			{workerMode && workerView === "calendar" ? (
 				<section aria-label="My production calendar">

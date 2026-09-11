@@ -72,6 +72,8 @@ export const taskNames = [
 	"sales-commission",
 	"reset-sales-control",
 	"notification",
+	"deliver-fulfillment-notices",
+	"sweep-fulfillment-notices",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
 

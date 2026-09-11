@@ -309,6 +309,31 @@
   action column without a visible header label. The accessible Actions name is
   retained for assistive technology, while Swing receives a wider fixed column
   and its selector stays within that cell instead of crowding the LH control.
+- On screens below the desktop large breakpoint, House Package Tool, Moulding,
+  and Service tables now switch to compact row cards instead of retaining a
+  minimum-width table and horizontal scroller. HPT preserves its door header
+  while each size card exposes size, swing where applicable, LH/RH or total
+  quantity, estimate, line total, pricing breakdown, repair, and remove actions.
+  Moulding cards preserve the image, calculator, estimate breakdown, quantity,
+  total, and removal rules. Service cards preserve role-gated pricing, tax and
+  production controls, line totals, confirmation, and add-line behavior. The
+  desktop table layouts and all pricing/persistence callbacks remain unchanged.
+  The shared Tailwind stylesheet explicitly scans `packages/sales/src`, ensuring
+  these package-owned responsive utilities are included in the generated CSS.
+  On compact screens, HPT and Moulding estimate breakdowns use the shared
+  shadcn bottom Sheet instead of a floating menu, while HPT base-price editing
+  uses the same bottom-sheet treatment. Wider layouts retain the existing Menu
+  and Popover interactions, and all pricing calculations and save callbacks are
+  shared across both presentations.
+  Compact HPT size cards place row actions beside the size heading. Compact
+  Moulding cards place removal beside the product title; small screens retain
+  stacked metrics, while medium compact screens align quantity, estimate, and
+  line total in one row. Compact Service cards place removal beside the service
+  input, Tax and Production together above a final three-column Quantity, Unit
+  Price, and read-only input-style Line Total row.
+  Compact HPT, Moulding, and Service row collections use flat divider lists
+  rather than individually bordered, rounded row cards. Form controls retain
+  their own borders so edit affordances remain clear.
 - Grouped moulding hydration treats each legacy sales-item description as the
   row-scoped title instead of treating the primary Moulding step's aggregate
   label as one row's name. Repeated saves therefore keep the selected component
@@ -868,3 +893,14 @@ Verified local 09623PC edit/save/reload/repeat-save and fresh09635PC copy/save. 
   matches show guidance; closing or selecting a replacement clears search.
 - Existing size/quantity preservation and repricing behavior is unchanged.
   No API, database, permission or persistence contract changed.
+
+## Compact HPT estimate and quantity presentation (2026-09-11)
+
+- Below the large breakpoint, editable and read-only HPT estimate controls use
+  intrinsic content width instead of stretching across the row.
+- When HPT rows expose separate left-hand and right-hand quantity controls, the
+  redundant total-quantity display is hidden in the compact layout. The desktop
+  table retains its existing Total column.
+- Compact service rows place the description input and delete action in one
+  bottom-aligned flex row with the standard field gap. Desktop retains its
+  dedicated Actions column.

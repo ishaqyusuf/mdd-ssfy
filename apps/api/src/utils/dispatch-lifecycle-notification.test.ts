@@ -11,6 +11,7 @@ describe("dispatch lifecycle notifications", () => {
 		"sales_dispatch_approval_pending_released",
 		"sales_dispatch_unassigned",
 		"sales_dispatch_date_updated",
+		"sales_dispatch_updated",
 	] as const)("delivers %s directly to the driver inbox", async (channel) => {
 		await expect(
 			sendDispatchLifecycleNotification(
@@ -23,10 +24,10 @@ describe("dispatch lifecycle notifications", () => {
 					dispatchId: 4602,
 					deliveryMode: "delivery",
 					dueDate: new Date("2026-09-04T00:00:00.000Z"),
-						driverId: 55,
-					},
-					{ create: createNotification } as never,
-				),
+					driverId: 55,
+				},
+				{ create: createNotification } as never,
+			),
 		).resolves.toMatchObject({ sent: true });
 		expect(createNotification).toHaveBeenCalledTimes(1);
 		expect(createNotification.mock.calls[0]?.[0]).toBe(channel);
@@ -50,5 +51,18 @@ describe("dispatch lifecycle notifications", () => {
 			),
 		).resolves.toEqual({ sent: false, reason: "NO_RECIPIENT" });
 		expect(createNotification).not.toHaveBeenCalled();
+	});
+
+	it("preserves external delivery without duplicating a durable in-app activity", async () => {
+		createNotification.mockResolvedValueOnce({ activities: 0 });
+		await expect(sendDispatchLifecycleNotification(
+			{} as Parameters<typeof sendDispatchLifecycleNotification>[0],
+			1, 55, "sales_dispatch_assigned", { dispatchId: 4602 },
+			{ create: createNotification } as never, true,
+		)).resolves.toMatchObject({ sent: true });
+		expect(createNotification.mock.calls[0]?.[2]).toMatchObject({
+			skipActivities: true, recipients: [{ ids: [55], role: "employee" }],
+			includeChannelSubscribers: false, allowFallbackRecipient: false,
+		});
 	});
 });

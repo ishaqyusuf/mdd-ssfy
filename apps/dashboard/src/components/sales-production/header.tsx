@@ -217,6 +217,7 @@ export function SalesProductionHeader() {
 			>
 				<SearchFilterTRPC
 					placeholder="Search order, customer, or sales number..."
+					searchClassName={isCalendar ? "max-xl:hidden" : undefined}
 					filterList={[...activeServerFilters, ...activeWorkspaceFilters]}
 					hiddenFilterKeys={hiddenFilterKeys}
 					pageTabsLayout="adaptive"

@@ -1056,6 +1056,7 @@ export async function resolveSalesInventoryMarkAsAutoForContinue(
 			const uniqueDemandIds = uniquePositiveNumbers(demandIds);
 			if (!uniqueDemandIds.length) continue;
 			const result = await createInboundShipmentFromDemands(tx, {
+				creatorUserId: Number(input.triggeredByUserId) || undefined,
 				supplierId,
 				demandIds: uniqueDemandIds,
 				reference: `Auto Mark As ${input.action.replaceAll("_", " ")} ${operationId}`,

@@ -15,9 +15,10 @@ const ProductionTabV2 = dynamic(
 
 export function ProductionTabGateway({
 	onCreateInbound,
-}: { onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void }) {
+	onViewInbound,
+}: { onViewInbound?: (inboundId: number) => void; onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void }) {
 	const { data } = useSaleOverview();
 
 	if (!data) return <ProductionTabV2Skeleton />;
-	return <ProductionTabV2 onCreateInbound={onCreateInbound} />;
+	return <ProductionTabV2 onCreateInbound={onCreateInbound} onViewInbound={onViewInbound} />;
 }

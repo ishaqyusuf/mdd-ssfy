@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { resolveDispatchCompletionAttempt } from "./dispatch-completion";
+import { dispatchCompletionFingerprint, resolveDispatchCompletionAttempt } from "./dispatch-completion";
 
 describe("dispatch completion idempotency", () => {
+	test("rejects changed completion evidence under the same request ID", () => {
+		const task = { dispatchId: 42, receivedBy: "Customer", receivedDate: new Date("2026-09-09T12:00:00Z") };
+		const fingerprint = dispatchCompletionFingerprint(task);
+		const input = { status: "completed", requestId: "request-1", meta: { dispatchCompletion: { requestId: "request-1", fingerprint } } };
+		expect(resolveDispatchCompletionAttempt({ ...input, fingerprint })).toBe("replay");
+		expect(resolveDispatchCompletionAttempt({ ...input, fingerprint: dispatchCompletionFingerprint({ ...task, receivedBy: "Different recipient" }) })).toBe("conflict");
+	});
 	test("replays the same completed request without another note or payment review", () => {
 		expect(
 			resolveDispatchCompletionAttempt({
@@ -30,7 +37,7 @@ describe("dispatch completion idempotency", () => {
 		).toBe("conflict");
 	});
 
-	test("preserves legacy and unfinished completion behavior", () => {
+	test("allows unfinished completion but rejects completed calls without retry identity", () => {
 		expect(
 			resolveDispatchCompletionAttempt({
 				status: "in progress",
@@ -44,6 +51,6 @@ describe("dispatch completion idempotency", () => {
 				requestId: null,
 				meta: {},
 			}),
-		).toBe("continue");
+		).toBe("conflict");
 	});
 });

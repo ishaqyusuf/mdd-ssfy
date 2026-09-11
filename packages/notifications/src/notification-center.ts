@@ -18,6 +18,7 @@ import {
 	type SalesDispatchCompletedTags,
 	type SalesDispatchCreatedTags,
 	type SalesDispatchDateUpdatedTags,
+	type SalesDispatchUpdatedTags,
 	type SalesDispatchDuplicateAlertTags,
 	type SalesDispatchInProgressTags,
 	type SalesDispatchPackedTags,
@@ -49,6 +50,7 @@ import {
 	salesDispatchCompletedTags,
 	salesDispatchCreatedTags,
 	salesDispatchDateUpdatedTags,
+	salesDispatchUpdatedTags,
 	salesDispatchDuplicateAlertTags,
 	salesDispatchInProgressTags,
 	salesDispatchPackedTags,
@@ -127,6 +129,7 @@ type NotificationActionPayloadMap = {
 	sales_dispatch_in_progress: Omit<SalesDispatchInProgressTags, "type">;
 	sales_dispatch_trip_canceled: Omit<SalesDispatchTripCanceledTags, "type">;
 	sales_dispatch_date_updated: Omit<SalesDispatchDateUpdatedTags, "type">;
+	sales_dispatch_updated: Omit<SalesDispatchUpdatedTags, "type">;
 	sales_dispatch_completed: Omit<SalesDispatchCompletedTags, "type">;
 	community_unit_production_started: Omit<
 		CommunityUnitProductionStartedTags,
@@ -446,6 +449,7 @@ function parseAction(
 		sales_dispatch_in_progress: salesDispatchInProgressTags,
 		sales_dispatch_trip_canceled: salesDispatchTripCanceledTags,
 		sales_dispatch_date_updated: salesDispatchDateUpdatedTags,
+		sales_dispatch_updated: salesDispatchUpdatedTags,
 		sales_dispatch_completed: salesDispatchCompletedTags,
 	} as const;
 	if (type in dispatchActions) {

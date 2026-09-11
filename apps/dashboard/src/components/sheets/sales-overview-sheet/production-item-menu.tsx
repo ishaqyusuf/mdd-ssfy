@@ -70,10 +70,12 @@ export function ProductionItemMenu() {
 }
 export function ProductionItemMenuActions({
 	itemUids = null,
+	workerMode = false,
 	setOpened,
 	setMenuBusy,
 }: {
 	itemUids?: string[] | null;
+	workerMode?: boolean;
 	setOpened: (opened: boolean) => void;
 	setMenuBusy: (busy: boolean) => void;
 }) {
@@ -106,7 +108,11 @@ export function ProductionItemMenuActions({
             total: submitTotal,
             pendingAssignments: submitPendingAssignments,
         },
-        deleteSubmit: { qty: deleteSubmitQty, items: deleteSubmitItems },
+        deleteSubmit: {
+			qty: deleteSubmitQty,
+			items: deleteSubmitItems,
+			submissionIds: deleteSubmissionIds,
+		},
         deleteAssignment: {
             qty: deleteAssignmentQty,
             items: deleteAssignmentItems,
@@ -160,9 +166,11 @@ export function ProductionItemMenuActions({
 
             return {
                 items: _items,
-                pendingAssignments,
+				pendingAssignments: workerMode ? 0 : pendingAssignments,
                 pendingSubmissions,
-                total: sum([pendingAssignments, pendingSubmissions]),
+				total: workerMode
+					? pendingSubmissions
+					: sum([pendingAssignments, pendingSubmissions]),
             };
         })();
         const deleteSubmit = (() => {
@@ -178,6 +186,11 @@ export function ProductionItemMenuActions({
             return {
                 qty: sum(_items, "qty"),
                 items: _items,
+				submissionIds: [
+					...new Set(
+						filtered?.flatMap((item) => item.analytics.submissionIds || []) || [],
+					),
+				],
             };
         })();
         const deleteAssignment = (() => {
@@ -203,7 +216,7 @@ export function ProductionItemMenuActions({
             deleteSubmit,
             deleteAssignment,
         };
-    }, [prod.data, itemIds]);
+	}, [prod.data, itemIds, workerMode]);
     const auth = useAuth();
     const finishAction = async () => {
 		const completedAction = activeActionRef.current;
@@ -340,9 +353,9 @@ export function ProductionItemMenuActions({
 							"Some submissions have been registered to dispatch.",
 						);
                     }
-                    pl.deleteSubmissions = {
-                        itemIds: deleteSubmitItems.map((a) => a.itemId),
-                    };
+					pl.deleteSubmissions = workerMode
+						? { submissionIds: deleteSubmissionIds }
+						: { itemIds: deleteSubmitItems.map((a) => a.itemId) };
                     break;
                 }
             }
@@ -384,7 +397,7 @@ export function ProductionItemMenuActions({
 		<div aria-busy={isBusy}>
 			<Tabs.Root value={tab}>
 				<Tabs.Content value="main">
-					<Menu.Item
+					{workerMode ? null : <Menu.Item
 						onClick={(event) => {
 							event.preventDefault();
 							setAction("assign");
@@ -399,7 +412,7 @@ export function ProductionItemMenuActions({
 						{isBusy && action === "assign"
 							? getProductionActionFeedback("assign").progress
 							: "Assign All"}
-					</Menu.Item>
+					</Menu.Item>}
 					<Menu.Item
 						shortCut={`QTY: ${submitTotal}`}
 						disabled={isBusy || !submitTotal}
@@ -408,7 +421,7 @@ export function ProductionItemMenuActions({
 						onClick={(event) => {
 							event.preventDefault();
 							setAction("submit");
-							if (!submitPendingAssignments) {
+							if (workerMode || !submitPendingAssignments) {
 								void submitAction("submit");
 							} else {
 								setTab("users");
@@ -426,7 +439,11 @@ export function ProductionItemMenuActions({
 							setAction("delete.submit");
 							setTab("confirm");
 						}}
-						disabled={isBusy || !deleteSubmitQty}
+							disabled={
+								isBusy ||
+								!deleteSubmitQty ||
+								(workerMode && !deleteSubmissionIds.length)
+							}
 						shortCut={`QTY: ${deleteSubmitQty}`}
 						className={productionActionItemClassName}
 					>
@@ -434,7 +451,7 @@ export function ProductionItemMenuActions({
 							? getProductionActionFeedback("delete.submit").progress
 							: "Delete Submissions"}
 					</Menu.Item>
-					<Menu.Item
+					{workerMode ? null : <Menu.Item
 						Icon={Icons.Delete}
 						onClick={(event) => {
 							event.preventDefault();
@@ -448,7 +465,7 @@ export function ProductionItemMenuActions({
 						{isBusy && action === "delete.assign"
 							? getProductionActionFeedback("delete.assign").progress
 							: "Delete Assignments"}
-					</Menu.Item>
+					</Menu.Item>}
 				</Tabs.Content>
 
 				<Tabs.Content value="users">

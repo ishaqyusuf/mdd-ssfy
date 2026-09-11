@@ -7,6 +7,7 @@ import {
 } from "@/components/sales-overview-system/lib/inbound-create-continuation";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useSalesOverviewUi } from "@/store/sales-overview-ui";
 import Sheet from "@gnd/ui/custom/sheet-v2";
 import { Tabs } from "@gnd/ui/tabs";
 import { useEffect, useRef, useState } from "react";
@@ -55,6 +56,8 @@ function Content() {
 	usePageTitle();
 	const query = useSalesOverviewQuery();
 	const { data } = useSaleOverview();
+	const expanded = useSalesOverviewUi((state) => state.expanded);
+	const setExpanded = useSalesOverviewUi((state) => state.setExpanded);
 	const [pane, setPane] = useState<SalesOverviewPane | null>(null);
 	const [paneOpened, setPaneOpened] = useState(false);
 	const paneTriggerRef = useRef<HTMLElement | null>(null);
@@ -230,6 +233,7 @@ function Content() {
 
 	return (
 		<Sheet
+			fullscreen={expanded}
 			sheetName="sales-overview-sheet"
 			open
 			onOpenAutoFocus={(event) => {
@@ -266,6 +270,8 @@ function Content() {
 							tabs={tabs}
 							activeTab={activeTab as LegacySalesOverviewTabId}
 							mode={mode}
+							expanded={expanded}
+							onExpandedChange={setExpanded}
 							onTabChange={setActiveTab}
 						/>
 					</Tabs>
@@ -314,6 +320,7 @@ function Content() {
 					<InboundDetailPane
 						key={`inbound-${pane.inboundId}`}
 						inboundId={pane.inboundId}
+						workerSalesOrderId={mode === "assigned-production" ? data?.id : undefined}
 					/>
 				) : null}
 				{pane?.kind === "payment" && data?.orderId ? (

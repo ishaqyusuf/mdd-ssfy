@@ -1,4 +1,52 @@
+### 2026-09-10 — Completion quantity review read boundary
+
+Added manager-protected fulfillmentCompletionReview with explicit order/fulfillment pairing. It projects physical evidence and delegates assigned/packed/left-behind quantities to the shared sales validator through buildFulfillmentCompletionReview. Unknown scopes, overpacking and unresolved physical evidence return a blocked review instead of guessed quantities. Two shared review tests pass with nine assertions. This is a quantity-only preview, not inventory/evidence/permission readiness to complete. UI consumption, delivered/order remainder context, manifest binding and protected-query integration remain unfinished.
+
+### 2026-09-10 — Empty-load proof guard applies to delivery and pickup
+
+Moved the shared positive-packed-quantity guard outside the pickup-only branch of proof finalization. Both delivery and pickup now require a nondeleted positive packed row for the paired order/fulfillment before completion. This prevents legacy delivery scopes with no packing from being marked delivered through proof submission. Seventeen focused proof/guard tests pass with 39 assertions; these are helper tests, not protected-route persistence evidence. Explicit historical recovery must still confirm and pack actual delivered quantities through the canonical workflow.
+
+### 2026-09-10 — Manifest revision includes planned fulfillment scope
+
+Packing command revision now includes the parsed fulfillment assignment scope (revision, selection mode and quantities) and delivery mode, in addition to driver, physical packing, inventory and pending reports. Previously a planned-quantity-only edit could leave an earlier proof review apparently current. Unrelated metadata such as proof-upload checkpoints is deliberately excluded. Existing packing/proof suites pass 22 tests / 54 assertions; these regressions do not yet exercise a persisted quantity edit against the manifest query. Existing drafts receive a changed revision on rollout and must be reviewed again.
+
+### 2026-09-10 — Proof finalization rechecks the reviewed load
+
+The canonical proof completion callback now locks the fulfillment header and recomputes its packing manifest revision before pickup packing or submitDispatchTask. A change during media upload returns CONFLICT instead of completing from the pre-upload review. The existing early completed-request replay remains separate. Isolated route transpilation passed; concurrent database and protected-route acceptance remain unverified. This guard relies on competing packing/edit commands participating in the same locking protocol; it does not establish proof that every legacy writer does so.
+
+### 2026-09-10 — Proof manifest contract
+
+completeDispatchWithProof requires a nonblank expectedManifestRevision (16–128 characters). The staged proof fingerprint includes it alongside recipient, date, notes and media. Reusing a request ID for another manifest fails. Existing web/mobile callers supply this value; older clients omitting it now fail validation. Prior fingerprint checkpoints need a fresh request. This does not replace a locked finalization-time manifest check.
+
+## Order-first fulfillment overview — Ticket 03
+
+`dispatch.fulfillmentOrder({ salesId, cursor? })` requires the existing dispatch-manager authorization. It reads one non-deleted order requiring fulfillment and returns NOT_FOUND otherwise. The response contains general order context, canonical aggregate quantities, all-history count, open-exception fulfillment count, and up to 20 newest fulfillment summaries with `nextCursor`. Completed and cancelled history remains visible. Summaries distinguish planned quantity (nullable for unknown legacy scope), physical packing and evidence-backed delivery. Item display labels/subtitles are enriched after order page selection. No raw proof metadata is exposed.
+
+Client sheet identity uses `fulfillmentOrderId` separately from table filters and legacy sales overlays. The order sheet loads only when opened; history pages load on demand. Assignment detail and the new selected-quantity form are subsequent ticket work. Local database fixture verifies parent isolation, empty history, 23-record pagination, label enrichment and separate plan/pack/delivery counts with complete rollback.
+
 # API Contracts
+
+## Fulfillment notice replay
+
+The `sales_dispatch_completed` payload and activity tags accept optional `completedByAdmin`. The sales-control worker sends completion notices for both submitDispatch and markAsCompleted, marks the latter as admin completion, and includes the assigned driver among recipients. Durable completion-event recovery remains under implementation.
+
+`confirmFulfillmentShortLoad` also records an updated-notice intent for a changed scope and assigned driver. Its delivery/replay/retry behavior matches create/edit. No-op confirmation produces no intent; existing external notices remain first-execution-only.
+
+Recovery code includes `sweep-fulfillment-notices`, which pages through command audits with intents lacking receipts and queues delivery tasks. A five-minute production schedule is defined but not deployed or activated. Receipt exclusion and full worker acceptance remain under verification.
+
+`createFulfillment` and `updateFulfillment` attempt durable in-app notice delivery after the operational transaction, including idempotent command replay. Delivery failure sets `notificationFailed` without rolling back the saved fulfillment and attempts to enqueue `deliver-fulfillment-notices` with the original request ID. The worker uses eight attempts and existing receipts; queue failure remains visible. In-app activity and receipt commit together. Existing first-execution email/WhatsApp sends suppress activity creation to avoid a duplicate inbox notice; they do not yet have the new retry guarantee. Crash/queue-outage sweep recovery and live worker verification remain in progress.
+
+## Bulk fulfillment outcome verification
+
+`consumeDispatchBoundInventory` excludes released and cancelled allocation history from consumption. Remaining active bound allocations must still be picked; released rows remain available as audit evidence and are never counted in `consumedQty`.
+
+The shared mark-as-completed task preserves physical packing for scoped in-progress fulfillments and calls the existing guarded completion command directly. It does not prepare or pack additional stock after departure. Scoped shortcuts supply `consumeDispatchBoundInventory` inside the completion transaction, recording consumed allocation evidence together with completed status. Explicit completed-request retries also use completion replay/conflict validation without repacking. Pre-trip fulfillments retain the preparation/packing/completion path.
+
+`bulk-mark-sales-fulfilled` resolves all active fulfillment IDs and any newly created remainder, then processes one fulfillment per order per sequential round. Independent orders share a batch. Each round reloads pipeline revisions; child idempotency keys include request, order and fulfillment IDs. Failure stops subsequent fulfillments for that order. After its final planned fulfillment, the worker reloads the order snapshot: `fulfilled` reports success, administrative completion reports `already_fulfilled`, and outstanding quantities, unresolved checks or missing evidence report `review_required`. Review-required outcomes also set batch metadata to `completed_with_errors`. Completed and cancelled history is excluded from the execution list. Full worker retry and lifecycle acceptance remains in progress.
+
+## Fulfillment quantities — Ticket 01, local implementation (2026-09-10)
+
+`dispatch.orderDispatchOverview` now includes additive `fulfillmentQuantities`: per-control-UID ordered, delivered, assigned, packed, remainingToDeliver and availableToAssign quantities, plus resolved/conflicts/backlogQty. Existing permissions and response fields remain. The shared Sales adapter reads physical packing and typed assignment metadata separately. Unknown legacy scope, ambiguous size identity, missing completion evidence and inventory allocations lacking materialized sales-unit packing block assignable quantities. These conflicts must be presented explicitly; a zero backlogQty on unresolved evidence does not mean the order is fulfilled. The existing Dispatch overview displays this projection with an expandable item breakdown. Backlog query and summary now resolve shared quantity membership from persisted controls and delivery evidence in batches of 100 before pagination/counting. An active fulfillment does not exclude a known assignable remainder. Unknown legacy scope remains unresolved and cannot manufacture available stock.
 
 ## Sales Orders payment review metadata (2026-09-08)
 
@@ -2629,8 +2677,8 @@ capability must match. Post-commit handoff and notification behavior is retained
 
 ### Production inbound receipt — 2026-09-08
 
-`sales.productionPendingInbounds` reads bounded pending physical receipts for an
-order, optional exact inbound ID and cursor. It returns server-calculated receipt
+`sales.productionPendingInbounds` reads bounded linked inbounds, including received/completed and closed shipments, for an
+order, optional exact inbound ID and cursor. The legacy endpoint name is retained; count now includes those retained shipments. Cancelled/deleted shipments remain excluded. It returns server-calculated receipt
 capabilities and evidence revisions. `sales.receiveProductionInbound` accepts
 order/inbound IDs, expected revision and request UUID; physical receipt, scoped
 Needs allocation, allocation confirmation and audit run transactionally. A failed
@@ -2750,3 +2798,165 @@ See `features/production-worker-reassignment.md` for lifecycle and review behavi
 
 ### Production Sync deterministic repairs (2026-09-09)
 `coveredProductionMaterials` adds repairableAllocationCount, repairableClassificationCount, canSynchronize and specific blockers. Actionability includes deterministic repair and eligible review snapshot refresh even when no new material application remains. Internal allocationRepairs, classificationPlan, reviewScopePlan and eligibleReviewIds are stripped by the router alongside existing receipt evidence. `applyCoveredProductionMaterials` adds repairedAllocationCount, repairedClassificationCount and refreshedReviewCount; these default to zero when replaying older event results. Repair and review refresh evidence contributes to expectedRevision. The same transaction repairs, revalidates, reserves and finalizes eligible reviews using established payroll behavior; event evidence retains before/after snapshots. No schema migration.
+## Fulfillment order workspace query — Ticket 02 complete
+
+`dispatch.fulfillmentOrders` is protected by `requireDispatchManager`. It returns order-grain `data`, section `counts`, and offset `meta.cursor`/`count`, using the shared canonical quantity projection. Driver, schedule, stage, mode and risk filters apply to the same child fulfillment; returned order context retains all siblings. Section totals ignore the selected section but retain other filters. Search is applied before projection. Sorting supports schedule, order number, customer and creation/order date with a stable order-ID tie break; absent schedules remain last. Raw fulfillment metadata is not returned.
+
+The existing driver, calendar and legacy dispatch list endpoints are unchanged. Admin All/Active/Due Today/Past Due/Completed/Backlog tables, header counts and operational stage cards share this query and its client cache. The response also includes per-stage order counts, canonical pipeline context and page-only invoice/payment presentation. Completed-date sorting uses effective completion or fulfilled-child delivery timestamps. Proof-sync failure currently has no persisted source in the existing workspace; do not infer this risk from generic open exceptions. The future notification/recovery work must supply authoritative evidence before that filter can report failures.
+
+Validation: opt-in local `apps/api/src/db/queries/fulfillment-orders.integration.test.ts` covers parent uniqueness, stable page membership, section-count parity and schedule filtering with transaction rollback. Pure workspace tests cover driver aggregation and compound-filter identity. Existing copy-sales nullable-string error prevents a clean API typecheck.
+
+### Fulfillment secondary overview
+
+`dispatch.fulfillmentDetail({ salesId, fulfillmentId })` requires dispatch-manager access and checks the non-deleted fulfillment belongs to the supplied order before returning data. Missing or unrelated pairs return NOT_FOUND. The response includes order identity, child status/driver/dates, separate planned/packed/delivered totals and strict selected-scope items. Legacy or invalid scope stays explicit; raw metadata is not exposed. Packing and other detail panels remain pending.
+
+### Fulfillment exception history
+
+`dispatch.fulfillmentExceptions({ salesId, fulfillmentId, cursor? })` requires manager access and validates the non-deleted order/fulfillment pair before reading exceptions. It returns explicit presentation fields only, excluding raw metadata, in descending ID pages of 20 with nextCursor. Deleted exceptions are omitted; resolved records remain visible. Missing or unrelated pairs return NOT_FOUND.
+
+### Fulfillment proof registration summary
+
+`dispatch.fulfillmentProof({ salesId, fulfillmentId })` requires manager access and validates the non-deleted pair before reading completion metadata. Returns proof state and explicit registered document presentation fields. Document IDs in metadata are trusted only after matching StoredDocument ownerType=dispatch, ownerId=fulfillmentId, ready status and non-deleted state. Raw storage paths and completion request identifiers are excluded. File preview/download is pending.
+
+### Fulfillment route projection
+
+`dispatch.fulfillmentRoute({ salesId, fulfillmentId })` requires manager access and matches the non-deleted parent-child pair before selecting shipping address and delivery metadata. Returns only deliveryMode and the shared driver destination projection, including original/confirmed address, source and confirmation requirement. Unrelated or missing pairs return NOT_FOUND.
+
+### Fulfillment activity history
+
+`dispatch.fulfillmentActivity({ salesId, fulfillmentId, cursor? })` is manager-only and validates the non-deleted pair first. Returns creation context and 20-row SalesHistory pages ordered by createdAt/id descending, filtered by salesId plus JSON dispatchId. Presentation exposes name/author/time and source/target schedule dates only. General order notes without a matching dispatchId are excluded. New fulfillment command audit writers must include dispatchId and salesId.
+
+### Planned create-assignment command contract (not exposed yet)
+
+The shared create schema requires request UUID, salesId, expected SHA-256 evidence revision, nullable driver/date, delivery mode and full/selected scope. Stable revision hashes canonical quantities and persisted fulfillment headers; stable payload fingerprint binds retries to the same intended command. These helpers are not a transaction or API endpoint: locked reads, durable idempotency and authoritative permission checks remain pending.
+
+### Internal planned-assignment transaction step
+
+`createFulfillmentAssignmentInTransaction(tx, input, actor)` requires an enclosing transaction and prior authoritative manager/driver/destination/order-policy authorization. It locks order and fulfillment headers, reloads canonical evidence, checks expectedRevision, creates scope-only OrderDelivery metadata, and writes a SalesHistory FULFILLMENT_ASSIGNED record keyed by request UUID with fingerprint and dispatchId. Exact retries return the original ID; conflicting reuse fails. No API exposes this helper yet. Notification/outbox integration and compatibility with legacy writers remain pending.
+
+### Fulfillment assignment form options
+
+`dispatch.fulfillmentAssignmentOptions({ salesId })` requires manager access and a non-deleted sales order. Returns explicit nullable dueDate, normalized deliveryMode, canAssign/blockedReason, canonical backlog and named remaining line quantities, plus the revision consumed by the internal transaction step. Full mode must use all returned remaining quantities; mutation still re-reads evidence. Existing unknown scope and closed orders remain non-assignable.
+
+### Planned fulfillment create endpoint
+
+`dispatch.createFulfillment` now exposes the strict assignment input. Requires dispatch-manager authorization and existing special-order DISPATCH policy, validates destination for assigned deliveries and selected driver's active HRM eligibility, and runs the reservation helper in a ReadCommitted transaction. Destination is revalidated from locked order evidence. Returns fulfillmentId, idempotentReplay and notificationFailed. Existing notifications run after a new commit only. Durable delivery retries/outbox remain pending; do not treat notificationFailed as a failed reservation.
+
+Backlog correction: projection.backlogQty is zero without a non-cancelled fulfillment. It is distinct from the sum of availableToAssign. Assignment options now expose availableQty for first-fulfillment previews and eligibility; create checks remaining quantities, not backlog status.
+
+### Fulfillment edit options
+
+`dispatch.fulfillmentEditOptions({ salesId, fulfillmentId })` requires manager access and the matching non-deleted order/fulfillment pair. Returns current scope/driver/date and canonical revision, plus editable capacities computed by excluding only this reservation. It preserves other reservations and returns canEdit/blockedReason for lifecycle and evidence restrictions. This is prefill data, not mutation authorization; transactional save must repeat all guards.
+
+Internal edit command now updates scope/driver/date in an enclosing transaction after order/header locks, lifecycle/revision checks and physical-floor validation. It preserves unrelated metadata and records FULFILLMENT_UPDATED under request UUID with payload fingerprint, previous/new driver, planned/backlog totals and changed flag. It is not yet exposed by a router; caller authorization and notification integration remain required.
+
+The shared `updateFulfillmentAssignmentSchema` adds a positive integer fulfillmentId to the strict creation command with all refinements retained. Both internal validation and the upcoming endpoint must consume this schema; status/completion fields are rejected rather than accepted as edit inputs.
+
+`dispatch.updateFulfillment` now consumes that schema and requires manager access, special-order DISPATCH policy, active eligible driver and assignment destination. Its ReadCommitted transaction repeats paired identity, lifecycle, revision and quantity guards. Returns fulfillmentId, changed, idempotentReplay and notificationFailed. Newly committed changes send sales_dispatch_updated to an unchanged driver, or sales_dispatch_unassigned/assigned to the old/new drivers. No-op and replay suppress sends. Notification delivery is currently post-commit best effort; durable retries remain open under Ticket 09.
+
+Edit-option eligibility also rejects cancelled/canceled parent orders, matching the save transaction. Item titles and sizes fall back to the existing commercial item description and control subtitle.
+
+dispatchOverviewV2 applies saved fulfillment scope to displayed packing targets before calculating its summary. Planned quantities replace whole-order targets; additional availability is capped by assigned minus currently listed quantities. Unassigned lines are omitted unless physical allocations require review. Missing assigned manifest lines fail with a review message. This does not yet scope every inventory component, slip or mobile manifest path.
+
+For planned scopes, submission-backed deliverables consume one shared remaining capacity across rows, retaining submission IDs and exact LH/RH limits. This prevents row totals from exceeding the capped overview deliverable quantity. Legacy scopes retain their existing rows.
+
+`dispatch.confirmFulfillmentShortLoad` requires a dispatch manager or current driver and special-order DISPATCH policy. It locks order/header rows, rechecks parent identity and current driver after the locks, then invokes the shared confirmation transaction. Input is requestId, salesId, fulfillmentId, expectedRevision; actual quantities are read from persisted packing, never supplied by the client. Inventory-backed allocations currently require review rather than automatic release. Confirmation UI and notification integration remain pending.
+
+`dispatch.fulfillmentShortLoadPreview({salesId, fulfillmentId})` is protected for the current driver or manager and returns named assigned/packed/leftBehind lines, releasedQty, revision, canConfirm and blockedReason. Preview performs no writes and does not replace locked confirmation guards.
+
+The short-load inventory guard ignores deleted, released and cancelled allocation rows. Any remaining active allocation requires inventory reconciliation before scope release; historical returned allocations alone do not block it.
+
+Fulfillment evidence revisions include packed quantities as well as ordered, assigned, delivered and available quantities. A packing-only change invalidates existing edit/assignment/short-load previews even when total assigned remains unchanged.
+
+Short-load confirmation returns notificationFailed independently of its committed result. A newly committed positive release sends sales_dispatch_updated to the driver captured under lock; replays and zero releases send nothing. Delivery is currently best effort, pending durable retry integration.
+
+Existing inventory dispatch `release` transitions with orderDeliveryId and a smaller allocationSelections quantity now split the allocation: original quantity/status retains the remainder and a new released allocation records the selected amount. This is a primitive for explicit inventory returns; short-load confirmation does not invoke it automatically yet.
+# Short-load inventory reconciliation inputs
+
+Bulk fulfillment's ensure helper creates exact remaining scope and a `FULFILLMENT_ASSIGNED` SalesHistory event atomically. Event source is `bulk_fulfillment`; payload includes actor ID, dispatch ID, order-derived schedule, planned total and scope lines. Reusing a fulfillment does not create another assignment audit.
+
+`confirmFulfillmentShortLoad` additionally accepts optional `expectedInventoryRevision` (SHA-256 hex) and `physicalReturnsConfirmed` (boolean). Active inventory allocations require the revision; the command locks and reloads inventory, validates the revision, and requires explicit confirmation before releasing excess picked stock. Reconciliation and scope/audit changes share the caller transaction. Replay compares both inputs, treating omitted confirmation as false. `fulfillmentShortLoadPreview` exposes `inventoryRevision`, `requiresPhysicalReturn`, and `inventoryReleases`; invalid inventory remains blocked. Client submission and physical-return UI integration are pending.
+
+### Shared worker inbound overview — 2026-09-10
+productionInboundOverview and productionInboundActivity accept salesOrderId/inboundId, authorize current Production scope, and return the shared overview DTO/activity. Worker overview filters item demands to authorized components. addProductionInboundNote accepts salesOrderId/inboundId and trimmed note (1–10000 characters); authorization is rechecked in its transaction, and it creates an inboundId-tagged comment without status writes.
+
+### Inbound creation activity — 2026-09-10
+Inbound creation orchestration forwards an internal creatorUserId derived from the authenticated actor, never from the public creation input. Shared creation writes an inbound-tagged NotePad creation event before committing. Quick availability retries retain their existing transaction/idempotency behavior.
+### Sales request preview — 2026-09-10
+
+`salesRequest.generatePreview` is a protected, off-by-default backend prototype.
+Input: bounded `text` and up to three JPEG/PNG/WebP `{mediaType, base64}` images.
+It carries no customer/profile pricing context because the endpoint returns only a
+native seed; normal new-form bootstrap supplies that context later.
+It accepts no client setting ID, candidate catalog, price, cache scope or image URL.
+Images are request-scoped bytes, decoded and stripped of metadata, not stored in
+the shared public document service. Hosting request-body limits may be lower than
+the validator's 10 MiB decoded aggregate limit; transport rollout must account for it.
+Output contains a strict native `NewSalesFormSeed`, configuration scope/revision,
+prompt version and token usage. The seed is checked against configured route, step,
+component, cardinality and visibility rules, and the configuration revision is
+rechecked after generation. It is not hydrated, priced, or saved. The implemented
+shared `initializeNewSalesFormSeed` boundary—not this API—expands the seed through
+normal form logic when a future UI/apply adapter supplies authoritative form data
+and pricing context.
+
+Configuration snapshots are cached as compact tuple JSON under server-owned
+`sales-settings:<id>` scope and a price-free structural revision. Cache storage is
+an optimization: invalid/missing Redis artifacts rebuild from the database, and
+pre/post structural probes prevent stale concurrent publication. Price-only edits
+do not invalidate the prompt snapshot because prices never enter this endpoint.
+
+`salesRequest.setDefault` is a protected Super Admin-only mutation accepting
+`{rootUid, stepUid, componentUid}` where nullable `componentUid` clears the default.
+The server derives the active settings ID; client `settingId` is rejected. The write
+locks and validates the target route/step/component, preserves unrelated metadata,
+and returns the normalized defaults result.
+Requires `SALES_REQUEST_AI_ENABLED=true`, the selected provider's server-only
+`SALES_REQUEST_*_API_KEY`, and usable Redis.
+The endpoint uses the same explicit lowest-active-ID sales-settings authority as
+the New Sales Form; clients and environment variables cannot select a divergent
+row. Provider and model are never selected by environment variables.
+`salesRequest.getAISettings` and `salesRequest.updateAISettings` expose the
+server-approved provider catalog and the persisted selection; updates preserve
+unrelated metadata. Generation reads this selection with its configuration
+snapshot and rejects a result if either changes during the provider call.
+No environment values were changed.
+Endpoint registration/typechecking and isolated service tests are verified;
+live authenticated/model acceptance is not yet verified.
+
+# Completion notice recovery
+
+completeDispatchWithProof requires a trimmed, nonempty receivedBy (maximum 200 characters). The driver proof form validates the same requirement and displays its existing inline field error. A signature alone no longer satisfies recipient identification.
+
+Completion input accepts optional positive expectedFulfillmentRevision. Scoped preview callers should send the reviewed revision; admin pre-packing and locked finalization reject a stale revision before their respective writes. The revision participates in completion retry fingerprinting. Legacy callers can omit it during migration; preview UI wiring remains pending.
+
+The manager-protected fulfillmentDetail response exposes scopeRevision from the saved assignment scope, or null when no valid scope exists. A completion preview can pass that value as expectedFulfillmentRevision; null must not be interpreted as a reviewed scope.
+
+Fulfillment completion persists a FULFILLMENT_COMPLETED history event and current-driver notification intent atomically. The completion worker resolves that audit and delivers the inbox activity through the receipt boundary; failed delivery queues recovery, and the pending sweep includes completion events. Notification jobs accept optional skipActivities to preserve external delivery without a duplicate inbox activity. Durable completion inbox delivery is addressed to the saved driver; legacy events without an audit keep existing behavior. Live worker and concurrency acceptance remain pending.
+### 2026-09-10 — Fulfillment completion review contract
+
+`dispatch.fulfillmentCompletionReview` is manager-protected and requires an exact `salesId`/`fulfillmentId` pair. It returns the packing manifest revision, delivery mode, scope revision, assigned/packed/left-behind quantities, order and previously-delivered context, and whether short-load confirmation is required. Unknown, terminal, unresolved, overpacked, or concurrently changed scopes return a blocked review rather than inferred quantities. The returned manifest revision is passed unchanged to `completeDispatchWithProof`, which performs its own locked finalization recheck.
+
+### Sales request seed v2 and catalog publication — 2026-09-11
+
+`NewSalesFormSeed` v2 adds strict custom `{stepId,value}`, native
+`lineItems[].meta.serviceRows[{uid,service,qty}]`, top-level
+`form.deliveryOption`, and at most one exact Delivery extra-cost row. Version 1
+remains readable. Prices, totals, persisted IDs, and arbitrary metadata are
+forbidden. Model configuration omits persisted custom rows, sparsely marks custom
+steps, and may contain at most 20 sanitized `serviceNames`.
+
+Post-generation validation additionally binds custom values, service labels,
+delivery intent, and delivery charges to literal normalized customer-text evidence.
+Service rows are valid only on the configured Services root route; generic
+delivery/shipping/freight/pickup labels must use native delivery fields. The shared
+initializer emits blocking review issues for transient custom selections, every
+zero-priced generated service, and delivery without a stated amount. Manual catalog
+regeneration stores the combined artifact under the exact published revision key;
+the independently versioned service cache is best-effort and falls back to its
+bounded fresh query on cache failure.
+
+`salesRequest.updateCatalogPolicy` accepts bounded grace days and normalized
+pin/exclude UID arrays. `salesRequest.regenerateConfiguration` accepts no input,
+requires settings administration, records generation state, and never creates a
+provider or reserves usage.

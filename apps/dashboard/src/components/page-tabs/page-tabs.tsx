@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { usePathname, useSearchParams } from "next/navigation";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMediaQuery } from "react-responsive";
 
@@ -164,11 +164,18 @@ export function PageTabs({
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const isLg = useMediaQuery(screens.lg);
+	const isXl = useMediaQuery(screens.xl);
 	const is2xl = useMediaQuery(screens["2xl"]);
 	const [responsiveReady, setResponsiveReady] = useState(false);
 	const trpc = useTRPC();
 	const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 	const [manageOpen, setManageOpen] = useState(false);
+	const tabRailRef = useRef<HTMLDivElement>(null);
+	const [tabScrollState, setTabScrollState] = useState({
+		hasOverflow: false,
+		canScrollLeft: false,
+		canScrollRight: false,
+	});
 	const resolvedPage = normalizePagePath(page || pathname);
 	const shouldFetch = tabs === undefined;
 	const { data, isSuccess } = useQuery({
@@ -262,12 +269,55 @@ export function PageTabs({
 		isLg: responsiveReady && isLg,
 		is2xl: responsiveReady && is2xl,
 	});
+	const compactTabLimit =
+		responsiveReady && !isXl ? resolvedTabs.length : visibleTabLimit;
 	const { visibleTabs, overflowTabs } = splitPageTabs(
 		resolvedTabs,
-		visibleTabLimit,
+		compactTabLimit,
 		selectedResolvedTabIndex,
 	);
 	const hasActiveOverflowTab = overflowTabs.some((tab) => tab.active);
+	const visibleTabSignature = visibleTabs
+		.map((tab) => `${tab.id ?? tab.title}:${tab.href}:${tab.count ?? ""}`)
+		.join("|");
+
+	useEffect(() => {
+		const rail = tabRailRef.current;
+		if (!rail) return;
+
+		const updateScrollState = () => {
+			const maxScrollLeft = rail.scrollWidth - rail.clientWidth;
+			setTabScrollState({
+				hasOverflow: maxScrollLeft > 1,
+				canScrollLeft: rail.scrollLeft > 1,
+				canScrollRight: rail.scrollLeft < maxScrollLeft - 1,
+			});
+		};
+
+		updateScrollState();
+		rail.addEventListener("scroll", updateScrollState, { passive: true });
+		const resizeObserver = new ResizeObserver(updateScrollState);
+		resizeObserver.observe(rail);
+		if (rail.firstElementChild) {
+			resizeObserver.observe(rail.firstElementChild);
+		}
+
+		return () => {
+			rail.removeEventListener("scroll", updateScrollState);
+			resizeObserver.disconnect();
+		};
+	}, [visibleTabSignature]);
+
+	function scrollTabs(direction: -1 | 1) {
+		const rail = tabRailRef.current;
+		if (!rail) return;
+		rail.scrollBy({
+			left: direction * Math.max(rail.clientWidth * 0.8, 160),
+			behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+				? "auto"
+				: "smooth",
+		});
+	}
 
 	if (
 		!shouldRenderPageTabsShell({
@@ -289,7 +339,23 @@ export function PageTabs({
 					className,
 				)}
 			>
-				<div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+				{tabScrollState.hasOverflow ? (
+					<Button
+						aria-label="Scroll tabs left"
+						className="hidden h-8 w-8 shrink-0 rounded-sm px-0 max-xl:inline-flex"
+						disabled={!tabScrollState.canScrollLeft}
+						onClick={() => scrollTabs(-1)}
+						size="sm"
+						type="button"
+						variant="ghost"
+					>
+						<Icons.ChevronLeft className="size-4" />
+					</Button>
+				) : null}
+				<div
+					ref={tabRailRef}
+					className="flex min-w-0 flex-1 touch-pan-x items-center gap-1 overflow-x-auto scrollbar-hide"
+				>
 					{visibleTabs.map((tab) => {
 						return (
 							<div
@@ -336,6 +402,19 @@ export function PageTabs({
 						);
 					})}
 				</div>
+				{tabScrollState.hasOverflow ? (
+					<Button
+						aria-label="Scroll tabs right"
+						className="hidden h-8 w-8 shrink-0 rounded-sm px-0 max-xl:inline-flex"
+						disabled={!tabScrollState.canScrollRight}
+						onClick={() => scrollTabs(1)}
+						size="sm"
+						type="button"
+						variant="ghost"
+					>
+						<Icons.ChevronRight className="size-4" />
+					</Button>
+				) : null}
 				{canShowAction || (showManage && hasSavedTabs) ? (
 					<div
 						className={cn(
@@ -427,11 +506,11 @@ export function PageTabs({
 									<TooltipTrigger asChild>
 										<Button
 											aria-label="Edit saved tabs"
-											className={cn(
-												portal
-													? "h-8 w-8 rounded-md px-0 2xl:w-auto 2xl:px-3"
-													: "h-8 w-8 rounded-sm border-0 px-0 2xl:w-auto 2xl:px-3",
-											)}
+										className={cn(
+											portal
+												? "h-8 w-8 rounded-md px-0 max-xl:hidden 2xl:w-auto 2xl:px-3"
+												: "h-8 w-8 rounded-sm border-0 px-0 max-xl:hidden 2xl:w-auto 2xl:px-3",
+										)}
 											onClick={() => setManageOpen(true)}
 											size="sm"
 											type="button"

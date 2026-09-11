@@ -1,3 +1,4 @@
+import { recordInboundCreation } from "./inbound-creation-activity";
 import type { Db, TransactionClient } from "@gnd/db";
 import {
   ACTIVE_INBOUND_DEMAND_STATUSES,
@@ -31,6 +32,7 @@ export type NewInboundShipmentStatus =
   (typeof NEW_INBOUND_SHIPMENT_STATUSES)[number];
 
 export type CreateInboundShipmentFromDemandsInput = {
+  creatorUserId?: number;
   supplierId?: number | null;
   demandIds: number[];
   reference?: string | null;
@@ -44,6 +46,7 @@ export type InboundDemandQuantitySelection = {
 };
 
 export type CreateInboundShipmentInput = {
+  creatorUserId?: number;
   supplierId?: number | null;
   reference?: string | null;
   expectedAt?: Date | null;
@@ -1168,7 +1171,7 @@ export async function createInboundShipment(
   db: DbLike,
   input: CreateInboundShipmentInput,
 ) {
-  return db.inboundShipment.create({
+  const shipment = await db.inboundShipment.create({
     data: {
       supplierId: input.supplierId ?? null,
       reference: input.reference ?? null,
@@ -1184,6 +1187,8 @@ export async function createInboundShipment(
       expectedAt: true,
     },
   });
+  if (input.creatorUserId) await recordInboundCreation(db, shipment.id, input.creatorUserId);
+  return shipment;
 }
 
 function outstandingInboundDemandQty(demand: {
@@ -2923,6 +2928,8 @@ export async function createInboundShipmentFromDemands(
       id: true,
     },
   });
+
+  if (input.creatorUserId) await recordInboundCreation(db, shipment.id, input.creatorUserId);
 
   const groupedByVariant = new Map<number, typeof unlinkedDemands>();
   for (const demand of unlinkedDemands) {

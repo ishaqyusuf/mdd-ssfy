@@ -11,7 +11,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@gnd/ui/card";
-import { Menu } from "@gnd/ui/custom/menu";
 import { Field, FieldGroup, FieldTitle } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
 import {
@@ -29,6 +28,7 @@ import {
 	CostPriceBreakdownHover,
 } from "./cost-price-breakdown-hover";
 import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
+import { ResponsiveEstimateBreakdown } from "./responsive-estimate-breakdown";
 
 export type MouldingLineItemEditorRow = {
 	uid?: string | null;
@@ -87,9 +87,8 @@ function MouldingEstimateBreakdown<TRow extends MouldingLineItemEditorRow>(
 	);
 
 	return (
-		<Menu
-			noSize
-			Icon={null}
+		<ResponsiveEstimateBreakdown
+			title="Cost estimate breakdown"
 			label={
 				<span
 					className="cursor-pointer underline decoration-dotted underline-offset-2"
@@ -107,7 +106,7 @@ function MouldingEstimateBreakdown<TRow extends MouldingLineItemEditorRow>(
 				</span>
 			}
 		>
-			<Card className="w-[320px] rounded-lg text-left">
+			<Card className="w-[320px] rounded-lg text-left max-lg:w-full max-lg:border-0 max-lg:shadow-none">
 				<CardHeader className="flex-row items-start justify-between gap-3 p-3">
 					<div className="min-w-0">
 						<CardTitle>Cost estimate breakdown</CardTitle>
@@ -205,7 +204,7 @@ function MouldingEstimateBreakdown<TRow extends MouldingLineItemEditorRow>(
 					</span>
 				</CardFooter>
 			</Card>
-		</Menu>
+		</ResponsiveEstimateBreakdown>
 	);
 }
 
@@ -236,9 +235,9 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 	}
 
 	return (
-		<div className="overflow-x-auto rounded-lg border">
-			<table className="w-full min-w-[620px] text-sm">
-				<thead>
+		<div className="overflow-x-auto rounded-lg border max-lg:overflow-visible max-lg:rounded-none max-lg:border-0">
+			<table className="w-full min-w-[620px] text-sm max-lg:min-w-0">
+				<thead className="max-lg:hidden">
 					<tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 						<th className="px-3 py-2">Moulding</th>
 						<th className="px-3 py-2 text-right">Qty</th>
@@ -247,7 +246,7 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 						<th className="px-3 py-2 text-right">Remove</th>
 					</tr>
 				</thead>
-				<tbody>
+				<tbody className="max-lg:grid">
 					{props.rows.map((row, index) => {
 						const rowImageSrc = props.resolveImageSrc(row.img || null);
 						const rowTitle = props.componentLabel(row.title);
@@ -260,14 +259,17 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 						};
 
 						return (
-							<tr key={`moulding-row-${row.uid}-${index}`} className="border-t">
-								<td className="px-3 py-2">
+							<tr
+								key={`moulding-row-${row.uid}-${index}`}
+								className="border-t max-lg:grid max-lg:grid-cols-2 max-lg:gap-x-2 max-lg:gap-y-3 max-lg:border-x-0 max-lg:border-t-0 max-lg:border-b max-lg:border-border max-lg:bg-transparent max-lg:p-3 max-lg:last:border-b-0 md:max-lg:grid-cols-3"
+							>
+								<td className="px-3 py-2 max-lg:col-span-1 max-lg:col-start-1 max-lg:row-start-1 max-lg:p-0 md:max-lg:col-span-2">
 									<div className="flex items-center gap-3">
 										<ComponentImageLightbox
 											imageSrc={rowImageSrc}
 											title={rowTitle || "Moulding"}
 											alt={row.title || "Moulding"}
-											className="size-14 rounded-lg bg-white"
+											className="size-14 rounded-lg bg-white max-lg:size-12 max-lg:shrink-0"
 											imageClassName="p-3"
 											fallback={
 												<Icons.Ruler className="size-4 text-muted-foreground" />
@@ -278,8 +280,9 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 										</p>
 									</div>
 								</td>
-								<td className="px-3 py-2">
-									<div className="flex items-center justify-end gap-2">
+								<td className="px-3 py-2 max-lg:col-span-2 max-lg:col-start-1 max-lg:row-start-2 max-lg:p-0 md:max-lg:col-span-1">
+									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Quantity</p>
+									<div className="flex items-center justify-end gap-2 max-lg:justify-start">
 										{props.renderCalculator?.({
 											row,
 											index,
@@ -297,12 +300,13 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 													qty: value,
 												} as Partial<TRow>)
 											}
-											className="w-32"
+											className="w-32 max-lg:h-10 max-lg:flex-1"
 										/>
 									</div>
 								</td>
-								<td className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
-									<div className="flex justify-end">
+								<td className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground max-lg:col-start-1 max-lg:row-start-3 max-lg:border-t max-lg:pt-3 max-lg:text-left md:max-lg:col-start-2 md:max-lg:row-start-2 md:max-lg:border-t-0 md:max-lg:pt-0">
+									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Estimate</p>
+									<div className="flex justify-end max-lg:justify-start">
 										<MouldingEstimateBreakdown
 											row={row}
 											index={index}
@@ -315,7 +319,8 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 										/>
 									</div>
 								</td>
-								<td className="px-3 py-2 text-right text-xs font-bold">
+								<td className="px-3 py-2 text-right text-xs font-bold max-lg:col-start-2 max-lg:row-start-3 max-lg:border-t max-lg:pt-3 md:max-lg:col-start-3 md:max-lg:row-start-2 md:max-lg:border-t-0 md:max-lg:pt-0">
+									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Line total</p>
 									<CostPriceBreakdownHover
 										breakdown={lineBreakdown}
 										context={props.priceBreakdown}
@@ -323,12 +328,12 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 										<span>{props.formatMoney(row.lineTotal) || "$0.00"}</span>
 									</CostPriceBreakdownHover>
 								</td>
-								<td className="px-3 py-2 text-right">
+								<td className="px-3 py-2 text-right max-lg:col-start-2 max-lg:row-start-1 max-lg:flex max-lg:justify-end max-lg:p-0 md:max-lg:col-start-3">
 									<Button
 										type="button"
 										size="icon"
 										variant="ghost"
-										className="size-7"
+										className="size-7 max-lg:size-10"
 										disabled={props.rows.length <= 1}
 										aria-label={`Remove moulding line ${index + 1}`}
 										onClick={() => props.onRemoveRow(String(row.uid || ""))}
@@ -340,15 +345,15 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 						);
 					})}
 				</tbody>
-				<tfoot>
-					<tr className="border-t bg-muted/20 text-xs font-bold">
-						<td className="px-3 py-2 uppercase">Total</td>
-						<td className="px-3 py-2 text-right">{props.totalQty}</td>
-						<td />
-						<td className="px-3 py-2 text-right">
+				<tfoot className="max-lg:block">
+					<tr className="border-t bg-muted/20 text-xs font-bold max-lg:block">
+						<td className="px-3 py-2 uppercase max-lg:inline-block">Total</td>
+						<td className="px-3 py-2 text-right max-lg:inline-block">{props.totalQty}</td>
+						<td className="max-lg:hidden" />
+						<td className="px-3 py-2 text-right max-lg:float-right">
 							{props.formatMoney(props.totalAmount) || "$0.00"}
 						</td>
-						<td />
+						<td className="max-lg:hidden" />
 					</tr>
 				</tfoot>
 			</table>

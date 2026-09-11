@@ -690,6 +690,78 @@ describe("transitionInventoryDispatchAllocations", () => {
 		expect(result.transitions[0]?.allocationId).toBe(70);
 	});
 
+	test("releases only the selected quantity and retains the picked remainder", async () => {
+		const updates: any[] = [];
+		const creates: any[] = [];
+		const tx = {
+			orderDelivery: {
+				findFirst: async () => ({ id: 77, salesOrderId: 500, status: "queue" }),
+			},
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 3,
+						status: "picked",
+						orderDeliveryId: 77,
+						lineItemComponentId: 101,
+						inventoryStockId: 9,
+						inventoryVariantId: 44,
+						notes: "Ready",
+						lineItemComponent: { parent: { sale: {} } },
+					},
+				],
+				updateMany: async (payload: any) => {
+					updates.push(payload);
+					return { count: 1 };
+				},
+				create: async (payload: any) => {
+					creates.push(payload);
+					return { id: 70 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 101,
+					qty: 3,
+					inboundDemands: [],
+					stockAllocations: [{ qty: 3 }],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+		const db = {
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
+		};
+
+		const result = await transitionInventoryDispatchAllocations(
+			db as any,
+			"release",
+			{
+				salesOrderId: 500,
+				orderDeliveryId: 77,
+				allocationSelections: [{ allocationId: 7, qty: 1 }],
+			} as any,
+		);
+
+		expect(updates[0]).toMatchObject({
+			where: { id: 7, qty: 3, status: "picked", orderDeliveryId: 77 },
+			data: { qty: 2 },
+		});
+		expect(creates[0]).toMatchObject({
+			data: {
+				lineItemComponentId: 101,
+				inventoryStockId: 9,
+				inventoryVariantId: 44,
+				orderDeliveryId: 77,
+				qty: 1,
+				status: "released",
+			},
+		});
+		expect(result.transitions[0]?.allocationId).toBe(70);
+	});
+
 	test("does not release consumed allocations while releasing eligible picked rows", async () => {
 		const calls: Array<{ name: string; payload?: unknown }> = [];
 		const tx = {

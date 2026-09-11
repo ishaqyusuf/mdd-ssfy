@@ -21,7 +21,11 @@ import {
 	type PlanningItem,
 	type PlanningCardProps,
 } from "./planning-calendar-card";
-import { productionCalendarColors } from "./calendar-colors";
+import { productionCalendarCardClasses } from "./calendar-colors";
+import {
+	PRODUCTION_CALENDAR_GRID_WIDTH,
+	PRODUCTION_PLANNING_WEEK_GRID_WIDTH,
+} from "./calendar-layout";
 import { PlanningQueryState } from "./planning-query-state";
 
 function CompactPlanningCard({ item, ...actions }: PlanningCardProps) {
@@ -31,8 +35,8 @@ function CompactPlanningCard({ item, ...actions }: PlanningCardProps) {
 				<button
 					type="button"
 					className={cn(
-						"w-full rounded border p-1 text-left text-xs",
-						productionCalendarColors[item.presentation.tone],
+						"w-full rounded p-1 text-left text-xs",
+						productionCalendarCardClasses(item.presentation.tone, item.priority),
 					)}
 				>
 					<strong className="block break-words">{item.orderNo}</strong>
@@ -124,6 +128,7 @@ export function ProductionPlanningCalendar() {
 					</Button>
 				</div>
 				<Tabs
+					className="max-xl:hidden"
 					value={filters.calendarView}
 					onValueChange={(value) =>
 						void setFilters({
@@ -162,8 +167,11 @@ export function ProductionPlanningCalendar() {
 							className={cn(
 								"grid",
 								filters.calendarView === "month"
-									? "min-w-[980px] grid-cols-7"
-									: "grid-cols-1 md:min-w-[980px] md:grid-cols-7",
+									? cn(PRODUCTION_CALENDAR_GRID_WIDTH, "grid-cols-7")
+									: cn(
+											PRODUCTION_PLANNING_WEEK_GRID_WIDTH,
+											"grid-cols-1 md:grid-cols-7",
+										),
 							)}
 						>
 							{period.days.map((day) => {

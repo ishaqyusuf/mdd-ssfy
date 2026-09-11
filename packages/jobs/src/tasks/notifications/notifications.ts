@@ -155,6 +155,7 @@ export const notification = schemaTask({
 			});
 		}
 		const notificationOptions: NotificationOptions = {
+			skipActivities: data.skipActivities,
 			author: {
 				id: author.id,
 				role: author.role === "customer" ? "customer" : "employee",

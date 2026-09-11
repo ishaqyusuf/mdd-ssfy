@@ -36,3 +36,11 @@ describe("dispatch packing totals", () => {
 		).toBe(false);
 	});
 });
+
+test("partial listing does not shrink an explicit fulfillment target", () => {
+  expect(resolveDispatchPackingTotals({ ordered: 10, assigned: 5, listed: 3, packed: 3 })).toEqual({ packed: 3, pending: 2, total: 5 });
+});
+
+test("confirmed short-load scope becomes the readiness target", () => {
+  expect(resolveDispatchPackingTotals({ ordered: 10, assigned: 3, listed: 3, packed: 3 })).toEqual({ packed: 3, pending: 0, total: 3 });
+});

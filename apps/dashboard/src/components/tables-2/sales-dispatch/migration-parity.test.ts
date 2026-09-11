@@ -80,7 +80,7 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 
 		expect(adminListWorkspace.includes("AdminDispatchHeader")).toBe(true);
 		expect(adminListWorkspace.includes("FulfillmentOverview")).toBe(true);
-		expect(fulfillmentOverview.includes("DispatchSummaryCards")).toBe(true);
+		expect(fulfillmentOverview.includes("DispatchSummaryCards")).toBe(false);
 		expect(adminListWorkspace.includes("DriverWorkloadCard")).toBe(true);
 		expect(adminListWorkspace.includes("enableSalesMarkAs")).toBe(true);
 		expect(adminRoute.includes("DispatchAdminWorkspaceClient")).toBe(false);
@@ -185,7 +185,7 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(calendarWorkspace.includes("DispatchCalendarView")).toBe(true);
 		expect(calendarWorkspace.includes("FulfillmentOverview")).toBe(true);
 		expect(listWorkspace.includes("FulfillmentOverview")).toBe(true);
-		expect(overview.includes("DispatchSummaryCards")).toBe(true);
+		expect(overview.includes("DispatchSummaryCards")).toBe(false);
 		expect(overview.includes("DispatchOverdueBanner")).toBe(true);
 		expect(calendarWorkspace.includes("DispatchSearchFilter")).toBe(false);
 		expect(calendarWorkspace.includes("DispatchAutoRefresh")).toBe(false);

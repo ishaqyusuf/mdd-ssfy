@@ -92,3 +92,13 @@ describe("dispatch packing item presentation", () => {
 		).toBe("Awaiting production submission");
 	});
 });
+
+test("assigned item remains partially packed until its scope is met", () => {
+  expect(getDispatchPackingItemStatusText({
+    assignedQty: { qty: 5 }, totalQty: { qty: 5 },
+    listedQty: { qty: 3 }, packedQty: { qty: 3 }, availableQty: { qty: 0 },
+  })).toBe("Partially packed 3/5");
+  expect(getDispatchPackingItemStatusText({
+    assignedQty: { qty: 3 }, listedQty: { qty: 3 }, packedQty: { qty: 3 },
+  })).toBe("Packed 3/3");
+});

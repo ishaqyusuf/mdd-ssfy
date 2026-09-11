@@ -2,8 +2,6 @@ import { AuthGuard } from "@/components/auth-guard";
 import { CreateDispatchDialog } from "@/components/dispatch-admin/create-dispatch-dialog";
 import { DispatchAdminTitle } from "@/components/dispatch-admin/dispatch-admin-title";
 import { DispatchAdminWorkspaceClient } from "@/components/dispatch-admin/dispatch-admin-workspace-client";
-import { normalizeDispatchBacklogSort } from "@/components/dispatch-admin/dispatch-backlog-sort";
-import { allDispatchStages } from "@/components/dispatch-admin/dispatch-list-presets";
 import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
 import { _perm } from "@/components/sidebar-links";
@@ -39,27 +37,12 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 		sort,
 		section: filters.section,
 		size: 20,
-	} satisfies RouterInputs["dispatch"]["list"];
+	} satisfies RouterInputs["dispatch"]["fulfillmentOrders"];
 
 	if (filters.section !== "calendar") {
 		void batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);
 	}
-	if (filters.section === "backlog") {
-		void batchPrefetch([
-			trpc.dispatch.backlog.infiniteQueryOptions(
-				{
-					q: filters.q,
-					deliveryModes: filters.deliveryModes,
-					sort: normalizeDispatchBacklogSort(sort),
-					size: 20,
-				},
-				{
-					getNextPageParam: ({ meta }) =>
-						(meta as { cursor?: string | number | null } | undefined)?.cursor,
-				},
-			),
-		]);
-	} else if (filters.section === "drivers") {
+	if (filters.section === "drivers") {
 		void batchPrefetch([trpc.dispatch.driverWorkload.queryOptions()]);
 	} else if (filters.section === "exceptions") {
 		void batchPrefetch([
@@ -78,19 +61,10 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 		]);
 	} else if (filters.section !== "calendar") {
 		void batchPrefetch([
-			trpc.dispatch.list.infiniteQueryOptions(
-				["dashboard", "dispatches"].includes(filters.section) &&
-					!filters.stages?.length
-					? {
-							...listInput,
-							stages: allDispatchStages,
-						}
-					: listInput,
-				{
-					getNextPageParam: ({ meta }) =>
-						(meta as { cursor?: string | number | null } | undefined)?.cursor,
-				},
-			),
+			trpc.dispatch.fulfillmentOrders.infiniteQueryOptions(listInput, {
+				getNextPageParam: ({ meta }) =>
+					(meta as { cursor?: string | number | null } | undefined)?.cursor,
+			}),
 		]);
 	}
 

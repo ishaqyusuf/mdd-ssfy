@@ -1,7 +1,12 @@
 import { it } from "bun:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { productionCalendarColors } from "./calendar-colors";
+import {
+	criticalCalendarSurface,
+	criticalStatusBorders,
+	productionCalendarCardClasses,
+	productionCalendarColors,
+} from "./calendar-colors";
 
 const theme = readFileSync(require.resolve("tailwindcss/theme.css"), "utf8");
 const appTheme = readFileSync(new URL("../../../../../packages/ui/src/styles/globals.css", import.meta.url), "utf8");
@@ -57,4 +62,34 @@ it("keeps all six canonical status text palettes above WCAG AA in light and dark
 			assert.ok(ratio(color(darkText), blended) >= 4.5, `${status}: dark contrast`);
 		}
 	}
+});
+
+it("uses a restrained red critical surface while retaining each status border", () => {
+	for (const status of Object.keys(productionCalendarColors)) {
+		const classes = productionCalendarCardClasses(status, "CRITICAL");
+		assert.ok(classes.includes("border-2"));
+		assert.ok(classes.includes("bg-red-700/90"));
+		assert.ok(classes.includes("text-white"));
+		assert.ok(
+			classes.includes(
+				criticalStatusBorders[status as keyof typeof criticalStatusBorders],
+			),
+			`${status}: critical card retains status border`,
+		);
+	}
+	assert.ok(criticalCalendarSurface.includes("dark:bg-red-800/80"));
+	assert.ok(criticalCalendarSurface.includes("dark:text-white"));
+});
+
+it("keeps normal-priority status surfaces and uses unknown as a safe fallback", () => {
+	assert.ok(
+		productionCalendarCardClasses("assigned", "NORMAL").includes(
+			productionCalendarColors.assigned,
+		),
+	);
+	assert.ok(
+		productionCalendarCardClasses("unsupported", "CRITICAL").includes(
+			criticalStatusBorders.unknown,
+		),
+	);
 });

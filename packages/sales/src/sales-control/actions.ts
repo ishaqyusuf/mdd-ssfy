@@ -1,4 +1,5 @@
 import type { Prisma } from "@gnd/db";
+import { capFulfillmentDeliverables } from "../fulfillment-packing-targets";
 import {
   type RenturnTypeAsync,
   generateRandomString,
@@ -557,10 +558,11 @@ export type SubmitAssingmentsAction = {
   data: RenturnTypeAsync<typeof getSaleInformation>;
   authorId;
   materialReviewId?: number | null;
+  quantityLimits?: Array<{ uid: string; quantity: { qty: number; lh: number; rh: number } }>;
 } & SubmitAll;
 export function buildProductionSubmissionPlan(props: SubmitAssingmentsAction) {
-  const createSubmissions: CreateSalesAssignmentSubmissionProps["items"] = [];
-  const createAssignments: CreateSalesAssignmentProps["items"] = [];
+  let createSubmissions: CreateSalesAssignmentSubmissionProps["items"] = [];
+  let createAssignments: CreateSalesAssignmentProps["items"] = [];
   const submitAll = !props.selections?.length && !props.itemUids?.length;
   for (const item of props.data.items) {
     const pendingProds = item.analytics?.assignment.pending!;
@@ -586,6 +588,23 @@ export function buildProductionSubmissionPlan(props: SubmitAssingmentsAction) {
         });
       }
     }
+  }
+  if (props.quantityLimits) {
+    const limits = new Map(props.quantityLimits.map((line) => [line.uid, line.quantity]));
+    const cappedSubmissions: typeof createSubmissions = [];
+    const cappedAssignments: typeof createAssignments = [];
+    for (const [uid, capacity] of limits) {
+      const rows = [
+        ...createSubmissions.filter((row) => row.itemInfo.controlUid === uid).map((row) => ({ ...row, kind: "submission" as const })),
+        ...createAssignments.filter((row) => row.itemInfo.controlUid === uid).map((row) => ({ ...row, kind: "assignment" as const })),
+      ].map((row) => ({ ...row, qty: { ...row.qty, qty: row.qty.qty || 0, lh: row.qty.lh || 0, rh: row.qty.rh || 0 } }));
+      for (const row of capFulfillmentDeliverables(rows, capacity)) {
+        if (row.kind === "submission") cappedSubmissions.push(row);
+        else cappedAssignments.push(row);
+      }
+    }
+    createSubmissions = cappedSubmissions;
+    createAssignments = cappedAssignments;
   }
   const scopedItems = [
     ...createAssignments.map((item) => ({
@@ -613,6 +632,13 @@ export function buildProductionSubmissionPlan(props: SubmitAssingmentsAction) {
     itemScope,
   };
 }
+export function productionSubmissionPlanQuantities(plan: ReturnType<typeof buildProductionSubmissionPlan>) {
+  return [
+    ...plan.createAssignments.map(row => ({ uid: row.itemInfo.controlUid, assignmentId: null as number | null, qty: row.qty.qty ?? 0, lh: row.qty.lh ?? 0, rh: row.qty.rh ?? 0 })),
+    ...plan.createSubmissions.map(row => ({ uid: row.itemInfo.controlUid, assignmentId: row.assignmentId as number | null, qty: row.qty.qty ?? 0, lh: row.qty.lh ?? 0, rh: row.qty.rh ?? 0 })),
+  ].sort((a, b) => a.uid.localeCompare(b.uid) || (a.assignmentId ?? -1) - (b.assignmentId ?? -1));
+}
+
 export async function submitAssignmentsAction(
   db: Db,
   props: SubmitAssingmentsAction,
@@ -645,44 +671,23 @@ export async function submitAssignmentsAction(
 interface SubmitNonProductionsAction {
   data: RenturnTypeAsync<typeof getSaleInformation>;
   authorId;
+  quantityLimits?: SubmitAssingmentsAction["quantityLimits"];
 }
 
 export async function submitNonProductionsAction(
   db: Db,
-  { data, authorId }: SubmitNonProductionsAction,
+  { data, authorId, quantityLimits }: SubmitNonProductionsAction,
 ) {
-  const createAssignments: CreateSalesAssignmentProps["items"] = [];
-  const createSubmissions: CreateSalesAssignmentSubmissionProps["items"] = [];
-  for (const item of data.items) {
-    if (!!item.itemConfig?.production) {
-      continue;
-    }
-    const pendingProds = recomposeQty(
-      qtyMatrixDifference(
-        item.analytics?.stats.qty!,
-        item.analytics?.stats.prodAssigned!,
-      ),
-    );
-
-    // const pendingProds = item.analytics?.production!;
-    const deliverables = item.deliverables;
-
-    if (hasQty(pendingProds))
-      createAssignments.push({
-        itemInfo: item,
-        qty: pendingProds,
-      });
-
-    for (const s of item.analytics?.pendingSubmissions!) {
-      if (hasQty(s.qty)) {
-        createSubmissions.push({
-          itemInfo: item,
-          qty: s.qty,
-          assignmentId: s.assignmentId,
-        });
-      }
-    }
-  }
+  const { createAssignments, createSubmissions } = buildProductionSubmissionPlan({
+    authorId,
+    quantityLimits,
+    data: { ...data, items: data.items.filter(item => !item.itemConfig?.production).map(item => ({
+      ...item,
+      analytics: { ...item.analytics!, assignment: { ...item.analytics!.assignment,
+        pending: recomposeQty(qtyMatrixDifference(item.analytics?.stats.qty!, item.analytics?.stats.prodAssigned!)),
+      } },
+    })) },
+  });
   await createSalesAssignmentAction(db, {
     items: createAssignments,
     submit: true,

@@ -893,3 +893,24 @@ session user ID. The request cannot supply an actor or service membership list.
 
 ### Production Sync repair scope (2026-09-09)
 Derived classification and timestamp-only modern review snapshot repair require full production visibility plus material reconciliation authority (editProduction). Allocation repair additionally follows existing inventory application permission (editInboundOrder or editOrders). Worker receiving/synchronization scope is unchanged; workers receive no new classification or stale-review refresh authority. All authority and assignment/material evidence is checked inside the transaction.
+
+### Sales request preview — 2026-09-10
+
+`salesRequest.generatePreview` requires an authenticated user plus existing
+`editOrders`/Super Admin authorization through the shared quote-creation permission
+check. Configuration identity comes from server settings, never request input.
+Generation reserves a shared atomic per-user Redis window (five per 60 seconds);
+usage-store errors fail closed. The feature flag defaults off. It grants no sale
+save, invoice-send, inventory or payment mutation authority. Private attachment
+storage access is not implemented; only request-scoped image bytes are accepted.
+The response is a validated read-only form seed; it does not grant save authority.
+`salesRequest.setDefault` is restricted to Super Admin and derives its settings row
+server-side. It grants no general settings-record selection or editing authority.
+`salesRequest.getAISettings` and `salesRequest.updateAISettings` are likewise
+Super Admin-only and derive the lowest active Sales Settings row server-side.
+They expose no credential values; API keys are read only by the selected provider
+adapter. Ordinary preview callers can use the configured provider but cannot read
+or change the provider/model setting.
+
+### Shared worker inbound overview — 2026-09-10
+Shared inbound overview grants no inventory editing authority. Worker reads and note creation require an active assignment and an inbound linked to authorized components. Notes do not depend on receiving policy. Receipt still uses receiveProductionInbound, workerCanReceiveInbound, revision/idempotency checks and transactional scope revalidation. General lifecycle/adjustment mutation permissions are unchanged.

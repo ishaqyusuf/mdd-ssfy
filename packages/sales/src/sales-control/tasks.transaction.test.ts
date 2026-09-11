@@ -1,3 +1,5 @@
+import { fulfillmentAssignmentRevision } from "../fulfillment-assignment-command";
+import { projectBacklogEvidence } from "../fulfillment-backlog-query";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 const submitNonProductionsActionMock = mock(async () => ({}));
@@ -84,6 +86,81 @@ const lifecycleSideEffectDependencies = {
 };
 
 describe("sales-control task transactions", () => {
+	it("rejects stale preview revision before starting queued packing", async () => {
+		const meta = { fulfillmentAssignment: { version: 1, revision: 2, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+		const tx = { orderDelivery: { findFirst: async () => ({ status: "queue", salesOrderId: 500, meta }) } };
+		await expect(tasksModule.markAsCompletedTask(packingSafeDb(tx) as never, { meta: { salesId: 500, authorId: 12 }, markAsCompleted: { dispatchId: 77, expectedFulfillmentRevision: 1 } } as never)).rejects.toThrow("Fulfillment changed");
+		expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+		expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+	});
+	it("rejects an assignment revision changed between shortcut entry and finalization", async () => {
+		const assignment = { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] };
+		let reads = 0;
+		const update = mock(async () => ({}));
+		const tx = { orderDelivery: { findFirst: async () => ({
+			status: "packed", salesOrderId: 500,
+			meta: { fulfillmentAssignment: { ...assignment, revision: ++reads === 1 ? 1 : 2 } },
+		}), update } };
+		await expect(tasksModule.markAsCompletedTask(packingSafeDb(tx) as never, { meta: { salesId: 500, authorId: 12 }, markAsCompleted: { dispatchId: 77, completionRequestId: "revision-race" } } as never)).rejects.toThrow("Fulfillment changed");
+		expect(update).not.toHaveBeenCalled();
+		expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+	});
+	it("existing-deliverables packing never creates production evidence", async () => {
+		const tx = { orderDelivery: { findFirst: async () => ({ id: 77, status: "queue", meta: {} }) } };
+		await tasksModule.packDispatchItemTask(packingSafeDb(tx) as never, {
+			meta: { salesId: 500, authorId: 12, authorName: "Admin" },
+			packItems: { dispatchId: 77, packMode: "all", dispatchStatus: "completed" },
+		} as never, {}, { preparation: "existing_only" });
+		expect(createSalesAssignmentActionMock).not.toHaveBeenCalled();
+		expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+		expect(submitNonProductionsActionMock).not.toHaveBeenCalled();
+		expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
+	});
+	it("rejects legacy repeat completion before packing or writing effects", async () => {
+		const update = mock(async () => ({}));
+		const tx = { orderDelivery: { findFirst: async () => ({ status: "completed", salesOrderId: 500, meta: {} }), update } };
+		await expect(tasksModule.markAsCompletedTask(packingSafeDb(tx) as never, { meta: { salesId: 500, authorId: 12 }, markAsCompleted: { dispatchId: 77 } } as never)).rejects.toThrow("already completed");
+		expect(update).not.toHaveBeenCalled();
+		expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+		expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+	});
+	it("admin shortcut rejects a future date before preparing or packing items", async () => {
+		const tx = { orderDelivery: { findFirst: async () => ({ status: "queue", meta: {} }) } };
+		await expect(tasksModule.markAsCompletedTask(packingSafeDb(tx) as never, {
+			meta: { salesId: 500, authorId: 12 },
+			markAsCompleted: { dispatchId: 77, receivedDate: new Date(Date.now() + 3 * 86400000) },
+		} as never)).rejects.toThrow("after today");
+		expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+		expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+		expect(submitNonProductionsActionMock).not.toHaveBeenCalled();
+	});
+	it("rejects a future delivery date before completion effects", async () => {
+		const update = mock(async () => ({}));
+		const consume = mock(async () => ({ executionMode: "inventory" as const, allocationIds: [1], consumedQty: 1 }));
+		const tx = { orderDelivery: { findFirst: async () => ({ status: "in progress", salesOrderId: 500, meta: {} }), update } };
+		await expect(tasksModule.submitDispatchTask(packingSafeDb(tx) as never, {
+			meta: { salesId: 500, authorId: 12 },
+			submitDispatch: { dispatchId: 77, receivedDate: new Date(Date.now() + 3 * 86400000) },
+		} as never, { completeInventoryDispatch: consume })).rejects.toThrow("after today");
+		expect(update).not.toHaveBeenCalled();
+		expect(consume).not.toHaveBeenCalled();
+	});
+	it("reads completion state after acquiring the dispatch lock", async () => {
+		let locked = false;
+		const update = mock(async () => ({}));
+		const tx = {
+			$queryRaw: async () => { locked = true; return [{ id: 77 }]; },
+			salesPackingReport: { count: async () => 0 },
+			orderDelivery: {
+				findFirst: async () => ({ salesOrderId: 500, status: locked ? "completed" : "in progress", meta: { dispatchCompletion: { requestId: "same-request" } } }),
+				update,
+			},
+		};
+		const db = { ...tx, $transaction: async (run: (client: typeof tx) => Promise<unknown>) => run(tx) };
+		await tasksModule.submitDispatchTask(db as never, { meta: { salesId: 500, authorId: 12 }, submitDispatch: { dispatchId: 77, completionRequestId: "same-request" } } as never, { ...lifecycleSideEffectDependencies });
+		expect(locked).toBe(true);
+		expect(update).not.toHaveBeenCalled();
+	});
 	beforeEach(() => {
 		submitNonProductionsActionMock.mockClear();
 		submitAssignmentsActionMock.mockClear();
@@ -191,6 +268,36 @@ describe("sales-control task transactions", () => {
 			recordFullWorkflowCompletionMock.mock.calls[0]?.[1],
 		).not.toHaveProperty("requestId");
 	});
+
+	it("stale fulfillment preparation fails before material review and submissions", async () => {
+        getSaleInformationMock.mockResolvedValueOnce({ order: { id: 9001 }, items: [{
+            controlUid: "a", itemId: 10, analytics: { assignment: { pending: { qty: 1, lh: 0, rh: 0 } }, pendingSubmissions: [] },
+        }] } as any);
+        const lock = mock(async () => []);
+        const tx = { $queryRaw: lock, salesOrders: { findUniqueOrThrow: mock(async () => ({ id: 9001, itemControls: [], deliveries: [], completionRecords: [] })) } };
+        await expect(tasksModule.submitAllTask({ $transaction: async (fn: any) => fn(tx) } as any,
+            { meta: { salesId: 9001, authorId: 12 }, submitAll: {} } as any, {},
+            { fulfillmentPreparation: { dispatchId: 77, expectedRevision: "stale" } },
+        )).rejects.toThrow("Refresh before production preparation");
+        expect(lock).toHaveBeenCalledTimes(2);
+        expect(prepareProductionSubmissionMaterialReviewMock).not.toHaveBeenCalled();
+        expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+    });
+
+    it("new deliverables invalidate production preparation before submission", async () => {
+        const meta = { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+        const evidence = { id: 9001, completionRecords: [], itemControls: [{ uid: "a", orderItemId: 10, title: "Door", shippable: true, qtyControls: [{ qty: 10, total: 10, lh: 0, rh: 0 }] }], deliveries: [{ id: 77, status: "queue", meta, items: [], _count: { stockAllocations: 0 } }] };
+        const info = (available: number) => ({ order: { id: 9001 }, items: [{ controlUid: "a", itemId: 10, deliverables: [{ qty: { qty: available, lh: 0, rh: 0 } }], analytics: { assignment: { pending: { qty: 10, lh: 0, rh: 0 } }, pendingSubmissions: [] } }] });
+        getSaleInformationMock.mockResolvedValueOnce(info(0) as any).mockResolvedValueOnce(info(2) as any);
+        const tx = { $queryRaw: mock(async () => []), salesOrders: { findUniqueOrThrow: mock(async () => evidence) } };
+        const revision = fulfillmentAssignmentRevision({ salesId: evidence.id, projection: projectBacklogEvidence(evidence as any).projection, fulfillments: evidence.deliveries });
+        await expect(tasksModule.submitAllTask({ $transaction: async (fn: any) => fn(tx) } as any,
+            { meta: { salesId: 9001, authorId: 12 }, submitAll: {} } as any, {},
+            { quantityLimits: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }], fulfillmentPreparation: { dispatchId: 77, expectedRevision: revision } },
+        )).rejects.toThrow("Production availability changed");
+        expect(prepareProductionSubmissionMaterialReviewMock).not.toHaveBeenCalled();
+        expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+    });
 
 	it("submits pending-material work atomically and defers completion side effects", async () => {
 		getSaleInformationMock.mockResolvedValueOnce({
@@ -818,6 +925,65 @@ describe("sales-control task transactions", () => {
 		expect(resetSalesActionMock).toHaveBeenCalledWith(tx, 777);
 	});
 
+    it.each(["packed", "in progress"])("retries inventory failure for a %s scope without new packing", async (status) => {
+        const meta = { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+        const calls: string[] = [];
+        const update = mock(async () => { calls.push("completed"); return {}; });
+        const consume = mock(async () => { calls.push("consumed"); return { executionMode: "inventory" as const, allocationIds: [12], consumedQty: 5 }; });
+        const tx = {
+            orderDelivery: { findFirst: mock(async () => ({ status, salesOrderId: 909, driverId: 7, dueDate: new Date("2026-09-11T00:00:00Z"), deliveryMode: "delivery", meta })), update },
+            salesHistory: { create: mock(async () => ({})) },
+            salesOrders: { findUniqueOrThrow: mock(async () => ({ id: 909, completionRecords: [], itemControls: [{ uid: "a", orderItemId: 1, title: "Door", shippable: true, qtyControls: [{ qty: 5, total: 5, lh: 0, rh: 0 }] }], deliveries: [{ id: 90, status: "in progress", meta, _count: { stockAllocations: 0 }, items: [{ orderDeliveryId: 90, orderItemId: 1, packingStatus: "packed", qty: 5, lhQty: 0, rhQty: 0, submission: null }] }] })) },
+        };
+        const complete = () => tasksModule.markAsCompletedTask(packingSafeDb(tx) as any, {
+            meta: { salesId: 909, authorId: 1, authorName: "Admin" },
+            markAsCompleted: { dispatchId: 90, completionRequestId: "completion-1", receivedBy: "Customer" },
+        } as any, { ...lifecycleSideEffectDependencies, saveNoteAction: saveNoteMock, completeInventoryDispatch: consume });
+        consume.mockRejectedValueOnce(new Error("Inventory temporarily unavailable"));
+        await expect(complete()).rejects.toThrow("Inventory temporarily unavailable");
+        expect(update).not.toHaveBeenCalled();
+        expect(tx.salesHistory.create).not.toHaveBeenCalled();
+        expect(saveNoteMock).not.toHaveBeenCalled();
+        await complete();
+        expect(update).toHaveBeenCalledTimes(1);
+        expect(tx.salesHistory.create).toHaveBeenCalledTimes(1);
+        expect(calls).toEqual(["consumed", "completed"]);
+        expect(tx.salesHistory.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ salesId: 909, data: expect.objectContaining({ event: "FULFILLMENT_COMPLETED", dispatchId: 90, notificationIntents: [expect.objectContaining({ channel: "sales_dispatch_completed", recipientId: 7, completedByAdmin: true, dueDate: "2026-09-11" })] }) }) }));
+        expect(consume).toHaveBeenCalledWith(tx, expect.objectContaining({ orderDeliveryId: 90, salesOrderId: 909 }));
+        expect(update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "completed", meta: expect.objectContaining({ inventoryDispatch: expect.objectContaining({ status: "consumed", allocationIds: [12], consumedQty: 5 }) }) }) }));
+        expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+        expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+    });
+
+    it("completion shortcut replays an already completed scoped fulfillment without repacking", async () => {
+        const meta = { dispatchCompletion: { requestId: "completion-1" }, fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+        const update = mock(async () => ({}));
+        const tx = { orderDelivery: { findFirst: mock(async () => ({ status: "completed", salesOrderId: 909, meta })), update } };
+        await tasksModule.markAsCompletedTask(packingSafeDb(tx) as any, { meta: { salesId: 909 }, markAsCompleted: { dispatchId: 90, completionRequestId: "completion-1" } } as any);
+        expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        expect(resetSalesActionMock).not.toHaveBeenCalled();
+    });
+
+    it("start command rejects packed status when assigned quantities remain", async () => {
+        const meta = { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+        const update = mock(async () => ({ count: 1 }));
+        const tx = { orderDelivery: { findFirst: mock(async () => ({ status: "packed", meta })), updateMany: update }, salesOrders: { findUniqueOrThrow: mock(async () => ({ id: 909, completionRecords: [], itemControls: [{ uid: "a", orderItemId: 1, title: "Door", shippable: true, qtyControls: [{ qty: 10, total: 10, lh: 0, rh: 0 }] }], deliveries: [{ id: 90, status: "packed", meta, _count: { stockAllocations: 0 }, items: [{ orderDeliveryId: 90, orderItemId: 1, packingStatus: "packed", qty: 3, lhQty: 0, rhQty: 0, submission: null }] }] })) } };
+        await expect(tasksModule.startDispatchTask(packingSafeDb(tx) as any, { meta: { salesId: 909 }, startDispatch: { dispatchId: 90 } } as any)).rejects.toThrow("confirm the short load");
+        expect(update).not.toHaveBeenCalled();
+        expect(resetSalesActionMock).not.toHaveBeenCalled();
+    });
+    it("completion rejects an unconfirmed shortage before marking delivered", async () => {
+        const meta = { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+        const update = mock(async () => ({ count: 1 }));
+        const tx = { orderDelivery: { findFirst: mock(async () => ({ status: "in progress", salesOrderId: 909, meta })), update: update }, salesOrders: { findUniqueOrThrow: mock(async () => ({ id: 909, completionRecords: [], itemControls: [{ uid: "a", orderItemId: 1, title: "Door", shippable: true, qtyControls: [{ qty: 10, total: 10, lh: 0, rh: 0 }] }], deliveries: [{ id: 90, status: "in progress", salesOrderId: 909, meta, _count: { stockAllocations: 0 }, items: [{ orderDeliveryId: 90, orderItemId: 1, packingStatus: "packed", qty: 3, lhQty: 0, rhQty: 0, submission: null }] }] })) } };
+        await expect(tasksModule.submitDispatchTask(packingSafeDb(tx) as any, { meta: { salesId: 909 }, submitDispatch: { dispatchId: 90 } } as any)).rejects.toThrow("confirm the short load");
+        await expect(tasksModule.markAsCompletedTask(packingSafeDb(tx) as any, { meta: { salesId: 909 }, markAsCompleted: { dispatchId: 90 } } as any)).rejects.toThrow("confirm the short load");
+        expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        expect(resetSalesActionMock).not.toHaveBeenCalled();
+    });
+
 	it("checks inventory readiness before starting a dispatch in the same transaction", async () => {
 		const calls: string[] = [];
 		const assertInventoryReady = mock(async () => {
@@ -873,6 +1039,83 @@ describe("sales-control task transactions", () => {
 			"One or more fulfillment dispatches do not belong to this sales order.",
 		);
 		expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
+	});
+
+    it("rejects closed scoped fulfillment before preparation", async () => {
+        const db = packingSafeDb({ orderDelivery: { findFirst: mock(async () => ({ id: 90, status: "completed", meta: { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } } })) } });
+        await expect(tasksModule.packDispatchItemTask(db as any, { meta: { salesId: 909 }, packItems: { dispatchId: 90, packMode: "all" } } as any)).rejects.toThrow("closed for packing");
+        expect(getSaleInformationMock).not.toHaveBeenCalled();
+        expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+    });
+
+	it("rejects corrupt assignment scope before packing or production preparation", async () => {
+		const db = packingSafeDb({ orderDelivery: { findFirst: mock(async () => ({ id: 90, meta: { fulfillmentAssignment: { version: 99 } } })) } });
+		await expect(tasksModule.packDispatchItemTask(db as any, {
+			meta: { salesId: 909, authorId: 12, authorName: "Operator" },
+			packItems: { dispatchId: 90, packMode: "all" },
+		} as any)).rejects.toThrow("Review fulfillment quantities");
+		expect(getSaleInformationMock).not.toHaveBeenCalled();
+		expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+	});
+
+	it("rejects assignment revision changes before replacing existing packing", async () => {
+		let reads = 0;
+		const replace = mock(async () => ({ count: 1 }));
+		const db = packingSafeDb({
+			orderDelivery: { findFirst: mock(async () => ({ id: 90, meta: { fulfillmentAssignment: { version: 1, revision: ++reads, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } } })) },
+			orderItemDelivery: { updateMany: replace },
+		});
+		await expect(tasksModule.packDispatchItemTask(db as any, {
+			meta: { salesId: 909, authorId: 12, authorName: "Operator" },
+			packItems: { dispatchId: 90, packMode: "selection", replaceExisting: true, packingLines: [] },
+		} as any)).rejects.toThrow("Refresh before packing");
+		expect(replace).not.toHaveBeenCalled();
+		expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+		expect(resetSalesActionMock).not.toHaveBeenCalled();
+	});
+
+	it("rejects selected quantities above scope before non-production preparation", async () => {
+        const meta = { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+        getSaleInformationMock.mockResolvedValueOnce({ order: { id: 909 }, items: [{ controlUid: "a", itemId: 1, deliverables: [] }] } as any);
+        const db = packingSafeDb({ orderDelivery: { findFirst: mock(async () => ({ id: 90, meta })) } });
+        await expect(tasksModule.packDispatchItemTask(db as any, {
+            meta: { salesId: 909, authorId: 12, authorName: "Operator" },
+            packItems: { dispatchId: 90, packMode: "selection", requestedItems: [{ salesItemId: 1, itemUid: "a", qty: { qty: 6, lh: 0, rh: 0 } }] },
+        } as any)).rejects.toThrow("exceeds the assigned");
+        expect(getSaleInformationMock).toHaveBeenCalledTimes(1);
+        expect(packDispatchItemsActionMock).not.toHaveBeenCalled();
+    });
+
+    it("replacement preparation excludes current packed and available quantities", async () => {
+        const meta = { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+        const packedRow = { orderDeliveryId: 90, orderItemId: 1, packingStatus: "packed", qty: 2, lhQty: 0, rhQty: 0, orderProductionSubmissionId: 11, submission: { assignment: { salesItemControlUid: "a" } } };
+        const evidence = { id: 909, completionRecords: [], itemControls: [{ uid: "a", orderItemId: 1, title: "Door", shippable: true, qtyControls: [{ qty: 10, total: 10, lh: 0, rh: 0 }] }], deliveries: [{ id: 90, status: "queue", meta, _count: { stockAllocations: 0 }, items: [packedRow] }] };
+        const info = (available: number) => ({ order: { id: 909 }, items: [{ controlUid: "a", itemId: 1, deliverables: [{ submissionId: 12, qty: { qty: available, lh: 0, rh: 0 } }] }], deliveries: [{ id: 90, items: [packedRow] }] });
+        getSaleInformationMock.mockResolvedValueOnce(info(1) as any).mockResolvedValueOnce(info(1) as any).mockResolvedValueOnce(info(3) as any);
+        const tx = { orderDelivery: { findFirst: mock(async () => ({ id: 90, status: "queue", meta })), update: mock(async () => ({})) }, orderItemDelivery: { updateMany: mock(async () => ({ count: 1 })) }, salesOrders: { findUniqueOrThrow: mock(async () => evidence) } };
+        await tasksModule.packDispatchItemTask(packingSafeDb(tx) as any, {
+            meta: { salesId: 909, authorId: 12, authorName: "Operator" },
+            packItems: { dispatchId: 90, packMode: "selection", replaceExisting: true, requestedItems: [{ salesItemId: 1, itemUid: "a", qty: { qty: 5, lh: 0, rh: 0 } }] },
+        } as any);
+        expect(submitNonProductionsActionMock.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ quantityLimits: [{ uid: "a", quantity: { qty: 2, lh: 0, rh: 0 } }] }));
+        expect(packDispatchItemsActionMock.mock.calls[0]?.[1].packItems.packingLines.reduce((sum: number, row: any) => sum + row.qty.qty, 0)).toBe(5);
+    });
+
+	it("automatic packing builds only the unfilled assigned quantity", async () => {
+		const meta = { fulfillmentAssignment: { version: 1, revision: 1, selectionMode: "selected", lines: [{ uid: "a", quantity: { qty: 5, lh: 0, rh: 0 } }] } };
+		const evidence = {
+			id: 909, completionRecords: [],
+			itemControls: [{ uid: "a", orderItemId: 1, title: "Door", shippable: true, qtyControls: [{ qty: 10, total: 10, lh: 0, rh: 0 }] }],
+			deliveries: [{ id: 90, status: "queue", meta, _count: { stockAllocations: 0 }, items: [{ orderDeliveryId: 90, orderItemId: 1, packingStatus: "packed", qty: 2, lhQty: 0, rhQty: 0, submission: null }] }],
+		};
+		getSaleInformationMock.mockResolvedValueOnce({ order: { id: 909 }, items: [{ controlUid: "a", itemId: 1, deliverables: [{ submissionId: 11, qty: { qty: 8, lh: 0, rh: 0 } }] }] } as any);
+		getSaleInformationMock.mockResolvedValueOnce({ order: { id: 909 }, items: [] } as any);
+		getSaleInformationMock.mockResolvedValueOnce({ order: { id: 909 }, items: [{ controlUid: "a", itemId: 1, deliverables: [{ submissionId: 11, qty: { qty: 8, lh: 0, rh: 0 } }] }, { controlUid: "other", itemId: 2, deliverables: [{ submissionId: 12, qty: { qty: 20, lh: 0, rh: 0 } }] }] } as any);
+		const tx = { orderDelivery: { findFirst: mock(async () => ({ id: 90, meta })), update: mock(async () => ({})) }, salesOrders: { findUniqueOrThrow: mock(async () => evidence) } };
+		await tasksModule.packDispatchItemTask(packingSafeDb(tx) as any, { meta: { salesId: 909, authorId: 12, authorName: "Operator" }, packItems: { dispatchId: 90, dispatchStatus: "queue", packMode: "available" } } as any);
+		expect(packDispatchItemsActionMock.mock.calls[0]?.[1].packItems.packingLines).toEqual([{ salesItemId: 1, submissionId: 11, qty: { qty: 3, lh: 0, rh: 0 } }]);
+		expect(packDispatchItemsActionMock.mock.calls[0]?.[0]).toBe(tx);
+        expect(tx.orderDelivery.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "packing queue" }) }));
 	});
 
 	it("packDispatchItemTask packs and resets within same transaction client", async () => {
@@ -1555,6 +1798,7 @@ describe("sales-control task transactions", () => {
 				{
 					id: 90,
 					items: [
+                        { qty: 9, lhQty: 0, rhQty: 0, packingStatus: "unpacked", orderProductionSubmissionId: 999, submission: { assignment: { salesItemControlUid: "uid-1" } } },
 						{
 							qty: 1,
 							lhQty: 0,

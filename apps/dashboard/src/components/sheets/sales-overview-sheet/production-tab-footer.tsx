@@ -17,7 +17,14 @@ import { ProductionItemMenuActions } from "./production-item-menu";
 
 export function ProductionTabFooter() {
 	const { data, selections, setSelections } = useProduction();
-	const prodItems = getProductionTabItems(data?.items);
+	const query = useSalesOverviewQuery();
+	const workerMode = Boolean(query.assignedTo);
+	const productionItems = getProductionTabItems(data?.items);
+	const prodItems = workerMode
+		? productionItems.filter(
+				(item) => Number(item.analytics?.stats?.prodAssigned?.qty || 0) > 0,
+			)
+		: productionItems;
 	const ctx = useMemo(() => {
 		const selectedUids = Object.entries(selections)
 			.filter(([, value]) => value)
@@ -41,7 +48,6 @@ export function ProductionTabFooter() {
 
 		setSelections(() => ({ ...newSelections }));
 	}
-	const query = useSalesOverviewQuery();
 	const [opened, setOpened] = useState(false);
 	const [menuBusy, setMenuBusy] = useState(false);
 	const menuBusyRef = useRef(false);
@@ -49,7 +55,7 @@ export function ProductionTabFooter() {
 		menuBusyRef.current = busy;
 		setMenuBusy(busy);
 	};
-	if (query.dispatchMode) return null;
+	if (query.dispatchMode || (workerMode && !ctx.selectCount)) return null;
 	return (
 		<Sheet.Portal>
 			<SheetFooter className="border-t bg-background p-4 md:p-6">
@@ -86,6 +92,7 @@ export function ProductionTabFooter() {
 					>
 						<ProductionItemMenuActions
 							itemUids={ctx.selectCount ? ctx.selectedUids : undefined}
+							workerMode={workerMode}
 							setOpened={setOpened}
 							setMenuBusy={updateMenuBusy}
 						/>

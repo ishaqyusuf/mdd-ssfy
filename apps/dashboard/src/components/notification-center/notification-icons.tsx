@@ -44,6 +44,7 @@ const notificationToneByType: Record<string, NotificationTone> = {
 	sales_dispatch_approval_pending_released: "teal",
 	sales_dispatch_in_progress: "blue",
 	sales_dispatch_date_updated: "blue",
+	sales_dispatch_updated: "blue",
 	dispatch_packing_delay: "amber",
 	sales_dispatch_packing_reset: "amber",
 	sales_dispatch_duplicate_alert: "rose",
@@ -100,6 +101,7 @@ function getNotificationIcon(type: string) {
 		case "sales_dispatch_approval_pending_released":
 		case "sales_dispatch_in_progress":
 		case "sales_dispatch_date_updated":
+		case "sales_dispatch_updated":
 		case "dispatch_packing_delay":
 		case "sales_dispatch_packing_reset":
 		case "sales_dispatch_duplicate_alert":

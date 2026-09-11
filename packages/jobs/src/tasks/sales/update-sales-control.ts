@@ -1,6 +1,7 @@
 import { userHasPermission } from "@gnd/auth/utils";
 import { type Db, type Prisma, db } from "@gnd/db";
 import { Notifications } from "@gnd/notifications";
+import { deliverFulfillmentNotices } from "@gnd/notifications/fulfillment-delivery";
 import {
 	type LegacyUpdateSalesControlAction,
 	type SalesPipelineCommandDecision,
@@ -301,12 +302,14 @@ async function sendDispatchLifecycleNotification(input: UpdateSalesControl) {
 }
 
 async function sendDispatchCompletedNotification(input: UpdateSalesControl) {
-	const dispatchId = input.submitDispatch?.dispatchId;
+	const completion = input.submitDispatch ?? input.markAsCompleted;
+	const dispatchId = completion?.dispatchId;
 	if (!dispatchId) return;
 
 	const dispatch = await db.orderDelivery.findFirst({
 		where: {
 			id: dispatchId,
+			salesOrderId: input.meta.salesId,
 			deletedAt: null,
 		},
 		select: {
@@ -324,12 +327,35 @@ async function sendDispatchCompletedNotification(input: UpdateSalesControl) {
 	});
 	if (!dispatch) return;
 	if (dispatch.status !== "completed") return;
+	const completionNotice = await db.salesHistory.findFirst({
+		where: {
+			salesId: input.meta.salesId,
+			AND: [
+				{ data: { path: "$.event", equals: "FULFILLMENT_COMPLETED" } },
+				{ data: { path: "$.dispatchId", equals: dispatch.id } },
+				...(completion?.completionRequestId?.trim()
+					? [{ data: { path: "$.completionRequestId", equals: completion.completionRequestId.trim() } }]
+					: []),
+			],
+		},
+		orderBy: { createdAt: "desc" },
+		select: { id: true },
+	});
+	if (completionNotice) {
+		try {
+			await deliverFulfillmentNotices(db, completionNotice.id);
+		} catch {
+			await tasks.trigger("deliver-fulfillment-notices", { requestId: completionNotice.id });
+		}
+	}
 
 	const notification = new NotificationService(tasks, {
 		db,
 		userId: input.meta.authorId,
 	});
 	await notification.send("sales_dispatch_completed", {
+		skipActivities: Boolean(completionNotice),
+		recipients: dispatch.driverId ? [{ ids: [dispatch.driverId], role: "employee" }] : undefined,
 		author: {
 			id: input.meta.authorId,
 			role: "employee",
@@ -341,10 +367,11 @@ async function sendDispatchCompletedNotification(input: UpdateSalesControl) {
 			deliveryMode: dispatch.deliveryMode || undefined,
 			dueDate: dispatch.dueDate || undefined,
 			driverId: dispatch.driverId || undefined,
+			completedByAdmin: Boolean(input.markAsCompleted),
 			packedBy: input.meta.authorName || undefined,
-			receivedBy: input.submitDispatch?.receivedBy || undefined,
-			signature: input.submitDispatch?.signature || undefined,
-			attachments: (input.submitDispatch?.attachments || [])
+			receivedBy: completion?.receivedBy || undefined,
+			signature: completion?.signature || undefined,
+			attachments: (completion?.attachments || [])
 				.map((item) => String(item.pathname || "").trim())
 				.filter(Boolean),
 		},
@@ -695,7 +722,7 @@ export const updateSalesControl = schemaTask({
 					);
 				}
 			}
-			if (authorizedInput.submitDispatch) {
+			if (authorizedInput.submitDispatch || authorizedInput.markAsCompleted) {
 				try {
 					await sendDispatchCompletedNotification(authorizedInput);
 				} catch (error) {

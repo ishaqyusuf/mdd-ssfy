@@ -1,4 +1,4 @@
-import type { ContactRole, Db, NoteStatus } from "@gnd/db";
+import type { ContactRole, Db, NoteStatus, TransactionClient } from "@gnd/db";
 import type { UserData } from "./base";
 import {
 	getSubscriberAccount,
@@ -80,7 +80,7 @@ export async function createNote(
 	);
 }
 export async function createActivity(
-	db: Db,
+	db: Db | TransactionClient,
 	params: CreateActivityInput,
 	authorId?: number,
 	recipientIds?: number[],

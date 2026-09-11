@@ -2,7 +2,7 @@ import { AppError } from "@gnd/errors";
 import { createHash } from "node:crypto";
 import { type Db, Prisma, type TransactionClient } from "@gnd/db";
 import { DB_TRANSACTION_PROFILES } from "@gnd/db/transactions";
-import { receiveInboundShipment } from "@gnd/inventory/inbound";
+import { getInboundShipmentDetail, receiveInboundShipment } from "@gnd/inventory/inbound";
 import { reconcileProductionInboundReviews } from "./production-inbound-review";
 import { getProductionInboundHistory } from "./production-inbound-history";
 import { captureProductionReceiptState, productionReceiptAuditJson } from "./production-inbound-audit";
@@ -292,7 +292,7 @@ export async function getProductionPendingInbounds(
 			receivingEnabled:
 				actor.canEditInbound || scope.policy.workerCanReceiveInbound,
 		};
-	const predicate = Prisma.sql`s.deletedAt IS NULL AND s.status NOT IN ('closed','cancelled','completed') AND i.deletedAt IS NULL AND (i.qty - COALESCE(i.qtyGood,0) - COALESCE(i.qtyIssue,0)) > 0 AND d.deletedAt IS NULL AND d.status <> 'cancelled' AND d.lineItemComponentId IN (${Prisma.join(scope.componentIds)}) ${input.inboundId ? Prisma.sql`AND s.id=${input.inboundId}` : Prisma.empty}`;
+	const predicate = Prisma.sql`s.deletedAt IS NULL AND s.status <> 'cancelled' AND i.deletedAt IS NULL AND d.deletedAt IS NULL AND d.status <> 'cancelled' AND d.lineItemComponentId IN (${Prisma.join(scope.componentIds)}) ${input.inboundId ? Prisma.sql`AND s.id=${input.inboundId}` : Prisma.empty}`;
 	const [counts, ids] = await Promise.all([
 		db.$queryRaw<Array<{ count: bigint }>>(
 			Prisma.sql`SELECT COUNT(DISTINCT s.id) AS count FROM InboundShipment s JOIN InboundShipmentItem i ON i.inboundId=s.id JOIN InboundDemand d ON d.inboundShipmentItemId=i.id WHERE ${predicate}`,
@@ -574,4 +574,17 @@ export async function receiveProductionInbound(
 		},
 		{ ...DB_TRANSACTION_PROFILES.workflow, isolationLevel: "Serializable" },
 	);
+}
+
+export async function getProductionInboundOverview(db: Client, input: { salesOrderId: number; inboundId: number }, actor: ProductionInboundActor) {
+ const scope = await scopeFor(db, input.salesOrderId, actor);
+ const linked = await db.inboundShipment.findFirst({
+  where: {id: input.inboundId, deletedAt: null, items: {some: {deletedAt: null, inboundDemands: {some: {deletedAt: null, status: {not: "cancelled"}, lineItemComponentId: {in: scope.componentIds}}}}}},
+  select: {id: true},
+ });
+ if (!linked) throw new AppError({code: "PERMISSION_DENIED", publicMessage: "This inbound is not linked to your assigned materials."});
+ const detail = await getInboundShipmentDetail(db, {inboundId: input.inboundId});
+ if (actor.canViewAll) return detail;
+ const componentIds = new Set(scope.componentIds);
+ return {...detail, items: detail.items.map(item => ({...item, inboundDemands: item.inboundDemands.filter(demand => componentIds.has(demand.lineItemComponentId))})).filter(item => item.inboundDemands.length > 0)};
 }

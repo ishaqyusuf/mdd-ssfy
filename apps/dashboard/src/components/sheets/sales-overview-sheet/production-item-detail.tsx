@@ -1,5 +1,6 @@
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
+import { useSalesOverviewUi } from "@/store/sales-overview-ui";
 import { useState } from "react";
 
 import { Badge } from "@gnd/ui/badge";
@@ -14,7 +15,9 @@ import { getProductionConfigKey } from "./production/v2/production-item-presenta
 export function ProductionItemDetail() {
 	const ctx = useProductionItem();
 	const { queryCtx } = ctx;
-	const workerMode = Boolean(queryCtx.assignedTo);
+	const workerMode =
+		Boolean(queryCtx.assignedTo) || queryCtx.params.mode === "production-tasks";
+	const overviewExpanded = useSalesOverviewUi((state) => state.expanded);
 	const tabIsAvailable = (tab?: string | null) =>
 		workerMode
 			? tab === "details" || tab === "notes" || tab === "submissions"
@@ -28,6 +31,50 @@ export function ProductionItemDetail() {
 	const [selectedTab, setSelectedTab] = useState(initialTab);
 	const activeTab = tabIsAvailable(selectedTab) ? selectedTab : "details";
 	const submissionProgress = getWorkerProductionSubmissionProgress(ctx.item);
+	if (workerMode && overviewExpanded) {
+		return (
+			<div className="grid min-h-0 gap-6 lg:grid-cols-2">
+				<section
+					className="min-w-0 space-y-4"
+					aria-labelledby="production-details-heading"
+				>
+					<h3
+						id="production-details-heading"
+						className="text-sm font-semibold uppercase tracking-wide"
+					>
+						Details
+					</h3>
+					<Details />
+				</section>
+				<div className="min-w-0 space-y-6">
+					<section
+						className="space-y-4"
+						aria-labelledby="production-submissions-heading"
+					>
+						<h3
+							id="production-submissions-heading"
+							className="text-sm font-semibold uppercase tracking-wide"
+						>
+							Submissions
+						</h3>
+						<ProductionItemAssignments view="submissions" />
+					</section>
+					<section
+						className="space-y-4"
+						aria-labelledby="production-notes-heading"
+					>
+						<h3
+							id="production-notes-heading"
+							className="text-sm font-semibold uppercase tracking-wide"
+						>
+							Notes and activities
+						</h3>
+						<ProductionNotes />
+					</section>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<Tabs
@@ -88,17 +135,7 @@ export function ProductionItemDetail() {
 				<Details />
 			</TabsContent>
 			<TabsContent value="notes" className="mt-4 space-y-4">
-				<Note
-					subject="Production Note"
-					headline=""
-					statusFilters={["public"]}
-					typeFilters={["production", "general"]}
-					tagFilters={[
-						noteTagFilter("itemControlUID", ctx.item.controlUid),
-						noteTagFilter("salesItemId", ctx.item.itemId),
-						noteTagFilter("salesId", ctx.item.salesId),
-					]}
-				/>
+				<ProductionNotes />
 			</TabsContent>
 			{workerMode ? (
 				<TabsContent value="submissions" className="mt-4 space-y-4">
@@ -110,6 +147,23 @@ export function ProductionItemDetail() {
 				</TabsContent>
 			)}
 		</Tabs>
+	);
+}
+
+function ProductionNotes() {
+	const ctx = useProductionItem();
+	return (
+		<Note
+			subject="Production Note"
+			headline=""
+			statusFilters={["public"]}
+			typeFilters={["production", "general"]}
+			tagFilters={[
+				noteTagFilter("itemControlUID", ctx.item.controlUid),
+				noteTagFilter("salesItemId", ctx.item.itemId),
+				noteTagFilter("salesId", ctx.item.salesId),
+			]}
+		/>
 	);
 }
 

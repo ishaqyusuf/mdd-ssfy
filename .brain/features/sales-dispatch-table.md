@@ -143,7 +143,7 @@
   and uses the same `editOrders` page boundary as the former linked
   Fulfillment page. Its navigation is reduced to generated `All`, counted
   `Backlog`, Calendar, Drivers, and Exceptions tabs; the duplicate Dashboard
-  and Dispatches tabs are removed. All retains the analytics, warning-toned
+  and Dispatches tabs are removed. All retains the warning-toned
   overdue alert, and active dispatch table. Filter controls now use semantic
   Stage/Schedule/Delivery/Risk/Driver icons, while the duplicate table/calendar
   selector, auto-refresh, and CSV export controls are removed. V2 overdue
@@ -641,7 +641,9 @@ Removed after import scans:
   assign, assigned, packing, packing blocked, ready to load, and in transit,
   and excludes fulfilled and cancelled. Its tab count is computed from the
   same lifecycle projection as its table stages.
-- Calendar retains the fulfillment analytics cards above its tabs and calendar.
+- Fulfillment analytics cards are hidden from list, dashboard, backlog, and
+  Calendar compositions. The overdue warning remains visible where applicable,
+  and header tab counts continue to use the existing summary projections.
   Closing Create Dispatch clears only dialog-owned query keys, preserving the
   selected Backlog tab.
 

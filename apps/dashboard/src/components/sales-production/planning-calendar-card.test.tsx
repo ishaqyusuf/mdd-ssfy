@@ -142,4 +142,16 @@ describe("Production planning card rendering", () => {
 		assert.ok(html.includes("&lt;script&gt;"));
 		assert.ok(!html.includes("<script>"));
 	});
+	it("renders critical priority with a solid red surface and the status border", () => {
+		const row = item();
+		row.priority = "CRITICAL";
+		const html = renderToStaticMarkup(
+			<PlanningCard item={row} onOpen={() => {}} canEditDueDate />,
+		);
+		assert.ok(html.includes("bg-red-700/90"));
+		assert.ok(html.includes("text-white"));
+		assert.ok(html.includes("border-amber-300"));
+		assert.ok(html.includes("border-2"));
+		assert.ok(html.includes("Priority: Critical"));
+	});
 });
