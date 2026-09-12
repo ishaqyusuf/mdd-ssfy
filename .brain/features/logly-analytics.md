@@ -48,3 +48,5 @@ OpenPanel and `OPENPANEL_SECRET_KEY` are retired from source, package manifests,
 ## Validation
 
 `@gnd/events` lint, typecheck, and focused tests cover the native session/release contract, privacy sanitization, trusted mobile country forwarding, fixed project credentials, and web-origin enforcement. The mobile, dealership, and API compiler logs contain no diagnostics for analytics-owned files. Their broad checks retain unrelated pre-existing sales/order diagnostics.
+
+Production canaries passed on 2026-09-13: the API accepted one Android and one iOS session plus their screen views, and the dealership accepted one browser visit. Logly displayed the corresponding Nigeria country totals, flag, map heat state, platform split and version/build rows. The legacy Bun Vercel runtime decodes base64 request bodies before constructing the Fetch `Request`, and all analytics environment values are trimmed at the proxy boundary.

@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — production provisioning and acceptance remain
+Complete — production ingestion and responsive dashboard acceptance passed
 
 ## Scope
 
@@ -20,10 +20,16 @@ In Progress — production provisioning and acceptance remain
 - Removed all OpenPanel source, manifest, lockfile, and Turbo environment references.
 - Passed `@gnd/events` lint, typecheck, and four focused tests.
 - Confirmed consuming app compiler logs have no analytics-owned diagnostics.
+- Provisioned separate production `gnd-web` and `gnd-mobile` Logly projects.
+- Stored scoped web and mobile credentials in Vercel and public mobile routing configuration in EAS Production.
+- Deployed the dealership and API proxies to their canonical production domains.
+- Verified production ingestion with one web visit and four mobile events across Android and iOS, all with zero duplicates.
+- Verified Nigeria on the Logly heat map and ranked country list with the correct flag, counts and shares.
+- Verified Android/iOS sessions, installations, events, version/build reporting and 390-pixel responsive layouts.
+- Published full and production-compatible source branches as `codex/gnd-logly-complete` and `codex/gnd-logly-api-prod`.
 
-## Remaining
+## Production Evidence
 
-- Create the production `gnd-web` and `gnd-mobile` Logly projects and store their scoped ingest keys in the correct deployments.
-- Apply the Logly production database migration and deploy the dashboard/collector.
-- Deploy the GND web/API changes and provide the Expo environment to future builds.
-- Generate real web/mobile test events and capture responsive Logly screenshots for platform usage and country heat-map/list verification.
+- API deployment: `dpl_5hsNq7h4N3aC3MMUX8RfS4MFD5FS` on `https://api.gndprodesk.com`.
+- Dealership deployment: `dpl_EkTJ3sxtcyHxPHvowA4UNQQTMMTK` on `https://dealers.gndprodesk.com`.
+- Logly QA report and screenshots: `logly/.brain/tasks/gnd-mobile-platform-analytics/production-qa-2026-09-13.md`.
