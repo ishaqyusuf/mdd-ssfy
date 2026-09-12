@@ -1,5 +1,8 @@
 # Done
 
+### [Group Dashboard Quick Login By Role](2026-09-12-group-dashboard-quick-login-by-role.md)
+- Status: Done
+
 ### Sales Request compact catalog, custom values, services, and delivery
 
 - [Catalog/custom task](2026-09-11-sales-request-custom-values-and-published-catalog.md) — Done, 8/8.

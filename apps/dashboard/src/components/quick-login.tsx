@@ -2,8 +2,15 @@
 
 import { createQuickLoginToken } from "@/app-deps/(v1)/_actions/auth";
 import { Avatar } from "@/components/avatar";
+import { groupQuickLoginUsersByRole } from "@/components/quick-login-groups";
 import { signIn } from "@/lib/auth/client";
 import { useTRPC } from "@/trpc/client";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@gnd/ui/accordion";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -38,6 +45,10 @@ export default function QuickLogin() {
                 (user) => typeof user.email === "string" && user.email.trim(),
             ),
         [data?.data?.data],
+    );
+    const roleGroups = useMemo(
+        () => groupQuickLoginUsersByRole(loginableUsers),
+        [loginableUsers],
     );
 
     async function login(user) {
@@ -89,42 +100,48 @@ export default function QuickLogin() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <ScrollArea className="h-80">
-                        <div className="flex flex-col gap-1 p-1">
-                            {loginableUsers.map((user) => {
-                                const role = user?.role || null;
-
-                                return (
-                                    <DropdownMenuItem
-                                        key={user?.id}
-                                        className="items-start gap-3 rounded-md p-2"
-                                        onClick={() => login(user)}
-                                    >
-                                        <Avatar
-                                            name={user?.name}
-                                            email={user?.email}
-                                            className="size-9"
-                                            fallbackClassName="text-xs"
-                                        />
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <p className="truncate text-sm font-medium">
-                                                    {user?.name || "Unnamed employee"}
-                                                </p>
-                                                <Badge
-                                                    variant={role ? "secondary" : "outline"}
-                                                    className="shrink-0"
+                        <Accordion type="multiple" className="p-1">
+                            {roleGroups.map((group) => (
+                                <AccordionItem
+                                    key={group.role}
+                                    value={group.role}
+                                    className="last:border-b-0"
+                                >
+                                    <AccordionTrigger className="rounded-md px-2 py-2.5 text-sm hover:bg-accent hover:no-underline">
+                                        <span>
+                                            {group.role} ({group.count})
+                                        </span>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="[&>div]:pb-1">
+                                        <div className="flex flex-col gap-1">
+                                            {group.users.map((user) => (
+                                                <DropdownMenuItem
+                                                    key={user?.id}
+                                                    className="items-start gap-3 rounded-md p-2"
+                                                    onClick={() => login(user)}
                                                 >
-                                                    {role || "No role"}
-                                                </Badge>
-                                            </div>
-                                            <p className="truncate text-xs text-muted-foreground">
-                                                {user?.email}
-                                            </p>
+                                                    <Avatar
+                                                        name={user?.name}
+                                                        email={user?.email}
+                                                        className="size-9"
+                                                        fallbackClassName="text-xs"
+                                                    />
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-sm font-medium">
+                                                            {user?.name ||
+                                                                "Unnamed employee"}
+                                                        </p>
+                                                        <p className="truncate text-xs text-muted-foreground">
+                                                            {user?.email}
+                                                        </p>
+                                                    </div>
+                                                </DropdownMenuItem>
+                                            ))}
                                         </div>
-                                    </DropdownMenuItem>
-                                );
-                            })}
-                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
                     </ScrollArea>
                 </DropdownMenuContent>
             </DropdownMenu>

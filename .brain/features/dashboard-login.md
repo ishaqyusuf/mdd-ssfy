@@ -15,6 +15,10 @@ surface.
   email login links, token login, safe `return_to`/`callbackUrl` handling,
   password reset access, remember-me behavior, error feedback, and
   development-only quick login.
+- Development Quick Login groups eligible employees by role in alphabetically
+  ordered accordion sections. Each header includes the eligible employee count,
+  all sections start collapsed, and employees without a role appear in a final
+  `No role` section.
 - The retired first-version visual template and the versioned login page have
   been removed. The former v2 component is now the unversioned canonical login
   component.
@@ -29,6 +33,9 @@ surface.
   `307` to the canonical route.
 - Responsive browser proof covers 375x812, 768x1024, and 1280x720. The login
   controls render at every viewport and the browser console reports no errors.
+- Local Quick Login browser proof confirms every role/count header starts
+  collapsed, keyboard Enter/Space toggles a role, and expanding `Admin (4)`
+  reveals the four eligible local employees without console errors.
 
 ## Implemented Public-Auth Design
 
