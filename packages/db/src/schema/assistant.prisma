@@ -1,0 +1,137 @@
+model AssistantConversation {
+    id             String             @id @default(cuid()) @db.VarChar(191)
+    ownerUserId    Int
+    scopeType      String             @default("user") @db.VarChar(50)
+    scopeId        String?            @db.VarChar(191)
+    title          String?            @db.VarChar(500)
+    preferences    Json?              @db.Json
+    lastSequence   Int                @default(0)
+    retentionUntil DateTime?          @db.Timestamp(0)
+    archivedAt     DateTime?          @db.Timestamp(0)
+    deletedAt      DateTime?          @db.Timestamp(0)
+    createdAt      DateTime           @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime           @updatedAt
+    messages       AssistantMessage[]
+    runs           AssistantRun[]
+
+    @@index([ownerUserId, archivedAt, deletedAt, updatedAt], map: "asst_conv_owner_active_idx")
+    @@index([ownerUserId, scopeType, scopeId, deletedAt], map: "asst_conv_scope_idx")
+    @@index([retentionUntil, deletedAt], map: "asst_conv_retention_idx")
+}
+
+model AssistantMessage {
+    id              String                @id @default(cuid()) @db.VarChar(191)
+    conversationId  String                @db.VarChar(191)
+    sequence        Int
+    role            String                @db.VarChar(20)
+    parts           Json                  @db.Json
+    searchText      String?               @db.Text
+    clientRequestId String?               @db.VarChar(191)
+    requestFingerprint String?            @db.Char(64)
+    generatedRunId  String?               @unique(map: "asst_msg_generated_run_uq") @db.VarChar(191)
+    parentMessageId String?               @db.VarChar(191)
+    createdByUserId Int?
+    createdAt       DateTime              @default(now()) @db.Timestamp(0)
+    conversation    AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    parentMessage   AssistantMessage?     @relation("assistantMessageReplies", fields: [parentMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    replies         AssistantMessage[]    @relation("assistantMessageReplies")
+    runs            AssistantRun[]        @relation("assistantRunTrigger")
+
+    @@unique([conversationId, sequence], map: "asst_msg_seq_uq")
+    @@unique([conversationId, clientRequestId], map: "asst_msg_request_uq")
+    @@index([conversationId, createdAt], map: "asst_msg_created_idx")
+    @@index([parentMessageId], map: "asst_msg_parent_idx")
+    @@index([createdByUserId, createdAt], map: "asst_msg_actor_idx")
+}
+
+model AssistantRun {
+    id               String                   @id @default(cuid()) @db.VarChar(191)
+    conversationId   String                   @db.VarChar(191)
+    triggerMessageId String?                  @db.VarChar(191)
+    actorUserId      Int
+    requestId        String                   @db.VarChar(191)
+    requestFingerprint String                 @db.Char(64)
+    catalogVersion   String                   @db.VarChar(64)
+    model            String                   @db.VarChar(100)
+    promptVersion    String                   @db.VarChar(64)
+    status           String                   @default("queued") @db.VarChar(32)
+    checkpoint       Json?                    @db.Json
+    terminalResult   Json?                    @db.Json
+    usage            Json?                    @db.Json
+    lastSequence     Int                      @default(0)
+    errorCode        String?                  @db.VarChar(100)
+    errorMessage     String?                  @db.Text
+    startedAt        DateTime?                @db.Timestamp(0)
+    completedAt      DateTime?                @db.Timestamp(0)
+    createdAt        DateTime                 @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime                 @updatedAt
+    conversation     AssistantConversation    @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    triggerMessage   AssistantMessage?        @relation("assistantRunTrigger", fields: [triggerMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    toolExecutions   AssistantToolExecution[]
+    actionProposals  AssistantActionProposal[]
+
+    @@unique([actorUserId, requestId], map: "asst_run_request_uq")
+    @@index([conversationId, status, createdAt], map: "asst_run_status_idx")
+    @@index([conversationId, updatedAt], map: "asst_run_updated_idx")
+    @@index([triggerMessageId], map: "asst_run_trigger_idx")
+}
+
+model AssistantToolExecution {
+    id               String       @id @default(cuid()) @db.VarChar(191)
+    runId            String       @db.VarChar(191)
+    toolCallId       String       @db.VarChar(191)
+    step             Int
+    ordinal          Int          @default(0)
+    eventSequence    Int
+    toolId           String       @db.VarChar(191)
+    toolVersion      Int
+    effect           String       @db.VarChar(32)
+    status           String       @default("running") @db.VarChar(32)
+    inputFingerprint String       @db.Char(64)
+    input            Json?        @db.Json
+    result           Json?        @db.Json
+    errorCode        String?      @db.VarChar(100)
+    durationMs       Int?
+    idempotencyKey   String?      @unique(map: "asst_tool_idempotency_uq") @db.VarChar(191)
+    startedAt        DateTime     @default(now()) @db.Timestamp(0)
+    completedAt      DateTime?    @db.Timestamp(0)
+    createdAt        DateTime     @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime     @updatedAt
+    run              AssistantRun @relation(fields: [runId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([runId, toolCallId], map: "asst_tool_call_uq")
+    @@unique([runId, step, ordinal], map: "asst_tool_step_uq")
+    @@unique([runId, eventSequence], map: "asst_tool_event_uq")
+    @@index([runId, status, createdAt], map: "asst_tool_status_idx")
+    @@index([toolId, toolVersion, createdAt], map: "asst_tool_version_idx")
+}
+
+model AssistantActionProposal {
+    id               String       @id @default(cuid()) @db.VarChar(191)
+    runId            String       @db.VarChar(191)
+    actorUserId      Int
+    toolId           String       @db.VarChar(191)
+    toolVersion      Int
+    effect           String       @db.VarChar(32)
+    payloadHash      String       @db.Char(64)
+    payload          Json         @db.Json
+    targetRevision   String?      @db.VarChar(191)
+    diff             Json?        @db.Json
+    status           String       @default("pending") @db.VarChar(32)
+    expiresAt        DateTime     @db.Timestamp(0)
+    nonceHash        String       @unique(map: "asst_proposal_nonce_uq") @db.Char(64)
+    idempotencyKey   String       @db.VarChar(191)
+    eventSequence    Int
+    confirmedAt      DateTime?    @db.Timestamp(0)
+    consumedAt       DateTime?    @db.Timestamp(0)
+    rejectedAt       DateTime?    @db.Timestamp(0)
+    createdAt        DateTime     @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime     @updatedAt
+    run              AssistantRun @relation(fields: [runId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([actorUserId, idempotencyKey], map: "asst_proposal_idempotency_uq")
+    @@unique([runId, eventSequence], map: "asst_proposal_event_uq")
+    @@index([runId, status, createdAt], map: "asst_proposal_run_idx")
+    @@index([actorUserId, status, expiresAt], map: "asst_proposal_actor_idx")
+    @@index([toolId, toolVersion, createdAt], map: "asst_proposal_tool_idx")
+}

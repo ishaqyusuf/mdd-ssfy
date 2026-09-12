@@ -1,4 +1,5 @@
 // export * from "./activities";
+export * from "./assistant";
 export * from "./contractor-accounting";
 export * from "./contractor-accounting-workspace";
 export * from "./dealers";
