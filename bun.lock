@@ -49,6 +49,7 @@
         "@gnd/dev-logger": "workspace:*",
         "@gnd/documents": "workspace:*",
         "@gnd/errors": "workspace:*",
+        "@gnd/events": "workspace:*",
         "@gnd/inventory": "workspace:*",
         "@gnd/jobs": "workspace:*",
         "@gnd/logger": "workspace:*",
@@ -253,6 +254,7 @@
         "@expo/vector-icons": "^15.0.3",
         "@gnd/dev-logger": "workspace:*",
         "@gnd/errors": "workspace:*",
+        "@gnd/events": "workspace:*",
         "@gnd/sales": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@gorhom/bottom-sheet": "^5.0.5",
@@ -279,8 +281,10 @@
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.1",
         "expo": "~54.0.37",
+        "expo-application": "~7.0.8",
         "expo-auth-session": "~7.0.11",
         "expo-constants": "~18.0.14",
+        "expo-crypto": "~15.0.9",
         "expo-dev-client": "~6.0.21",
         "expo-file-system": "~19.0.24",
         "expo-font": "~14.0.12",
@@ -664,14 +668,19 @@
       "name": "@gnd/events",
       "version": "1.0.0",
       "dependencies": {
-        "@openpanel/nextjs": "^1.0.6",
+        "@ishaqyusuf/logly-core": "^0.2.0",
+        "@ishaqyusuf/logly-next": "^0.2.1",
+        "@ishaqyusuf/logly-server": "^0.2.0",
         "@vercel/functions": "^1.5.0",
         "next": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
+        "@types/bun": "^1.3.5",
+        "@types/node": "^25.2.3",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.2.3",
         "typescript": "^5.9.3",
@@ -1768,6 +1777,12 @@
 
     "@isaacs/ttlcache": ["@isaacs/ttlcache@1.4.1", "", {}, "sha512-RQgQ4uQ+pLbqXfOmieB91ejmLwvSgv9nLx6sT6sD83s7umBypgg+OIBOBbEUiJXrfpnp9j0mRhYYdzp9uqq3lA=="],
 
+    "@ishaqyusuf/logly-core": ["@ishaqyusuf/logly-core@0.2.0", "", { "dependencies": { "zod": "^4.3.5" } }, "sha512-F+6IanI9JAnp0galz+st5ON4f0F+yPFTULlASWLYB9jCF+eUjdveIYPJznwX/FdtEFnMZKyejlqbuEGwYIoVAw=="],
+
+    "@ishaqyusuf/logly-next": ["@ishaqyusuf/logly-next@0.2.1", "", { "dependencies": { "@ishaqyusuf/logly-core": "^0.2.0" }, "peerDependencies": { "next": ">=15", "react": ">=19" } }, "sha512-sjeuI9Ya3VNgBvBDltPYY2O4O8ePp2wynJqmG+Tz4Xz+PEpPd4afqzbnohj7u9D7V0vk3EL1TVecq7aQ/gaoQg=="],
+
+    "@ishaqyusuf/logly-server": ["@ishaqyusuf/logly-server@0.2.0", "", { "dependencies": { "@ishaqyusuf/logly-core": "^0.2.0" } }, "sha512-1g2J27CA1e41VhLxjgGRdl3b8ugdiJPHTQxuWEej+3fE9kbAWgM2JSybqfy2Zw97k7shmvk5cnmo1jN9kJfHSA=="],
+
     "@istanbuljs/load-nyc-config": ["@istanbuljs/load-nyc-config@1.1.0", "", { "dependencies": { "camelcase": "^5.3.1", "find-up": "^4.1.0", "get-package-type": "^0.1.0", "js-yaml": "^3.13.1", "resolve-from": "^5.0.0" } }, "sha512-VjeHSlIzpv/NyD3N0YuHfXOPDIixcA1q2ZV98wsMqcYlPmv2n3Yb2lYP9XMElnaFVXg5A7YLTeLu6V84uQDjmQ=="],
 
     "@istanbuljs/schema": ["@istanbuljs/schema@0.1.3", "", {}, "sha512-ZXRY4jNvVgSVQ8DL3LTcakaAtXwTVUxE81hslsyD2AtoXW/wVob10HkOJ1X/pAlcI7D+2YoZKg5do8G/w6RYgA=="],
@@ -1981,12 +1996,6 @@
     "@open-draft/logger": ["@open-draft/logger@0.3.0", "", { "dependencies": { "is-node-process": "^1.2.0", "outvariant": "^1.4.0" } }, "sha512-X2g45fzhxH238HKO4xbSr7+wBS8Fvw6ixhTDuvLd5mqh6bJJCFAPwU9mPDxbcrRtfxv4u5IHCEH77BmxvXmmxQ=="],
 
     "@open-draft/until": ["@open-draft/until@2.1.0", "", {}, "sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg=="],
-
-    "@openpanel/nextjs": ["@openpanel/nextjs@1.1.3", "", { "dependencies": { "@openpanel/web": "1.0.7" }, "peerDependencies": { "next": "^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0", "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-bjURtpIsbATCjqH2FEvZK0bJyG4Q+JTDV58W1ZaxI4PHAolc7fe2S6LM8SVlygq6ScJH2kaqTdpZpPrb5UXLTA=="],
-
-    "@openpanel/sdk": ["@openpanel/sdk@1.0.4", "", {}, "sha512-F4XocyiaUwUnNRre9LNa9RyTiX/fXcttR4rfFAmMxx6FrbcaemDzMYIg+mH3Hv7lwZqBSo1t2/jObkjpbqjW0g=="],
-
-    "@openpanel/web": ["@openpanel/web@1.0.7", "", { "dependencies": { "@openpanel/sdk": "1.0.4" } }, "sha512-lhZCIjUSy5XCcTyzHisehJkdr2/PPEEpMbc8cKtg/5zqxGhHLWIoOiLDjD357KGaxzHg43QVWPe5YBO+Wpto0A=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 

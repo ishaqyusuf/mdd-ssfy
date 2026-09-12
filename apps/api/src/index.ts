@@ -5,6 +5,7 @@ import { db } from "@gnd/db";
 import { getReliabilityCursorHealth, getTriggerReconciliationHealth, ingestReliabilityOccurrence } from "@gnd/db/queries";
 import type { DevLogEntry } from "@gnd/dev-logger";
 import { classifyError } from "@gnd/errors";
+import { createEventsRoute } from "@gnd/events/route";
 import { verifySquareWebhookSignature } from "@gnd/square";
 import { trpcServer } from "@hono/trpc-server";
 import { OpenAPIHono } from "@hono/zod-openapi";
@@ -41,6 +42,9 @@ app.get("/api/reliability/health", (c) =>
 		token: process.env.RELIABILITY_MONITOR_TOKEN ?? null,
 		read: () => readConfiguredReliabilityHealth(process.env.RELIABILITY_MONITOR_SOURCES, new Date(), (source, input, provider, mode) => provider === "trigger" && mode === "incremental" ? getTriggerReconciliationHealth(db, source, input) : getReliabilityCursorHealth(db, input)),
 	}),
+);
+app.post("/api/analytics/mobile", async (context) =>
+	createEventsRoute("mobile")(context.req.raw),
 );
 app.post("/api/webhooks/reliability/vercel/:registrationId", async (c) => {
 	try {

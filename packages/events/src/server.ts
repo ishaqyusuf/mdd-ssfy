@@ -1,45 +1,24 @@
-import { OpenPanel, type TrackProperties } from "@openpanel/nextjs";
+import { createServerAnalytics } from "@ishaqyusuf/logly-server";
 import { waitUntil } from "@vercel/functions";
-import { cookies } from "next/headers";
+type TrackProperties = Record<string, unknown>;
 
-type Props = {
-  userId?: string;
-  fullName?: string | null;
-};
+export const setupAnalytics = async () => {
+	const collectorUrl = process.env.LOGLY_COLLECTOR_URL;
+	const serverKey = process.env.LOGLY_SERVER_KEY;
+	const client =
+		collectorUrl && serverKey
+			? createServerAnalytics({
+					collectorUrl,
+					serverKey,
+					project: process.env.LOGLY_SERVER_PROJECT ?? "gnd-web",
+				})
+			: null;
 
-export const setupAnalytics = async (options?: Props) => {
-  const { userId, fullName } = options ?? {};
-  const cookieStore = await cookies();
-  const trackingConsent =
-    !cookieStore.has("tracking-consent") ||
-    cookieStore.get("tracking-consent")?.value === "1";
-
-  const client = new OpenPanel({
-    clientId: process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID!,
-    clientSecret: process.env.OPENPANEL_SECRET_KEY!,
-  });
-
-  if (trackingConsent && userId && fullName) {
-    const [firstName, lastName] = fullName.split(" ");
-
-    waitUntil(
-      client.identify({
-        profileId: userId,
-        firstName,
-        lastName,
-      }),
-    );
-  }
-
-  return {
-    track: (options: { event: string } & TrackProperties) => {
-      if (process.env.NODE_ENV !== "production") {
-        return;
-      }
-
-      const { event, ...rest } = options;
-
-      waitUntil(client.track(event, rest));
-    },
-  };
+	return {
+		track: (options: { event: string } & TrackProperties) => {
+			if (process.env.NODE_ENV !== "production" || !client) return;
+			const { event, ...rest } = options;
+			waitUntil(client.track(event, rest));
+		},
+	};
 };

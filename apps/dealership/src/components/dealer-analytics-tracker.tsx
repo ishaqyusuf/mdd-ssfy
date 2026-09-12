@@ -20,10 +20,9 @@ export function DealerAnalyticsTracker() {
 
 	useEffect(() => {
 		track({
-			event: "Dealer Program Progress Viewed",
-			pathname,
+			event: "dealer_program_progress_viewed",
 			section: dealerSection(pathname),
-			hasFilters: search.length > 0,
+			has_filters: search.length > 0,
 		});
 	}, [pathname, search, track]);
 
