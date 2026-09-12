@@ -1,3 +1,17 @@
+### 2026-09-12 — Apple terms and EAS identity gates cleared
+
+After explicit action-time approval, the Account Holder accepted App Store
+Connect Terms of Service V100. Read-only inspection now shows App Store Connect
+API access still requires a separate permission request; none was made. Added a
+safe `bun run eas:auth` route to the existing account runner, which switches the
+configured local session and verifies identity without starting a build, update,
+upload, or submission. Its two focused tests and Biome checks pass. The session
+is now `pcruz321`; `eas project:info` verified `@pcruz321/gnd-prodesk` and project
+ID `8ea2eecb-4109-453c-827f-9b2de2e3a9aa`, with no existing iOS builds. The
+App Store Connect Apps page remains empty and is prepared at the separately
+confirmed app-record creation gate. No app, signing asset, build, upload, API
+key/access request, permission change, or tester invitation was created.
+
 ### 2026-09-12 — iOS TestFlight and employee mobile-access preparation reached credential gate
 
 GND now has explicit store-distributed iOS production build, submit-latest, and
