@@ -75,7 +75,7 @@ await Bun.write(
 			handler: "bootstrap",
 			maxDuration: 10,
 			memory: 1024,
-			runtime: "provided.al2",
+			runtime: "provided.al2023",
 			supportsWrapper: false,
 		},
 		null,

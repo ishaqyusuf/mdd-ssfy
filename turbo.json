@@ -55,6 +55,10 @@
         "NEXT_BACK_DOOR_TOK",
         "BLOB_READ_WRITE_TOKEN",
         "CRON_SECRET",
+        "LOGLY_COLLECTOR_URL",
+        "LOGLY_MOBILE_PROJECT_KEY",
+        "LOGLY_MOBILE_PROJECT",
+        "GND_LOGLY_ORIGIN",
         "OPENPANEL_SECRET_KEY"
       ],
       "dependsOn": ["^build"],

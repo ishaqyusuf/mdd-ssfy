@@ -2,6 +2,7 @@ import "./instrument";
 
 import { db } from "@gnd/db";
 import { appendDevLogEntryToFile } from "@gnd/dev-logger/file-sink";
+import { createEventsRoute } from "@gnd/events/route";
 import { trpcServer } from "@hono/trpc-server";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
@@ -16,6 +17,9 @@ import { storefrontAppRouter } from "./trpc/routers/storefront-app";
 const app = new OpenAPIHono<Context>(); //.basePath("/api");
 
 app.use(secureHeaders());
+app.post("/api/analytics/mobile", async (context) =>
+	createEventsRoute("mobile")(context.req.raw),
+);
 if (process.env.NODE_ENV === "development")
   app.use(
     "/api/trpc/*",

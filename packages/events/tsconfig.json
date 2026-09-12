@@ -1,5 +1,9 @@
 {
   "extends": "@gnd/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "types": ["bun", "node", "react"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "../../types"]
+  },
   "include": ["src"],
   "exclude": ["node_modules"]
 }
