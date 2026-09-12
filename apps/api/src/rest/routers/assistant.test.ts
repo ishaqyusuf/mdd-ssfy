@@ -25,7 +25,7 @@ function createHarness(overrides: Record<string, unknown> = {}) {
 			calls.push(input);
 			return {
 				runId: "run-1",
-				messageSequence: 3,
+				messageSequence: 1,
 				runSequence: 0,
 				status: "running",
 				shouldExecute: true,
@@ -259,6 +259,26 @@ describe("assistant chat REST router", () => {
 		});
 	});
 
+	test("does not retitle an existing conversation on later turns", async () => {
+		const { router } = createHarness({
+			startRun: async () => ({
+				runId: "run-later",
+				messageSequence: 3,
+				runSequence: 0,
+				status: "running",
+				shouldExecute: true,
+			}),
+		});
+		const response = await router.request("/", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(requestBody()),
+		});
+		const raw = await response.text();
+
+		expect(raw).not.toContain("data-title");
+	});
+
 	test("enforces request and concurrency bounds per actor scope", () => {
 		const guard = new AssistantStreamGuard({
 			windowMs: 60_000,
@@ -284,7 +304,7 @@ describe("assistant chat REST router", () => {
 			new AssistantStreamGuard(),
 			(async <T>(command: (string | number)[]) => {
 				commands.push(command);
-				return 1 as T;
+				return [1, 45_000] as T;
 			}) as never,
 		);
 		const lease = await distributed.acquire("42:organization:7", 1_000);
@@ -297,6 +317,7 @@ describe("assistant chat REST router", () => {
 			"assistant:active:42:organization:7",
 		]);
 		expect(commands[1]?.[2]).toBe(commands[0]?.[10]);
+		expect(lease.resetAt).toEqual(new Date(46_000));
 	});
 
 	test("persists cancellation when the request aborts while runtime work finishes", async () => {

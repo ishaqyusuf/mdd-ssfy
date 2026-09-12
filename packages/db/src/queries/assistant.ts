@@ -386,7 +386,7 @@ export function listAssistantConversations(
 	});
 }
 
-export function getAssistantConversation(
+export async function getAssistantConversation(
 	db: Database,
 	input: ConversationIdentity & {
 		afterSequence?: number;
@@ -394,7 +394,8 @@ export function getAssistantConversation(
 	},
 ) {
 	const scope = resolveActorScope(input);
-	return db.assistantConversation.findFirst({
+	const loadingLatestWindow = input.afterSequence === undefined;
+	const conversation = await db.assistantConversation.findFirst({
 		where: {
 			id: input.conversationId,
 			...scope,
@@ -403,11 +404,13 @@ export function getAssistantConversation(
 		include: {
 			messages: {
 				where: { sequence: { gt: input.afterSequence ?? 0 } },
-				orderBy: { sequence: "asc" },
+				orderBy: { sequence: loadingLatestWindow ? "desc" : "asc" },
 				take: Math.min(Math.max(input.messageTake ?? 200, 1), 500),
 			},
 		},
 	});
+	if (conversation && loadingLatestWindow) conversation.messages.reverse();
+	return conversation;
 }
 
 export const ASSISTANT_MODEL_HISTORY_MAX_MESSAGES = 40;

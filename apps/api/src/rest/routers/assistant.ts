@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { resolveAssistantActor } from "@api/assistant/actor";
 import { executeAssistantConversationTurn } from "@api/assistant/execute-turn";
 import { getAssistantRuntimeIdentity } from "@api/assistant/runtime";
 import {
@@ -8,10 +9,6 @@ import {
 	assistantReconnectResponseSchema,
 } from "@api/schemas/assistant";
 import { createTRPCContext } from "@api/trpc/init";
-import {
-	getUserSpecificPermissions,
-	mergePermissionRecords,
-} from "@gnd/auth/utils";
 import {
 	getSharedRedisClient,
 	waitForRedisReady,
@@ -30,7 +27,6 @@ import {
 	createOrReuseAssistantRequestRun,
 	getAssistantRunForReconnect,
 } from "@gnd/db/queries";
-import { generatePermissions } from "@gnd/utils/constants";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import {
 	type UIDataTypes,
@@ -247,9 +243,9 @@ export class DistributedAssistantStreamGuard implements AssistantRequestGuard {
 		const leaseId = randomUUID();
 		const leaseTtlMs = 90_000;
 		try {
-			const rateCount = await this.command<number>([
+			const [rateCount, rawRateTtlMs] = await this.command<[number, number]>([
 				"EVAL",
-				"redis.call('ZREMRANGEBYSCORE',KEYS[2],'-inf',ARGV[1]); local active=redis.call('ZCARD',KEYS[2]); if active>=tonumber(ARGV[2]) then return -2 end; local rate=tonumber(redis.call('GET',KEYS[1]) or '0'); if rate>=tonumber(ARGV[3]) then return -1 end; rate=redis.call('INCR',KEYS[1]); if rate==1 then redis.call('PEXPIRE',KEYS[1],ARGV[4]) end; redis.call('ZADD',KEYS[2],ARGV[5],ARGV[6]); redis.call('PEXPIRE',KEYS[2],ARGV[7]); return rate",
+				"redis.call('ZREMRANGEBYSCORE',KEYS[2],'-inf',ARGV[1]); local active=redis.call('ZCARD',KEYS[2]); local rate=tonumber(redis.call('GET',KEYS[1]) or '0'); local ttl=redis.call('PTTL',KEYS[1]); if active>=tonumber(ARGV[2]) then return {-2,ttl} end; if rate>=tonumber(ARGV[3]) then return {-1,ttl} end; rate=redis.call('INCR',KEYS[1]); if rate==1 then redis.call('PEXPIRE',KEYS[1],ARGV[4]) end; ttl=redis.call('PTTL',KEYS[1]); redis.call('ZADD',KEYS[2],ARGV[5],ARGV[6]); redis.call('PEXPIRE',KEYS[2],ARGV[7]); return {rate,ttl}",
 				2,
 				rateKey,
 				activeKey,
@@ -261,13 +257,15 @@ export class DistributedAssistantStreamGuard implements AssistantRequestGuard {
 				leaseId,
 				leaseTtlMs,
 			]);
+			const rateTtlMs = rawRateTtlMs > 0 ? rawRateTtlMs : this.options.windowMs;
+			const rateResetAt = new Date(now + rateTtlMs);
 			if (rateCount === -1) {
 				throw new AssistantLimitError(
 					429,
 					"RATE_LIMIT_EXCEEDED",
 					this.options.requestLimit,
 					0,
-					new Date(now + this.options.windowMs),
+					rateResetAt,
 				);
 			}
 			if (rateCount === -2) {
@@ -299,7 +297,7 @@ export class DistributedAssistantStreamGuard implements AssistantRequestGuard {
 			return {
 				limit: this.options.requestLimit,
 				remaining: Math.max(this.options.requestLimit - rateCount, 0),
-				resetAt: new Date(now + this.options.windowMs),
+				resetAt: rateResetAt,
 				release: async () => {
 					if (released) return;
 					released = true;
@@ -455,102 +453,7 @@ const defaultDependencies: AssistantRouterDependencies = {
 		} as never;
 		const context = await createTRPCContext(undefined, honoContext);
 		if (!context.userId) return null;
-		const [profile, specificPermissions] = await Promise.all([
-			context.db.users.findFirst({
-				where: { id: context.userId, deletedAt: null, accessRevokedAt: null },
-				select: {
-					name: true,
-					meta: true,
-					roles: {
-						where: {
-							deletedAt: null,
-							organization: { deletedAt: null },
-							role: { deletedAt: null },
-						},
-						orderBy: [
-							{ organization: { primary: "desc" } },
-							{ organizationId: "asc" },
-						],
-						take: 1,
-						select: {
-							organizationId: true,
-							organization: { select: { name: true } },
-							role: {
-								select: {
-									name: true,
-									RoleHasPermissions: {
-										where: {
-											deletedAt: null,
-											permission: { deletedAt: null },
-										},
-										select: { permission: { select: { name: true } } },
-									},
-								},
-							},
-						},
-					},
-				},
-			}),
-			getUserSpecificPermissions(context.db, context.userId),
-		]);
-		if (!profile) return null;
-		const meta =
-			profile.meta &&
-			typeof profile.meta === "object" &&
-			!Array.isArray(profile.meta)
-				? (profile.meta as Record<string, unknown>)
-				: {};
-		let timezone = typeof meta.timezone === "string" ? meta.timezone : "UTC";
-		try {
-			new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
-		} catch {
-			timezone = "UTC";
-		}
-		let locale = typeof meta.locale === "string" ? meta.locale : "en-US";
-		try {
-			new Intl.DateTimeFormat(locale).format();
-		} catch {
-			locale = "en-US";
-		}
-		const configuredCurrency =
-			typeof meta.baseCurrency === "string"
-				? meta.baseCurrency.toUpperCase()
-				: "USD";
-		const baseCurrency = /^[A-Z]{3}$/.test(configuredCurrency)
-			? configuredCurrency
-			: "USD";
-		const countryCode =
-			typeof meta.countryCode === "string" &&
-			/^[A-Za-z]{2}$/.test(meta.countryCode)
-				? meta.countryCode.toUpperCase()
-				: null;
-		const organizationId = profile.roles[0]?.organizationId;
-		const selectedRole = profile.roles[0]?.role;
-		const rolePermissions =
-			selectedRole?.RoleHasPermissions.flatMap(
-				({ permission }) => permission,
-			) ?? [];
-		const grants = generatePermissions(
-			selectedRole?.name,
-			mergePermissionRecords(rolePermissions, specificPermissions),
-		);
-		return {
-			userId: context.userId,
-			scopeType: organizationId ? "organization" : "user",
-			scopeId: String(organizationId ?? context.userId),
-			locale,
-			timezone,
-			fullName: profile.name,
-			teamName: profile.roles[0]?.organization.name ?? null,
-			baseCurrency,
-			dateFormat:
-				typeof meta.dateFormat === "string"
-					? meta.dateFormat.slice(0, 50)
-					: null,
-			timeFormat: meta.timeFormat === 24 ? 24 : 12,
-			countryCode,
-			grants: grants as unknown as Record<string, boolean>,
-		};
+		return resolveAssistantActor(context.db, context.userId);
 	},
 	async startRun(input) {
 		const runtimeIdentity = getAssistantRuntimeIdentity();
@@ -786,7 +689,7 @@ export function createAssistantChatRouter(
 					const firstText = parsed.data.message.parts.find(
 						(part) => part.type === "text",
 					);
-					if (firstText) {
+					if (firstText && run.messageSequence === 1) {
 						writer.write({
 							type: "data-title",
 							id: `title-${parsed.data.conversationId}`,

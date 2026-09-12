@@ -1,7 +1,7 @@
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 
 import { createTRPCRouter } from "../init";
-import { reliabilityRouter } from "./reliability.route";
+import { assistantRouter } from "./assistant.route";
 import { backlogRouters } from "./backlogs.routes";
 import { bugReportsRouter } from "./bug-reports.route";
 import { checkoutRouter } from "./checkout.route";
@@ -22,17 +22,18 @@ import { jobRoutes } from "./jobs.route";
 import { masterPasswordLoginAuditsRouter } from "./master-password-login-audits.route";
 import { mobileAccessRouter } from "./mobile-access.route";
 import { newSalesFormRouter } from "./new-sales-form.route";
-import { salesRequestRouter } from "./sales-request.route";
 import { notesRouter } from "./notes.route";
 import { orgs } from "./organization.route";
-import { pageTabsRouter } from "./page-tabs.route";
 import { packingReportsRouter } from "./packing-reports.route";
+import { pageTabsRouter } from "./page-tabs.route";
 import { printRouter } from "./print.route";
+import { reliabilityRouter } from "./reliability.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
 import { salesFinanceRouter } from "./sales-finance.route";
 import { salesPaymentProcessorRouter } from "./sales-payment-processor.route";
 import { salesRefundsRouter } from "./sales-refunds.route";
 import { salesRepDashboardRouter } from "./sales-rep-dashboard.route";
+import { salesRequestRouter } from "./sales-request.route";
 import { salesShelfItems } from "./sales-shelf-item";
 import { salesRouter } from "./sales.route";
 import { searchRouter } from "./search.route";
@@ -55,6 +56,7 @@ import { workOrderRouter } from "./work-order.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
+	assistant: assistantRouter,
 	reliability: reliabilityRouter,
 	// students: studentsRouter,
 	backlogs: backlogRouters,

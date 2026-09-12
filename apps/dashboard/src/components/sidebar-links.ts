@@ -310,6 +310,9 @@ const isDev = process.env.NODE_ENV !== "production";
 export const linkModules = [
 	_module("Sales", "salesDashboard", "GND Sales", [
 		_section(null, null, [
+			_link("Assistant", "ChatBubble", "/assistant")
+				.access(_perm.in("viewOrders", "editOrders", "viewSales"))
+				.badge("Preview").data,
 			_link("Sales Dashboard", "salesDashboard", "/sales-dashboard").access(
 				_perm.in("viewOrders", "editOrders", "viewSales"),
 			).data,

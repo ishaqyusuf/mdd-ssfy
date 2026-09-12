@@ -108,6 +108,35 @@ describe("assistant persistence queries", () => {
 		});
 	});
 
+	it("loads the newest bounded message window in chronological order", async () => {
+		let received: Record<string, unknown> | undefined;
+		const db = {
+			assistantConversation: {
+				findFirst: async (args: Record<string, unknown>) => {
+					received = args;
+					return {
+						id: "conversation-a",
+						messages: [{ sequence: 202 }, { sequence: 201 }],
+					};
+				},
+			},
+		};
+
+		const conversation = await getAssistantConversation(db as never, {
+			conversationId: "conversation-a",
+			ownerUserId: 9,
+			messageTake: 200,
+		});
+
+		expect(received).toMatchObject({
+			include: { messages: { orderBy: { sequence: "desc" }, take: 200 } },
+		});
+		expect(conversation?.messages).toEqual([
+			{ sequence: 201 },
+			{ sequence: 202 },
+		]);
+	});
+
 	it("loads bounded actor-scoped model history in chronological order", async () => {
 		let received: Record<string, unknown> | undefined;
 		const db = {

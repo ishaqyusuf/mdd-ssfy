@@ -11,6 +11,7 @@ import { trpcServer } from "@hono/trpc-server";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { cors } from "hono/cors";
+import type { Context as HonoRequestContext } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import { captureApiError, captureTrpcError } from "./observability/sentry";
 import { getRestErrorResponse } from "./rest/error-response";
@@ -22,7 +23,6 @@ import { handleVercelDrainRequest } from "./rest/reliability-vercel";
 import { handleVercelDeploymentRequest } from "./rest/reliability-vercel-deployment";
 import { resolveVercelDeploymentRegistration } from "./rest/reliability-vercel-deployment-registration";
 import { resolveVercelDrainRegistration } from "./rest/reliability-vercel-registration";
-import { assistantChatRouter } from "./rest/routers/assistant";
 import type { Context } from "./rest/types";
 import { createTRPCContext } from "./trpc/init";
 import { appRouter } from "./trpc/routers/_app";
@@ -213,7 +213,8 @@ app.post("/api/webhooks/square/refunds", async (c) => {
 	}
 	return c.json({ ok: true });
 });
-app.route("/api/assistant/chat", assistantChatRouter);
+app.all("/api/assistant/chat", forwardAssistantChatRequest);
+app.all("/api/assistant/chat/*", forwardAssistantChatRequest);
 app.use(
 	"/api/storefront/trpc/*",
 	trpcServer({
@@ -231,6 +232,13 @@ app.use(
 		},
 	}),
 );
+
+async function forwardAssistantChatRequest(c: HonoRequestContext<Context>) {
+	const { assistantChatRouter } = await import("./rest/routers/assistant");
+	const url = new URL(c.req.raw.url);
+	url.pathname = c.req.path.slice("/api/assistant/chat".length) || "/";
+	return assistantChatRouter.fetch(new Request(url, c.req.raw));
+}
 app.use(
 	"/api/trpc/*",
 	trpcServer({

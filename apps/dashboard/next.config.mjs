@@ -90,7 +90,7 @@ const config = {
     },
     // experimental: {
     // serverExternalPackages: ["puppeteer-core", "@prisma/client", "@gnd/db"],
-    serverExternalPackages: ["puppeteer-core", "pino"],
+    serverExternalPackages: ["puppeteer-core", "pino", "@ai-sdk/mcp"],
     // },
     // webpack: (config, { isServer }) => {
     //     if (isServer) {
