@@ -23,7 +23,7 @@ import {
 	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "./filter-constants";
 import { salesPrioritySchema } from "./priority";
-import { salesCompletionSatisfactionFilterSchema } from "./sales-completion";
+import { salesCompletionSatisfactionFilterSchema } from "./sales-completion-filter";
 import { SALES_DISPATCH_STATUS } from "./utils/constants";
 export const getFullSalesDataSchema = z.object({
 	salesId: z.number().optional().nullable(),

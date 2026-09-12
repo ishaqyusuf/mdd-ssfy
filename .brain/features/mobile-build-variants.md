@@ -46,6 +46,20 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   preserves NativeWind's React Native aliases while allowing TypeScript-only
   internals such as Keyboard Controller's `react-native-reanimated/src/core`
   dependency to resolve under the Node-hosted Expo launcher.
+- SDK 54 release dependencies are pinned to Expo's compatible patch set for
+  `expo`, `expo-constants`, `expo-file-system`, `expo-updates`, and NetInfo.
+  Root React overrides remain available to the Next.js apps, while Metro tests
+  enforce the mobile-only React/React DOM 19.1 aliases. Expo dependency
+  validation excludes only those three intentionally overridden packages.
+- `experiments.autolinkingModuleResolution` is enabled so Metro resolves native
+  modules to the same installations selected by Expo Autolinking. This is the
+  SDK 54 workaround for unavoidable duplicate peer installations under Bun's
+  isolated monorepo layout; keep the release-readiness and Metro resolution
+  tests green when changing dependencies.
+- Mobile-imported validation contracts must not transitively load Node-only
+  implementations. Sales completion filter schemas live in
+  `sales-completion-filter.ts`, separate from the server implementation's
+  `node:crypto` use; a production-mode iOS Metro export validates this boundary.
 
 ## Key Files
 - `apps/mobile/app.config.ts`

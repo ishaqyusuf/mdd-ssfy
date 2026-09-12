@@ -40,6 +40,19 @@
 
 ## Dependencies, permissions, and export compliance
 
+- Expo's SDK 54 compatibility check is clean after pinning NetInfo 11.4.1 and
+  updating the Expo patch set to Expo 54.0.37, Constants 18.0.14, File System
+  19.0.24, and Updates 29.0.20.
+- The repository-wide React 19.2 overrides are intentionally retained for the
+  Next.js apps. Mobile Metro maps React and React DOM to explicit 19.1 aliases;
+  the dependency validator excludes those intentional resolutions and a Metro
+  regression test verifies them.
+- Expo Doctor passes 17/18 checks. Its remaining warning reports duplicate Expo
+  native-module peer installations in Bun's isolated workspace layout. SDK 54's
+  `autolinkingModuleResolution` workaround is enabled and public config confirms
+  it, forcing Metro to match the single native installation chosen by Expo
+  Autolinking. Re-run Doctor after dependency changes and remove the workaround
+  if Bun/Expo later deduplicate the graph cleanly.
 - Native permissions found: photo/image selection. A concrete photo-library
   purpose string is configured.
 - Networking is HTTPS. Secure storage uses Expo SecureStore/Apple Keychain;
@@ -70,9 +83,20 @@
 
 ## Local evidence
 
-- `bun run ios:release:check`: 15/15 checks passed.
+- `bun run ios:release:check`: 18/18 checks passed.
+- `bunx expo install --check`: dependencies are up to date (with the intentional
+  React/React DOM/type exclusions above).
+- `bunx expo-doctor`: 17/18 checks passed; the isolated-install duplicate warning
+  and its SDK 54 mitigation are documented above.
 - Public Expo config resolved SDK 54, production bundle ID, owner, EAS project,
-  update URL, export flag, and empty embedded development password correctly.
+  update URL, export flag, native-module resolution alignment, and empty embedded
+  development password correctly.
+- A production-mode `expo export --platform ios` initially caught a transitive
+  `node:crypto` import from the shared sales schema. The filter contract was
+  separated from its server implementation, after which the complete 8,450-module
+  iOS bundle exported successfully.
+- The sales completion regression suite passed 53 tests / 187 assertions after
+  that contract-boundary change.
 - Focused release/security tests: 5 passed / 37 assertions before workflow
   integration; final consolidated validation is recorded in the task file.
 - Full migration chain, including the mobile-access migration, applied to an

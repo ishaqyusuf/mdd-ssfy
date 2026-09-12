@@ -8,6 +8,15 @@ type Check = { label: string; ok: boolean; detail: string };
 const APP_ROOT = path.join(import.meta.dir, "..");
 const EXPECTED_PROJECT_ID = "8ea2eecb-4109-453c-827f-9b2de2e3a9aa";
 const EXPECTED_TEAM_ID = "ZXC78SPCV4";
+const EXPECTED_SDK_DEPENDENCIES = {
+	"@react-native-community/netinfo": "11.4.1",
+	expo: "~54.0.37",
+	"expo-constants": "~18.0.14",
+	"expo-file-system": "~19.0.24",
+	"expo-updates": "~29.0.20",
+	"react-mobile": "npm:react@19.1.0",
+	"react-dom-mobile": "npm:react-dom@19.1.0",
+} as const;
 
 export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	const eas = JSON.parse(
@@ -27,9 +36,38 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	}
 
 	const scripts = pkg.scripts as Record<string, string>;
+	const dependencies = pkg.dependencies as Record<string, string>;
+	const dependencyVersionsMatch = Object.entries(
+		EXPECTED_SDK_DEPENDENCIES,
+	).every(([name, version]) => dependencies[name] === version);
+	const validationExclusions = pkg.expo?.install?.exclude as
+		| string[]
+		| undefined;
 	const projectId = appConfig.extra?.eas?.projectId;
 	const infoPlist = appConfig.ios?.infoPlist as Record<string, unknown>;
 	return [
+		check(
+			"Expo SDK 54 release dependencies",
+			dependencyVersionsMatch,
+			Object.entries(EXPECTED_SDK_DEPENDENCIES)
+				.map(
+					([name, version]) =>
+						`${name}@${dependencies[name] ?? "missing"} (expected ${version})`,
+				)
+				.join(", "),
+		),
+		check(
+			"Monorepo React validation exception",
+			["react", "react-dom", "@types/react"].every((name) =>
+				validationExclusions?.includes(name),
+			),
+			"Root overrides serve Next.js; Metro tests enforce the SDK 54 React 19.1 aliases",
+		),
+		check(
+			"Native-module resolution alignment",
+			appConfig.experiments?.autolinkingModuleResolution === true,
+			String(appConfig.experiments?.autolinkingModuleResolution),
+		),
 		check(
 			"Production bundle identifier",
 			appConfig.ios?.bundleIdentifier === "com.gnd.prodesk",

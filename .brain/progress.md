@@ -16,6 +16,15 @@ runbook are complete. The next step is gated EAS authentication as an authorized
 `pcruz321` user, followed by separately confirmed App Store Connect record/signing,
 build/upload, processing, group, and invitation actions.
 
+Dependency hardening pinned Expo SDK 54 patches and NetInfo, preserved the
+dashboard's React 19.2 overrides while validating the mobile React 19.1 aliases,
+and enabled SDK 54 native-module resolution alignment for Bun's isolated graph.
+Readiness is now 18/18, Expo dependency validation passes, and Expo Doctor passes
+17/18 with only its documented isolated-install duplicate warning. A production
+iOS export exposed and then verified the fix for a shared-schema transitive
+`node:crypto` import: the 8,450-module bundle now succeeds, and 53 related sales
+completion tests / 187 assertions pass. No external action was taken.
+
 ### 2026-09-11 — Expanded Production item divider stabilized
 
 Replaced the V2 Production list's parent `divide-y` rule with an explicit top

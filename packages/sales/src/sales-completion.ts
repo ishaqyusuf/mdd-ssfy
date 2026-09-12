@@ -5,13 +5,22 @@ import { z } from "zod";
 
 import { hasCompletedProductionLifecycle } from "./bulk-production-completion";
 import { getLegacySalesOrderLifecycleStatus } from "./legacy-order-status";
+import { recordSalesCompletionActivity } from "./sales-completion-activity";
+import {
+	SALES_COMPLETION_FILTER_OPTIONS,
+	salesCompletionSatisfactionFilterSchema,
+} from "./sales-completion-filter";
 import { evaluateSalesPipelineCommand } from "./sales-pipeline-commands";
 import {
 	resolveSalesPipelineSnapshotFromOrder,
 	salesPipelineOrderSelect,
 } from "./sales-pipeline-order";
 import { overallStatus } from "./utils/utils";
-import { recordSalesCompletionActivity } from "./sales-completion-activity";
+
+export {
+	SALES_COMPLETION_FILTER_OPTIONS,
+	salesCompletionSatisfactionFilterSchema,
+} from "./sales-completion-filter";
 
 export const salesCompletionMilestoneSchema = z.enum([
 	"PRODUCTION_COMPLETED",
@@ -22,14 +31,6 @@ export const salesCompletionMethodSchema = z.enum([
 	"FULL_WORKFLOW",
 ]);
 export const salesCompletionRecordStateSchema = z.enum(["ACTIVE", "CANCELLED"]);
-export const SALES_COMPLETION_FILTER_OPTIONS = [
-	"pending",
-	"completed",
-] as const;
-export const salesCompletionSatisfactionFilterSchema = z.enum(
-	SALES_COMPLETION_FILTER_OPTIONS,
-);
-
 export type SalesCompletionMilestone = z.infer<
 	typeof salesCompletionMilestoneSchema
 >;

@@ -19,6 +19,14 @@ const NODE_RESOLUTION_PROBE = String.raw`
     { paths: [dirname(${JSON.stringify(CONFIG_PATH)})] },
   ));
   const expectedReanimatedCore = resolve(reanimatedPackageRoot, "src/core.ts");
+  const expectedReactPackageRoot = dirname(require.resolve(
+    "react-mobile/package.json",
+    { paths: [dirname(${JSON.stringify(CONFIG_PATH)})] },
+  ));
+  const expectedReactDomPackageRoot = dirname(require.resolve(
+    "react-dom-mobile/package.json",
+    { paths: [dirname(${JSON.stringify(CONFIG_PATH)})] },
+  ));
 
   function resolveLikeMetro(context, moduleName, platform) {
     assert.ok(moduleName.startsWith("."), moduleName);
@@ -71,6 +79,21 @@ const NODE_RESOLUTION_PROBE = String.raw`
       paths: [dirname(${JSON.stringify(CONFIG_PATH)})],
     })),
   );
+
+  for (const [moduleName, expectedPackageRoot] of [
+    ["react", expectedReactPackageRoot],
+    ["react-dom", expectedReactDomPackageRoot],
+  ]) {
+    const resolution = config.resolver.resolveRequest(
+      context,
+      moduleName,
+      "ios",
+    );
+    assert.ok(
+      realpathSync(resolution.filePath).startsWith(realpathSync(expectedPackageRoot)),
+      moduleName + " did not resolve to the SDK 54 mobile alias",
+    );
+  }
 
   const styledReactNativeResolution = config.resolver.resolveRequest(
     context,

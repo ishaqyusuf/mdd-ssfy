@@ -21,9 +21,27 @@ credentials. Obtain explicit action-time confirmation before performing it.
    task file. Confirm `com.gnd.prodesk`, `distribution: store`, `production`
    channel, `pcruz321`, the existing project/update ID, and team
    `ZXC78SPCV4`.
-3. Confirm there are no pending changes that would embed development login
+3. Run `EXPO_NO_DOTENV=1 bunx expo install --check`; it must report the SDK
+   dependencies up to date. React, React DOM, and React types are intentionally
+   excluded because the web workspace uses root 19.2 overrides while mobile
+   Metro tests enforce the SDK 54-compatible 19.1 aliases.
+4. Run `EXPO_NO_DOTENV=1 bunx expo-doctor`. The currently documented result is
+   17/18: Bun's isolated workspace graph leaves duplicate Expo peer
+   installations on disk. Confirm the only failure is that known duplicate
+   warning and that public config still has
+   `experiments.autolinkingModuleResolution: true`; any additional failure is a
+   release blocker.
+5. Run a production-mode local iOS bundle validation with development
+   credentials removed:
+
+   ```sh
+   env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK EXPO_NO_DOTENV=1 bunx expo export --platform ios --output-dir <temporary-dir> --clear
+   ```
+
+   Any unresolved Node built-in or bundle failure is a release blocker.
+6. Confirm there are no pending changes that would embed development login
    values. Never inspect, copy, or send passwords/OTPs into source control.
-4. Confirm the intended build version in `apps/mobile/app.config.ts`; EAS remote
+7. Confirm the intended build version in `apps/mobile/app.config.ts`; EAS remote
    app-version source and auto-increment own the iOS build number.
 
 ## 2. App Store Connect record and agreements

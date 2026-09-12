@@ -38,7 +38,20 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 
 ## Validation Evidence
 - `bun test apps/mobile/scripts/ios-release-readiness.test.ts apps/mobile/src/lib/preview-build-security.test.ts` - 5 passed, 37 assertions.
-- `bun run ios:release:check` - 15/15 readiness checks passed.
+- `bun run ios:release:check` - 18/18 readiness checks passed after adding SDK
+  dependency and native-resolution invariants.
+- Dependency-hardening release/workflow/Metro regression subset - 16 passed /
+  77 assertions; the broader consolidated suite remains 33 / 141.
+- `bunx expo install --check` reports dependencies up to date after pinning
+  NetInfo and updating the Expo SDK 54 patch set.
+- `bunx expo-doctor` passes 17/18 checks. The remaining duplicate native-module
+  warning comes from Bun's isolated peer installations; SDK 54
+  `autolinkingModuleResolution` is enabled and verified in public config so
+  Metro uses the native installation selected by Expo Autolinking.
+- Production-mode iOS Metro export passed (8,450 modules) after separating a
+  mobile-safe sales completion filter contract from the server implementation's
+  `node:crypto` dependency.
+- Sales completion boundary regression: 53 tests / 187 assertions passed.
 - Final focused suite - 33 passed / 141 assertions.
 - `bun run --filter @gnd/db typecheck` passed.
 - `bun run --filter @gnd/api typecheck` reached one unrelated pre-existing error in `packages/sales/src/copy-sales.ts:521`; no mobile-access file failed.
