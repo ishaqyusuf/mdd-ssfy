@@ -14,6 +14,10 @@ import { Textarea } from "@gnd/ui/textarea";
 import { type ReactNode, useMemo } from "react";
 import { useNewSalesFormStepRoutingQuery } from "./api";
 import type {
+	SalesRequestGenerationApplyResult,
+	SalesRequestGenerationConfigurationValidator,
+} from "./request-generation-apply";
+import type {
 	SalesRequestGenerationFailure,
 	SalesRequestGenerationSnapshot,
 } from "./request-generation-controller";
@@ -28,6 +32,7 @@ import {
 	type SalesRequestReviewWarning,
 	buildSalesRequestReviewModel,
 } from "./request-generation-presentation";
+import { useSalesRequestGenerationApply } from "./use-request-generation-apply";
 import { useSalesRequestGenerationController } from "./use-request-generation-controller";
 
 const MAX_SOURCE_LENGTH = 20_000;
@@ -47,6 +52,17 @@ export type SalesRequestGenerationPanelViewProps = GenerationSnapshotProps & {
 	canInspectJson?: boolean;
 	routingPending?: boolean;
 	routingError?: boolean;
+	applyDisabled?: boolean;
+	applyDisabledReason?: string | null;
+	applyResult?: SalesRequestGenerationApplyResult | null;
+	applyMessage?: string | null;
+	isApplying?: boolean;
+	onApply?: () => void;
+	undoAvailability?: "none" | "full" | "selective";
+	undoMessage?: string | null;
+	isUndoing?: boolean;
+	onUndo?: () => void;
+	generateDisabled?: boolean;
 };
 
 export type SalesRequestGenerationPanelProps = {
@@ -55,7 +71,31 @@ export type SalesRequestGenerationPanelProps = {
 	formRevision?: string | number | null;
 	configurationRevision?: string | null;
 	canInspectJson?: boolean;
+	validateConfigurationRevision?: SalesRequestGenerationConfigurationValidator;
+	onBeforeApply?: () => void;
+	generateDisabled?: boolean;
 };
+
+const APPLY_DISABLED_MESSAGES: Record<string, string> = {
+	"missing-preview": "Generate a preview before applying.",
+	"missing-record": "The current form is not ready.",
+	"missing-proposal": "Generate a new preview before applying.",
+	"routing-pending": "Loading the current catalog…",
+	"routing-error": "The current catalog could not be loaded.",
+	"route-unavailable": "The current sales workflow could not be loaded.",
+	"stale-preview": "Generate again because the form or configuration changed.",
+	"blocking-review": "Resolve every blocking item before applying.",
+	"profile-loading": "Loading the selected customer profile…",
+	"profile-error": "The selected customer profile could not be loaded.",
+	"persisted-record": "Apply is available only while creating a new sale.",
+	"configuration-validator-required":
+		"Apply is unavailable until the current sales configuration is verified.",
+	applying: "Applying the proposal…",
+};
+
+function applyDisabledMessage(reason?: string | null) {
+	return reason ? APPLY_DISABLED_MESSAGES[reason] || reason : null;
+}
 
 function formatNumber(value: number) {
 	return new Intl.NumberFormat("en-US", {
@@ -333,7 +373,7 @@ function ReviewContent({ model }: { model: SalesRequestReviewModel }) {
 
 			<ReviewBucket
 				title="Needs review"
-				description="These blocking facts must be resolved before a future Apply step."
+				description="These blocking facts must be resolved before Apply is available."
 				items={model.unresolved}
 				empty="No blocking unresolved items were reported."
 				renderItem={(item) => <UnresolvedItem item={item} />}
@@ -392,6 +432,14 @@ export function SalesRequestGenerationPanelView(
 ) {
 	const hasResult = Boolean(props.result && props.model);
 	const isPending = props.status === "pending";
+	const modelHasUnresolved = Boolean(props.model?.unresolved.length);
+	const applyDisabled =
+		!hasResult ||
+		isPending ||
+		modelHasUnresolved ||
+		props.applyDisabled === true ||
+		!props.onApply;
+	const applyHelp = applyDisabledMessage(props.applyDisabledReason);
 	return (
 		<div
 			className="space-y-4"
@@ -438,7 +486,9 @@ export function SalesRequestGenerationPanelView(
 				<Button
 					type="button"
 					onClick={props.onGenerate}
-					disabled={isPending || !props.sourceText.trim()}
+					disabled={
+						isPending || props.generateDisabled || !props.sourceText.trim()
+					}
 				>
 					{hasResult ? "Regenerate" : "Generate"}
 				</Button>
@@ -455,12 +505,65 @@ export function SalesRequestGenerationPanelView(
 				>
 					Clear
 				</Button>
+				{hasResult ? (
+					<Button
+						type="button"
+						onClick={props.onApply}
+						disabled={applyDisabled || props.isApplying}
+						aria-describedby={
+							applyHelp ? "sales-request-generation-apply-help" : undefined
+						}
+					>
+						{props.isApplying ? "Applying…" : "Apply to form"}
+					</Button>
+				) : null}
+				{props.undoAvailability && props.undoAvailability !== "none" ? (
+					<Button
+						type="button"
+						variant="outline"
+						onClick={props.onUndo}
+						disabled={props.isUndoing || !props.onUndo}
+						aria-describedby="sales-request-generation-undo-help"
+					>
+						{props.isUndoing
+							? "Undoing…"
+							: props.undoAvailability === "full"
+								? "Undo applied changes"
+								: "Undo generated changes"}
+					</Button>
+				) : null}
 				{props.status === "error" && props.canRetry ? (
 					<Button type="button" variant="outline" onClick={props.onRetry}>
 						Retry
 					</Button>
 				) : null}
 			</div>
+			{hasResult && applyHelp && !props.isApplying ? (
+				<p
+					id="sales-request-generation-apply-help"
+					className="text-xs text-muted-foreground"
+				>
+					{applyHelp}
+				</p>
+			) : null}
+			{props.undoAvailability && props.undoAvailability !== "none" ? (
+				<p
+					id="sales-request-generation-undo-help"
+					className="text-xs text-muted-foreground"
+				>
+					{props.undoAvailability === "full"
+						? "Undo restores the form to its pre-apply state."
+						: "The form changed after Apply; Undo removes only unchanged generated values."}
+				</p>
+			) : null}
+			{props.undoMessage ? (
+				<output
+					aria-live="polite"
+					className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950"
+				>
+					{props.undoMessage}
+				</output>
+			) : null}
 
 			{isPending ? (
 				<output
@@ -472,6 +575,20 @@ export function SalesRequestGenerationPanelView(
 				</output>
 			) : null}
 			{props.failure ? <FailureMessage failure={props.failure} /> : null}
+			{props.applyMessage ? (
+				<output
+					aria-live="polite"
+					className={`rounded-md border p-3 text-sm ${
+						props.applyResult?.status === "error" ||
+						props.applyResult?.status === "blocked" ||
+						props.applyResult?.status === "configuration-stale"
+							? "border-amber-200 bg-amber-50 text-amber-950"
+							: "border-emerald-200 bg-emerald-50 text-emerald-950"
+					}`}
+				>
+					{props.applyMessage}
+				</output>
+			) : null}
 			{props.isStale ? (
 				<output
 					aria-live="polite"
@@ -488,7 +605,7 @@ export function SalesRequestGenerationPanelView(
 								size="sm"
 								variant="outline"
 								onClick={props.onGenerate}
-								disabled={!props.sourceText.trim()}
+								disabled={props.generateDisabled || !props.sourceText.trim()}
 							>
 								Generate again
 							</Button>
@@ -551,6 +668,17 @@ export function SalesRequestGenerationPanel(
 				: null,
 		[controller.result, routing.data],
 	);
+	const apply = useSalesRequestGenerationApply({
+		open: props.open,
+		preview: controller.result,
+		routeData: routing.data,
+		routingPending: Boolean(controller.result && routing.isPending),
+		routingError: Boolean(controller.result && routing.isError),
+		isStale: controller.isStale,
+		hasUnresolved: Boolean(model?.unresolved.length),
+		validateConfigurationRevision: props.validateConfigurationRevision,
+		onBeforeApply: props.onBeforeApply,
+	});
 	const handleOpenChange = (open: boolean) => {
 		if (!open && controller.status === "pending") controller.cancel();
 		props.onOpenChange(open);
@@ -581,11 +709,22 @@ export function SalesRequestGenerationPanel(
 					canInspectJson={props.canInspectJson}
 					routingPending={Boolean(controller.result && routing.isPending)}
 					routingError={Boolean(controller.result && routing.isError)}
+					applyDisabled={apply.applyDisabled}
+					applyDisabledReason={apply.applyDisabledReason}
+					applyResult={apply.applyResult}
+					applyMessage={apply.applyMessage}
+					isApplying={apply.isApplying}
+					onApply={() => void apply.apply()}
+					undoAvailability={apply.undoAvailability}
+					undoMessage={apply.undoMessage}
+					isUndoing={apply.isUndoing}
+					onUndo={() => void apply.undo()}
+					generateDisabled={props.generateDisabled}
 				/>
 				<DialogFooter>
 					<p className="text-left text-xs text-muted-foreground sm:mr-auto">
-						Preview only. Apply and normal form mutation are intentionally
-						deferred.
+						Review is read-only until Apply. Undo is available after a
+						successful apply while the generated changes remain safe to restore.
 					</p>
 				</DialogFooter>
 			</DialogContent>

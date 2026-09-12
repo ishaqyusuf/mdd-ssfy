@@ -73,7 +73,7 @@ const baseProps = {
 	canInspectJson: false,
 };
 
-test("renders a responsive review with actions and no apply mutation", () => {
+test("renders a responsive review with Apply safely disabled until the boundary is wired", () => {
 	const html = renderToStaticMarkup(
 		<SalesRequestGenerationPanelView {...baseProps} />,
 	);
@@ -90,7 +90,8 @@ test("renders a responsive review with actions and no apply mutation", () => {
 	expect(html).toContain("Needs review");
 	expect(html).toContain("Warnings");
 	expect(html).toContain("Configured defaults");
-	expect(html).not.toMatch(/>Apply</);
+	expect(html).toContain(">Apply to form<");
+	expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Apply to form<\/button>/);
 
 	const emptyReviewHtml = renderToStaticMarkup(
 		<SalesRequestGenerationPanelView
@@ -101,6 +102,56 @@ test("renders a responsive review with actions and no apply mutation", () => {
 		/>,
 	);
 	expect(emptyReviewHtml).toContain(">Generate<");
+});
+
+test("keeps unresolved facts blocking and exposes keyboard-safe Apply and Undo outcomes", () => {
+	const resolvedModel = {
+		...baseProps.model,
+		unresolved: [],
+	};
+	const enabledHtml = renderToStaticMarkup(
+		<SalesRequestGenerationPanelView
+			{...baseProps}
+			model={resolvedModel}
+			applyDisabled={false}
+			onApply={() => {}}
+		/>,
+	);
+	expect(enabledHtml).toMatch(/<button[^>]*>Apply to form<\/button>/);
+	expect(enabledHtml).toContain('type="button"');
+
+	const blockedHtml = renderToStaticMarkup(
+		<SalesRequestGenerationPanelView
+			{...baseProps}
+			applyDisabled={false}
+			applyDisabledReason="blocking-review"
+			onApply={() => {}}
+		/>,
+	);
+	expect(blockedHtml).toMatch(
+		/<button[^>]*disabled=""[^>]*>Apply to form<\/button>/,
+	);
+	expect(blockedHtml).toContain("Resolve every blocking item before applying.");
+
+	const undoHtml = renderToStaticMarkup(
+		<SalesRequestGenerationPanelView
+			{...baseProps}
+			model={resolvedModel}
+			applyDisabled={false}
+			onApply={() => {}}
+			applyMessage="Applied to the form."
+			applyResult={{
+				status: "applied",
+				proposal: {} as never,
+			}}
+			undoAvailability="selective"
+			onUndo={() => {}}
+			undoMessage="Generated changes were removed; 1 edited line was retained."
+		/>,
+	);
+	expect(undoHtml).toContain(">Undo generated changes<");
+	expect(undoHtml).toContain("edited line was retained");
+	expect(undoHtml).toContain('aria-live="polite"');
 });
 
 test("renders pending, failure, and stale states accessibly", () => {

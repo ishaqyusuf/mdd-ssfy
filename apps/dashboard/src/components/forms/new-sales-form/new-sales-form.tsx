@@ -2065,6 +2065,8 @@ export function NewSalesForm(props: Props) {
 					formRevision={getRequestGenerationRecordRevision(record)}
 					configurationRevision={null}
 					canInspectJson={canInspectRequestJson}
+					onBeforeApply={autosave.cancelPending}
+					generateDisabled={autosave.isSaving}
 				/>
 			) : null}
 			<Dialog
