@@ -695,3 +695,16 @@ New intents also snapshot `deliveryMode` so delayed rendering preserves the orig
 The delivery boundary writes separate SalesHistory receipts with event `FULFILLMENT_NOTICE_DELIVERED`, eventKey, dispatchId, recipientId and activityId. Receipt IDs are SHA-256 hashes of the notice event key with a fulfillment-notice prefix. Command-row locking serializes consumers; receipt and in-app activity must commit together. The immutable command intent is not overwritten. Consumer renderer and scheduling are not yet connected.
 
 Assignment create/edit SalesHistory data includes `notificationIntents`: immutable versioned records with eventKey (request/channel/recipient), channel, recipientId, actorId, salesId, fulfillmentId and dueDate. These records are committed with the command audit and are preserved by command replay. No-op/unassigned changes produce an empty list. This uses the existing JSON column; no schema migration. Delivery receipt storage and retry consumption are not implemented yet.
+
+## Employee mobile access (2026-09-12)
+
+- `MobileAccessRequest` stores one unique record per `(userId, platform)`, the
+  current status, employee/status/internal notes, manual invitation
+  provider/reference, reviewer, lifecycle timestamps, and status-change time.
+- `MobileAccessRequestEvent` is the append-only transition ledger with request,
+  authenticated actor, previous/next status, note, bounded JSON metadata, and
+  creation time.
+- Compound indexes support status/platform queue ordering and request/actor audit
+  reads. `relationMode = "prisma"` means the additive SQL intentionally creates
+  no physical foreign keys.
+- No field stores Apple passwords, OTPs, private keys, issuer IDs, or API-key

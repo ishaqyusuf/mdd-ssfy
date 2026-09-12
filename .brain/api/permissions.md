@@ -914,3 +914,17 @@ or change the provider/model setting.
 
 ### Shared worker inbound overview — 2026-09-10
 Shared inbound overview grants no inventory editing authority. Worker reads and note creation require an active assignment and an inbound linked to authorized components. Notes do not depend on receiving policy. Receipt still uses receiveProductionInbound, workerCanReceiveInbound, revision/idempotency checks and transactional scope revalidation. General lifecycle/adjustment mutation permissions are unchanged.
+
+## Employee mobile access permissions (2026-09-12)
+
+- Self-service reads and requests require an authenticated, non-revoked,
+  non-deleted employee with at least one active role. The server derives the
+  employee ID from the session.
+- Administrative list and transition routes reuse `requireSuperAdmin`; hiding
+  the admin UI is not the authorization boundary.
+- Employee responses omit internal notes, invitation provider, portal reference,
+  reviewer identity, and all credentials.
+- Android artifact download requires the same authenticated active-user check
+  and either Super Admin or an Android record at Invited/Accepted/Installed.
+- No route accepts Apple credentials, OTPs, API keys, role changes, external
+  invitation sends, or App Store Connect permissions.

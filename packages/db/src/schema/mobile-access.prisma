@@ -1,0 +1,62 @@
+enum MobileAccessPlatform {
+    ANDROID
+    IOS
+}
+
+enum MobileAccessRequestStatus {
+    REQUESTED
+    APPROVED
+    INVITED
+    ACCEPTED
+    INSTALLED
+    REJECTED
+    CANCELLED
+}
+
+model MobileAccessRequest {
+    id                  Int                       @id @default(autoincrement())
+    userId              Int
+    platform            MobileAccessPlatform
+    status              MobileAccessRequestStatus @default(REQUESTED)
+    employeeNote        String?                   @db.Text
+    statusNote          String?                   @db.Text
+    internalNote        String?                   @db.Text
+    invitationProvider  String?                   @db.VarChar(80)
+    externalReference   String?                   @db.VarChar(255)
+    requestedAt         DateTime                  @default(now())
+    approvedAt          DateTime?
+    invitedAt           DateTime?
+    acceptedAt          DateTime?
+    installedAt         DateTime?
+    rejectedAt          DateTime?
+    cancelledAt         DateTime?
+    reviewedById        Int?
+    lastStatusChangedAt DateTime                  @default(now())
+    createdAt           DateTime                  @default(now())
+    updatedAt           DateTime                  @updatedAt
+
+    requester Users  @relation(name: "mobileAccessRequester", fields: [userId], references: [id])
+    reviewedBy Users? @relation(name: "mobileAccessReviewer", fields: [reviewedById], references: [id])
+    events     MobileAccessRequestEvent[]
+
+    @@unique([userId, platform])
+    @@index([status, platform, requestedAt])
+    @@index([reviewedById])
+}
+
+model MobileAccessRequestEvent {
+    id         Int                       @id @default(autoincrement())
+    requestId  Int
+    actorId    Int
+    fromStatus MobileAccessRequestStatus?
+    toStatus   MobileAccessRequestStatus
+    note       String?                   @db.Text
+    meta       Json?                     @db.Json
+    createdAt  DateTime                  @default(now())
+
+    request MobileAccessRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+    actor   Users               @relation(name: "mobileAccessEventActor", fields: [actorId], references: [id])
+
+    @@index([requestId, createdAt])
+    @@index([actorId, createdAt])
+}

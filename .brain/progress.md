@@ -1,3 +1,21 @@
+### 2026-09-12 — iOS TestFlight and employee mobile-access preparation reached credential gate
+
+GND now has explicit store-distributed iOS production build, submit-latest, and
+combined build/upload commands while Android and the existing EAS project/update
+linkage remain unchanged. Release readiness checks enforce the Apple team,
+production bundle/channel/distribution, export declaration, purpose string, and
+development-credential stripping.
+
+Authenticated employees can request Android/iOS access; Super Admins review an
+audited Requested -> Approved -> Invited -> Accepted -> Installed lifecycle with
+manual portal operations and separate internal notes. Android artifact download
+now requires authenticated approved access and no longer accepts caller URLs.
+The additive migration passed the full isolated migration chain and local schema
+push. ADR-091, feature/API/database docs, audit report, and the exact TestFlight
+runbook are complete. The next step is gated EAS authentication as an authorized
+`pcruz321` user, followed by separately confirmed App Store Connect record/signing,
+build/upload, processing, group, and invitation actions.
+
 ### 2026-09-11 — Expanded Production item divider stabilized
 
 Replaced the V2 Production list's parent `divide-y` rule with an explicit top

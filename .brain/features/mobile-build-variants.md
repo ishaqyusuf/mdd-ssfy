@@ -61,3 +61,18 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - `apps/mobile/scripts/eas-update.mjs`
 - `apps/mobile/assets/icons/*`
 - `apps/dashboard/src/components/settings/app-download-support-page.tsx`
+
+## iOS TestFlight production path (2026-09-12)
+
+- Production iOS builds use `distribution: "store"`; preview stays
+  `distribution: "internal"` and is never used for TestFlight.
+- Root commands are `bun run eas:build:ios`, `bun run eas:submit:ios`, and
+  `bun run eas:build-submit:ios`. Existing Android `eas:build` routing and
+  mobile Android scripts are unchanged.
+- Submission targets Apple team `ZXC78SPCV4`. The EAS owner/project/update
+  linkage remains `pcruz321` / `8ea2eecb-4109-453c-827f-9b2de2e3a9aa`.
+- `ITSAppUsesNonExemptEncryption` is `false` based on the audited absence of
+  app-owned custom cryptography. Re-audit if custom crypto is added.
+- `bun run ios:release:check` enforces the release configuration invariants.
+- The gated release procedure is in
+  `.brain/runbooks/ios-testflight-internal-distribution.md`.

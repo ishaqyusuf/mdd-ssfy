@@ -1,5 +1,8 @@
 # In Progress
 
+### [iOS TestFlight Internal Distribution And Employee Mobile Access](2026-09-12-ios-testflight-employee-mobile-access.md)
+- Status: In Progress — safe local preparation complete; EAS credential and external release actions gated
+
 ### [Production Calendar Tablet Landscape Optimization](2026-09-11-production-calendar-tablet-landscape-optimization.md)
 - Status: In Progress
 

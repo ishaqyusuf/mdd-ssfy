@@ -847,3 +847,18 @@ Protected tRPC query `reliability.preview` accepts strict
 from `RELIABILITY_REVIEWER_MEMBERSHIPS`; absent membership is FORBIDDEN.
 Returns preview title/evidence/digest with service and revision, or not_available /
 informational. It performs no delivery, approval or credential acquisition.
+
+## Employee mobile access (2026-09-12)
+
+- `mobileAccess.myRequests`: protected active-employee read, scoped to the
+  authenticated user and excluding internal invitation/admin fields.
+- `mobileAccess.request`: protected active-employee idempotent request/re-request
+  mutation for Android or iOS. It appends an audit event and creates in-app
+  Super Admin notifications.
+- `mobileAccess.adminList`: protected Super Admin queue with requester, reviewer,
+  events, internal fields, and server-derived next statuses.
+- `mobileAccess.adminUpdate`: protected Super Admin lifecycle transition with
+  optimistic status concurrency, append-only event, manual invitation metadata,
+  and employee in-app notification.
+- `GET /api/download-app`: authenticated Android artifact proxy. It allows Super
+  Admin or an employee whose Android request is Invited, Accepted, or Installed;

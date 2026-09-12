@@ -27,6 +27,9 @@ model Users {
     roles                       ModelHasRoles[]
     notifications               Notifications[]                  @relation(name: "notifications")
     sentNotifications           Notifications[]                  @relation(name: "fromUser")
+    mobileAccessRequests        MobileAccessRequest[]             @relation(name: "mobileAccessRequester")
+    reviewedMobileAccessRequests MobileAccessRequest[]            @relation(name: "mobileAccessReviewer")
+    mobileAccessRequestEvents   MobileAccessRequestEvent[]        @relation(name: "mobileAccessEventActor")
     inbox                       Inbox[]
     jobs                        Jobs[]                           @relation(name: "installer")
     coWorkerJobs                Jobs[]                           @relation(name: "co-worker")
