@@ -10,7 +10,7 @@ import superjson from "superjson";
 import { TRPCProvider } from "./context";
 import { makeQueryClient } from "./query-client";
 
-export { TRPCProvider, useTRPC } from "./context";
+export { TRPCProvider, useTRPC, useTRPCClient } from "./context";
 
 let browserQueryClient: QueryClient;
 

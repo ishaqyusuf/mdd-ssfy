@@ -1,5 +1,8 @@
-import { useTRPC } from "@/trpc/client";
+import { useTRPC, useTRPCClient } from "@/trpc/client";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useMutation, useQuery } from "@gnd/ui/tanstack";
+import type { SalesRequestGeneratePreviewVariables } from "./request-generation-controller";
+import type { SalesRequestGeneratePreviewOutput } from "./request-generation-controller";
 import type {
 	NewSalesFormBootstrapInput,
 	NewSalesFormDeleteLineItemInput,
@@ -15,6 +18,34 @@ import type {
 	NewSalesFormShelfProductsInput,
 	NewSalesFormStepRoutingInput,
 } from "./schema";
+
+export type NewSalesRequestGeneratePreviewInput = Exclude<
+	RouterInputs["salesRequest"]["generatePreview"],
+	void
+>;
+export type NewSalesRequestGeneratePreviewOutput =
+	SalesRequestGeneratePreviewOutput;
+
+export function createSalesRequestGeneratePreviewInput(
+	input: Pick<SalesRequestGeneratePreviewVariables, "text">,
+): NewSalesRequestGeneratePreviewInput {
+	return {
+		text: input.text,
+		images: [],
+	};
+}
+
+export function useSalesRequestGeneratePreviewMutation() {
+	const trpcClient = useTRPCClient();
+	return useMutation({
+		mutationKey: [["salesRequest", "generatePreview"]],
+		mutationFn: ({ text, signal }: SalesRequestGeneratePreviewVariables) =>
+			trpcClient.salesRequest.generatePreview.mutate(
+				createSalesRequestGeneratePreviewInput({ text }),
+				signal ? { signal } : undefined,
+			),
+	});
+}
 
 export function useNewSalesFormBootstrapQuery(
 	input: NewSalesFormBootstrapInput,

@@ -1,0 +1,481 @@
+import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { getPublicError } from "@gnd/errors";
+
+export type SalesRequestGeneratePreviewOutput =
+	RouterOutputs["salesRequest"]["generatePreview"];
+
+export type SalesRequestGeneratePreviewVariables = {
+	text: string;
+	signal?: AbortSignal;
+};
+
+export type SalesRequestGenerationRevisionInput = {
+	formRevision?: string | number | null;
+	configurationRevision?: string | null;
+};
+
+export type SalesRequestGenerationRevision = {
+	formRevision: string | null;
+	configurationRevision: string | null;
+};
+
+export type SalesRequestGenerationFailureCode =
+	| "disabled"
+	| "permission"
+	| "credential"
+	| "usage-limit"
+	| "timeout"
+	| "invalid-output"
+	| "configuration-changed"
+	| "cancelled"
+	| "unknown";
+
+export type SalesRequestGenerationFailure = {
+	code: SalesRequestGenerationFailureCode;
+	message: string;
+	retryable: boolean;
+	referenceId: string;
+};
+
+export type SalesRequestGenerationStatus =
+	| "idle"
+	| "pending"
+	| "success"
+	| "error"
+	| "cancelled";
+
+export type SalesRequestGenerationSnapshot = {
+	sourceText: string;
+	status: SalesRequestGenerationStatus;
+	requestId: number | null;
+	capturedRevision: SalesRequestGenerationRevision | null;
+	result: SalesRequestGeneratePreviewOutput | null;
+	failure: SalesRequestGenerationFailure | null;
+	isStale: boolean;
+	canRetry: boolean;
+};
+
+type GeneratePreview = (
+	input: SalesRequestGeneratePreviewVariables,
+) => Promise<SalesRequestGeneratePreviewOutput>;
+
+type Listener = () => void;
+
+const FAILURE_DEFINITIONS: Record<
+	SalesRequestGenerationFailureCode,
+	Pick<SalesRequestGenerationFailure, "message" | "retryable">
+> = {
+	disabled: {
+		message: "Request generation is currently disabled.",
+		retryable: false,
+	},
+	permission: {
+		message: "You do not have permission to generate a request preview.",
+		retryable: false,
+	},
+	credential: {
+		message:
+			"Configure an approved sales request provider before generating a preview.",
+		retryable: false,
+	},
+	"usage-limit": {
+		message:
+			"Request generation is temporarily unavailable because the usage limit was reached.",
+		retryable: true,
+	},
+	timeout: {
+		message: "Request generation took too long. Try again.",
+		retryable: true,
+	},
+	"invalid-output": {
+		message:
+			"The generated preview could not be validated. Review the request and try again.",
+		retryable: true,
+	},
+	"configuration-changed": {
+		message:
+			"The form or sales configuration changed. Generate the preview again.",
+		retryable: true,
+	},
+	cancelled: {
+		message: "Request generation was cancelled.",
+		retryable: false,
+	},
+	unknown: {
+		message: "We could not generate a request preview. Try again.",
+		retryable: true,
+	},
+};
+
+function normalizeRevision(
+	value: string | number | null | undefined,
+): string | null {
+	return value === null || value === undefined ? null : String(value);
+}
+
+export function normalizeSalesRequestGenerationRevision(
+	revision: SalesRequestGenerationRevisionInput,
+): SalesRequestGenerationRevision {
+	return {
+		formRevision: normalizeRevision(revision.formRevision),
+		configurationRevision: normalizeRevision(revision.configurationRevision),
+	};
+}
+
+function revisionsEqual(
+	left: SalesRequestGenerationRevision,
+	right: SalesRequestGenerationRevision,
+) {
+	return (
+		left.formRevision === right.formRevision &&
+		left.configurationRevision === right.configurationRevision
+	);
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+	return typeof value === "object" && value !== null
+		? (value as Record<string, unknown>)
+		: null;
+}
+
+function readString(value: unknown) {
+	return typeof value === "string" ? value : "";
+}
+
+function readTransportCode(error: unknown) {
+	const record = readRecord(error);
+	const data = readRecord(record?.data);
+	const shape = readRecord(record?.shape);
+	const shapeData = readRecord(shape?.data);
+	const appError =
+		readRecord(data?.appError) ?? readRecord(shapeData?.appError);
+	return readString(
+		data?.code ?? shapeData?.code ?? appError?.code ?? record?.code,
+	);
+}
+
+function readErrorMessage(error: unknown) {
+	const record = readRecord(error);
+	const data = readRecord(record?.data);
+	const shape = readRecord(record?.shape);
+	const shapeData = readRecord(shape?.data);
+	const appError =
+		readRecord(data?.appError) ?? readRecord(shapeData?.appError);
+	if (appError?.message) return readString(appError.message);
+	if (data?.message) return readString(data.message);
+	if (shapeData?.message) return readString(shapeData.message);
+	if (record?.message) return readString(record.message);
+	return error instanceof Error ? error.message : "";
+}
+
+function isAbortLikeError(error: unknown) {
+	const record = readRecord(error);
+	const name = readString(record?.name).toLowerCase();
+	const message = readErrorMessage(error).toLowerCase();
+	return (
+		name === "aborterror" ||
+		message.includes("abort") ||
+		message.includes("cancel")
+	);
+}
+
+function failureFor(
+	code: SalesRequestGenerationFailureCode,
+	referenceId = "",
+): SalesRequestGenerationFailure {
+	return { code, referenceId, ...FAILURE_DEFINITIONS[code] };
+}
+
+export function mapSalesRequestGenerationError(
+	error: unknown,
+): SalesRequestGenerationFailure {
+	const publicError = getPublicError(error, {
+		operation: "sales-request.generate-preview",
+	});
+	const transportCode = readTransportCode(error);
+	const message = readErrorMessage(error).toLowerCase();
+	const code = publicError.code;
+
+	if (
+		message.includes("not enabled") ||
+		message.includes("generation is disabled")
+	) {
+		return failureFor("disabled", publicError.referenceId);
+	}
+	if (transportCode === "FORBIDDEN" || code === "PERMISSION_DENIED") {
+		return failureFor("permission", publicError.referenceId);
+	}
+	if (
+		code === "PROVIDER_UNAVAILABLE" ||
+		message.includes("api key") ||
+		message.includes("credential") ||
+		message.includes("configure the")
+	) {
+		return failureFor("credential", publicError.referenceId);
+	}
+	if (
+		transportCode === "TOO_MANY_REQUESTS" ||
+		code === "RATE_LIMITED" ||
+		message.includes("usage limit") ||
+		message.includes("usage checks") ||
+		message.includes("too many requests")
+	) {
+		return failureFor("usage-limit", publicError.referenceId);
+	}
+	if (
+		message.includes("configuration changed") ||
+		message.includes("generate the preview again") ||
+		message.includes("changed during generation")
+	) {
+		return failureFor("configuration-changed", publicError.referenceId);
+	}
+	if (isAbortLikeError(error)) {
+		return failureFor("cancelled", publicError.referenceId);
+	}
+	if (
+		readString(readRecord(error)?.name).toLowerCase() === "timeouterror" ||
+		message.includes("timed out") ||
+		message.includes("timeout") ||
+		message.includes("took too long")
+	) {
+		return failureFor("timeout", publicError.referenceId);
+	}
+	if (
+		code === "VALIDATION_FAILED" ||
+		message.includes("seed format") ||
+		message.includes("structured output") ||
+		message.includes("could not be validated")
+	) {
+		return failureFor("invalid-output", publicError.referenceId);
+	}
+
+	return failureFor("unknown", publicError.referenceId);
+}
+
+function isResultStale(
+	snapshot: SalesRequestGenerationSnapshot,
+	currentRevision: SalesRequestGenerationRevision,
+) {
+	if (!snapshot.result || !snapshot.capturedRevision) return false;
+	if (!revisionsEqual(snapshot.capturedRevision, currentRevision)) return true;
+	return (
+		normalizeRevision(snapshot.result.configurationRevision) !==
+		currentRevision.configurationRevision
+	);
+}
+
+export function createSalesRequestGenerationController(
+	generatePreview: GeneratePreview,
+	initialRevision: SalesRequestGenerationRevisionInput,
+) {
+	let currentRevision =
+		normalizeSalesRequestGenerationRevision(initialRevision);
+	let nextRequestId = 0;
+	let disposed = false;
+	let activeRequest: {
+		id: number;
+		text: string;
+		revision: SalesRequestGenerationRevision;
+		abortController: AbortController;
+		promise: Promise<SalesRequestGeneratePreviewOutput | null>;
+	} | null = null;
+	const listeners = new Set<Listener>();
+
+	let snapshot: SalesRequestGenerationSnapshot = {
+		sourceText: "",
+		status: "idle",
+		requestId: null,
+		capturedRevision: null,
+		result: null,
+		failure: null,
+		isStale: false,
+		canRetry: false,
+	};
+
+	function emit() {
+		if (disposed) return;
+		for (const listener of listeners) listener();
+	}
+
+	function setSnapshot(next: SalesRequestGenerationSnapshot) {
+		snapshot = next;
+		emit();
+	}
+
+	function abortActiveRequest() {
+		activeRequest?.abortController.abort();
+		activeRequest = null;
+	}
+
+	function setRevision(revision: SalesRequestGenerationRevisionInput) {
+		const nextRevision = normalizeSalesRequestGenerationRevision(revision);
+		if (revisionsEqual(nextRevision, currentRevision)) return;
+		currentRevision = nextRevision;
+
+		if (
+			activeRequest &&
+			!revisionsEqual(activeRequest.revision, nextRevision)
+		) {
+			abortActiveRequest();
+			setSnapshot({
+				...snapshot,
+				status: "error",
+				failure: failureFor("configuration-changed"),
+				isStale: true,
+				canRetry: Boolean(snapshot.sourceText.trim()),
+			});
+			return;
+		}
+
+		setSnapshot({
+			...snapshot,
+			isStale: isResultStale(snapshot, currentRevision),
+		});
+	}
+
+	function setSourceText(sourceText: string) {
+		const isChanged = sourceText !== snapshot.sourceText;
+		if (!isChanged) return;
+		setSnapshot({
+			...snapshot,
+			sourceText,
+			isStale: snapshot.status === "success" ? true : snapshot.isStale,
+			canRetry: snapshot.status !== "pending" && Boolean(sourceText.trim()),
+		});
+	}
+
+	function generate(sourceText = snapshot.sourceText) {
+		if (disposed || !sourceText.trim()) return Promise.resolve(null);
+		if (
+			activeRequest &&
+			activeRequest.text === sourceText &&
+			revisionsEqual(activeRequest.revision, currentRevision)
+		) {
+			return activeRequest.promise;
+		}
+
+		abortActiveRequest();
+		const id = ++nextRequestId;
+		const revision = currentRevision;
+		const abortController = new AbortController();
+		setSnapshot({
+			sourceText,
+			status: "pending",
+			requestId: id,
+			capturedRevision: revision,
+			result: null,
+			failure: null,
+			isStale: false,
+			canRetry: false,
+		});
+
+		const promise = generatePreview({
+			text: sourceText,
+			signal: abortController.signal,
+		})
+			.then((result) => {
+				if (
+					disposed ||
+					!activeRequest ||
+					activeRequest.id !== id ||
+					abortController.signal.aborted
+				) {
+					return null;
+				}
+				activeRequest = null;
+				setSnapshot({
+					...snapshot,
+					status: "success",
+					requestId: id,
+					capturedRevision: revision,
+					result,
+					failure: null,
+					isStale:
+						!revisionsEqual(revision, currentRevision) ||
+						normalizeRevision(result.configurationRevision) !==
+							currentRevision.configurationRevision,
+					canRetry: true,
+				});
+				return result;
+			})
+			.catch((error: unknown) => {
+				if (disposed || !activeRequest || activeRequest.id !== id) {
+					return null;
+				}
+				activeRequest = null;
+				if (abortController.signal.aborted || isAbortLikeError(error)) {
+					setSnapshot({
+						...snapshot,
+						status: "cancelled",
+						failure: null,
+						canRetry: true,
+					});
+					return null;
+				}
+				const failure = mapSalesRequestGenerationError(error);
+				setSnapshot({
+					...snapshot,
+					status: "error",
+					failure,
+					canRetry: failure.retryable,
+				});
+				return null;
+			});
+
+		activeRequest = {
+			id,
+			text: sourceText,
+			revision,
+			abortController,
+			promise,
+		};
+		return promise;
+	}
+
+	function cancel() {
+		if (!activeRequest) return;
+		abortActiveRequest();
+		setSnapshot({
+			...snapshot,
+			status: "cancelled",
+			result: null,
+			failure: null,
+			isStale: false,
+			canRetry: Boolean(snapshot.sourceText.trim()),
+		});
+	}
+
+	function retry() {
+		return generate(snapshot.sourceText);
+	}
+
+	function subscribe(listener: Listener) {
+		if (disposed) return () => undefined;
+		listeners.add(listener);
+		return () => listeners.delete(listener);
+	}
+
+	function dispose() {
+		if (disposed) return;
+		disposed = true;
+		abortActiveRequest();
+		listeners.clear();
+		snapshot = {
+			...snapshot,
+			status: "cancelled",
+			result: null,
+			failure: null,
+		};
+	}
+
+	return {
+		getSnapshot: () => snapshot,
+		subscribe,
+		setRevision,
+		setSourceText,
+		generate,
+		cancel,
+		retry,
+		dispose,
+	};
+}
