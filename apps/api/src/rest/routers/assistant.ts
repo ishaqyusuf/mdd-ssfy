@@ -120,6 +120,7 @@ type AssistantRouterDependencies = {
 	}): Promise<void>;
 	executeRun(input: {
 		actor: AssistantStreamActor;
+		reauthorizeActor: () => Promise<AssistantStreamActor>;
 		request: AssistantChatRequest;
 		run: StartedRun;
 		writer: AssistantWriter;
@@ -626,7 +627,7 @@ const defaultDependencies: AssistantRouterDependencies = {
 			},
 		});
 	},
-	async executeRun({ actor, request, run, writer, signal }) {
+	async executeRun({ actor, reauthorizeActor, request, run, writer, signal }) {
 		return executeAssistantConversationTurn({
 			actor: {
 				userId: actor.userId,
@@ -640,11 +641,24 @@ const defaultDependencies: AssistantRouterDependencies = {
 				dateFormat: actor.dateFormat ?? null,
 				timeFormat: actor.timeFormat ?? 12,
 				countryCode: actor.countryCode ?? null,
+				grants: actor.grants,
 			},
 			request,
 			run,
 			writer,
 			signal,
+			reauthorizeActor: async () => {
+				const currentActor = await reauthorizeActor();
+				return {
+					...currentActor,
+					fullName: currentActor.fullName ?? null,
+					teamName: currentActor.teamName ?? null,
+					baseCurrency: currentActor.baseCurrency ?? "USD",
+					dateFormat: currentActor.dateFormat ?? null,
+					timeFormat: currentActor.timeFormat ?? 12,
+					countryCode: currentActor.countryCode ?? null,
+				};
+			},
 		});
 	},
 	guard: defaultGuard,
@@ -818,6 +832,15 @@ export function createAssistantChatRouter(
 					try {
 						const runtimeOutcome = await dependencies.executeRun({
 							actor,
+							reauthorizeActor: async () => {
+								const currentActor = await dependencies.resolveActor(
+									context.req.raw,
+								);
+								if (!currentActor) {
+									throw new Error("Assistant access is no longer available");
+								}
+								return currentActor;
+							},
 							request: {
 								...parsed.data,
 								timezone: actor.timezone,

@@ -13,6 +13,7 @@ const actor = {
 	dateFormat: null,
 	timeFormat: 12 as const,
 	countryCode: "US",
+	grants: {},
 };
 
 describe("executeAssistantConversationTurn", () => {

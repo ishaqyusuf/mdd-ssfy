@@ -67,9 +67,12 @@ describe("assistant runtime", () => {
 		const chunks: unknown[] = [];
 		let cleaned = 0;
 		let settings: Record<string, unknown> | undefined;
+		const prepareStep = () => undefined;
 		const runtime = createAssistantRuntime({
 			selection: { provider: "openai", model: "gpt-5-mini" },
 			createModel: () => ({}) as never,
+			modelTools: { system_search_tools: {} },
+			prepareStep,
 			createAgent: (input) => {
 				settings = input as unknown as Record<string, unknown>;
 				return {
@@ -104,6 +107,7 @@ describe("assistant runtime", () => {
 				dateFormat: null,
 				timeFormat: 12,
 				countryCode: "US",
+				grants: {},
 			},
 			modelMessages: [{ role: "user", content: "Find order 09502PC" }],
 			recentUploads: [],
@@ -131,6 +135,8 @@ describe("assistant runtime", () => {
 		]);
 		expect(settings?.maxOutputTokens).toBe(4_000);
 		expect(settings?.maxRetries).toBe(1);
+		expect(settings?.tools).toEqual({ system_search_tools: {} });
+		expect(settings?.prepareStep).toBe(prepareStep);
 		const stopWhen = settings?.stopWhen as
 			| ((input: { steps: unknown[] }) => boolean)
 			| undefined;
@@ -173,6 +179,7 @@ describe("assistant runtime", () => {
 				dateFormat: null,
 				timeFormat: 24,
 				countryCode: null,
+				grants: {},
 			},
 			modelMessages: [{ role: "user", content: "wait" }],
 			recentUploads: [],
@@ -214,6 +221,7 @@ describe("assistant runtime", () => {
 				dateFormat: null,
 				timeFormat: 24,
 				countryCode: null,
+				grants: {},
 			},
 			modelMessages: [{ role: "user", content: "help" }],
 			recentUploads: [],
@@ -261,6 +269,7 @@ describe("assistant runtime", () => {
 				dateFormat: null,
 				timeFormat: 24,
 				countryCode: null,
+				grants: {},
 			},
 			modelMessages: [{ role: "user", content: "help" }],
 			recentUploads: [],

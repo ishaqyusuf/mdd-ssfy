@@ -5,7 +5,12 @@ import {
 	getAssistantModelHistory,
 } from "@gnd/db/queries";
 import type { ModelMessage } from "ai";
+import { createAssistantMcpExecutionClient } from "./mcp";
 import { type AssistantRuntimeInput, createAssistantRuntime } from "./runtime";
+import {
+	createAssistantPrepareStep,
+	warmAssistantToolIndex,
+} from "./selection";
 
 type AssistantTurnActor = AssistantRuntimeInput["actor"];
 
@@ -83,8 +88,22 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 			},
 		});
 	},
-	executeRuntime(input) {
-		return createAssistantRuntime().execute(input);
+	async executeRuntime(input) {
+		const session = await createAssistantMcpExecutionClient(
+			input.actor,
+			input.reauthorizeActor,
+		);
+		try {
+			await warmAssistantToolIndex(input.actor);
+			return await createAssistantRuntime({
+				modelTools: session.tools,
+				prepareStep: createAssistantPrepareStep(input.actor),
+				cleanup: session.close,
+			}).execute(input);
+		} catch (error) {
+			await session.close();
+			throw error;
+		}
 	},
 	async persistAssistantMessage(input) {
 		await appendAssistantGeneratedMessage(db, {
@@ -107,6 +126,7 @@ export async function executeAssistantConversationTurn(
 		run: { runId: string; triggerMessageId?: string };
 		writer: AssistantRuntimeInput["writer"];
 		signal: AbortSignal;
+		reauthorizeActor?: AssistantRuntimeInput["reauthorizeActor"];
 	},
 	overrides: Partial<ExecuteAssistantTurnDependencies> = {},
 ) {
@@ -150,6 +170,7 @@ export async function executeAssistantConversationTurn(
 		})),
 		writer: input.writer,
 		signal: input.signal,
+		reauthorizeActor: input.reauthorizeActor,
 	});
 	if (outcome.status !== "succeeded") return outcome;
 	if (input.signal.aborted) {

@@ -1,0 +1,142 @@
+import { type EmbeddingModel, tool } from "ai";
+import { createToolIndex } from "toolpick";
+import { z } from "zod";
+import { getAssistantRegistryPublicDefinitions } from "./registry";
+import embeddingFixture from "./selection-benchmark-embeddings.json";
+
+const cases = [
+	{ query: "where is order 09502PC", expected: "sales_find_orders" },
+	{ query: "start a new customer purchase", expected: "sales_create_order" },
+	{ query: "look up Jordan’s customer record", expected: "customers_find" },
+	{ query: "is this item in stock", expected: "inventory_check_status" },
+	{
+		query: "what stage is manufacturing at",
+		expected: "production_check_status",
+	},
+	{
+		query: "has the delivery been packed",
+		expected: "fulfillment_check_status",
+	},
+	{ query: "find a discussion template", expected: "community_search" },
+	{ query: "turn the result into a PDF", expected: "documents_generate_pdf" },
+] as const;
+
+function tokens(value: string) {
+	return new Set(value.toLowerCase().match(/[a-z0-9]+/g) ?? []);
+}
+
+function deterministicSelect(query: string, maxTools = 3) {
+	const queryTokens = tokens(query);
+	return getAssistantRegistryPublicDefinitions()
+		.map((definition) => {
+			const definitionTokens = tokens(
+				`${definition.toolId} ${definition.title} ${definition.description}`,
+			);
+			return {
+				name: definition.toolId,
+				score: [...queryTokens].filter((term) => definitionTokens.has(term))
+					.length,
+			};
+		})
+		.filter(({ score }) => score > 0)
+		.sort(
+			(left, right) =>
+				right.score - left.score || left.name.localeCompare(right.name),
+		)
+		.slice(0, maxTools)
+		.map(({ name }) => name);
+}
+
+function score(results: string[][]) {
+	return {
+		top1:
+			results.filter((result, index) => result[0] === cases[index]?.expected)
+				.length / cases.length,
+		top3:
+			results.filter((result, index) =>
+				result.includes(cases[index]?.expected ?? ""),
+			).length / cases.length,
+	};
+}
+
+export async function benchmarkAssistantToolSelection() {
+	const definitions = getAssistantRegistryPublicDefinitions();
+	const scale = embeddingFixture.scale;
+	const toolVectors = embeddingFixture.tools as Record<string, number[]>;
+	const fixtureEmbeddingModel = {
+		specificationVersion: "v3",
+		provider: "gnd-benchmark",
+		modelId: "frozen-natural-language-v1",
+		maxEmbeddingsPerCall: Number.POSITIVE_INFINITY,
+		supportsParallelCalls: true,
+		async doEmbed({ values }: { values: string[] }) {
+			return {
+				embeddings: values.map((value) => {
+					const definition = definitions.find((candidate) =>
+						value.startsWith(`${candidate.toolId}:`),
+					);
+					const queryIndex = cases.findIndex(({ query }) => query === value);
+					const quantized = definition
+						? toolVectors[definition.toolId]
+						: embeddingFixture.queries[queryIndex];
+					if (!quantized)
+						throw new Error("Embedding benchmark fixture drifted");
+					return quantized.map((component) => component / scale);
+				}),
+				usage: { tokens: 0 },
+				warnings: [],
+			};
+		},
+	} as EmbeddingModel;
+	const index = createToolIndex(
+		Object.fromEntries(
+			definitions.map((definition) => [
+				definition.toolId,
+				tool({
+					description: `${definition.title}. ${definition.description} Domain: ${definition.domain}.`,
+					inputSchema: z.object({}),
+				}),
+			]),
+		),
+		{ strategy: "semantic", embeddingModel: fixtureEmbeddingModel },
+	);
+	await index.warmUp();
+
+	const semanticStart = performance.now();
+	const semanticResults = await Promise.all(
+		cases.map(({ query }) =>
+			index.select(query, { maxTools: 3, adaptive: false }),
+		),
+	);
+	const semanticLatencyMs = performance.now() - semanticStart;
+
+	const deterministicStart = performance.now();
+	const deterministicResults = cases.map(({ query }) =>
+		deterministicSelect(query),
+	);
+	const deterministicLatencyMs = performance.now() - deterministicStart;
+	const semanticScore = score(semanticResults);
+	const deterministicScore = score(deterministicResults);
+
+	return {
+		total: cases.length,
+		fixture: {
+			model: embeddingFixture.model,
+			dimension: embeddingFixture.dimension,
+		},
+		semantic: { ...semanticScore, latencyMs: semanticLatencyMs },
+		deterministic: {
+			...deterministicScore,
+			latencyMs: deterministicLatencyMs,
+		},
+		decision:
+			semanticScore.top3 > deterministicScore.top3
+				? ("evaluate_semantic_embeddings" as const)
+				: ("keep_embeddings_optional" as const),
+		misses: cases.flatMap((testCase, index) =>
+			semanticResults[index]?.includes(testCase.expected)
+				? []
+				: [{ ...testCase, selected: semanticResults[index] ?? [] }],
+		),
+	};
+}

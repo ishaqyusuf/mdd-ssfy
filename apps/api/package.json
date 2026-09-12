@@ -30,6 +30,7 @@
 		"@ai-sdk/anthropic": "3.0.64",
 		"@ai-sdk/deepseek": "2.0.26",
 		"@ai-sdk/google": "3.0.53",
+		"@ai-sdk/mcp": "1.0.30",
 		"@ai-sdk/openai": "3.0.48",
 		"@date-fns/utc": "^2.1.0",
 		"@gnd/auth": "workspace:*",
@@ -54,6 +55,7 @@
 		"@hono/trpc-server": "^0.3.4",
 		"@hono/zod-openapi": "^0.19.8",
 		"@hono/zod-validator": "^0.7.0",
+		"@modelcontextprotocol/sdk": "1.25.2",
 		"@scalar/hono-api-reference": "^0.9.1",
 		"@sentry/bun": "10.32.1",
 		"@sindresorhus/slugify": "^2.2.1",
@@ -79,6 +81,7 @@
 		"sharp": "0.35.3",
 		"snakecase-keys": "^8.0.1",
 		"superjson": "^2.2.2",
+		"toolpick": "0.4.0",
 		"uuid": "^11.1.0",
 		"zod": "catalog:",
 		"zod-openapi": "^4.2.4"

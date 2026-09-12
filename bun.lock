@@ -38,6 +38,7 @@
         "@ai-sdk/anthropic": "3.0.64",
         "@ai-sdk/deepseek": "2.0.26",
         "@ai-sdk/google": "3.0.53",
+        "@ai-sdk/mcp": "1.0.30",
         "@ai-sdk/openai": "3.0.48",
         "@date-fns/utc": "^2.1.0",
         "@gnd/auth": "workspace:*",
@@ -62,6 +63,7 @@
         "@hono/trpc-server": "^0.3.4",
         "@hono/zod-openapi": "^0.19.8",
         "@hono/zod-validator": "^0.7.0",
+        "@modelcontextprotocol/sdk": "1.25.2",
         "@scalar/hono-api-reference": "^0.9.1",
         "@sentry/bun": "10.32.1",
         "@sindresorhus/slugify": "^2.2.1",
@@ -87,6 +89,7 @@
         "sharp": "0.35.3",
         "snakecase-keys": "^8.0.1",
         "superjson": "^2.2.2",
+        "toolpick": "0.4.0",
         "uuid": "^11.1.0",
         "zod": "catalog:",
         "zod-openapi": "^4.2.4",
@@ -1048,6 +1051,8 @@
     "@ai-sdk/gateway": ["@ai-sdk/gateway@3.0.83", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.21", "@vercel/oidc": "3.1.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-LvlWujbSdEkTBXBLFtF7GS6riXdHhH0O+DpDrCaNQvXeHmSF2jKsOg7JWXiCgygAHM5cWFAO3JYmZp83DjiuBQ=="],
 
     "@ai-sdk/google": ["@ai-sdk/google@3.0.53", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.21" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-uz8tIlkDgQJG9Js2Wh9JHzd4kI9+hYJqf9XXJLx60vyN5mRIqhr49iwR5zGP5Gl8odp2PeR3Gh2k+5bh3Z1HHw=="],
+
+    "@ai-sdk/mcp": ["@ai-sdk/mcp@1.0.30", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.21", "pkce-challenge": "^5.0.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-QTpRa5kmMpKGbhaOgCULxIVykBlDoAe14bynSfx7oQYxGfINapixDyrTr40TwWU71VfGLWVdEJBkfMyKeTbQtw=="],
 
     "@ai-sdk/openai": ["@ai-sdk/openai@3.0.48", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.21" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-ALmj/53EXpcRqMbGpPJPP4UOSWw0q4VGpnDo7YctvsynjkrKDmoneDG/1a7VQnSPYHnJp6tTRMf5ZdxZ5whulg=="],
 
@@ -5860,6 +5865,8 @@
     "to-regex-range": ["to-regex-range@5.0.1", "", { "dependencies": { "is-number": "^7.0.0" } }, "sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ=="],
 
     "toidentifier": ["toidentifier@1.0.1", "", {}, "sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA=="],
+
+    "toolpick": ["toolpick@0.4.0", "", { "peerDependencies": { "ai": ">=4.0", "zod": ">=3.25 || >=4.0" } }, "sha512-oJVyIWkfZvIRB9vWE/iCHw7v+TxXzDRasty5L31mhA7b4BhYsQ3Tjg3gEgAPmviUKmI6SKpP4EbsIk/JUmkXGQ=="],
 
     "tough-cookie": ["tough-cookie@6.0.0", "", { "dependencies": { "tldts": "^7.0.5" } }, "sha512-kXuRi1mtaKMrsLUxz3sQYvVl37B0Ns6MzfrtV5DvJceE9bPyspOqk9xxv7XbZWcfLWbFmm997vl83qUWVJA64w=="],
 

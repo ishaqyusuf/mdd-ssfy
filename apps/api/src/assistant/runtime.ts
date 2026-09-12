@@ -60,12 +60,14 @@ export type AssistantRuntimeInput = {
 		userId: number;
 		scopeType: string;
 		scopeId: string;
+		grants: Record<string, boolean>;
 	};
 	modelMessages: ModelMessage[];
 	recentUploads: AssistantPromptContext["recentUploads"];
 	mentionedIntegrations: AssistantPromptContext["mentionedIntegrations"];
 	writer: AssistantRuntimeWriter;
 	signal: AbortSignal;
+	reauthorizeActor?: () => Promise<AssistantRuntimeInput["actor"]>;
 };
 
 type AssistantAgent = {
@@ -92,6 +94,7 @@ type AssistantAgentSettings = {
 	stopWhen: ReturnType<typeof stepCountIs>;
 	maxOutputTokens: number;
 	maxRetries: number;
+	prepareStep?: unknown;
 };
 
 export function resolveAssistantRuntimeSelection(
@@ -181,6 +184,8 @@ export function createAssistantRuntime(options?: {
 	selection?: AssistantRuntimeSelection;
 	environment?: Readonly<Record<string, string | undefined>>;
 	tools?: AssistantRuntimeToolEntry[];
+	modelTools?: Record<string, unknown>;
+	prepareStep?: unknown;
 	deadlineMs?: number;
 	createModel?: (selection: AssistantRuntimeSelection) => LanguageModel;
 	createAgent?: (settings: AssistantAgentSettings) => AssistantAgent;
@@ -192,7 +197,8 @@ export function createAssistantRuntime(options?: {
 	const model =
 		options?.createModel?.(selection) ??
 		createAssistantModel(selection, options?.environment);
-	const tools = selectAssistantRuntimeTools(options?.tools ?? []);
+	const tools =
+		options?.modelTools ?? selectAssistantRuntimeTools(options?.tools ?? []);
 	const deadlineMs = Math.max(
 		1,
 		Math.min(
@@ -233,6 +239,7 @@ export function createAssistantRuntime(options?: {
 					stopWhen: stepCountIs(ASSISTANT_MAX_STEPS),
 					maxOutputTokens: ASSISTANT_MAX_OUTPUT_TOKENS,
 					maxRetries: ASSISTANT_MAX_RETRIES,
+					prepareStep: options?.prepareStep,
 				};
 				const agent =
 					options?.createAgent?.(settings) ??
