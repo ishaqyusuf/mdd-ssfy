@@ -40,6 +40,7 @@
 		"@gnd/dev-logger": "workspace:*",
 		"@gnd/documents": "workspace:*",
 		"@gnd/errors": "workspace:*",
+		"@gnd/events": "workspace:*",
 		"@gnd/inventory": "workspace:*",
 		"@gnd/jobs": "workspace:*",
 		"@gnd/logger": "workspace:*",

@@ -15,179 +15,181 @@ import { applyThemeOverride, useColorScheme } from "@/hooks/use-color";
 import { wrapRootLayoutWithSentry } from "@/lib/sentry";
 import { NAV_THEME } from "@/lib/theme";
 import { getThemeOverride } from "@/lib/theme-preference";
+import { AnalyticsRuntime } from "@/runtime/analytics-runtime";
 import { TRPCReactProvider } from "@/trpc/client";
 import { StatusBar } from "expo-status-bar";
 import Toast from "react-native-toast-message";
 
 export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
+	// Catch any errors thrown by the Layout component.
+	ErrorBoundary,
 } from "expo-router";
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: "(tabs)",
+	// Ensure that reloading on `/modal` keeps a back button present.
+	initialRouteName: "(tabs)",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
-  const [themeReady, setThemeReady] = useState(false);
-  const [loaded, error] = useFonts({
-    SpaceMono: require("../../assets/fonts/SpaceMono-Regular.ttf"),
-    ...FontAwesome.font,
-  });
+	const [themeReady, setThemeReady] = useState(false);
+	const [loaded, error] = useFonts({
+		SpaceMono: require("../../assets/fonts/SpaceMono-Regular.ttf"),
+		...FontAwesome.font,
+	});
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+	// Expo Router uses Error Boundaries to catch errors in the navigation tree.
+	useEffect(() => {
+		if (error) throw error;
+	}, [error]);
 
-  useEffect(() => {
-    let mounted = true;
-    void getThemeOverride()
-      .then(applyThemeOverride)
-      .catch(() => applyThemeOverride("system"))
-      .finally(() => {
-        if (mounted) setThemeReady(true);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+	useEffect(() => {
+		let mounted = true;
+		void getThemeOverride()
+			.then(applyThemeOverride)
+			.catch(() => applyThemeOverride("system"))
+			.finally(() => {
+				if (mounted) setThemeReady(true);
+			});
+		return () => {
+			mounted = false;
+		};
+	}, []);
 
-  useEffect(() => {
-    if (loaded && themeReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded, themeReady]);
+	useEffect(() => {
+		if (loaded && themeReady) {
+			SplashScreen.hideAsync();
+		}
+	}, [loaded, themeReady]);
 
-  if (!loaded || !themeReady) {
-    return null;
-  }
+	if (!loaded || !themeReady) {
+		return null;
+	}
 
-  return <RootLayoutNav />;
+	return <RootLayoutNav />;
 }
 const InitialLayout = () => {
-  const { token, currentSection, currentSectionKey, sections, isAdmin } =
-    useAuthContext();
-  const { colorScheme } = useColorScheme();
-  const canAccessJobs = currentSection?.isJobs;
-  const canAccessInstaller = currentSection?.isInstaller;
-  const canAccessDispatchOrDriver =
-    currentSection?.isDispatch || currentSection?.isDriver;
-  const hasAnySection = sections.length > 0 || isAdmin;
-  const navigationTheme =
-    colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
+	const { token, currentSection, currentSectionKey, sections, isAdmin } =
+		useAuthContext();
+	const { colorScheme } = useColorScheme();
+	const canAccessJobs = currentSection?.isJobs;
+	const canAccessInstaller = currentSection?.isInstaller;
+	const canAccessDispatchOrDriver =
+		currentSection?.isDispatch || currentSection?.isDriver;
+	const hasAnySection = sections.length > 0 || isAdmin;
+	const navigationTheme =
+		colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
 
-  return (
-    <>
-      <TRPCReactProvider>
-        <StaticTrpc />
-        <StaticRouter />
-        <AppAutoUpdateModal />
-        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+	return (
+		<>
+			<TRPCReactProvider>
+				<AnalyticsRuntime />
+				<StaticTrpc />
+				<StaticRouter />
+				<AppAutoUpdateModal />
+				<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
-        <Stack
-          screenOptions={{
-            headerShadowVisible: false,
-            headerStyle: {
-              backgroundColor: navigationTheme.colors.background,
-            },
-            headerTintColor: navigationTheme.colors.text,
-            headerTitleStyle: {
-              color: navigationTheme.colors.text,
-            },
-          }}
-        >
-          <Stack.Protected guard={!token}>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!!token && !!canAccessDispatchOrDriver}>
-            <Stack.Screen name="(drivers)" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected
-            guard={!!token && !!isAdmin && currentSectionKey === "sales"}
-          >
-            <Stack.Screen name="(sales)" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!!token && !!canAccessJobs}>
-            <Stack.Screen name="(job-admin)" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!!token && !!canAccessInstaller}>
-            <Stack.Screen
-              name="(installers)"
-              options={{ headerShown: false }}
-            />
-          </Stack.Protected>
-          <Stack.Protected
-            guard={!!token && (canAccessJobs || canAccessInstaller)}
-          >
-            <Stack.Screen name="(job)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="job-overview-v2"
-              options={{ headerShown: false }}
-            />
-          </Stack.Protected>
-          <Stack.Protected guard={!!token && !hasAnySection}>
-            <Stack.Screen name="unavailable" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!!token}>
-            <Stack.Screen name="hrm" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="settings"
-              options={{
-                presentation: "modal",
-                headerShown: false,
-                // header: () => <Header title="Create Installer Profile" />,
-              }}
-            />
-            {__DEV__ ? (
-              <Stack.Screen
-                name="design-system-preview"
-                options={{
-                  presentation: "modal",
-                  headerShown: false,
-                }}
-              />
-            ) : null}
-            <Stack.Screen
-              name="updates"
-              options={{
-                presentation: "modal",
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="documents"
-              options={{
-                presentation: "modal",
-                headerShown: false,
-              }}
-            />
+				<Stack
+					screenOptions={{
+						headerShadowVisible: false,
+						headerStyle: {
+							backgroundColor: navigationTheme.colors.background,
+						},
+						headerTintColor: navigationTheme.colors.text,
+						headerTitleStyle: {
+							color: navigationTheme.colors.text,
+						},
+					}}
+				>
+					<Stack.Protected guard={!token}>
+						<Stack.Screen name="(auth)" options={{ headerShown: false }} />
+					</Stack.Protected>
+					<Stack.Protected guard={!!token && !!canAccessDispatchOrDriver}>
+						<Stack.Screen name="(drivers)" options={{ headerShown: false }} />
+					</Stack.Protected>
+					<Stack.Protected
+						guard={!!token && !!isAdmin && currentSectionKey === "sales"}
+					>
+						<Stack.Screen name="(sales)" options={{ headerShown: false }} />
+					</Stack.Protected>
+					<Stack.Protected guard={!!token && !!canAccessJobs}>
+						<Stack.Screen name="(job-admin)" options={{ headerShown: false }} />
+					</Stack.Protected>
+					<Stack.Protected guard={!!token && !!canAccessInstaller}>
+						<Stack.Screen
+							name="(installers)"
+							options={{ headerShown: false }}
+						/>
+					</Stack.Protected>
+					<Stack.Protected
+						guard={!!token && (canAccessJobs || canAccessInstaller)}
+					>
+						<Stack.Screen name="(job)" options={{ headerShown: false }} />
+						<Stack.Screen
+							name="job-overview-v2"
+							options={{ headerShown: false }}
+						/>
+					</Stack.Protected>
+					<Stack.Protected guard={!!token && !hasAnySection}>
+						<Stack.Screen name="unavailable" options={{ headerShown: false }} />
+					</Stack.Protected>
+					<Stack.Protected guard={!!token}>
+						<Stack.Screen name="hrm" options={{ headerShown: false }} />
+						<Stack.Screen
+							name="settings"
+							options={{
+								presentation: "modal",
+								headerShown: false,
+								// header: () => <Header title="Create Installer Profile" />,
+							}}
+						/>
+						{__DEV__ ? (
+							<Stack.Screen
+								name="design-system-preview"
+								options={{
+									presentation: "modal",
+									headerShown: false,
+								}}
+							/>
+						) : null}
+						<Stack.Screen
+							name="updates"
+							options={{
+								presentation: "modal",
+								headerShown: false,
+							}}
+						/>
+						<Stack.Screen
+							name="documents"
+							options={{
+								presentation: "modal",
+								headerShown: false,
+							}}
+						/>
 
-            <Stack.Screen
-              name="notifications"
-              options={{
-                presentation: "modal",
-                headerShown: false,
-              }}
-            />
-          </Stack.Protected>
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <Toast />
-      </TRPCReactProvider>
-    </>
-  );
+						<Stack.Screen
+							name="notifications"
+							options={{
+								presentation: "modal",
+								headerShown: false,
+							}}
+						/>
+					</Stack.Protected>
+					<Stack.Screen name="+not-found" />
+				</Stack>
+				<Toast />
+			</TRPCReactProvider>
+		</>
+	);
 };
 function RootLayoutNav() {
-  return (
-    <AppRootProviders>
-      <InitialLayout />
-    </AppRootProviders>
-  );
+	return (
+		<AppRootProviders>
+			<InitialLayout />
+		</AppRootProviders>
+	);
 }
 
 export default wrapRootLayoutWithSentry(RootLayout);

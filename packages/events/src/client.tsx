@@ -1,40 +1,54 @@
 "use client";
 
-import {
-  OpenPanelComponent,
-  useOpenPanel,
-} from "@openpanel/nextjs";
-import { useCallback } from "react";
+import type { AnalyticsBatch } from "@ishaqyusuf/logly-core";
+import { AnalyticsProvider, useAnalytics } from "@ishaqyusuf/logly-next";
+import { type ReactNode, useCallback } from "react";
+import { safeBatch } from "./policy";
 
-const isProd = process.env.NODE_ENV === "production";
-const clientId = process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID;
+const project = process.env.NEXT_PUBLIC_LOGLY_PROJECT ?? "gnd-web";
 type TrackProperties = Record<string, unknown>;
 
-const Provider = () =>
-  clientId ? (
-    <OpenPanelComponent
-      clientId={clientId}
-      trackAttributes={true}
-      trackScreenViews={isProd}
-      trackOutgoingLinks={isProd}
-    />
-  ) : null;
+async function transport(batch: AnalyticsBatch) {
+	const sanitized = safeBatch(batch, project, "web");
+	if (!sanitized.events.length) return;
+	const response = await fetch("/api/analytics", {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify(sanitized),
+		keepalive: true,
+	});
+	if (!response.ok) throw new Error("Analytics delivery failed");
+}
+
+const Provider = ({ children }: { children: ReactNode }) => (
+	<AnalyticsProvider
+		project={project}
+		endpoint="/api/analytics"
+		disabled={process.env.NEXT_PUBLIC_LOGLY_ENABLED !== "true"}
+		respectPrivacySignals
+		autoTrackPageViews
+		permission={() =>
+			typeof document !== "undefined" &&
+			document.cookie.includes("tracking-consent=0")
+				? "denied"
+				: "allowed"
+		}
+		transport={transport}
+	>
+		{children}
+	</AnalyticsProvider>
+);
 
 const useTrack = () => {
-  const { track: openTrack } = useOpenPanel();
+	const analytics = useAnalytics();
 
-  return useCallback(
-    (options: { event: string } & TrackProperties) => {
-      if (!isProd) {
-        return;
-      }
-
-      const { event, ...rest } = options;
-
-      openTrack(event, rest);
-    },
-    [openTrack],
-  );
+	return useCallback(
+		(options: { event: string } & TrackProperties) => {
+			const { event, ...rest } = options;
+			analytics.track(event, rest);
+		},
+		[analytics],
+	);
 };
 
 export { Provider, useTrack };
