@@ -47,18 +47,26 @@ credentials. Obtain explicit action-time confirmation before performing it.
 ## 2. App Store Connect record and agreements
 
 1. **GATE:** Sign in to App Store Connect with the Account Holder or another
-   explicitly authorized user.
+   explicitly authorized user. If Apple presents App Store Connect Terms of
+   Service, the Account Holder must review and accept them before continuing.
+   As of September 12, 2026, V100 is awaiting acceptance.
 2. Check Business/Agreements for any agreement, tax, or banking item that blocks
    app processing. **GATE:** accept or change only with action-time confirmation.
-3. Search Apps for the GND record with bundle ID `com.gnd.prodesk`.
-4. If absent, **GATE:** create the app record with platform iOS, the approved
+   The Free Apps Agreement is active. The Paid Apps Agreement remains unaccepted
+   and is not required unless GND offers paid apps or in-app purchases.
+3. Check EU Digital Services Act trader status. **GATE:** complete the legal and
+   contact-information workflow before making the app available in EU storefronts.
+4. Search Apps for the GND record with bundle ID `com.gnd.prodesk`. The verified
+   activation-day state is `No Apps`.
+5. If absent, **GATE:** create the app record with platform iOS, the approved
    display name, primary language, bundle ID `com.gnd.prodesk`, and an approved
    unique SKU. Record the numeric Apple app ID for later optional `ascAppId`
    configuration; do not guess it.
 
 ## 3. Signing readiness
 
-1. Verify Identifiers contains `com.gnd.prodesk` under team `ZXC78SPCV4`.
+1. Verify Identifiers contains `com.gnd.prodesk` under team `ZXC78SPCV4`. The
+   activation-day inspection found no identifiers, certificates, or profiles.
 2. Prefer EAS-managed Apple Distribution certificate and App Store provisioning
    profile for the first release.
 3. **GATE:** authenticate Apple/EAS, create/reuse certificates, or repair a

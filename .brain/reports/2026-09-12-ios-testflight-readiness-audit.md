@@ -9,6 +9,17 @@
 - Membership renewal: September 13, 2027
 - License agreement accepted: September 12, 2026
 - App Store Connect and Certificates/Identifiers/Profiles are available.
+- Read-only activation-day inspection confirmed the App Store Connect Apps list
+  is empty and the Apple Developer account has no registered identifiers,
+  certificates, provisioning profiles, or service keys yet.
+- The Free Apps Agreement is active for all countries or regions. The Paid Apps
+  Agreement is new/unaccepted and is only needed if GND later offers paid apps or
+  in-app purchases.
+- EU Digital Services Act trader compliance is incomplete. Complete it before
+  distributing the app in the EU; it is an external legal/compliance gate.
+- App Store Connect Terms of Service V100 is awaiting Account Holder acceptance.
+  The acceptance dialog was left open without checking the box or agreeing. This
+  currently blocks read-only inspection of App Store Connect API integrations.
 
 ## Expo and release configuration
 
@@ -78,6 +89,10 @@
 - Before upload, verify or create the App Store Connect app record for
   `com.gnd.prodesk`, resolve agreements/tax/banking warnings that block TestFlight,
   and authenticate EAS as an authorized `pcruz321` user.
+- The production App ID, Apple Distribution certificate, and App Store
+  provisioning profile do not yet exist. Prefer creating/managing them through
+  the separately confirmed first EAS build credential flow rather than creating
+  competing manual signing assets.
 - No Apple app record, signing credential, build, upload, submission, API key,
   permission, or tester invitation was created or changed during this audit.
 

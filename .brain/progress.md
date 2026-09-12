@@ -25,6 +25,13 @@ iOS export exposed and then verified the fix for a shared-schema transitive
 `node:crypto` import: the 8,450-module bundle now succeeds, and 53 related sales
 completion tests / 187 assertions pass. No external action was taken.
 
+Read-only Apple account inspection verified active organization membership,
+Account Holder access, Team ID `ZXC78SPCV4`, an active Free Apps Agreement, and
+empty App Store Connect app, identifier, certificate, and profile inventories.
+Paid Apps terms and EU trader compliance remain incomplete. App Store Connect
+Terms of Service V100 is now open at the Account Holder acceptance dialog; it was
+not accepted. EAS remains authenticated as unauthorized account `ishaqyusuf`.
+
 ### 2026-09-11 — Expanded Production item divider stabilized
 
 Replaced the V2 Production list's parent `divide-y` rule with an explicit top
