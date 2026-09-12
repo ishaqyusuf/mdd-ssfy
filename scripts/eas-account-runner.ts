@@ -2,10 +2,11 @@ import { access, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-type Operation = "build" | "update" | "submit" | "build-submit";
+type Operation = "auth" | "build" | "update" | "submit" | "build-submit";
 type Platform = "android" | "ios";
 type Target = "dev" | "preview" | "prod";
 type Action =
+	| "auth"
 	| "build:dev"
 	| "build:preview"
 	| "build:prod"
@@ -37,15 +38,19 @@ const actionArgs = process.argv.slice(3);
 
 if (
 	!operation ||
-	!["build", "update", "submit", "build-submit"].includes(operation)
+	!["auth", "build", "update", "submit", "build-submit"].includes(operation)
 ) {
 	console.error(getUsage());
 	process.exit(1);
 }
 
-const target = resolveTarget(operation, actionArgs);
-const action = `${operation}:${target}` as Action;
-const platform = resolvePlatform(operation, actionArgs);
+const target =
+	operation === "auth" ? null : resolveTarget(operation, actionArgs);
+const action = (
+	operation === "auth" ? "auth" : `${operation}:${target}`
+) as Action;
+const platform =
+	operation === "auth" ? null : resolvePlatform(operation, actionArgs);
 const env = { ...Bun.env };
 env.EXPO_TOKEN = undefined;
 
@@ -88,14 +93,31 @@ if (
 	console.log(`Authenticated EAS session as ${session.username}.`);
 }
 
-await runOrExit(
-	[...getActionCommand(operation, target, platform), ...forwardedArgs],
-	{
-		cwd: APP_DIR,
-		env,
-		stdio: "inherit",
-	},
-);
+await runOrExit(getRunnerCommand(operation, target, platform, forwardedArgs), {
+	cwd: APP_DIR,
+	env,
+	stdio: "inherit",
+});
+
+function getRunnerCommand(
+	operationValue: Operation,
+	targetValue: Target | null,
+	platformValue: Platform | null,
+	forwardedArguments: string[],
+): string[] {
+	if (operationValue === "auth") {
+		return ["eas", "whoami"];
+	}
+
+	if (!targetValue || !platformValue) {
+		throw new Error("A release operation requires a target and platform.");
+	}
+
+	return [
+		...getActionCommand(operationValue, targetValue, platformValue),
+		...forwardedArguments,
+	];
+}
 
 function resolveAccount(
 	actionValue: Action,
@@ -104,17 +126,18 @@ function resolveAccount(
 ): EasAccount {
 	const selectedAccount = getAccountSelector(args, sourceEnv);
 	const actionPrefix = toEnvKey(actionValue);
-	const target = actionValue.split(":")[1] as Target;
-	const targetPrefix = toEnvKey(target);
-	const profilePrefix = toEnvKey(TARGET_PROFILES[target]);
+	const target =
+		actionValue === "auth" ? null : (actionValue.split(":")[1] as Target);
+	const targetPrefix = target ? toEnvKey(target) : null;
+	const profilePrefix = target ? toEnvKey(TARGET_PROFILES[target]) : null;
 	const selectedPrefix = selectedAccount ? toEnvKey(selectedAccount) : null;
 	const prefixes = selectedPrefix
 		? [`EAS_${selectedPrefix}`]
 		: [
 				...new Set([
 					`EAS_${actionPrefix}`,
-					`EAS_${targetPrefix}`,
-					`EAS_${profilePrefix}`,
+					...(targetPrefix ? [`EAS_${targetPrefix}`] : []),
+					...(profilePrefix ? [`EAS_${profilePrefix}`] : []),
 					"EAS",
 				]),
 			];
@@ -141,7 +164,9 @@ function resolveAccount(
 				"",
 				"Set EAS_EMAIL/EAS_PASSWORD, or choose a named account with:",
 				"  EAS_ACCOUNT=work EAS_WORK_EMAIL=... EAS_WORK_PASSWORD=...",
-				`  bun run eas:${actionValue.split(":")[0]} --${target} --account work`,
+				actionValue === "auth"
+					? "  bun run eas:auth --account work"
+					: `  bun run eas:${actionValue.split(":")[0]} --${target} --account work`,
 			].join("\n"),
 		);
 		process.exit(1);
@@ -156,6 +181,9 @@ function resolveAccount(
 }
 
 function resolveTarget(operation: Operation, args: string[]): Target {
+	if (operation === "auth") {
+		throw new Error("auth does not resolve an EAS environment target.");
+	}
 	const selectedFlags = args.filter((arg) =>
 		["--dev", "--preview", "--prod"].includes(arg),
 	);
@@ -303,6 +331,7 @@ function toEnvKey(value: string): string {
 function getUsage(): string {
 	return [
 		"Usage:",
+		"  bun run eas:auth [--account <name>]",
 		"  bun run eas:build <--dev|--preview|--prod> [--account <name>]",
 		"  bun run eas:build:ios [--account <name>]",
 		"  bun run eas:submit:ios [--account <name>]",

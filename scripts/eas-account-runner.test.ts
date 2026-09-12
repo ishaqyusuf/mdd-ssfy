@@ -5,6 +5,22 @@ import path from "node:path";
 const repositoryRoot = path.join(import.meta.dir, "..");
 
 describe("EAS account runner release routing", () => {
+	it("supports identity switching without starting a release action", async () => {
+		const source = await readFile(
+			path.join(repositoryRoot, "scripts/eas-account-runner.ts"),
+			"utf8",
+		);
+		const rootPackage = JSON.parse(
+			await readFile(path.join(repositoryRoot, "package.json"), "utf8"),
+		) as { scripts: Record<string, string> };
+
+		expect(rootPackage.scripts["eas:auth"]).toBe(
+			"bun ./scripts/eas-account-runner.ts auth",
+		);
+		expect(source).toContain('operation === "auth"');
+		expect(source).toContain('return ["eas", "whoami"]');
+	});
+
 	it("preserves Android defaults and routes explicit iOS release commands", async () => {
 		const source = await readFile(
 			path.join(repositoryRoot, "scripts/eas-account-runner.ts"),

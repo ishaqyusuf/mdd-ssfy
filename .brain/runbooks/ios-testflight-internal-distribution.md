@@ -46,10 +46,9 @@ credentials. Obtain explicit action-time confirmation before performing it.
 
 ## 2. App Store Connect record and agreements
 
-1. **GATE:** Sign in to App Store Connect with the Account Holder or another
-   explicitly authorized user. If Apple presents App Store Connect Terms of
-   Service, the Account Holder must review and accept them before continuing.
-   As of September 12, 2026, V100 is awaiting acceptance.
+1. Sign in to App Store Connect with the Account Holder or another explicitly
+   authorized user. App Store Connect Terms of Service V100 was accepted by the
+   Account Holder on September 12, 2026 after explicit action-time approval.
 2. Check Business/Agreements for any agreement, tax, or banking item that blocks
    app processing. **GATE:** accept or change only with action-time confirmation.
    The Free Apps Agreement is active. The Paid Apps Agreement remains unaccepted
@@ -61,34 +60,46 @@ credentials. Obtain explicit action-time confirmation before performing it.
 5. If absent, **GATE:** create the app record with platform iOS, the approved
    display name, primary language, bundle ID `com.gnd.prodesk`, and an approved
    unique SKU. Record the numeric Apple app ID for later optional `ascAppId`
-   configuration; do not guess it.
+   configuration; do not guess it. If the Bundle ID is unavailable, complete
+   the explicit App ID registration in section 3 first, then return here.
+6. App Store Connect API access currently reports that permission is required
+   and offers `Request Access`. Do not request access or create a key for the
+   manual first release without separate action-time approval.
 
 ## 3. Signing readiness
 
 1. Verify Identifiers contains `com.gnd.prodesk` under team `ZXC78SPCV4`. The
    activation-day inspection found no identifiers, certificates, or profiles.
-2. Prefer EAS-managed Apple Distribution certificate and App Store provisioning
+   The prepared registration form requires an explicit App ID, a description,
+   and bundle ID `com.gnd.prodesk`. Leave optional capabilities disabled unless
+   a fresh native entitlement audit demonstrates that one is required.
+2. **GATE:** register that App ID before creating the App Store Connect record,
+   or authorize EAS to register it during a separately confirmed build credential
+   flow. Do not create a wildcard identifier or a second bundle identifier.
+3. Prefer EAS-managed Apple Distribution certificate and App Store provisioning
    profile for the first release.
-3. **GATE:** authenticate Apple/EAS, create/reuse certificates, or repair a
+4. **GATE:** authenticate Apple/EAS, create/reuse certificates, or repair a
    profile only after explicit confirmation. Do not export credentials into the
    repository.
-4. If credentials already exist, confirm their team, bundle ID, expiry, and
+5. If credentials already exist, confirm their team, bundle ID, expiry, and
    revocation state before selecting them. Never revoke a shared certificate as
    a troubleshooting shortcut.
 
 ## 4. Build and upload
 
-1. The current machine's EAS session must be authorized for `pcruz321`. The
-   read-only audit found `ishaqyusuf`, which cannot read the project.
-2. **GATE:** after confirmation, authenticate/switch EAS using the established
-   account runner, then re-run `eas project:info --json` and verify the owner and
-   project ID exactly.
-3. For separate review points:
+1. The current machine's EAS session must be authorized for `pcruz321`.
+2. Use `bun run eas:auth` to switch credentials and verify identity without
+   starting a build, update, upload, or submission. On September 12, 2026 this
+   authenticated as `pcruz321` after explicit action-time approval.
+3. Run `EXPO_NO_DOTENV=1 eas project:info` and verify
+   `@pcruz321/gnd-prodesk` / `8ea2eecb-4109-453c-827f-9b2de2e3a9aa` exactly.
+   This linkage was verified on September 12, 2026; do not relink it.
+4. For separate review points:
    - **GATE build:** `bun run eas:build:ios`
    - **GATE upload after a successful build:** `bun run eas:submit:ios`
-4. For one confirmed combined operation:
+5. For one confirmed combined operation:
    - **GATE build + upload:** `bun run eas:build-submit:ios`
-5. The submit command uploads to App Store Connect/TestFlight; it does not
+6. The submit command uploads to App Store Connect/TestFlight; it does not
    submit the app for App Store review. Capture the EAS build URL, Apple build
    number, upload outcome, and processing status in the release record.
 
@@ -136,8 +147,8 @@ Beta App Review.
 ## 8. Rollback and troubleshooting
 
 - Failed local readiness: do not build; fix the named invariant.
-- EAS unauthorized: run `eas whoami`, authenticate the authorized `pcruz321`
-  account at the credential gate, then re-check project info. Do not relink.
+- EAS unauthorized: run `bun run eas:auth` at the credential gate, then re-check
+  project info. Do not relink.
 - Bundle ID/team mismatch: stop; verify the App Store Connect record and signing
   profile. Do not create a second app record to bypass it.
 - Processing failure: retain logs/build ID, fix the reported native/config issue,

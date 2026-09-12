@@ -17,9 +17,11 @@
   in-app purchases.
 - EU Digital Services Act trader compliance is incomplete. Complete it before
   distributing the app in the EU; it is an external legal/compliance gate.
-- App Store Connect Terms of Service V100 is awaiting Account Holder acceptance.
-  The acceptance dialog was left open without checking the box or agreeing. This
-  currently blocks read-only inspection of App Store Connect API integrations.
+- App Store Connect Terms of Service V100 was accepted by the Account Holder on
+  September 12, 2026 after explicit action-time approval.
+- App Store Connect API integrations are now inspectable, but API access reports
+  that permission is required and offers `Request Access`. No permission was
+  requested and no API key was created.
 
 ## Expo and release configuration
 
@@ -45,9 +47,10 @@
   reload. No `.env` file or secret was changed.
 - Apple passwords, OTPs, and API keys are not collected or stored. The initial
   invitation provider is manual.
-- The current local EAS CLI session is `ishaqyusuf`, which cannot read the
-  authorized `pcruz321` project. Switching/authenticating the EAS session is a
-  credential action-time gate.
+- The local EAS CLI session was switched through the repository's configured
+  credentials after explicit action-time approval and verified as `pcruz321`.
+  `bun run eas:auth` now provides an authentication-only path that cannot start
+  a build, update, upload, or submission.
 
 ## Dependencies, permissions, and export compliance
 
@@ -86,15 +89,16 @@
 - EAS-managed signing is the expected first-build path. Certificates and
   provisioning profiles may be created/reused only during the confirmed build
   credential flow.
-- Before upload, verify or create the App Store Connect app record for
-  `com.gnd.prodesk`, resolve agreements/tax/banking warnings that block TestFlight,
-  and authenticate EAS as an authorized `pcruz321` user.
+- Before upload, create the App Store Connect app record for `com.gnd.prodesk`
+  and resolve any agreement/tax/banking warning that blocks TestFlight. The EAS
+  account and retained project link are already verified.
 - The production App ID, Apple Distribution certificate, and App Store
   provisioning profile do not yet exist. Prefer creating/managing them through
   the separately confirmed first EAS build credential flow rather than creating
   competing manual signing assets.
 - No Apple app record, signing credential, build, upload, submission, API key,
-  permission, or tester invitation was created or changed during this audit.
+  permission, or tester invitation was created or changed. The only authorized
+  external changes were accepting Terms V100 and switching the local EAS session.
 
 ## Local evidence
 
@@ -106,6 +110,9 @@
 - Public Expo config resolved SDK 54, production bundle ID, owner, EAS project,
   update URL, export flag, native-module resolution alignment, and empty embedded
   development password correctly.
+- `bun run eas:auth` authenticated as `pcruz321`; read-only
+  `eas project:info` returned `@pcruz321/gnd-prodesk` and project ID
+  `8ea2eecb-4109-453c-827f-9b2de2e3a9aa`. The iOS build list is empty.
 - A production-mode `expo export --platform ios` initially caught a transitive
   `node:crypto` import from the shared sales schema. The filter contract was
   separated from its server implementation, after which the complete 8,450-module

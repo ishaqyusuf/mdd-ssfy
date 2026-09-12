@@ -83,6 +83,8 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - Root commands are `bun run eas:build:ios`, `bun run eas:submit:ios`, and
   `bun run eas:build-submit:ios`. Existing Android `eas:build` routing and
   mobile Android scripts are unchanged.
+- `bun run eas:auth` switches to the configured EAS account and verifies it with
+  `eas whoami` without starting a release or update operation.
 - Submission targets Apple team `ZXC78SPCV4`. The EAS owner/project/update
   linkage remains `pcruz321` / `8ea2eecb-4109-453c-827f-9b2de2e3a9aa`.
 - `ITSAppUsesNonExemptEncryption` is `false` based on the audited absence of

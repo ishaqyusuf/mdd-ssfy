@@ -53,6 +53,7 @@
 		"dev:services:local-db": "GND_DB_MODE=local GND_START_MYSQL=1 bun run dev:services",
 		"dev:services:local-redis": "GND_REDIS_MODE=local GND_START_MYSQL=0 bun run dev:services",
 		"eas:build": "bun ./scripts/eas-account-runner.ts build",
+		"eas:auth": "bun ./scripts/eas-account-runner.ts auth",
 		"eas:build:ios": "bun ./scripts/eas-account-runner.ts build --prod --platform ios",
 		"eas:submit:ios": "bun ./scripts/eas-account-runner.ts submit --prod --platform ios",
 		"eas:build-submit:ios": "bun ./scripts/eas-account-runner.ts build-submit --prod --platform ios",

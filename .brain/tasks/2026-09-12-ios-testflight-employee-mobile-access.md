@@ -20,12 +20,11 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 
 ## Implementation Progress
 - Completion: 100% of safe local preparation
-- Current Checklist: 11/11 — Safe local work is complete; the prepared Apple
-  screen requires Account Holder agreement acceptance and EAS still requires an
-  authorized `pcruz321` session
-- Blockers: App Store Connect Terms of Service V100 awaits explicit Account
-  Holder acceptance, and external EAS credential/session confirmation is required
-  before the retained `pcruz321` project can be re-verified or any build can run
+- Current Checklist: 11/11 — Safe local work is complete; Terms V100 is accepted,
+  EAS is authenticated as `pcruz321`, and the retained project link is verified
+- Blocker: App Store Connect still has no app record for `com.gnd.prodesk`.
+  Creating it is the next explicit external-action gate; build/signing/upload and
+  tester operations remain separately gated afterward.
 
 ## Implementation Checklist
 - [x] Audit Expo/EAS, authentication, permissions, updates, signing assumptions, dependencies, and release docs
@@ -64,8 +63,12 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 - Public Expo config resolved production bundle, EAS owner/project/update link, export flag, and empty embedded development password as expected.
 - The full 134-migration chain passed in an isolated local database; the temporary database was removed. Local `db:push` reports the schema in sync.
 - Local unauthenticated browser smoke test returned 200 for `/support/mobile-app` with no console errors or failed document/assets; authenticated UI content was not exposed to the isolated headless session.
-- Read-only `eas project:info` is blocked because the current EAS session is `ishaqyusuf`, not an authorized viewer of the retained `pcruz321` project. No login or external mutation was attempted.
+- `bun run eas:auth` passed its focused tests and authenticated the configured
+  account as `pcruz321` after explicit approval. Read-only `eas project:info`
+  verified `@pcruz321/gnd-prodesk` and the retained project ID; its iOS build
+  history is empty.
 - Read-only Apple inspection verified active organization membership, Account
   Holder role, Team ID, active Free Apps Agreement, and empty app/signing-resource
-  inventories. App Store Connect Terms of Service V100 is the next prepared Apple
-  gate; its agreement checkbox and button were left untouched.
+  inventories. App Store Connect Terms of Service V100 was accepted after
+  explicit approval. The Apps page remains empty and is prepared at the app-record
+  creation gate. API integration access separately requires `Request Access`.
