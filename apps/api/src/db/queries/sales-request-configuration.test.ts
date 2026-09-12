@@ -5,6 +5,7 @@ import {
 	getSalesRequestConfigurationSnapshot,
 	getSalesRequestConfigurationSource,
 	getSalesRequestConfigurationStructuralRevision,
+	getSalesRequestGenerationAdminSettings,
 } from "./sales-request-configuration";
 
 type FixtureState = {
@@ -169,6 +170,118 @@ test("snapshot binds model candidates and validation rules to one structural rev
 			(step: { uid: string }) => step.uid === "frame",
 		).components,
 	).toEqual([["pvc", "PVC"]]);
+});
+
+test("admin projection preserves route order and reports repairable default diagnostics without prices", async () => {
+	const state = fixture(false, true);
+	state.state.meta = {
+		route: {
+			zeta: {
+				routeSequence: [{ uid: "frame" }],
+				requestGeneration: {
+					defaults: { frame: "missing-component" },
+				},
+			},
+			alpha: {
+				routeSequence: [{ uid: "frame" }],
+				requestGeneration: {
+					defaults: { frame: "pvc" },
+				},
+			},
+		},
+	};
+	const projection = await getSalesRequestGenerationAdminSettings(state.db, {
+		settingId: 3,
+	});
+
+	expect(projection.routes.map((route) => route.rootUid)).toEqual([
+		"alpha",
+		"zeta",
+	]);
+	expect(projection.routes[0]?.steps[0]).toMatchObject({
+		uid: "frame",
+		defaultComponentUid: "pvc",
+		candidates: [{ uid: "pvc", title: "PVC" }],
+		warnings: [],
+	});
+	expect(projection.routes[1]?.steps[0]).toMatchObject({
+		uid: "frame",
+		defaultComponentUid: "missing-component",
+		warnings: [expect.objectContaining({ code: "stale", repairable: true })],
+	});
+	expect(JSON.stringify(projection)).not.toMatch(/price|amount|cost/i);
+});
+
+test("admin projection distinguishes deleted, dependency-ineligible, and provably hidden defaults", async () => {
+	const deleted = fixture(false, true);
+	const deletedComponent = deleted.state.components[0];
+	if (!deletedComponent) throw new Error("Expected deleted test component");
+	deletedComponent.meta = { deletedAt: "2026-09-12T00:00:00.000Z" };
+	const deletedProjection = await getSalesRequestGenerationAdminSettings(
+		deleted.db,
+		{ settingId: 3 },
+	);
+	expect(deletedProjection.routes[0]?.steps[0]?.warnings).toEqual([
+		expect.objectContaining({ code: "deleted", repairable: true }),
+	]);
+
+	const dependency = fixture(false, true);
+	const dependencyComponent = dependency.state.components[0];
+	if (!dependencyComponent)
+		throw new Error("Expected dependency test component");
+	dependencyComponent.meta = {
+		variations: [
+			{
+				rules: [
+					{
+						stepUid: "not-configured",
+						operator: "is",
+						componentsUid: ["missing"],
+					},
+				],
+			},
+		],
+	};
+	const dependencyProjection = await getSalesRequestGenerationAdminSettings(
+		dependency.db,
+		{ settingId: 3 },
+	);
+	expect(dependencyProjection.routes[0]?.steps[0]?.warnings).toEqual([
+		expect.objectContaining({
+			code: "dependency-ineligible",
+			repairable: true,
+		}),
+	]);
+
+	const hidden = fixture(false, true);
+	const hiddenComponent = hidden.state.components[0];
+	if (!hiddenComponent) throw new Error("Expected hidden test component");
+	hiddenComponent.meta = {
+		variations: [
+			{
+				rules: [
+					{
+						stepUid: "frame",
+						operator: "is",
+						componentsUid: ["different-component"],
+					},
+				],
+			},
+		],
+	};
+	hidden.state.components.push({
+		...hiddenComponent,
+		id: 102,
+		uid: "different-component",
+		name: "Different",
+	});
+	const hiddenProjection = await getSalesRequestGenerationAdminSettings(
+		hidden.db,
+		{ settingId: 3 },
+	);
+	expect(hiddenProjection.routes[0]?.steps[0]?.warnings).toEqual([
+		expect.objectContaining({ code: "hidden", repairable: true }),
+	]);
 });
 
 test("snapshot keeps the complete active standard Moulding catalog in form order", async () => {

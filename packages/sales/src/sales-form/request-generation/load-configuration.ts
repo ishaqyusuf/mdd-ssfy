@@ -25,6 +25,7 @@ export type RequestConfigurationComponent = {
 	id: number;
 	uid: string | null;
 	name: string | null;
+	deletedAt?: Date | string | null;
 	meta: unknown;
 	redirectUid: string | null;
 	custom?: boolean | null;

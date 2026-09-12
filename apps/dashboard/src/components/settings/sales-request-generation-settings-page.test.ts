@@ -40,6 +40,11 @@ describe("Sales Request AI settings", () => {
 		expect(source).toContain(
 			"salesRequest.regenerateConfiguration.mutationOptions",
 		);
+		expect(source).toContain("salesRequest.setDefault.mutationOptions");
+		expect(source).toContain("requestGeneration.routes");
+		expect(source).toContain("No default");
+		expect(source).toContain("dependency-ineligible");
+		expect(source).toContain("queryClient.invalidateQueries");
 		expect(source).toContain("This does not call the selected AI provider");
 		expect(source).toContain("queryClient.setQueryData");
 		expect(source).toContain("Provider credential is configured on the server");

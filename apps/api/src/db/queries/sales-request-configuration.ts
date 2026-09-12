@@ -7,6 +7,7 @@ import type {
 	SalesRequestConfigurationArtifact,
 	SalesRequestConfigurationCache,
 } from "@gnd/cache/sales-request-configuration-cache";
+import { isComponentVisibleByRules } from "@gnd/sales/sales-form/domain/step-engine";
 import {
 	type RequestConfigurationComponent,
 	type RequestConfigurationRepository,
@@ -30,6 +31,7 @@ const componentSelect = {
 	id: true,
 	uid: true,
 	name: true,
+	deletedAt: true,
 	meta: true,
 	redirectUid: true,
 	custom: true,
@@ -45,7 +47,7 @@ type ComponentQuery = {
 	where: {
 		uid?: { in: string[] };
 		dykeStepId?: { in: number[] };
-		deletedAt: null;
+		deletedAt?: null;
 		step: { deletedAt: null };
 	};
 	select: typeof componentSelect & { step?: { select: typeof stepSelect } };
@@ -344,6 +346,484 @@ function normalizeRootComponent(
 		component: normalizeComponent(component),
 		step: component.step ? normalizeStep(component.step) : null,
 	};
+}
+
+export type SalesRequestGenerationAdminWarningCode =
+	| "stale"
+	| "deleted"
+	| "hidden"
+	| "dependency-ineligible";
+
+export type SalesRequestGenerationAdminWarning = {
+	code: SalesRequestGenerationAdminWarningCode;
+	message: string;
+	repairable: true;
+};
+
+export type SalesRequestGenerationAdminStep = {
+	uid: string;
+	title: string;
+	candidates: Array<{ uid: string; title: string }>;
+	defaultComponentUid: string | null;
+	warnings: SalesRequestGenerationAdminWarning[];
+};
+
+export type SalesRequestGenerationAdminRoute = {
+	rootUid: string;
+	steps: SalesRequestGenerationAdminStep[];
+	warnings: SalesRequestGenerationAdminWarning[];
+};
+
+export type SalesRequestGenerationAdminSettings = {
+	configurationRevision: string | null;
+	routes: SalesRequestGenerationAdminRoute[];
+};
+
+function warning(
+	code: SalesRequestGenerationAdminWarningCode,
+	message: string,
+): SalesRequestGenerationAdminWarning {
+	return { code, message, repairable: true };
+}
+
+function isComponentMetadataDeleted(component: RequestConfigurationComponent) {
+	return Boolean(readRecord(component.meta)?.deletedAt);
+}
+
+function adminComponentTitle(component: RequestConfigurationComponent) {
+	return componentTitle(component)?.trim() ?? "";
+}
+
+function compareAdminComponents(
+	left: RequestConfigurationComponent,
+	right: RequestConfigurationComponent,
+) {
+	const leftIndex =
+		typeof left.sortIndex === "number"
+			? left.sortIndex
+			: Number.MAX_SAFE_INTEGER;
+	const rightIndex =
+		typeof right.sortIndex === "number"
+			? right.sortIndex
+			: Number.MAX_SAFE_INTEGER;
+	if (leftIndex !== rightIndex) return leftIndex - rightIndex;
+	const leftTitle = adminComponentTitle(left);
+	const rightTitle = adminComponentTitle(right);
+	const byTitle = leftTitle.localeCompare(rightTitle);
+	if (byTitle) return byTitle;
+	return String(left.uid ?? "").localeCompare(String(right.uid ?? ""));
+}
+
+function readAdminStoredDefaults(meta: unknown, rootUid: string) {
+	const definitions = routeDefinitions(meta);
+	const definition = readRecord(definitions[rootUid]);
+	const requestGeneration = readRecord(definition?.requestGeneration);
+	const stored = requestGeneration?.defaults;
+	if (stored == null)
+		return { values: new Map<string, unknown>(), warnings: [] };
+	if (!isRecord(stored)) {
+		return {
+			values: new Map<string, unknown>(),
+			warnings: [
+				warning(
+					"stale",
+					`Request-generation defaults for ${rootUid} need repair.`,
+				),
+			],
+		};
+	}
+	return { values: new Map(Object.entries(stored)), warnings: [] };
+}
+
+function readVisibilityDependencies(meta: unknown) {
+	const componentMeta = readRecord(meta);
+	const variations = Array.isArray(componentMeta?.variations)
+		? componentMeta.variations
+		: [];
+	const dependencies = new Map<string, Set<string>>();
+	for (const variation of variations) {
+		const rules = readRecord(variation)?.rules;
+		if (!Array.isArray(rules)) continue;
+		for (const rule of rules) {
+			const record = readRecord(rule);
+			const stepUid =
+				typeof record?.stepUid === "string" ? record.stepUid.trim() : "";
+			if (!stepUid) continue;
+			const componentUids = Array.isArray(record?.componentsUid)
+				? record.componentsUid.filter(
+						(value): value is string =>
+							typeof value === "string" && value.trim().length > 0,
+					)
+				: typeof record?.componentsUid === "string" &&
+						record.componentsUid.trim()
+					? [record.componentsUid.trim()]
+					: [];
+			const existing = dependencies.get(stepUid) ?? new Set<string>();
+			for (const uid of componentUids) existing.add(uid.trim());
+			dependencies.set(stepUid, existing);
+		}
+	}
+	return dependencies;
+}
+
+function selectAdminCatalogComponents(
+	components: readonly RequestConfigurationComponent[],
+	defaultComponentUids: ReadonlySet<string>,
+	completeStepIds: ReadonlySet<number>,
+	policy: ReturnType<typeof salesRequestCatalogPolicySchema.parse>,
+) {
+	const eligibleSource = components.filter(
+		(component) =>
+			component.deletedAt == null &&
+			component.custom !== true &&
+			typeof component.uid === "string" &&
+			component.uid.trim().length > 0 &&
+			!isComponentMetadataDeleted(component) &&
+			adminComponentTitle(component).length > 0,
+	);
+	try {
+		return selectSalesRequestCatalogCandidates({
+			components: eligibleSource,
+			defaultComponentUids,
+			completeStepIds,
+			policy,
+		}).components;
+	} catch {
+		// A stale or excluded default must not make the Super Admin repair screen
+		// unloadable. Rebuild the candidate list without that default and surface the
+		// problem on the affected step below.
+		try {
+			return selectSalesRequestCatalogCandidates({
+				components: eligibleSource,
+				defaultComponentUids: new Set(),
+				completeStepIds,
+				policy,
+			}).components;
+		} catch {
+			return [];
+		}
+	}
+}
+
+function readAdminStep(
+	step: RequestConfigurationStep | undefined,
+	stepUid: string,
+	components: readonly RequestConfigurationComponent[],
+	eligibleComponents: readonly RequestConfigurationComponent[],
+	rawDefault: unknown,
+	allStepUids: ReadonlySet<string>,
+	componentUidsByStepUid: ReadonlyMap<string, ReadonlySet<string>>,
+	selectedByStepUid: Readonly<Record<string, string>>,
+): SalesRequestGenerationAdminStep {
+	const defaultComponentUid =
+		typeof rawDefault === "string" && rawDefault.trim()
+			? rawDefault.trim()
+			: null;
+	const warnings: SalesRequestGenerationAdminWarning[] = [];
+	if (rawDefault !== undefined && rawDefault !== null && !defaultComponentUid) {
+		warnings.push(
+			warning("stale", `Default for ${stepUid} is not a valid component UID.`),
+		);
+	}
+
+	const activeComponents = components.filter(
+		(component) =>
+			component.deletedAt == null && component.uid === defaultComponentUid,
+	);
+	const matchingComponent = activeComponents.find(
+		(component) => !isComponentMetadataDeleted(component),
+	);
+	if (defaultComponentUid && !matchingComponent) {
+		const deleted = components.some(
+			(component) =>
+				component.uid === defaultComponentUid &&
+				(component.deletedAt != null || isComponentMetadataDeleted(component)),
+		);
+		warnings.push(
+			warning(
+				deleted ? "deleted" : "stale",
+				deleted
+					? `Default ${defaultComponentUid} was deleted and needs repair.`
+					: `Default ${defaultComponentUid} is no longer active and needs repair.`,
+			),
+		);
+	}
+
+	const eligibleUids = new Set(
+		eligibleComponents
+			.filter((component) => component.uid)
+			.map((component) => component.uid as string),
+	);
+	if (matchingComponent && !eligibleUids.has(defaultComponentUid as string)) {
+		warnings.push(
+			warning(
+				"dependency-ineligible",
+				`Default ${defaultComponentUid} is not eligible for request generation.`,
+			),
+		);
+	}
+
+	if (matchingComponent && eligibleUids.has(defaultComponentUid as string)) {
+		const dependencies = readVisibilityDependencies(matchingComponent.meta);
+		let dependencyIssue = false;
+		for (const [dependencyStepUid, dependencyComponentUids] of dependencies) {
+			if (!allStepUids.has(dependencyStepUid)) {
+				dependencyIssue = true;
+				break;
+			}
+			const available = componentUidsByStepUid.get(dependencyStepUid);
+			if (
+				!available ||
+				[...dependencyComponentUids].some((uid) => !available.has(uid))
+			) {
+				dependencyIssue = true;
+				break;
+			}
+		}
+		if (dependencyIssue) {
+			warnings.push(
+				warning(
+					"dependency-ineligible",
+					`Default ${defaultComponentUid} has an unavailable visibility dependency.`,
+				),
+			);
+		} else if (
+			[...dependencies.keys()].every(
+				(dependencyStepUid) => selectedByStepUid[dependencyStepUid],
+			) &&
+			!isComponentVisibleByRules(
+				{
+					variations: Array.isArray(
+						readRecord(matchingComponent.meta)?.variations,
+					)
+						? readRecord(matchingComponent.meta)?.variations
+						: [],
+				},
+				selectedByStepUid as Record<string, string>,
+			)
+		) {
+			warnings.push(
+				warning(
+					"hidden",
+					`Default ${defaultComponentUid} is hidden by the configured visibility rules.`,
+				),
+			);
+		}
+	}
+
+	const candidateByUid = new Map<string, RequestConfigurationComponent>();
+	for (const component of eligibleComponents) {
+		if (component.uid && !candidateByUid.has(component.uid))
+			candidateByUid.set(component.uid, component);
+	}
+	const candidates = [...candidateByUid.values()]
+		.sort(compareAdminComponents)
+		.map((component) => ({
+			uid: component.uid as string,
+			title: adminComponentTitle(component),
+		}));
+	return {
+		uid: stepUid,
+		title: step?.title?.trim() || "Unavailable step",
+		candidates,
+		defaultComponentUid,
+		warnings,
+	};
+}
+
+/** Read the repair surface for Super Admin settings without exposing prices. */
+export async function getSalesRequestGenerationAdminSettings(
+	db: ConfigurationDatabase,
+	input: { settingId: number },
+): Promise<SalesRequestGenerationAdminSettings> {
+	const setting = await db.settings.findFirst({
+		where: { id: input.settingId, type: "sales-settings", deletedAt: null },
+		select: { id: true, meta: true },
+	});
+	if (!setting) throw new Error(`Sales settings not found: ${input.settingId}`);
+
+	const routes = getConfiguredRequestRoutes(setting.meta);
+	const orderedStepUids = [
+		...new Set(routes.flatMap((route) => route.stepUids)),
+	];
+	const stepCandidates = orderedStepUids.length
+		? await db.dykeSteps.findMany({
+				where: { uid: { in: orderedStepUids }, deletedAt: null },
+				select: stepSelect,
+			})
+		: [];
+	const stepByUid = new Map<string, RequestConfigurationStep>();
+	for (const uid of orderedStepUids) {
+		const matches = stepCandidates
+			.filter((step) => step.uid === uid)
+			.sort((left, right) => right.id - left.id);
+		const selected = matches[0];
+		if (selected) stepByUid.set(uid, selected);
+	}
+	const stepIds = [...new Set([...stepByUid.values()].map((step) => step.id))];
+	const components = stepIds.length
+		? await db.dykeStepProducts.findMany({
+				where: { dykeStepId: { in: stepIds }, step: { deletedAt: null } },
+				select: componentSelect,
+			})
+		: [];
+	const rootUids = new Set(routes.map((route) => route.itemTypeUid));
+	const rootComponents = rootUids.size
+		? await db.dykeStepProducts.findMany({
+				where: {
+					uid: { in: [...rootUids] },
+					deletedAt: null,
+					step: { deletedAt: null },
+				},
+				select: { ...componentSelect, step: { select: stepSelect } },
+			})
+		: [];
+	const rootByUid = new Map(
+		rootComponents
+			.filter(
+				(component) =>
+					typeof component.uid === "string" && rootUids.has(component.uid),
+			)
+			.map((component) => [component.uid as string, component]),
+	);
+
+	const requestGeneration =
+		readRecord(readRecord(setting.meta)?.requestGeneration) ?? {};
+	const parsedPolicy = salesRequestCatalogPolicySchema.safeParse(
+		requestGeneration.catalogPolicy,
+	);
+	const policy = parsedPolicy.success
+		? parsedPolicy.data
+		: salesRequestCatalogPolicySchema.parse({});
+	const storedDefaults = new Map(
+		routes.map((route) => [
+			route.itemTypeUid,
+			readAdminStoredDefaults(setting.meta, route.itemTypeUid),
+		]),
+	);
+	const defaultComponentUids = new Set(
+		[...storedDefaults.values()].flatMap(({ values }) =>
+			[...values.values()].flatMap((value) =>
+				typeof value === "string" && value.trim() ? [value.trim()] : [],
+			),
+		),
+	);
+	const completeStepIds = new Set(
+		[...stepByUid.values()]
+			.filter((step) =>
+				/^(?:moulding|molding)s?$/i.test(step.title?.trim() ?? ""),
+			)
+			.map((step) => step.id),
+	);
+	const eligibleComponents = selectAdminCatalogComponents(
+		components,
+		defaultComponentUids,
+		completeStepIds,
+		policy,
+	);
+	const eligibleByStepId = new Map<number, RequestConfigurationComponent[]>();
+	for (const component of eligibleComponents) {
+		const family = eligibleByStepId.get(component.dykeStepId) ?? [];
+		family.push(component);
+		eligibleByStepId.set(component.dykeStepId, family);
+	}
+	const allStepUids = new Set(orderedStepUids);
+	const componentUidsByStepUid = new Map<string, Set<string>>();
+	for (const step of stepByUid.values()) {
+		componentUidsByStepUid.set(
+			step.uid as string,
+			new Set(
+				components
+					.filter(
+						(component) =>
+							component.dykeStepId === step.id &&
+							component.deletedAt == null &&
+							component.custom !== true &&
+							!isComponentMetadataDeleted(component) &&
+							typeof component.uid === "string",
+					)
+					.map((component) => component.uid as string),
+			),
+		);
+	}
+	for (const component of rootComponents) {
+		const stepUid = component.step?.uid;
+		if (!stepUid || typeof component.uid !== "string") continue;
+		allStepUids.add(stepUid);
+		if (
+			component.deletedAt != null ||
+			component.custom === true ||
+			isComponentMetadataDeleted(component)
+		)
+			continue;
+		const uids = componentUidsByStepUid.get(stepUid) ?? new Set<string>();
+		uids.add(component.uid);
+		componentUidsByStepUid.set(stepUid, uids);
+	}
+
+	const resultRoutes = routes.map((route) => {
+		const stored = storedDefaults.get(route.itemTypeUid);
+		const routeWarnings = [...(stored?.warnings ?? [])];
+		const routeDefaultValues = stored?.values ?? new Map<string, unknown>();
+		for (const stepUid of routeDefaultValues.keys()) {
+			if (!route.stepUids.includes(stepUid)) {
+				routeWarnings.push(
+					warning(
+						"stale",
+						`Default for ${stepUid} is not configured on route ${route.itemTypeUid}.`,
+					),
+				);
+			}
+		}
+		const selectedByStepUid: Record<string, string> = {};
+		const rootComponent = rootByUid.get(route.itemTypeUid);
+		if (rootComponent?.step?.uid && rootComponent.uid) {
+			selectedByStepUid[rootComponent.step.uid] = rootComponent.uid;
+		}
+		for (const stepUid of route.stepUids) {
+			const value = routeDefaultValues.get(stepUid);
+			const step = stepByUid.get(stepUid);
+			const matching = components.find(
+				(component) =>
+					component.dykeStepId === step?.id &&
+					component.uid === value &&
+					component.deletedAt == null &&
+					!isComponentMetadataDeleted(component),
+			);
+			if (typeof value === "string" && matching) {
+				selectedByStepUid[stepUid] = value.trim();
+			}
+		}
+		return {
+			rootUid: route.itemTypeUid,
+			steps: route.stepUids.map((stepUid) => {
+				const step = stepByUid.get(stepUid);
+				const stepComponents = components.filter(
+					(component) => component.dykeStepId === step?.id,
+				);
+				return readAdminStep(
+					step,
+					stepUid,
+					stepComponents,
+					eligibleByStepId.get(step?.id ?? -1) ?? [],
+					routeDefaultValues.get(stepUid),
+					allStepUids,
+					componentUidsByStepUid,
+					selectedByStepUid,
+				);
+			}),
+			warnings: routeWarnings,
+		};
+	});
+
+	let configurationRevision: string | null = null;
+	try {
+		configurationRevision =
+			await getSalesRequestConfigurationStructuralRevision(db, input);
+	} catch {
+		// A malformed structural snapshot should not hide repair controls.
+	}
+	return { configurationRevision, routes: resultRoutes };
 }
 
 /**

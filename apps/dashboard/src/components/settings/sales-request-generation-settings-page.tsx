@@ -27,6 +27,14 @@ type ConfiguredProviderOption = SalesRequestAIProviderOption & {
 	configured: boolean;
 };
 
+const NO_DEFAULT_VALUE = "__no_default__";
+const WARNING_LABELS = {
+	stale: "Stale default",
+	deleted: "Deleted default",
+	hidden: "Hidden default",
+	"dependency-ineligible": "Dependency-ineligible default",
+} as const;
+
 function findProvider(
 	providers: readonly ConfiguredProviderOption[],
 	provider: string,
@@ -90,6 +98,28 @@ export function SalesRequestGenerationSettingsPage() {
 			},
 		}),
 	);
+	const setDefault = useMutation(
+		trpc.salesRequest.setDefault.mutationOptions({
+			onSuccess() {
+				void queryClient.invalidateQueries({
+					queryKey: trpc.salesRequest.getAISettings.queryKey(),
+				});
+				toast({
+					variant: "success",
+					title: "Request-generation default saved",
+					description:
+						"The settings surface was refreshed with the saved route default.",
+				});
+			},
+			onError(error) {
+				toast({
+					variant: "destructive",
+					title: "Unable to save request-generation default",
+					description: error.message,
+				});
+			},
+		}),
+	);
 	const regenerateConfiguration = useMutation(
 		trpc.salesRequest.regenerateConfiguration.mutationOptions({
 			onSuccess() {
@@ -127,7 +157,7 @@ export function SalesRequestGenerationSettingsPage() {
 	}
 
 	if (settingsQuery.isPending || !persisted || !settings) {
-		return <SalesSettingsRouteSkeleton cardCount={1} />;
+		return <SalesSettingsRouteSkeleton cardCount={3} />;
 	}
 
 	const providers = settingsQuery.data.providers;
@@ -225,6 +255,114 @@ export function SalesRequestGenerationSettingsPage() {
 							The model list is restricted to approved server-supported models.
 						</p>
 					</div>
+				</div>
+			</SettingsCard>
+
+			<SettingsCard
+				title="Request-generation defaults"
+				description="Choose a default component for each configured route step. Defaults are saved per route and never include prices or provider credentials."
+			>
+				<div className="flex flex-col gap-6">
+					<div className="rounded-md border bg-muted/20 px-4 py-3 text-sm">
+						<p>
+							Generation feature flag:{" "}
+							{settingsQuery.data.requestGeneration.featureEnabled
+								? "enabled"
+								: "disabled"}
+						</p>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Changing defaults does not call an AI provider.
+						</p>
+					</div>
+					{settingsQuery.data.requestGeneration.routes.length ? (
+						settingsQuery.data.requestGeneration.routes.map((route) => (
+							<div key={route.rootUid} className="flex flex-col gap-4">
+								<div>
+									<p className="text-sm font-medium">Route: {route.rootUid}</p>
+									{route.warnings.map((routeWarning) => (
+										<p
+											key={`${routeWarning.code}-${routeWarning.message}`}
+											className="mt-1 text-xs text-destructive"
+										>
+											{WARNING_LABELS[routeWarning.code]}:{" "}
+											{routeWarning.message}
+										</p>
+									))}
+								</div>
+								<div className="grid gap-5 sm:grid-cols-2">
+									{route.steps.map((step) => {
+										const hasStaleDefault =
+											Boolean(step.defaultComponentUid) &&
+											!step.candidates.some(
+												(candidate) =>
+													candidate.uid === step.defaultComponentUid,
+											);
+										return (
+											<div key={step.uid} className="space-y-2">
+												<Label
+													htmlFor={`sales-request-default-${route.rootUid}-${step.uid}`}
+												>
+													{step.title}
+												</Label>
+												<Select
+													value={step.defaultComponentUid ?? NO_DEFAULT_VALUE}
+													disabled={setDefault.isPending}
+													onValueChange={(value) =>
+														setDefault.mutate({
+															rootUid: route.rootUid,
+															stepUid: step.uid,
+															componentUid:
+																value === NO_DEFAULT_VALUE ? null : value,
+														})
+													}
+												>
+													<SelectTrigger
+														id={`sales-request-default-${route.rootUid}-${step.uid}`}
+													>
+														<SelectValue placeholder="Choose a default" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value={NO_DEFAULT_VALUE}>
+															No default
+														</SelectItem>
+														{hasStaleDefault ? (
+															<SelectItem
+																value={step.defaultComponentUid as string}
+																disabled
+															>
+																{step.defaultComponentUid} (needs repair)
+															</SelectItem>
+														) : null}
+														{step.candidates.map((candidate) => (
+															<SelectItem
+																key={candidate.uid}
+																value={candidate.uid}
+															>
+																{candidate.title}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												{step.warnings.map((stepWarning) => (
+													<p
+														key={`${stepWarning.code}-${stepWarning.message}`}
+														className="text-xs text-destructive"
+													>
+														{WARNING_LABELS[stepWarning.code]}:{" "}
+														{stepWarning.message}
+													</p>
+												))}
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						))
+					) : (
+						<p className="text-sm text-muted-foreground">
+							No configured request-generation routes are available.
+						</p>
+					)}
 				</div>
 			</SettingsCard>
 

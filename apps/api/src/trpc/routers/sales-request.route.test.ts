@@ -49,6 +49,55 @@ function requestContext() {
 	const db = {
 		users: { findFirst: async () => superAdmin() },
 		settings,
+		dykeSteps: {
+			findMany: async ({ where }: { where: { uid: { in: string[] } } }) =>
+				where.uid.in.map((uid, index) => ({
+					id: 11 + index,
+					uid,
+					title: "Frame",
+					meta: {},
+				})),
+		},
+		dykeStepProducts: {
+			findMany: async ({ where }: { where: { uid?: { in: string[] } } }) =>
+				where.uid
+					? where.uid.in.map((uid, index) => ({
+							id: 100 + index,
+							uid,
+							name: uid === "root" ? "Root" : "Component",
+							meta: {},
+							redirectUid: null,
+							custom: false,
+							sortIndex: null,
+							createdAt: new Date("2026-01-01T00:00:00.000Z"),
+							dykeStepId: uid === "root" ? 1 : 11,
+							metric: { selectionCount: 1 },
+							product: { title: null },
+							door: { title: null },
+							step: {
+								id: 1,
+								uid: "root-step",
+								title: "Item Type",
+								meta: {},
+							},
+						}))
+					: [
+							{
+								id: 101,
+								uid: "component",
+								name: "Component",
+								meta: {},
+								redirectUid: null,
+								custom: false,
+								sortIndex: null,
+								createdAt: new Date("2026-01-01T00:00:00.000Z"),
+								dykeStepId: 11,
+								metric: { selectionCount: 1 },
+								product: { title: null },
+								door: { title: null },
+							},
+						],
+		},
 		$transaction: async (callback: (tx: unknown) => Promise<unknown>) =>
 			callback(transaction),
 	};
@@ -85,6 +134,36 @@ test("AI settings query is Super Admin-only and defaults an unconfigured install
 		},
 	});
 	expect(fixture.getActiveSettingsReads()).toBe(1);
+});
+
+test("AI settings query includes price-free route defaults and revision diagnostics", async () => {
+	const fixture = requestContext();
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+
+	const result = await caller.getAISettings();
+
+	expect(result.requestGeneration).toMatchObject({
+		featureEnabled: false,
+		routes: [
+			{
+				rootUid: "root",
+				steps: [
+					{
+						uid: "step",
+						defaultComponentUid: null,
+						candidates: [{ uid: "component", title: "Component" }],
+						warnings: [],
+					},
+				],
+			},
+		],
+	});
+	expect(result.requestGeneration.configurationRevision).toMatch(
+		/^[a-f0-9]{64}$/,
+	);
+	expect(JSON.stringify(result.requestGeneration)).not.toMatch(
+		/price|amount|cost/i,
+	);
 });
 
 test("AI settings mutation derives the lowest active row and preserves metadata", async () => {

@@ -1,4 +1,8 @@
 import {
+	type ConfigurationDatabase,
+	getSalesRequestGenerationAdminSettings,
+} from "@api/db/queries/sales-request-configuration";
+import {
 	generateSalesRequestPreviewSchema,
 	setSalesRequestAISettingsSchema,
 	setSalesRequestCatalogPolicySchema,
@@ -44,6 +48,53 @@ function getProviderOptions() {
 	}));
 }
 
+type SalesRequestSettingsDb = Parameters<typeof getSalesRequestAISettings>[0] &
+	ConfigurationDatabase;
+
+async function readAISettingsSurface(
+	db: SalesRequestSettingsDb,
+	settingId: number,
+) {
+	const [result, catalog, requestGeneration] = await Promise.all([
+		getSalesRequestAISettings(db, settingId),
+		getSalesRequestCatalogSettings(db, settingId),
+		getSalesRequestGenerationAdminSettings(db, { settingId }),
+	]);
+	return {
+		settingId: result.settingId,
+		settings: result.selection,
+		source: result.source,
+		providers: getProviderOptions(),
+		catalog: { policy: catalog.policy, publication: catalog.publication },
+		requestGeneration: {
+			...requestGeneration,
+			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
+		},
+	};
+}
+
+async function readAISettingsSurfaceWithSelection(
+	db: SalesRequestSettingsDb,
+	result: Awaited<ReturnType<typeof updateSalesRequestAISettings>>,
+) {
+	const [catalog, requestGeneration] = await Promise.all([
+		getSalesRequestCatalogSettings(db, result.settingId),
+		getSalesRequestGenerationAdminSettings(db, { settingId: result.settingId }),
+	]);
+	return {
+		changed: result.changed,
+		settingId: result.settingId,
+		settings: result.selection,
+		source: result.source,
+		providers: getProviderOptions(),
+		catalog: { policy: catalog.policy, publication: catalog.publication },
+		requestGeneration: {
+			...requestGeneration,
+			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
+		},
+	};
+}
+
 export const salesRequestRouter = createTRPCRouter({
 	getAISettings: protectedProcedure.query(async ({ ctx }) => {
 		await requireSalesRequestSettingsAdmin(ctx);
@@ -52,15 +103,7 @@ export const salesRequestRouter = createTRPCRouter({
 			select: { id: true },
 		});
 		const settingId = selectSalesRequestSettingId(rows.map((row) => row.id));
-		const result = await getSalesRequestAISettings(ctx.db, settingId);
-		const catalog = await getSalesRequestCatalogSettings(ctx.db, settingId);
-		return {
-			settingId: result.settingId,
-			settings: result.selection,
-			source: result.source,
-			providers: getProviderOptions(),
-			catalog: { policy: catalog.policy, publication: catalog.publication },
-		};
+		return readAISettingsSurface(ctx.db, settingId);
 	}),
 	updateAISettings: protectedProcedure
 		.input(setSalesRequestAISettingsSchema)
@@ -85,15 +128,7 @@ export const salesRequestRouter = createTRPCRouter({
 				settingId,
 				...input,
 			});
-			const catalog = await getSalesRequestCatalogSettings(ctx.db, settingId);
-			return {
-				changed: result.changed,
-				settingId: result.settingId,
-				settings: result.selection,
-				source: result.source,
-				providers: getProviderOptions(),
-				catalog: { policy: catalog.policy, publication: catalog.publication },
-			};
+			return readAISettingsSurfaceWithSelection(ctx.db, result);
 		}),
 	updateCatalogPolicy: protectedProcedure
 		.input(setSalesRequestCatalogPolicySchema)
