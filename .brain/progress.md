@@ -1,3 +1,13 @@
+### 2026-09-12 — Production Apple App ID registered
+
+After explicit action-time approval, registered the explicit Apple App ID
+`GND Millwork` / `com.gnd.prodesk` under team `ZXC78SPCV4`. The repository's
+native entitlement audit found no required optional capability, so none was
+enabled. Apple lists the identifier and App Store Connect now offers it in the
+prepared New App form. No app record, certificate, profile, build, upload,
+permission/API-key change, or tester invitation was created. App creation is
+paused for confirmation of the public Company Name and remaining record fields.
+
 ### 2026-09-12 — Apple terms and EAS identity gates cleared
 
 After explicit action-time approval, the Account Holder accepted App Store
