@@ -33,6 +33,9 @@ function configure() {
 
 test("mobile proxy fixes the project and forwards native platform metadata", async () => {
 	configure();
+	process.env.LOGLY_MOBILE_PROJECT = " gnd-mobile\n";
+	process.env.LOGLY_MOBILE_PROJECT_KEY = " mobile-key\n";
+	process.env.LOGLY_COLLECTOR_URL = " https://collector.logly.test\n";
 	process.env.VERCEL = "1";
 	const request = new Request("https://api.gnd.test/api/analytics/mobile", {
 		method: "POST",

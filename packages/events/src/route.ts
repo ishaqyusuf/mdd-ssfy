@@ -5,11 +5,11 @@ import { readBatchBody } from "./read-batch-body";
 
 export function createEventsRoute(surface: "web" | "mobile" = "web") {
 	return async function POST(request: Request) {
-		const collector = process.env.LOGLY_COLLECTOR_URL;
+		const collector = process.env.LOGLY_COLLECTOR_URL?.trim();
 		const projectKey =
 			surface === "mobile"
-				? process.env.LOGLY_MOBILE_PROJECT_KEY
-				: process.env.LOGLY_PROJECT_KEY;
+				? process.env.LOGLY_MOBILE_PROJECT_KEY?.trim()
+				: process.env.LOGLY_PROJECT_KEY?.trim();
 		if (!collector || !projectKey) {
 			return Response.json(
 				{ error: "Analytics is not configured" },
@@ -49,8 +49,8 @@ export function createEventsRoute(surface: "web" | "mobile" = "web") {
 		}
 		const project =
 			surface === "mobile"
-				? (process.env.LOGLY_MOBILE_PROJECT ?? "gnd-mobile")
-				: (process.env.NEXT_PUBLIC_LOGLY_PROJECT ?? "gnd-web");
+				? (process.env.LOGLY_MOBILE_PROJECT?.trim() ?? "gnd-mobile")
+				: (process.env.NEXT_PUBLIC_LOGLY_PROJECT?.trim() ?? "gnd-web");
 		const batch = safeBatch(parsed.data, project, surface);
 		if (!batch.events.length) {
 			return Response.json({ accepted: 0 }, { status: 202 });

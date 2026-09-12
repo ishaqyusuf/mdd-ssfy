@@ -217,9 +217,15 @@ type VercelEventParsedBody = {
 function formatVercelEvent(event: VercelEvent): Request {
   const payload = JSON.parse(event.body) as VercelEventParsedBody;
   const host = payload.headers["x-forwarded-host"];
+  const body =
+    payload.body === undefined
+      ? undefined
+      : payload.encoding === "base64"
+        ? Buffer.from(payload.body, "base64")
+        : payload.body;
   return new Request(`https://${host}${payload.path}`, {
     method: payload.method,
-    body: payload.body,
+    body: payload.method === "GET" || payload.method === "HEAD" ? undefined : body,
     headers: payload.headers,
   });
 }
