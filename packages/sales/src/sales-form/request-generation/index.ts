@@ -5,3 +5,4 @@ export * from "./default-policy";
 export * from "./prompt";
 export * from "./load-configuration";
 export * from "./project-configuration";
+export * from "./low-touch-draft-policy";
