@@ -3,6 +3,7 @@ import {
 	type SalesFormEditorState,
 	type SalesFormSaveStatus,
 	type SalesFormState,
+	type SalesFormStateRecord,
 	type SetSalesFormDeliveryOptionOptions,
 	addSalesFormLineItem,
 	clearSalesFormDirty,
@@ -30,6 +31,19 @@ import {
 	upsertSalesFormExtraCost,
 } from "@gnd/sales/sales-form";
 import { create } from "zustand";
+import {
+	type ApplyRequestGenerationProposalResult,
+	type PreparedRequestGenerationProposal,
+	type RequestGenerationPhase,
+	type RequestGenerationState,
+	type UndoRequestGenerationProposalResult,
+	createInitialRequestGenerationState,
+	createRequestGenerationUndoTransaction,
+	getRequestGenerationEditorPatch,
+	getRequestGenerationRecordRevision,
+	getRequestGenerationUndoAvailability,
+	removeRequestGenerationProposalSelectively,
+} from "./request-generation-transaction";
 import type {
 	NewSalesFormExtraCost,
 	NewSalesFormLineItem,
@@ -42,6 +56,7 @@ export type SaveStatus = SalesFormSaveStatus;
 export type NewSalesFormEditorState = SalesFormEditorState;
 export type NewSalesFormState = Omit<SalesFormState, "record"> & {
 	record: NewSalesFormRecord | null;
+	requestGeneration: RequestGenerationState;
 };
 
 type NewSalesFormActions = {
@@ -84,11 +99,21 @@ type NewSalesFormActions = {
 	markStale: (message?: string) => void;
 	clearDirty: () => void;
 	setEditor: (patch: Partial<NewSalesFormEditorState>) => void;
+	setRequestGenerationPhase: (phase: RequestGenerationPhase) => void;
+	applyRequestGenerationProposal: (
+		proposal: PreparedRequestGenerationProposal,
+	) => ApplyRequestGenerationProposalResult;
+	undoRequestGenerationProposal: (
+		proposalId: string,
+	) => UndoRequestGenerationProposalResult;
 };
 
 export type NewSalesFormStore = NewSalesFormState & NewSalesFormActions;
 
-const initialState = createInitialSalesFormState() as NewSalesFormState;
+const initialState = {
+	...createInitialSalesFormState(),
+	requestGeneration: createInitialRequestGenerationState(),
+} as NewSalesFormState;
 
 function applySalesFormState(
 	reducer: (state: SalesFormState) => SalesFormState,
@@ -99,17 +124,28 @@ function applySalesFormState(
 
 export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	...initialState,
-	reset: () => set(createInitialSalesFormState() as NewSalesFormState),
+	reset: () =>
+		set({
+			...createInitialSalesFormState(),
+			requestGeneration: createInitialRequestGenerationState(),
+		} as NewSalesFormState),
 	hydrate: (record) =>
-		set(
-			applySalesFormState((state) =>
-				hydrateSalesFormState(state, record as any),
-			),
-		),
+		set((state) => ({
+			...applySalesFormState((current) =>
+				hydrateSalesFormState(
+					current,
+					record as unknown as SalesFormStateRecord,
+				),
+			)(state),
+			requestGeneration: createInitialRequestGenerationState(),
+		})),
 	restoreLocalDraft: (record) =>
 		set(
 			applySalesFormState((state) =>
-				restoreSalesFormLocalDraft(state, record as any),
+				restoreSalesFormLocalDraft(
+					state,
+					record as unknown as SalesFormStateRecord,
+				),
 			),
 		),
 	setMeta: (patch) =>
@@ -201,4 +237,119 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 		set(applySalesFormState((state) => clearSalesFormDirty(state))),
 	setEditor: (patch) =>
 		set(applySalesFormState((state) => setSalesFormEditorState(state, patch))),
+	setRequestGenerationPhase: (phase) =>
+		set((state) => ({
+			...state,
+			requestGeneration: {
+				...state.requestGeneration,
+				phase,
+				autosaveSuspended: phase !== "idle",
+			},
+		})),
+	applyRequestGenerationProposal: (proposal) => {
+		let result: ApplyRequestGenerationProposalResult = {
+			status: "unavailable",
+		};
+		set((state) => {
+			if (!state.record) return state;
+			if (
+				state.requestGeneration.appliedProposalIds.includes(proposal.proposalId)
+			) {
+				result = { status: "already-applied" };
+				return state;
+			}
+			if (
+				getRequestGenerationRecordRevision(state.record) !==
+				proposal.baseRevision
+			) {
+				result = { status: "stale" };
+				return state;
+			}
+			const undo = createRequestGenerationUndoTransaction({
+				proposal,
+				beforeRecord: state.record,
+				beforeStore: {
+					dirty: state.dirty,
+					saveStatus: state.saveStatus,
+					lastSaveError: state.lastSaveError,
+					lastSavedAt: state.lastSavedAt,
+					editor: state.editor,
+				},
+			});
+			result = { status: "applied" };
+			return {
+				...state,
+				record: structuredClone(proposal.record),
+				dirty: true,
+				saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
+				editor: {
+					...state.editor,
+					...getRequestGenerationEditorPatch(proposal.record),
+				},
+				requestGeneration: {
+					phase: "idle",
+					autosaveSuspended: false,
+					appliedProposalIds: [
+						...state.requestGeneration.appliedProposalIds,
+						proposal.proposalId,
+					],
+					undo,
+				},
+			};
+		});
+		return result;
+	},
+	undoRequestGenerationProposal: (proposalId) => {
+		let result: UndoRequestGenerationProposalResult = {
+			status: "unavailable",
+		};
+		set((state) => {
+			const undo = state.requestGeneration.undo;
+			if (!state.record || !undo || undo.proposalId !== proposalId)
+				return state;
+			const appliedProposalIds =
+				state.requestGeneration.appliedProposalIds.filter(
+					(candidate) => candidate !== proposalId,
+				);
+			if (getRequestGenerationUndoAvailability(state.record, undo) === "full") {
+				result = { status: "restored" };
+				return {
+					...state,
+					...undo.beforeStore,
+					record: structuredClone(undo.beforeRecord),
+					requestGeneration: {
+						phase: "idle",
+						autosaveSuspended: false,
+						appliedProposalIds,
+						undo: null,
+					},
+				};
+			}
+			const selective = removeRequestGenerationProposalSelectively(
+				state.record,
+				undo,
+			);
+			result = {
+				status: "selective-removed",
+				removedLineUids: selective.removedLineUids,
+				retainedLineUids: selective.retainedLineUids,
+			};
+			return {
+				...state,
+				record: selective.record,
+				dirty: true,
+				editor: {
+					...state.editor,
+					...getRequestGenerationEditorPatch(selective.record),
+				},
+				requestGeneration: {
+					phase: "idle",
+					autosaveSuspended: false,
+					appliedProposalIds,
+					undo: null,
+				},
+			};
+		});
+		return result;
+	},
 }));
