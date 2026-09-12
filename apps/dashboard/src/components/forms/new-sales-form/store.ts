@@ -102,6 +102,7 @@ type NewSalesFormActions = {
 	setRequestGenerationPhase: (phase: RequestGenerationPhase) => void;
 	applyRequestGenerationProposal: (
 		proposal: PreparedRequestGenerationProposal,
+		currentConfigurationRevision: string,
 	) => ApplyRequestGenerationProposalResult;
 	undoRequestGenerationProposal: (
 		proposalId: string,
@@ -246,12 +247,22 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 				autosaveSuspended: phase !== "idle",
 			},
 		})),
-	applyRequestGenerationProposal: (proposal) => {
+	applyRequestGenerationProposal: (proposal, currentConfigurationRevision) => {
 		let result: ApplyRequestGenerationProposalResult = {
 			status: "unavailable",
 		};
 		set((state) => {
 			if (!state.record) return state;
+			if (proposal.unresolved.length > 0) {
+				result = { status: "unresolved" };
+				return state;
+			}
+			if (
+				proposal.configurationRevision !== currentConfigurationRevision.trim()
+			) {
+				result = { status: "configuration-stale" };
+				return state;
+			}
 			if (
 				state.requestGeneration.appliedProposalIds.includes(proposal.proposalId)
 			) {

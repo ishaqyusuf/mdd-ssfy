@@ -53,6 +53,7 @@ export type RequestGenerationUndoTransaction = {
 
 export type PreparedRequestGenerationProposal = {
 	proposalId: string;
+	configurationRevision: string;
 	baseRevision: string;
 	record: NewSalesFormRecord;
 	generatedLineUids: string[];
@@ -63,9 +64,9 @@ export type PreparedRequestGenerationProposal = {
 export type RequestGenerationPreparationIssue =
 	| NewSalesFormSeedInitializationIssue
 	| {
-			lineUid: string;
+			lineUid: string | null;
 			stepId: null;
-			reason: "duplicate-line-uid";
+			reason: "duplicate-line-uid" | "unresolved-facts";
 	  };
 
 export type PrepareRequestGenerationProposalResult =
@@ -79,6 +80,8 @@ export type PrepareRequestGenerationProposalResult =
 export type ApplyRequestGenerationProposalResult =
 	| { status: "applied" }
 	| { status: "already-applied" }
+	| { status: "configuration-stale" }
+	| { status: "unresolved" }
 	| { status: "stale" }
 	| { status: "unavailable" };
 
@@ -96,6 +99,7 @@ type PrepareRequestGenerationProposalInput = Omit<
 	"seed" | "baseRecord"
 > & {
 	proposalId: string;
+	configurationRevision: string;
 	seed: NewSalesFormSeed;
 	baseRecord: NewSalesFormRecord;
 };
@@ -104,8 +108,20 @@ function clone<T>(value: T): T {
 	return structuredClone(value);
 }
 
+function stableComparableValue(value: unknown): unknown {
+	if (value instanceof Date) return value.toISOString();
+	if (Array.isArray(value)) return value.map(stableComparableValue);
+	if (!value || typeof value !== "object") return value;
+	return Object.fromEntries(
+		Object.entries(value as Record<string, unknown>)
+			.filter(([, entry]) => entry !== undefined)
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(([key, entry]) => [key, stableComparableValue(entry)]),
+	);
+}
+
 function comparable(value: unknown) {
-	return JSON.stringify(value);
+	return JSON.stringify(stableComparableValue(value));
 }
 
 export function getRequestGenerationRecordRevision(record: NewSalesFormRecord) {
@@ -144,17 +160,30 @@ export async function prepareRequestGenerationProposal(
 	const proposalId = input.proposalId.trim();
 	if (!proposalId)
 		throw new Error("A request-generation proposal ID is required");
+	const configurationRevision = input.configurationRevision.trim();
+	if (!configurationRevision)
+		throw new Error("A request-generation configuration revision is required");
 	const baseRecord = clone(input.baseRecord);
-	const { proposalId: _proposalId, ...initializerInput } = input;
+	const {
+		proposalId: _proposalId,
+		configurationRevision: _configurationRevision,
+		...initializerInput
+	} = input;
 	const initialized = await initializeNewSalesFormSeed({
 		...initializerInput,
 		seed: clone(input.seed),
 		baseRecord,
 	});
-	if (initialized.issues.length > 0) {
+	const unresolvedIssues: RequestGenerationPreparationIssue[] =
+		initialized.unresolved.map((entry) => ({
+			lineUid: entry.lineUid,
+			stepId: null,
+			reason: "unresolved-facts",
+		}));
+	if (initialized.issues.length > 0 || unresolvedIssues.length > 0) {
 		return {
 			status: "blocked",
-			issues: clone(initialized.issues),
+			issues: [...clone(initialized.issues), ...unresolvedIssues],
 			unresolved: clone(initialized.unresolved),
 		};
 	}
@@ -197,6 +226,7 @@ export async function prepareRequestGenerationProposal(
 		status: "ready",
 		proposal: {
 			proposalId,
+			configurationRevision,
 			baseRevision: getRequestGenerationRecordRevision(input.baseRecord),
 			record: clone(record),
 			generatedLineUids: generatedLines.map((line) => line.uid),
@@ -267,6 +297,99 @@ function selectivelyRestoreForm(
 	return next as NewSalesFormRecord["form"];
 }
 
+function withoutPersistenceIdentity(value: Record<string, unknown>) {
+	const { id: _id, ...commercialValue } = value;
+	return commercialValue;
+}
+
+function withoutRowPersistenceIdentity(value: Record<string, unknown>) {
+	const {
+		id: _id,
+		salesItemId: _salesItemId,
+		hptId: _hptId,
+		...commercialValue
+	} = value;
+	return commercialValue;
+}
+
+function withoutLinePersistenceIdentity(
+	line: NewSalesFormRecord["lineItems"][number],
+) {
+	const commercialLine = withoutPersistenceIdentity(
+		line as unknown as Record<string, unknown>,
+	) as Record<string, unknown>;
+	const meta = line.meta as Record<string, unknown>;
+	const normalizedMeta = { ...meta };
+	for (const key of ["mouldingRows", "serviceRows"] as const) {
+		const rows = meta[key];
+		if (!Array.isArray(rows)) continue;
+		normalizedMeta[key] = rows.map((row) =>
+			withoutRowPersistenceIdentity(row as Record<string, unknown>),
+		);
+	}
+	return {
+		...commercialLine,
+		meta: normalizedMeta,
+		formSteps: line.formSteps.map((step) =>
+			withoutPersistenceIdentity(step as Record<string, unknown>),
+		),
+		shelfItems: line.shelfItems.map((item) =>
+			withoutRowPersistenceIdentity(item as Record<string, unknown>),
+		),
+		housePackageTool: line.housePackageTool
+			? {
+					...withoutPersistenceIdentity(
+						line.housePackageTool as Record<string, unknown>,
+					),
+					doors: line.housePackageTool.doors.map((door) =>
+						withoutPersistenceIdentity(door as Record<string, unknown>),
+					),
+				}
+			: null,
+	};
+}
+
+function hasSameLineCommerce(
+	current: NewSalesFormRecord["lineItems"][number],
+	generated: NewSalesFormRecord["lineItems"][number],
+) {
+	return (
+		comparable(withoutLinePersistenceIdentity(current)) ===
+		comparable(withoutLinePersistenceIdentity(generated))
+	);
+}
+
+function withoutExtraCostPersistenceIdentity(
+	cost: NewSalesFormRecord["extraCosts"][number],
+) {
+	return withoutPersistenceIdentity(cost as Record<string, unknown>);
+}
+
+function haveSameExtraCostCommerce(
+	current: NewSalesFormRecord["extraCosts"],
+	applied: NewSalesFormRecord["extraCosts"],
+) {
+	return (
+		comparable(current.map(withoutExtraCostPersistenceIdentity)) ===
+		comparable(applied.map(withoutExtraCostPersistenceIdentity))
+	);
+}
+
+function restoreExtraCostsPreservingPersistenceIdentity(
+	before: NewSalesFormRecord["extraCosts"],
+	current: NewSalesFormRecord["extraCosts"],
+) {
+	return before.map((cost) => {
+		const matches = current.filter(
+			(candidate) =>
+				candidate.type === cost.type && candidate.label === cost.label,
+		);
+		return matches.length === 1
+			? { ...cost, id: matches[0]?.id ?? cost.id }
+			: cost;
+	});
+}
+
 export function removeRequestGenerationProposalSelectively(
 	record: NewSalesFormRecord,
 	transaction: RequestGenerationUndoTransaction,
@@ -279,7 +402,7 @@ export function removeRequestGenerationProposalSelectively(
 	const lineItems = record.lineItems.filter((line) => {
 		const generated = generatedByUid.get(line.uid);
 		if (!generated) return true;
-		if (comparable(line) !== comparable(generated)) {
+		if (!hasSameLineCommerce(line, generated)) {
 			retainedLineUids.push(line.uid);
 			return true;
 		}
@@ -292,11 +415,15 @@ export function removeRequestGenerationProposalSelectively(
 	) {
 		lineItems.push(clone(transaction.selectiveRemoval.replacedBootstrapLine));
 	}
-	const extraCosts =
-		comparable(record.extraCosts) ===
-		comparable(transaction.selectiveRemoval.appliedExtraCosts)
-			? clone(transaction.selectiveRemoval.beforeExtraCosts)
-			: record.extraCosts;
+	const extraCosts = haveSameExtraCostCommerce(
+		record.extraCosts,
+		transaction.selectiveRemoval.appliedExtraCosts,
+	)
+		? restoreExtraCostsPreservingPersistenceIdentity(
+				transaction.selectiveRemoval.beforeExtraCosts,
+				record.extraCosts,
+			)
+		: record.extraCosts;
 	const nextRecord = hydrateSalesFormRecord({
 		...record,
 		form: selectivelyRestoreForm(record.form, transaction.selectiveRemoval),

@@ -6,6 +6,7 @@ import {
 	createEmptySalesFormLineItem,
 	hydrateSalesFormRecord,
 } from "@gnd/sales/sales-form";
+import { toSaveDraftInput } from "./mappers";
 import {
 	getRequestGenerationUndoAvailability,
 	prepareRequestGenerationProposal,
@@ -164,6 +165,7 @@ describe("sales request generation transaction", () => {
 
 		const prepared = await prepareRequestGenerationProposal({
 			proposalId: "proposal-door-1",
+			configurationRevision: "config-1",
 			seed: doorSeed,
 			baseRecord,
 			routeData: doorRouteData,
@@ -189,7 +191,7 @@ describe("sales request generation transaction", () => {
 		});
 		const applied = useNewSalesFormStore
 			.getState()
-			.applyRequestGenerationProposal(prepared.proposal);
+			.applyRequestGenerationProposal(prepared.proposal, "config-1");
 		expect(applied).toEqual({ status: "applied" });
 		expect(notifications).toBe(1);
 		const appliedState = useNewSalesFormStore.getState();
@@ -202,7 +204,7 @@ describe("sales request generation transaction", () => {
 
 		const duplicate = useNewSalesFormStore
 			.getState()
-			.applyRequestGenerationProposal(prepared.proposal);
+			.applyRequestGenerationProposal(prepared.proposal, "config-1");
 		expect(duplicate).toEqual({ status: "already-applied" });
 		expect(notifications).toBe(1);
 
@@ -223,6 +225,7 @@ describe("sales request generation transaction", () => {
 
 		const prepared = await prepareRequestGenerationProposal({
 			proposalId: "proposal-invalid-1",
+			configurationRevision: "config-1",
 			seed: doorSeed,
 			baseRecord,
 			routeData: doorRouteData,
@@ -259,6 +262,7 @@ describe("sales request generation transaction", () => {
 
 		const prepared = await prepareRequestGenerationProposal({
 			proposalId: "proposal-moulding-1",
+			configurationRevision: "config-1",
 			seed: mouldingSeed,
 			baseRecord,
 			routeData: mouldingRouteData,
@@ -280,7 +284,7 @@ describe("sales request generation transaction", () => {
 		expect(
 			useNewSalesFormStore
 				.getState()
-				.applyRequestGenerationProposal(prepared.proposal),
+				.applyRequestGenerationProposal(prepared.proposal, "config-1"),
 		).toEqual({ status: "applied" });
 		const transaction = useNewSalesFormStore.getState().requestGeneration.undo;
 		expect(transaction?.proposalId).toBe("proposal-moulding-1");
@@ -324,6 +328,7 @@ describe("sales request generation transaction", () => {
 		useNewSalesFormStore.getState().hydrate(baseRecord);
 		const prepared = await prepareRequestGenerationProposal({
 			proposalId: "proposal-stale-1",
+			configurationRevision: "config-1",
 			seed: doorSeed,
 			baseRecord,
 			routeData: doorRouteData,
@@ -336,12 +341,242 @@ describe("sales request generation transaction", () => {
 		expect(
 			useNewSalesFormStore
 				.getState()
-				.applyRequestGenerationProposal(prepared.proposal),
+				.applyRequestGenerationProposal(prepared.proposal, "config-1"),
 		).toEqual({ status: "stale" });
 		expect(
 			useNewSalesFormStore
 				.getState()
 				.record?.lineItems.some((line) => line.uid === "generated-door"),
 		).toBe(false);
+	});
+
+	it("rejects a proposal when the current configuration revision changed", async () => {
+		const baseRecord = createRecord();
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+		const prepared = await prepareRequestGenerationProposal({
+			proposalId: "proposal-config-stale-1",
+			configurationRevision: "config-1",
+			seed: doorSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+		if (prepared.status !== "ready") throw new Error("Expected ready proposal");
+
+		expect(
+			useNewSalesFormStore
+				.getState()
+				.applyRequestGenerationProposal(prepared.proposal, "config-2"),
+		).toEqual({ status: "configuration-stale" });
+		expect(useNewSalesFormStore.getState().record).toEqual(baseRecord);
+	});
+
+	it("blocks unresolved seed facts before they can enter native store or save state", async () => {
+		const baseRecord = createRecord();
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+		const unresolvedSeed = structuredClone(doorSeed);
+		unresolvedSeed.unresolved.push({
+			lineUid: "generated-door",
+			stepId: null,
+			field: "Door",
+			status: "ambiguous",
+			reason: "Two possible configured doors match.",
+		});
+		const prepared = await prepareRequestGenerationProposal({
+			proposalId: "proposal-unresolved-1",
+			configurationRevision: "config-1",
+			seed: unresolvedSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+
+		expect(prepared.status).toBe("blocked");
+		if (prepared.status !== "blocked") return;
+		expect(
+			prepared.issues.some((issue) => issue.reason === "unresolved-facts"),
+		).toBe(true);
+		expect(useNewSalesFormStore.getState().record).toEqual(baseRecord);
+		expect(JSON.stringify(toSaveDraftInput(baseRecord, true))).not.toContain(
+			"Two possible configured doors match.",
+		);
+
+		const ready = await prepareRequestGenerationProposal({
+			proposalId: "proposal-forged-unresolved-1",
+			configurationRevision: "config-1",
+			seed: doorSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+		if (ready.status !== "ready") throw new Error("Expected ready proposal");
+		const forged = structuredClone(ready.proposal);
+		const forgedUnresolved = unresolvedSeed.unresolved[0];
+		if (!forgedUnresolved) throw new Error("Expected unresolved fact");
+		forged.unresolved.push(forgedUnresolved);
+		expect(
+			useNewSalesFormStore
+				.getState()
+				.applyRequestGenerationProposal(forged, "config-1"),
+		).toEqual({ status: "unresolved" });
+		expect(useNewSalesFormStore.getState().record).toEqual(baseRecord);
+	});
+
+	it("selectively removes canonically saved generated rows without losing current identity or user edits", async () => {
+		const manualLine = {
+			...createEmptySalesFormLineItem(0),
+			id: 41,
+			uid: "manual-line",
+			title: "Existing configured line",
+			qty: 2,
+			unitPrice: 25,
+			lineTotal: 50,
+		};
+		const baseRecord = createRecord([manualLine]);
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+		const prepared = await prepareRequestGenerationProposal({
+			proposalId: "proposal-canonical-save-1",
+			configurationRevision: "config-1",
+			seed: doorSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+		if (prepared.status !== "ready") throw new Error("Expected ready proposal");
+		expect(
+			useNewSalesFormStore
+				.getState()
+				.applyRequestGenerationProposal(prepared.proposal, "config-1"),
+		).toEqual({ status: "applied" });
+
+		const applied = useNewSalesFormStore.getState().record;
+		if (!applied) throw new Error("Expected applied record");
+		const savedLines = applied.lineItems.map((line) =>
+			line.uid === "generated-door"
+				? {
+						...line,
+						id: 51,
+						formSteps: line.formSteps.map((step, index) => ({
+							...step,
+							id: 61 + index,
+						})),
+						housePackageTool: line.housePackageTool
+							? {
+									...line.housePackageTool,
+									id: 71,
+									doors: line.housePackageTool.doors.map((door) => ({
+										...door,
+										id: 81,
+									})),
+								}
+							: null,
+					}
+				: line.uid === "manual-line"
+					? { ...line, qty: 3, lineTotal: 75 }
+					: line,
+		);
+		useNewSalesFormStore.getState().patchRecord({
+			version: "saved-version-2",
+			updatedAt: "2026-09-12T12:05:00.000Z",
+			lineItems: savedLines,
+			extraCosts: applied.extraCosts.map((cost, index) => ({
+				...cost,
+				id: 91 + index,
+			})),
+		});
+
+		expect(
+			useNewSalesFormStore
+				.getState()
+				.undoRequestGenerationProposal("proposal-canonical-save-1"),
+		).toEqual({
+			status: "selective-removed",
+			removedLineUids: ["generated-door"],
+			retainedLineUids: [],
+		});
+		const restored = useNewSalesFormStore.getState().record;
+		expect(restored?.version).toBe("saved-version-2");
+		expect(restored?.lineItems.length).toBe(1);
+		expect(restored?.lineItems[0]?.id).toBe(41);
+		expect(restored?.lineItems[0]?.qty).toBe(3);
+		expect(restored?.lineItems[0]?.lineTotal).toBe(75);
+		expect(restored?.extraCosts[0]?.id).toBe(91);
+	});
+
+	it("retains a canonically saved generated row when a commercial field changed", async () => {
+		const baseRecord = createRecord();
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+		const prepared = await prepareRequestGenerationProposal({
+			proposalId: "proposal-saved-commercial-edit-1",
+			configurationRevision: "config-1",
+			seed: doorSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+		if (prepared.status !== "ready") throw new Error("Expected ready proposal");
+		useNewSalesFormStore
+			.getState()
+			.applyRequestGenerationProposal(prepared.proposal, "config-1");
+		const applied = useNewSalesFormStore.getState().record;
+		if (!applied) throw new Error("Expected applied record");
+		useNewSalesFormStore.getState().patchRecord({
+			version: "saved-version-commercial-edit",
+			lineItems: applied.lineItems.map((line) => ({
+				...line,
+				id: 151,
+				description: "User-authored commercial note",
+			})),
+		});
+
+		expect(
+			useNewSalesFormStore
+				.getState()
+				.undoRequestGenerationProposal("proposal-saved-commercial-edit-1"),
+		).toEqual({
+			status: "selective-removed",
+			removedLineUids: [],
+			retainedLineUids: ["generated-door"],
+		});
+		const retained = useNewSalesFormStore.getState().record?.lineItems[0];
+		expect(retained?.id).toBe(151);
+		expect(retained?.description).toBe("User-authored commercial note");
+	});
+
+	it("keeps request-generation metadata out of the canonical save payload", async () => {
+		const baseRecord = createRecord();
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+		const prepared = await prepareRequestGenerationProposal({
+			proposalId: "proposal-save-shape-1",
+			configurationRevision: "config-1",
+			seed: doorSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+		if (prepared.status !== "ready") throw new Error("Expected ready proposal");
+		useNewSalesFormStore
+			.getState()
+			.applyRequestGenerationProposal(prepared.proposal, "config-1");
+		const record = useNewSalesFormStore.getState().record;
+		if (!record) throw new Error("Expected applied record");
+		const payload = toSaveDraftInput(record, true) as Record<string, unknown>;
+		const serializedPayload = JSON.stringify(payload);
+
+		expect(Object.hasOwn(payload, "requestGeneration")).toBe(false);
+		expect(Object.hasOwn(payload, "proposalId")).toBe(false);
+		expect(Object.hasOwn(payload, "configurationRevision")).toBe(false);
+		expect(Object.hasOwn(payload, "unresolved")).toBe(false);
+		expect(serializedPayload).not.toContain('"requestGeneration"');
+		expect(serializedPayload).not.toContain('"proposalId"');
+		expect(serializedPayload).not.toContain('"configurationRevision"');
+		expect(serializedPayload).not.toContain('"unresolved"');
+		expect(serializedPayload).not.toContain("proposal-save-shape-1");
 	});
 });
