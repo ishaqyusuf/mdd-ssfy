@@ -8,6 +8,7 @@
 - Production bundle ID: `com.gnd.prodesk`
 - EAS owner/project: `pcruz321` /
   `8ea2eecb-4109-453c-827f-9b2de2e3a9aa`
+- App Store Connect app ID: `6811442922`
 - First audience: employees only. Prefer Internal Testing only for employees who
   can safely be App Store Connect users.
 
@@ -55,14 +56,11 @@ credentials. Obtain explicit action-time confirmation before performing it.
    and is not required unless GND offers paid apps or in-app purchases.
 3. Check EU Digital Services Act trader status. **GATE:** complete the legal and
    contact-information workflow before making the app available in EU storefronts.
-4. Search Apps for the GND record with bundle ID `com.gnd.prodesk`. The verified
-   activation-day state is `No Apps`; the explicit App ID is now registered and
-   selectable in the New App form.
-5. If absent, **GATE:** create the app record with platform iOS, the approved
-   display name, primary language, bundle ID `com.gnd.prodesk`, and an approved
-   unique SKU. Record the numeric Apple app ID for later optional `ascAppId`
-   configuration; do not guess it. If the Bundle ID is unavailable, complete
-   the explicit App ID registration in section 3 first, then return here.
+4. App Store Connect contains the `GND Millwork` iOS record with bundle ID
+   `com.gnd.prodesk`, English (U.S.), SKU `gnd-prodesk-ios`, Full Access, and
+   numeric app ID `6811442922`. It was created September 12, 2026 after explicit
+   action-time approval. `apps/mobile/eas.json` pins this verified ID as
+   `submit.production.ios.ascAppId`; do not create a second app record.
 6. App Store Connect API access currently reports that permission is required
    and offers `Request Access`. Do not request access or create a key for the
    manual first release without separate action-time approval.

@@ -8,6 +8,7 @@ type Check = { label: string; ok: boolean; detail: string };
 const APP_ROOT = path.join(import.meta.dir, "..");
 const EXPECTED_PROJECT_ID = "8ea2eecb-4109-453c-827f-9b2de2e3a9aa";
 const EXPECTED_TEAM_ID = "ZXC78SPCV4";
+const EXPECTED_ASC_APP_ID = "6811442922";
 const EXPECTED_SDK_DEPENDENCIES = {
 	"@react-native-community/netinfo": "11.4.1",
 	expo: "~54.0.37",
@@ -103,6 +104,11 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"Apple team",
 			eas.submit?.production?.ios?.appleTeamId === EXPECTED_TEAM_ID,
 			String(eas.submit?.production?.ios?.appleTeamId),
+		),
+		check(
+			"App Store Connect app",
+			eas.submit?.production?.ios?.ascAppId === EXPECTED_ASC_APP_ID,
+			String(eas.submit?.production?.ios?.ascAppId),
 		),
 		check(
 			"Export compliance declaration",

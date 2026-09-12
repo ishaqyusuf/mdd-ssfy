@@ -87,6 +87,8 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   `eas whoami` without starting a release or update operation.
 - Submission targets Apple team `ZXC78SPCV4`. The EAS owner/project/update
   linkage remains `pcruz321` / `8ea2eecb-4109-453c-827f-9b2de2e3a9aa`.
+- The production submit profile pins verified App Store Connect app ID
+  `6811442922` for `GND Millwork` / `com.gnd.prodesk`.
 - `ITSAppUsesNonExemptEncryption` is `false` based on the audited absence of
   app-owned custom cryptography. Re-audit if custom crypto is added.
 - `bun run ios:release:check` enforces the release configuration invariants.

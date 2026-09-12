@@ -22,10 +22,10 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 - Completion: 100% of safe local preparation
 - Current Checklist: 11/11 — Safe local work is complete; Terms V100 is accepted,
   EAS is authenticated as `pcruz321`, and the retained project link is verified
-- Blocker: App Store Connect still has no app record for `com.gnd.prodesk`.
-  Creating it is the next explicit external-action gate; build/signing/upload and
-  tester operations remain separately gated afterward. Its form also requires
-  confirmation of the public Company Name, primary language, SKU, and user access.
+- Blocker: the App ID and App Store Connect record are complete. Creating or
+  selecting Apple signing credentials and starting the first production build is
+  the next explicit action-time gate; upload and tester operations remain
+  separately gated afterward.
 
 ## Implementation Checklist
 - [x] Audit Expo/EAS, authentication, permissions, updates, signing assumptions, dependencies, and release docs
@@ -75,4 +75,7 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
   creation gate. API integration access separately requires `Request Access`.
 - After explicit approval, Apple registered the explicit App ID `GND Millwork` /
   `com.gnd.prodesk` with optional capabilities disabled. It is now selectable in
-  the prepared New App form.
+  App Store Connect.
+- After separate explicit approval, created the `GND Millwork` iOS app record with
+  public Company Name `GND MILLWORK`, English (U.S.), SKU `gnd-prodesk-ios`, Full
+  Access, and numeric Apple app ID `6811442922`.
