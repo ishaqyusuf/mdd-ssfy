@@ -77,7 +77,7 @@ describe("sales request AI provider catalog", () => {
 		expect(
 			salesRequestAISelectionSchema.safeParse({
 				provider: "google",
-				model: "gpt-5.6-luna",
+				model: "gpt-5-mini",
 			}).success,
 		).toBe(false);
 	});
@@ -115,7 +115,7 @@ describe("persisted sales request AI settings", () => {
 	it("returns a repairable invalid state without treating it as persisted", async () => {
 		const fixture = fakeDatabase({
 			requestGeneration: {
-				ai: { provider: "google", model: "gpt-5.6-luna" },
+				ai: { provider: "google", model: "gpt-5-mini" },
 			},
 		});
 

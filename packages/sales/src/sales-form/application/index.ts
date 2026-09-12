@@ -67,3 +67,4 @@ export {
 	type NewSalesFormSeedInitializationIssue,
 	type ResolveNewSalesFormSeedComponents,
 } from "./new-sales-form-seed-initializer";
+export { normalizeNewSalesFormSeed } from "./new-sales-form-seed-normalization";

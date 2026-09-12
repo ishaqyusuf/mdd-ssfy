@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
-import type {
-	SalesRequestConfigurationArtifact,
-	SalesRequestConfigurationCache,
-} from "@gnd/cache/sales-request-configuration-cache";
 import {
 	type SalesRequestCatalogDiagnostics,
 	selectSalesRequestCatalogCandidates,
 } from "@api/services/sales-request-catalog-eligibility";
+import type {
+	SalesRequestConfigurationArtifact,
+	SalesRequestConfigurationCache,
+} from "@gnd/cache/sales-request-configuration-cache";
 import {
 	type RequestConfigurationComponent,
 	type RequestConfigurationRepository,
@@ -21,6 +21,7 @@ import {
 	isRequestConfigurationStepCustom,
 	loadRequestConfigurationSource,
 	projectRequestConfiguration,
+	serializeSalesRequestConfiguration,
 } from "@gnd/sales/sales-form/request-generation";
 import { salesRequestCatalogPolicySchema } from "@gnd/settings";
 
@@ -85,6 +86,7 @@ export function createSalesRequestConfigurationRepository(
 	db: ConfigurationDatabase,
 ): ConfigurationRepositoryWithDiagnostics {
 	let loadedSetting: RequestConfigurationSetting | null | undefined;
+	let loadedSteps: RequestConfigurationStep[] = [];
 	let diagnostics: SalesRequestCatalogDiagnostics | undefined;
 	return {
 		getDiagnostics: () => diagnostics,
@@ -95,11 +97,13 @@ export function createSalesRequestConfigurationRepository(
 			});
 			return loadedSetting;
 		},
-		getStepsByUids: (stepUids) =>
-			db.dykeSteps.findMany({
+		getStepsByUids: async (stepUids) => {
+			loadedSteps = await db.dykeSteps.findMany({
 				where: { uid: { in: [...stepUids] }, deletedAt: null },
 				select: stepSelect,
-			}),
+			});
+			return loadedSteps;
+		},
 		getRootComponentsByUids: async (componentUids) => {
 			const components = await db.dykeStepProducts.findMany({
 				where: {
@@ -144,6 +148,13 @@ export function createSalesRequestConfigurationRepository(
 			const selected = selectSalesRequestCatalogCandidates({
 				components,
 				defaultComponentUids,
+				completeStepIds: new Set(
+					loadedSteps
+						.filter((step) =>
+							/^(?:moulding|molding)s?$/i.test(String(step.title || "").trim()),
+						)
+						.map((step) => step.id),
+				),
 				policy: parsedPolicy.success
 					? parsedPolicy.data
 					: salesRequestCatalogPolicySchema.parse({}),
@@ -312,11 +323,15 @@ function normalizeComponent(component: RequestConfigurationComponent) {
 }
 
 function normalizeStep(step: RequestConfigurationStep) {
+	const meta = readRecord(step.meta);
 	return {
 		id: step.id,
 		uid: step.uid,
 		title: step.title,
 		...(isRequestConfigurationStepCustom(step.meta) ? { custom: true } : {}),
+		...(meta && Object.hasOwn(meta, "doorSizeVariation")
+			? { doorSizeVariation: meta.doorSizeVariation }
+			: {}),
 	};
 }
 
@@ -369,10 +384,12 @@ export async function getSalesRequestConfigurationStructuralRevision(
 		: [];
 
 	return hashCanonical({
-		// Bump whenever the cached wire projection changes. Version 3 removes
+		// Bump whenever the cached wire projection changes. Version 5 keeps the
+		// complete active standard catalog for Moulding steps. Version 4 includes
+		// the sanitized height-driven door-size variation structure. Version 3 removes
 		// persisted custom components from the model catalog and moves custom
 		// capability to the authoritative step metadata.
-		version: 3,
+		version: 5,
 		settingId: input.settingId,
 		routes: routes.map((route) => ({
 			itemTypeUid: route.itemTypeUid,
@@ -474,13 +491,22 @@ function decodeCachedConfiguration(
 	const steps: SalesRequestConfigurationStep[] = [];
 	for (const rawStep of value.steps) {
 		if (!isRecord(rawStep)) return undefined;
-		const { id, uid, title, custom, selectionMode, components } = rawStep;
+		const {
+			id,
+			uid,
+			title,
+			custom,
+			selectionMode,
+			doorSizeVariation,
+			components,
+		} = rawStep;
 		if (
 			!Number.isSafeInteger(id) ||
 			(id as number) <= 0 ||
 			typeof uid !== "string" ||
 			typeof title !== "string" ||
 			(custom !== undefined && custom !== true) ||
+			(doorSizeVariation !== undefined && !Array.isArray(doorSizeVariation)) ||
 			!Array.isArray(components)
 		)
 			return undefined;
@@ -520,6 +546,12 @@ function decodeCachedConfiguration(
 			title,
 			...(custom === true ? { custom: true } : {}),
 			...(decodedSelectionMode ? { selectionMode: decodedSelectionMode } : {}),
+			...(Array.isArray(doorSizeVariation)
+				? {
+						doorSizeVariation:
+							doorSizeVariation as SalesRequestConfigurationStep["doorSizeVariation"],
+					}
+				: {}),
 			components: decodedComponents,
 		});
 	}
@@ -558,6 +590,12 @@ function decodeCachedConfiguration(
 			? { serviceNames: value.serviceNames as string[] }
 			: {}),
 	};
+	try {
+		if (serializeSalesRequestConfiguration(configuration) !== content)
+			return undefined;
+	} catch {
+		return undefined;
+	}
 
 	return { configuration };
 }

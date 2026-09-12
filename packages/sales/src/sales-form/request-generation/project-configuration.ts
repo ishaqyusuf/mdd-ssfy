@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { isMultiSelectStepTitle } from "../ui/workflow/workflow-records";
 import { projectRequestComponent } from "./component-projection";
 import {
@@ -44,12 +45,76 @@ type ProjectedStep = {
 	title: string;
 	custom?: true;
 	selectionMode: "single" | "multiple";
+	doorSizeVariation?: Array<{
+		rules: Array<{
+			stepUid: string;
+			operator: "is" | "isNot";
+			componentsUid: string[];
+		}>;
+		widthList: string[];
+	}>;
 	components: Array<{
 		uid: string;
 		title: string;
 		sortIndex?: number | null;
 	}>;
 };
+
+const doorSizeVariationSchema = z
+	.array(
+		z.object({
+			rules: z
+				.array(
+					z.object({
+						stepUid: z.string().trim().min(1).max(128),
+						operator: z.enum(["is", "isNot"]),
+						componentsUid: z.array(z.string().trim().min(1).max(128)).max(200),
+					}),
+				)
+				.max(50),
+			widthList: z.array(z.string().trim().min(1).max(64)).max(200),
+		}),
+	)
+	.max(200);
+
+function readStepMetadata(meta: unknown) {
+	if (meta == null) return {};
+	const parsed = typeof meta === "string" ? JSON.parse(meta) : meta;
+	return z.record(z.string(), z.unknown()).parse(parsed);
+}
+
+function projectDoorSizeVariation(meta: unknown) {
+	const value = doorSizeVariationSchema.parse(
+		readStepMetadata(meta).doorSizeVariation ?? [],
+	);
+	return value.length ? value : undefined;
+}
+
+function normalizeDoorSizeVariationDependencies(
+	variations: ProjectedStep["doorSizeVariation"],
+	allowedByStepUid: ReadonlyMap<string, ReadonlySet<string>>,
+) {
+	if (!variations?.length) return undefined;
+	const normalized = variations.flatMap((variation) => {
+		if (!variation.widthList.length) return [];
+		let impossible = false;
+		const rules = variation.rules.flatMap((rule) => {
+			const allowed = allowedByStepUid.get(rule.stepUid);
+			if (!allowed) return [rule];
+			const componentsUid = rule.componentsUid.filter((uid) =>
+				allowed.has(uid),
+			);
+			if (rule.operator === "is" && componentsUid.length === 0) {
+				impossible = true;
+				return [];
+			}
+			if (rule.operator === "isNot" && componentsUid.length === 0) return [];
+			return [{ ...rule, componentsUid }];
+		});
+		return impossible ? [] : [{ ...variation, rules }];
+	});
+	return normalized.length ? normalized : undefined;
+}
 
 type ProjectedComponentRecord = {
 	stepUid: string;
@@ -287,6 +352,30 @@ function assertComponentRules(
 	}
 }
 
+function assertDoorSizeVariationRules(
+	steps: readonly ProjectedStep[],
+	stepUids: ReadonlySet<string>,
+	componentUidsByStepUid: ReadonlyMap<string, ReadonlySet<string>>,
+) {
+	for (const owner of steps) {
+		for (const variation of owner.doorSizeVariation || []) {
+			for (const rule of variation.rules) {
+				if (!stepUids.has(rule.stepUid)) {
+					throw new Error(
+						`Dangling door-size step UID ${rule.stepUid} on step ${owner.uid}`,
+					);
+				}
+				const allowed = componentUidsByStepUid.get(rule.stepUid);
+				if (!allowed || rule.componentsUid.some((uid) => !allowed.has(uid))) {
+					throw new Error(
+						`Dangling door-size component UID for step ${rule.stepUid} on step ${owner.uid}`,
+					);
+				}
+			}
+		}
+	}
+}
+
 function buildVisibilityMetadata(
 	componentRecords: readonly ProjectedComponentRecord[],
 ) {
@@ -478,6 +567,10 @@ export async function projectRequestConfiguration(
 
 	const projectedSteps: ProjectedStep[] = [];
 	if (rootStepUid && rootStep) {
+		const doorSizeVariation = normalizeDoorSizeVariationDependencies(
+			projectDoorSizeVariation(rootStep.meta),
+			componentUidsByStepUid,
+		);
 		projectedSteps.push({
 			id: rootStep.id,
 			uid: rootStepUid,
@@ -488,11 +581,16 @@ export async function projectRequestConfiguration(
 			selectionMode: isMultiSelectStepTitle(rootStep.title)
 				? "multiple"
 				: "single",
+			...(doorSizeVariation ? { doorSizeVariation } : {}),
 			components: projectedRootComponents.map(snapshotComponent),
 		});
 	}
 	for (const step of source.steps) {
 		if (!step.uid || !step.title) continue;
+		const doorSizeVariation = normalizeDoorSizeVariationDependencies(
+			projectDoorSizeVariation(step.meta),
+			componentUidsByStepUid,
+		);
 		projectedSteps.push({
 			id: step.id,
 			uid: step.uid,
@@ -501,11 +599,17 @@ export async function projectRequestConfiguration(
 				? { custom: true as const }
 				: {}),
 			selectionMode: isMultiSelectStepTitle(step.title) ? "multiple" : "single",
+			...(doorSizeVariation ? { doorSizeVariation } : {}),
 			components: (projectedComponentsByStepUid.get(step.uid) ?? []).map(
 				snapshotComponent,
 			),
 		});
 	}
+	assertDoorSizeVariationRules(
+		projectedSteps,
+		allStepUids,
+		componentUidsByStepUid,
+	);
 
 	const projectedRoutes: ProjectedRoute[] = source.routes.map((route) => {
 		if (!rootStepUid) {

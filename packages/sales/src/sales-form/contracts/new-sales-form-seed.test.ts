@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import {
+	NEW_SALES_FORM_MOULDING_SEED_EXAMPLE,
 	NEW_SALES_FORM_SEED_EXAMPLE,
 	newSalesFormSeedSchema,
 } from "./new-sales-form-seed";
@@ -8,6 +9,12 @@ test("accepts the fictional native new-sales-form seed example", () => {
 	expect(newSalesFormSeedSchema.parse(NEW_SALES_FORM_SEED_EXAMPLE)).toEqual(
 		NEW_SALES_FORM_SEED_EXAMPLE,
 	);
+});
+
+test("accepts the fictional mixed moulding quantity example", () => {
+	expect(
+		newSalesFormSeedSchema.parse(NEW_SALES_FORM_MOULDING_SEED_EXAMPLE),
+	).toEqual(NEW_SALES_FORM_MOULDING_SEED_EXAMPLE);
 });
 
 test("accepts the repository-safe real-order example without translation", async () => {
@@ -103,6 +110,114 @@ test("keeps service rows price-free and uniquely identified", () => {
 			}).success,
 		).toBe(false);
 	}
+});
+
+test("accepts native moulding rows with one quantity per selected component", () => {
+	const seed = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "moulding-line",
+				qty: 61,
+				formSteps: [
+					{ stepId: 1, prodUid: "mouldings" },
+					{
+						stepId: 215,
+						meta: {
+							selectedProdUids: ["baseboard", "casing", "crown"],
+						},
+					},
+				],
+				meta: {
+					mouldingRows: [
+						{ uid: "baseboard", qty: 24 },
+						{ uid: "casing", qty: 36 },
+						{ uid: "crown", qty: 1 },
+					],
+				},
+			},
+		],
+		unresolved: [],
+	} as const;
+
+	expect(newSalesFormSeedSchema.parse(seed)).toEqual(seed);
+});
+
+test("accepts a transient moulding linear-foot calculation before normalization", () => {
+	const seed = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "moulding-line",
+				qty: 1,
+				formSteps: [
+					{ stepId: 1, prodUid: "mouldings" },
+					{
+						stepId: 215,
+						meta: { selectedProdUids: ["baseboard-16"] },
+					},
+				],
+				meta: {
+					mouldingRows: [
+						{
+							uid: "baseboard-16",
+							calculation: {
+								linearFeet: 400,
+								pieceLength: 16,
+								wastePercentage: 10,
+							},
+						},
+					],
+				},
+			},
+		],
+		unresolved: [],
+	} as const;
+
+	expect(newSalesFormSeedSchema.parse(seed)).toEqual(seed);
+});
+
+test("keeps moulding rows price-free, uniquely identified, and quantity-consistent", () => {
+	const base = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "moulding-line",
+				qty: 2,
+				formSteps: [
+					{ stepId: 1, prodUid: "mouldings" },
+					{
+						stepId: 215,
+						meta: { selectedProdUids: ["baseboard"] },
+					},
+				],
+				meta: { mouldingRows: [{ uid: "baseboard", qty: 2 }] },
+			},
+		],
+		unresolved: [],
+	};
+
+	for (const mouldingRows of [
+		[{ uid: "baseboard", qty: 2, unitPrice: 50 }],
+		[
+			{ uid: "baseboard", qty: 1 },
+			{ uid: "baseboard", qty: 1 },
+		],
+	]) {
+		expect(
+			newSalesFormSeedSchema.safeParse({
+				...base,
+				lineItems: [{ ...base.lineItems[0], meta: { mouldingRows } }],
+			}).success,
+		).toBe(false);
+	}
+
+	expect(
+		newSalesFormSeedSchema.safeParse({
+			...base,
+			lineItems: [{ ...base.lineItems[0], qty: 3 }],
+		}).success,
+	).toBe(false);
 });
 
 test("allows only one exact native Delivery cost on delivery fulfillment", () => {
@@ -284,10 +399,68 @@ test("requires global unresolved entries to leave both line and step unspecified
 });
 
 test("rejects an HPT door row with no handed quantity", () => {
+	const seed = structuredClone(NEW_SALES_FORM_SEED_EXAMPLE) as unknown as {
+		lineItems: Array<{
+			qty: number;
+			housePackageTool?: { doors: unknown[] };
+		}>;
+	};
+	const line = seed.lineItems[0];
+	if (!line) throw new Error("Expected seed fixture line");
+	line.qty = 1;
+	line.housePackageTool = {
+		doors: [{ dimension: "3-0 x 6-8", lhQty: 0, rhQty: 0 }],
+	};
+	expect(newSalesFormSeedSchema.safeParse(seed).success).toBe(false);
+});
+
+test("accepts a handed HPT row without an unstated swing", () => {
+	const seed = structuredClone(NEW_SALES_FORM_SEED_EXAMPLE) as unknown as {
+		lineItems: Array<{
+			qty: number;
+			housePackageTool?: { doors: unknown[] };
+		}>;
+	};
+	const line = seed.lineItems[0];
+	if (!line) throw new Error("Expected seed fixture line");
+	line.qty = 1;
+	line.housePackageTool = {
+		doors: [{ dimension: "3-0 x 6-8", lhQty: 1, rhQty: 0 }],
+	};
+	expect(newSalesFormSeedSchema.safeParse(seed).success).toBe(true);
+});
+
+test("accepts the native unhanded HPT totalQty shape", () => {
 	const seed = structuredClone(NEW_SALES_FORM_SEED_EXAMPLE);
-	const door = seed.lineItems[0]?.housePackageTool?.doors[0];
-	if (!door) throw new Error("Expected seed fixture door");
-	door.lhQty = 0;
-	door.rhQty = 0;
+	const line = seed.lineItems[0];
+	if (!line) throw new Error("Expected seed fixture line");
+	line.qty = 14;
+	line.housePackageTool = {
+		doors: [
+			{ dimension: "2-4 x 6-8", totalQty: 1 },
+			{ dimension: "2-10 x 6-8", totalQty: 11 },
+			{ dimension: "3-0 x 6-8", totalQty: 2 },
+		],
+	};
+	expect(newSalesFormSeedSchema.safeParse(seed).success).toBe(true);
+});
+
+test("rejects mixed handed and unhanded HPT quantity fields", () => {
+	const seed = structuredClone(NEW_SALES_FORM_SEED_EXAMPLE) as unknown as {
+		lineItems: Array<{ housePackageTool?: { doors: unknown[] } }>;
+	};
+	const line = seed.lineItems[0];
+	if (!line?.housePackageTool) throw new Error("Expected seed fixture doors");
+	line.housePackageTool.doors = [
+		{ dimension: "3-0 x 6-8", totalQty: 1, lhQty: 1, rhQty: 0 },
+	];
+	expect(newSalesFormSeedSchema.safeParse(seed).success).toBe(false);
+});
+
+test("rejects an HPT line quantity that disagrees with its door rows", () => {
+	const seed = structuredClone(NEW_SALES_FORM_SEED_EXAMPLE);
+	const line = seed.lineItems[0];
+	if (!line) throw new Error("Expected seed fixture line");
+	line.qty = 2;
 	expect(newSalesFormSeedSchema.safeParse(seed).success).toBe(false);
 });

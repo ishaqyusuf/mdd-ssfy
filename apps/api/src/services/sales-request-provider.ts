@@ -1,7 +1,16 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { createDeepSeek } from "@ai-sdk/deepseek";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createOpenAI } from "@ai-sdk/openai";
+import {
+	type DeepSeekLanguageModelOptions,
+	createDeepSeek,
+} from "@ai-sdk/deepseek";
+import {
+	type GoogleLanguageModelOptions,
+	createGoogleGenerativeAI,
+} from "@ai-sdk/google";
+import {
+	type OpenAILanguageModelResponsesOptions,
+	createOpenAI,
+} from "@ai-sdk/openai";
 import { newSalesFormSeedV2Schema } from "@gnd/sales/sales-form-core";
 import { buildSalesRequestInstructions } from "@gnd/sales/sales-form/request-generation";
 import {
@@ -15,6 +24,7 @@ import {
 	type ModelMessage,
 	NoObjectGeneratedError,
 	Output,
+	RetryError,
 	generateText,
 } from "ai";
 
@@ -41,14 +51,110 @@ export type SalesRequestProvider = (
 	input: SalesRequestProviderInput,
 ) => Promise<SalesRequestProviderResult>;
 
+export const SALES_REQUEST_MAX_OUTPUT_TOKENS = 4_000;
+export const SALES_REQUEST_DEFAULT_MAX_RETRIES = 1;
+export const SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES = 0;
+
+export function resolveSalesRequestProviderMaxRetries(maxRetries?: 0 | 1) {
+	return maxRetries ?? SALES_REQUEST_DEFAULT_MAX_RETRIES;
+}
+
+type SalesRequestProviderRuntimeOptions = Record<
+	string,
+	Record<
+		string,
+		| string
+		| number
+		| boolean
+		| null
+		| Record<string, string | number | boolean | null>
+	>
+>;
+
+export function getSalesRequestProviderRuntimeOptions(
+	provider: SalesRequestAIProvider,
+): SalesRequestProviderRuntimeOptions | undefined {
+	if (provider === "deepseek") {
+		return {
+			deepseek: {
+				thinking: { type: "disabled" },
+			} satisfies DeepSeekLanguageModelOptions,
+		};
+	}
+	if (provider === "google") {
+		return {
+			google: {
+				// Gemini rejects parts of the native seed's union/null response schema.
+				// Keep JSON mode and validate the returned object locally instead.
+				structuredOutputs: false,
+			} satisfies GoogleLanguageModelOptions,
+		};
+	}
+	if (provider === "openai") {
+		return {
+			openai: {
+				// The native seed intentionally contains optional and union fields.
+				// OpenAI validates the response; local Zod remains authoritative.
+				strictJsonSchema: false,
+			} satisfies OpenAILanguageModelResponsesOptions,
+		};
+	}
+	return undefined;
+}
+
 export type SalesRequestProviderFailureDiagnostic = {
 	stage: "provider-api" | "structured-output" | "aborted" | "unknown";
 	statusCode?: number;
+	providerCode?: number;
+	providerStatus?: string;
 	retryable?: boolean;
 	finishReason?: string;
 	inputTokens?: number;
 	outputTokens?: number;
 };
+
+const SAFE_PROVIDER_ERROR_STATUSES = new Set([
+	"OK",
+	"CANCELLED",
+	"UNKNOWN",
+	"INVALID_ARGUMENT",
+	"DEADLINE_EXCEEDED",
+	"NOT_FOUND",
+	"ALREADY_EXISTS",
+	"PERMISSION_DENIED",
+	"RESOURCE_EXHAUSTED",
+	"FAILED_PRECONDITION",
+	"ABORTED",
+	"OUT_OF_RANGE",
+	"UNIMPLEMENTED",
+	"INTERNAL",
+	"UNAVAILABLE",
+	"DATA_LOSS",
+	"UNAUTHENTICATED",
+]);
+
+function getSafeProviderErrorIdentity(data: unknown, statusCode?: number) {
+	if (typeof data !== "object" || data === null || !("error" in data)) {
+		return {};
+	}
+	const providerError = data.error;
+	if (typeof providerError !== "object" || providerError === null) return {};
+
+	const code = "code" in providerError ? providerError.code : undefined;
+	const status = "status" in providerError ? providerError.status : undefined;
+	return {
+		...(typeof code === "number" &&
+		Number.isInteger(code) &&
+		code >= 100 &&
+		code <= 599 &&
+		code === statusCode
+			? { providerCode: code }
+			: {}),
+		...(typeof status === "string" && SAFE_PROVIDER_ERROR_STATUSES.has(status)
+			? { providerStatus: status }
+			: {}),
+	};
+}
 
 export class SalesRequestProviderExecutionError extends Error {
 	readonly diagnostic: SalesRequestProviderFailureDiagnostic;
@@ -70,12 +176,16 @@ function finiteToken(value: unknown) {
 export function classifySalesRequestProviderFailure(
 	error: unknown,
 ): SalesRequestProviderFailureDiagnostic {
+	if (RetryError.isInstance(error)) {
+		return classifySalesRequestProviderFailure(error.lastError);
+	}
 	if (APICallError.isInstance(error)) {
 		return {
 			stage: "provider-api",
 			...(error.statusCode !== undefined
 				? { statusCode: error.statusCode }
 				: {}),
+			...getSafeProviderErrorIdentity(error.data, error.statusCode),
 			retryable: error.isRetryable,
 		};
 	}
@@ -149,6 +259,9 @@ function createProviderModel(
 export function createSalesRequestProvider(options: {
 	selection: SalesRequestAISelection;
 	environment?: SalesRequestProviderEnvironment;
+	maxRetries?: 0 | 1;
+	/** Test seam for proving bounded SDK execution without a network request. */
+	generateTextImpl?: typeof generateText;
 }): SalesRequestProvider {
 	const selection = salesRequestAISelectionSchema.parse(options.selection);
 	const providerOption = getSalesRequestAIProviderOption(selection.provider);
@@ -163,6 +276,8 @@ export function createSalesRequestProvider(options: {
 		options.environment,
 	);
 	const model = createProviderModel(selection, apiKey);
+	const maxRetries = resolveSalesRequestProviderMaxRetries(options.maxRetries);
+	const runGenerateText = options.generateTextImpl ?? generateText;
 
 	return async (input) => {
 		if (input.images.length > 0 && !modelOption.supportsImages) {
@@ -183,14 +298,19 @@ export function createSalesRequestProvider(options: {
 		];
 		let result: Awaited<ReturnType<typeof generateText>>;
 		try {
-			result = await generateText({
+			result = await runGenerateText({
 				model,
 				output: Output.object({ schema: newSalesFormSeedV2Schema }),
-				system: buildSalesRequestInstructions(input.configurationJson),
+				system: buildSalesRequestInstructions(input.configurationJson, {
+					hasImages: input.images.length > 0,
+				}),
 				messages: [{ role: "user", content }],
 				abortSignal: input.signal,
-				maxRetries: 1,
-				maxOutputTokens: 12000,
+				providerOptions: getSalesRequestProviderRuntimeOptions(
+					selection.provider,
+				),
+				maxRetries,
+				maxOutputTokens: SALES_REQUEST_MAX_OUTPUT_TOKENS,
 			});
 		} catch (error) {
 			throw new SalesRequestProviderExecutionError(

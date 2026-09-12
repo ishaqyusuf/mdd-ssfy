@@ -21,7 +21,7 @@ const snapshot = {
 	revision: "one",
 	configurationJson: JSON.stringify(configuration),
 	configuration,
-	aiSelection: { provider: "openai" as const, model: "gpt-5.6-luna" },
+	aiSelection: { provider: "openai" as const, model: "gpt-5-mini" },
 };
 const output = {
 	schemaVersion: 1,

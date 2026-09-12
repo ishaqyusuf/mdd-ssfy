@@ -29,6 +29,11 @@ const requestConfiguration: SalesRequestConfiguration = {
 			stepUids: ["frame", "door", "threshold"],
 			config: { noHandle: false, hasSwing: true },
 		},
+		{
+			itemTypeUid: "mouldings",
+			rootStepId: 1,
+			stepUids: ["moulding", "line-item"],
+		},
 	],
 	steps: [
 		{
@@ -39,6 +44,7 @@ const requestConfiguration: SalesRequestConfiguration = {
 			components: [
 				{ uid: "interior-door", title: "Interior pre-hung" },
 				{ uid: "exterior-door", title: "Exterior pre-hung" },
+				{ uid: "mouldings", title: "Mouldings" },
 			],
 		},
 		{
@@ -68,6 +74,33 @@ const requestConfiguration: SalesRequestConfiguration = {
 			selectionMode: "single",
 			components: [{ uid: "threshold-standard", title: "Standard threshold" }],
 		},
+		{
+			id: 215,
+			uid: "moulding",
+			title: "Moulding",
+			selectionMode: "multiple",
+			components: [
+				{
+					uid: "baseboard-wm713-16",
+					title: "BASEBOARD WM713 3-1/4 X 9/16 X 16",
+				},
+				{
+					uid: "baseboard-wm620-16",
+					title: "BASEBOARD WM620 4-1/4 X 9/16 X 16",
+				},
+				{
+					uid: "casing-11-16-17",
+					title: "CASING 11/16 X 2-1/4 X 17",
+				},
+			],
+		},
+		{
+			id: 217,
+			uid: "line-item",
+			title: "Line Item",
+			selectionMode: "single",
+			components: [],
+		},
 	],
 	visibilityByComponentUid: {
 		"interior-door": { variations: [] },
@@ -89,6 +122,10 @@ const requestConfiguration: SalesRequestConfiguration = {
 			],
 		},
 		"threshold-standard": { variations: [] },
+		mouldings: { variations: [] },
+		"baseboard-wm713-16": { variations: [] },
+		"baseboard-wm620-16": { variations: [] },
+		"casing-11-16-17": { variations: [] },
 	},
 };
 
@@ -182,6 +219,98 @@ const ambiguousExpected: NewSalesFormSeed = {
 	],
 };
 
+const mouldingLinearFeetProviderOutput: NewSalesFormSeed = {
+	schemaVersion: 2,
+	lineItems: [
+		{
+			uid: "moulding-baseboard",
+			qty: 28,
+			formSteps: [
+				{ stepId: 1, prodUid: "mouldings" },
+				{
+					stepId: 215,
+					meta: { selectedProdUids: ["baseboard-wm713-16"] },
+				},
+			],
+			meta: {
+				mouldingRows: [
+					{
+						uid: "baseboard-wm713-16",
+						calculation: {
+							linearFeet: 400,
+							pieceLength: 16,
+							wastePercentage: 10,
+						},
+					},
+				],
+			},
+		},
+	],
+	unresolved: [],
+};
+
+const mouldingLinearFeetExpected: NewSalesFormSeed = {
+	schemaVersion: 2,
+	lineItems: [
+		{
+			uid: "moulding-baseboard",
+			qty: 28,
+			formSteps: [
+				{ stepId: 1, prodUid: "mouldings" },
+				{
+					stepId: 215,
+					meta: { selectedProdUids: ["baseboard-wm713-16"] },
+				},
+			],
+			meta: {
+				mouldingRows: [{ uid: "baseboard-wm713-16", qty: 28 }],
+			},
+		},
+	],
+	unresolved: [],
+};
+
+const mouldingPiecesExpected: NewSalesFormSeed = {
+	schemaVersion: 2,
+	lineItems: [
+		{
+			uid: "moulding-casing",
+			qty: 24,
+			formSteps: [
+				{ stepId: 1, prodUid: "mouldings" },
+				{
+					stepId: 215,
+					meta: { selectedProdUids: ["casing-11-16-17"] },
+				},
+			],
+			meta: {
+				mouldingRows: [{ uid: "casing-11-16-17", qty: 24 }],
+			},
+		},
+	],
+	unresolved: [],
+};
+
+const ambiguousMouldingExpected: NewSalesFormSeed = {
+	schemaVersion: 2,
+	lineItems: [
+		{
+			uid: "moulding-unspecified-profiles",
+			qty: 1,
+			formSteps: [{ stepId: 1, prodUid: "mouldings" }],
+		},
+	],
+	unresolved: [
+		{
+			lineUid: "moulding-unspecified-profiles",
+			stepId: 215,
+			field: "mouldingProfile",
+			status: "ambiguous",
+			reason: "baseboard and casing profiles are not specified",
+		},
+	],
+};
+
 export const EVALUATION_FIXTURES: readonly RequestGenerationEvaluationFixture[] =
 	[
 		{
@@ -210,6 +339,33 @@ export const EVALUATION_FIXTURES: readonly RequestGenerationEvaluationFixture[] 
 			configurationRevision: "evaluation-config-v1",
 			providerOutput: ambiguousExpected,
 			expected: ambiguousExpected,
+		},
+		{
+			id: "moulding-explicit-linear-feet",
+			language: "en",
+			text: "BASEBOARD WM713 3-1/4 x 9/16 x 16: 400 linear feet with 10% waste.",
+			configurationJson,
+			configurationRevision: "evaluation-config-v1",
+			providerOutput: mouldingLinearFeetProviderOutput,
+			expected: mouldingLinearFeetExpected,
+		},
+		{
+			id: "moulding-explicit-pieces",
+			language: "en",
+			text: "24 pieces of CASING 11/16 x 2-1/4 x 17.",
+			configurationJson,
+			configurationRevision: "evaluation-config-v1",
+			providerOutput: mouldingPiecesExpected,
+			expected: mouldingPiecesExpected,
+		},
+		{
+			id: "moulding-ambiguous-profile",
+			language: "en",
+			text: "400 linear feet for baseboard and 24 strips of casing.",
+			configurationJson,
+			configurationRevision: "evaluation-config-v1",
+			providerOutput: ambiguousMouldingExpected,
+			expected: ambiguousMouldingExpected,
 		},
 	];
 

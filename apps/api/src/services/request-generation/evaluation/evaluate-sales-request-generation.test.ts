@@ -11,7 +11,9 @@ test("mock evaluation covers English and Spanish explicit door facts", async () 
 	const report = await evaluateSalesRequestFixtures(
 		createFixtureProvider(),
 		EVALUATION_FIXTURES.filter(
-			(fixture) => fixture.id !== "ambiguous-opening-count",
+			(fixture) =>
+				fixture.id === "english-explicit-interior" ||
+				fixture.id === "spanish-explicit-exterior",
 		),
 	);
 
@@ -22,6 +24,98 @@ test("mock evaluation covers English and Spanish explicit door facts", async () 
 	expect(report.aggregate.inputTokens).toBeNull();
 	expect(report.aggregate.outputTokens).toBeNull();
 	expect(report.note).toContain("not model accuracy");
+});
+
+test("mock evaluation covers moulding pieces, linear feet, and ambiguous profiles", async () => {
+	const report = await evaluateSalesRequestFixtures(
+		createFixtureProvider(),
+		EVALUATION_FIXTURES.filter((fixture) => fixture.id.startsWith("moulding-")),
+	);
+
+	expect(report.aggregate.caseCount).toBe(3);
+	expect(report.aggregate.wholeOrderMatches).toBe(3);
+	expect(report.aggregate.unsafeGuesses).toBe(0);
+});
+
+test("evaluation compares form steps and multi-select component UIDs semantically", () => {
+	const expected = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "expected-mouldings",
+				qty: 4,
+				formSteps: [
+					{ stepId: 1, prodUid: "mouldings" },
+					{
+						stepId: 215,
+						meta: { selectedProdUids: ["baseboard", "attic-access"] },
+					},
+				],
+				meta: {
+					mouldingRows: [
+						{ uid: "baseboard", qty: 3 },
+						{ uid: "attic-access", qty: 1 },
+					],
+				},
+			},
+		],
+		unresolved: [],
+	} as const;
+	const actual = {
+		...expected,
+		lineItems: [
+			{
+				...expected.lineItems[0],
+				uid: "generated-mouldings",
+				formSteps: [
+					{
+						stepId: 215,
+						meta: { selectedProdUids: ["attic-access", "baseboard"] },
+					},
+					{ stepId: 1, prodUid: "mouldings" },
+				],
+			},
+		],
+	} as const;
+
+	const metrics = scoreNewSalesFormSeed(expected, actual, { latencyMs: 1 });
+
+	expect(metrics.wholeOrderMatch).toBe(true);
+	expect(metrics.mismatches).toEqual([]);
+});
+
+test("evaluation flags an exact moulding profile guessed from ambiguous wording", () => {
+	const fixture = EVALUATION_FIXTURES.find(
+		(candidate) => candidate.id === "moulding-ambiguous-profile",
+	);
+	if (!fixture) throw new Error("Ambiguous moulding fixture is missing");
+	const actual = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "guessed-moulding",
+				qty: 25,
+				formSteps: [
+					{ stepId: 1, prodUid: "mouldings" },
+					{
+						stepId: 215,
+						meta: { selectedProdUids: ["baseboard-wm713-16"] },
+					},
+				],
+				meta: {
+					mouldingRows: [{ uid: "baseboard-wm713-16", qty: 25 }],
+				},
+			},
+		],
+		unresolved: [],
+	} as const;
+
+	const metrics = scoreNewSalesFormSeed(fixture.expected, actual, {
+		latencyMs: 1,
+	});
+
+	expect(metrics.wholeOrderMatch).toBe(false);
+	expect(metrics.unsafeGuessPaths).toContain("lineItems[0].meta.mouldingRows");
 });
 
 test("ambiguous leaf count flags an unsafe guessed fact", async () => {

@@ -1,13 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { SALES_REQUEST_AI_PROVIDER_CATALOG } from "@gnd/settings/sales-request-ai-catalog";
-import { APICallError } from "ai";
+import { APICallError, RetryError, type generateText } from "ai";
 import {
 	SALES_REQUEST_AI_CREDENTIAL_ENV_BY_PROVIDER,
+	SALES_REQUEST_DEFAULT_MAX_RETRIES,
+	SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+	SALES_REQUEST_MAX_OUTPUT_TOKENS,
 	SalesRequestProviderConfigurationError,
 	SalesRequestProviderExecutionError,
 	classifySalesRequestProviderFailure,
 	createSalesRequestProvider,
 	getSalesRequestProviderApiKey,
+	getSalesRequestProviderRuntimeOptions,
+	resolveSalesRequestProviderMaxRetries,
 } from "./sales-request-provider";
 
 const credentials = {
@@ -59,6 +64,53 @@ describe("sales request provider credentials", () => {
 });
 
 describe("sales request provider factory", () => {
+	test("uses bounded non-thinking extraction for DeepSeek only", () => {
+		expect(SALES_REQUEST_DEFAULT_MAX_RETRIES).toBe(1);
+		expect(SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES).toBe(0);
+		expect(resolveSalesRequestProviderMaxRetries()).toBe(1);
+		expect(resolveSalesRequestProviderMaxRetries(0)).toBe(0);
+		expect(SALES_REQUEST_MAX_OUTPUT_TOKENS).toBe(4_000);
+		expect(getSalesRequestProviderRuntimeOptions("deepseek")).toEqual({
+			deepseek: { thinking: { type: "disabled" } },
+		});
+		expect(getSalesRequestProviderRuntimeOptions("google")).toEqual({
+			google: { structuredOutputs: false },
+		});
+		expect(getSalesRequestProviderRuntimeOptions("openai")).toEqual({
+			openai: { strictJsonSchema: false },
+		});
+	});
+
+	test("forwards the live-evaluation zero-retry policy to the AI SDK call", async () => {
+		let receivedMaxRetries: number | undefined;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-v4-flash" },
+			environment: credentials,
+			maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+			generateTextImpl: (async (options: { maxRetries?: number }) => {
+				receivedMaxRetries = options.maxRetries;
+				return {
+					output: { schemaVersion: 2, lineItems: [], unresolved: [] },
+					usage: { inputTokens: 1, outputTokens: 1 },
+				};
+			}) as typeof generateText,
+		});
+
+		await provider({
+			configurationJson: JSON.stringify({
+				schemaVersion: 1,
+				routes: [],
+				steps: [],
+				visibilityByComponentUid: {},
+			}),
+			text: "unsupported request",
+			images: [],
+			signal: new AbortController().signal,
+		});
+
+		expect(receivedMaxRetries).toBe(0);
+	});
+
 	test("classifies API failures without retaining request or response bodies", () => {
 		const error = new APICallError({
 			message: "secret upstream message",
@@ -66,6 +118,13 @@ describe("sales request provider factory", () => {
 			requestBodyValues: { customerText: "private request" },
 			statusCode: 429,
 			responseBody: "private upstream body",
+			data: {
+				error: {
+					code: 429,
+					status: "RESOURCE_EXHAUSTED",
+					message: "private provider detail",
+				},
+			},
 			isRetryable: true,
 		});
 		const diagnostic = classifySalesRequestProviderFailure(error);
@@ -73,9 +132,88 @@ describe("sales request provider factory", () => {
 		expect(diagnostic).toEqual({
 			stage: "provider-api",
 			statusCode: 429,
+			providerCode: 429,
+			providerStatus: "RESOURCE_EXHAUSTED",
 			retryable: true,
 		});
 		expect(JSON.stringify(diagnostic)).not.toContain("private");
+	});
+
+	test("drops malformed or message-like provider error identity", () => {
+		const error = new APICallError({
+			message: "secret upstream message",
+			url: "https://generativelanguage.googleapis.com/v1beta/models/test",
+			requestBodyValues: { customerText: "private request" },
+			statusCode: 400,
+			data: {
+				error: {
+					code: "400",
+					status: "INVALID_ARGUMENT: private detail",
+					message: "private provider detail",
+				},
+			},
+			isRetryable: false,
+		});
+
+		expect(classifySalesRequestProviderFailure(error)).toEqual({
+			stage: "provider-api",
+			statusCode: 400,
+			retryable: false,
+		});
+	});
+
+	test("drops a provider code that does not match the HTTP status", () => {
+		const error = new APICallError({
+			message: "secret upstream message",
+			url: "https://generativelanguage.googleapis.com/v1beta/models/test",
+			requestBodyValues: { customerText: "private request" },
+			statusCode: 400,
+			data: {
+				error: {
+					code: 401,
+					status: "INVALID_ARGUMENT",
+					message: "private provider detail",
+				},
+			},
+			isRetryable: false,
+		});
+
+		expect(classifySalesRequestProviderFailure(error)).toEqual({
+			stage: "provider-api",
+			statusCode: 400,
+			providerStatus: "INVALID_ARGUMENT",
+			retryable: false,
+		});
+	});
+
+	test("classifies only the last provider failure from an exhausted retry", () => {
+		const providerError = new APICallError({
+			message: "secret upstream message",
+			url: "https://generativelanguage.googleapis.com/v1beta/models/test",
+			requestBodyValues: { customerText: "private request" },
+			statusCode: 503,
+			data: {
+				error: {
+					code: 503,
+					status: "UNAVAILABLE",
+					message: "private provider detail",
+				},
+			},
+			isRetryable: true,
+		});
+		const error = new RetryError({
+			message: "private retry summary",
+			reason: "maxRetriesExceeded",
+			errors: [new Error("private first failure"), providerError],
+		});
+
+		expect(classifySalesRequestProviderFailure(error)).toEqual({
+			stage: "provider-api",
+			statusCode: 503,
+			providerCode: 503,
+			providerStatus: "UNAVAILABLE",
+			retryable: true,
+		});
 	});
 
 	test("provider execution errors expose only the safe diagnostic", () => {

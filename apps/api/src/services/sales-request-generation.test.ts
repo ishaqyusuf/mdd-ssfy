@@ -74,7 +74,7 @@ const validSeed = {
 			formSteps: [
 				{ stepId: 1, prodUid: "exterior" },
 				{ stepId: 2, prodUid: "pvc" },
-				{ stepId: 3, meta: { selectedProdUids: ["panel", "lite"] } },
+				{ stepId: 3, meta: { selectedProdUids: ["panel"] } },
 			],
 			housePackageTool: {
 				doors: [
@@ -83,6 +83,75 @@ const validSeed = {
 						swing: "",
 						lhQty: 1,
 						rhQty: 0,
+					},
+				],
+			},
+		},
+	],
+	unresolved: [],
+} as const;
+
+const mouldingConfiguration = {
+	componentColumns: ["uid", "title"],
+	routes: [
+		{
+			itemTypeUid: "mouldings",
+			rootStepId: 1,
+			stepUids: ["moulding", "line-item"],
+		},
+	],
+	schemaVersion: 1,
+	steps: [
+		{
+			id: 1,
+			uid: "type",
+			title: "Item Type",
+			selectionMode: "single",
+			components: [["mouldings", "Mouldings"]],
+		},
+		{
+			id: 215,
+			uid: "moulding",
+			title: "Moulding",
+			selectionMode: "multiple",
+			components: [
+				["baseboard-16", "BASEBOARD WM713 3-1/4 X 9/16 X 16"],
+				["casing-17", "CASING 11/16 X 2-1/4 X 17"],
+			],
+		},
+		{
+			id: 217,
+			uid: "line-item",
+			title: "Line Item",
+			selectionMode: "single",
+			components: [],
+		},
+	],
+	visibilityByComponentUid: {},
+};
+
+const mouldingLinearFeetSeed = {
+	schemaVersion: 2,
+	lineItems: [
+		{
+			uid: "moulding-line",
+			qty: 1,
+			formSteps: [
+				{ stepId: 1, prodUid: "mouldings" },
+				{
+					stepId: 215,
+					meta: { selectedProdUids: ["baseboard-16"] },
+				},
+			],
+			meta: {
+				mouldingRows: [
+					{
+						uid: "baseboard-16",
+						calculation: {
+							linearFeet: 400,
+							pieceLength: 16,
+							wastePercentage: 10,
+						},
 					},
 				],
 			},
@@ -100,9 +169,612 @@ test("returns a validated native new-sales-form seed", async () => {
 
 	expect(result.seed).toEqual(validSeed);
 	expect(result.configurationRevision).toBe("test-1");
-	expect(result.promptVersion).toBe("new-sales-form-seed-v2");
+	expect(result.promptVersion).toBe("new-sales-form-seed-v6");
 	expect(result.provider).toBe("anthropic");
 	expect(result.model).toBe("configured-model");
+});
+
+test("validates and normalizes a source-grounded moulding linear-foot row", async () => {
+	const result = await generateNewSalesFormSeed(
+		{
+			...input,
+			text: "BASEBOARD WM713 3-1/4 x 9/16 x 16, 400 linear feet including 10% waste",
+			configurationJson: JSON.stringify(mouldingConfiguration),
+		},
+		async () => ({ output: mouldingLinearFeetSeed }),
+	);
+
+	expect(result.seed.lineItems[0]).toMatchObject({
+		qty: 28,
+		meta: { mouldingRows: [{ uid: "baseboard-16", qty: 28 }] },
+	});
+});
+
+test("accepts source-grounded direct moulding piece quantities", async () => {
+	const seed = {
+		...mouldingLinearFeetSeed,
+		lineItems: [
+			{
+				...mouldingLinearFeetSeed.lineItems[0],
+				qty: 24,
+				meta: { mouldingRows: [{ uid: "baseboard-16", qty: 24 }] },
+			},
+		],
+	};
+
+	for (const text of [
+		"24 pieces of BASEBOARD WM713 3-1/4 x 9/16 x 16",
+		"24 tiras de BASEBOARD WM713 3-1/4 x 9/16 x 16",
+		"24 pieces of WM713 baseboard",
+	]) {
+		await expect(
+			generateNewSalesFormSeed(
+				{
+					...input,
+					text,
+					configurationJson: JSON.stringify(mouldingConfiguration),
+				},
+				async () => ({ output: seed }),
+			),
+		).resolves.toMatchObject({ seed });
+	}
+});
+
+test("rejects moulding rows outside the Mouldings route or not selected in its step", async () => {
+	await expect(
+		generateNewSalesFormSeed(input, async () => ({
+			output: {
+				...validSeed,
+				schemaVersion: 2,
+				lineItems: [
+					{
+						...validSeed.lineItems[0],
+						housePackageTool: undefined,
+						meta: { mouldingRows: [{ uid: "panel", qty: 1 }] },
+					},
+				],
+			},
+		})),
+	).rejects.toThrow("outside a Mouldings route");
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "24 pieces of casing",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({
+				output: {
+					...mouldingLinearFeetSeed,
+					lineItems: [
+						{
+							...mouldingLinearFeetSeed.lineItems[0],
+							qty: 24,
+							meta: {
+								mouldingRows: [{ uid: "casing-17", qty: 24 }],
+							},
+						},
+					],
+				},
+			}),
+		),
+	).rejects.toThrow("must exactly match its selected Moulding components");
+});
+
+test("rejects moulding calculator facts absent from the request or component", async () => {
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "BASEBOARD WM713 3-1/4 x 9/16 x 16",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: mouldingLinearFeetSeed }),
+		),
+	).rejects.toThrow("linear feet must be stated");
+
+	const wrongLength = structuredClone(mouldingLinearFeetSeed);
+	const row = wrongLength.lineItems[0]?.meta.mouldingRows[0];
+	if (!row) throw new Error("Expected moulding fixture row");
+	row.calculation.pieceLength = 12;
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "BASEBOARD WM713 3-1/4 x 9/16 x 16: 400 linear feet with 10% waste",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: wrongLength }),
+		),
+	).rejects.toThrow("piece length must match");
+});
+
+test("rejects an exact moulding profile guessed from generic category wording", async () => {
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "400 linear feet for baseboard with 10% waste",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: mouldingLinearFeetSeed }),
+		),
+	).rejects.toThrow("Moulding component");
+});
+
+test("does not mistake a moulding title dimension for a direct piece quantity", async () => {
+	const seed = {
+		...mouldingLinearFeetSeed,
+		lineItems: [
+			{
+				...mouldingLinearFeetSeed.lineItems[0],
+				qty: 16,
+				meta: { mouldingRows: [{ uid: "baseboard-16", qty: 16 }] },
+			},
+		],
+	};
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "BASEBOARD WM713 3-1/4 x 9/16 x 16",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: seed }),
+		),
+	).rejects.toThrow("Moulding quantity 16");
+});
+
+test("binds each moulding quantity to its own product request segment", async () => {
+	const seed = {
+		...mouldingLinearFeetSeed,
+		lineItems: [
+			{
+				...mouldingLinearFeetSeed.lineItems[0],
+				qty: 60,
+				formSteps: [
+					{ stepId: 1, prodUid: "mouldings" },
+					{
+						stepId: 215,
+						meta: {
+							selectedProdUids: ["baseboard-16", "casing-17"],
+						},
+					},
+				],
+				meta: {
+					mouldingRows: [
+						{ uid: "baseboard-16", qty: 24 },
+						{ uid: "casing-17", qty: 36 },
+					],
+				},
+			},
+		],
+	};
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: [
+					"36 pieces of BASEBOARD WM713 3-1/4 x 9/16 x 16",
+					"24 pieces of CASING 11/16 x 2-1/4 x 17",
+				].join("\n"),
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: seed }),
+		),
+	).rejects.toThrow("Moulding quantity 24");
+});
+
+test("requires stated waste and a catalog-encoded piece length", async () => {
+	const omittedWaste = {
+		...mouldingLinearFeetSeed,
+		lineItems: [
+			{
+				...mouldingLinearFeetSeed.lineItems[0],
+				meta: {
+					mouldingRows: [
+						{
+							uid: "baseboard-16",
+							calculation: { linearFeet: 400, pieceLength: 16 },
+						},
+					],
+				},
+			},
+		],
+	};
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "BASEBOARD WM713 3-1/4 x 9/16 x 16: 400 linear feet with 10% waste",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: omittedWaste }),
+		),
+	).rejects.toThrow("must be included");
+
+	const dimensionlessConfiguration = structuredClone(mouldingConfiguration);
+	dimensionlessConfiguration.steps[1]?.components.push([
+		"attic-access",
+		"ATTIC ACCESS KIT",
+	]);
+	const dimensionlessSeed = structuredClone(mouldingLinearFeetSeed);
+	const dimensionlessLine = dimensionlessSeed.lineItems[0];
+	if (!dimensionlessLine) throw new Error("Expected moulding fixture line");
+	dimensionlessLine.formSteps[1] = {
+		stepId: 215,
+		meta: { selectedProdUids: ["attic-access"] },
+	};
+	dimensionlessLine.meta.mouldingRows = [
+		{
+			uid: "attic-access",
+			calculation: { linearFeet: 400, pieceLength: 16 },
+		},
+	];
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "ATTIC ACCESS KIT: 400 linear feet",
+				configurationJson: JSON.stringify(dimensionlessConfiguration),
+			},
+			async () => ({ output: dimensionlessSeed }),
+		),
+	).rejects.toThrow("piece length must match");
+});
+
+test("accepts native totalQty rows only for an effective no-handle route", async () => {
+	const slabConfiguration = structuredClone(configuration);
+	const slabRoute = slabConfiguration.routes[0];
+	if (!slabRoute) throw new Error("Expected route fixture");
+	(slabRoute as typeof slabRoute & { config?: object }).config = {
+		noHandle: true,
+		hasSwing: false,
+	};
+	const slabSeed = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "slabs",
+				qty: 14,
+				formSteps: validSeed.lineItems[0].formSteps,
+				housePackageTool: {
+					doors: [
+						{ dimension: "2-4 x 6-8", totalQty: 1 },
+						{ dimension: "2-10 x 6-8", totalQty: 11 },
+						{ dimension: "3-0 x 6-8", totalQty: 2 },
+					],
+				},
+			},
+		],
+		unresolved: [],
+	} as const;
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				configurationJson: JSON.stringify(slabConfiguration),
+			},
+			async () => ({ output: slabSeed }),
+		),
+	).resolves.toMatchObject({ seed: slabSeed });
+});
+
+test("canonicalizes source-grounded inch dimensions through the selected Height variation", async () => {
+	const sizedConfiguration = structuredClone(
+		configuration,
+	) as typeof configuration & {
+		routes: Array<(typeof configuration.routes)[number] & { config?: object }>;
+	};
+	const sizedRoute = sizedConfiguration.routes[0];
+	if (!sizedRoute) throw new Error("Expected route fixture");
+	sizedConfiguration.routes[0] = {
+		...sizedRoute,
+		stepUids: ["height", "frame", "door"],
+		config: { noHandle: true, hasSwing: false },
+	};
+	sizedConfiguration.steps.push({
+		id: 4,
+		uid: "height",
+		title: "Height",
+		selectionMode: "single",
+		components: [["height-68", "6-8"]],
+		doorSizeVariation: [
+			{
+				rules: [
+					{
+						stepUid: "height",
+						operator: "is",
+						componentsUid: ["height-68"],
+					},
+				],
+				widthList: ["2-4", "2-10", "3-0"],
+			},
+		],
+	} as (typeof sizedConfiguration.steps)[number]);
+	const seed = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "slabs",
+				qty: 14,
+				formSteps: [
+					{ stepId: 1, prodUid: "exterior" },
+					{ stepId: 4, prodUid: "height-68" },
+					{ stepId: 2, prodUid: "pvc" },
+					{ stepId: 3, meta: { selectedProdUids: ["panel"] } },
+				],
+				housePackageTool: {
+					doors: [
+						{ dimension: "28 x 80", totalQty: 1 },
+						{ dimension: "34 x 80", totalQty: 11 },
+						{ dimension: "36 x 80", totalQty: 1 },
+						{ dimension: "3-0 x 6-8", totalQty: 1 },
+					],
+				},
+			},
+		],
+		unresolved: [],
+	} as const;
+	const result = await generateNewSalesFormSeed(
+		{
+			...input,
+			text: "One 28” × 80”, eleven 34” × 80”, and two 36” × 80” door slabs",
+			configurationJson: JSON.stringify(sizedConfiguration),
+		},
+		async () => ({ output: seed }),
+	);
+
+	expect(result.seed.lineItems[0]?.housePackageTool?.doors).toEqual([
+		{ dimension: "2-4 x 6-8", totalQty: 1 },
+		{ dimension: "2-10 x 6-8", totalQty: 11 },
+		{ dimension: "3-0 x 6-8", totalQty: 2 },
+	]);
+});
+
+test("rejects handed HPT rows on an effective no-handle route", async () => {
+	const slabConfiguration = structuredClone(configuration);
+	const slabRoute = slabConfiguration.routes[0];
+	if (!slabRoute) throw new Error("Expected route fixture");
+	(slabRoute as typeof slabRoute & { config?: object }).config = {
+		noHandle: true,
+		hasSwing: false,
+	};
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				configurationJson: JSON.stringify(slabConfiguration),
+			},
+			async () => ({ output: validSeed }),
+		),
+	).rejects.toThrow("wrong HPT quantity shape");
+});
+
+test("rejects totalQty rows on a handled route", async () => {
+	const seed = {
+		...validSeed,
+		lineItems: [
+			{
+				...validSeed.lineItems[0],
+				housePackageTool: {
+					doors: [{ dimension: "3-0 x 6-8", totalQty: 1 }],
+				},
+			},
+		],
+	};
+
+	await expect(
+		generateNewSalesFormSeed(input, async () => ({ output: seed })),
+	).rejects.toThrow("wrong HPT quantity shape");
+});
+
+test("rejects swing facts when the handled route disables swing", async () => {
+	const noSwingConfiguration = structuredClone(configuration);
+	const route = noSwingConfiguration.routes[0];
+	if (!route) throw new Error("Expected route fixture");
+	(route as typeof route & { config?: object }).config = {
+		noHandle: false,
+		hasSwing: false,
+	};
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				configurationJson: JSON.stringify(noSwingConfiguration),
+			},
+			async () => ({
+				output: {
+					...validSeed,
+					lineItems: [
+						{
+							...validSeed.lineItems[0],
+							housePackageTool: {
+								doors: [
+									{
+										dimension: "3-0 x 6-8",
+										swing: "inswing",
+										lhQty: 1,
+										rhQty: 0,
+									},
+								],
+							},
+						},
+					],
+				},
+			}),
+		),
+	).rejects.toThrow("does not support it");
+});
+
+test("applies selected-component handling overrides before HPT validation", async () => {
+	const overrideConfiguration = structuredClone(configuration);
+	overrideConfiguration.visibilityByComponentUid.panel = {
+		sectionOverride: {
+			overrideMode: true,
+			noHandle: true,
+			hasSwing: false,
+		},
+	};
+	const slabSeed = {
+		...validSeed,
+		lineItems: [
+			{
+				...validSeed.lineItems[0],
+				housePackageTool: {
+					doors: [{ dimension: "3-0 x 6-8", totalQty: 1 }],
+				},
+			},
+		],
+	};
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				configurationJson: JSON.stringify(overrideConfiguration),
+			},
+			async () => ({ output: slabSeed }),
+		),
+	).resolves.toMatchObject({ seed: slabSeed });
+});
+
+test("groups split HPT lines with identical selections before returning the seed", async () => {
+	const splitSeed = {
+		...validSeed,
+		lineItems: [
+			{
+				...validSeed.lineItems[0],
+				uid: "line-a",
+				housePackageTool: {
+					doors: [{ dimension: "3-0 x 6-8", swing: "", lhQty: 1, rhQty: 0 }],
+				},
+			},
+			{
+				...validSeed.lineItems[0],
+				uid: "line-b",
+				housePackageTool: {
+					doors: [{ dimension: "2-10 x 6-8", swing: "", lhQty: 0, rhQty: 1 }],
+				},
+			},
+		],
+	};
+
+	const result = await generateNewSalesFormSeed(input, async () => ({
+		output: splitSeed,
+	}));
+
+	expect(result.seed.lineItems).toHaveLength(1);
+	expect(result.seed.lineItems[0]).toMatchObject({
+		uid: "line-a",
+		qty: 2,
+		housePackageTool: {
+			doors: [
+				{ dimension: "3-0 x 6-8", lhQty: 1, rhQty: 0 },
+				{ dimension: "2-10 x 6-8", lhQty: 0, rhQty: 1 },
+			],
+		},
+	});
+});
+
+test("rejects multiple Door components on a line that contains HPT rows", async () => {
+	const seed = structuredClone(validSeed);
+	const doorStep = seed.lineItems[0]?.formSteps.find(
+		(step) => step.stepId === 3,
+	);
+	if (!doorStep || !("meta" in doorStep))
+		throw new Error("Expected Door fixture selection");
+	doorStep.meta.selectedProdUids = ["panel", "lite"];
+
+	await expect(
+		generateNewSalesFormSeed(input, async () => ({ output: seed })),
+	).rejects.toThrow("select one Door component");
+});
+
+test("keeps source-grounded HPT rows when the one missing Door is explicitly unresolved", async () => {
+	const seed = structuredClone(validSeed);
+	const line = seed.lineItems[0];
+	if (!line) throw new Error("Expected seed fixture line");
+	line.formSteps = line.formSteps.filter((step) => step.stepId !== 3);
+	seed.unresolved = [
+		{
+			lineUid: line.uid,
+			stepId: 3,
+			field: "door",
+			status: "unsupported",
+			reason: "No configured Door exactly matches the request",
+		},
+	];
+
+	await expect(
+		generateNewSalesFormSeed(input, async () => ({ output: seed })),
+	).resolves.toMatchObject({ seed });
+});
+
+test("rejects HPT rows when an unresolved Door belongs to another route", async () => {
+	const crossRouteConfiguration = structuredClone(configuration);
+	crossRouteConfiguration.routes.push({
+		itemTypeUid: "other",
+		rootStepId: 1,
+		stepUids: ["other-door"],
+	});
+	crossRouteConfiguration.steps[0]?.components.push(["other", "Other"]);
+	crossRouteConfiguration.steps.push({
+		id: 4,
+		uid: "other-door",
+		title: "Door",
+		selectionMode: "single",
+		components: [["other-panel", "Other Panel"]],
+	});
+	const seed = structuredClone(validSeed);
+	const line = seed.lineItems[0];
+	if (!line) throw new Error("Expected seed fixture line");
+	line.formSteps = line.formSteps.filter((step) => step.stepId !== 3);
+	seed.unresolved = [
+		{
+			lineUid: line.uid,
+			stepId: 4,
+			field: "door",
+			status: "unsupported",
+			reason: "No configured Door exactly matches the request",
+		},
+	];
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				configurationJson: JSON.stringify(crossRouteConfiguration),
+			},
+			async () => ({ output: seed }),
+		),
+	).rejects.toThrow("select one Door component");
+});
+
+test("rejects HPT rows when the unresolved field is not Door", async () => {
+	const seed = structuredClone(validSeed);
+	const line = seed.lineItems[0];
+	if (!line) throw new Error("Expected seed fixture line");
+	line.formSteps = line.formSteps.filter((step) => step.stepId !== 3);
+	seed.unresolved = [
+		{
+			lineUid: line.uid,
+			stepId: 3,
+			field: "width",
+			status: "unsupported",
+			reason: "Width is missing",
+		},
+	];
+
+	await expect(
+		generateNewSalesFormSeed(input, async () => ({ output: seed })),
+	).rejects.toThrow("select one Door component");
 });
 
 test("provider cannot inject persisted price fields", async () => {

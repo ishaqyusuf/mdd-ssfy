@@ -476,6 +476,115 @@ describe("projectRequestConfiguration", () => {
 		expect(visibility).not.toHaveProperty("deleted");
 		expect(visibility.conditional).not.toHaveProperty("redirectUid");
 	});
+
+	it("projects only sanitized height-driven door-size variations", async () => {
+		const result = await projectRequestConfiguration(
+			baseInput(
+				{
+					route: {
+						"root-a": {
+							routeSequence: [{ uid: "step-a" }, { uid: "step-b" }],
+						},
+					},
+				},
+				components,
+				undefined,
+				[
+					{
+						id: 10,
+						uid: "step-a",
+						title: "Height",
+						meta: {
+							unrelated: "drop-me",
+							doorSizeVariation: [
+								{
+									rules: [
+										{
+											stepUid: "step-a",
+											operator: "is",
+											componentsUid: ["a-choice"],
+										},
+									],
+									widthList: ["2-4", "2-10", "3-0"],
+								},
+							],
+						},
+					},
+					{ id: 20, uid: "step-b", title: "Door", meta: {} },
+				],
+			),
+		);
+
+		const height = JSON.parse(result.configurationJson).steps.find(
+			(step: { uid: string }) => step.uid === "step-a",
+		);
+		expect(height.doorSizeVariation).toEqual([
+			{
+				rules: [
+					{
+						stepUid: "step-a",
+						operator: "is",
+						componentsUid: ["a-choice"],
+					},
+				],
+				widthList: ["2-4", "2-10", "3-0"],
+			},
+		]);
+		expect(height).not.toHaveProperty("unrelated");
+	});
+
+	it("drops a door-size branch whose dependency is no longer selectable", async () => {
+		const result = await projectRequestConfiguration(
+			baseInput(
+				{
+					route: {
+						"root-a": { routeSequence: [{ uid: "step-a" }] },
+					},
+				},
+				[
+					familyComponent({
+						id: 101,
+						uid: "a-choice",
+						dykeStepId: 10,
+						meta: {},
+					}),
+					familyComponent({
+						id: 999,
+						uid: "custom-height",
+						dykeStepId: 10,
+						meta: {},
+						custom: true,
+					}),
+				],
+				undefined,
+				[
+					{
+						id: 10,
+						uid: "step-a",
+						title: "Height",
+						meta: {
+							doorSizeVariation: [
+								{
+									rules: [
+										{
+											stepUid: "step-a",
+											operator: "is",
+											componentsUid: ["custom-height"],
+										},
+									],
+									widthList: ["3-0"],
+								},
+							],
+						},
+					},
+				],
+			),
+		);
+
+		expect(
+			result.configuration.steps.find((step) => step.uid === "step-a"),
+		).not.toHaveProperty("doorSizeVariation");
+	});
 });
 
 const components: RequestConfigurationComponent[] = [

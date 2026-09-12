@@ -188,6 +188,36 @@ test("projects custom capability sparsely onto steps", () => {
 	);
 });
 
+test("preserves bounded door-size variations", () => {
+	const serialized = serializeSalesRequestConfiguration({
+		schemaVersion: 1,
+		routes: [],
+		steps: [
+			{
+				id: 1,
+				uid: "height",
+				title: "Height",
+				doorSizeVariation: [
+					{
+						rules: [
+							{
+								stepUid: "height",
+								operator: "is",
+								componentsUid: ["height-68"],
+							},
+						],
+						widthList: ["2-4", "2-10", "3-0"],
+					},
+				],
+				components: [{ uid: "height-68", title: "6-8" }],
+			},
+		],
+		visibilityByComponentUid: {},
+	});
+	const height = JSON.parse(serialized).steps[0];
+	expect(height.doorSizeVariation[0].widthList).toEqual(["2-4", "2-10", "3-0"]);
+});
+
 test("includes only the bounded name-only service vocabulary", () => {
 	const serialized = serializeSalesRequestConfiguration({
 		schemaVersion: 1,

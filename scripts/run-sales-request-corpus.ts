@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
 import {
 	DEFAULT_SALES_REQUEST_AI_SELECTION,
 	getSalesRequestAIProviderOption,
@@ -10,10 +11,17 @@ import { PrismaClient } from "@prisma/client";
 import {
 	buildSalesRequestModelInput,
 	evaluateSalesRequestCorpusCase,
+	getSalesRequestCorpusOracleCoverage,
 	loadSalesRequestCorpus,
 } from "../apps/api/src/services/request-generation/evaluation/corpus";
 import { getSalesRequestConfigurationContext } from "../apps/api/src/services/sales-request-configuration-context";
-import { createSalesRequestProvider } from "../apps/api/src/services/sales-request-generation";
+import {
+	SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+	SALES_REQUEST_MAX_OUTPUT_TOKENS,
+	SALES_REQUEST_PROVIDER_TIMEOUT_MS,
+	createSalesRequestProvider,
+	getSalesRequestProviderRuntimeOptions,
+} from "../apps/api/src/services/sales-request-generation";
 
 const repositoryRoot = resolve(import.meta.dir, "..");
 const corpusRoot = join(
@@ -116,6 +124,7 @@ async function main() {
 			join(runDirectory, "configuration.json"),
 			JSON.parse(snapshot.configurationJson),
 		);
+		const oracleCoverage = getSalesRequestCorpusOracleCoverage(cases);
 		await writeJson(join(runDirectory, "manifest.json"), {
 			runId,
 			mode: prepareOnly ? "prepare-only" : live ? "live" : "mock",
@@ -124,29 +133,27 @@ async function main() {
 			settingId,
 			configurationRevision: snapshot.revision,
 			configurationSha256: sha256(snapshot.configurationJson),
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
+			outputContract: "new-sales-form-seed-v2",
 			startedAt: new Date().toISOString(),
 			caseIds: cases.map(({ id }) => id),
+			...oracleCoverage,
 			imageEvaluation: "deferred",
 			serviceVocabularyRevision: snapshot.serviceVocabularyRevision,
+			providerRuntimeOptions: getSalesRequestProviderRuntimeOptions(
+				selection.provider,
+			),
+			maxOutputTokens: SALES_REQUEST_MAX_OUTPUT_TOKENS,
+			maxRetries: live ? SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES : null,
+			providerTimeoutMs: SALES_REQUEST_PROVIDER_TIMEOUT_MS,
 		});
 
 		const liveProvider = live
-			? createSalesRequestProvider({ selection })
-			: async () => ({
-					output: {
-						schemaVersion: 2,
-						lineItems: [],
-						unresolved: [
-							{
-								lineUid: null,
-								stepId: null,
-								field: "request",
-								status: "unsupported" as const,
-								reason: "Mock corpus run",
-							},
-						],
-					},
-				});
+			? createSalesRequestProvider({
+					selection,
+					maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+				})
+			: null;
 		const results = [];
 		for (const caseData of cases) {
 			const caseDirectory = join(runDirectory, caseData.id);
@@ -168,12 +175,40 @@ async function main() {
 					configurationRevision: snapshot.revision,
 				}),
 			);
+			if (caseData.expectedProviderOutput) {
+				await writeJson(
+					join(caseDirectory, "oracle-provider-output.json"),
+					caseData.expectedProviderOutput,
+				);
+			}
+			if (caseData.expectedSeed) {
+				await writeJson(
+					join(caseDirectory, "oracle-seed.json"),
+					caseData.expectedSeed,
+				);
+			}
 			if (prepareOnly) continue;
 			const result = await evaluateSalesRequestCorpusCase({
 				caseData,
 				configurationJson: snapshot.configurationJson,
 				configurationRevision: snapshot.revision,
-				provider: liveProvider,
+				provider:
+					liveProvider ??
+					(async () => ({
+						output: caseData.expectedProviderOutput ?? {
+							schemaVersion: 2,
+							lineItems: [],
+							unresolved: [
+								{
+									lineUid: null,
+									stepId: null,
+									field: "request",
+									status: "unsupported" as const,
+									reason: "Mock corpus run",
+								},
+							],
+						},
+					})),
 			});
 			await writeJson(
 				join(caseDirectory, "provider-output.json"),

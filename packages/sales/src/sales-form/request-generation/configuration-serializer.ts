@@ -11,7 +11,17 @@ export type SalesRequestConfigurationStep = {
 	title: string;
 	custom?: true;
 	selectionMode?: "single" | "multiple";
+	doorSizeVariation?: SalesRequestDoorSizeVariation[];
 	components: Array<SalesRequestConfigurationComponent>;
+};
+
+export type SalesRequestDoorSizeVariation = {
+	rules: Array<{
+		stepUid: string;
+		operator: "is" | "isNot";
+		componentsUid: string[];
+	}>;
+	widthList: string[];
 };
 
 export type SalesRequestConfiguration = {
@@ -33,6 +43,7 @@ type ProjectedStep = {
 	title: string;
 	custom?: true;
 	selectionMode?: "single" | "multiple";
+	doorSizeVariation?: SalesRequestDoorSizeVariation[];
 	components: Array<readonly [string, string]>;
 };
 
@@ -119,6 +130,47 @@ function projectSteps(
 		stepIds.add(step.id);
 		if (!Array.isArray(step.components))
 			throw new TypeError(`Components for step ${step.uid} must be an array`);
+		if (
+			step.doorSizeVariation !== undefined &&
+			(!Array.isArray(step.doorSizeVariation) ||
+				step.doorSizeVariation.length > 200)
+		)
+			throw new TypeError(
+				`Door size variations for step ${step.uid} must be a bounded array`,
+			);
+		for (const variation of step.doorSizeVariation || []) {
+			if (
+				!isRecord(variation) ||
+				!Array.isArray(variation.rules) ||
+				variation.rules.length > 50 ||
+				!Array.isArray(variation.widthList) ||
+				variation.widthList.length > 200 ||
+				variation.widthList.some(
+					(width) => typeof width !== "string" || !width.trim(),
+				)
+			)
+				throw new TypeError(`Invalid door size variation for step ${step.uid}`);
+			for (const rule of variation.rules) {
+				if (
+					!isRecord(rule) ||
+					typeof rule.stepUid !== "string" ||
+					(rule.operator !== "is" && rule.operator !== "isNot") ||
+					!Array.isArray(rule.componentsUid) ||
+					rule.componentsUid.some((uid) => typeof uid !== "string")
+				)
+					throw new TypeError(
+						`Invalid door size variation rule for step ${step.uid}`,
+					);
+			}
+		}
+		const doorSizeVariation = step.doorSizeVariation?.map((variation) => ({
+			rules: variation.rules.map((rule) => ({
+				stepUid: rule.stepUid,
+				operator: rule.operator,
+				componentsUid: [...rule.componentsUid],
+			})),
+			widthList: [...variation.widthList],
+		}));
 
 		const components = [...step.components]
 			.sort(compareSalesRequestComponents)
@@ -142,6 +194,7 @@ function projectSteps(
 			title: step.title,
 			...(step.custom === true ? { custom: true as const } : {}),
 			...(step.selectionMode ? { selectionMode: step.selectionMode } : {}),
+			...(doorSizeVariation?.length ? { doorSizeVariation } : {}),
 			components,
 		};
 	});

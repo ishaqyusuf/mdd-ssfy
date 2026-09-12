@@ -32,11 +32,11 @@ export const SALES_REQUEST_AI_PROVIDER_CATALOG = [
 	{
 		id: "openai",
 		label: "OpenAI",
-		defaultModel: "gpt-5.6-luna",
+		defaultModel: "gpt-5-mini",
 		models: [
-			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna", supportsImages: true },
-			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra", supportsImages: true },
-			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol", supportsImages: true },
+			{ id: "gpt-5-mini", label: "GPT-5 mini", supportsImages: true },
+			{ id: "gpt-5", label: "GPT-5", supportsImages: true },
+			{ id: "gpt-4.1-mini", label: "GPT-4.1 mini", supportsImages: true },
 		],
 	},
 	{
@@ -109,7 +109,7 @@ export const SALES_REQUEST_AI_PROVIDER_CATALOG = [
 
 export const DEFAULT_SALES_REQUEST_AI_SELECTION = {
 	provider: "openai",
-	model: "gpt-5.6-luna",
+	model: "gpt-5-mini",
 } as const satisfies SalesRequestAISelection;
 
 const salesRequestAIProviderSchema = z.enum(SALES_REQUEST_AI_PROVIDERS);

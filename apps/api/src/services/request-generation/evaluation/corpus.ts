@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { newSalesFormSeedV2Schema } from "@gnd/sales/sales-form-core";
+import {
+	type NewSalesFormSeed,
+	newSalesFormSeedV2Schema,
+} from "@gnd/sales/sales-form-core";
 import { buildSalesRequestInstructions } from "@gnd/sales/sales-form/request-generation";
 import { z } from "zod";
 import { generateNewSalesFormSeed } from "../../sales-request-generation";
@@ -10,6 +13,7 @@ import {
 	SalesRequestProviderExecutionError,
 	type SalesRequestProviderFailureDiagnostic,
 } from "../../sales-request-provider";
+import { type EvaluationMetrics, scoreNewSalesFormSeed } from "./harness";
 
 const caseMetadataSchema = z
 	.object({
@@ -24,7 +28,22 @@ const caseMetadataSchema = z
 export type SalesRequestCorpusCase = z.infer<typeof caseMetadataSchema> & {
 	text: string;
 	inputSha256: string;
+	expectedProviderOutput?: NewSalesFormSeed;
+	expectedSeed?: NewSalesFormSeed;
 };
+
+export function getSalesRequestCorpusOracleCoverage(
+	cases: SalesRequestCorpusCase[],
+) {
+	return {
+		providerOracleCaseIds: cases
+			.filter(({ expectedProviderOutput }) => Boolean(expectedProviderOutput))
+			.map(({ id }) => id),
+		seedOracleCaseIds: cases
+			.filter(({ expectedSeed }) => Boolean(expectedSeed))
+			.map(({ id }) => id),
+	};
+}
 
 export type SalesRequestCorpusCaseResult =
 	| {
@@ -39,6 +58,8 @@ export type SalesRequestCorpusCaseResult =
 				outputTokens: number | null;
 				lineCount: number;
 				unresolvedCount: number;
+				providerOracle: EvaluationMetrics | null;
+				seedOracle: EvaluationMetrics | null;
 			};
 	  }
 	| {
@@ -69,6 +90,17 @@ function sha256(value: string) {
 	return createHash("sha256").update(value).digest("hex");
 }
 
+async function readOptionalSeed(path: string) {
+	try {
+		return newSalesFormSeedV2Schema.parse(
+			JSON.parse(await readFile(path, "utf8")),
+		);
+	} catch (error) {
+		if ((error as { code?: string }).code === "ENOENT") return undefined;
+		throw error;
+	}
+}
+
 export async function loadSalesRequestCorpus(
 	casesDirectory: string,
 	selectedCaseId?: string,
@@ -97,7 +129,19 @@ export async function loadSalesRequestCorpus(
 		const text = await readFile(join(directory, "input.md"), "utf8");
 		if (!text.trim())
 			throw new Error(`Corpus case input is empty: ${metadata.id}`);
-		cases.push({ ...metadata, text, inputSha256: sha256(text) });
+		const expectedProviderOutput = await readOptionalSeed(
+			join(directory, "expected-provider-output.json"),
+		);
+		const expectedSeed = await readOptionalSeed(
+			join(directory, "expected-seed.json"),
+		);
+		cases.push({
+			...metadata,
+			text,
+			inputSha256: sha256(text),
+			...(expectedProviderOutput ? { expectedProviderOutput } : {}),
+			...(expectedSeed ? { expectedSeed } : {}),
+		});
 	}
 	if (cases.length === 0) throw new Error("The sales request corpus is empty");
 	return cases;
@@ -135,6 +179,9 @@ export async function evaluateSalesRequestCorpusCase(input: {
 			},
 			capturingProvider,
 		);
+		const latencyMs = Math.round((performance.now() - startedAt) * 100) / 100;
+		const parsedProviderOutput =
+			newSalesFormSeedV2Schema.safeParse(providerOutput);
 		return {
 			status: "ok",
 			caseId: input.caseData.id,
@@ -142,11 +189,30 @@ export async function evaluateSalesRequestCorpusCase(input: {
 			seed: result.seed,
 			validation: { status: "passed", hydration: "not-run" },
 			metrics: {
-				latencyMs: Math.round((performance.now() - startedAt) * 100) / 100,
+				latencyMs,
 				inputTokens: result.usage.inputTokens ?? null,
 				outputTokens: result.usage.outputTokens ?? null,
 				lineCount: result.seed.lineItems.length,
 				unresolvedCount: result.seed.unresolved.length,
+				providerOracle:
+					input.caseData.expectedProviderOutput && parsedProviderOutput.success
+						? scoreNewSalesFormSeed(
+								input.caseData.expectedProviderOutput,
+								parsedProviderOutput.data,
+								{
+									latencyMs,
+									inputTokens: result.usage.inputTokens,
+									outputTokens: result.usage.outputTokens,
+								},
+							)
+						: null,
+				seedOracle: input.caseData.expectedSeed
+					? scoreNewSalesFormSeed(input.caseData.expectedSeed, result.seed, {
+							latencyMs,
+							inputTokens: result.usage.inputTokens,
+							outputTokens: result.usage.outputTokens,
+						})
+					: null,
 			},
 		};
 	} catch (error) {

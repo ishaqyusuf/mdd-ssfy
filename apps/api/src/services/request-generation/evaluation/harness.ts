@@ -97,6 +97,53 @@ function normalizedServiceRows(seed: NewSalesFormSeed, lineIndex: number) {
 		);
 }
 
+function normalizedMouldingRows(seed: NewSalesFormSeed, lineIndex: number) {
+	if (seed.schemaVersion !== 2) return [];
+	const rows = seed.lineItems[lineIndex]?.meta?.mouldingRows ?? [];
+	return rows
+		.map((row) =>
+			"qty" in row
+				? { uid: row.uid, qty: row.qty }
+				: {
+						uid: row.uid,
+						calculation: {
+							linearFeet: row.calculation.linearFeet,
+							pieceLength: row.calculation.pieceLength,
+							...(row.calculation.wastePercentage == null
+								? {}
+								: {
+										wastePercentage: row.calculation.wastePercentage,
+									}),
+						},
+					},
+		)
+		.sort((left, right) => left.uid.localeCompare(right.uid));
+}
+
+function normalizedFormSteps(seed: NewSalesFormSeed, lineIndex: number) {
+	return (seed.lineItems[lineIndex]?.formSteps ?? [])
+		.map((step) => {
+			const meta = "meta" in step ? step.meta : undefined;
+			const selectedProdUids = meta?.selectedProdUids;
+			return {
+				...step,
+				...(meta
+					? {
+							meta: {
+								...meta,
+								...(selectedProdUids
+									? {
+											selectedProdUids: [...selectedProdUids].sort(),
+										}
+									: {}),
+							},
+						}
+					: {}),
+			};
+		})
+		.sort((left, right) => left.stepId - right.stepId);
+}
+
 function deliveryOption(seed: NewSalesFormSeed) {
 	return seed.schemaVersion === 2 ? (seed.form?.deliveryOption ?? null) : null;
 }
@@ -148,9 +195,15 @@ function findUnsafeGuesses(
 		const actualDoors = actualLine.housePackageTool?.doors ?? [];
 		if (!actualDoors.length) continue;
 		paths.push(`lineItems[${lineIndex}].housePackageTool.doors.dimension`);
-		if (actualDoors.some((door) => door.lhQty > 0 || door.rhQty > 0))
+		if (
+			actualDoors.some(
+				(door) => "lhQty" in door && (door.lhQty > 0 || door.rhQty > 0),
+			)
+		)
 			paths.push(`lineItems[${lineIndex}].housePackageTool.doors.handing`);
-		if (actualDoors.some((door) => door.swing !== ""))
+		if (
+			actualDoors.some((door) => "swing" in door && Boolean(door.swing?.trim()))
+		)
 			paths.push(`lineItems[${lineIndex}].housePackageTool.doors.swing`);
 	}
 	for (const [lineIndex] of actual.lineItems.entries()) {
@@ -160,6 +213,16 @@ function findUnsafeGuesses(
 			!sameValue(normalizedServiceRows(expected, lineIndex), actualRows)
 		) {
 			paths.push(`lineItems[${lineIndex}].meta.serviceRows`);
+		}
+		const actualMouldingRows = normalizedMouldingRows(actual, lineIndex);
+		if (
+			actualMouldingRows.length > 0 &&
+			!sameValue(
+				normalizedMouldingRows(expected, lineIndex),
+				actualMouldingRows,
+			)
+		) {
+			paths.push(`lineItems[${lineIndex}].meta.mouldingRows`);
 		}
 	}
 	const actualDeliveryOption = deliveryOption(actual);
@@ -197,11 +260,19 @@ export function scoreNewSalesFormSeed(
 		const actualLine = actual.lineItems[lineIndex];
 		for (const field of ["qty", "formSteps", "housePackageTool"] as const) {
 			fieldCount += 1;
-			if (!sameValue(expectedLine[field], actualLine?.[field])) {
+			const expectedValue =
+				field === "formSteps"
+					? normalizedFormSteps(expected, lineIndex)
+					: expectedLine[field];
+			const actualValue =
+				field === "formSteps"
+					? normalizedFormSteps(actual, lineIndex)
+					: actualLine?.[field];
+			if (!sameValue(expectedValue, actualValue)) {
 				mismatches.push({
 					path: `lineItems[${lineIndex}].${field}`,
-					expected: expectedLine[field],
-					actual: actualLine?.[field],
+					expected: expectedValue,
+					actual: actualValue,
 				});
 			}
 		}
@@ -213,6 +284,16 @@ export function scoreNewSalesFormSeed(
 				path: `lineItems[${lineIndex}].meta.serviceRows`,
 				expected: expectedServiceRows,
 				actual: actualServiceRows,
+			});
+		}
+		fieldCount += 1;
+		const expectedMouldingRows = normalizedMouldingRows(expected, lineIndex);
+		const actualMouldingRows = normalizedMouldingRows(actual, lineIndex);
+		if (!sameValue(expectedMouldingRows, actualMouldingRows)) {
+			mismatches.push({
+				path: `lineItems[${lineIndex}].meta.mouldingRows`,
+				expected: expectedMouldingRows,
+				actual: actualMouldingRows,
 			});
 		}
 	}

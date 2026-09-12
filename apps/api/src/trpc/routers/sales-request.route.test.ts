@@ -67,7 +67,7 @@ test("AI settings query is Super Admin-only and defaults an unconfigured install
 
 	await expect(caller.getAISettings()).resolves.toMatchObject({
 		settingId: 7,
-		settings: { provider: "openai", model: "gpt-5.6-luna" },
+		settings: { provider: "openai", model: "gpt-5-mini" },
 		source: "default",
 		providers: expect.arrayContaining([
 			expect.objectContaining({ id: "openai" }),
@@ -164,7 +164,7 @@ test("AI settings reject unsupported provider/model pairs at the API boundary", 
 	await expect(
 		caller.updateAISettings({
 			provider: "google",
-			model: "gpt-5.6-luna",
+			model: "gpt-5-mini",
 		}),
 	).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	expect(fixture.getActiveSettingsReads()).toBe(0);
@@ -191,7 +191,7 @@ test("AI settings reject ordinary callers before selecting settings", async () =
 		code: "FORBIDDEN",
 	});
 	await expect(
-		caller.updateAISettings({ provider: "openai", model: "gpt-5.6-luna" }),
+		caller.updateAISettings({ provider: "openai", model: "gpt-5-mini" }),
 	).rejects.toMatchObject({ code: "FORBIDDEN" });
 	expect(settingsRead).toBe(false);
 });

@@ -9,6 +9,7 @@ export {
 	normalizeSalesFormLineItem,
 	normalizeSalesFormLineItems,
 	normalizeSalesFormMeta,
+	normalizeNewSalesFormSeed,
 	toSalesFormSaveDraftPayload,
 	validateSalesFormBeforeSave,
 	type SalesFormExtraCostRecord,
@@ -136,6 +137,7 @@ export {
 export {
 	calculateMouldingQuantity,
 	deriveMouldingPieceLength,
+	parseMouldingPieceLength,
 	type MouldingQuantityCalculation,
 	type MouldingQuantityCalculationInput,
 } from "./sales-form/ui/workflow/moulding-calculator";
@@ -217,8 +219,12 @@ export {
 } from "./sales-form/contracts/schemas";
 export {
 	NEW_SALES_FORM_SEED_EXAMPLE,
+	NEW_SALES_FORM_MOULDING_SEED_EXAMPLE,
 	newSalesFormSeedDoorSchema,
 	newSalesFormSeedLineSchema,
+	newSalesFormSeedMouldingLinearFeetRowSchema,
+	newSalesFormSeedMouldingPieceRowSchema,
+	newSalesFormSeedMouldingRowSchema,
 	newSalesFormSeedMultiStepSchema,
 	newSalesFormSeedScalarStepSchema,
 	newSalesFormSeedSchema,

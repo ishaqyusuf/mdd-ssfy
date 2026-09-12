@@ -21,13 +21,18 @@ export type MouldingQuantityCalculation = {
 const MOULDING_DIMENSION_PATTERN =
 	/\d+(?:-\d+\/\d+|\/\d+|\.\d+)?\s*x\s*\d+(?:-\d+\/\d+|\/\d+|\.\d+)?\s*x\s*(\d+(?:\.\d+)?)/i;
 
+export function parseMouldingPieceLength(title?: string | null) {
+	const match = String(title || "").match(MOULDING_DIMENSION_PATTERN);
+	const parsed = Number(match?.[1]);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 export function deriveMouldingPieceLength(
 	title?: string | null,
 	fallback = 16,
 ) {
-	const match = String(title || "").match(MOULDING_DIMENSION_PATTERN);
-	const parsed = Number(match?.[1]);
-	if (Number.isFinite(parsed) && parsed > 0) return parsed;
+	const parsed = parseMouldingPieceLength(title);
+	if (parsed != null) return parsed;
 	return normalizePositive(fallback, 16);
 }
 

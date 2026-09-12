@@ -5,15 +5,19 @@ import {
 	buildSelectedProdUidsByStepUid,
 	computeHptFlatRate,
 	computeHptSharedDoorSurcharge,
+	deriveDoorSizeCandidates,
 	getRouteConfigForLine,
 	isCustomSalesFormComponent,
+	isMouldingItem,
 	isServiceItem,
 	normalizeHptLineForLegacy,
+	normalizeSalesDoorDimension,
 	readSalesFormObjectMetadata,
 	resolveDoorTierPricing,
 	seedRouteStep,
 } from "../domain";
 import { resolveRequestStepSelection } from "../request-generation/default-policy";
+import { parseMouldingPieceLength } from "../ui/workflow/moulding-calculator";
 import { buildWorkflowLinePricingPatch } from "../ui/workflow/workflow-line-totals";
 import {
 	type WorkflowComponentRecord,
@@ -22,7 +26,11 @@ import {
 	type WorkflowStepRecord,
 	isMultiSelectStepTitle,
 } from "../ui/workflow/workflow-records";
-import { buildWorkflowServiceRowsPatch } from "../ui/workflow/workflow-row-patches";
+import {
+	buildWorkflowMouldingRowsContext,
+	buildWorkflowMouldingRowsPatch,
+	buildWorkflowServiceRowsPatch,
+} from "../ui/workflow/workflow-row-patches";
 import {
 	proceedWorkflowMultiSelectStep,
 	saveWorkflowSelectedComponent,
@@ -31,6 +39,7 @@ import {
 	resolveWorkflowCatalogComponents,
 	resolveWorkflowSalesPrice,
 } from "../ui/workflow/workflow-visible-components";
+import { normalizeNewSalesFormSeed } from "./new-sales-form-seed-normalization";
 import {
 	type SalesFormExtraCostRecord,
 	type SalesFormLineItemRecord,
@@ -59,11 +68,17 @@ export type NewSalesFormSeedInitializationIssue = {
 		| "default-dependency-unresolved"
 		| "custom-step-not-supported"
 		| "custom-value-requires-review"
+		| "moulding-rows-outside-moulding-route"
+		| "moulding-row-selection-mismatch"
+		| "moulding-piece-length-mismatch"
 		| "service-rows-outside-service-route"
 		| "service-price-missing"
 		| "delivery-price-missing"
 		| "hpt-door-selection-missing"
 		| "hpt-door-selection-ambiguous"
+		| "hpt-door-quantity-shape-invalid"
+		| "hpt-door-swing-not-supported"
+		| "hpt-door-dimension-unavailable"
 		| "hpt-door-price-missing";
 	componentUid?: string;
 };
@@ -282,10 +297,56 @@ function buildHptLine(
 		typeof routeConfig.supplierUid === "string"
 			? routeConfig.supplierUid
 			: null;
-	const doors = seedLine.housePackageTool.doors.map((door) => {
+	const allowedDimensions = deriveDoorSizeCandidates(
+		line,
+		(component.pricing || {}) as Record<string, unknown>,
+		routeData,
+	);
+	const allowedDimensionByComparable = new Map(
+		allowedDimensions.map((dimension) => [
+			normalizeSalesDoorDimension(dimension),
+			dimension,
+		]),
+	);
+	const doors: Array<Record<string, unknown>> = [];
+	for (const door of seedLine.housePackageTool.doors) {
+		const isUnhanded = "totalQty" in door;
+		if (isUnhanded !== noHandle) {
+			issue(
+				issues,
+				seedLine.uid,
+				Number(doorStep?.stepId) || null,
+				"hpt-door-quantity-shape-invalid",
+				String(component.uid || ""),
+			);
+			continue;
+		}
+		if (!isUnhanded && !hasSwing && String(door.swing || "").trim()) {
+			issue(
+				issues,
+				seedLine.uid,
+				Number(doorStep?.stepId) || null,
+				"hpt-door-swing-not-supported",
+				String(component.uid || ""),
+			);
+			continue;
+		}
+		const comparableDimension = normalizeSalesDoorDimension(door.dimension);
+		const canonicalDimension =
+			allowedDimensionByComparable.get(comparableDimension) || door.dimension;
+		if (!allowedDimensionByComparable.has(comparableDimension)) {
+			issue(
+				issues,
+				seedLine.uid,
+				Number(doorStep?.stepId) || null,
+				"hpt-door-dimension-unavailable",
+				String(component.uid || ""),
+			);
+			continue;
+		}
 		const tier = resolveDoorTierPricing({
 			pricing: component.pricing as Record<string, unknown> | null | undefined,
-			size: door.dimension,
+			size: canonicalDimension,
 			supplierUid,
 			supplierVariants: Array.isArray(component.supplierVariants)
 				? component.supplierVariants
@@ -311,18 +372,20 @@ function buildHptLine(
 				String(component.uid || ""),
 			);
 		}
-		const totalQty = door.lhQty + door.rhQty;
-		return {
+		const lhQty = isUnhanded ? 0 : door.lhQty;
+		const rhQty = isUnhanded ? 0 : door.rhQty;
+		const totalQty = isUnhanded ? door.totalQty : lhQty + rhQty;
+		doors.push({
 			id: null,
-			dimension: door.dimension,
-			swing: door.swing,
+			dimension: canonicalDimension,
+			swing: !isUnhanded && hasSwing ? door.swing || "" : "",
 			doorType: String(component.title || ""),
 			doorPrice: 0,
 			jambSizePrice: doorSalesUnitPrice,
 			casingPrice: 0,
 			unitPrice: 0,
-			lhQty: door.lhQty,
-			rhQty: door.rhQty,
+			lhQty,
+			rhQty,
 			totalQty,
 			lineTotal: 0,
 			stepProductId: component.id ?? null,
@@ -333,8 +396,9 @@ function buildHptLine(
 				componentTitle: component.title || null,
 				priceMissing: !tier.hasPrice,
 			},
-		};
-	});
+		});
+	}
+	if (!doors.length) return line;
 	const lineWithDoors = {
 		...line,
 		meta: {
@@ -359,6 +423,7 @@ function buildHptLine(
 async function initializeLine(
 	seed: NewSalesFormSeed,
 	seedLine: NewSalesFormSeed["lineItems"][number],
+	rawSeedLine: NewSalesFormSeed["lineItems"][number],
 	index: number,
 	input: InitializeNewSalesFormSeedInput<NewSalesFormSeedBaseRecord>,
 	issues: NewSalesFormSeedInitializationIssue[],
@@ -660,6 +725,91 @@ async function initializeLine(
 			...buildWorkflowLinePricingPatch(line, formSteps),
 		};
 	}
+	const mouldingRows =
+		"meta" in seedLine && seedLine.meta
+			? seedLine.meta.mouldingRows
+			: undefined;
+	if (mouldingRows?.length) {
+		if (!isMouldingItem(line)) {
+			issue(
+				issues,
+				seedLine.uid,
+				rootId,
+				"moulding-rows-outside-moulding-route",
+			);
+		} else {
+			const context = buildWorkflowMouldingRowsContext(line);
+			const mouldingStepId =
+				Number(
+					line.formSteps?.find((step) =>
+						/^(?:moulding|molding)s?$/i.test(
+							String(step.step?.title || "").trim(),
+						),
+					)?.stepId,
+				) || null;
+			const quantityByUid = new Map(
+				mouldingRows.flatMap((row) =>
+					"qty" in row ? ([[row.uid, row.qty]] as const) : [],
+				),
+			);
+			const selectedUids = new Set(
+				context.rows.map((row) => String(row.uid || "")).filter(Boolean),
+			);
+			const exactSelection =
+				selectedUids.size === quantityByUid.size &&
+				[...quantityByUid.keys()].every((uid) => selectedUids.has(uid));
+			if (!exactSelection) {
+				const mismatchedUid =
+					[...quantityByUid.keys()].find((uid) => !selectedUids.has(uid)) ||
+					[...selectedUids].find((uid) => !quantityByUid.has(uid));
+				issue(
+					issues,
+					seedLine.uid,
+					mouldingStepId,
+					"moulding-row-selection-mismatch",
+					mismatchedUid,
+				);
+			} else {
+				const rawMouldingRows =
+					"meta" in rawSeedLine && rawSeedLine.meta
+						? rawSeedLine.meta.mouldingRows || []
+						: [];
+				const contextByUid = new Map(
+					context.rows.map((row) => [String(row.uid || ""), row] as const),
+				);
+				const invalidCalculatorRow = rawMouldingRows.find((row) => {
+					if (!("calculation" in row)) return false;
+					const selected = contextByUid.get(row.uid);
+					const authoritativeLength = parseMouldingPieceLength(selected?.title);
+					return (
+						authoritativeLength == null ||
+						Math.abs(authoritativeLength - row.calculation.pieceLength) > 0.001
+					);
+				});
+				if (invalidCalculatorRow) {
+					issue(
+						issues,
+						seedLine.uid,
+						mouldingStepId,
+						"moulding-piece-length-mismatch",
+						invalidCalculatorRow.uid,
+					);
+				} else {
+					line = {
+						...line,
+						...buildWorkflowMouldingRowsPatch({
+							line,
+							rows: context.rows.map((row) => ({
+								...row,
+								qty: quantityByUid.get(String(row.uid || "")) || 1,
+							})),
+							sharedComponentPrice: context.sharedComponentPrice,
+						}),
+					};
+				}
+			}
+		}
+	}
 	const serviceRows =
 		"meta" in seedLine && seedLine.meta ? seedLine.meta.serviceRows : undefined;
 	if (serviceRows?.length) {
@@ -700,14 +850,18 @@ export async function initializeNewSalesFormSeed<
 		input.pricing.profileCoefficient <= 0
 	)
 		throw new Error("A positive pricing profile coefficient is required");
-	const seed = newSalesFormSeedSchema.parse(input.seed);
+	const rawSeed = newSalesFormSeedSchema.parse(input.seed);
+	const seed = newSalesFormSeedSchema.parse(normalizeNewSalesFormSeed(rawSeed));
 	const issues: NewSalesFormSeedInitializationIssue[] = [];
 	const lineItems: SalesFormLineItemRecord[] = [];
 	for (const [index, seedLine] of seed.lineItems.entries()) {
+		const rawSeedLine =
+			rawSeed.lineItems.find((line) => line.uid === seedLine.uid) || seedLine;
 		lineItems.push(
 			await initializeLine(
 				seed,
 				seedLine,
+				rawSeedLine,
 				index,
 				input as InitializeNewSalesFormSeedInput<NewSalesFormSeedBaseRecord>,
 				issues,

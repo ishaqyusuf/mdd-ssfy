@@ -24,6 +24,7 @@ export type SalesRequestCatalogDiagnostics = {
 	defaultInclusions: number;
 	gracePeriodInclusions: number;
 	pinnedInclusions: number;
+	completeStepInclusions: number;
 	dependencyClosureAdditions: number;
 	routeNecessityInclusions: number;
 	explicitExclusions: number;
@@ -101,6 +102,7 @@ function visibilityDependencies(candidate: SalesRequestCatalogCandidate) {
 export function selectSalesRequestCatalogCandidates(input: {
 	components: readonly SalesRequestCatalogCandidate[];
 	defaultComponentUids: ReadonlySet<string>;
+	completeStepIds?: ReadonlySet<number>;
 	policy: SalesRequestCatalogPolicy;
 	now?: Date;
 }) {
@@ -122,6 +124,7 @@ export function selectSalesRequestCatalogCandidates(input: {
 		defaults: new Set<string>(),
 		grace: new Set<string>(),
 		pinned: new Set<string>(),
+		completeSteps: new Set<string>(),
 		route: new Set<string>(),
 		dependencies: new Set<string>(),
 	};
@@ -143,6 +146,10 @@ export function selectSalesRequestCatalogCandidates(input: {
 		if (pinned.has(uid)) {
 			included.add(uid);
 			reasons.pinned.add(uid);
+		}
+		if (input.completeStepIds?.has(component.dykeStepId)) {
+			included.add(uid);
+			reasons.completeSteps.add(uid);
 		}
 	}
 
@@ -185,10 +192,13 @@ export function selectSalesRequestCatalogCandidates(input: {
 	}
 
 	for (const uid of excluded) {
+		const excludedCandidate = byUid.get(uid);
 		if (
 			input.defaultComponentUids.has(uid) ||
 			reasons.dependencies.has(uid) ||
-			reasons.route.has(uid)
+			reasons.route.has(uid) ||
+			(excludedCandidate != null &&
+				input.completeStepIds?.has(excludedCandidate.dykeStepId))
 		) {
 			throw new Error(
 				`Sales request catalog exclusion would remove required component ${uid}`,
@@ -214,6 +224,7 @@ export function selectSalesRequestCatalogCandidates(input: {
 		defaultInclusions: reasons.defaults.size,
 		gracePeriodInclusions: reasons.grace.size,
 		pinnedInclusions: reasons.pinned.size,
+		completeStepInclusions: reasons.completeSteps.size,
 		dependencyClosureAdditions: reasons.dependencies.size,
 		routeNecessityInclusions: reasons.route.size,
 		explicitExclusions: [...excluded].filter((uid) => byUid.has(uid)).length,

@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	calculateMouldingQuantity,
 	deriveMouldingPieceLength,
+	parseMouldingPieceLength,
 } from "./moulding-calculator";
 
 describe("moulding calculator", () => {
@@ -10,10 +11,11 @@ describe("moulding calculator", () => {
 		expect(
 			deriveMouldingPieceLength("FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED"),
 		).toBe(16);
-		expect(
-			deriveMouldingPieceLength("CASING WM316 11/16 X 2-1/4 X 7'"),
-		).toBe(7);
+		expect(deriveMouldingPieceLength("CASING WM316 11/16 X 2-1/4 X 7'")).toBe(
+			7,
+		);
 		expect(deriveMouldingPieceLength("Moulding without dimensions")).toBe(16);
+		expect(parseMouldingPieceLength("Moulding without dimensions")).toBeNull();
 	});
 
 	it("matches website piece rounding after waste is applied", () => {

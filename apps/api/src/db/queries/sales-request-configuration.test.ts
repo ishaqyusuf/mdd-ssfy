@@ -171,6 +171,37 @@ test("snapshot binds model candidates and validation rules to one structural rev
 	).toEqual([["pvc", "PVC"]]);
 });
 
+test("snapshot keeps the complete active standard Moulding catalog in form order", async () => {
+	const mouldingFixture = fixture();
+	const first = mouldingFixture.state.components[0];
+	const step = mouldingFixture.state.steps[0];
+	if (!first || !step) throw new Error("Fixture is incomplete");
+	step.title = "Moulding";
+	first.sortIndex = 2;
+	mouldingFixture.state.components.push({
+		...first,
+		id: 102,
+		uid: "casing",
+		name: "Casing",
+		sortIndex: 1,
+		metric: { selectionCount: 0 },
+	});
+
+	const snapshot = await getSalesRequestConfigurationSnapshot(
+		mouldingFixture.db,
+		{ settingId: 3 },
+	);
+	const payload = JSON.parse(snapshot.configurationJson);
+	expect(
+		payload.steps.find(
+			(candidate: { uid: string }) => candidate.uid === "frame",
+		)?.components,
+	).toEqual([
+		["casing", "Casing"],
+		["pvc", "PVC"],
+	]);
+});
+
 test("excludes persisted custom rows and projects sparse step capability", async () => {
 	const plainFixture = fixture();
 	const customFixture = fixture();
@@ -453,6 +484,27 @@ test("structural changes publish a new cache artifact while price-only edits hit
 									componentsUid: ["pvc"],
 								},
 							],
+						},
+					],
+				};
+			},
+		},
+		{
+			name: "door-size-variation",
+			mutate: (state) => {
+				const step = state.steps[0];
+				if (!step) throw new Error("Fixture step is missing");
+				step.meta = {
+					doorSizeVariation: [
+						{
+							rules: [
+								{
+									stepUid: "frame",
+									operator: "is",
+									componentsUid: ["pvc"],
+								},
+							],
+							widthList: ["2-4", "2-10", "3-0"],
 						},
 					],
 				};

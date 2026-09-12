@@ -21,6 +21,32 @@ function component(uid: string, overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales request catalog eligibility", () => {
+	it("keeps every active standard component for explicitly complete steps", () => {
+		const result = selectSalesRequestCatalogCandidates({
+			components: [
+				component("ordinary-route", { dykeStepId: 1, sortIndex: 0 }),
+				component("ordinary-unused", { dykeStepId: 1, sortIndex: 1 }),
+				component("moulding-base", { dykeStepId: 215, sortIndex: 2 }),
+				component("moulding-casing", { dykeStepId: 215, sortIndex: 1 }),
+				component("moulding-custom", {
+					dykeStepId: 215,
+					custom: true,
+					sortIndex: 0,
+				}),
+			],
+			defaultComponentUids: new Set(),
+			completeStepIds: new Set([215]),
+			policy,
+		});
+
+		expect(result.components.map((entry) => entry.uid)).toEqual([
+			"ordinary-route",
+			"moulding-base",
+			"moulding-casing",
+		]);
+		expect(result.diagnostics.completeStepInclusions).toBe(2);
+	});
+
 	it("keeps used, default, recent, pinned, and one deterministic route candidate", () => {
 		const result = selectSalesRequestCatalogCandidates({
 			components: [

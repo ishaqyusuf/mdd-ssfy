@@ -42,10 +42,10 @@ export const newSalesFormSeedStepSchema = z.union([
 	newSalesFormSeedCustomStepSchema,
 ]);
 
-export const newSalesFormSeedDoorSchema = z
+export const newSalesFormSeedHandedDoorSchema = z
 	.object({
 		dimension: z.string().trim().min(1).max(128),
-		swing: z.string().max(128),
+		swing: z.string().max(128).optional(),
 		lhQty: z.number().int().min(0).max(100000),
 		rhQty: z.number().int().min(0).max(100000),
 	})
@@ -53,6 +53,24 @@ export const newSalesFormSeedDoorSchema = z
 	.refine((door) => door.lhQty + door.rhQty > 0, {
 		message: "A door row must contain at least one handed unit",
 	});
+
+export const newSalesFormSeedUnhandedDoorSchema = z
+	.object({
+		dimension: z.string().trim().min(1).max(128),
+		totalQty: z.number().int().positive().max(100000),
+	})
+	.strict();
+
+export const newSalesFormSeedDoorSchema = z.union([
+	newSalesFormSeedHandedDoorSchema,
+	newSalesFormSeedUnhandedDoorSchema,
+]);
+
+export function newSalesFormSeedDoorQty(
+	door: z.infer<typeof newSalesFormSeedDoorSchema>,
+) {
+	return "totalQty" in door ? door.totalQty : door.lhQty + door.rhQty;
+}
 
 export const newSalesFormSeedServiceRowSchema = z
 	.object({
@@ -62,6 +80,55 @@ export const newSalesFormSeedServiceRowSchema = z
 		qty: z.number().positive().max(100000),
 	})
 	.strict();
+
+export const newSalesFormSeedMouldingPieceRowSchema = z
+	.object({
+		/** Existing Moulding component UID; this becomes the native row UID. */
+		uid: z.string().trim().min(1).max(128),
+		qty: z.number().int().positive().max(100000),
+	})
+	.strict();
+
+export const newSalesFormSeedMouldingLinearFeetRowSchema = z
+	.object({
+		/** Existing Moulding component UID; this becomes the native row UID. */
+		uid: z.string().trim().min(1).max(128),
+		/** Transient calculator facts; normalization replaces them with native qty. */
+		calculation: z
+			.object({
+				linearFeet: z.number().positive().max(10000000),
+				pieceLength: z.number().positive().max(1000),
+				wastePercentage: z.number().min(0).max(100).optional(),
+			})
+			.strict(),
+	})
+	.strict();
+
+export const newSalesFormSeedMouldingRowSchema = z.union([
+	newSalesFormSeedMouldingPieceRowSchema,
+	newSalesFormSeedMouldingLinearFeetRowSchema,
+]);
+
+const newSalesFormSeedLineMetaSchema = z
+	.object({
+		serviceRows: z
+			.array(newSalesFormSeedServiceRowSchema)
+			.min(1)
+			.max(1000)
+			.optional(),
+		mouldingRows: z
+			.array(newSalesFormSeedMouldingRowSchema)
+			.min(1)
+			.max(1000)
+			.optional(),
+	})
+	.strict()
+	.refine(
+		(meta) => Boolean(meta.serviceRows?.length || meta.mouldingRows?.length),
+		{
+			message: "Line metadata requires service or moulding rows",
+		},
+	);
 
 const housePackageToolSchema = z
 	.object({
@@ -86,12 +153,7 @@ export const newSalesFormSeedLineSchema = z
 		uid: lineUid,
 		qty: z.number().positive().max(100000),
 		formSteps: z.array(newSalesFormSeedStepSchema).max(100),
-		meta: z
-			.object({
-				serviceRows: z.array(newSalesFormSeedServiceRowSchema).min(1).max(1000),
-			})
-			.strict()
-			.optional(),
+		meta: newSalesFormSeedLineMetaSchema.optional(),
 		housePackageTool: housePackageToolSchema,
 	})
 	.strict();
@@ -162,6 +224,19 @@ export const newSalesFormSeedSchema = z
 				});
 			}
 			lineUids.add(line.uid);
+			if (line.housePackageTool) {
+				const doorQty = line.housePackageTool.doors.reduce(
+					(total, door) => total + newSalesFormSeedDoorQty(door),
+					0,
+				);
+				if (line.qty !== doorQty) {
+					context.addIssue({
+						code: "custom",
+						message: "Line quantity must equal its HPT door quantity",
+						path: ["lineItems", lineIndex, "qty"],
+					});
+				}
+			}
 			const selectedStepIds = new Set<number>();
 			for (const [formStepIndex, formStep] of line.formSteps.entries()) {
 				if (selectedStepIds.has(formStep.stepId)) {
@@ -200,7 +275,7 @@ export const newSalesFormSeedSchema = z
 
 			if ("meta" in line && line.meta) {
 				const serviceUids = new Set<string>();
-				for (const [rowIndex, row] of line.meta.serviceRows.entries()) {
+				for (const [rowIndex, row] of (line.meta.serviceRows ?? []).entries()) {
 					if (serviceUids.has(row.uid)) {
 						context.addIssue({
 							code: "custom",
@@ -216,6 +291,57 @@ export const newSalesFormSeedSchema = z
 						});
 					}
 					serviceUids.add(row.uid);
+				}
+
+				const mouldingUids = new Set<string>();
+				for (const [rowIndex, row] of (
+					line.meta.mouldingRows ?? []
+				).entries()) {
+					if (mouldingUids.has(row.uid)) {
+						context.addIssue({
+							code: "custom",
+							message: "Duplicate moulding-row UID",
+							path: [
+								"lineItems",
+								lineIndex,
+								"meta",
+								"mouldingRows",
+								rowIndex,
+								"uid",
+							],
+						});
+					}
+					mouldingUids.add(row.uid);
+				}
+				if (line.meta.serviceRows?.length && line.meta.mouldingRows?.length) {
+					context.addIssue({
+						code: "custom",
+						message: "A line cannot contain both service and moulding rows",
+						path: ["lineItems", lineIndex, "meta"],
+					});
+				}
+				if (line.housePackageTool && line.meta.mouldingRows?.length) {
+					context.addIssue({
+						code: "custom",
+						message: "A moulding row line cannot also contain HPT door rows",
+						path: ["lineItems", lineIndex, "meta", "mouldingRows"],
+					});
+				}
+				if (
+					line.meta.mouldingRows?.length &&
+					line.meta.mouldingRows.every((row) => "qty" in row)
+				) {
+					const mouldingQty = line.meta.mouldingRows.reduce(
+						(total, row) => total + ("qty" in row ? row.qty : 0),
+						0,
+					);
+					if (line.qty !== mouldingQty) {
+						context.addIssue({
+							code: "custom",
+							message: "Line quantity must equal its moulding-row quantity",
+							path: ["lineItems", lineIndex, "qty"],
+						});
+					}
 				}
 			}
 		}
@@ -273,22 +399,53 @@ export const NEW_SALES_FORM_SEED_EXAMPLE = {
 	lineItems: [
 		{
 			uid: "line-1",
-			qty: 1,
+			qty: 14,
 			formSteps: [
-				{ stepId: 10, prodUid: "exterior" },
+				{ stepId: 10, prodUid: "door-slabs-only" },
+				{ stepId: 15, prodUid: "height-6-8" },
 				{
 					stepId: 20,
-					meta: { selectedProdUids: ["smooth-panel"] },
+					meta: { selectedProdUids: ["smooth-solid-core"] },
 				},
 			],
 			housePackageTool: {
 				doors: [
-					{
-						dimension: "3-0 x 6-8",
-						swing: "inswing",
-						lhQty: 1,
-						rhQty: 0,
+					{ dimension: "2-4 x 6-8", totalQty: 1 },
+					{ dimension: "2-10 x 6-8", totalQty: 11 },
+					{ dimension: "3-0 x 6-8", totalQty: 2 },
+				],
+			},
+		},
+	],
+	unresolved: [],
+} satisfies NewSalesFormSeed;
+
+export const NEW_SALES_FORM_MOULDING_SEED_EXAMPLE = {
+	schemaVersion: 2,
+	lineItems: [
+		{
+			uid: "moulding-line-1",
+			qty: 52,
+			formSteps: [
+				{ stepId: 10, prodUid: "mouldings" },
+				{
+					stepId: 215,
+					meta: {
+						selectedProdUids: ["baseboard-profile-16", "casing-profile-17"],
 					},
+				},
+			],
+			meta: {
+				mouldingRows: [
+					{
+						uid: "baseboard-profile-16",
+						calculation: {
+							linearFeet: 400,
+							pieceLength: 16,
+							wastePercentage: 10,
+						},
+					},
+					{ uid: "casing-profile-17", qty: 24 },
 				],
 			},
 		},

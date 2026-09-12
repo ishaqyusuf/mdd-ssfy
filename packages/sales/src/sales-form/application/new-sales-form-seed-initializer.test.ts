@@ -166,6 +166,109 @@ describe("initializeNewSalesFormSeed", () => {
 		},
 	);
 
+	it("replays native unhanded slab rows and derives line quantity from totalQty", async () => {
+		const slabRouteData = structuredClone(routeData);
+		const slabRoute = slabRouteData.composedRouter.interior;
+		if (!slabRoute) throw new Error("Expected interior route fixture");
+		slabRoute.config = {
+			noHandle: true,
+			hasSwing: false,
+		};
+		const slabComponents = structuredClone(componentsByStepId);
+		const panel = slabComponents[3]?.find(
+			(component) => component.uid === "panel",
+		);
+		if (!panel) throw new Error("Expected panel component");
+		panel.pricing = {
+			"2-4 x 6-8": { basePrice: 120 },
+			"2-10 x 6-8": { basePrice: 140 },
+			"3-0 x 6-8": { basePrice: 150 },
+		};
+		const seed = seedLine("interior", "primed");
+		const seedItem = seed.lineItems[0];
+		if (!seedItem) throw new Error("Expected seed fixture line");
+		seedItem.qty = 14;
+		seedItem.housePackageTool = {
+			doors: [
+				{ dimension: "2-4 x 6-8", totalQty: 1 },
+				{ dimension: "2-10 x 6-8", totalQty: 11 },
+				{ dimension: "3-0 x 6-8", totalQty: 2 },
+			],
+		};
+
+		const result = await initializeNewSalesFormSeed({
+			seed,
+			baseRecord,
+			routeData: slabRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => slabComponents[Number(step.id)] || [],
+		});
+		const line = result.record.lineItems[0];
+
+		expect(result.issues).toEqual([]);
+		expect(line?.qty).toBe(14);
+		expect(line?.housePackageTool).toMatchObject({
+			totalDoors: 14,
+			doors: [
+				{ dimension: "2-4 x 6-8", totalQty: 1, lhQty: 0, rhQty: 0 },
+				{ dimension: "2-10 x 6-8", totalQty: 11, lhQty: 0, rhQty: 0 },
+				{ dimension: "3-0 x 6-8", totalQty: 2, lhQty: 0, rhQty: 0 },
+			],
+		});
+	});
+
+	it("rejects an HPT quantity shape that does not match the selected route", async () => {
+		const slabRouteData = structuredClone(routeData);
+		const slabRoute = slabRouteData.composedRouter.interior;
+		if (!slabRoute) throw new Error("Expected interior route fixture");
+		slabRoute.config = {
+			noHandle: true,
+			hasSwing: false,
+		};
+		const seed = seedLine("interior", "primed");
+		const seedItem = seed.lineItems[0];
+		if (!seedItem) throw new Error("Expected seed fixture line");
+		seedItem.housePackageTool = {
+			doors: [{ dimension: "3-0 x 6-8", swing: "", lhQty: 1, rhQty: 0 }],
+		};
+
+		const result = await initializeNewSalesFormSeed({
+			seed,
+			baseRecord,
+			routeData: slabRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) =>
+				componentsByStepId[Number(step.id)] || [],
+		});
+
+		expect(result.issues).toContainEqual(
+			expect.objectContaining({
+				lineUid: "interior-line",
+				reason: "hpt-door-quantity-shape-invalid",
+			}),
+		);
+		expect(result.record.lineItems[0]?.housePackageTool).toBeNull();
+	});
+
+	it("rejects an HPT dimension outside the selected door's size candidates", async () => {
+		const seed = seedLine("interior", "primed");
+		const seedItem = seed.lineItems[0];
+		if (!seedItem) throw new Error("Expected seed fixture line");
+		seedItem.housePackageTool = {
+			doors: [{ dimension: "9-9 x 9-9", swing: "", lhQty: 1, rhQty: 0 }],
+		};
+
+		const result = await initialize(seed);
+
+		expect(result.issues).toContainEqual(
+			expect.objectContaining({
+				lineUid: "interior-line",
+				reason: "hpt-door-dimension-unavailable",
+			}),
+		);
+		expect(result.record.lineItems[0]?.housePackageTool).toBeNull();
+	});
+
 	it("prices HPT door tiers in dealer view like ordinary workflow components", async () => {
 		const seed = seedLine("exterior", "fiberglass");
 		const seedItem = seed.lineItems[0];
@@ -494,6 +597,247 @@ describe("initializeNewSalesFormSeed", () => {
 			reason: "service-rows-outside-service-route",
 		});
 		expect(result.record.lineItems[0]?.meta?.serviceRows).toBeUndefined();
+	});
+
+	it("hydrates native moulding rows with authoritative products and survives save/reopen", async () => {
+		const mouldingRouteData: WorkflowRouteData = {
+			rootStepUid: "item-type",
+			composedRouter: {
+				mouldings: {
+					routeSequence: [{ uid: "moulding" }, { uid: "line-item" }],
+					config: {},
+				},
+			},
+			stepsById: { 1: "item-type", 215: "moulding", 217: "line-item" },
+			stepsByUid: {
+				"item-type": { id: 1, uid: "item-type", title: "Item Type" },
+				moulding: { id: 215, uid: "moulding", title: "Moulding" },
+				"line-item": { id: 217, uid: "line-item", title: "Line Item" },
+			},
+		};
+		const mouldingComponents: Record<number, WorkflowComponentRecord[]> = {
+			1: [{ id: 12, uid: "mouldings", title: "Mouldings", basePrice: 0 }],
+			215: [
+				{
+					id: 2151,
+					uid: "baseboard-16",
+					title: "BASEBOARD WM713 3-1/4 X 9/16 X 16",
+					basePrice: 10,
+				},
+				{
+					id: 2152,
+					uid: "casing-17",
+					title: "CASING 11/16 X 2-1/4 X 17",
+					basePrice: 15,
+				},
+				{
+					id: 2153,
+					uid: "attic-access",
+					title: "ATTIC ACCESS KIT",
+					basePrice: 20,
+				},
+			],
+			217: [],
+		};
+		const seed: NewSalesFormSeed = {
+			schemaVersion: 2,
+			lineItems: [
+				{
+					uid: "moulding-line",
+					qty: 32,
+					formSteps: [
+						{ stepId: 1, prodUid: "mouldings" },
+						{
+							stepId: 215,
+							meta: {
+								selectedProdUids: ["baseboard-16", "casing-17", "attic-access"],
+							},
+						},
+					],
+					meta: {
+						mouldingRows: [
+							{
+								uid: "baseboard-16",
+								calculation: {
+									linearFeet: 400,
+									pieceLength: 16,
+									wastePercentage: 10,
+								},
+							},
+							{ uid: "casing-17", qty: 3 },
+							{ uid: "attic-access", qty: 1 },
+						],
+					},
+				},
+			],
+			unresolved: [],
+		};
+
+		const result = await initializeNewSalesFormSeed({
+			seed,
+			baseRecord,
+			routeData: mouldingRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) =>
+				mouldingComponents[Number(step.id)] || [],
+		});
+		const line = result.record.lineItems[0];
+		const payload = toSalesFormSaveDraftPayload(result.record, true);
+		const reopened = hydrateSalesFormRecord({
+			...result.record,
+			form: payload.meta,
+			lineItems: payload.lineItems,
+			extraCosts: payload.extraCosts,
+			summary: payload.summary,
+		});
+
+		expect(result.issues).toEqual([]);
+		expect({
+			title: line?.title,
+			qty: line?.qty,
+			unitPrice: line?.unitPrice,
+			lineTotal: line?.lineTotal,
+		}).toEqual({
+			title: "Mouldings",
+			qty: 32,
+			unitPrice: 21.56,
+			lineTotal: 690,
+		});
+		expect(
+			(line?.meta?.mouldingRows || []).map((row: Record<string, unknown>) => ({
+				uid: row.uid,
+				title: row.title,
+				qty: row.qty,
+				salesPrice: row.salesPrice,
+				lineTotal: row.lineTotal,
+			})),
+		).toEqual([
+			{
+				uid: "baseboard-16",
+				title: "BASEBOARD WM713 3-1/4 X 9/16 X 16",
+				qty: 28,
+				salesPrice: 20,
+				lineTotal: 560,
+			},
+			{
+				uid: "casing-17",
+				title: "CASING 11/16 X 2-1/4 X 17",
+				qty: 3,
+				salesPrice: 30,
+				lineTotal: 90,
+			},
+			{
+				uid: "attic-access",
+				title: "ATTIC ACCESS KIT",
+				qty: 1,
+				salesPrice: 40,
+				lineTotal: 40,
+			},
+		]);
+		expect(line?.formSteps?.[1]?.meta?.selectedProdUids).toEqual([
+			"baseboard-16",
+			"casing-17",
+			"attic-access",
+		]);
+		expect(
+			(line?.formSteps?.[1]?.meta?.selectedComponents || []).map(
+				(component: Record<string, unknown>) => ({
+					uid: component.uid,
+					id: component.id,
+				}),
+			),
+		).toEqual([
+			{ uid: "baseboard-16", id: 2151 },
+			{ uid: "casing-17", id: 2152 },
+			{ uid: "attic-access", id: 2153 },
+		]);
+
+		expect({
+			qty: payload.lineItems[0]?.qty,
+			unitPrice: payload.lineItems[0]?.unitPrice,
+			lineTotal: payload.lineItems[0]?.lineTotal,
+		}).toEqual({ qty: 32, unitPrice: 21.56, lineTotal: 690 });
+		expect(
+			payload.lineItems.every(
+				(item) => salesFormLineItemSchema.safeParse(item).success,
+			),
+		).toBe(true);
+		expect({
+			qty: reopened.lineItems[0]?.qty,
+			unitPrice: reopened.lineItems[0]?.unitPrice,
+			lineTotal: reopened.lineItems[0]?.lineTotal,
+		}).toEqual({ qty: 32, unitPrice: 21.56, lineTotal: 690 });
+		expect(
+			(reopened.lineItems[0]?.meta?.mouldingRows || []).map(
+				(row: Record<string, unknown>) => ({ uid: row.uid, qty: row.qty }),
+			),
+		).toEqual([
+			{ uid: "baseboard-16", qty: 28 },
+			{ uid: "casing-17", qty: 3 },
+			{ uid: "attic-access", qty: 1 },
+		]);
+
+		const invalidCalculatorSeed: NewSalesFormSeed = {
+			schemaVersion: 2,
+			lineItems: [
+				{
+					uid: "moulding-invalid-length",
+					qty: 1,
+					formSteps: [
+						{ stepId: 1, prodUid: "mouldings" },
+						{
+							stepId: 215,
+							meta: { selectedProdUids: ["baseboard-16"] },
+						},
+					],
+					meta: {
+						mouldingRows: [
+							{
+								uid: "baseboard-16",
+								calculation: { linearFeet: 400, pieceLength: 12 },
+							},
+						],
+					},
+				},
+			],
+			unresolved: [],
+		};
+		const invalidCalculator = await initializeNewSalesFormSeed({
+			seed: invalidCalculatorSeed,
+			baseRecord,
+			routeData: mouldingRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) =>
+				mouldingComponents[Number(step.id)] || [],
+		});
+		expect(invalidCalculator.issues).toContainEqual({
+			lineUid: "moulding-invalid-length",
+			stepId: 215,
+			reason: "moulding-piece-length-mismatch",
+			componentUid: "baseboard-16",
+		});
+		expect(
+			invalidCalculator.record.lineItems[0]?.meta?.mouldingRows,
+		).toBeUndefined();
+	});
+
+	it("keeps moulding row metadata off non-Mouldings routes", async () => {
+		const seed = seedLine("exterior", "fiberglass");
+		const seedItem = seed.lineItems[0];
+		if (!seedItem || seed.schemaVersion !== 2)
+			throw new Error("Expected v2 seed fixture line");
+		seedItem.meta = {
+			mouldingRows: [{ uid: "panel", qty: 1 }],
+		};
+
+		const result = await initialize(seed);
+
+		expect(result.issues).toContainEqual({
+			lineUid: "exterior-line",
+			stepId: 1,
+			reason: "moulding-rows-outside-moulding-route",
+		});
+		expect(result.record.lineItems[0]?.meta?.mouldingRows).toBeUndefined();
 	});
 
 	it("still initializes schemaVersion 1 seeds", async () => {
