@@ -21,13 +21,16 @@ export {
 } from "./sales-request-provider";
 export type {
 	SalesRequestProvider,
+	SalesRequestProviderFailureDiagnostic,
 	SalesRequestProviderInput,
 	SalesRequestProviderResult,
 } from "./sales-request-provider";
 import type {
 	SalesRequestProvider,
+	SalesRequestProviderFailureDiagnostic,
 	SalesRequestProviderInput,
 } from "./sales-request-provider";
+import { classifySalesRequestProviderFailure } from "./sales-request-provider";
 
 export const SALES_REQUEST_PROVIDER_TIMEOUT_MS = 45_000;
 
@@ -723,6 +726,11 @@ export function validateNewSalesFormSeedConfiguration(
 export async function generateNewSalesFormSeed(
 	input: SalesRequestProviderInput & { configurationRevision: string },
 	provider: SalesRequestProvider,
+	options?: {
+		onProviderFailure?: (
+			diagnostic: SalesRequestProviderFailureDiagnostic,
+		) => void;
+	},
 ) {
 	const signal = AbortSignal.any([
 		input.signal,
@@ -734,7 +742,12 @@ export async function generateNewSalesFormSeed(
 	let generated: Awaited<ReturnType<SalesRequestProvider>>;
 	try {
 		generated = await provider({ ...input, images, signal });
-	} catch {
+	} catch (error) {
+		try {
+			options?.onProviderFailure?.(classifySalesRequestProviderFailure(error));
+		} catch {
+			// Telemetry must never alter the safe provider error contract.
+		}
 		signal.throwIfAborted();
 		throw new Error(
 			"The AI provider could not generate a request preview. Try again.",

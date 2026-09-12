@@ -1,0 +1,41 @@
+/// Metadata-only pilot run telemetry. Never add source text, images, contacts,
+/// provider bodies/errors, credentials, or generated seed payloads to this model.
+model SalesRequestGenerationRun {
+    generationId                    String    @id @db.VarChar(36)
+    actorUserId                     Int?
+    scope                           String    @db.VarChar(191)
+    configurationRevision           String    @db.VarChar(128)
+    provider                        String    @db.VarChar(32)
+    model                           String    @db.VarChar(100)
+    promptVersion                   String?   @db.VarChar(64)
+    schemaVersion                   Int?
+    status                          String    @db.VarChar(32)
+    failureStage                    String?   @db.VarChar(32)
+    hasText                         Boolean   @default(false)
+    latencyMs                       Int?
+    inputTokens                     Int?
+    outputTokens                    Int?
+    issueCounts                     Json?     @db.Json
+    applyOutcome                    String?   @db.VarChar(32)
+    applyAt                         DateTime? @db.Timestamp(0)
+    saveDraftOutcome                String?   @db.VarChar(32)
+    saveDraftAt                     DateTime? @db.Timestamp(0)
+    saveFinalOutcome                String?   @db.VarChar(32)
+    saveFinalAt                     DateTime? @db.Timestamp(0)
+    feedbackOutcome                 String?   @db.VarChar(32)
+    feedbackIssueCategories         Json?     @db.Json
+    feedbackChangedFieldCategories  Json?     @db.Json
+    feedbackAt                      DateTime? @db.Timestamp(0)
+    correctionMs                    Int?
+    startedAt                       DateTime  @db.Timestamp(0)
+    completedAt                     DateTime? @db.Timestamp(0)
+    retentionUntil                  DateTime  @db.Timestamp(0)
+    createdAt                       DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt                       DateTime  @updatedAt
+    deletedAt                       DateTime? @db.Timestamp(0)
+
+    @@index([status, createdAt], map: "sales_req_gen_status_created_idx")
+    @@index([actorUserId, createdAt], map: "sales_req_gen_actor_created_idx")
+    @@index([scope, createdAt], map: "sales_req_gen_scope_created_idx")
+    @@index([retentionUntil, deletedAt], map: "sales_req_gen_retention_idx")
+}

@@ -357,3 +357,75 @@ test("defaults mutation does not accept a client-selected settings ID", async ()
 	).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	expect(fixture.getActiveSettingsReads()).toBe(0);
 });
+
+test("generation outcome writes are actor-bound and expose no source payload", async () => {
+	const calls: unknown[] = [];
+	const caller = salesRequestRouter.createCaller({
+		userId: 7,
+		db: {
+			salesRequestGenerationRun: {
+				findUnique: async () => ({
+					generationId: "11111111-1111-4111-8111-111111111111",
+					actorUserId: 7,
+					retentionUntil: new Date("2026-12-11T12:00:00.000Z"),
+					deletedAt: null,
+					applyOutcome: null,
+					completedAt: new Date("2026-09-12T11:59:00.000Z"),
+					correctionMs: null,
+				}),
+				updateMany: async (input: unknown) => {
+					calls.push(input);
+					return { count: 1 };
+				},
+			},
+			users: { findFirst: async () => superAdmin() },
+		},
+	} as unknown as SalesRequestCallerContext);
+
+	await expect(
+		caller.recordOutcome({
+			generationId: "11111111-1111-4111-8111-111111111111",
+			kind: "apply",
+			outcome: "applied",
+		}),
+	).resolves.toMatchObject({ recorded: true });
+	expect(JSON.stringify(calls)).not.toMatch(
+		/source|image|contact|providerBody/i,
+	);
+});
+
+test("pilot summary remains Super Admin-only and aggregate-only", async () => {
+	let readCount = 0;
+	const ordinary = salesRequestRouter.createCaller({
+		userId: 19,
+		db: {
+			users: {
+				findFirst: async () => ({ roles: [{ role: { name: "Sales" } }] }),
+			},
+			salesRequestGenerationRun: {
+				findMany: async () => {
+					readCount += 1;
+					return [];
+				},
+			},
+		},
+	} as unknown as SalesRequestCallerContext);
+
+	await expect(ordinary.pilotSummary({ days: 30 })).rejects.toMatchObject({
+		code: "FORBIDDEN",
+	});
+	expect(readCount).toBe(0);
+
+	const admin = salesRequestRouter.createCaller({
+		userId: 7,
+		db: {
+			users: { findFirst: async () => superAdmin() },
+			salesRequestGenerationRun: {
+				findMany: async () => [],
+			},
+		},
+	} as unknown as SalesRequestCallerContext);
+	const result = await admin.pilotSummary({ days: 30 });
+	expect(result).toHaveProperty("generationCount", 0);
+	expect(result).not.toHaveProperty("runs");
+});

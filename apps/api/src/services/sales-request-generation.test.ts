@@ -1111,3 +1111,22 @@ test("provider failure does not expose customer content through its error", asyn
 		expect((error as Error).cause).toBeUndefined();
 	}
 });
+
+test("provider failure telemetry receives only a safe diagnostic", async () => {
+	let diagnostic: unknown;
+	await expect(
+		generateNewSalesFormSeed(
+			input,
+			async () => {
+				throw new Error("private customer request in provider error");
+			},
+			{
+				onProviderFailure: (value) => {
+					diagnostic = value;
+				},
+			},
+		),
+	).rejects.toThrow("AI provider could not generate");
+	expect(diagnostic).toEqual({ stage: "unknown" });
+	expect(JSON.stringify(diagnostic)).not.toMatch(/private|customer|request/i);
+});

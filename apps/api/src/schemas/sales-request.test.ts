@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import {
 	generateSalesRequestPreviewSchema,
+	recordSalesRequestGenerationOutcomeSchema,
+	salesRequestGenerationPilotSummarySchema,
 	setSalesRequestDefaultSchema,
 } from "./sales-request";
 
@@ -64,6 +66,60 @@ test("default writes accept a nullable component UID but never a client setting 
 			stepUid: "step",
 			componentUid: "component",
 			settingId: 7,
+		}).success,
+	).toBe(false);
+});
+
+test("generation outcomes are strict, bounded, and contain no content fields", () => {
+	const generationId = "11111111-1111-4111-8111-111111111111";
+	expect(
+		recordSalesRequestGenerationOutcomeSchema.parse({
+			generationId,
+			kind: "apply",
+			outcome: "applied",
+		}),
+	).toEqual({ generationId, kind: "apply", outcome: "applied" });
+	expect(
+		recordSalesRequestGenerationOutcomeSchema.parse({
+			generationId,
+			kind: "feedback",
+			outcome: "accepted-with-edits",
+			issueCategories: ["ambiguous"],
+			changedFieldCategories: ["line-items"],
+		}),
+	).toMatchObject({ issueCategories: ["ambiguous"] });
+	expect(
+		recordSalesRequestGenerationOutcomeSchema.safeParse({
+			generationId,
+			kind: "feedback",
+			outcome: "rejected",
+			issueCategories: Array.from({ length: 13 }, () => "ambiguous"),
+			changedFieldCategories: [],
+		}).success,
+	).toBe(false);
+	for (const field of ["text", "source", "image", "providerBody", "contact"]) {
+		expect(
+			recordSalesRequestGenerationOutcomeSchema.safeParse({
+				generationId,
+				kind: "apply",
+				outcome: "applied",
+				[field]: "private",
+			}).success,
+		).toBe(false);
+	}
+});
+
+test("pilot summary input is server-bounded", () => {
+	expect(salesRequestGenerationPilotSummarySchema.parse({})).toEqual({
+		days: 30,
+	});
+	expect(
+		salesRequestGenerationPilotSummarySchema.safeParse({ days: 91 }).success,
+	).toBe(false);
+	expect(
+		salesRequestGenerationPilotSummarySchema.safeParse({
+			days: 30,
+			actorUserId: 7,
 		}).success,
 	).toBe(false);
 });

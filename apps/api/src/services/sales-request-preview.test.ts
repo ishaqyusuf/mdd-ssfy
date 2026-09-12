@@ -105,17 +105,71 @@ test("configuration changes while the model runs prevent a stale seed response",
 });
 
 test("successful preview returns only the validated seed and configuration identity", async () => {
+	const events: Array<{ kind: string; value: unknown }> = [];
 	const result = await createSalesRequestPreview(source, {
 		authorize: async () => {},
 		reserveUsage: async () => {},
 		readSnapshot: async () => snapshot,
 		createProvider: () => async () => ({ output }),
+		telemetry: {
+			onStart: (event) => events.push({ kind: "start", value: event }),
+			onComplete: (event) => events.push({ kind: "complete", value: event }),
+		},
 	});
 
 	expect(result.seed).toEqual(output);
 	expect(result.configurationRevision).toBe("one");
 	expect(result.configurationScope).toBe("sales-settings:3");
+	expect(result.generationId).toMatch(
+		/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+	);
 	expect(result).not.toHaveProperty("draftPreparation");
+	expect(events).toHaveLength(2);
+	expect(events[0]).toMatchObject({
+		kind: "start",
+		value: {
+			generationId: result.generationId,
+			scope: "sales-settings:3",
+			configurationRevision: "one",
+			hasText: true,
+		},
+	});
+	expect(events[1]).toMatchObject({
+		kind: "complete",
+		value: {
+			generationId: result.generationId,
+			status: "succeeded",
+		},
+	});
+	expect(JSON.stringify(events)).not.toMatch(/one door|base64|private/i);
+});
+
+test("usage denial closes the metadata-only lifecycle without a provider call", async () => {
+	const events: Array<{ kind: string; value: unknown }> = [];
+	let providerCalled = false;
+	await expect(
+		createSalesRequestPreview(source, {
+			authorize: async () => {},
+			reserveUsage: async () => {
+				throw new Error("quota");
+			},
+			readSnapshot: async () => snapshot,
+			createProvider: () => async () => {
+				providerCalled = true;
+				return { output };
+			},
+			telemetry: {
+				onStart: (event) => events.push({ kind: "start", value: event }),
+				onComplete: (event) => events.push({ kind: "complete", value: event }),
+			},
+		}),
+	).rejects.toThrow("quota");
+	expect(providerCalled).toBe(false);
+	expect(events).toHaveLength(2);
+	expect(events[1]).toMatchObject({
+		kind: "complete",
+		value: { status: "usage-denied" },
+	});
 });
 
 test("provider settings changes while the model runs prevent a stale seed response", async () => {

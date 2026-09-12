@@ -1,4 +1,8 @@
 import {
+	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
+	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
+} from "@api/services/sales-request-telemetry";
+import {
 	salesRequestAISelectionSchema,
 	salesRequestCatalogPolicySchema,
 } from "@gnd/settings";
@@ -56,3 +60,49 @@ export const generateSalesRequestPreviewSchema = z
 			});
 		}
 	});
+
+const generationIdSchema = z.string().uuid();
+const issueCategorySchema = z.enum(SALES_REQUEST_GENERATION_ISSUE_CATEGORIES);
+const changedFieldCategorySchema = z.enum(
+	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
+);
+
+export const recordSalesRequestGenerationOutcomeSchema = z.discriminatedUnion(
+	"kind",
+	[
+		z
+			.object({
+				generationId: generationIdSchema,
+				kind: z.literal("apply"),
+				outcome: z.enum(["applied", "blocked", "stale", "unavailable"]),
+			})
+			.strict(),
+		z
+			.object({
+				generationId: generationIdSchema,
+				kind: z.literal("save"),
+				stage: z.enum(["draft", "final"]),
+				outcome: z.enum(["saved", "failed"]),
+			})
+			.strict(),
+		z
+			.object({
+				generationId: generationIdSchema,
+				kind: z.literal("feedback"),
+				outcome: z.enum(["accepted", "accepted-with-edits", "rejected"]),
+				issueCategories: z.array(issueCategorySchema).max(12).default([]),
+				changedFieldCategories: z
+					.array(changedFieldCategorySchema)
+					.max(12)
+					.default([]),
+			})
+			.strict(),
+	],
+);
+
+export const salesRequestGenerationPilotSummarySchema = z
+	.object({
+		days: z.number().int().min(1).max(90).default(30),
+	})
+	.strict()
+	.default({ days: 30 });

@@ -3,7 +3,16 @@ import {
 	getSalesRequestGenerationAdminSettings,
 } from "@api/db/queries/sales-request-configuration";
 import {
+	type SalesRequestTelemetryDatabase,
+	completeSalesRequestGenerationRun,
+	createSalesRequestGenerationRun,
+	getSalesRequestGenerationPilotSummary,
+	recordSalesRequestGenerationOutcome,
+} from "@api/db/queries/sales-request-telemetry";
+import {
 	generateSalesRequestPreviewSchema,
+	recordSalesRequestGenerationOutcomeSchema,
+	salesRequestGenerationPilotSummarySchema,
 	setSalesRequestAISettingsSchema,
 	setSalesRequestCatalogPolicySchema,
 	setSalesRequestDefaultSchema,
@@ -211,6 +220,7 @@ export const salesRequestRouter = createTRPCRouter({
 					message: "Sales request generation is not enabled.",
 				});
 			}
+			let telemetryStart: Promise<unknown> | null = null;
 			return createSalesRequestPreview(
 				{
 					text: input.text,
@@ -259,6 +269,22 @@ export const salesRequestRouter = createTRPCRouter({
 						),
 					createProvider: (selection) =>
 						createSalesRequestProvider({ selection }),
+					telemetry: {
+						onStart: (event) => {
+							telemetryStart = createSalesRequestGenerationRun(
+								ctx.db as unknown as SalesRequestTelemetryDatabase,
+								{ ...event, actorUserId: ctx.userId },
+							);
+							return telemetryStart;
+						},
+						onComplete: async (event) => {
+							await telemetryStart?.catch(() => undefined);
+							return completeSalesRequestGenerationRun(
+								ctx.db as unknown as SalesRequestTelemetryDatabase,
+								{ ...event, actorUserId: ctx.userId },
+							);
+						},
+					},
 				},
 			);
 		}),
@@ -277,5 +303,22 @@ export const salesRequestRouter = createTRPCRouter({
 				stepUid: input.stepUid,
 				componentUid: input.componentUid ?? null,
 			});
+		}),
+	recordOutcome: protectedProcedure
+		.input(recordSalesRequestGenerationOutcomeSchema)
+		.mutation(async ({ ctx, input }) =>
+			recordSalesRequestGenerationOutcome(
+				ctx.db as unknown as SalesRequestTelemetryDatabase,
+				{ ...input, actorUserId: ctx.userId },
+			),
+		),
+	pilotSummary: protectedProcedure
+		.input(salesRequestGenerationPilotSummarySchema)
+		.query(async ({ ctx, input }) => {
+			await requireSalesRequestSettingsAdmin(ctx);
+			return getSalesRequestGenerationPilotSummary(
+				ctx.db as unknown as SalesRequestTelemetryDatabase,
+				input,
+			);
 		}),
 });
