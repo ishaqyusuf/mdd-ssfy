@@ -1,3 +1,13 @@
+### 2026-09-12 — App Store Connect app record created
+
+After explicit action-time approval, created the `GND Millwork` iOS app record
+for `com.gnd.prodesk` with public Company Name `GND MILLWORK`, English (U.S.),
+SKU `gnd-prodesk-ios`, and Full Access. Apple assigned numeric app ID
+`6811442922`; the production EAS submit profile now pins that verified value and
+the release-readiness checker enforces it. No certificate, provisioning profile,
+build, upload, submission, API-access request/key, permission change, or tester
+invitation was created. First-build signing is the next separately confirmed gate.
+
 ### 2026-09-12 — Production Apple App ID registered
 
 After explicit action-time approval, registered the explicit Apple App ID
