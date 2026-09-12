@@ -11,6 +11,7 @@ export * from "./reliability-actions";
 export * from "./reliability-cursor";
 export * from "./reliability-trigger";
 export * from "./sales-tax-report";
+export * from "./sales-request-telemetry-retention";
 export * from "./short-links";
 export * from "./users";
 export {

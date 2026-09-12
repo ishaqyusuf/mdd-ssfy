@@ -8,11 +8,20 @@ import {
 	normalizeSalesRequestGenerationIssueCounts,
 	normalizeSalesRequestGenerationStatus,
 } from "@api/services/sales-request-telemetry";
+import {
+	SALES_REQUEST_GENERATION_RETENTION_DAYS,
+	anonymizeSalesRequestGenerationRunsForUser,
+	purgeExpiredSalesRequestGenerationRuns,
+} from "@gnd/db/queries";
 import { TRPCError } from "@trpc/server";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
-export const SALES_REQUEST_GENERATION_RETENTION_DAYS = 90;
 export const SALES_REQUEST_GENERATION_REPORT_MAX_ROWS = 10_000;
+export {
+	SALES_REQUEST_GENERATION_RETENTION_DAYS,
+	anonymizeSalesRequestGenerationRunsForUser,
+	purgeExpiredSalesRequestGenerationRuns,
+};
 
 type TelemetryRow = SalesRequestGenerationRunForReport & {
 	generationId: string;
@@ -356,28 +365,6 @@ export async function recordSalesRequestGenerationOutcome(
 	return conflictGenerationOutcome();
 }
 
-export async function purgeExpiredSalesRequestGenerationRuns(
-	db: SalesRequestTelemetryDatabase,
-	now = new Date(),
-) {
-	return db.salesRequestGenerationRun.deleteMany({
-		where: {
-			retentionUntil: { lt: now },
-			deletedAt: null,
-		},
-	});
-}
-
-export async function anonymizeSalesRequestGenerationRunsForUser(
-	db: SalesRequestTelemetryDatabase,
-	actorUserId: number,
-) {
-	return db.salesRequestGenerationRun.updateMany({
-		where: { actorUserId, deletedAt: null },
-		data: { actorUserId: null },
-	});
-}
-
 export type SalesRequestGenerationPilotSummaryInput = {
 	days?: number;
 	now?: Date;
@@ -393,6 +380,7 @@ export async function getSalesRequestGenerationPilotSummary(
 	const rows = await db.salesRequestGenerationRun.findMany({
 		where: {
 			createdAt: { gte: from, lte: now },
+			retentionUntil: { gt: now },
 			deletedAt: null,
 		},
 		orderBy: { createdAt: "desc" },

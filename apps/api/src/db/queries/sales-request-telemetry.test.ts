@@ -211,7 +211,7 @@ describe("sales request generation telemetry persistence", () => {
 			"updateMany",
 		]);
 		expect(fixture.calls[0]?.args).toMatchObject({
-			where: { retentionUntil: { lt: now }, deletedAt: null },
+			where: { retentionUntil: { lte: now } },
 		});
 		expect(fixture.calls[1]?.args).toMatchObject({
 			where: { actorUserId: 7, deletedAt: null },
@@ -224,6 +224,10 @@ describe("sales request generation telemetry persistence", () => {
 		const result = await getSalesRequestGenerationPilotSummary(fixture.db, {
 			days: 30,
 			now,
+		});
+		expect(fixture.calls.at(-1)).toMatchObject({
+			method: "findMany",
+			args: { where: { retentionUntil: { gt: now }, deletedAt: null } },
 		});
 		expect(result).toHaveProperty("generationCount", 1);
 		expect(result).not.toHaveProperty("runs");

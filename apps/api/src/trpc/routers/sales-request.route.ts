@@ -271,16 +271,16 @@ export const salesRequestRouter = createTRPCRouter({
 					createProvider: (selection) =>
 						createSalesRequestProvider({ selection }),
 					telemetry: {
-						onStart: (event) => {
+						onStart: async (event) => {
 							telemetryStart = createSalesRequestGenerationRun(
 								ctx.db as unknown as SalesRequestTelemetryDatabase,
 								{ ...event, actorUserId: ctx.userId },
 							);
-							return telemetryStart;
+							await telemetryStart;
 						},
 						onComplete: async (event) => {
 							await telemetryStart?.catch(() => undefined);
-							return completeSalesRequestGenerationRun(
+							await completeSalesRequestGenerationRun(
 								ctx.db as unknown as SalesRequestTelemetryDatabase,
 								{ ...event, actorUserId: ctx.userId },
 							);
