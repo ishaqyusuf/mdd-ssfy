@@ -324,6 +324,37 @@ describe("assistant chat REST router", () => {
 		});
 	});
 
+	test("keeps committed assistant history successful across a late abort", async () => {
+		const controller = new AbortController();
+		const { router, calls } = createHarness({
+			executeRun: async () => {
+				controller.abort();
+				return {
+					status: "succeeded",
+					usage: { totalTokens: 12 },
+					committed: true,
+				};
+			},
+		});
+		const response = await router.request(
+			new Request("http://localhost/", {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify(requestBody()),
+				signal: controller.signal,
+			}),
+		);
+
+		await response.text();
+		expect(calls.at(-1)).toMatchObject({
+			complete: {
+				runId: "run-1",
+				status: "succeeded",
+				usage: { totalTokens: 12 },
+			},
+		});
+	});
+
 	test("redacts runtime errors from the stream", async () => {
 		const { router } = createHarness({
 			executeRun: async () => {

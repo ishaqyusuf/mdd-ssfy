@@ -410,6 +410,77 @@ export function getAssistantConversation(
 	});
 }
 
+export const ASSISTANT_MODEL_HISTORY_MAX_MESSAGES = 40;
+export const ASSISTANT_MODEL_HISTORY_MAX_CHARS = 48_000;
+
+export async function getAssistantModelHistory(
+	db: Database,
+	input: ConversationIdentity,
+) {
+	const scope = resolveActorScope(input);
+	const messages = await db.assistantMessage.findMany({
+		where: {
+			conversationId: input.conversationId,
+			role: { in: ["user", "assistant"] },
+			conversation: { ...scope, deletedAt: null },
+		},
+		orderBy: { sequence: "desc" },
+		take: ASSISTANT_MODEL_HISTORY_MAX_MESSAGES,
+		select: { id: true, sequence: true, role: true, parts: true },
+	});
+
+	let remaining = ASSISTANT_MODEL_HISTORY_MAX_CHARS;
+	const selected: Array<{
+		id: string;
+		sequence: number;
+		role: "user" | "assistant";
+		text: string;
+	}> = [];
+	for (const message of messages) {
+		if (remaining <= 0) break;
+		if (message.role !== "user" && message.role !== "assistant") continue;
+		let text = Array.isArray(message.parts)
+			? message.parts
+					.flatMap((part) =>
+						part &&
+						typeof part === "object" &&
+						"type" in part &&
+						part.type === "text" &&
+						"text" in part &&
+						typeof part.text === "string"
+							? [part.text]
+							: [],
+					)
+					.join("\n")
+			: "";
+		if (
+			!text &&
+			Array.isArray(message.parts) &&
+			message.parts.some(
+				(part) =>
+					part &&
+					typeof part === "object" &&
+					"type" in part &&
+					part.type === "file",
+			)
+		) {
+			text = "Review the attached uploaded document context.";
+		}
+		if (!text) continue;
+		if (text.length > remaining) break;
+		remaining -= text.length;
+		selected.push({
+			id: message.id,
+			sequence: message.sequence,
+			role: message.role,
+			text,
+		});
+	}
+	selected.reverse();
+	while (selected[0]?.role === "assistant") selected.shift();
+	return selected;
+}
+
 export async function archiveAssistantConversation(
 	db: Database,
 	input: ConversationIdentity & { archived: boolean },

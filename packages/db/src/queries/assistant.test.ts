@@ -7,6 +7,7 @@ import {
 	AssistantMessageValidationError,
 	appendAssistantUserMessage,
 	getAssistantConversation,
+	getAssistantModelHistory,
 	getAssistantRunForReconnect,
 	listAssistantConversations,
 } from "./assistant";
@@ -105,6 +106,119 @@ describe("assistant persistence queries", () => {
 				deletedAt: null,
 			},
 		});
+	});
+
+	it("loads bounded actor-scoped model history in chronological order", async () => {
+		let received: Record<string, unknown> | undefined;
+		const db = {
+			assistantMessage: {
+				findMany: async (args: Record<string, unknown>) => {
+					received = args;
+					return [
+						{
+							id: "message-3",
+							sequence: 3,
+							role: "user",
+							parts: [{ type: "text", text: "follow up" }],
+						},
+						{
+							id: "message-2",
+							sequence: 2,
+							role: "assistant",
+							parts: [{ type: "text", text: "first answer" }],
+						},
+						{
+							id: "message-1",
+							sequence: 1,
+							role: "user",
+							parts: [{ type: "file", documentId: "doc-1" }],
+						},
+					];
+				},
+			},
+		};
+
+		const history = await getAssistantModelHistory(db as never, {
+			conversationId: "conversation-a",
+			ownerUserId: 9,
+			scopeType: "organization",
+			scopeId: "7",
+		});
+
+		expect(received).toMatchObject({
+			where: {
+				conversationId: "conversation-a",
+				conversation: {
+					ownerUserId: 9,
+					scopeType: "organization",
+					scopeId: "7",
+					deletedAt: null,
+				},
+			},
+			orderBy: { sequence: "desc" },
+			take: 40,
+		});
+		expect(history).toEqual([
+			{
+				id: "message-1",
+				sequence: 1,
+				role: "user",
+				text: "Review the attached uploaded document context.",
+			},
+			{
+				id: "message-2",
+				sequence: 2,
+				role: "assistant",
+				text: "first answer",
+			},
+			{
+				id: "message-3",
+				sequence: 3,
+				role: "user",
+				text: "follow up",
+			},
+		]);
+	});
+
+	it("keeps complete turns when the model-history character budget is reached", async () => {
+		const db = {
+			assistantMessage: {
+				findMany: async () => [
+					{
+						id: "message-3",
+						sequence: 3,
+						role: "user",
+						parts: [{ type: "text", text: "current" }],
+					},
+					{
+						id: "message-2",
+						sequence: 2,
+						role: "assistant",
+						parts: [{ type: "text", text: "a".repeat(30_000) }],
+					},
+					{
+						id: "message-1",
+						sequence: 1,
+						role: "user",
+						parts: [{ type: "text", text: "u".repeat(30_000) }],
+					},
+				],
+			},
+		};
+
+		const history = await getAssistantModelHistory(db as never, {
+			conversationId: "conversation-a",
+			ownerUserId: 9,
+		});
+
+		expect(history).toEqual([
+			{
+				id: "message-3",
+				sequence: 3,
+				role: "user",
+				text: "current",
+			},
+		]);
 	});
 
 	it("rejects forged assistant and tool parts before writing history", async () => {

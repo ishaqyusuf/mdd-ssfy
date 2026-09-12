@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { executeAssistantConversationTurn } from "@api/assistant/execute-turn";
+import { getAssistantRuntimeIdentity } from "@api/assistant/runtime";
 import {
 	type AssistantChatRequest,
 	assistantChatRequestSchema,
@@ -46,6 +48,12 @@ export type AssistantStreamActor = {
 	locale: string;
 	timezone: string;
 	grants: Record<string, boolean>;
+	fullName?: string | null;
+	teamName?: string | null;
+	baseCurrency?: string;
+	dateFormat?: string | null;
+	timeFormat?: 12 | 24;
+	countryCode?: string | null;
 };
 
 type AssistantStreamData = UIDataTypes & {
@@ -63,6 +71,7 @@ type AssistantWriter = UIMessageStreamWriter<AssistantStreamMessage>;
 
 type StartedRun = {
 	runId: string;
+	triggerMessageId?: string;
 	messageSequence: number;
 	runSequence: number;
 	status: string;
@@ -72,6 +81,7 @@ type StartedRun = {
 type RunOutcome = {
 	status: "succeeded" | "failed" | "cancelled";
 	usage?: Prisma.InputJsonValue;
+	committed?: boolean;
 	errorCode?: string;
 	errorMessage?: string;
 };
@@ -404,7 +414,11 @@ function sanitizeRunOutcome(outcome: RunOutcome): RunOutcome {
 		};
 	}
 	if (outcome.status === "succeeded") {
-		return { status: outcome.status, usage: outcome.usage };
+		return {
+			status: outcome.status,
+			usage: outcome.usage,
+			committed: outcome.committed === true,
+		};
 	}
 	const safeCode =
 		outcome.errorCode && /^[A-Z][A-Z0-9_]{0,99}$/.test(outcome.errorCode)
@@ -444,6 +458,7 @@ const defaultDependencies: AssistantRouterDependencies = {
 			context.db.users.findFirst({
 				where: { id: context.userId, deletedAt: null, accessRevokedAt: null },
 				select: {
+					name: true,
 					meta: true,
 					roles: {
 						where: {
@@ -458,6 +473,7 @@ const defaultDependencies: AssistantRouterDependencies = {
 						take: 1,
 						select: {
 							organizationId: true,
+							organization: { select: { name: true } },
 							role: {
 								select: {
 									name: true,
@@ -489,6 +505,24 @@ const defaultDependencies: AssistantRouterDependencies = {
 		} catch {
 			timezone = "UTC";
 		}
+		let locale = typeof meta.locale === "string" ? meta.locale : "en-US";
+		try {
+			new Intl.DateTimeFormat(locale).format();
+		} catch {
+			locale = "en-US";
+		}
+		const configuredCurrency =
+			typeof meta.baseCurrency === "string"
+				? meta.baseCurrency.toUpperCase()
+				: "USD";
+		const baseCurrency = /^[A-Z]{3}$/.test(configuredCurrency)
+			? configuredCurrency
+			: "USD";
+		const countryCode =
+			typeof meta.countryCode === "string" &&
+			/^[A-Za-z]{2}$/.test(meta.countryCode)
+				? meta.countryCode.toUpperCase()
+				: null;
 		const organizationId = profile.roles[0]?.organizationId;
 		const selectedRole = profile.roles[0]?.role;
 		const rolePermissions =
@@ -503,12 +537,22 @@ const defaultDependencies: AssistantRouterDependencies = {
 			userId: context.userId,
 			scopeType: organizationId ? "organization" : "user",
 			scopeId: String(organizationId ?? context.userId),
-			locale: typeof meta.locale === "string" ? meta.locale : "en",
+			locale,
 			timezone,
+			fullName: profile.name,
+			teamName: profile.roles[0]?.organization.name ?? null,
+			baseCurrency,
+			dateFormat:
+				typeof meta.dateFormat === "string"
+					? meta.dateFormat.slice(0, 50)
+					: null,
+			timeFormat: meta.timeFormat === 24 ? 24 : 12,
+			countryCode,
 			grants: grants as unknown as Record<string, boolean>,
 		};
 	},
 	async startRun(input) {
+		const runtimeIdentity = getAssistantRuntimeIdentity();
 		const requestRun = await createOrReuseAssistantRequestRun(db, {
 			conversationId: input.conversationId,
 			ownerUserId: input.actor.userId,
@@ -517,9 +561,9 @@ const defaultDependencies: AssistantRouterDependencies = {
 			clientMessageId: input.messageId,
 			requestId: input.requestId,
 			parts: input.parts,
-			catalogVersion: "assistant-catalog-v1",
-			model: "pending-runtime",
-			promptVersion: "pending-runtime-v1",
+			catalogVersion: runtimeIdentity.catalogVersion,
+			model: runtimeIdentity.modelIdentity,
+			promptVersion: runtimeIdentity.promptVersion,
 		});
 		const claim = await claimAssistantRunForExecution(db, {
 			runId: requestRun.run.id,
@@ -529,6 +573,7 @@ const defaultDependencies: AssistantRouterDependencies = {
 		});
 		return {
 			runId: claim.run.id,
+			triggerMessageId: requestRun.message.id,
 			messageSequence: requestRun.message.sequence,
 			runSequence: claim.run.lastSequence,
 			status: claim.run.status,
@@ -581,20 +626,26 @@ const defaultDependencies: AssistantRouterDependencies = {
 			},
 		});
 	},
-	async executeRun({ writer }) {
-		writer.write({
-			type: "data-warning",
-			id: "runtime-unavailable",
-			data: {
-				code: "ASSISTANT_RUNTIME_UNAVAILABLE",
-				message: "The assistant runtime is being connected.",
+	async executeRun({ actor, request, run, writer, signal }) {
+		return executeAssistantConversationTurn({
+			actor: {
+				userId: actor.userId,
+				scopeType: actor.scopeType,
+				scopeId: actor.scopeId,
+				fullName: actor.fullName ?? null,
+				teamName: actor.teamName ?? null,
+				locale: actor.locale,
+				timezone: actor.timezone,
+				baseCurrency: actor.baseCurrency ?? "USD",
+				dateFormat: actor.dateFormat ?? null,
+				timeFormat: actor.timeFormat ?? 12,
+				countryCode: actor.countryCode ?? null,
 			},
+			request,
+			run,
+			writer,
+			signal,
 		});
-		return {
-			status: "failed",
-			errorCode: "ASSISTANT_RUNTIME_UNAVAILABLE",
-			errorMessage: "Assistant runtime unavailable",
-		};
 	},
 	guard: defaultGuard,
 	allowedOrigins:
@@ -777,7 +828,7 @@ export function createAssistantChatRouter(
 							signal: context.req.raw.signal,
 						});
 						outcome = sanitizeRunOutcome(
-							context.req.raw.signal.aborted
+							context.req.raw.signal.aborted && !runtimeOutcome.committed
 								? { status: "cancelled" }
 								: runtimeOutcome,
 						);
