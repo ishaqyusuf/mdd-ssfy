@@ -61,6 +61,15 @@ export const generateSalesRequestPreviewSchema = z
 		}
 	});
 
+export const validateSalesRequestPreviewSchema = z
+	.object({
+		configurationScope: z.string().trim().min(1).max(191),
+		configurationRevision: z.string().trim().min(1).max(128),
+		provider: z.string().trim().min(1).max(32),
+		model: z.string().trim().min(1).max(100),
+	})
+	.strict();
+
 const generationIdSchema = z.string().uuid();
 const issueCategorySchema = z.enum(SALES_REQUEST_GENERATION_ISSUE_CATEGORIES);
 const changedFieldCategorySchema = z.enum(

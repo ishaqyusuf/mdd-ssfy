@@ -25,6 +25,10 @@ export type NewSalesRequestGeneratePreviewInput = Exclude<
 >;
 export type NewSalesRequestGeneratePreviewOutput =
 	SalesRequestGeneratePreviewOutput;
+export type NewSalesRequestValidatePreviewInput = Exclude<
+	RouterInputs["salesRequest"]["validatePreview"],
+	void
+>;
 
 export function createSalesRequestGeneratePreviewInput(
 	input: Pick<SalesRequestGeneratePreviewVariables, "text">,
@@ -45,6 +49,11 @@ export function useSalesRequestGeneratePreviewMutation() {
 				signal ? { signal } : undefined,
 			),
 	});
+}
+
+export function useSalesRequestValidatePreviewMutation() {
+	const trpc = useTRPC();
+	return useMutation(trpc.salesRequest.validatePreview.mutationOptions());
 }
 
 export function useNewSalesFormBootstrapQuery(

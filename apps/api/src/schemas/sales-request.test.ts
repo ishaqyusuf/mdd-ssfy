@@ -4,6 +4,7 @@ import {
 	recordSalesRequestGenerationOutcomeSchema,
 	salesRequestGenerationPilotSummarySchema,
 	setSalesRequestDefaultSchema,
+	validateSalesRequestPreviewSchema,
 } from "./sales-request";
 
 test("preview accepts text or request-scoped bytes, not client configuration or URLs", () => {
@@ -48,6 +49,31 @@ test("rejects unsupported formats and malformed base64 before decoding", () => {
 			images: [
 				{ mediaType: "image/png", base64: "data:image/png;base64,YWJjZA==" },
 			],
+		}).success,
+	).toBe(false);
+});
+
+test("preview validation accepts only the server-issued configuration identity", () => {
+	expect(
+		validateSalesRequestPreviewSchema.parse({
+			configurationScope: "sales-settings:7",
+			configurationRevision: "a".repeat(64),
+			provider: "deepseek",
+			model: "deepseek-chat",
+		}),
+	).toEqual({
+		configurationScope: "sales-settings:7",
+		configurationRevision: "a".repeat(64),
+		provider: "deepseek",
+		model: "deepseek-chat",
+	});
+	expect(
+		validateSalesRequestPreviewSchema.safeParse({
+			configurationScope: "sales-settings:7",
+			configurationRevision: "a".repeat(64),
+			provider: "deepseek",
+			model: "deepseek-chat",
+			settingId: 7,
 		}).success,
 	).toBe(false);
 });

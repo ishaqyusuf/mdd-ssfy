@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test";
+import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
+import { getSalesRequestAISettings } from "@gnd/settings";
 
 import { salesRequestRouter } from "./sales-request.route";
 
@@ -7,7 +9,9 @@ type SalesRequestCallerContext = Parameters<
 >[0];
 
 function superAdmin() {
-	return { roles: [{ role: { name: "Super Admin" } }] };
+	return {
+		roles: [{ role: { name: "Super Admin", RoleHasPermissions: [] } }],
+	};
 }
 
 function requestContext() {
@@ -34,29 +38,24 @@ function requestContext() {
 			savedMeta = data.meta;
 		},
 	};
-	const transaction = {
-		$queryRaw: async () => [{ id: 7 }],
-		settings,
-		dykeSteps: {
-			findMany: async ({ where }: { where: { uid: string } }) => [
-				{ id: 11, uid: where.uid },
-			],
-		},
-		dykeStepProducts: {
-			findMany: async () => [{ uid: "component", meta: {} }],
-		},
-	};
 	const db = {
 		users: { findFirst: async () => superAdmin() },
+		modelHasPermissions: { findMany: async () => [] },
 		settings,
 		dykeSteps: {
-			findMany: async ({ where }: { where: { uid: { in: string[] } } }) =>
-				where.uid.in.map((uid, index) => ({
-					id: 11 + index,
-					uid,
-					title: "Frame",
-					meta: {},
-				})),
+			findMany: async ({
+				where,
+			}: {
+				where: { uid: string | { in: string[] } };
+			}) =>
+				(typeof where.uid === "string" ? [where.uid] : where.uid.in).map(
+					(uid, index) => ({
+						id: 11 + index,
+						uid,
+						title: "Frame",
+						meta: {},
+					}),
+				),
 		},
 		dykeStepProducts: {
 			findMany: async ({ where }: { where: { uid?: { in: string[] } } }) =>
@@ -98,8 +97,10 @@ function requestContext() {
 							},
 						],
 		},
+		salesOrders: { findMany: async () => [] },
+		$queryRaw: async () => [{ id: 7 }],
 		$transaction: async (callback: (tx: unknown) => Promise<unknown>) =>
-			callback(transaction),
+			callback(db),
 	};
 
 	return {
@@ -107,6 +108,7 @@ function requestContext() {
 		getSavedMeta: () => savedMeta,
 		getActiveSettingsReads: () => activeSettingsReads,
 		getSettingsUpdates: () => settingsUpdates,
+		transaction: db,
 	};
 }
 
@@ -164,6 +166,70 @@ test("AI settings query includes price-free route defaults and revision diagnost
 	expect(JSON.stringify(result.requestGeneration)).not.toMatch(
 		/price|amount|cost/i,
 	);
+});
+
+test("preview validation rejects a disabled feature before reading permissions or configuration", async () => {
+	let databaseRead = false;
+	const caller = salesRequestRouter.createCaller({
+		userId: 19,
+		db: {
+			users: {
+				findFirst: async () => {
+					databaseRead = true;
+					return superAdmin();
+				},
+			},
+		},
+	} as unknown as SalesRequestCallerContext);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "false";
+
+	await expect(
+		caller.validatePreview({
+			configurationScope: "sales-settings:7",
+			configurationRevision: "a".repeat(64),
+			provider: "openai",
+			model: "gpt-5-mini",
+		}),
+	).rejects.toBeDefined();
+	if (previousFlag === undefined)
+		process.env.SALES_REQUEST_AI_ENABLED = undefined;
+	else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	expect(databaseRead).toBe(false);
+});
+
+test("preview validation accepts only the current server-derived identity", async () => {
+	const fixture = requestContext();
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+	const transaction = fixture.transaction as Parameters<
+		typeof getSalesRequestConfigurationContext
+	>[0];
+	const [snapshot, aiSettings] = await Promise.all([
+		getSalesRequestConfigurationContext(transaction, { settingId: 7 }),
+		getSalesRequestAISettings(transaction, 7),
+	]);
+	const current = {
+		configurationScope: snapshot.scope,
+		configurationRevision: snapshot.revision,
+		provider: aiSettings.selection.provider,
+		model: aiSettings.selection.model,
+	};
+
+	try {
+		await expect(caller.validatePreview(current)).resolves.toEqual(current);
+		await expect(
+			caller.validatePreview({
+				...current,
+				configurationRevision: "0".repeat(64),
+			}),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
 });
 
 test("AI settings mutation derives the lowest active row and preserves metadata", async () => {

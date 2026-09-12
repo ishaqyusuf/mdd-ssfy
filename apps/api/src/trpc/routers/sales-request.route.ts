@@ -16,6 +16,7 @@ import {
 	setSalesRequestAISettingsSchema,
 	setSalesRequestCatalogPolicySchema,
 	setSalesRequestDefaultSchema,
+	validateSalesRequestPreviewSchema,
 } from "@api/schemas/sales-request";
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
 import {
@@ -287,6 +288,55 @@ export const salesRequestRouter = createTRPCRouter({
 					},
 				},
 			);
+		}),
+	validatePreview: protectedProcedure
+		.input(validateSalesRequestPreviewSchema)
+		.mutation(async ({ ctx, input }) => {
+			if (process.env.SALES_REQUEST_AI_ENABLED !== "true") {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Sales request generation is not enabled.",
+				});
+			}
+			await requireStorefrontQuoteCreationPermission({
+				db: ctx.db,
+				userId: ctx.userId,
+			});
+			const current = await ctx.db.$transaction(
+				async (tx) => {
+					const rows = await tx.settings.findMany({
+						where: { type: "sales-settings", deletedAt: null },
+						select: { id: true },
+					});
+					const settingId = selectSalesRequestSettingId(
+						rows.map((row) => row.id),
+					);
+					const [snapshot, aiSettings] = await Promise.all([
+						getSalesRequestConfigurationContext(tx, { settingId }),
+						getSalesRequestAISettings(tx, settingId),
+					]);
+					return {
+						configurationScope: snapshot.scope,
+						configurationRevision: snapshot.revision,
+						provider: aiSettings.selection.provider,
+						model: aiSettings.selection.model,
+					};
+				},
+				{ isolationLevel: "RepeatableRead" },
+			);
+			if (
+				current.configurationScope !== input.configurationScope ||
+				current.configurationRevision !== input.configurationRevision ||
+				current.provider !== input.provider ||
+				current.model !== input.model
+			) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Sales configuration changed after generation. Generate the preview again.",
+				});
+			}
+			return current;
 		}),
 	setDefault: protectedProcedure
 		.input(setSalesRequestDefaultSchema)
