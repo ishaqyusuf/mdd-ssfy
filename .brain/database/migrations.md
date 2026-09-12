@@ -838,3 +838,15 @@ Tracks notable migrations and migration strategy.
   6.97 seconds on 2026-09-04. Before the push, production `EXPLAIN` selected
   `idx_sales_order_list_health` with `Using where; Using filesort`; afterward it
   selects the new index with `Using index condition` and no filesort.
+
+## 20260912173000_add_mobile_access_requests
+
+- Adds `MobileAccessRequest` and `MobileAccessRequestEvent` with platform/status
+  enums, one-request-per-user/platform identity, lifecycle timestamps, audit
+  events, and queue/audit indexes.
+- `prisma migrate dev` safely refused to continue because the existing local
+  database has historical migration drift; no reset or data deletion was
+  performed. The reviewed additive SQL follows Prisma relation mode and emits
+  no foreign keys.
+- `db:push` synchronized local development without a data-loss flag. The full
+  134-migration chain applied to an isolated empty local database, which was

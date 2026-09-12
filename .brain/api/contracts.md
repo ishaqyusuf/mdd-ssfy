@@ -2960,3 +2960,16 @@ bounded fresh query on cache failure.
 pin/exclude UID arrays. `salesRequest.regenerateConfiguration` accepts no input,
 requires settings administration, records generation state, and never creates a
 provider or reserves usage.
+
+### Employee mobile access contract — 2026-09-12
+
+- Platforms are `ANDROID | IOS`. Statuses are `REQUESTED | APPROVED | INVITED |
+  ACCEPTED | INSTALLED | REJECTED | CANCELLED`.
+- Employee request input contains platform plus an optional trimmed 500-character
+  note. Actor and employee ID are never accepted from the client.
+- Admin update input contains positive request ID, a non-Requested target status,
+  optional 500-character employee-visible/internal notes, and an optional
+  255-character non-secret portal reference.
+- Employee output contains lifecycle timestamps and event history but excludes
+  internal notes, invitation provider/reference, and reviewer details.
+- Admin output includes audit/admin fields plus legal next statuses. Concurrent

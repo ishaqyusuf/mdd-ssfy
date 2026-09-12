@@ -2,12 +2,15 @@ import { access, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-type Operation = "build" | "update";
+type Operation = "build" | "update" | "submit" | "build-submit";
+type Platform = "android" | "ios";
 type Target = "dev" | "preview" | "prod";
 type Action =
 	| "build:dev"
 	| "build:preview"
 	| "build:prod"
+	| "submit:prod"
+	| "build-submit:prod"
 	| "update:preview"
 	| "update:prod";
 type CurrentIdentity = {
@@ -32,13 +35,17 @@ const TARGET_PROFILES: Record<Target, string> = {
 const operation = process.argv[2] as Operation | undefined;
 const actionArgs = process.argv.slice(3);
 
-if (!operation || !["build", "update"].includes(operation)) {
+if (
+	!operation ||
+	!["build", "update", "submit", "build-submit"].includes(operation)
+) {
 	console.error(getUsage());
 	process.exit(1);
 }
 
 const target = resolveTarget(operation, actionArgs);
 const action = `${operation}:${target}` as Action;
+const platform = resolvePlatform(operation, actionArgs);
 const env = { ...Bun.env };
 env.EXPO_TOKEN = undefined;
 
@@ -81,11 +88,14 @@ if (
 	console.log(`Authenticated EAS session as ${session.username}.`);
 }
 
-await runOrExit([...getActionCommand(operation, target), ...forwardedArgs], {
-	cwd: APP_DIR,
-	env,
-	stdio: "inherit",
-});
+await runOrExit(
+	[...getActionCommand(operation, target, platform), ...forwardedArgs],
+	{
+		cwd: APP_DIR,
+		env,
+		stdio: "inherit",
+	},
+);
 
 function resolveAccount(
 	actionValue: Action,
@@ -163,13 +173,56 @@ function resolveTarget(operation: Operation, args: string[]): Target {
 		console.error(getUsage());
 		process.exit(1);
 	}
+	if (["submit", "build-submit"].includes(operation) && target !== "prod") {
+		console.error(`${operation} supports only --prod.\n`);
+		console.error(getUsage());
+		process.exit(1);
+	}
 
 	return target;
 }
 
-function getActionCommand(operation: Operation, target: Target): string[] {
+function resolvePlatform(operation: Operation, args: string[]): Platform {
+	const platformIndex = args.findIndex(
+		(arg) => arg === "--platform" || arg === "-p",
+	);
+	const equalsValue = args
+		.find((arg) => arg.startsWith("--platform="))
+		?.split("=")
+		.slice(1)
+		.join("=");
+	const selected = equalsValue ?? args[platformIndex + 1];
+
+	if (!selected) {
+		return ["submit", "build-submit"].includes(operation) ? "ios" : "android";
+	}
+	if (selected !== "android" && selected !== "ios") {
+		console.error("--platform must be android or ios.\n");
+		console.error(getUsage());
+		process.exit(1);
+	}
+	return selected;
+}
+
+function getActionCommand(
+	operation: Operation,
+	target: Target,
+	platform: Platform,
+): string[] {
 	if (operation === "build") {
+		if (platform === "ios") {
+			if (target !== "prod") {
+				throw new Error("iOS TestFlight builds require --prod.");
+			}
+			return ["bun", "run", "eas-build:ios:prod"];
+		}
 		return ["bun", "run", `eas-build:${target}`];
+	}
+	if (operation === "submit") {
+		return ["bun", "run", "eas-submit:ios:prod"];
+	}
+	if (operation === "build-submit") {
+		return ["bun", "run", "eas-build-submit:ios:prod"];
 	}
 
 	return ["bun", "run", "eas:update", `--${target}`];
@@ -213,6 +266,13 @@ function getForwardedArgs(args: string[]): string[] {
 		if (["--dev", "--preview", "--prod"].includes(arg)) {
 			continue;
 		}
+		if (arg === "--platform" || arg === "-p") {
+			index += 1;
+			continue;
+		}
+		if (arg.startsWith("--platform=")) {
+			continue;
+		}
 
 		forwardedArgs.push(arg);
 	}
@@ -244,6 +304,9 @@ function getUsage(): string {
 	return [
 		"Usage:",
 		"  bun run eas:build <--dev|--preview|--prod> [--account <name>]",
+		"  bun run eas:build:ios [--account <name>]",
+		"  bun run eas:submit:ios [--account <name>]",
+		"  bun run eas:build-submit:ios [--account <name>]",
 		"  bun run eas:update <--preview|--prod> [--account <name>]",
 		"",
 		"Default credentials:",

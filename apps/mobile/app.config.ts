@@ -81,6 +81,11 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: variantConfig.iosBundleIdentifier,
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      NSPhotoLibraryUsageDescription:
+        "GND uses selected photos as employee documents and delivery proof.",
+    },
     icon: {
       dark: variantConfig.icons.iosDark,
       light: variantConfig.icons.iosLight,

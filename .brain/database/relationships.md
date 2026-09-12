@@ -415,3 +415,13 @@ deletion. The existing Prisma relation mode remains authoritative. Cursor and
 run-watch records stand independently so discovery can precede incident creation.
 No business-order, payment, inventory, or user relationship is added; owner/actor
 identities are operational identifiers awaiting the authorization adapter.
+
+## Employee mobile access relationships (2026-09-12)
+
+- `Users 1:N MobileAccessRequest` through the requester relation; uniqueness on
+  `(userId, platform)` prevents duplicate platform requests.
+- `Users 1:N MobileAccessRequest` through nullable reviewer attribution.
+- `MobileAccessRequest 1:N MobileAccessRequestEvent`; `Users 1:N
+  MobileAccessRequestEvent` attributes every transition actor.
+- Because the database uses Prisma relation mode, application transactions own
+  consistency and cleanup ordering. The workflow does not physically delete

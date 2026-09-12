@@ -656,7 +656,14 @@ export const linkModules = [
 		profileSection,
 		_section("Support", null, [
 			_link("Mobile App", "mobileApp", "/support/mobile-app").access(
-				_role.is("Super Admin"),
+				_role.some(
+					"Admin",
+					"Production",
+					"1099 Contractor",
+					"Deco Shutters",
+					"Super Admin",
+					"Punchout",
+				),
 			).data,
 		]),
 	]),
