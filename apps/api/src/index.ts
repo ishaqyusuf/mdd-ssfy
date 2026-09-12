@@ -21,6 +21,7 @@ import { handleVercelDrainRequest } from "./rest/reliability-vercel";
 import { handleVercelDeploymentRequest } from "./rest/reliability-vercel-deployment";
 import { resolveVercelDeploymentRegistration } from "./rest/reliability-vercel-deployment-registration";
 import { resolveVercelDrainRegistration } from "./rest/reliability-vercel-registration";
+import { assistantChatRouter } from "./rest/routers/assistant";
 import type { Context } from "./rest/types";
 import { createTRPCContext } from "./trpc/init";
 import { appRouter } from "./trpc/routers/_app";
@@ -208,6 +209,7 @@ app.post("/api/webhooks/square/refunds", async (c) => {
 	}
 	return c.json({ ok: true });
 });
+app.route("/api/assistant/chat", assistantChatRouter);
 app.use(
 	"/api/storefront/trpc/*",
 	trpcServer({

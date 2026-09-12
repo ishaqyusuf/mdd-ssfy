@@ -3,6 +3,7 @@ import { hash } from "bcrypt-ts";
 
 import {
 	checkPassword,
+	getUserSpecificPermissions,
 	isMasterPassword,
 	loginAction,
 	parseMasterPasswords,
@@ -104,6 +105,39 @@ describe("userHasPermission", () => {
 		expect(
 			await userHasPermission(db as never, 42, "viewMarkSalesOrderFulfilled"),
 		).toBe(false);
+	});
+});
+
+describe("getUserSpecificPermissions", () => {
+	test("excludes deleted assignments and deleted permission definitions", async () => {
+		let query: Record<string, unknown> | undefined;
+		const db = {
+			modelHasPermissions: {
+				findMany: async (input: Record<string, unknown>) => {
+					query = input;
+					return [{ permissions: { id: 1, name: "viewOrders" } }];
+				},
+			},
+		};
+
+		const permissions = await getUserSpecificPermissions(db as never, 42);
+
+		expect(permissions).toEqual([{ id: 1, name: "viewOrders" }]);
+		expect(query).toEqual({
+			select: {
+				permissions: {
+					select: { id: true, name: true },
+				},
+			},
+			where: {
+				deletedAt: null,
+				permissions: { deletedAt: null },
+				modelId: 42n,
+				modelType: {
+					in: ["users", "user", "App\\Models\\User"],
+				},
+			},
+		});
 	});
 });
 

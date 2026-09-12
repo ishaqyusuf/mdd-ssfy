@@ -37,6 +37,7 @@ export async function getUserSpecificPermissions(
 	const permissions = await db.modelHasPermissions.findMany({
 		where: {
 			deletedAt: null,
+			permissions: { deletedAt: null },
 			modelId: BigInt(userId),
 			modelType: {
 				in: [...USER_PERMISSION_MODEL_TYPE_ALIASES],

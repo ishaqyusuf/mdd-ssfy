@@ -695,6 +695,152 @@ export async function createOrReuseAssistantRun(
 	}
 }
 
+export async function createOrReuseAssistantRequestRun(
+	db: Database,
+	input: ConversationIdentity & {
+		requestId: string;
+		clientMessageId: string;
+		parts: unknown[];
+		catalogVersion: string;
+		model: string;
+		promptVersion: string;
+	},
+) {
+	const parts = validateClientParts(input.parts);
+	if (!input.clientMessageId || input.clientMessageId.length > 191) {
+		throw new AssistantMessageValidationError("Client message ID is invalid");
+	}
+	if (!input.requestId || input.requestId.length > 191) {
+		throw new AssistantMessageValidationError("Run request ID is invalid");
+	}
+	const scope = resolveActorScope(input);
+	const messageFingerprint = fingerprint({ parts, parentMessageId: null });
+
+	return runAssistantTransaction(db, async (tx) => {
+		const existingRun = await tx.assistantRun.findFirst({
+			where: {
+				actorUserId: input.ownerUserId,
+				requestId: input.requestId,
+				conversation: { ...scope, deletedAt: null },
+			},
+			include: { triggerMessage: true },
+		});
+		if (existingRun) {
+			const expectedRunFingerprint = fingerprint({
+				conversationId: input.conversationId,
+				triggerMessageId: existingRun.triggerMessageId,
+				catalogVersion: input.catalogVersion,
+				model: input.model,
+				promptVersion: input.promptVersion,
+			});
+			if (
+				existingRun.conversationId !== input.conversationId ||
+				existingRun.requestFingerprint !== expectedRunFingerprint ||
+				existingRun.triggerMessage?.clientRequestId !== input.clientMessageId ||
+				existingRun.triggerMessage.requestFingerprint !== messageFingerprint
+			) {
+				throw new AssistantIdempotencyConflictError();
+			}
+			return {
+				message: existingRun.triggerMessage,
+				run: existingRun,
+				reused: true as const,
+			};
+		}
+
+		let message = await tx.assistantMessage.findFirst({
+			where: {
+				conversationId: input.conversationId,
+				clientRequestId: input.clientMessageId,
+				conversation: { ...scope, deletedAt: null },
+			},
+		});
+		if (message && message.requestFingerprint !== messageFingerprint) {
+			throw new AssistantIdempotencyConflictError();
+		}
+		if (!message) {
+			const allocation = await tx.assistantConversation.updateMany({
+				where: {
+					id: input.conversationId,
+					...scope,
+					archivedAt: null,
+					deletedAt: null,
+				},
+				data: { lastSequence: { increment: 1 } },
+			});
+			if (allocation.count !== 1) {
+				throw new AssistantConversationAccessError();
+			}
+			const resolvedParts = await resolveOwnedClientParts(tx, input, parts);
+			const conversation = await tx.assistantConversation.findUnique({
+				where: { id: input.conversationId },
+				select: { lastSequence: true },
+			});
+			if (!conversation) throw new AssistantConversationAccessError();
+			message = await tx.assistantMessage.create({
+				data: {
+					conversationId: input.conversationId,
+					sequence: conversation.lastSequence,
+					role: "user",
+					parts: resolvedParts as Prisma.InputJsonValue,
+					searchText: extractSearchText(parts),
+					clientRequestId: input.clientMessageId,
+					requestFingerprint: messageFingerprint,
+					createdByUserId: input.ownerUserId,
+				},
+			});
+		}
+
+		const runFingerprint = fingerprint({
+			conversationId: input.conversationId,
+			triggerMessageId: message.id,
+			catalogVersion: input.catalogVersion,
+			model: input.model,
+			promptVersion: input.promptVersion,
+		});
+		const run = await tx.assistantRun.create({
+			data: {
+				conversationId: input.conversationId,
+				triggerMessageId: message.id,
+				actorUserId: input.ownerUserId,
+				requestId: input.requestId,
+				requestFingerprint: runFingerprint,
+				catalogVersion: input.catalogVersion,
+				model: input.model,
+				promptVersion: input.promptVersion,
+			},
+		});
+		return { message, run, reused: false as const };
+	});
+}
+
+export async function claimAssistantRunForExecution(
+	db: Database,
+	input: AssistantActorScope & { runId: string },
+) {
+	const scope = resolveActorScope(input);
+	return runAssistantTransaction(db, async (tx) => {
+		const claimed = await tx.assistantRun.updateMany({
+			where: {
+				id: input.runId,
+				actorUserId: input.ownerUserId,
+				status: "queued",
+				conversation: { ...scope, deletedAt: null },
+			},
+			data: { status: "running", startedAt: new Date() },
+		});
+		const run = await tx.assistantRun.findFirst({
+			where: {
+				id: input.runId,
+				actorUserId: input.ownerUserId,
+				conversation: { ...scope, deletedAt: null },
+			},
+		});
+		if (!run) throw new AssistantConversationAccessError();
+		return { run, claimed: claimed.count === 1 };
+	});
+}
+
 export function getAssistantRunForReconnect(
 	db: Database,
 	input: AssistantActorScope & {

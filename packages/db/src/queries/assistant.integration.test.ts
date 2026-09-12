@@ -9,8 +9,10 @@ import {
 	appendAssistantGeneratedMessage,
 	appendAssistantUserMessage,
 	archiveAssistantConversation,
+	claimAssistantRunForExecution,
 	completeAssistantRun,
 	createAssistantConversation,
+	createOrReuseAssistantRequestRun,
 	createOrReuseAssistantRun,
 	getAssistantConversation,
 	getAssistantRunForReconnect,
@@ -315,6 +317,54 @@ describe("assistant persistence integration", () => {
 				})
 			)?.toolExecutions,
 		).toHaveLength(0);
+
+		const requestRunInput = {
+			conversationId: conversation.id,
+			ownerUserId,
+			requestId: "atomic-request-2",
+			clientMessageId: "atomic-message-2",
+			parts: [{ type: "text", text: "Atomic request" }],
+			catalogVersion: "catalog-v1",
+			model: "test-model",
+			promptVersion: "prompt-v1",
+		};
+		const atomicRequest = await createOrReuseAssistantRequestRun(
+			db,
+			requestRunInput,
+		);
+		const atomicRetry = await createOrReuseAssistantRequestRun(
+			db,
+			requestRunInput,
+		);
+		expect(atomicRetry).toMatchObject({
+			reused: true,
+			message: { id: atomicRequest.message.id },
+			run: { id: atomicRequest.run.id },
+		});
+		const firstClaim = await claimAssistantRunForExecution(db, {
+			runId: atomicRequest.run.id,
+			ownerUserId,
+		});
+		const secondClaim = await claimAssistantRunForExecution(db, {
+			runId: atomicRequest.run.id,
+			ownerUserId,
+		});
+		expect(firstClaim.claimed).toBe(true);
+		expect(secondClaim.claimed).toBe(false);
+		await expect(
+			createOrReuseAssistantRequestRun(db, {
+				...requestRunInput,
+				clientMessageId: "different-message-id",
+			}),
+		).rejects.toBeInstanceOf(AssistantIdempotencyConflictError);
+		expect(
+			await db.assistantMessage.count({
+				where: {
+					conversationId: conversation.id,
+					clientRequestId: { in: ["atomic-message-2", "different-message-id"] },
+				},
+			}),
+		).toBe(1);
 
 		await archiveAssistantConversation(db, {
 			conversationId: conversation.id,
