@@ -56,7 +56,8 @@ credentials. Obtain explicit action-time confirmation before performing it.
 3. Check EU Digital Services Act trader status. **GATE:** complete the legal and
    contact-information workflow before making the app available in EU storefronts.
 4. Search Apps for the GND record with bundle ID `com.gnd.prodesk`. The verified
-   activation-day state is `No Apps`.
+   activation-day state is `No Apps`; the explicit App ID is now registered and
+   selectable in the New App form.
 5. If absent, **GATE:** create the app record with platform iOS, the approved
    display name, primary language, bundle ID `com.gnd.prodesk`, and an approved
    unique SKU. Record the numeric Apple app ID for later optional `ascAppId`
@@ -68,14 +69,13 @@ credentials. Obtain explicit action-time confirmation before performing it.
 
 ## 3. Signing readiness
 
-1. Verify Identifiers contains `com.gnd.prodesk` under team `ZXC78SPCV4`. The
-   activation-day inspection found no identifiers, certificates, or profiles.
-   The prepared registration form requires an explicit App ID, a description,
-   and bundle ID `com.gnd.prodesk`. Leave optional capabilities disabled unless
-   a fresh native entitlement audit demonstrates that one is required.
-2. **GATE:** register that App ID before creating the App Store Connect record,
-   or authorize EAS to register it during a separately confirmed build credential
-   flow. Do not create a wildcard identifier or a second bundle identifier.
+1. Identifiers contains the explicit App ID `GND Millwork` / `com.gnd.prodesk`
+   under team `ZXC78SPCV4`, registered September 12, 2026 after explicit approval.
+   Its optional capabilities were left disabled because the native entitlement
+   audit found no evidence requiring one. Do not create a wildcard identifier or
+   a second bundle identifier.
+2. Verify certificates and profiles separately; neither existed during the
+   activation-day inspection.
 3. Prefer EAS-managed Apple Distribution certificate and App Store provisioning
    profile for the first release.
 4. **GATE:** authenticate Apple/EAS, create/reuse certificates, or repair a

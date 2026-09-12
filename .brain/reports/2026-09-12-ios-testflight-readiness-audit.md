@@ -10,8 +10,9 @@
 - License agreement accepted: September 12, 2026
 - App Store Connect and Certificates/Identifiers/Profiles are available.
 - Read-only activation-day inspection confirmed the App Store Connect Apps list
-  is empty and the Apple Developer account has no registered identifiers,
-  certificates, provisioning profiles, or service keys yet.
+  is empty and initially found no identifiers, certificates, provisioning
+  profiles, or service keys. After explicit approval, the explicit App ID
+  `GND Millwork` / `com.gnd.prodesk` was registered with no optional capabilities.
 - The Free Apps Agreement is active for all countries or regions. The Paid Apps
   Agreement is new/unaccepted and is only needed if GND later offers paid apps or
   in-app purchases.
@@ -92,13 +93,14 @@
 - Before upload, create the App Store Connect app record for `com.gnd.prodesk`
   and resolve any agreement/tax/banking warning that blocks TestFlight. The EAS
   account and retained project link are already verified.
-- The production App ID, Apple Distribution certificate, and App Store
-  provisioning profile do not yet exist. Prefer creating/managing them through
-  the separately confirmed first EAS build credential flow rather than creating
-  competing manual signing assets.
+- The production App ID now exists. Apple Distribution certificates and App Store
+  provisioning profiles do not yet exist; prefer EAS management during the
+  separately confirmed first-build credential flow rather than creating competing
+  manual signing assets.
 - No Apple app record, signing credential, build, upload, submission, API key,
   permission, or tester invitation was created or changed. The only authorized
-  external changes were accepting Terms V100 and switching the local EAS session.
+  external changes were accepting Terms V100, switching the local EAS session,
+  and registering the explicit production App ID.
 
 ## Local evidence
 
