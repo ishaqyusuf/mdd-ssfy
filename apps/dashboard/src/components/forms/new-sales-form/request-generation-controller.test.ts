@@ -176,6 +176,27 @@ describe("sales request generation controller", () => {
 		expect(controller.getSnapshot().isStale).toBe(true);
 	});
 
+	test("adopts the server revision when the client configuration revision is unknown", async () => {
+		const controller = createSalesRequestGenerationController(
+			(input) => Promise.resolve(preview("config-1")),
+			{ formRevision: "form-1", configurationRevision: null },
+		);
+
+		await controller.generate("unknown configuration revision");
+
+		expect(controller.getSnapshot().isStale).toBe(false);
+		expect(controller.getSnapshot().capturedRevision).toEqual({
+			formRevision: "form-1",
+			configurationRevision: "config-1",
+		});
+
+		controller.setRevision({
+			formRevision: "form-2",
+			configurationRevision: null,
+		});
+		expect(controller.getSnapshot().isStale).toBe(true);
+	});
+
 	test("maps server failures to stable client error codes", () => {
 		const cases = [
 			[

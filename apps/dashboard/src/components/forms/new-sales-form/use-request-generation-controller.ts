@@ -62,6 +62,7 @@ export function useSalesRequestGenerationController(
 		[controller],
 	);
 	const cancel = useCallback(() => controller.cancel(), [controller]);
+	const clear = useCallback(() => controller.clear(), [controller]);
 	const retry = useCallback(() => controller.retry(), [controller]);
 
 	return {
@@ -69,6 +70,7 @@ export function useSalesRequestGenerationController(
 		setSourceText,
 		generate,
 		cancel,
+		clear,
 		retry,
 	};
 }

@@ -75,6 +75,7 @@ import {
     writeRecoverySnapshot,
 } from "./local-recovery";
 import { toSaveDraftInput } from "./mappers";
+import { getRequestGenerationRecordRevision } from "./request-generation-transaction";
 import {
 	type SaveIntent,
 	continueSaveAfterCommittedChangeReview,
@@ -130,6 +131,16 @@ const NewSalesFormSettingsModal = dynamic(
     {
         ssr: false,
     },
+);
+
+const SalesRequestGenerationPanel = dynamic(
+	() =>
+		import("./request-generation-panel").then(
+			(mod) => mod.SalesRequestGenerationPanel,
+		),
+	{
+		ssr: false,
+	},
 );
 
 const SalesHistory = dynamic(
@@ -483,6 +494,10 @@ export function NewSalesForm(props: Props) {
     const markError = useNewSalesFormStore((s) => s.markError);
     const markStale = useNewSalesFormStore((s) => s.markStale);
     const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
+    const requestGeneration = useNewSalesFormStore((s) => s.requestGeneration);
+    const setRequestGenerationPhase = useNewSalesFormStore(
+        (s) => s.setRequestGenerationPhase,
+    );
     const setSpecialOrder = useNewSalesFormStore((s) => s.setSpecialOrder);
     const editor = useNewSalesFormStore((s) => s.editor);
     const setEditor = useNewSalesFormStore((s) => s.setEditor);
@@ -490,6 +505,7 @@ export function NewSalesForm(props: Props) {
     const [recoverySnapshot, setRecoverySnapshot] =
         useState<NewSalesFormRecoverySnapshot | null>(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
+	const [requestGenerationOpen, setRequestGenerationOpen] = useState(false);
 	const [customerPromptDismissed, setCustomerPromptDismissed] = useState(false);
     const [bootstrapCustomerId] = useState<number | null>(() =>
         normalizeSalesFormInitialCustomerId(draftParams.selectedCustomerId),
@@ -522,7 +538,9 @@ export function NewSalesForm(props: Props) {
         !!record &&
         !record.form.customerId &&
         !customerPromptDismissed;
-    const isSaved = Boolean(record?.salesId && record?.orderId);
+	const isSaved = Boolean(record?.salesId && record?.orderId);
+	const canInspectRequestJson =
+		auth.roleTitle?.trim().toLowerCase() === "super admin";
 	const financialReconciliation = record?.financialReconciliation;
 	const hasSavedFinancialDrift = Boolean(
 		financialReconciliation?.hasDifference,
@@ -799,10 +817,11 @@ export function NewSalesForm(props: Props) {
         [draftRecoveryKey, props.type, recoveryKey],
     );
 
-    const autosave = useNewSalesFormAutoSave({
+	const autosave = useNewSalesFormAutoSave({
 		enabled:
 			!!record &&
 			editor.autosaveEnabled &&
+			!requestGeneration.autosaveSuspended &&
 			!hasSalesRepApprovalChange &&
 			!hasQuantityBearingUnpricedHptRows(record),
         dirty,
@@ -853,8 +872,20 @@ export function NewSalesForm(props: Props) {
             const failure = createSaveFailure(error, "Save draft", record?.orderId);
             setSaveFailure(failure);
             markError(failure.message);
-        },
-    });
+		},
+	});
+	const handleRequestGenerationOpenChange = useCallback(
+		(open: boolean) => {
+			if (open && autosave.isSaving) return;
+			autosave.cancelPending();
+			setRequestGenerationPhase(open ? "reviewing" : "idle");
+			setRequestGenerationOpen(open);
+		},
+		[autosave.cancelPending, autosave.isSaving, setRequestGenerationPhase],
+	);
+	useEffect(() => {
+		return () => setRequestGenerationPhase("idle");
+	}, [setRequestGenerationPhase]);
 
     const finalSave = useSaveFinalNewSalesFormMutation();
 	const previewAdjustmentMutation = useMutation(
@@ -2027,6 +2058,15 @@ export function NewSalesForm(props: Props) {
                 type={props.type}
                 mode={props.mode}
             />
+			{requestGenerationOpen && props.mode === "create" && record ? (
+				<SalesRequestGenerationPanel
+					open
+					onOpenChange={handleRequestGenerationOpenChange}
+					formRevision={getRequestGenerationRecordRevision(record)}
+					configurationRevision={null}
+					canInspectJson={canInspectRequestJson}
+				/>
+			) : null}
 			<Dialog
 				open={pendingUnpricedSaveIntent != null}
 				onOpenChange={(open) => {
@@ -2368,13 +2408,40 @@ export function NewSalesForm(props: Props) {
                                 ) : null}
                             </div>
                         ) : null,
-                    MainPanel: historyPreview ? (
-						<SalesHistorySnapshotPreview record={historyPreview.record} />
-                    ) : usePackageWorkflowPanel ? (
-                        <DashboardSalesFormWorkflowPanel />
-                    ) : (
-                        <ItemWorkflowPanel />
-                    ),
+                    MainPanel: (
+						<div className="space-y-4">
+							{props.mode === "create" && !historyPreview ? (
+								<div className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+									<div className="min-w-0">
+										<p className="font-medium">Start from a customer request</p>
+										<p className="mt-1 text-xs text-muted-foreground">
+											Generate a read-only proposal from pasted text. The form stays unchanged while you review.
+										</p>
+									</div>
+									<Button
+										type="button"
+										variant="outline"
+										aria-haspopup="dialog"
+										onClick={() =>
+											handleRequestGenerationOpenChange(true)
+										}
+										disabled={autosave.isSaving}
+										className="shrink-0"
+									>
+										<Icons.Sparkles className="mr-2 size-4" />
+										Generate from customer request
+									</Button>
+								</div>
+							) : null}
+							{historyPreview ? (
+								<SalesHistorySnapshotPreview record={historyPreview.record} />
+							) : usePackageWorkflowPanel ? (
+								<DashboardSalesFormWorkflowPanel />
+							) : (
+								<ItemWorkflowPanel />
+							)}
+						</div>
+					),
                     FloatingActions: (
                         <SalesFormFloatingActions
                             isSaved={isSaved}

@@ -258,6 +258,7 @@ function isResultStale(
 ) {
 	if (!snapshot.result || !snapshot.capturedRevision) return false;
 	if (!revisionsEqual(snapshot.capturedRevision, currentRevision)) return true;
+	if (currentRevision.configurationRevision === null) return false;
 	return (
 		normalizeRevision(snapshot.result.configurationRevision) !==
 		currentRevision.configurationRevision
@@ -308,7 +309,14 @@ export function createSalesRequestGenerationController(
 	}
 
 	function setRevision(revision: SalesRequestGenerationRevisionInput) {
-		const nextRevision = normalizeSalesRequestGenerationRevision(revision);
+		const normalizedRevision =
+			normalizeSalesRequestGenerationRevision(revision);
+		const nextRevision = {
+			...normalizedRevision,
+			configurationRevision:
+				normalizedRevision.configurationRevision ??
+				currentRevision.configurationRevision,
+		};
 		if (revisionsEqual(nextRevision, currentRevision)) return;
 		currentRevision = nextRevision;
 
@@ -383,17 +391,41 @@ export function createSalesRequestGenerationController(
 					return null;
 				}
 				activeRequest = null;
+				const resultConfigurationRevision = normalizeRevision(
+					result.configurationRevision,
+				);
+				const formRevisionChanged =
+					revision.formRevision !== currentRevision.formRevision;
+				const knownConfigurationRevisionChanged =
+					currentRevision.configurationRevision !== null &&
+					revision.configurationRevision !==
+						currentRevision.configurationRevision;
+				const isStale =
+					formRevisionChanged || knownConfigurationRevisionChanged;
+				if (!isStale && currentRevision.configurationRevision === null) {
+					currentRevision = {
+						...currentRevision,
+						configurationRevision: resultConfigurationRevision,
+					};
+				}
+				const completedRevision = {
+					...revision,
+					configurationRevision:
+						currentRevision.configurationRevision ??
+						resultConfigurationRevision,
+				};
 				setSnapshot({
 					...snapshot,
 					status: "success",
 					requestId: id,
-					capturedRevision: revision,
+					capturedRevision: completedRevision,
 					result,
 					failure: null,
 					isStale:
-						!revisionsEqual(revision, currentRevision) ||
-						normalizeRevision(result.configurationRevision) !==
-							currentRevision.configurationRevision,
+						isStale ||
+						(currentRevision.configurationRevision !== null &&
+							resultConfigurationRevision !==
+								currentRevision.configurationRevision),
 					canRetry: true,
 				});
 				return result;
@@ -449,6 +481,21 @@ export function createSalesRequestGenerationController(
 		return generate(snapshot.sourceText);
 	}
 
+	function clear() {
+		if (disposed) return;
+		abortActiveRequest();
+		setSnapshot({
+			sourceText: "",
+			status: "idle",
+			requestId: null,
+			capturedRevision: null,
+			result: null,
+			failure: null,
+			isStale: false,
+			canRetry: false,
+		});
+	}
+
 	function subscribe(listener: Listener) {
 		if (disposed) return () => undefined;
 		listeners.add(listener);
@@ -475,6 +522,7 @@ export function createSalesRequestGenerationController(
 		setSourceText,
 		generate,
 		cancel,
+		clear,
 		retry,
 		dispose,
 	};
