@@ -1,10 +1,16 @@
 import { createHash } from "node:crypto";
 import { db } from "@gnd/db";
 import {
+	findAssistantCommunityProjects,
+	findAssistantCommunityUnits,
 	findAssistantCustomers,
+	findAssistantInventoryAvailability,
+	findAssistantProductionAssignments,
 	findAssistantSalesOrders,
+	getAssistantCommunityProjectSummary,
 	getAssistantCustomerOrderHistory,
 	getAssistantCustomerSummary,
+	getAssistantProductionAccessibleOrderIds,
 	getAssistantSalesOrderCandidates,
 	getAssistantSalesTimeline,
 } from "@gnd/db/queries";
@@ -14,11 +20,12 @@ import { z } from "zod";
 import {
 	type AssistantCapabilityState,
 	type AssistantEffect,
+	type AssistantEntityReference,
 	assistantToolIdentitySchema,
 	createAssistantResultEnvelopeSchema,
 } from "./contracts";
 
-export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v2";
+export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v3";
 
 export const assistantToolDomains = [
 	"system",
@@ -63,6 +70,7 @@ export type AssistantToolDefinition = {
 	capability: AssistantCapabilityState;
 	effect: AssistantEffect;
 	requiredGrants: string[];
+	anyOfGrants?: string[];
 	presentation: AssistantToolPresentation;
 	inputSchema: z.ZodType;
 	outputSchema: z.ZodType;
@@ -162,6 +170,12 @@ const timelineInputSchema = orderIdentityInputSchema.extend({
 const customerIdInputSchema = z
 	.object({ customerId: z.number().int().positive() })
 	.strict();
+const communityProjectInputSchema = z
+	.object({ projectId: z.number().int().positive() })
+	.strict();
+const communityUnitsInputSchema = pageInputSchema.extend({
+	projectId: z.number().int().positive(),
+});
 const customerHistoryInputSchema = pageInputSchema.extend({
 	customerId: z.number().int().positive(),
 });
@@ -362,6 +376,176 @@ const customerHistoryDataSchema = z
 		nextCursor: z.number().int().positive().nullable(),
 	})
 	.strict();
+const productionAssignmentSchema = z
+	.object({
+		id: z.number().int().positive(),
+		orderId: z.number().int().positive(),
+		orderNo: z.string().min(1),
+		orderTitle: nullableText,
+		workerId: z.number().int().positive().nullable(),
+		workerName: nullableText,
+		assignedQuantity: nullableText,
+		completedQuantity: nullableText,
+		startedAt: nullableText,
+		completedAt: nullableText,
+		dueAt: nullableText,
+		revision: z.string().min(1),
+	})
+	.strict();
+const productionPageSchema = z
+	.object({
+		items: z.array(productionAssignmentSchema),
+		nextCursor: z.number().int().positive().nullable(),
+	})
+	.strict();
+const inventoryAvailabilitySchema = z
+	.object({
+		id: z.number().int().positive(),
+		variantId: z.number().int().positive(),
+		uid: z.string().min(1),
+		variantUid: z.string().min(1),
+		sku: nullableText,
+		name: z.string().min(1),
+		stockMode: nullableText,
+		status: nullableText,
+		physicalQuantity: z.string(),
+		allocatedQuantity: z.string(),
+		pendingAllocationQuantity: z.string(),
+		availableQuantity: z.string(),
+		inboundQuantity: z.string(),
+		demandQuantity: z.string(),
+		lowStock: z.boolean(),
+		blockers: z.array(z.enum(["overallocated", "inbound_shortfall"])),
+		revision: z.string().min(1),
+	})
+	.strict();
+const inventoryPageSchema = z
+	.object({
+		items: z.array(inventoryAvailabilitySchema),
+		nextCursor: z.number().int().positive().nullable(),
+	})
+	.strict();
+const communityUnitSchema = z
+	.object({
+		id: z.number().int().positive(),
+		slug: z.string().min(1),
+		lotBlock: nullableText,
+		modelName: nullableText,
+		status: nullableText,
+		taskCount: z.number().int().nonnegative(),
+		jobCount: z.number().int().nonnegative(),
+		invoiceCount: z.number().int().nonnegative(),
+	})
+	.strict();
+const communityUnitPageItemSchema = communityUnitSchema.extend({
+	revision: z.string().min(1),
+});
+const communityUnitPageSchema = z
+	.object({
+		projectId: z.number().int().positive(),
+		items: z.array(communityUnitPageItemSchema),
+		nextCursor: z.number().int().positive().nullable(),
+	})
+	.strict();
+const communityProjectSchema = z
+	.object({
+		id: z.number().int().positive(),
+		slug: z.string().min(1),
+		title: z.string().min(1),
+		refNo: nullableText,
+		builderName: nullableText,
+		archived: z.boolean(),
+		unitCount: z.number().int().nonnegative(),
+		jobCount: z.number().int().nonnegative(),
+		invoiceCount: z.number().int().nonnegative(),
+		units: z.array(communityUnitSchema).max(5),
+		revision: z.string().min(1),
+	})
+	.strict();
+const communityPageSchema = z
+	.object({
+		items: z.array(communityProjectSchema),
+		nextCursor: z.number().int().positive().nullable(),
+	})
+	.strict();
+const communityProjectSummarySchema = z
+	.object({
+		project: z
+			.object({
+				id: z.number().int().positive(),
+				slug: z.string().min(1),
+				title: z.string().min(1),
+				refNo: nullableText,
+				builderName: nullableText,
+				archived: z.boolean(),
+				counts: z
+					.object({
+						units: z.number().int().nonnegative(),
+						jobs: z.number().int().nonnegative(),
+						tasks: z.number().int().nonnegative(),
+						invoices: z.number().int().nonnegative(),
+						documents: z.number().int().nonnegative(),
+					})
+					.strict(),
+				units: z.array(
+					z
+						.object({
+							id: z.number().int().positive(),
+							slug: z.string(),
+							lotBlock: nullableText,
+							modelName: nullableText,
+							status: nullableText,
+						})
+						.strict(),
+				),
+				jobs: z.array(
+					z
+						.object({
+							id: z.number().int().positive(),
+							title: z.string(),
+							type: nullableText,
+							status: z.string(),
+						})
+						.strict(),
+				),
+				tasks: z.array(
+					z
+						.object({
+							id: z.number().int().positive(),
+							unitId: z.number().int().positive().nullable(),
+							title: z.string(),
+							status: nullableText,
+							productionStatus: nullableText,
+						})
+						.strict(),
+				),
+				invoices: z.array(
+					z
+						.object({
+							id: z.number().int().positive(),
+							refNo: nullableText,
+							title: z.string(),
+							checkDate: nullableText,
+							amount: nullableText,
+						})
+						.strict(),
+				),
+				documents: z.array(
+					z
+						.object({
+							id: z.string().min(1),
+							title: z.string(),
+							mimeType: nullableText,
+							size: z.number().int().nonnegative().nullable(),
+						})
+						.strict(),
+				),
+				revision: z.string().min(1),
+			})
+			.strict()
+			.nullable(),
+	})
+	.strict();
 
 type PageInput = z.infer<typeof pageInputSchema>;
 type OrderSearchInput = z.infer<typeof orderSearchInputSchema>;
@@ -371,6 +555,13 @@ type CustomerHistoryInput = z.infer<typeof customerHistoryInputSchema>;
 type Order = z.infer<typeof orderSchema>;
 type DetailedOrder = z.infer<typeof detailedOrderSchema>;
 type CustomerSummary = z.infer<typeof customerSummarySchema>;
+type ProductionPage = z.infer<typeof productionPageSchema>;
+type InventoryPage = z.infer<typeof inventoryPageSchema>;
+type CommunityPage = z.infer<typeof communityPageSchema>;
+type CommunityUnitPage = z.infer<typeof communityUnitPageSchema>;
+type CommunityProjectSummary = NonNullable<
+	z.infer<typeof communityProjectSummarySchema>["project"]
+>;
 
 export type AssistantToolServices = {
 	findSalesOrders: (
@@ -378,6 +569,10 @@ export type AssistantToolServices = {
 		input: OrderSearchInput,
 	) => Promise<{ items: Order[]; nextCursor: number | null }>;
 	getSalesOrderCandidates: (
+		actor: AssistantToolActor,
+		input: Pick<OrderIdentityInput, "orderNo" | "type">,
+	) => Promise<DetailedOrder[]>;
+	getProductionOrderCandidates: (
 		actor: AssistantToolActor,
 		input: Pick<OrderIdentityInput, "orderNo" | "type">,
 	) => Promise<DetailedOrder[]>;
@@ -401,6 +596,26 @@ export type AssistantToolServices = {
 		actor: AssistantToolActor,
 		input: CustomerHistoryInput,
 	) => Promise<z.infer<typeof customerHistoryDataSchema> | null>;
+	findProductionAssignments: (
+		actor: AssistantToolActor,
+		input: PageInput,
+	) => Promise<ProductionPage>;
+	findInventoryAvailability: (
+		actor: AssistantToolActor,
+		input: PageInput,
+	) => Promise<InventoryPage>;
+	findCommunityProjects: (
+		actor: AssistantToolActor,
+		input: PageInput,
+	) => Promise<CommunityPage>;
+	getCommunityProjectSummary: (
+		actor: AssistantToolActor,
+		projectId: number,
+	) => Promise<CommunityProjectSummary | null>;
+	findCommunityUnits: (
+		actor: AssistantToolActor,
+		input: z.infer<typeof communityUnitsInputSchema>,
+	) => Promise<CommunityUnitPage | null>;
 };
 
 function projectSalesPipeline(snapshot: SalesPipelineSnapshot) {
@@ -477,6 +692,19 @@ const defaultAssistantToolServices: AssistantToolServices = {
 		loadCanonicalSalesOrders(
 			await getAssistantSalesOrderCandidates(db, actor, input),
 		),
+	getProductionOrderCandidates: async (actor, input) => {
+		const candidates = await getAssistantSalesOrderCandidates(db, actor, input);
+		const accessibleIds = new Set(
+			await getAssistantProductionAccessibleOrderIds(
+				db,
+				actor,
+				candidates.map(({ id }) => id),
+			),
+		);
+		return loadCanonicalSalesOrders(
+			candidates.filter(({ id }) => accessibleIds.has(id)),
+		);
+	},
 	getSalesTimeline: async (actor, input) => {
 		const result = await getAssistantSalesTimeline(db, actor, input);
 		return {
@@ -489,6 +717,16 @@ const defaultAssistantToolServices: AssistantToolServices = {
 		getAssistantCustomerSummary(db, actor, customerId),
 	getCustomerOrderHistory: (actor, input) =>
 		getAssistantCustomerOrderHistory(db, actor, input),
+	findProductionAssignments: (actor, input) =>
+		findAssistantProductionAssignments(db, actor, input),
+	findInventoryAvailability: (_actor, input) =>
+		findAssistantInventoryAvailability(db, input),
+	findCommunityProjects: (actor, input) =>
+		findAssistantCommunityProjects(db, actor, input),
+	getCommunityProjectSummary: (actor, projectId) =>
+		getAssistantCommunityProjectSummary(db, actor, projectId),
+	findCommunityUnits: (actor, input) =>
+		findAssistantCommunityUnits(db, actor, input),
 };
 
 function definition(
@@ -560,6 +798,80 @@ function customerEntity(customer: { accountNo: string; name: string }) {
 	};
 }
 
+function productionPageResult(page: ProductionPage) {
+	return assistantResultEnvelope({
+		status: "success",
+		data: page,
+		sources: page.items.map((item) => ({
+			kind: "record",
+			id: `production:${item.id}@${item.revision}`,
+			label: `Order ${item.orderNo}`,
+		})),
+		entities: page.items.map((item) => ({
+			kind: "order" as const,
+			id: item.orderNo,
+			label: `Order ${item.orderNo}`,
+			salesType: "order" as const,
+		})),
+		allowedNextActions: [{ toolId: "production_check_status", toolVersion: 1 }],
+	});
+}
+
+function inventoryPageResult(page: InventoryPage) {
+	return assistantResultEnvelope({
+		status: "success",
+		data: page,
+		sources: page.items.map((item) => ({
+			kind: "record",
+			id: `inventory:${item.variantId}@${item.revision}`,
+			label: item.name,
+		})),
+		entities: page.items.map((item) => ({
+			kind: "inventory" as const,
+			id: String(item.id),
+			label: item.name,
+		})),
+	});
+}
+
+function communityPageResult(page: CommunityPage) {
+	return assistantResultEnvelope({
+		status: "success",
+		data: page,
+		sources: page.items.map((project) => ({
+			kind: "record",
+			id: `community-project:${project.id}@${project.revision}`,
+			label: project.title,
+		})),
+		entities: page.items.map((project) => ({
+			kind: "community" as const,
+			communityType: "project" as const,
+			id: String(project.id),
+			slug: project.slug,
+			label: project.title,
+		})),
+	});
+}
+
+function communityUnitPageResult(page: CommunityUnitPage) {
+	return assistantResultEnvelope({
+		status: "success",
+		data: page,
+		sources: page.items.map((unit) => ({
+			kind: "record",
+			id: `community-unit:${unit.id}@${unit.revision}`,
+			label: unit.lotBlock || unit.modelName || `Unit ${unit.id}`,
+		})),
+		entities: page.items.map((unit) => ({
+			kind: "community" as const,
+			communityType: "unit" as const,
+			id: String(unit.id),
+			slug: unit.slug,
+			label: unit.lotBlock || unit.modelName || `Unit ${unit.id}`,
+		})),
+	});
+}
+
 function resolveOrderResult(
 	actor: AssistantToolActor,
 	orders: DetailedOrder[],
@@ -591,9 +903,10 @@ function resolveOrderResult(
 			warnings: [
 				"The order changed. Review the current status before continuing.",
 			],
-			allowedNextActions: [
-				{ toolId: "sales_get_order_status", toolVersion: 1 },
-			],
+			allowedNextActions:
+				actor.grants.viewOrders === true
+					? [{ toolId: "sales_get_order_status", toolVersion: 1 }]
+					: [],
 		});
 	}
 	return assistantResultEnvelope({
@@ -602,10 +915,13 @@ function resolveOrderResult(
 		sources: [orderSource(order)],
 		entities: [orderEntity(order)],
 		revision: order.revision,
-		allowedNextActions: [
-			{ toolId: "sales_explain_blockers", toolVersion: 1 },
-			{ toolId: "sales_get_timeline", toolVersion: 1 },
-		],
+		allowedNextActions:
+			actor.grants.viewOrders === true
+				? [
+						{ toolId: "sales_explain_blockers", toolVersion: 1 },
+						{ toolId: "sales_get_timeline", toolVersion: 1 },
+					]
+				: [],
 	});
 }
 
@@ -919,7 +1235,7 @@ const placeholders: AssistantToolDefinition[] = [
 		title: "Check inventory status",
 		description:
 			"Check whether an item is in stock using canonical inventory availability and inbound evidence.",
-		capability: "coming_soon",
+		capability: "implemented",
 		effect: "read",
 		requiredGrants: ["viewInventory"],
 		presentation: {
@@ -927,8 +1243,43 @@ const placeholders: AssistantToolDefinition[] = [
 			resultComponent: "inventory-status",
 			icon: "boxes",
 		},
-		inputSchema: placeholderInputSchema,
-		outputSchema: placeholderDataSchema,
+		inputSchema: pageInputSchema,
+		outputSchema: inventoryPageSchema,
+		relatedTools: ["inventory_get_demand"],
+		async handler(actor, rawInput, services) {
+			const input = pageInputSchema.parse(rawInput);
+			const page = await services.findInventoryAvailability(actor, input);
+			return {
+				...inventoryPageResult(page),
+				allowedNextActions: [
+					{ toolId: "inventory_get_demand", toolVersion: 1 },
+				],
+			};
+		},
+	}),
+	definition({
+		toolId: "inventory_get_demand",
+		version: 1,
+		domain: "inventory",
+		title: "Review inventory demand",
+		description:
+			"Read bounded canonical stock, allocation, inbound, demand, and material-shortfall evidence.",
+		capability: "implemented",
+		effect: "read",
+		requiredGrants: ["viewInventory"],
+		presentation: {
+			group: "Inventory",
+			resultComponent: "inventory-demand",
+			icon: "package-search",
+		},
+		inputSchema: pageInputSchema,
+		outputSchema: inventoryPageSchema,
+		relatedTools: ["inventory_check_status"],
+		async handler(actor, rawInput, services) {
+			const input = pageInputSchema.parse(rawInput);
+			const page = await services.findInventoryAvailability(actor, input);
+			return inventoryPageResult(page);
+		},
 	}),
 	definition({
 		toolId: "production_check_status",
@@ -937,7 +1288,7 @@ const placeholders: AssistantToolDefinition[] = [
 		title: "Check production status",
 		description:
 			"Read the current manufacturing or Production stage and its evidence.",
-		capability: "coming_soon",
+		capability: "implemented",
 		effect: "read",
 		requiredGrants: ["viewProduction"],
 		presentation: {
@@ -945,8 +1296,41 @@ const placeholders: AssistantToolDefinition[] = [
 			resultComponent: "production-status",
 			icon: "factory",
 		},
-		inputSchema: placeholderInputSchema,
-		outputSchema: placeholderDataSchema,
+		inputSchema: orderIdentityInputSchema,
+		outputSchema: orderResolutionSchema,
+		relatedTools: ["production_get_schedule", "sales_get_order_status"],
+		async handler(actor, rawInput, services) {
+			const input = orderIdentityInputSchema.parse(rawInput);
+			return resolveOrderResult(
+				actor,
+				await services.getProductionOrderCandidates(actor, input),
+				input.expectedRevision,
+			);
+		},
+	}),
+	definition({
+		toolId: "production_get_schedule",
+		version: 1,
+		domain: "production",
+		title: "Get Production schedule",
+		description:
+			"Read authorized active assignment quantities, workers, due dates, and completion evidence.",
+		capability: "implemented",
+		effect: "read",
+		requiredGrants: ["viewProduction"],
+		presentation: {
+			group: "Production",
+			resultComponent: "production-schedule",
+			icon: "calendar-clock",
+		},
+		inputSchema: pageInputSchema,
+		outputSchema: productionPageSchema,
+		relatedTools: ["production_check_status"],
+		async handler(actor, rawInput, services) {
+			const input = pageInputSchema.parse(rawInput);
+			const page = await services.findProductionAssignments(actor, input);
+			return productionPageResult(page);
+		},
 	}),
 	definition({
 		toolId: "fulfillment_check_status",
@@ -954,7 +1338,7 @@ const placeholders: AssistantToolDefinition[] = [
 		domain: "fulfillment",
 		title: "Check fulfillment status",
 		description: "Read canonical packing, pickup, and delivery state.",
-		capability: "coming_soon",
+		capability: "implemented",
 		effect: "read",
 		requiredGrants: ["viewOrders"],
 		presentation: {
@@ -962,8 +1346,57 @@ const placeholders: AssistantToolDefinition[] = [
 			resultComponent: "fulfillment-status",
 			icon: "truck",
 		},
-		inputSchema: placeholderInputSchema,
-		outputSchema: placeholderDataSchema,
+		inputSchema: orderIdentityInputSchema,
+		outputSchema: orderResolutionSchema,
+		relatedTools: ["fulfillment_explain_exceptions", "sales_get_order_status"],
+		async handler(actor, rawInput, services) {
+			const input = orderIdentityInputSchema.parse(rawInput);
+			return resolveOrderResult(
+				actor,
+				await services.getSalesOrderCandidates(actor, input),
+				input.expectedRevision,
+			);
+		},
+	}),
+	definition({
+		toolId: "fulfillment_explain_exceptions",
+		version: 1,
+		domain: "fulfillment",
+		title: "Explain fulfillment exceptions",
+		description:
+			"Explain canonical material, packing, pickup, delivery, and Dispatch blockers for an authorized order.",
+		capability: "implemented",
+		effect: "read",
+		requiredGrants: ["viewOrders"],
+		presentation: {
+			group: "Fulfillment",
+			resultComponent: "fulfillment-exceptions",
+			icon: "triangle-alert",
+		},
+		inputSchema: orderIdentityInputSchema,
+		outputSchema: blockerDataSchema,
+		relatedTools: ["fulfillment_check_status"],
+		async handler(actor, rawInput, services) {
+			const input = orderIdentityInputSchema.parse(rawInput);
+			const resolved = resolveOrderResult(
+				actor,
+				await services.getSalesOrderCandidates(actor, input),
+				input.expectedRevision,
+			);
+			const order = resolved.data?.order;
+			return {
+				...resolved,
+				data: {
+					...resolved.data,
+					blockers:
+						resolved.status === "success" && order
+							? order.pipeline.blockers.filter(
+									(blocker) => blocker.dimension !== "payment",
+								)
+							: [],
+				},
+			};
+		},
 	}),
 	definition({
 		toolId: "community_search",
@@ -971,17 +1404,125 @@ const placeholders: AssistantToolDefinition[] = [
 		domain: "community",
 		title: "Search Community",
 		description:
-			"Find authorized Community discussions, content, and reusable templates.",
-		capability: "coming_soon",
+			"Find authorized Community projects with bounded unit, job, and invoice counts.",
+		capability: "implemented",
 		effect: "read",
-		requiredGrants: ["viewCommunity"],
+		requiredGrants: [],
+		anyOfGrants: ["viewCommunity", "viewCommunityUnit", "editCommunityUnit"],
 		presentation: {
 			group: "Community",
 			resultComponent: "community-results",
 			icon: "messages",
 		},
-		inputSchema: placeholderInputSchema,
-		outputSchema: placeholderDataSchema,
+		inputSchema: pageInputSchema,
+		outputSchema: communityPageSchema,
+		relatedTools: ["community_get_project_summary", "community_list_units"],
+		async handler(actor, rawInput, services) {
+			const input = pageInputSchema.parse(rawInput);
+			const page = await services.findCommunityProjects(actor, input);
+			return {
+				...communityPageResult(page),
+				allowedNextActions: [
+					{ toolId: "community_get_project_summary", toolVersion: 1 },
+					{ toolId: "community_list_units", toolVersion: 1 },
+				],
+			};
+		},
+	}),
+	definition({
+		toolId: "community_get_project_summary",
+		version: 1,
+		domain: "community",
+		title: "Get Community project summary",
+		description:
+			"Read an organization-scoped project with bounded unit, task, job, and invoice counts while excluding install costs.",
+		capability: "implemented",
+		effect: "read",
+		requiredGrants: [],
+		anyOfGrants: ["viewCommunity", "viewCommunityUnit", "editCommunityUnit"],
+		presentation: {
+			group: "Community",
+			resultComponent: "community-project-summary",
+			icon: "building-2",
+		},
+		inputSchema: communityProjectInputSchema,
+		outputSchema: communityProjectSummarySchema,
+		relatedTools: ["community_search", "community_list_units"],
+		async handler(actor, rawInput, services) {
+			const input = communityProjectInputSchema.parse(rawInput);
+			const project = await services.getCommunityProjectSummary(
+				actor,
+				input.projectId,
+			);
+			return assistantResultEnvelope({
+				status: project ? "success" : "unavailable",
+				data: { project },
+				sources: project
+					? [
+							{
+								kind: "record",
+								id: `community-project:${project.id}@${project.revision}`,
+								label: project.title,
+							},
+						]
+					: [],
+				entities: project
+					? [
+							{
+								kind: "community" as const,
+								communityType: "project" as const,
+								id: String(project.id),
+								slug: project.slug,
+								label: project.title,
+							},
+						]
+					: [],
+				warnings: project
+					? []
+					: ["No authorized Community project matched that identifier."],
+				allowedNextActions: project
+					? [{ toolId: "community_list_units", toolVersion: 1 }]
+					: [],
+			});
+		},
+	}),
+	definition({
+		toolId: "community_list_units",
+		version: 1,
+		domain: "community",
+		title: "List Community project units",
+		description:
+			"List authorized units for one exact Community project with bounded task, job, and invoice counts while excluding install costs and invoice amounts.",
+		capability: "implemented",
+		effect: "read",
+		requiredGrants: [],
+		anyOfGrants: ["viewCommunity", "viewCommunityUnit", "editCommunityUnit"],
+		presentation: {
+			group: "Community",
+			resultComponent: "community-unit-results",
+			icon: "house",
+		},
+		inputSchema: communityUnitsInputSchema,
+		outputSchema: communityUnitPageSchema,
+		relatedTools: ["community_search", "community_get_project_summary"],
+		async handler(actor, rawInput, services) {
+			const input = communityUnitsInputSchema.parse(rawInput);
+			const page = await services.findCommunityUnits(actor, input);
+			if (!page) {
+				return assistantResultEnvelope({
+					status: "unavailable",
+					warnings: [
+						"No authorized Community project matched that identifier.",
+					],
+				});
+			}
+			return {
+				...communityUnitPageResult(page),
+				allowedNextActions: [
+					{ toolId: "community_get_project_summary", toolVersion: 1 },
+				],
+			};
+		},
 	}),
 	definition({
 		toolId: "documents_generate_pdf",
@@ -1116,8 +1657,10 @@ function isAuthorized(
 	actor: AssistantToolActor,
 	definition: AssistantToolDefinition,
 ) {
-	return definition.requiredGrants.every(
-		(grant) => actor.grants[grant] === true,
+	return (
+		definition.requiredGrants.every((grant) => actor.grants[grant] === true) &&
+		(!definition.anyOfGrants?.length ||
+			definition.anyOfGrants.some((grant) => actor.grants[grant] === true))
 	);
 }
 
@@ -1172,15 +1715,7 @@ function assistantResultEnvelope<T = never>(input: {
 	data?: T;
 	sources?: Array<{ kind: "record"; id: string; label: string }>;
 	warnings?: string[];
-	entities?: Array<
-		| {
-				kind: "order";
-				id: string;
-				label: string;
-				salesType?: "order" | "quote";
-		  }
-		| { kind: "customer"; id: string; label: string }
-	>;
+	entities?: AssistantEntityReference[];
 	revision?: string;
 	allowedNextActions?: Array<{ toolId: string; toolVersion: number }>;
 }) {

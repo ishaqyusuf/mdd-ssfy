@@ -5,7 +5,7 @@ describe("assistant tool selection benchmark", () => {
 	test("compares semantic ranking with the deterministic baseline", async () => {
 		const result = await benchmarkAssistantToolSelection();
 
-		expect(result.total).toBe(15);
+		expect(result.total).toBe(24);
 		expect(result.fixture).toEqual({
 			model: "Apple NaturalLanguage English sentence embedding",
 			dimension: 512,

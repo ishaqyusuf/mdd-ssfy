@@ -125,7 +125,37 @@ const assistantEntityBaseSchema = z.object({
 	label: z.string().trim().min(1).max(200),
 });
 
-export const assistantEntityReferenceSchema = z.discriminatedUnion("kind", [
+const assistantCommunityProjectEntitySchema = assistantEntityBaseSchema
+	.extend({
+		kind: z.literal("community"),
+		communityType: z.literal("project").default("project"),
+		slug: z.string().trim().min(1).max(191).optional(),
+		id: z
+			.string()
+			.regex(/^\d+$/)
+			.refine(
+				(value) => Number.isSafeInteger(Number(value)) && Number(value) > 0,
+				"Community IDs must be positive safe integers.",
+			),
+	})
+	.strict();
+
+const assistantCommunityUnitEntitySchema = assistantEntityBaseSchema
+	.extend({
+		kind: z.literal("community"),
+		communityType: z.literal("unit"),
+		slug: z.string().trim().min(1).max(191),
+		id: z
+			.string()
+			.regex(/^\d+$/)
+			.refine(
+				(value) => Number.isSafeInteger(Number(value)) && Number(value) > 0,
+				"Community IDs must be positive safe integers.",
+			),
+	})
+	.strict();
+
+export const assistantEntityReferenceSchema = z.union([
 	assistantEntityBaseSchema
 		.extend({
 			kind: z.literal("order"),
@@ -145,18 +175,8 @@ export const assistantEntityReferenceSchema = z.discriminatedUnion("kind", [
 				),
 		})
 		.strict(),
-	assistantEntityBaseSchema
-		.extend({
-			kind: z.literal("community"),
-			id: z
-				.string()
-				.regex(/^\d+$/)
-				.refine(
-					(value) => Number.isSafeInteger(Number(value)) && Number(value) > 0,
-					"Community IDs must be positive safe integers.",
-				),
-		})
-		.strict(),
+	assistantCommunityProjectEntitySchema,
+	assistantCommunityUnitEntitySchema,
 	assistantEntityBaseSchema
 		.extend({
 			kind: z.literal("document"),

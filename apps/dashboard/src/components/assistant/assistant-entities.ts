@@ -29,6 +29,14 @@ export function assistantSalesEntityMode(
 	return entity.salesType === "quote" ? ("quote" as const) : ("sales" as const);
 }
 
+export function assistantCommunityEntityRoute(
+	entity: Extract<AssistantEntityReference, { kind: "community" }>,
+) {
+	return entity.communityType === "unit" && entity.slug
+		? `/community/project-units/${encodeURIComponent(entity.slug)}`
+		: null;
+}
+
 export function findAssistantDocumentEntity(
 	messages: readonly unknown[],
 	documentId: string | null,

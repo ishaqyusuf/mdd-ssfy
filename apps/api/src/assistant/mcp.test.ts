@@ -11,6 +11,8 @@ describe("assistant in-memory MCP", () => {
 		});
 
 		expect(session.definitions.tools.map((tool) => tool.name).sort()).toEqual([
+			"fulfillment_check_status",
+			"fulfillment_explain_exceptions",
 			"sales_explain_blockers",
 			"sales_find_orders",
 			"sales_get_order_status",
@@ -19,6 +21,8 @@ describe("assistant in-memory MCP", () => {
 			"system_search_tools",
 		]);
 		expect(Object.keys(session.tools).sort()).toEqual([
+			"fulfillment_check_status",
+			"fulfillment_explain_exceptions",
 			"sales_explain_blockers",
 			"sales_find_orders",
 			"sales_get_order_status",
@@ -27,6 +31,8 @@ describe("assistant in-memory MCP", () => {
 			"system_search_tools",
 		]);
 		expect(session.toolEffects).toEqual({
+			fulfillment_check_status: "read",
+			fulfillment_explain_exceptions: "read",
 			sales_explain_blockers: "read",
 			sales_find_orders: "read",
 			sales_get_order_status: "read",

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import {
 	assistantAppRoutes,
+	assistantCommunityEntityRoute,
 	assistantSalesEntityMode,
 } from "./assistant-entities";
 
@@ -54,6 +55,13 @@ export function useAssistantEntityNavigation(
 				void current.inventory.setParams({ productId: Number(entity.id) });
 				return;
 			case "community":
+				{
+					const route = assistantCommunityEntityRoute(entity);
+					if (route) {
+						current.router.push(route);
+						return;
+					}
+				}
 				void current.community.setParams({
 					openCommunityProjectId: Number(entity.id),
 				});

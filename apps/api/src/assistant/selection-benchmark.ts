@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getAssistantRegistryPublicDefinitions } from "./registry";
 import embeddingFixture from "./selection-benchmark-embeddings.json";
 
-const cases = [
+export const assistantSelectionBenchmarkCases = [
 	{ query: "where is order 09502PC", expected: "sales_find_orders" },
 	{ query: "start a new customer purchase", expected: "sales_create_order" },
 	{ query: "look up Jordan’s customer record", expected: "customers_find" },
@@ -17,7 +17,7 @@ const cases = [
 		query: "has the delivery been packed",
 		expected: "fulfillment_check_status",
 	},
-	{ query: "find a discussion template", expected: "community_search" },
+	{ query: "find a community project", expected: "community_search" },
 	{ query: "turn the result into a PDF", expected: "documents_generate_pdf" },
 	{
 		query: "Which orders belong to Ada Millwork?",
@@ -44,7 +44,45 @@ const cases = [
 		query: "What has Ada Millwork purchased before?",
 		expected: "customers_get_order_history",
 	},
+	{
+		query: "show the current production assignments",
+		expected: "production_check_status",
+	},
+	{
+		query: "what work is due on the production schedule",
+		expected: "production_get_schedule",
+	},
+	{
+		query: "how many oak jambs are available after allocations",
+		expected: "inventory_check_status",
+	},
+	{
+		query: "show inbound demand and material shortages",
+		expected: "inventory_get_demand",
+	},
+	{
+		query: "is order 09502PC packed and ready for delivery",
+		expected: "fulfillment_check_status",
+	},
+	{
+		query: "why is fulfillment blocked for order 09502PC",
+		expected: "fulfillment_explain_exceptions",
+	},
+	{
+		query: "find the North Ridge community project",
+		expected: "community_search",
+	},
+	{
+		query: "summarize units jobs and invoices for North Ridge",
+		expected: "community_get_project_summary",
+	},
+	{
+		query: "list every unit in the North Ridge project",
+		expected: "community_list_units",
+	},
 ] as const;
+
+const cases = assistantSelectionBenchmarkCases;
 
 function tokens(value: string) {
 	return new Set(value.toLowerCase().match(/[a-z0-9]+/g) ?? []);

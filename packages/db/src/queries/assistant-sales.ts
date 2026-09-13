@@ -6,6 +6,7 @@ export type AssistantBusinessActor = {
 	userId: number;
 	scopeType: string;
 	scopeId: string;
+	grants?: Record<string, boolean>;
 };
 
 export type AssistantPageInput = {

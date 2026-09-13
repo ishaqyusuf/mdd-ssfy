@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	assistantAppRoutes,
+	assistantCommunityEntityRoute,
 	assistantSalesEntityMode,
 	buildAssistantDocumentUrl,
 	findAssistantDocumentEntity,
@@ -53,6 +54,28 @@ describe("assistant entity navigation", () => {
 				label: "Unreviewed route",
 			}),
 		).toBe(null);
+	});
+
+	test("accepts a Community unit deep-link identity", () => {
+		const entity = parseAssistantEntity({
+			kind: "community",
+			communityType: "unit",
+			id: "42",
+			slug: "north-ridge-lot-4",
+			label: "Lot 4/A",
+		});
+		expect(entity).toEqual({
+			kind: "community",
+			communityType: "unit",
+			id: "42",
+			slug: "north-ridge-lot-4",
+			label: "Lot 4/A",
+		});
+		expect(
+			assistantCommunityEntityRoute(
+				entity as Extract<NonNullable<typeof entity>, { kind: "community" }>,
+			),
+		).toBe("/community/project-units/north-ridge-lot-4");
 	});
 
 	test("restores a document selection only from persisted trusted parts", () => {

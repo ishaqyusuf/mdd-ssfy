@@ -21,7 +21,7 @@ describe("assistant tool registry", () => {
 		);
 
 		expect(new Set(identities).size).toBe(identities.length);
-		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v2");
+		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v3");
 		for (const tool of assistantToolRegistry) {
 			expect(tool.toolId).toMatch(/^[a-z][a-z0-9]*_[a-z][a-z0-9_]*$/);
 			expect(tool.version).toBeGreaterThan(0);
@@ -35,6 +35,8 @@ describe("assistant tool registry", () => {
 		const discovered = discoverAssistantTools(actor);
 
 		expect(discovered.map((tool) => tool.toolId)).toEqual([
+			"fulfillment_check_status",
+			"fulfillment_explain_exceptions",
 			"sales_explain_blockers",
 			"sales_find_orders",
 			"sales_get_order_status",

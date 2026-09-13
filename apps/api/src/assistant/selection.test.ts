@@ -79,4 +79,41 @@ describe("assistant tool selection", () => {
 			expect(selected).toContain(expected);
 		}
 	});
+
+	test("selects authorized operations reads from natural requests", async () => {
+		const operationsActor = {
+			...actor,
+			grants: {
+				viewOrders: true,
+				viewProduction: true,
+				viewInventory: true,
+				viewCommunity: true,
+			},
+		};
+		const cases = [
+			["show the production assignment schedule", "production_get_schedule"],
+			["check current production status", "production_check_status"],
+			["check inventory status for oak jambs", "inventory_check_status"],
+			["show material demand and inbound shortages", "inventory_get_demand"],
+			["is order 09502PC packed for delivery", "fulfillment_check_status"],
+			[
+				"explain the fulfillment exceptions for 09502PC",
+				"fulfillment_explain_exceptions",
+			],
+			["find the North Ridge community project", "community_search"],
+			[
+				"summarize units and jobs for North Ridge project",
+				"community_get_project_summary",
+			],
+			["list every unit in the North Ridge project", "community_list_units"],
+		] as const;
+
+		for (const [query, expected] of cases) {
+			const selected = await selectAssistantTools(operationsActor, query, {
+				maxTools: 8,
+				environment: {},
+			});
+			expect(selected).toContain(expected);
+		}
+	});
 });

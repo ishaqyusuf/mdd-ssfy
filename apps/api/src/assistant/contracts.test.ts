@@ -30,6 +30,23 @@ describe("assistant public contracts", () => {
 				toolVersion: 0,
 			}),
 		).toThrow();
+		expect(
+			assistantEntityReferenceSchema.parse({
+				kind: "community",
+				communityType: "unit",
+				id: "42",
+				slug: "north-ridge-lot-4",
+				label: "Lot 4/A",
+			}),
+		).toMatchObject({ communityType: "unit", slug: "north-ridge-lot-4" });
+		expect(() =>
+			assistantEntityReferenceSchema.parse({
+				kind: "community",
+				communityType: "unit",
+				id: "42",
+				label: "Lot 4/A",
+			}),
+		).toThrow();
 	});
 
 	test("uses the approved capability and effect vocabulary", () => {
