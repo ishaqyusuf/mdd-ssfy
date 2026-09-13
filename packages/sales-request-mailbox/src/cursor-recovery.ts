@@ -50,7 +50,7 @@ export function beginMailboxSync(input: {
 	};
 }
 
-type MailboxSyncRequest = {
+export type MailboxSyncRequest = {
 	cursor?: string;
 	pageToken?: string;
 	since: Date | null;
@@ -85,6 +85,14 @@ function requestFor(
 	};
 }
 
+export function getMailboxSyncRequest(
+	state: MailboxSyncState,
+	budget: MailboxSyncBudget = DEFAULT_MAILBOX_SYNC_BUDGET,
+): MailboxSyncRequest {
+	if (!validBudget(budget)) throw new Error("invalid-sync-budget");
+	return requestFor(state, budget);
+}
+
 function validBudget(budget: MailboxSyncBudget) {
 	return (
 		Number.isSafeInteger(budget.pageSize) &&
@@ -106,6 +114,21 @@ function validBudget(budget: MailboxSyncBudget) {
 		budget.maxRetryAttempts > 0 &&
 		budget.maxRetryAttempts <= 10
 	);
+}
+
+function resetForBoundedRecovery(state: MailboxSyncState): MailboxSyncState {
+	return {
+		...state,
+		mode: "recovery-full",
+		cursor: null,
+		pageToken: null,
+		pagesFetched: 0,
+		messagesFetched: 0,
+		cursorResets: state.cursorResets + 1,
+		emptyContinuationPages: 0,
+		retryAttempts: 0,
+		seenContinuations: [],
+	};
 }
 
 export function advanceMailboxSync(input: {
@@ -150,14 +173,7 @@ export function advanceMailboxSync(input: {
 			if (input.state.cursorResets >= budget.maxCursorResets) {
 				return { kind: "fail", reason: "cursor-recovery-exhausted" };
 			}
-			const state: MailboxSyncState = {
-				...input.state,
-				mode: "recovery-full",
-				cursor: null,
-				pageToken: null,
-				cursorResets: input.state.cursorResets + 1,
-				seenContinuations: [],
-			};
+			const state = resetForBoundedRecovery(input.state);
 			return {
 				kind: "reset-cursor",
 				state,
@@ -180,14 +196,7 @@ export function advanceMailboxSync(input: {
 		if (!input.state.since) {
 			return { kind: "fail", reason: "recovery-window-required" };
 		}
-		const state: MailboxSyncState = {
-			...input.state,
-			mode: "recovery-full",
-			cursor: null,
-			pageToken: null,
-			cursorResets: input.state.cursorResets + 1,
-			seenContinuations: [],
-		};
+		const state = resetForBoundedRecovery(input.state);
 		return {
 			kind: "reset-cursor",
 			state,
@@ -235,9 +244,10 @@ export function advanceMailboxSync(input: {
 			: input.state.seenContinuations,
 	};
 	const truncated =
-		pagesFetched >= budget.maxPages ||
-		messagesFetched >= budget.maxMessages ||
-		emptyContinuationPages >= budget.maxEmptyContinuationPages;
+		hasContinuation &&
+		(pagesFetched >= budget.maxPages ||
+			messagesFetched >= budget.maxMessages ||
+			emptyContinuationPages >= budget.maxEmptyContinuationPages);
 	if (truncated || !hasContinuation)
 		return { kind: "complete", state, truncated };
 	return { kind: "fetch", state, request: requestFor(state, budget) };

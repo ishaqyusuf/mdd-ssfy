@@ -86,3 +86,22 @@ export type {
 	MicrosoftGraphMailboxAdapterConfig,
 	SalesRequestMailboxAdapterFactoryInput,
 } from "./providers/index.js";
+export {
+	mailboxSyncSourceProvider,
+	resolveMailboxSyncSources,
+	runMailboxSyncStream,
+} from "./sync-orchestrator.js";
+export type {
+	MailboxSyncAuthorityFence,
+	MailboxSyncCheckpoint,
+	MailboxSyncDependencies,
+	MailboxSyncLeaseFence,
+	MailboxSyncMutationResult,
+	MailboxSyncRunResult,
+	MailboxSyncSource,
+	MailboxSyncStore,
+	MailboxSyncStoreLease,
+	MailboxSyncSummaryProjection,
+	MailboxSyncSuppressionReason,
+	MailboxSyncTombstoneProjection,
+} from "./sync-orchestrator.js";

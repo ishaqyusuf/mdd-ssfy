@@ -59,7 +59,13 @@ describe("bounded mailbox cursor recovery", () => {
 
 	test("resets an invalid cursor once while preserving the bounded since window", () => {
 		const since = new Date("2026-09-01T00:00:00.000Z");
-		const state = beginMailboxSync({ cursor: "expired", since });
+		const state = {
+			...beginMailboxSync({ cursor: "expired", since }),
+			pagesFetched: 4,
+			messagesFetched: 37,
+			emptyContinuationPages: 1,
+			retryAttempts: 2,
+		};
 		const reset = advanceMailboxSync({
 			state,
 			outcome: {
@@ -72,6 +78,13 @@ describe("bounded mailbox cursor recovery", () => {
 		});
 		expect(reset).toMatchObject({
 			kind: "reset-cursor",
+			state: {
+				pagesFetched: 0,
+				messagesFetched: 0,
+				emptyContinuationPages: 0,
+				retryAttempts: 0,
+				cursorResets: 1,
+			},
 			request: {
 				cursor: undefined,
 				pageToken: undefined,
@@ -104,7 +117,15 @@ describe("bounded mailbox cursor recovery", () => {
 		});
 		expect(pageReset).toMatchObject({
 			kind: "reset-cursor",
-			state: { mode: "recovery-full", cursorResets: 1, since },
+			state: {
+				mode: "recovery-full",
+				pagesFetched: 0,
+				messagesFetched: 0,
+				emptyContinuationPages: 0,
+				retryAttempts: 0,
+				cursorResets: 1,
+				since,
+			},
 		});
 	});
 
@@ -141,6 +162,23 @@ describe("bounded mailbox cursor recovery", () => {
 			},
 		});
 		expect(limited).toMatchObject({ kind: "complete", truncated: true });
+
+		const exactFinalPage = advanceMailboxSync({
+			state: beginMailboxSync({ cursor: null, since: null }),
+			budget: { ...DEFAULT_MAILBOX_SYNC_BUDGET, maxMessages: 2 },
+			outcome: {
+				kind: "page",
+				page: {
+					messages: [message("m1"), message("m2")],
+					nextCursor: "current",
+					cursorInvalid: false,
+				},
+			},
+		});
+		expect(exactFinalPage).toMatchObject({
+			kind: "complete",
+			truncated: false,
+		});
 	});
 
 	test("preserves state for retry and transitions revoked authorization", () => {
