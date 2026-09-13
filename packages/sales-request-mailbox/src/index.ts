@@ -76,3 +76,13 @@ export type {
 	MailboxSyncBudget,
 	MailboxSyncState,
 } from "./cursor-recovery.js";
+export {
+	GmailSalesRequestMailboxAdapter,
+	MicrosoftGraphMailboxAdapter,
+	createSalesRequestMailboxAdapter,
+} from "./providers/index.js";
+export type {
+	GmailMailboxAdapterConfig,
+	MicrosoftGraphMailboxAdapterConfig,
+	SalesRequestMailboxAdapterFactoryInput,
+} from "./providers/index.js";

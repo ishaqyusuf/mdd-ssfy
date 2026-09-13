@@ -116,7 +116,8 @@ export function advanceMailboxSync(input: {
 				page: Pick<
 					MailboxSyncPage,
 					"messages" | "nextPageToken" | "nextCursor" | "cursorInvalid"
-				>;
+				> &
+					Partial<Pick<MailboxSyncPage, "removedProviderMessageIds">>;
 		  }
 		| { kind: "error"; error: MailboxProviderError };
 	budget?: MailboxSyncBudget;
@@ -167,8 +168,10 @@ export function advanceMailboxSync(input: {
 	}
 
 	const page = input.outcome.page;
+	const changeCount =
+		page.messages.length + (page.removedProviderMessageIds?.length ?? 0);
 	if (page.cursorInvalid) {
-		if (page.messages.length > 0) {
+		if (changeCount > 0) {
 			return { kind: "fail", reason: "malformed-cursor-page" };
 		}
 		if (input.state.cursorResets >= budget.maxCursorResets) {
@@ -192,7 +195,7 @@ export function advanceMailboxSync(input: {
 		};
 	}
 	const remainingMessages = budget.maxMessages - input.state.messagesFetched;
-	if (page.messages.length > Math.min(budget.pageSize, remainingMessages)) {
+	if (changeCount > Math.min(budget.pageSize, remainingMessages)) {
 		return {
 			kind: "fail",
 			reason: "page-size-exceeded",
@@ -213,10 +216,10 @@ export function advanceMailboxSync(input: {
 	}
 
 	const pagesFetched = input.state.pagesFetched + 1;
-	const messagesFetched = input.state.messagesFetched + page.messages.length;
+	const messagesFetched = input.state.messagesFetched + changeCount;
 	const hasContinuation = Boolean(page.nextPageToken);
 	const emptyContinuationPages =
-		hasContinuation && page.messages.length === 0
+		hasContinuation && changeCount === 0
 			? input.state.emptyContinuationPages + 1
 			: 0;
 	const state: MailboxSyncState = {

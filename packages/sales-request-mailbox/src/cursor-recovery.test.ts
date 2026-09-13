@@ -201,4 +201,26 @@ describe("bounded mailbox cursor recovery", () => {
 			}),
 		).toEqual({ kind: "fail", reason: "provider-error" });
 	});
+
+	test("does not count a tombstone-only continuation page as empty", () => {
+		const result = advanceMailboxSync({
+			state: {
+				...beginMailboxSync({ cursor: "c1", since: null }),
+				emptyContinuationPages: 1,
+			},
+			outcome: {
+				kind: "page",
+				page: {
+					messages: [],
+					removedProviderMessageIds: ["deleted-1"],
+					nextPageToken: "next",
+					cursorInvalid: false,
+				},
+			},
+		});
+		expect(result).toMatchObject({
+			kind: "fetch",
+			state: { emptyContinuationPages: 0, messagesFetched: 1 },
+		});
+	});
 });

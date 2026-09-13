@@ -36,6 +36,7 @@ export type MailboxMessageDetail = MailboxMessageSummary & {
 
 export type MailboxSyncPage = {
 	messages: readonly MailboxMessageSummary[];
+	removedProviderMessageIds: readonly string[];
 	nextPageToken?: string;
 	nextCursor?: string;
 	cursorInvalid: boolean;
@@ -57,6 +58,8 @@ export interface SalesRequestMailboxAdapter {
 		tokens: MailboxTokenSet;
 		cursor?: string;
 		pageToken?: string;
+		folderId?: string;
+		labelId?: string;
 		since: Date | null;
 		fullSync: boolean;
 		limit: number;

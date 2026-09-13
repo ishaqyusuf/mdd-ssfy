@@ -6,6 +6,7 @@ export type MailboxProviderErrorCode =
 	| "rate-limited"
 	| "network"
 	| "provider-unavailable"
+	| "not-found"
 	| "malformed-response"
 	| "account-mismatch";
 
