@@ -141,6 +141,192 @@ describe("sales request telemetry boundaries", () => {
 		);
 	});
 
+	test("compares successful assistive and low-touch final saves without row identities", () => {
+		const report = aggregateSalesRequestGenerationRuns([
+			{
+				generationId: "assistive-one",
+				actorUserId: 17,
+				status: "succeeded",
+				consumedSalesId: null,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T10:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T10:10:00.000Z"),
+				feedbackOutcome: "accepted",
+			},
+			{
+				generationId: "assistive-two",
+				actorUserId: 18,
+				status: "succeeded",
+				consumedSalesId: null,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T11:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T11:20:00.000Z"),
+				feedbackOutcome: "accepted-with-edits",
+			},
+			{
+				generationId: "low-touch-one",
+				actorUserId: 19,
+				status: "succeeded",
+				consumedSalesId: 41,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T12:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T12:05:00.000Z"),
+				feedbackOutcome: "accepted-with-edits",
+			},
+			{
+				generationId: "failed-low-touch-attempt",
+				actorUserId: 20,
+				status: "succeeded",
+				consumedSalesId: null,
+				applyOutcome: "applied",
+				saveFinalOutcome: "failed",
+				startedAt: new Date("2026-09-12T13:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T13:01:00.000Z"),
+				feedbackOutcome: "accepted-with-edits",
+			},
+		]);
+
+		expect(report.representativeComparison).toEqual({
+			scope: "successful-final-saves",
+			handlingTimeDefinition: "generation-start-to-successful-final-save",
+			correctionRateDefinition: "accepted-with-edits-over-accepted-reviews",
+			comparison: {
+				method: "observational-outcome-classification",
+				status: "descriptive-only",
+				autonomyDecisionEligible: false,
+				limitations: ["outcome-selected-arms", "request-family-not-stratified"],
+				blockers: [],
+				observedLowTouchMinusAssistive: {
+					handlingTimeP95Ms: -900_000,
+					correctionRateBasisPoints: 5_000,
+				},
+			},
+			arms: {
+				assistiveTextFirst: {
+					finalizedCount: 2,
+					handlingTime: {
+						sampleCount: 2,
+						p50Ms: 600_000,
+						p95Ms: 1_200_000,
+					},
+					correctionRate: {
+						reviewedCount: 2,
+						acceptedWithEditsCount: 1,
+						rateBasisPoints: 5_000,
+					},
+				},
+				lowTouchConsumedFinalSave: {
+					finalizedCount: 1,
+					handlingTime: {
+						sampleCount: 1,
+						p50Ms: 300_000,
+						p95Ms: 300_000,
+					},
+					correctionRate: {
+						reviewedCount: 1,
+						acceptedWithEditsCount: 1,
+						rateBasisPoints: 10_000,
+					},
+				},
+			},
+		});
+		expect(JSON.stringify(report.representativeComparison)).not.toMatch(
+			/assistive-one|actorUserId|consumedSalesId|startedAt|saveFinalAt/,
+		);
+	});
+
+	test("keeps incomplete, anonymized, or unclassified evidence out of comparison arms", () => {
+		const report = aggregateSalesRequestGenerationRuns([
+			{
+				status: "succeeded",
+				actorUserId: undefined,
+				consumedSalesId: undefined,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T10:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T10:05:00.000Z"),
+				feedbackOutcome: "accepted",
+			},
+			{
+				status: "succeeded",
+				actorUserId: null,
+				consumedSalesId: null,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T11:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T11:05:00.000Z"),
+				feedbackOutcome: "accepted",
+			},
+		]);
+
+		expect(report.representativeComparison).toMatchObject({
+			comparison: {
+				method: "observational-outcome-classification",
+				status: "insufficient-evidence",
+				autonomyDecisionEligible: false,
+				blockers: [
+					"assistive-handling-time-incomplete",
+					"assistive-feedback-incomplete",
+					"low-touch-handling-time-incomplete",
+					"low-touch-feedback-incomplete",
+				],
+				observedLowTouchMinusAssistive: null,
+			},
+			arms: {
+				assistiveTextFirst: { finalizedCount: 0 },
+				lowTouchConsumedFinalSave: { finalizedCount: 0 },
+			},
+		});
+	});
+
+	test("does not emit a descriptive delta from partial timing or feedback coverage", () => {
+		const report = aggregateSalesRequestGenerationRuns([
+			{
+				status: "succeeded",
+				actorUserId: 17,
+				consumedSalesId: null,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T10:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T10:05:00.000Z"),
+				feedbackOutcome: "accepted",
+			},
+			{
+				status: "succeeded",
+				actorUserId: 18,
+				consumedSalesId: null,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T11:00:00.000Z"),
+				saveFinalAt: null,
+				feedbackOutcome: null,
+			},
+			{
+				status: "succeeded",
+				actorUserId: 19,
+				consumedSalesId: 41,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T12:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T12:05:00.000Z"),
+				feedbackOutcome: "accepted",
+			},
+		]);
+
+		expect(report.representativeComparison.comparison).toMatchObject({
+			status: "insufficient-evidence",
+			autonomyDecisionEligible: false,
+			blockers: [
+				"assistive-handling-time-incomplete",
+				"assistive-feedback-incomplete",
+			],
+			observedLowTouchMinusAssistive: null,
+		});
+	});
+
 	test("keeps unknown provider token usage distinct from an explicit zero", () => {
 		const report = aggregateSalesRequestGenerationRuns([
 			{

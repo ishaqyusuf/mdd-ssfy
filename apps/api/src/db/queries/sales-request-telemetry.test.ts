@@ -709,7 +709,13 @@ describe("sales request generation telemetry persistence", () => {
 					deletedAt: null,
 				},
 				take: 10_001,
-				select: { latencyMs: true },
+				select: {
+					latencyMs: true,
+					actorUserId: true,
+					consumedSalesId: true,
+					startedAt: true,
+					saveFinalAt: true,
+				},
 			},
 		});
 		expect(result).toHaveProperty("metrics.generationCount", 1);
@@ -725,9 +731,13 @@ describe("sales request generation telemetry persistence", () => {
 		expect(result).toHaveProperty("evidence.coverage.feedback.complete", false);
 		expect(result).toHaveProperty("authority.status", "matched");
 		expect(result).toHaveProperty("authority.identity.provider", "openai");
+		expect(result).toHaveProperty(
+			"metrics.representativeComparison.arms.lowTouchConsumedFinalSave.finalizedCount",
+			0,
+		);
 		expect(result).not.toHaveProperty("runs");
 		expect(JSON.stringify(result)).not.toMatch(
-			/generationId|actorUserId|sourceText|providerBody|seedDigest/,
+			/generationId|actorUserId|consumedSalesId|startedAt|saveFinalAt|sourceText|providerBody|seedDigest/,
 		);
 	});
 

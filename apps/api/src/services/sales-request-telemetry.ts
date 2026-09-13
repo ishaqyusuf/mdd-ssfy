@@ -182,6 +182,8 @@ export type SalesRequestGenerationRunForReport = {
 	providerBenchmarkApprovalRevision?: number | null;
 	status?: string | null;
 	latencyMs?: number | null;
+	consumedSalesId?: number | null;
+	startedAt?: Date | null;
 	providerAttemptedAt?: Date | null;
 	providerLatencyMs?: number | null;
 	inputTokens?: number | null;
@@ -190,6 +192,7 @@ export type SalesRequestGenerationRunForReport = {
 	applyOutcome?: string | null;
 	saveDraftOutcome?: string | null;
 	saveFinalOutcome?: string | null;
+	saveFinalAt?: Date | null;
 	feedbackOutcome?: string | null;
 	feedbackIssueCategories?: unknown;
 	feedbackChangedFieldCategories?: unknown;
@@ -447,6 +450,156 @@ function percentile(values: number[], percentileValue: number) {
 	return sorted[index] ?? null;
 }
 
+function isValidDate(value: unknown): value is Date {
+	return value instanceof Date && Number.isFinite(value.getTime());
+}
+
+function representativeComparisonArm(
+	rows: readonly SalesRequestGenerationRunForReport[],
+) {
+	const handlingTimeValues = rows
+		.map((row) => {
+			if (!isValidDate(row.startedAt) || !isValidDate(row.saveFinalAt)) {
+				return null;
+			}
+			const duration = row.saveFinalAt.getTime() - row.startedAt.getTime();
+			return duration >= 0 && duration <= 86_400_000 ? duration : null;
+		})
+		.filter((value): value is number => value !== null);
+	const reviewedRows = rows.filter(
+		(row) =>
+			row.feedbackOutcome === "accepted" ||
+			row.feedbackOutcome === "accepted-with-edits",
+	);
+	const acceptedWithEditsCount = reviewedRows.filter(
+		(row) => row.feedbackOutcome === "accepted-with-edits",
+	).length;
+
+	return {
+		finalizedCount: rows.length,
+		handlingTime: {
+			sampleCount: handlingTimeValues.length,
+			p50Ms: percentile(handlingTimeValues, 0.5),
+			p95Ms: percentile(handlingTimeValues, 0.95),
+		},
+		correctionRate: {
+			reviewedCount: reviewedRows.length,
+			acceptedWithEditsCount,
+			rateBasisPoints: reviewedRows.length
+				? Math.round((acceptedWithEditsCount * 10_000) / reviewedRows.length)
+				: null,
+		},
+	};
+}
+
+function representativeComparison(
+	rows: readonly SalesRequestGenerationRunForReport[],
+) {
+	// Consumption is an observed save outcome, not randomized experiment assignment.
+	// Report the delta for operational review without making a causal claim.
+	const finalizedRows = rows.filter(
+		(row) =>
+			row.status === "succeeded" &&
+			row.applyOutcome === "applied" &&
+			row.saveFinalOutcome === "saved",
+	);
+	const assistiveTextFirst = representativeComparisonArm(
+		finalizedRows.filter(
+			(row) =>
+				Number.isInteger(row.actorUserId) &&
+				(row.actorUserId as number) > 0 &&
+				row.consumedSalesId === null,
+		),
+	);
+	const lowTouchConsumedFinalSave = representativeComparisonArm(
+		finalizedRows.filter(
+			(row) =>
+				Number.isInteger(row.actorUserId) &&
+				(row.actorUserId as number) > 0 &&
+				Number.isInteger(row.consumedSalesId) &&
+				(row.consumedSalesId as number) > 0,
+		),
+	);
+	const assistiveHandlingP95Ms = assistiveTextFirst.handlingTime.p95Ms;
+	const assistiveCorrectionRateBasisPoints =
+		assistiveTextFirst.correctionRate.rateBasisPoints;
+	const lowTouchHandlingP95Ms = lowTouchConsumedFinalSave.handlingTime.p95Ms;
+	const lowTouchCorrectionRateBasisPoints =
+		lowTouchConsumedFinalSave.correctionRate.rateBasisPoints;
+	const blockers: Array<
+		| "assistive-handling-time-incomplete"
+		| "assistive-feedback-incomplete"
+		| "low-touch-handling-time-incomplete"
+		| "low-touch-feedback-incomplete"
+	> = [];
+	if (
+		assistiveTextFirst.finalizedCount === 0 ||
+		assistiveTextFirst.handlingTime.sampleCount !==
+			assistiveTextFirst.finalizedCount
+	) {
+		blockers.push("assistive-handling-time-incomplete");
+	}
+	if (
+		assistiveTextFirst.finalizedCount === 0 ||
+		assistiveTextFirst.correctionRate.reviewedCount !==
+			assistiveTextFirst.finalizedCount
+	) {
+		blockers.push("assistive-feedback-incomplete");
+	}
+	if (
+		lowTouchConsumedFinalSave.finalizedCount === 0 ||
+		lowTouchConsumedFinalSave.handlingTime.sampleCount !==
+			lowTouchConsumedFinalSave.finalizedCount
+	) {
+		blockers.push("low-touch-handling-time-incomplete");
+	}
+	if (
+		lowTouchConsumedFinalSave.finalizedCount === 0 ||
+		lowTouchConsumedFinalSave.correctionRate.reviewedCount !==
+			lowTouchConsumedFinalSave.finalizedCount
+	) {
+		blockers.push("low-touch-feedback-incomplete");
+	}
+	const observedLowTouchMinusAssistive =
+		blockers.length === 0 &&
+		assistiveHandlingP95Ms !== null &&
+		assistiveCorrectionRateBasisPoints !== null &&
+		lowTouchHandlingP95Ms !== null &&
+		lowTouchCorrectionRateBasisPoints !== null
+			? {
+					handlingTimeP95Ms: lowTouchHandlingP95Ms - assistiveHandlingP95Ms,
+					correctionRateBasisPoints:
+						lowTouchCorrectionRateBasisPoints -
+						assistiveCorrectionRateBasisPoints,
+				}
+			: null;
+
+	return {
+		scope: "successful-final-saves" as const,
+		handlingTimeDefinition:
+			"generation-start-to-successful-final-save" as const,
+		correctionRateDefinition:
+			"accepted-with-edits-over-accepted-reviews" as const,
+		comparison: {
+			method: "observational-outcome-classification" as const,
+			status: observedLowTouchMinusAssistive
+				? ("descriptive-only" as const)
+				: ("insufficient-evidence" as const),
+			autonomyDecisionEligible: false,
+			limitations: [
+				"outcome-selected-arms",
+				"request-family-not-stratified",
+			] as const,
+			blockers,
+			observedLowTouchMinusAssistive,
+		},
+		arms: {
+			assistiveTextFirst,
+			lowTouchConsumedFinalSave,
+		},
+	};
+}
+
 export function aggregateSalesRequestGenerationRuns(
 	rows: readonly SalesRequestGenerationRunForReport[],
 ) {
@@ -610,5 +763,6 @@ export function aggregateSalesRequestGenerationRuns(
 			p50Ms: percentile(correctionValues, 0.5),
 			p95Ms: percentile(correctionValues, 0.95),
 		},
+		representativeComparison: representativeComparison(rows),
 	};
 }
