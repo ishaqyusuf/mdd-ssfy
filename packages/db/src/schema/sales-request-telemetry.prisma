@@ -15,6 +15,8 @@ model SalesRequestGenerationRun {
     model                           String    @db.VarChar(100)
     promptVersion                   String?   @db.VarChar(64)
     schemaVersion                   Int?
+    requestComplexityVersion        String?   @db.VarChar(64)
+    requestComplexityStratum        String?   @db.VarChar(16)
     seedDigest                     String?   @db.VarChar(67)
     consumedSalesId                Int?
     status                          String    @db.VarChar(32)

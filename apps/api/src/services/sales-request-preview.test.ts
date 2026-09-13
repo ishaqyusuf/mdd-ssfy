@@ -39,6 +39,52 @@ const output = {
 		},
 	],
 };
+const resolvedConfiguration = {
+	schemaVersion: 1 as const,
+	routes: [
+		{
+			itemTypeUid: "exterior",
+			rootStepId: 1,
+			stepUids: ["frame", "door"],
+		},
+	],
+	steps: [
+		{
+			id: 1,
+			uid: "type",
+			selectionMode: "single" as const,
+			components: [["exterior", "Exterior"]],
+		},
+		{
+			id: 2,
+			uid: "frame",
+			selectionMode: "single" as const,
+			components: [["pvc", "PVC"]],
+		},
+		{
+			id: 3,
+			uid: "door",
+			selectionMode: "multiple" as const,
+			components: [["panel", "Panel"]],
+		},
+	],
+	visibilityByComponentUid: {},
+};
+const resolvedOutput = {
+	schemaVersion: 1 as const,
+	lineItems: [
+		{
+			uid: "line-1",
+			qty: 1,
+			formSteps: [
+				{ stepId: 1, prodUid: "exterior" },
+				{ stepId: 2, prodUid: "pvc" },
+				{ stepId: 3, meta: { selectedProdUids: ["panel"] } },
+			],
+		},
+	],
+	unresolved: [],
+};
 const telemetry = {
 	beginRun: async () => {},
 	markProviderAttempted: async () => {},
@@ -199,7 +245,41 @@ test("successful preview returns only the validated seed and configuration ident
 			seedDigest: expect.stringMatching(/^h1:[a-f0-9]{64}$/),
 		},
 	});
+	expect(events[2]?.value).not.toHaveProperty("requestComplexityVersion");
+	expect(events[2]?.value).not.toHaveProperty("requestComplexityStratum");
 	expect(JSON.stringify(events)).not.toMatch(/one door|base64|private/i);
+});
+
+test("successful resolved preview records only its coarse request shape", async () => {
+	const events: Array<{ kind: string; value: unknown }> = [];
+	await createSalesRequestPreview(source, {
+		authorize: async () => {},
+		reserveUsage: async () => {},
+		readSnapshot: async () => ({
+			...snapshot,
+			configuration: resolvedConfiguration,
+			configurationJson: JSON.stringify(resolvedConfiguration),
+		}),
+		createProvider: () => async () => ({ output: resolvedOutput }),
+		telemetry: {
+			beginRun: (event) => events.push({ kind: "start", value: event }),
+			markProviderAttempted: (event) =>
+				events.push({ kind: "provider-attempt", value: event }),
+			completeRun: (event) => events.push({ kind: "complete", value: event }),
+		},
+	});
+
+	expect(events.at(-1)).toMatchObject({
+		kind: "complete",
+		value: {
+			status: "succeeded",
+			requestComplexityVersion: "request-shape-v1",
+			requestComplexityStratum: "standard",
+		},
+	});
+	expect(JSON.stringify(events.at(-1))).not.toMatch(
+		/line-1|exterior|pvc|panel|one door/i,
+	);
 });
 
 test("usage denial closes the metadata-only lifecycle without a provider call", async () => {

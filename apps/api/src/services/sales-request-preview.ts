@@ -11,6 +11,7 @@ import {
 	generateNewSalesFormSeed,
 } from "./sales-request-generation";
 import type { SalesRequestImage } from "./sales-request-images";
+import { deriveSalesRequestComplexity } from "./sales-request-request-shape";
 import {
 	type SalesRequestGenerationCompleteEvent,
 	type SalesRequestGenerationTelemetry,
@@ -188,12 +189,19 @@ export async function createSalesRequestPreview(
 		const current = await dependencies.readSnapshot();
 		input.signal.throwIfAborted();
 		assertCurrentSnapshot(snapshot, current);
+		const requestComplexity = deriveSalesRequestComplexity(result.seed);
 		await complete({
 			status: "succeeded",
 			provider: result.provider ?? snapshot.aiSelection.provider,
 			model: result.model ?? snapshot.aiSelection.model,
 			promptVersion: result.promptVersion,
 			schemaVersion: result.seed.schemaVersion,
+			...(requestComplexity
+				? {
+						requestComplexityVersion: requestComplexity.version,
+						requestComplexityStratum: requestComplexity.stratum,
+					}
+				: {}),
 			seedDigest: createSalesRequestSeedDigest({
 				seed: result.seed,
 				generationId,

@@ -7,6 +7,8 @@ import {
 	aggregateSalesRequestGenerationRuns,
 	deriveSalesRequestGenerationPilotAuthority,
 	getSalesRequestGenerationPilotAuthorityBlockers,
+	normalizeSalesRequestComplexityStratum,
+	normalizeSalesRequestComplexityVersion,
 	normalizeSalesRequestGenerationChangedFieldCategories,
 	normalizeSalesRequestGenerationIssueCategories,
 	normalizeSalesRequestGenerationIssueCounts,
@@ -193,6 +195,22 @@ export async function completeSalesRequestGenerationRun(
 		data.promptVersion = boundedToken(input.promptVersion, 64, "unknown");
 	if (input.schemaVersion !== undefined)
 		data.schemaVersion = boundedCount(input.schemaVersion, 100);
+	if (input.requestComplexityVersion !== undefined) {
+		const requestComplexityVersion = normalizeSalesRequestComplexityVersion(
+			input.requestComplexityVersion,
+		);
+		if (requestComplexityVersion) {
+			data.requestComplexityVersion = requestComplexityVersion;
+		}
+	}
+	if (input.requestComplexityStratum !== undefined) {
+		const requestComplexityStratum = normalizeSalesRequestComplexityStratum(
+			input.requestComplexityStratum,
+		);
+		if (requestComplexityStratum) {
+			data.requestComplexityStratum = requestComplexityStratum;
+		}
+	}
 	if (input.seedDigest !== undefined) {
 		const seedDigest = boundedSeedDigest(input.seedDigest);
 		if (seedDigest) data.seedDigest = seedDigest;
@@ -694,6 +712,7 @@ export async function getSalesRequestGenerationPilotSummary(
 		orderBy: { startedAt: "asc" },
 		take: SALES_REQUEST_GENERATION_REPORT_MAX_ROWS + 1,
 		select: {
+			generationId: true,
 			actorUserId: true,
 			consumedSalesId: true,
 			scope: true,
@@ -702,6 +721,8 @@ export async function getSalesRequestGenerationPilotSummary(
 			model: true,
 			promptVersion: true,
 			schemaVersion: true,
+			requestComplexityVersion: true,
+			requestComplexityStratum: true,
 			pilotSettingsRevision: true,
 			providerBenchmarkApprovalRevision: true,
 			status: true,

@@ -5,7 +5,14 @@ import {
 	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
 	isValidSalesRequestPilotFeedback,
 } from "./sales-request-feedback";
+import { buildSalesRequestMatchedComparison } from "./sales-request-matched-comparison";
 import type { SalesRequestProviderFailureDiagnostic } from "./sales-request-provider";
+import {
+	SALES_REQUEST_COMPLEXITY_STRATA,
+	SALES_REQUEST_COMPLEXITY_VERSIONS,
+	type SalesRequestComplexityStratum,
+	type SalesRequestComplexityVersion,
+} from "./sales-request-request-shape";
 
 export {
 	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
@@ -15,6 +22,14 @@ export type {
 	SalesRequestGenerationChangedFieldCategory,
 	SalesRequestGenerationIssueCategory,
 } from "./sales-request-feedback";
+export {
+	SALES_REQUEST_COMPLEXITY_STRATA,
+	SALES_REQUEST_COMPLEXITY_VERSIONS,
+} from "./sales-request-request-shape";
+export type {
+	SalesRequestComplexityStratum,
+	SalesRequestComplexityVersion,
+} from "./sales-request-request-shape";
 
 export const SALES_REQUEST_GENERATION_STATUSES = [
 	"started",
@@ -68,6 +83,8 @@ export type SalesRequestGenerationCompleteEvent = {
 	model?: string;
 	promptVersion?: string;
 	schemaVersion?: number;
+	requestComplexityVersion?: SalesRequestComplexityVersion;
+	requestComplexityStratum?: SalesRequestComplexityStratum;
 	seedDigest?: string;
 	inputTokens?: number;
 	outputTokens?: number;
@@ -157,6 +174,8 @@ export type SalesRequestGenerationRunForReport = {
 	model?: string | null;
 	promptVersion?: string | null;
 	schemaVersion?: number | null;
+	requestComplexityVersion?: SalesRequestComplexityVersion | null;
+	requestComplexityStratum?: SalesRequestComplexityStratum | null;
 	pilotSettingsRevision?: number | null;
 	providerBenchmarkApprovalRevision?: number | null;
 	status?: string | null;
@@ -316,6 +335,12 @@ const issueCategorySet = new Set<string>(
 const changedFieldCategorySet = new Set<string>(
 	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
 );
+const requestComplexityVersionSet = new Set<string>(
+	SALES_REQUEST_COMPLEXITY_VERSIONS,
+);
+const requestComplexityStratumSet = new Set<string>(
+	SALES_REQUEST_COMPLEXITY_STRATA,
+);
 
 function finiteInteger(value: unknown, maximum = 100_000) {
 	if (!Number.isInteger(value) || (value as number) < 0) return 0;
@@ -371,6 +396,18 @@ export function normalizeSalesRequestGenerationStatus(value: unknown) {
 	return typeof value === "string" && statusSet.has(value)
 		? (value as SalesRequestGenerationStatus)
 		: "unknown";
+}
+
+export function normalizeSalesRequestComplexityVersion(value: unknown) {
+	return typeof value === "string" && requestComplexityVersionSet.has(value)
+		? (value as SalesRequestComplexityVersion)
+		: null;
+}
+
+export function normalizeSalesRequestComplexityStratum(value: unknown) {
+	return typeof value === "string" && requestComplexityStratumSet.has(value)
+		? (value as SalesRequestComplexityStratum)
+		: null;
 }
 
 export function normalizeSalesRequestGenerationIssueCategories(value: unknown) {
@@ -744,5 +781,6 @@ export function aggregateSalesRequestGenerationRuns(
 			p95Ms: percentile(correctionValues, 0.95),
 		},
 		representativeComparison: representativeComparison(rows),
+		matchedRepresentativeComparison: buildSalesRequestMatchedComparison(rows),
 	};
 }

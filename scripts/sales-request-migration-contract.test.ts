@@ -35,6 +35,13 @@ const requiredMigrations = [
 			"sales_req_pilot_review_period_key",
 		],
 	},
+	{
+		name: "20260913230000_add_sales_request_shape_metadata",
+		markers: [
+			"ADD COLUMN `requestComplexityVersion` VARCHAR(64) NULL",
+			"ADD COLUMN `requestComplexityStratum` VARCHAR(16) NULL",
+		],
+	},
 ] as const;
 
 describe("Sales Request rollout migration contract", () => {

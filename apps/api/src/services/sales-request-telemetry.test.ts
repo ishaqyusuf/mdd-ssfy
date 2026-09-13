@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+	SALES_REQUEST_COMPLEXITY_STRATA,
+	SALES_REQUEST_COMPLEXITY_VERSIONS,
 	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
 	SALES_REQUEST_GENERATION_STATUSES,
 	aggregateSalesRequestGenerationRuns,
@@ -517,5 +519,11 @@ describe("sales request telemetry boundaries", () => {
 		expect(
 			SALES_REQUEST_GENERATION_ISSUE_CATEGORIES.length,
 		).toBeLessThanOrEqual(12);
+		expect(SALES_REQUEST_COMPLEXITY_VERSIONS).toEqual(["request-shape-v1"]);
+		expect(SALES_REQUEST_COMPLEXITY_STRATA).toEqual([
+			"simple",
+			"standard",
+			"complex",
+		]);
 	});
 });

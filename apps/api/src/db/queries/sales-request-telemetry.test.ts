@@ -23,6 +23,8 @@ function row(overrides: Record<string, unknown> = {}) {
 		model: "gpt-5-mini",
 		promptVersion: "new-sales-form-seed-v6",
 		schemaVersion: 2,
+		requestComplexityVersion: null,
+		requestComplexityStratum: null,
 		pilotSettingsRevision: 1,
 		providerBenchmarkApprovalRevision: 1,
 		status: "succeeded",
@@ -205,6 +207,8 @@ describe("sales request generation telemetry persistence", () => {
 			model: "gpt-5-mini",
 			promptVersion: "new-sales-form-seed-v6",
 			schemaVersion: 2,
+			requestComplexityVersion: "request-shape-v1",
+			requestComplexityStratum: "standard",
 			seedDigest: `h1:${"c".repeat(64)}`,
 			inputTokens: 100,
 			outputTokens: 20,
@@ -219,12 +223,33 @@ describe("sales request generation telemetry persistence", () => {
 					latencyMs: 4_500,
 					providerLatencyMs: 4_000,
 					seedDigest: `h1:${"c".repeat(64)}`,
+					requestComplexityVersion: "request-shape-v1",
+					requestComplexityStratum: "standard",
 				}),
 			},
 		});
 		expect(JSON.stringify(fixture.calls.at(-1))).not.toMatch(
 			/source|private|error.*body/i,
 		);
+	});
+
+	test("omits request-shape metadata outside the strict allowlists", async () => {
+		const fixture = dbFixture();
+		await completeSalesRequestGenerationRun(fixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			status: "succeeded",
+			completedAt: now,
+			latencyMs: 100,
+			requestComplexityVersion: "request-shape-v2" as never,
+			requestComplexityStratum: "extreme" as never,
+		});
+
+		const data = (
+			fixture.calls.at(-1)?.args as { data: Record<string, unknown> }
+		).data;
+		expect(data).not.toHaveProperty("requestComplexityVersion");
+		expect(data).not.toHaveProperty("requestComplexityStratum");
 	});
 
 	test("marks one durable provider attempt before paid work", async () => {
@@ -710,9 +735,12 @@ describe("sales request generation telemetry persistence", () => {
 				},
 				take: 10_001,
 				select: {
+					generationId: true,
 					latencyMs: true,
 					actorUserId: true,
 					consumedSalesId: true,
+					requestComplexityVersion: true,
+					requestComplexityStratum: true,
 					startedAt: true,
 					saveFinalAt: true,
 				},
@@ -734,6 +762,10 @@ describe("sales request generation telemetry persistence", () => {
 		expect(result).toHaveProperty(
 			"metrics.representativeComparison.arms.lowTouchConsumedFinalSave.finalizedCount",
 			0,
+		);
+		expect(result).toHaveProperty(
+			"metrics.matchedRepresentativeComparison.status",
+			"insufficient-evidence",
 		);
 		expect(result).not.toHaveProperty("runs");
 		expect(JSON.stringify(result)).not.toMatch(
