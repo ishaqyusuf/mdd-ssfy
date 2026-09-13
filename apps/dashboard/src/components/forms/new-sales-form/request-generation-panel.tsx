@@ -43,6 +43,7 @@ import {
 	type SalesRequestReviewWarning,
 	buildSalesRequestReviewModel,
 } from "./request-generation-presentation";
+import type { UndoRequestGenerationProposalResult } from "./request-generation-transaction";
 import {
 	type UseSalesRequestGenerationApplyOptions,
 	useSalesRequestGenerationApply,
@@ -73,11 +74,13 @@ export type SalesRequestGenerationPanelViewProps = GenerationSnapshotProps & {
 	isApplying?: boolean;
 	onApply?: () => void;
 	undoAvailability?: "none" | "full" | "selective";
+	undoResult?: UndoRequestGenerationProposalResult | null;
 	undoMessage?: string | null;
 	isUndoing?: boolean;
 	onUndo?: () => void;
 	generateDisabled?: boolean;
 	onSubmitFeedback?: (
+		generationId: string,
 		input: SalesRequestGenerationFeedbackSelection,
 	) => Promise<boolean>;
 };
@@ -94,6 +97,7 @@ export type SalesRequestGenerationPanelProps = {
 	onApplyResult?: UseSalesRequestGenerationApplyOptions["onApplyResult"];
 	onUndoResult?: UseSalesRequestGenerationApplyOptions["onUndoResult"];
 	onSubmitFeedback?: (
+		generationId: string,
 		input: SalesRequestGenerationFeedbackSelection,
 	) => Promise<boolean>;
 	generateDisabled?: boolean;
@@ -113,6 +117,8 @@ const APPLY_DISABLED_MESSAGES: Record<string, string> = {
 	"persisted-record": "Apply is available only while creating a new sale.",
 	"configuration-validator-required":
 		"Apply is unavailable until the current sales configuration is verified.",
+	"proposal-rejected":
+		"This proposal was rejected. Generate a new preview before applying.",
 	applying: "Applying the proposal…",
 };
 
@@ -462,10 +468,14 @@ function toggleCategory<T extends string>(
 
 function SalesRequestGenerationFeedback({
 	onSubmit,
+	onRecorded,
+	outcomes,
 }: {
 	onSubmit: (
 		input: SalesRequestGenerationFeedbackSelection,
 	) => Promise<boolean>;
+	onRecorded?: (outcome: SalesRequestFeedbackOutcome) => void;
+	outcomes: readonly (typeof SALES_REQUEST_FEEDBACK_OUTCOMES)[number][];
 }) {
 	const [outcome, setOutcome] = useState<SalesRequestFeedbackOutcome | null>(
 		null,
@@ -496,6 +506,7 @@ function SalesRequestGenerationFeedback({
 				changedFieldCategories,
 			});
 			setStatus(recorded ? "saved" : "error");
+			if (recorded) onRecorded?.(outcome);
 		} catch {
 			setStatus("error");
 		}
@@ -527,7 +538,7 @@ function SalesRequestGenerationFeedback({
 				}}
 				disabled={status === "saved" || status === "submitting"}
 			>
-				{SALES_REQUEST_FEEDBACK_OUTCOMES.map((option) => (
+				{outcomes.map((option) => (
 					<label
 						key={option.value}
 						htmlFor={`sales-request-feedback-${option.value}`}
@@ -626,13 +637,32 @@ export function SalesRequestGenerationPanelView(
 	const hasResult = Boolean(props.result && props.model);
 	const isPending = props.status === "pending";
 	const modelHasUnresolved = Boolean(props.model?.unresolved.length);
+	const [rejectedGenerationId, setRejectedGenerationId] = useState<
+		string | null
+	>(null);
+	const feedbackGenerationId = props.result?.generationId;
+	const proposalRejected =
+		feedbackGenerationId != null &&
+		rejectedGenerationId === feedbackGenerationId;
 	const applyDisabled =
 		!hasResult ||
 		isPending ||
 		modelHasUnresolved ||
+		proposalRejected ||
 		props.applyDisabled === true ||
 		!props.onApply;
-	const applyHelp = applyDisabledMessage(props.applyDisabledReason);
+	const applyHelp = applyDisabledMessage(
+		proposalRejected ? "proposal-rejected" : props.applyDisabledReason,
+	);
+	const applied =
+		props.applyResult?.status === "applied" ||
+		props.applyResult?.status === "already-applied";
+	const feedbackOutcomes = applied
+		? SALES_REQUEST_FEEDBACK_OUTCOMES
+		: SALES_REQUEST_FEEDBACK_OUTCOMES.filter(
+				(option) => option.value === "rejected",
+			);
+	const submitFeedback = props.onSubmitFeedback;
 	return (
 		<div
 			className="space-y-4"
@@ -782,12 +812,21 @@ export function SalesRequestGenerationPanelView(
 					{props.applyMessage}
 				</output>
 			) : null}
-			{props.onSubmitFeedback &&
-			(props.applyResult?.status === "applied" ||
-				props.applyResult?.status === "already-applied") &&
+			{hasResult &&
+			feedbackGenerationId &&
+			submitFeedback &&
 			props.undoResult?.status !== "restored" &&
 			props.undoResult?.status !== "selective-removed" ? (
-				<SalesRequestGenerationFeedback onSubmit={props.onSubmitFeedback} />
+				<SalesRequestGenerationFeedback
+					key={feedbackGenerationId}
+					outcomes={feedbackOutcomes}
+					onSubmit={(input) => submitFeedback(feedbackGenerationId, input)}
+					onRecorded={(outcome) => {
+						if (outcome === "rejected") {
+							setRejectedGenerationId(feedbackGenerationId);
+						}
+					}}
+				/>
 			) : null}
 			{props.isStale ? (
 				<output
@@ -920,6 +959,7 @@ export function SalesRequestGenerationPanel(
 					isApplying={apply.isApplying}
 					onApply={() => void apply.apply()}
 					undoAvailability={apply.undoAvailability}
+					undoResult={apply.undoResult}
 					undoMessage={apply.undoMessage}
 					isUndoing={apply.isUndoing}
 					onUndo={() => void apply.undo()}

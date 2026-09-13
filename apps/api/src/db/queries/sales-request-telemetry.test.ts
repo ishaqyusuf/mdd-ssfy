@@ -6,6 +6,7 @@ import {
 	consumeSalesRequestGenerationRun,
 	createSalesRequestGenerationRun,
 	getSalesRequestGenerationPilotSummary,
+	markSalesRequestGenerationProviderAttempted,
 	purgeExpiredSalesRequestGenerationRuns,
 	recordSalesRequestGenerationOutcome,
 } from "./sales-request-telemetry";
@@ -29,6 +30,8 @@ function row(overrides: Record<string, unknown> = {}) {
 		consumedSalesId: null,
 		hasText: true,
 		latencyMs: 800,
+		providerAttemptedAt: new Date("2026-09-12T11:58:01.000Z"),
+		providerLatencyMs: 700,
 		inputTokens: 100,
 		outputTokens: 20,
 		issueCounts: { ambiguous: 0, unreadable: 0, unsupported: 0 },
@@ -126,6 +129,7 @@ function dbFixture(initial = row()) {
 					return { count: 0 };
 				const field = Object.keys(where).find((key) =>
 					[
+						"providerAttemptedAt",
 						"applyOutcome",
 						"saveDraftOutcome",
 						"saveFinalOutcome",
@@ -196,6 +200,7 @@ describe("sales request generation telemetry persistence", () => {
 			status: "succeeded",
 			completedAt: now,
 			latencyMs: 4_500,
+			providerLatencyMs: 4_000,
 			provider: "openai",
 			model: "gpt-5-mini",
 			promptVersion: "new-sales-form-seed-v6",
@@ -212,6 +217,7 @@ describe("sales request generation telemetry persistence", () => {
 				data: expect.objectContaining({
 					status: "succeeded",
 					latencyMs: 4_500,
+					providerLatencyMs: 4_000,
 					seedDigest: `h1:${"c".repeat(64)}`,
 				}),
 			},
@@ -219,6 +225,38 @@ describe("sales request generation telemetry persistence", () => {
 		expect(JSON.stringify(fixture.calls.at(-1))).not.toMatch(
 			/source|private|error.*body/i,
 		);
+	});
+
+	test("marks one durable provider attempt before paid work", async () => {
+		const fixture = dbFixture(
+			row({
+				status: "started",
+				providerAttemptedAt: null,
+			}),
+		);
+		await markSalesRequestGenerationProviderAttempted(fixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			attemptedAt: now,
+		});
+		expect(fixture.getRow().providerAttemptedAt).toEqual(now);
+		expect(fixture.calls.at(-1)).toMatchObject({
+			method: "updateMany",
+			args: {
+				where: {
+					status: "started",
+					providerAttemptedAt: null,
+				},
+			},
+		});
+
+		await expect(
+			markSalesRequestGenerationProviderAttempted(fixture.db, {
+				actorUserId: 7,
+				generationId: row().generationId,
+				attemptedAt: now,
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
 	});
 
 	test("omits malformed seed digests instead of persisting or erasing content", async () => {
@@ -331,6 +369,82 @@ describe("sales request generation telemetry persistence", () => {
 			applyOutcome: "applied",
 			saveDraftOutcome: "saved",
 		});
+	});
+
+	test("measures edited correction from Apply to feedback only", async () => {
+		const feedbackFixture = dbFixture();
+		await recordSalesRequestGenerationOutcome(feedbackFixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			kind: "apply",
+			outcome: "applied",
+			now,
+		});
+		expect(feedbackFixture.getRow().correctionMs).toBeNull();
+
+		await recordSalesRequestGenerationOutcome(feedbackFixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			kind: "feedback",
+			outcome: "accepted-with-edits",
+			issueCategories: [],
+			changedFieldCategories: ["line-items"],
+			now: new Date("2026-09-12T12:04:00.000Z"),
+		});
+		expect(feedbackFixture.getRow().correctionMs).toBe(240_000);
+
+		const saveFixture = dbFixture();
+		await recordSalesRequestGenerationOutcome(saveFixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			kind: "apply",
+			outcome: "applied",
+			now,
+		});
+		await recordSalesRequestGenerationOutcome(saveFixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			kind: "save",
+			stage: "draft",
+			outcome: "saved",
+			now: new Date("2026-09-12T12:02:00.000Z"),
+		});
+		expect(saveFixture.getRow().correctionMs).toBeNull();
+	});
+
+	test("enforces feedback phase and makes pre-Apply rejection terminal", async () => {
+		const fixture = dbFixture();
+		await expect(
+			recordSalesRequestGenerationOutcome(fixture.db, {
+				actorUserId: 7,
+				generationId: row().generationId,
+				kind: "feedback",
+				outcome: "accepted",
+				issueCategories: [],
+				changedFieldCategories: [],
+				now,
+			}),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+
+		await recordSalesRequestGenerationOutcome(fixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			kind: "feedback",
+			outcome: "rejected",
+			issueCategories: ["unsafe-selection"],
+			changedFieldCategories: [],
+			now,
+		});
+		expect(fixture.getRow().correctionMs).toBeNull();
+		await expect(
+			recordSalesRequestGenerationOutcome(fixture.db, {
+				actorUserId: 7,
+				generationId: row().generationId,
+				kind: "apply",
+				outcome: "applied",
+				now,
+			}),
+		).rejects.toMatchObject({ code: "CONFLICT" });
 	});
 
 	test("rejects expired runs without revealing whether another actor owns them", async () => {
@@ -529,7 +643,7 @@ describe("sales request generation telemetry persistence", () => {
 		}
 	});
 
-	test("returns aggregate-only Super Admin report inputs", async () => {
+	test("returns aggregate-only review evidence without claiming unsigned advancement", async () => {
 		const fixture = dbFixture();
 		const reviewNow = new Date("2026-09-13T00:00:00.000Z");
 		const result = await getSalesRequestGenerationPilotSummary(fixture.db, {
@@ -562,7 +676,16 @@ describe("sales request generation telemetry persistence", () => {
 			},
 		});
 		expect(result).toHaveProperty("metrics.generationCount", 1);
-		expect(result).toHaveProperty("eligibleForAdvancement", true);
+		expect(result).toHaveProperty("eligibleForAdvancement", false);
+		expect(result).toHaveProperty(
+			"evidence.reviewability.status",
+			"reviewable",
+		);
+		expect(result).toHaveProperty(
+			"evidence.advancement.status",
+			"not-evaluable",
+		);
+		expect(result).toHaveProperty("evidence.coverage.feedback.complete", false);
 		expect(result).toHaveProperty("authority.status", "matched");
 		expect(result).toHaveProperty("authority.identity.provider", "openai");
 		expect(result).not.toHaveProperty("runs");

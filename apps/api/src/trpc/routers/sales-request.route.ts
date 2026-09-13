@@ -7,6 +7,7 @@ import {
 	completeSalesRequestGenerationRun,
 	createSalesRequestGenerationRun,
 	getSalesRequestGenerationPilotSummary,
+	markSalesRequestGenerationProviderAttempted,
 	recordSalesRequestGenerationOutcome,
 } from "@api/db/queries/sales-request-telemetry";
 import {
@@ -404,7 +405,6 @@ export const salesRequestRouter = createTRPCRouter({
 					message: "Sales request generation is not enabled.",
 				});
 			}
-			let telemetryStart: Promise<unknown> | null = null;
 			return createSalesRequestPreview(
 				{
 					text: input.text,
@@ -487,15 +487,19 @@ export const salesRequestRouter = createTRPCRouter({
 							maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
 						}),
 					telemetry: {
-						onStart: async (event) => {
-							telemetryStart = createSalesRequestGenerationRun(
+						beginRun: async (event) => {
+							await createSalesRequestGenerationRun(
 								ctx.db as unknown as SalesRequestTelemetryDatabase,
 								{ ...event, actorUserId: ctx.userId },
 							);
-							await telemetryStart;
 						},
-						onComplete: async (event) => {
-							await telemetryStart?.catch(() => undefined);
+						markProviderAttempted: async (event) => {
+							await markSalesRequestGenerationProviderAttempted(
+								ctx.db as unknown as SalesRequestTelemetryDatabase,
+								{ ...event, actorUserId: ctx.userId },
+							);
+						},
+						completeRun: async (event) => {
 							await completeSalesRequestGenerationRun(
 								ctx.db as unknown as SalesRequestTelemetryDatabase,
 								{ ...event, actorUserId: ctx.userId },

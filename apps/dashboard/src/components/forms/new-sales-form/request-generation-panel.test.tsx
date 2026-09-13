@@ -26,6 +26,7 @@ const routeData = {
 };
 
 const result = {
+	generationId: "11111111-1111-4111-8111-111111111111",
 	configurationRevision: "config-1",
 	seed: {
 		schemaVersion: 2,
@@ -239,4 +240,23 @@ test("offers bounded category-only feedback after Apply", () => {
 		/>,
 	);
 	expect(undoneHtml).not.toContain("How accurate was this proposal?");
+});
+
+test("offers only rejection feedback before Apply without mutating the form", () => {
+	let submissions = 0;
+	const html = renderToStaticMarkup(
+		<SalesRequestGenerationPanelView
+			{...baseProps}
+			onSubmitFeedback={async () => {
+				submissions += 1;
+				return true;
+			}}
+		/>,
+	);
+
+	expect(html).toContain("How accurate was this proposal?");
+	expect(html).toContain("Rejected");
+	expect(html).not.toContain("Accepted with edits");
+	expect(html).not.toContain(">Accepted<");
+	expect(submissions).toBe(0);
 });

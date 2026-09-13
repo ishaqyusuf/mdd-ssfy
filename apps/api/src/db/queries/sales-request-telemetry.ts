@@ -1,3 +1,4 @@
+import { deriveSalesRequestPilotEvidence } from "@api/services/sales-request-pilot-evidence";
 import {
 	type SalesRequestGenerationCompleteEvent,
 	type SalesRequestGenerationPilotAuthority,
@@ -35,6 +36,8 @@ type TelemetryRow = SalesRequestGenerationRunForReport & {
 	completedAt?: Date | null;
 	applyOutcome?: string | null;
 	applyAt?: Date | null;
+	providerAttemptedAt?: Date | null;
+	providerLatencyMs?: number | null;
 	saveDraftOutcome?: string | null;
 	saveDraftAt?: Date | null;
 	saveFinalOutcome?: string | null;
@@ -180,6 +183,9 @@ export async function completeSalesRequestGenerationRun(
 		completedAt: input.completedAt,
 		latencyMs: boundedLatency(input.latencyMs),
 	};
+	if (input.providerLatencyMs !== undefined) {
+		data.providerLatencyMs = boundedLatency(input.providerLatencyMs);
+	}
 	if (input.provider)
 		data.provider = boundedToken(input.provider, 32, "unknown");
 	if (input.model) data.model = boundedToken(input.model, 100, "unknown");
@@ -209,6 +215,32 @@ export async function completeSalesRequestGenerationRun(
 			retentionUntil: { gt: input.completedAt },
 		},
 		data,
+	});
+	if (result.count !== 1) unavailableGenerationRun();
+	return result;
+}
+
+export type MarkSalesRequestGenerationProviderAttemptedInput = {
+	actorUserId: number;
+	generationId: string;
+	attemptedAt: Date;
+};
+
+/** Persist the paid-provider denominator before constructing or invoking it. */
+export async function markSalesRequestGenerationProviderAttempted(
+	db: SalesRequestTelemetryDatabase,
+	input: MarkSalesRequestGenerationProviderAttemptedInput,
+) {
+	const result = await db.salesRequestGenerationRun.updateMany({
+		where: {
+			generationId: input.generationId,
+			actorUserId: input.actorUserId,
+			status: "started",
+			providerAttemptedAt: null,
+			deletedAt: null,
+			retentionUntil: { gt: input.attemptedAt },
+		},
+		data: { providerAttemptedAt: input.attemptedAt },
 	});
 	if (result.count !== 1) unavailableGenerationRun();
 	return result;
@@ -358,6 +390,29 @@ function ignoredOutcome(input: RecordSalesRequestGenerationOutcomeInput) {
 	};
 }
 
+function assertOutcomeTransition(
+	run: TelemetryRow,
+	input: SalesRequestGenerationOutcome,
+) {
+	if (
+		input.kind === "feedback" &&
+		run.applyOutcome !== "applied" &&
+		input.outcome !== "rejected"
+	) {
+		return conflictGenerationOutcome();
+	}
+	if (input.kind === "save" && run.applyOutcome !== "applied") {
+		return conflictGenerationOutcome();
+	}
+	if (
+		input.kind === "apply" &&
+		run.applyOutcome !== "applied" &&
+		run.feedbackOutcome === "rejected"
+	) {
+		return conflictGenerationOutcome();
+	}
+}
+
 function outcomeData(
 	input: SalesRequestGenerationOutcome,
 	now: Date,
@@ -384,13 +439,16 @@ function outcomeData(
 		);
 	}
 
-	const successfulOutcome =
-		(input.kind === "apply" && input.outcome === "applied") ||
-		(input.kind === "save" && input.outcome === "saved");
-	if (successfulOutcome && run.correctionMs == null && run.completedAt) {
+	if (
+		input.kind === "feedback" &&
+		input.outcome === "accepted-with-edits" &&
+		run.correctionMs == null &&
+		run.applyOutcome === "applied" &&
+		run.applyAt
+	) {
 		data.correctionMs = Math.max(
 			0,
-			Math.min(now.getTime() - run.completedAt.getTime(), 86_400_000),
+			Math.min(now.getTime() - run.applyAt.getTime(), 86_400_000),
 		);
 	}
 	return data;
@@ -412,6 +470,7 @@ export async function recordSalesRequestGenerationOutcome(
 	) {
 		return unavailableGenerationRun();
 	}
+	assertOutcomeTransition(run, input);
 
 	const state = getOutcomeState(run, input);
 	let expectedValue: string | null = null;
@@ -434,6 +493,14 @@ export async function recordSalesRequestGenerationOutcome(
 	}
 
 	const data = outcomeData(input, now, run);
+	const transitionWhere: Record<string, unknown> = {};
+	if (input.kind === "apply" && run.applyOutcome !== "applied") {
+		transitionWhere.feedbackOutcome = null;
+	}
+	if (input.kind === "feedback") {
+		transitionWhere.applyOutcome = run.applyOutcome ?? null;
+	}
+	if (input.kind === "save") transitionWhere.applyOutcome = "applied";
 	const updated = await db.salesRequestGenerationRun.updateMany({
 		where: {
 			generationId: input.generationId,
@@ -441,6 +508,7 @@ export async function recordSalesRequestGenerationOutcome(
 			deletedAt: null,
 			retentionUntil: { gt: now },
 			[state.field]: expectedValue,
+			...transitionWhere,
 		},
 		data,
 	});
@@ -464,6 +532,7 @@ export async function recordSalesRequestGenerationOutcome(
 	) {
 		return unavailableGenerationRun();
 	}
+	assertOutcomeTransition(latest, input);
 	if (outcomeMatchesExisting(latest, input)) {
 		return {
 			generationId: input.generationId,
@@ -573,6 +642,17 @@ export async function getSalesRequestGenerationPilotSummary(
 	const now = input.now ?? new Date();
 	const resolved = reportPeriod(input, now);
 	const period = resolved.period;
+	const periodBlockers = new Set<string>(resolved.blockers);
+	const unavailableEvidence = () =>
+		deriveSalesRequestPilotEvidence([], {
+			collection: {
+				periodClosed: !periodBlockers.has("period-open"),
+				retentionWindowAvailable: !periodBlockers.has(
+					"retention-window-expired",
+				),
+				sourceTruncated: false,
+			},
+		});
 	const authorityBlockers = new Set<string>([
 		...resolved.blockers,
 		...(input.authorityBlockers ?? []),
@@ -582,6 +662,7 @@ export async function getSalesRequestGenerationPilotSummary(
 			period,
 			coverage: { complete: false, truncated: false, returnedRowCount: 0 },
 			eligibleForAdvancement: false,
+			evidence: unavailableEvidence(),
 			authority: {
 				status: "blocked" as const,
 				blockers: [...authorityBlockers],
@@ -595,6 +676,7 @@ export async function getSalesRequestGenerationPilotSummary(
 			period,
 			coverage: { complete: false, truncated: false, returnedRowCount: 0 },
 			eligibleForAdvancement: false,
+			evidence: unavailableEvidence(),
 			authority: {
 				status: "blocked" as const,
 				blockers: [...authorityBlockers],
@@ -621,7 +703,10 @@ export async function getSalesRequestGenerationPilotSummary(
 			pilotSettingsRevision: true,
 			providerBenchmarkApprovalRevision: true,
 			status: true,
+			completedAt: true,
 			latencyMs: true,
+			providerAttemptedAt: true,
+			providerLatencyMs: true,
 			inputTokens: true,
 			outputTokens: true,
 			issueCounts: true,
@@ -644,6 +729,13 @@ export async function getSalesRequestGenerationPilotSummary(
 				returnedRowCount: rows.length,
 			},
 			eligibleForAdvancement: false,
+			evidence: deriveSalesRequestPilotEvidence([], {
+				collection: {
+					periodClosed: true,
+					retentionWindowAvailable: true,
+					sourceTruncated: true,
+				},
+			}),
 			authority: {
 				status: "blocked" as const,
 				blockers: [...authorityBlockers],
@@ -663,6 +755,13 @@ export async function getSalesRequestGenerationPilotSummary(
 			authorityBlockers.add(blocker);
 		}
 	}
+	const evidence = deriveSalesRequestPilotEvidence(rows, {
+		collection: {
+			periodClosed: true,
+			retentionWindowAvailable: true,
+			sourceTruncated: false,
+		},
+	});
 	return {
 		period,
 		coverage: {
@@ -670,7 +769,9 @@ export async function getSalesRequestGenerationPilotSummary(
 			truncated: false,
 			returnedRowCount: rows.length,
 		},
-		eligibleForAdvancement: authorityBlockers.size === 0,
+		eligibleForAdvancement:
+			authorityBlockers.size === 0 && evidence.advancement.status === "pass",
+		evidence,
 		authority: {
 			status: authorityBlockers.size
 				? ("blocked" as const)

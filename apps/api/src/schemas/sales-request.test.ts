@@ -171,6 +171,26 @@ test("generation outcomes are strict, bounded, and contain no content fields", (
 			changedFieldCategories: [],
 		}).success,
 	).toBe(false);
+	for (const incomplete of [
+		{
+			generationId,
+			kind: "feedback",
+			outcome: "rejected",
+			issueCategories: [],
+			changedFieldCategories: [],
+		},
+		{
+			generationId,
+			kind: "feedback",
+			outcome: "accepted-with-edits",
+			issueCategories: [],
+			changedFieldCategories: [],
+		},
+	]) {
+		expect(
+			recordSalesRequestGenerationOutcomeSchema.safeParse(incomplete).success,
+		).toBe(false);
+	}
 	for (const field of ["text", "source", "image", "providerBody", "contact"]) {
 		expect(
 			recordSalesRequestGenerationOutcomeSchema.safeParse({

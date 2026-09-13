@@ -39,6 +39,11 @@ const output = {
 		},
 	],
 };
+const telemetry = {
+	beginRun: async () => {},
+	markProviderAttempted: async () => {},
+	completeRun: async () => {},
+};
 
 test("unauthorized preview reads no configuration and invokes no model", async () => {
 	let touched = false;
@@ -56,6 +61,7 @@ test("unauthorized preview reads no configuration and invokes no model", async (
 				touched = true;
 				return { output };
 			},
+			telemetry,
 		}),
 	).rejects.toThrow("unauthorized");
 	expect(touched).toBe(false);
@@ -74,6 +80,7 @@ test("usage denial prevents paid provider calls", async () => {
 				providerCalled = true;
 				return { output };
 			},
+			telemetry,
 		}),
 	).rejects.toThrow("quota");
 	expect(providerCalled).toBe(false);
@@ -88,6 +95,7 @@ test("provider failure returns no partial response", async () => {
 			createProvider: () => async () => {
 				throw new Error("provider details must be redacted");
 			},
+			telemetry,
 		}),
 	).rejects.toThrow("provider could not generate");
 });
@@ -108,14 +116,16 @@ test("provider failures retain bounded usage metadata without retaining output",
 				});
 			},
 			telemetry: {
-				onStart: (event) => events.push({ kind: "start", value: event }),
-				onComplete: (event) => events.push({ kind: "complete", value: event }),
+				beginRun: (event) => events.push({ kind: "start", value: event }),
+				markProviderAttempted: (event) =>
+					events.push({ kind: "provider-attempt", value: event }),
+				completeRun: (event) => events.push({ kind: "complete", value: event }),
 			},
 		}),
 	).rejects.toThrow("provider could not generate");
 
-	expect(events).toHaveLength(2);
-	expect(events[1]).toMatchObject({
+	expect(events).toHaveLength(3);
+	expect(events[2]).toMatchObject({
 		kind: "complete",
 		value: {
 			status: "provider-error",
@@ -138,6 +148,7 @@ test("configuration changes while the model runs prevent a stale seed response",
 				revision: ++reads === 1 ? "one" : "two",
 			}),
 			createProvider: () => async () => ({ output }),
+			telemetry,
 		}),
 	).rejects.toThrow("configuration changed");
 });
@@ -150,8 +161,10 @@ test("successful preview returns only the validated seed and configuration ident
 		readSnapshot: async () => snapshot,
 		createProvider: () => async () => ({ output }),
 		telemetry: {
-			onStart: (event) => events.push({ kind: "start", value: event }),
-			onComplete: (event) => events.push({ kind: "complete", value: event }),
+			beginRun: (event) => events.push({ kind: "start", value: event }),
+			markProviderAttempted: (event) =>
+				events.push({ kind: "provider-attempt", value: event }),
+			completeRun: (event) => events.push({ kind: "complete", value: event }),
 		},
 	});
 
@@ -162,7 +175,7 @@ test("successful preview returns only the validated seed and configuration ident
 		/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
 	);
 	expect(result).not.toHaveProperty("draftPreparation");
-	expect(events).toHaveLength(2);
+	expect(events).toHaveLength(3);
 	expect(events[0]).toMatchObject({
 		kind: "start",
 		value: {
@@ -175,6 +188,10 @@ test("successful preview returns only the validated seed and configuration ident
 		},
 	});
 	expect(events[1]).toMatchObject({
+		kind: "provider-attempt",
+		value: { generationId: result.generationId },
+	});
+	expect(events[2]).toMatchObject({
 		kind: "complete",
 		value: {
 			generationId: result.generationId,
@@ -200,8 +217,10 @@ test("usage denial closes the metadata-only lifecycle without a provider call", 
 				return { output };
 			},
 			telemetry: {
-				onStart: (event) => events.push({ kind: "start", value: event }),
-				onComplete: (event) => events.push({ kind: "complete", value: event }),
+				beginRun: (event) => events.push({ kind: "start", value: event }),
+				markProviderAttempted: (event) =>
+					events.push({ kind: "provider-attempt", value: event }),
+				completeRun: (event) => events.push({ kind: "complete", value: event }),
 			},
 		}),
 	).rejects.toThrow("quota");
@@ -227,6 +246,7 @@ test("provider settings changes while the model runs prevent a stale seed respon
 						: { provider: "google" as const, model: "gemini-3.8-flash" },
 			}),
 			createProvider: () => async () => ({ output }),
+			telemetry,
 		}),
 	).rejects.toThrow("configuration changed");
 });
@@ -242,8 +262,86 @@ test("pilot authority changes while the model runs prevent a stale seed response
 				pilotSettingsRevision: ++reads === 1 ? 1 : 2,
 			}),
 			createProvider: () => async () => ({ output }),
+			telemetry,
 		}),
 	).rejects.toThrow("configuration changed");
+});
+
+test("durable telemetry start failure prevents usage reservation and provider work", async () => {
+	let reserved = false;
+	let providerCreated = false;
+	await expect(
+		createSalesRequestPreview(source, {
+			authorize: async () => {},
+			reserveUsage: async () => {
+				reserved = true;
+			},
+			readSnapshot: async () => snapshot,
+			createProvider: () => {
+				providerCreated = true;
+				return async () => ({ output });
+			},
+			telemetry: {
+				beginRun: async () => {
+					throw new Error("telemetry unavailable");
+				},
+				markProviderAttempted: async () => {},
+				completeRun: async () => {},
+			},
+		}),
+	).rejects.toThrow("telemetry unavailable");
+	expect(reserved).toBe(false);
+	expect(providerCreated).toBe(false);
+});
+
+test("completion failure preserves a generated preview but leaves incomplete evidence", async () => {
+	let providerCalls = 0;
+	const result = await createSalesRequestPreview(source, {
+		authorize: async () => {},
+		reserveUsage: async () => {},
+		readSnapshot: async () => snapshot,
+		createProvider: () => async () => {
+			providerCalls += 1;
+			return { output };
+		},
+		telemetry: {
+			beginRun: async () => {},
+			markProviderAttempted: async () => {},
+			completeRun: async () => {
+				throw new Error("completion unavailable");
+			},
+		},
+	});
+	expect(providerCalls).toBe(1);
+	expect(result.seed).toEqual(output);
+});
+
+test("provider-attempt persistence failure prevents provider construction and invocation", async () => {
+	let providerCreated = false;
+	let providerCalled = false;
+	await expect(
+		createSalesRequestPreview(source, {
+			authorize: async () => {},
+			reserveUsage: async () => {},
+			readSnapshot: async () => snapshot,
+			createProvider: () => {
+				providerCreated = true;
+				return async () => {
+					providerCalled = true;
+					return { output };
+				};
+			},
+			telemetry: {
+				beginRun: async () => {},
+				markProviderAttempted: async () => {
+					throw new Error("provider evidence unavailable");
+				},
+				completeRun: async () => {},
+			},
+		}),
+	).rejects.toThrow("provider evidence unavailable");
+	expect(providerCreated).toBe(false);
+	expect(providerCalled).toBe(false);
 });
 
 test("settings selection matches the new sales form's lowest active record", () => {

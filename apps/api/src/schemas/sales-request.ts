@@ -72,9 +72,8 @@ const changedFieldCategorySchema = z.enum(
 	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
 );
 
-export const recordSalesRequestGenerationOutcomeSchema = z.discriminatedUnion(
-	"kind",
-	[
+export const recordSalesRequestGenerationOutcomeSchema = z
+	.discriminatedUnion("kind", [
 		z
 			.object({
 				generationId: generationIdSchema,
@@ -102,8 +101,27 @@ export const recordSalesRequestGenerationOutcomeSchema = z.discriminatedUnion(
 					.default([]),
 			})
 			.strict(),
-	],
-);
+	])
+	.superRefine((input, ctx) => {
+		if (input.kind !== "feedback") return;
+		if (input.outcome === "rejected" && !input.issueCategories.length) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["issueCategories"],
+				message: "Select at least one rejection issue category",
+			});
+		}
+		if (
+			input.outcome === "accepted-with-edits" &&
+			!input.changedFieldCategories.length
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["changedFieldCategories"],
+				message: "Select at least one changed field category",
+			});
+		}
+	});
 
 export const salesRequestGenerationPilotSummarySchema = z
 	.object({

@@ -105,6 +105,8 @@ describe("sales request telemetry boundaries", () => {
 				model: "gpt-5-mini",
 				status: "succeeded",
 				latencyMs: 950,
+				providerAttemptedAt: new Date("2026-09-12T09:59:59.000Z"),
+				providerLatencyMs: 900,
 				inputTokens: 100,
 				outputTokens: 20,
 				issueCounts: { ambiguous: 1, unreadable: 0, unsupported: 0 },
@@ -131,11 +133,25 @@ describe("sales request telemetry boundaries", () => {
 			issueCounts: { ambiguous: 1 },
 			changedFieldCounts: { "line-items": 1 },
 			latency: { sampleCount: 1, p50Ms: 950, p95Ms: 950 },
+			providerLatency: { sampleCount: 1, p50Ms: 900, p95Ms: 900 },
 			correction: { sampleCount: 1, p50Ms: 1_200, p95Ms: 1_200 },
 		});
 		expect(JSON.stringify(report)).not.toMatch(
 			/server-id|actorUserId|source text/,
 		);
+	});
+
+	test("keeps unknown provider token usage distinct from an explicit zero", () => {
+		const report = aggregateSalesRequestGenerationRuns([
+			{
+				status: "provider-error",
+				providerAttemptedAt: new Date("2026-09-12T10:00:00.000Z"),
+				providerLatencyMs: 1_000,
+				inputTokens: null,
+				outputTokens: 0,
+			},
+		]);
+		expect(report.tokenTotals).toEqual({ input: null, output: 0 });
 	});
 
 	test("reports blocked and failed pilot outcomes without run-level details", () => {

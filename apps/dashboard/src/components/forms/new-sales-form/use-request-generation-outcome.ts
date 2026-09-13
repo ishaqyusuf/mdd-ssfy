@@ -42,8 +42,8 @@ export function useSalesRequestGenerationOutcome() {
 		[tracker],
 	);
 	const recordFeedback = useCallback(
-		(input: SalesRequestGenerationFeedbackSelection) =>
-			tracker.recordFeedback(input),
+		(generationId: string, input: SalesRequestGenerationFeedbackSelection) =>
+			tracker.recordFeedback(generationId, input),
 		[tracker],
 	);
 	const clearAppliedGeneration = useCallback(

@@ -189,11 +189,19 @@ export function createSalesRequestGenerationOutcomeTracker(
 				outcome,
 			});
 		},
-		async recordFeedback(input: SalesRequestGenerationFeedbackSelection) {
-			if (!appliedGenerationId) return false;
+		async recordFeedback(
+			generationId: string,
+			input: SalesRequestGenerationFeedbackSelection,
+		) {
+			if (
+				input.outcome !== "rejected" &&
+				generationId !== appliedGenerationId
+			) {
+				return false;
+			}
 			const payload = buildSalesRequestGenerationFeedbackInput({
 				...input,
-				generationId: appliedGenerationId,
+				generationId,
 			});
 			if (!payload) return false;
 			return writeBestEffort(payload);

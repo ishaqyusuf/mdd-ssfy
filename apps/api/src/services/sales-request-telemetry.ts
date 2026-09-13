@@ -84,6 +84,7 @@ export type SalesRequestGenerationCompleteEvent = {
 	status: SalesRequestGenerationStatus;
 	completedAt: Date;
 	latencyMs: number;
+	providerLatencyMs?: number;
 	provider?: string;
 	model?: string;
 	promptVersion?: string;
@@ -93,6 +94,11 @@ export type SalesRequestGenerationCompleteEvent = {
 	outputTokens?: number;
 	issueCounts?: SalesRequestGenerationIssueCounts;
 	failureStage?: SalesRequestProviderFailureDiagnostic["stage"];
+};
+
+export type SalesRequestGenerationProviderAttemptEvent = {
+	generationId: string;
+	attemptedAt: Date;
 };
 
 function salesRequestSeedDigestSecret() {
@@ -154,8 +160,11 @@ export function createSalesRequestSeedDigest(input: {
 }
 
 export type SalesRequestGenerationTelemetry = {
-	onStart?: (event: SalesRequestGenerationStartEvent) => Promise<void> | void;
-	onComplete?: (
+	beginRun: (event: SalesRequestGenerationStartEvent) => Promise<void> | void;
+	markProviderAttempted: (
+		event: SalesRequestGenerationProviderAttemptEvent,
+	) => Promise<void> | void;
+	completeRun: (
 		event: SalesRequestGenerationCompleteEvent,
 	) => Promise<void> | void;
 };
@@ -173,6 +182,8 @@ export type SalesRequestGenerationRunForReport = {
 	providerBenchmarkApprovalRevision?: number | null;
 	status?: string | null;
 	latencyMs?: number | null;
+	providerAttemptedAt?: Date | null;
+	providerLatencyMs?: number | null;
 	inputTokens?: number | null;
 	outputTokens?: number | null;
 	issueCounts?: unknown;
@@ -441,8 +452,11 @@ export function aggregateSalesRequestGenerationRuns(
 	};
 	const correctionValues: number[] = [];
 	const latencyValues: number[] = [];
+	const providerLatencyValues: number[] = [];
 	let inputTokens = 0;
 	let outputTokens = 0;
+	let inputTokensComplete = true;
+	let outputTokensComplete = true;
 	let succeededCount = 0;
 
 	for (const row of rows) {
@@ -475,10 +489,29 @@ export function aggregateSalesRequestGenerationRuns(
 		issueCounts.ambiguous += rowIssues.ambiguous;
 		issueCounts.unreadable += rowIssues.unreadable;
 		issueCounts.unsupported += rowIssues.unsupported;
-		inputTokens += finiteInteger(row.inputTokens);
-		outputTokens += finiteInteger(row.outputTokens);
+		if (Number.isInteger(row.inputTokens) && (row.inputTokens as number) >= 0) {
+			inputTokens += Math.min(row.inputTokens as number, 100_000_000);
+		} else if (row.providerAttemptedAt) {
+			inputTokensComplete = false;
+		}
+		if (
+			Number.isInteger(row.outputTokens) &&
+			(row.outputTokens as number) >= 0
+		) {
+			outputTokens += Math.min(row.outputTokens as number, 100_000_000);
+		} else if (row.providerAttemptedAt) {
+			outputTokensComplete = false;
+		}
 		if (Number.isInteger(row.latencyMs) && (row.latencyMs as number) >= 0) {
 			latencyValues.push(Math.min(row.latencyMs as number, 300_000));
+		}
+		if (
+			Number.isInteger(row.providerLatencyMs) &&
+			(row.providerLatencyMs as number) >= 0
+		) {
+			providerLatencyValues.push(
+				Math.min(row.providerLatencyMs as number, 300_000),
+			);
 		}
 		if (
 			Number.isInteger(row.correctionMs) &&
@@ -508,7 +541,10 @@ export function aggregateSalesRequestGenerationRuns(
 				`${right.provider}:${right.model}`,
 			),
 		),
-		tokenTotals: { input: inputTokens, output: outputTokens },
+		tokenTotals: {
+			input: inputTokensComplete ? inputTokens : null,
+			output: outputTokensComplete ? outputTokens : null,
+		},
 		outcomeCounts: {
 			applied,
 			applyBlocked: rows.filter((row) => row.applyOutcome === "blocked").length,
@@ -541,6 +577,11 @@ export function aggregateSalesRequestGenerationRuns(
 			sampleCount: latencyValues.length,
 			p50Ms: percentile(latencyValues, 0.5),
 			p95Ms: percentile(latencyValues, 0.95),
+		},
+		providerLatency: {
+			sampleCount: providerLatencyValues.length,
+			p50Ms: percentile(providerLatencyValues, 0.5),
+			p95Ms: percentile(providerLatencyValues, 0.95),
 		},
 		correction: {
 			sampleCount: correctionValues.length,

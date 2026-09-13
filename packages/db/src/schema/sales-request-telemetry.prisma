@@ -21,6 +21,8 @@ model SalesRequestGenerationRun {
     failureStage                    String?   @db.VarChar(32)
     hasText                         Boolean   @default(false)
     latencyMs                       Int?
+    providerAttemptedAt             DateTime? @db.Timestamp(0)
+    providerLatencyMs               Int?
     inputTokens                     Int?
     outputTokens                    Int?
     issueCounts                     Json?     @db.Json

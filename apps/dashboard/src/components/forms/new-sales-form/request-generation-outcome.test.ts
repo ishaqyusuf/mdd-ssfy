@@ -96,6 +96,39 @@ describe("Sales Request Generation client outcome boundary", () => {
 		).toBe(false);
 	});
 
+	test("records rejection against the reviewed preview without requiring Apply", async () => {
+		const calls: unknown[] = [];
+		const tracker = createSalesRequestGenerationOutcomeTracker(
+			async (input) => {
+				calls.push(input);
+			},
+		);
+
+		expect(
+			await tracker.recordFeedback(generationId, {
+				outcome: "rejected",
+				issueCategories: ["unsafe-selection"],
+				changedFieldCategories: [],
+			}),
+		).toBe(true);
+		expect(
+			await tracker.recordFeedback(generationId, {
+				outcome: "accepted",
+				issueCategories: [],
+				changedFieldCategories: [],
+			}),
+		).toBe(false);
+		expect(calls).toEqual([
+			{
+				generationId,
+				kind: "feedback",
+				outcome: "rejected",
+				issueCategories: ["unsafe-selection"],
+				changedFieldCategories: [],
+			},
+		]);
+	});
+
 	test("binds a save outcome to the generation active when the save started", async () => {
 		const calls: unknown[] = [];
 		const tracker = createSalesRequestGenerationOutcomeTracker(

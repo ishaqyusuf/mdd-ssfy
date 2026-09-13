@@ -30,6 +30,7 @@ type PreviewContext = Snapshot & {
 type PreviewPhase =
 	| "authorization"
 	| "snapshot"
+	| "provider-evidence"
 	| "provider"
 	| "usage"
 	| "generation"
@@ -40,21 +41,6 @@ export type SalesRequestPreviewSnapshotIdentity = Pick<
 	"settingId" | "scope" | "revision"
 >;
 
-async function notifyTelemetry<T>(
-	callback: ((event: T) => Promise<void> | void) | undefined,
-	event: T,
-) {
-	if (!callback) return;
-	try {
-		await Promise.race([
-			Promise.resolve(callback(event)),
-			new Promise<void>((resolve) => setTimeout(resolve, 250)),
-		]);
-	} catch {
-		// Telemetry is best effort and must never change the preview contract.
-	}
-}
-
 function statusForPreviewFailure(
 	phase: PreviewPhase,
 	signal: AbortSignal,
@@ -63,6 +49,7 @@ function statusForPreviewFailure(
 	if (signal.aborted) return "cancelled" as const;
 	if (phase === "usage") return "usage-denied" as const;
 	if (phase === "provider") return "provider-error" as const;
+	if (phase === "provider-evidence") return "configuration-error" as const;
 	if (phase === "snapshot-validation") return "configuration-changed" as const;
 	if (phase === "snapshot") return "configuration-error" as const;
 	if (
@@ -109,7 +96,7 @@ export async function createSalesRequestPreview(
 		createProvider: (
 			selection: SalesRequestAISelection,
 		) => SalesRequestProvider;
-		telemetry?: SalesRequestGenerationTelemetry;
+		telemetry: Required<SalesRequestGenerationTelemetry>;
 	},
 ) {
 	const generationId = randomUUID();
@@ -119,6 +106,7 @@ export async function createSalesRequestPreview(
 	let providerFailure: SalesRequestProviderFailureDiagnostic | undefined;
 	let lifecycleStarted = false;
 	let lifecycleCompleted = false;
+	let providerAttemptedAtMs: number | null = null;
 
 	const complete = async (
 		event: Omit<
@@ -128,12 +116,26 @@ export async function createSalesRequestPreview(
 	) => {
 		if (lifecycleCompleted || !lifecycleStarted) return;
 		lifecycleCompleted = true;
-		await notifyTelemetry(dependencies.telemetry?.onComplete, {
-			...event,
-			generationId,
-			completedAt: new Date(),
-			latencyMs: Math.max(0, Date.now() - startedAtMs),
-		});
+		try {
+			const completedAtMs = Date.now();
+			await dependencies.telemetry.completeRun({
+				...event,
+				generationId,
+				completedAt: new Date(completedAtMs),
+				latencyMs: Math.max(0, completedAtMs - startedAtMs),
+				...(providerAttemptedAtMs == null
+					? {}
+					: {
+							providerLatencyMs: Math.max(
+								0,
+								completedAtMs - providerAttemptedAtMs,
+							),
+						}),
+			});
+		} catch {
+			// A missing terminal event leaves an explicitly incomplete run for the
+			// advancement report, but never discards an otherwise valid preview.
+		}
 	};
 
 	try {
@@ -141,8 +143,7 @@ export async function createSalesRequestPreview(
 		input.signal.throwIfAborted();
 		phase = "snapshot";
 		snapshot = await dependencies.readSnapshot();
-		lifecycleStarted = true;
-		await notifyTelemetry(dependencies.telemetry?.onStart, {
+		await dependencies.telemetry.beginRun({
 			generationId,
 			scope: snapshot.scope,
 			configurationRevision: snapshot.revision,
@@ -156,11 +157,18 @@ export async function createSalesRequestPreview(
 			hasText: Boolean(input.text.trim()),
 			startedAt: new Date(startedAtMs),
 		});
+		lifecycleStarted = true;
 
-		phase = "provider";
-		const provider = dependencies.createProvider(snapshot.aiSelection);
 		phase = "usage";
 		await dependencies.reserveUsage();
+		phase = "provider-evidence";
+		providerAttemptedAtMs = Date.now();
+		await dependencies.telemetry.markProviderAttempted({
+			generationId,
+			attemptedAt: new Date(providerAttemptedAtMs),
+		});
+		phase = "provider";
+		const provider = dependencies.createProvider(snapshot.aiSelection);
 		phase = "generation";
 		const result = await generateNewSalesFormSeed(
 			{
