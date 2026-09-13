@@ -41,6 +41,17 @@ Super administrators can decide exactly who may use Assistant, understand how it
 - Requester identity, raw chat, tool payloads, cost data, internal notes, implementation links, and sensitive AI-analysis evidence are independently redacted and audited.
 - Disabling or expiring access immediately removes Assistant navigation and blocks direct API, reconnect, tool, artifact, and job continuation paths while retaining permitted history under the configured retention policy.
 
+## Progressive Access And Rollout Contract
+
+- Treat Assistant enablement as a product entitlement on an individual account, separate from job role and business-data permission grants.
+- Support manual enable/disable, scheduled start, optional expiry, temporary pilot access, and an organization-wide emergency pause. Every change records actor, reason, previous state, and effective time.
+- Resolve the entitlement at initial page load, stream admission, reconnect, tool execution, approval continuation, artifact download, background-job resume, and release-notification delivery.
+- Support rollout cohorts and percentage-based pilots only as administrator conveniences that materialize explicit user entitlements. Cohort membership must not become a hidden permission path.
+- Let administrators assign model, provider, tool-category, request, token, concurrency, and cost policies per user or inherited template while preserving a readable effective-policy explanation.
+- Provide warning-only, hard-limit, and dry-run modes. Emergency pauses and hard limits return typed, user-readable states with reset or support guidance.
+- Preserve conversation and request history when access is removed according to retention policy; block new model work and mutations immediately and safely settle already-incurred usage.
+- Measure rollout health by access cohort, including activation, first successful task, repeated use, tool failure, denial, abandonment, cost, and requested-capability gaps.
+
 ## Admin Information Architecture
 
 Use the normal dashboard navigation and layout; do not add a separate Assistant header.
@@ -62,6 +73,11 @@ Use the normal dashboard navigation and layout; do not add a separate Assistant 
 - Every transition is append-only and attributable to a human, system job, AI analysis run, rollout verifier, or notification delivery.
 - Requesters receive public status updates that omit internal notes, sensitive evidence, cost, private implementation details, and other requester identities.
 - Release notifications are deduplicated per subscriber and release, re-check consent, entitlement, domain access, and capability availability at send time, and expose unsubscribe controls.
+- Each request receives a stable public identifier and a separate internal engineering record. Public status survives merges and implementation-ticket changes without exposing repository or sensitive operational details.
+- Clarification questions, requester responses, AI analysis revisions, human decisions, implementation milestones, verification evidence, and delivery attempts share one ordered event timeline with audience visibility on each event.
+- A request may map to an existing capability, one planned capability, or multiple implementation tickets. Closing it as already available must include a usable deep link or saved action the requester is authorized to run.
+- Status changes use explicit preconditions so concurrent administrators, automated analysis, deployment jobs, and notification workers cannot overwrite one another or publish an unverified release.
+- Administrators can set service targets for triage, clarification, decision, and verification; overdue indicators are operational signals rather than automatic priority changes.
 
 ## Recommendations And Prioritization
 
@@ -72,6 +88,13 @@ Use the normal dashboard navigation and layout; do not add a separate Assistant 
 - Detect requests that appear solved by an existing action and let administrators reply with the available capability rather than creating redundant work.
 - Recommend reusable tool/action candidates from successful repeated conversations, but require developer review before publishing organization-wide tools.
 - Provide saved admin views and filters for `high demand`, `quick wins`, `blocked`, `needs clarification`, `analysis failed`, `ready for verification`, and `release notification failed`.
+- Add a weekly administrator digest for new demand, rapidly growing duplicate clusters, stalled requests, quota anomalies, releases awaiting verification, and failed subscriber deliveries.
+- Let administrators compare the AI proposal with the approved implementation scope and highlight drift in permissions, database changes, tools, dependencies, tests, and release criteria before work is marked ready.
+- Add a safe preview of requester-facing copy and release notifications so internal notes, identities, code links, costs, and restricted capability details cannot leak through summaries.
+- Track feature-request conversion from submission to accepted work, release, first use, and repeated use; use this to identify low-value delivery and improve future prioritization.
+- Make all charts and rankings explain their date window, data freshness, excluded events, and estimated-versus-provider-reported cost so administrators can interpret them correctly.
+- Provide reversible bulk operations with a preview of affected users or requests, validation errors, and an immutable result record for partial success.
+- Add retention and deletion jobs for usage metadata, request evidence, AI-analysis inputs, and delivery logs, with legal/support holds separated from ordinary admin access.
 
 ## Delivery Slices
 
@@ -83,7 +106,7 @@ Use the normal dashboard navigation and layout; do not add a separate Assistant 
 
 ## Implementation Progress
 - Completion: 0%
-- Current Checklist: 0/20 — admin and feature delivery center
+- Current Checklist: 0/25 — admin and feature delivery center
 - Blockers: T02, T03, T06, T16, T17, T18, and T19
 
 ## Implementation Checklist
@@ -91,20 +114,25 @@ Use the normal dashboard navigation and layout; do not add a separate Assistant 
 - [ ] Add normal-dashboard Assistant Admin navigation with Overview, Access, Usage, Limits, Feature requests, and Operations routes; no separate Assistant header.
 - [ ] Build Overview metrics with bounded date filters, freshness labels, drill-down links, loading/empty/error states, and privacy-safe totals.
 - [ ] Build individual and bulk access operations with reason, optional expiry, temporary pilot grant, quota assignment, confirmation for broad changes, and immutable audit history.
+- [ ] Add scheduled access, explicit rollout cohorts, an organization emergency pause, and server checkpoints that stop new or resumed work immediately after revocation.
+- [ ] Add effective-policy resolution for user/template model, provider, tool-category, request, token, concurrency, and cost controls with a human-readable explanation of inherited values.
 - [ ] Show each user a compact personal entitlement and allowance meter with warning, exceeded, expiry, reset, and support states.
 - [ ] Build usage tables and charts with server pagination and filters for user, domain, action/tool, model/provider, request class, outcome, latency, tokens, and estimated cost.
 - [ ] Build quota templates, inheritance preview, per-user overrides, effective dates, timezone/reset semantics, warning-only/hard-limit modes, and dry-run impact reports.
 - [ ] Add authorized CSV export and reconciliation views that use the same filters, redaction, and scope as on-screen results.
 - [ ] Build list and board views for feature requests with demand, subscribers, domain, lifecycle, priority, owner, target release, blockers, analysis state, and age/time-in-state.
 - [ ] Build request detail with safe source context, duplicate cluster, clarification thread, consent/subscription totals, internal notes, public updates, and full immutable event history.
+- [ ] Give each request a stable public identifier, audience-scoped timeline events, and mappings to existing capabilities or one-to-many implementation tickets without exposing private engineering data.
 - [ ] Add reviewed request transitions for clarify, merge, accept, reject, prioritize, assign, plan, start, verify, release, cancel, duplicate, and rollback with transition preconditions.
 - [ ] Render AI engineering analysis with cited knowledge versions, affected domains, proposed tools, permission/schema/API impact, dependencies, risks, estimates, tests, and approve/revise controls.
 - [ ] Link accepted requests to the canonical Brain task, implementation references, capability/registry version, deployment/release, verification evidence, and rollback record.
 - [ ] Add requester self-service for `My feature requests`, public status history, clarification responses, subscribe/unsubscribe, and release availability deep links.
 - [ ] Deliver deduplicated release notices only after verified availability and re-check current consent, entitlement, domain access, and capability state immediately before delivery.
 - [ ] Add explainable priority suggestions, existing-capability matches, capability-gap analytics, quick-win/dependency views, and human override history.
+- [ ] Add configurable triage/clarification/decision/verification targets, overdue queues, and administrator digests without allowing elapsed time to mutate priority automatically.
 - [ ] Measure post-release discovery, first use, repeated use, failure/denial, and subscriber conversion without storing raw prompts in routine analytics.
 - [ ] Add alerts and recovery actions for unusual usage, quota exhaustion, denied-action spikes, reconciliation backlog, stale AI analysis, stalled requests, and failed release notifications.
+- [ ] Add retention/deletion jobs, audited support holds, requester-facing preview/redaction checks, and reversible bulk-operation previews with partial-success records.
 - [ ] Verify accessibility, keyboard workflows, responsive layouts, empty/loading/error/partial/stale states, normal dashboard navigation, and deep links with browser screenshots.
 - [ ] Test authorization isolation, forged admin calls, mid-session revocation, quota/report consistency, duplicate merges, lifecycle races, audit immutability, sensitive redaction, verification gates, delivery deduplication, unsubscribe, rollback, and adoption metrics.
 
