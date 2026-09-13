@@ -247,4 +247,42 @@ describe("assistant message view model", () => {
 		expect(view.orderDrafts).toEqual([{ id: valid.id, data: valid.data }]);
 		expect(JSON.stringify(view)).not.toContain("secret");
 	});
+
+	test("accepts only strict catalog-backed analytics parts", () => {
+		const valid = {
+			type: "data-assistant-analytics",
+			id: "analytics-call-1",
+			data: {
+				version: "assistant-analytics-result-v1",
+				metric: "sales.revenueByPeriod",
+				title: "Sales revenue by period",
+				definition:
+					"Current non-deleted order totals grouped by the actor's calendar period; currencies remain separate.",
+				presentation: "area",
+				rows: [{ label: "2026-09", value: 42500 }],
+				dateRange: {
+					from: "2026-09-01",
+					to: "2026-09-30",
+					timezone: "UTC",
+				},
+				unit: "currency",
+				currency: "USD",
+				freshness: {
+					observedAt: "2026-09-13T12:00:00.000Z",
+					label: "Live",
+				},
+				sources: [{ id: "sales-orders-v1", label: "Sales orders" }],
+			},
+		};
+		const view = normalizeAssistantMessage(
+			{
+				parts: [
+					valid,
+					{ ...valid, id: "forged", data: { ...valid.data, unit: "count" } },
+				],
+			},
+			{ isLastMessage: false, isStreaming: false },
+		);
+		expect(view.analytics).toEqual([{ id: valid.id, data: valid.data }]);
+	});
 });

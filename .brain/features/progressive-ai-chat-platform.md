@@ -23,7 +23,7 @@ User requires normal dashboard navigation with no separate assistant header. Rem
 
 ## Implementation ticket roadmap — 2026-09-12
 
-The platform plan is decomposed into 19 dedicated tickets. T01–T09 reproduce the verified Midday chat baseline inside GND boundaries. T10–T14 deliver GND business tools, PDFs, request-to-order workflows, schema-aware queries, and charts. T15–T19 deliver favorites/preferences, missing-feature intake and notifications, approval/security, individual access/usage governance, evaluations, and staged rollout. T01–T10 are complete; T11 is active.
+The platform plan is decomposed into 20 dedicated tickets. T01–T09 reproduce the verified Midday chat baseline inside GND boundaries. T10–T14 deliver GND business tools, PDFs, request-to-order workflows, schema-aware queries, and charts. T15–T20 deliver favorites/preferences, missing-feature intake and notifications, approval/security, individual access/usage governance, the complete admin feature-delivery center, evaluations, and staged rollout. T01–T11 are complete; T12 is active.
 
 ## Architecture foundation — 2026-09-12
 
@@ -90,3 +90,82 @@ T10 implements seven versioned, typed read tools for order discovery, canonical 
 Detailed Sales results reuse `sales-pipeline/v2` for lifecycle, payment, material, Production, Fulfillment, packing, Dispatch, blocker, conflict, and freshness facts. Duplicate order/quote numbers return explicit choices. Revisions include related delivery, payment, statistic, pipeline, and timeline-history evidence; stale callers receive typed conflicts. Customer records use the privacy-safe `cust-<id>` route authority and never expose phone or email through these tool results. Finance fields and payment blockers require the existing payment grant, and related-action hints are filtered to actions the actor can execute.
 
 The canonical catalog is now `assistant-catalog-v2`. Both deterministic selection and the frozen local semantic benchmark include natural Sales/customer requests; semantic embeddings remain optional because the measured frozen model still underperforms the deterministic baseline. Typed entities route orders and quotes to their correct dashboard modes, customer links use the supported opaque account key, and ambiguity/conflict results remain reviewable in chat.
+
+## Operations and Community read tools — 2026-09-13
+
+T11 adds nine typed `assistant-catalog-v3` reads for physical inventory and demand,
+worker/manager Production status and schedules, fulfillment status and exceptions,
+and Community project discovery, summaries, and unit lists. Production reads reuse
+active Sales order and assignment boundaries. Inventory separates committed from
+pending-review allocations and combines physical, inbound, and outstanding demand
+without exposing supplier or commercial fields.
+
+Community reads require an active project and independently gate job/task, invoice,
+and document aggregates with their existing grants. `CommunityUnit` users may find
+projects and units, but never receive install costs; invoice amounts remain absent
+without full invoice access. Results include bounded pagination, evidence-backed
+revisions, source records, related actions, and validated project/unit deep links.
+Focused validation passes 129 tests and 522 assertions; both independent reviews are
+clean. No database schema or migration changed for T11.
+
+## PDF artifact workflows — 2026-09-13
+
+T12 implements durable Sales PDF status, queue, retry, cancellation, storage,
+download, source-freshness, and expiry cleanup boundaries on the existing canonical
+Sales v2 renderer. Concurrent requests share one source-bound snapshot and Trigger
+idempotency key. The worker reauthorizes the current actor, scope, grants, Sales
+record, and canonical revision before claim and completion. Failed uploads retain a
+cleanup handle; an hourly task atomically invalidates seven-day expired snapshots,
+deletes Blob objects, and tombstones `StoredDocument` rows.
+
+Status and authenticated preview are implemented in `assistant-catalog-v5`.
+Generation and cancellation stay unavailable to model discovery until T17 adds the
+approved artifact execution path. T12 is 5/7 complete; statement/report document
+families and reconnect/app-output parity evidence remain.
+
+## Order draft creation — 2026-09-13
+
+T13 has started with `assistant-catalog-v6` and the strict text-only
+`sales_draft_from_request@1` preview contract. It carries the native
+`NewSalesFormSeed`, published configuration identity, provider/model and prompt
+identity, generation ID, bounded nested-provider usage, and derived unresolved
+state. The contract is a draft action requiring `editOrders`; it remains
+`coming_soon` until T17 connects approval and nested usage accounting. Image input
+is rejected until the separate evaluated image phase.
+
+The first checklist item is now complete. The default draft service reuses the
+production Sales Request preview orchestrator with the current pilot, permission,
+usage, benchmark, repeatable-read catalog snapshot, provider, and durable
+actor-bound telemetry boundaries. A preview proceeds only when the catalog is
+published and its published revision exactly matches the generated context. MCP
+cancellation propagates into provider work.
+The native form initializer and artifact canvas remain the next T13 slice.
+
+The native initializer slice is now complete. Strictly validated draft output is
+stored as a dedicated durable chat part and opens in an adjacent dashboard canvas.
+The canvas reuses the existing Sales proposal preparation and generic initializer,
+checks the exact published revision even for unresolved requests, resolves fresh
+components, and displays the authoritative native grand total. T13 is 2/8 (25%);
+complete evidence presentation and edit/apply/discard remain next.
+
+## Schema-aware analytics and generative UI — 2026-09-13
+
+T14 adds the versioned `analytics_query@1` read tool and
+`assistant-catalog-v7`. Six reviewed metrics cover Sales revenue and order status,
+Fulfillment blockers, Production throughput, Inventory pending demand, and
+Community progress. The model submits only a strict semantic intent; code owns all
+SQL identifiers and binds actor scope, dates, filters, timezone, and limits.
+
+Every request rechecks current grants and business scope. Direct aggregates and
+canonical Sales pipeline/inventory projections share query-count, row, byte, date,
+cost, cancellation, and whole-operation eight-second limits. Production follows
+the canonical submission-to-item-to-order path. Typed analytics parts persist with
+conversation history and render as KPI, table, bar, line, or area cards using the
+existing GND chart wrapper, accessible table fallback, definitions, sources,
+units, date/timezone, observation time, and allowlisted dashboard drill-downs.
+
+Representative local MySQL `EXPLAIN` plans used the existing primary and relation
+indexes with bounded row estimates, so no speculative index or migration was
+added. The full Assistant API suite passes 134 tests and 727 assertions; targeted
+formatting, diff integrity, and changed-path type checks pass. Both independent
+reviews are clean.

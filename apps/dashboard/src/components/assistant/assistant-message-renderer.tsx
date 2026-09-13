@@ -17,6 +17,7 @@ import {
 import { memo, useState } from "react";
 import type { ReactNode } from "react";
 import { Streamdown } from "streamdown";
+import { AssistantAnalyticsResultCard } from "./assistant-analytics-result";
 import {
 	type AssistantMessageViewModel,
 	normalizeAssistantMessage,
@@ -342,6 +343,12 @@ function AssistantMessage({
 					</div>
 				) : null}
 				<AssistantToolProgress tools={view.tools} />
+				{view.analytics.map((analytics) => (
+					<AssistantAnalyticsResultCard
+						key={analytics.id}
+						result={analytics.data}
+					/>
+				))}
 				<AssistantResponseCards cards={view.cards} onAction={onCardAction} />
 				<AssistantEntityLinks entities={view.entities} onOpen={onOpenEntity} />
 				<AssistantOrderDraftLinks

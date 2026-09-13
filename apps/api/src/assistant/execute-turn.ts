@@ -8,6 +8,7 @@ import { get } from "@vercel/blob";
 import type { ModelMessage } from "ai";
 import { getDocument } from "pdfjs-dist/build/pdf.mjs";
 import sharp from "sharp";
+import { assistantAnalyticsPartSchema } from "./analytics-result-contract";
 import {
 	assistantEntityReferenceSchema,
 	assistantInvalidationTagSchema,
@@ -104,6 +105,10 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 	}
 	if (part.type === "data-assistant-order-draft") {
 		const parsed = assistantOrderDraftPartSchema.safeParse(part);
+		return parsed.success ? (parsed.data as Prisma.InputJsonValue) : null;
+	}
+	if (part.type === "data-assistant-analytics") {
+		const parsed = assistantAnalyticsPartSchema.safeParse(part);
 		return parsed.success ? (parsed.data as Prisma.InputJsonValue) : null;
 	}
 	if (part.type === "data-assistant-invalidation") {

@@ -1,3 +1,7 @@
+import {
+	type AssistantAnalyticsResult,
+	assistantAnalyticsPartSchema,
+} from "@api/assistant/analytics-result-contract";
 import type { AssistantEntityReference } from "@api/assistant/contracts";
 import {
 	type AssistantSalesRequestDraftPreview,
@@ -56,6 +60,10 @@ export type AssistantMessageViewModel = {
 	orderDrafts: Array<{
 		id: string;
 		data: AssistantSalesRequestDraftPreview;
+	}>;
+	analytics: Array<{
+		id: string;
+		data: AssistantAnalyticsResult;
 	}>;
 	cards: Array<{
 		kind: AssistantResponseCardKind;
@@ -276,6 +284,12 @@ export function normalizeAssistantMessage(
 			? [{ id: parsed.data.id, data: parsed.data.data }]
 			: [];
 	});
+	const analytics = parts.flatMap((part) => {
+		const parsed = assistantAnalyticsPartSchema.safeParse(part);
+		return parsed.success
+			? [{ id: parsed.data.id, data: parsed.data.data }]
+			: [];
+	});
 	const showThinking =
 		options.isStreaming &&
 		options.isLastMessage &&
@@ -290,6 +304,7 @@ export function normalizeAssistantMessage(
 		files,
 		entities,
 		orderDrafts,
+		analytics,
 		cards,
 		showThinking,
 		hasContent:
@@ -299,6 +314,7 @@ export function normalizeAssistantMessage(
 			files.length > 0 ||
 			entities.length > 0 ||
 			orderDrafts.length > 0 ||
+			analytics.length > 0 ||
 			cards.length > 0,
 	};
 }

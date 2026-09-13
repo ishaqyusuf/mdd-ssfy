@@ -703,6 +703,13 @@ export const assistantAnalyticsQueryIntentSchema = z
 				message: "Grouping is not allowed for this metric",
 			});
 		}
+		if (intent.presentation === "kpi" && intent.groupBy !== "none") {
+			context.addIssue({
+				code: "custom",
+				path: ["presentation"],
+				message: "KPI presentation requires an ungrouped metric",
+			});
+		}
 		for (const [index, filter] of intent.filters.entries()) {
 			if (
 				intent.filters.findIndex(

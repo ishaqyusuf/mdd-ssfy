@@ -51,7 +51,7 @@ describe("assistant analytics query plan", () => {
 			scopeKind: "sales-order-ids",
 		});
 		expect(plan.bounds).toMatchObject({
-			maxQueryCount: 1,
+			maxQueryCount: 2,
 			maxRows: 5000,
 			timeoutMs: 8000,
 		});
@@ -93,7 +93,7 @@ describe("assistant analytics query plan", () => {
 			authority,
 		);
 		expect(plan.postProcessor).toBe("sales-pipeline-status");
-		expect(plan.bounds.maxQueryCount).toBe(5);
+		expect(plan.bounds.maxQueryCount).toBe(7);
 		expect(plan.text).toContain("so.id IN (?, ?)");
 		expect(plan.text).toContain("so.type = 'order'");
 	});
@@ -239,6 +239,23 @@ describe("assistant analytics query plan", () => {
 				async () => [{ value: 1 }],
 			),
 		).rejects.toThrow("byte limit");
+	});
+
+	test("accounts for scope-resolution queries in the execution budget", async () => {
+		const plan = compileAssistantAnalyticsQueryPlan(base, authority);
+		const result = await executeAssistantAnalyticsQueryPlan(
+			plan,
+			async () => [{ label: "2026-08-01", value: 12 }],
+			{ initialQueryCount: 1 },
+		);
+		expect(result.queryCount).toBe(2);
+		await expect(
+			executeAssistantAnalyticsQueryPlan(
+				{ ...plan, bounds: { ...plan.bounds, maxQueryCount: 1 } },
+				async () => [],
+				{ initialQueryCount: 1 },
+			),
+		).rejects.toThrow("query count limit");
 	});
 
 	test("propagates cancellation to the query runner", async () => {

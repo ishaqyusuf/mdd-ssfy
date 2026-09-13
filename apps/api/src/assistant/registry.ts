@@ -21,6 +21,9 @@ import {
 	getSalesPipelineSnapshots,
 } from "@gnd/sales/sales-pipeline-order";
 import { z } from "zod";
+import { assistantAnalyticsQueryIntentSchema } from "./analytics-contract";
+import { assistantAnalyticsResultSchema } from "./analytics-result-contract";
+import { runAssistantAnalytics } from "./analytics-service";
 import {
 	type AssistantCapabilityState,
 	type AssistantEffect,
@@ -41,7 +44,7 @@ import {
 	queueAssistantSalesPdfJob,
 } from "./pdf-artifacts";
 
-export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v6";
+export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v7";
 
 export const assistantToolDomains = [
 	"system",
@@ -63,6 +66,7 @@ export type AssistantToolActor = {
 	scopeType: string;
 	scopeId: string;
 	grants: Record<string, boolean>;
+	timezone?: string;
 };
 
 export type AssistantToolPresentation = {
@@ -631,6 +635,11 @@ type SalesRequestDraftPreview = z.infer<
 >;
 
 export type AssistantToolServices = {
+	runAnalytics: (
+		actor: AssistantToolActor,
+		input: z.infer<typeof assistantAnalyticsQueryIntentSchema>,
+		signal: AbortSignal,
+	) => Promise<z.infer<typeof assistantAnalyticsResultSchema>>;
 	findSalesOrders: (
 		actor: AssistantToolActor,
 		input: OrderSearchInput,
@@ -787,6 +796,8 @@ async function loadCanonicalSalesOrders(orders: RawDetailedOrder[]) {
 }
 
 const defaultAssistantToolServices: AssistantToolServices = {
+	runAnalytics: (actor, input, signal) =>
+		runAssistantAnalytics(db, actor, input, signal),
 	findSalesOrders: (actor, input) => findAssistantSalesOrders(db, actor, input),
 	getSalesOrderCandidates: async (actor, input) =>
 		loadCanonicalSalesOrders(
@@ -2067,6 +2078,38 @@ const placeholders: AssistantToolDefinition[] = [
 				],
 			});
 		},
+	}),
+	definition({
+		toolId: "analytics_query",
+		version: 1,
+		domain: "finance",
+		title: "Analyze business data",
+		description:
+			"Run a reviewed, permission-scoped business metric and return a KPI, table, or chart.",
+		capability: "implemented",
+		effect: "read",
+		requiredGrants: [],
+		anyOfGrants: [
+			"viewOrders",
+			"viewProduction",
+			"viewInventory",
+			"viewCommunity",
+		],
+		presentation: {
+			group: "Analytics",
+			resultComponent: "analytics-result",
+			icon: "chart-no-axes-combined",
+		},
+		inputSchema: assistantAnalyticsQueryIntentSchema,
+		outputSchema: assistantAnalyticsResultSchema,
+		handler: async (actor, input, services, execution) =>
+			resultEnvelope(
+				await services.runAnalytics(
+					actor,
+					input as z.infer<typeof assistantAnalyticsQueryIntentSchema>,
+					execution?.signal ?? new AbortController().signal,
+				),
+			),
 	}),
 	definition({
 		toolId: "finance_summarize_orders",

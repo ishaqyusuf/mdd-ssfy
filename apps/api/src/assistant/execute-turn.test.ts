@@ -170,6 +170,31 @@ describe("executeAssistantConversationTurn", () => {
 						},
 					});
 					input.writer.write({
+						type: "data-assistant-analytics",
+						id: "analytics-1",
+						data: {
+							version: "assistant-analytics-result-v1",
+							metric: "sales.revenueByPeriod",
+							title: "Sales revenue by period",
+							definition:
+								"Current non-deleted order totals grouped by the actor's calendar period; currencies remain separate.",
+							presentation: "area",
+							rows: [{ label: "2026-09", value: 42500 }],
+							dateRange: {
+								from: "2026-09-01",
+								to: "2026-09-30",
+								timezone: "UTC",
+							},
+							unit: "currency",
+							currency: "USD",
+							freshness: {
+								observedAt: "2026-09-13T12:00:00.000Z",
+								label: "Live",
+							},
+							sources: [{ id: "sales-v1", label: "SalesOrders" }],
+						},
+					});
+					input.writer.write({
 						type: "data-assistant-entity",
 						id: "unsafe",
 						data: { kind: "app", id: "admin/secrets", label: "Unsafe" },
@@ -223,6 +248,31 @@ describe("executeAssistantConversationTurn", () => {
 						model: "gpt-5-mini",
 						usage: { inputTokens: 120, outputTokens: 40 },
 						unresolvedCount: NEW_SALES_FORM_SEED_EXAMPLE.unresolved.length,
+					},
+				},
+				{
+					type: "data-assistant-analytics",
+					id: "analytics-1",
+					data: {
+						version: "assistant-analytics-result-v1",
+						metric: "sales.revenueByPeriod",
+						title: "Sales revenue by period",
+						definition:
+							"Current non-deleted order totals grouped by the actor's calendar period; currencies remain separate.",
+						presentation: "area",
+						rows: [{ label: "2026-09", value: 42500 }],
+						dateRange: {
+							from: "2026-09-01",
+							to: "2026-09-30",
+							timezone: "UTC",
+						},
+						unit: "currency",
+						currency: "USD",
+						freshness: {
+							observedAt: "2026-09-13T12:00:00.000Z",
+							label: "Live",
+						},
+						sources: [{ id: "sales-v1", label: "SalesOrders" }],
 					},
 				},
 			],

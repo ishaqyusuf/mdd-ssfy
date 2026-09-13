@@ -1,7 +1,7 @@
 # Task: Progressive AI Chat T14 — Build schema-aware analytics and charts
 
 ## Status
-In Progress
+Complete
 
 ## Priority
 High
@@ -10,10 +10,10 @@ High
 2026-09-13
 
 ## Last Updated
-2026-09-12
+2026-09-13
 
 ## Global Ticket
-- Ticket Position: 14/19
+- Ticket Position: 14/20
 
 ## Plan File
 [Progressive AI Chat plan](../../plans/2026-09-11-feature-progressive-ai-chat-platform.md)
@@ -22,9 +22,9 @@ High
 GND extension for reviewed query intents, optimized data access, and generative UI. Depends on T05, T08, T10, T11, and T17.
 
 ## Implementation Progress
-- Completion: 25%
-- Current Checklist: 2/8 — versioned semantic catalog and validated query-intent AST
-- Blockers: T05, T08, T10, and T11 are complete. T17 remains the activation gate.
+- Completion: 100%
+- Current Checklist: 8/8 — completed and independently reviewed
+- Blockers: None. T17 remains the separate approval gate for state-changing tools.
 
 ## Implementation Decisions
 - Use a checked-in semantic catalog over the existing Prisma/MySQL domain model;
@@ -51,19 +51,25 @@ GND extension for reviewed query intents, optimized data access, and generative 
   deduplicate by reviewed identities, and apply validated filters/grouping/sort/
   limits after canonical projection. Reject cursors until deterministic keyset
   pagination is available instead of accepting intent that would be ignored.
-- Bound each executable plan to one query, 5,000 rows, 2 MB, eight seconds, 2,000
-  scoped IDs, a measured cost ceiling, best-effort cancellation, and a hard
-  deadline race for non-cooperative drivers.
+- Bound each executable plan to its declared query budget, 5,000 rows, 2 MB,
+  eight seconds, 2,000 scoped IDs, and a measured cost ceiling. The hard deadline
+  covers scope hydration, canonical loaders, and SQL execution even when a driver
+  does not cooperate with cancellation.
+- Resolve Production throughput through the canonical submission-to-item-to-order
+  path. Apply current Sales scope before the Production assignment filter and
+  recheck cancellation after every non-cancellable scope query.
+- Persist only catalog-validated `data-assistant-analytics` parts. Render durable
+  KPI/table/chart cards from that contract and show their actual observation time.
 
 ## Implementation Checklist
 - [x] Build a versioned semantic catalog from Prisma plus reviewed lifecycle, metric, join, scope, unit, and freshness metadata.
 - [x] Define a validated query-intent AST with allowlisted domains, metrics, filters, grouping, sort, and pagination.
-- [ ] Compile intents into reviewed parameterized Prisma/SQL query helpers with scope inside every subquery and aggregate.
-- [ ] Add query count, row/byte, date-range, timeout, cancellation, and cost bounds.
-- [ ] Render KPI, table, bar, line, and area results through typed AI SDK parts and existing GND Recharts wrappers.
-- [ ] Include metric definition, sources, date range, currency/unit, freshness, accessible table fallback, and safe drill-downs.
-- [ ] Benchmark representative `EXPLAIN` plans and add indexes only with measured read/write evidence.
-- [ ] Test one-to-many join duplication, mixed currencies, restricted fields, injection attempts, and forbidden arbitrary SQL.
+- [x] Compile intents into reviewed parameterized Prisma/SQL query helpers with scope inside every subquery and aggregate.
+- [x] Add query count, row/byte, date-range, timeout, cancellation, and cost bounds.
+- [x] Render KPI, table, bar, line, and area results through typed AI SDK parts and existing GND Recharts wrappers.
+- [x] Include metric definition, sources, date range, currency/unit, freshness, accessible table fallback, and safe drill-downs.
+- [x] Benchmark representative `EXPLAIN` plans and add indexes only with measured read/write evidence.
+- [x] Test one-to-many join duplication, mixed currencies, restricted fields, injection attempts, and forbidden arbitrary SQL.
 
 ## Validation Evidence
 - `assistant-analytics-catalog-v1` defines six reviewed metrics across Sales,
@@ -110,6 +116,33 @@ GND extension for reviewed query intents, optimized data access, and generative 
   counted-loader budget and empty-scope corrections. API typechecking is clean for
   this work and stops only at the unrelated existing nullable string in
   `packages/sales/src/copy-sales.ts:521`.
-- Next implementation slice will install bounded canonical projection adapters
-  for Sales status, fulfillment blockers, and inventory exposure before checking
-  the query-helper and execution-bound checklist items complete.
+- The production registry exposes `analytics_query@1` through
+  `assistant-catalog-v7`. It reauthorizes the actor, resolves only bounded current
+  scope IDs, compiles code-owned identifiers with bound values, executes direct or
+  canonical projection plans, and validates the complete result envelope before
+  streaming it.
+- Sales status and fulfillment use the canonical pipeline snapshot in batches of
+  50. Inventory derives pending demand through the canonical Sales inventory
+  overview, checks the raw selected projection against both row and byte limits,
+  and rechecks current order scope before returning data.
+- The dashboard supports KPI, table, bar, line, and area presentation with a
+  visible accessible table, semantic metric definition, unit/currency formatting,
+  exact date range and timezone, source authorities, durable `observedAt` time,
+  and allowlisted date-filter drill-downs into the existing Orders and Production
+  pages (plus the existing Community projects page).
+- Representative local MySQL `EXPLAIN` evidence used current rows without exposing
+  their identifiers. Sales revenue used the `SalesOrders_id_key` const lookup;
+  Production used `SalesOrders_id_key`,
+  `idx_SalesOrderItems_on_salesOrderId`,
+  `OrderProductionSubmissions_salesOrderItemId_idx`, and the material-review
+  primary key; Community used `Projects_id_key` and `Homes_projectId_idx`.
+  Each joined table estimated 1–3 rows for the representative scope. No index was
+  added because the reviewed ID-first plans already use existing selective keys;
+  the temporary/filesort steps are bounded aggregate presentation work.
+- Final focused validation: full Assistant API suite 134/134 passed with 727
+  assertions; targeted Biome and `git diff --check` passed. Focused API and
+  dashboard typecheck output contains no diagnostics for changed Assistant files.
+  The full project typechecks retain unrelated existing errors elsewhere.
+- Independent specification review and engineering-standards review found no
+  remaining ticket blocker after the Production authority, whole-operation
+  deadline, byte-bound, durable freshness, and drill-down corrections.

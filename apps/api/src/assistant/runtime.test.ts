@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { NEW_SALES_FORM_SEED_EXAMPLE } from "@gnd/sales/sales-form-core";
+import { ASSISTANT_ANALYTICS_RESULT_VERSION } from "./analytics-result-contract";
 import {
 	ASSISTANT_MAX_SELECTED_TOOLS,
 	createAssistantRuntime,
@@ -32,7 +33,7 @@ describe("assistant runtime", () => {
 			provider: "openai",
 			model: "gpt-5-mini",
 			modelIdentity: "openai:gpt-5-mini",
-			catalogVersion: "assistant-catalog-v6",
+			catalogVersion: "assistant-catalog-v7",
 			promptVersion: "gnd-assistant-prompt-v1",
 		});
 	});
@@ -747,6 +748,87 @@ describe("assistant runtime", () => {
 			data: draft,
 		});
 		expect(JSON.stringify(chunks)).not.toContain("private raw output");
+	});
+
+	test("emits only catalog-backed analytics from the trusted analytics tool", async () => {
+		const chunks: unknown[] = [];
+		const analytics = {
+			version: ASSISTANT_ANALYTICS_RESULT_VERSION,
+			metric: "sales.revenueByPeriod",
+			title: "Sales revenue by period",
+			definition:
+				"Current non-deleted order totals grouped by the actor's calendar period; currencies remain separate.",
+			presentation: "area",
+			rows: [{ label: "2026-09", value: 42500 }],
+			dateRange: {
+				from: "2026-09-01",
+				to: "2026-09-30",
+				timezone: "UTC",
+			},
+			unit: "currency",
+			currency: "USD",
+			freshness: {
+				observedAt: "2026-09-13T12:00:00.000Z",
+				label: "Live",
+			},
+			sources: [{ id: "sales-orders-v1", label: "Sales orders" }],
+		};
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { analytics_query: {} },
+			trustedResultTools: ["analytics_query"],
+			trustedResultToolEffects: { analytics_query: "read" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-call",
+							toolCallId: "analytics-1",
+							toolName: "analytics_query",
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "analytics-1",
+							toolName: "analytics_query",
+							output: {
+								content: [{ type: "text", text: "private rows" }],
+								structuredContent: { status: "success", data: analytics },
+							},
+						};
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 4 }),
+				}),
+			}),
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Chart revenue" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(chunks).toContainEqual({
+			type: "data-assistant-analytics",
+			id: "analytics-analytics-1",
+			data: analytics,
+		});
+		expect(JSON.stringify(chunks)).not.toContain("private rows");
 	});
 
 	test("adds policy-controlled web search and emits safe URL sources", async () => {

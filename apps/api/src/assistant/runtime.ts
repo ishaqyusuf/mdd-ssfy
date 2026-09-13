@@ -12,6 +12,7 @@ import {
 	tool,
 } from "ai";
 import { z } from "zod";
+import { assistantAnalyticsResultSchema } from "./analytics-result-contract";
 import {
 	type AssistantEffect,
 	assistantEntityReferenceSchema,
@@ -342,6 +343,22 @@ async function writeSafeAssistantStream(input: {
 				if (type === "tool-result" && trustedResult) {
 					const envelope = assistantEnvelopeFromOutput(part.output);
 					const status = boundedRuntimeString(envelope?.status, 40);
+					if (
+						id &&
+						knownName === "analytics_query" &&
+						(status === "success" || status === "partial")
+					) {
+						const analytics = assistantAnalyticsResultSchema.safeParse(
+							envelope?.data,
+						);
+						if (analytics.success) {
+							input.writer.write({
+								type: "data-assistant-analytics",
+								id: `analytics-${id}`,
+								data: analytics.data,
+							});
+						}
+					}
 					if (
 						id &&
 						knownName === "sales_draft_from_request" &&

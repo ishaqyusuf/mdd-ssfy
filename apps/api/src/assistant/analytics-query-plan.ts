@@ -8,7 +8,7 @@ const MAX_SCOPE_IDS = 2_000;
 const MAX_QUERY_ROWS = 5_000;
 const MAX_QUERY_BYTES = 2_000_000;
 const MAX_QUERY_COST = 20_000;
-const QUERY_TIMEOUT_MS = 8_000;
+export const ASSISTANT_ANALYTICS_TIMEOUT_MS = 8_000;
 
 type AnalyticsGrant =
 	| "viewOrders"
@@ -351,13 +351,15 @@ export function compileAssistantAnalyticsQueryPlan(
 		bounds: {
 			maxQueryCount:
 				statement.postProcessor === "none"
-					? 1
+					? intent.domain === "production"
+						? 3
+						: 2
 					: statement.postProcessor === "sales-inventory-overview"
-						? 1 + Math.ceil(scopeIds.length / 50)
-						: 1 + 4 * Math.ceil(scopeIds.length / 250),
+						? 3
+						: 3 + 4 * Math.ceil(scopeIds.length / 50),
 			maxRows: MAX_QUERY_ROWS,
 			maxBytes: MAX_QUERY_BYTES,
-			timeoutMs: QUERY_TIMEOUT_MS,
+			timeoutMs: ASSISTANT_ANALYTICS_TIMEOUT_MS,
 			estimatedCost,
 		},
 		metadata: {
@@ -403,8 +405,13 @@ export async function executeAssistantAnalyticsQueryPlan(
 	options: {
 		signal?: AbortSignal;
 		canonicalAdapter?: AssistantAnalyticsCanonicalAdapter;
+		initialQueryCount?: number;
 	} = {},
 ) {
+	const initialQueryCount = options.initialQueryCount ?? 0;
+	if (!Number.isSafeInteger(initialQueryCount) || initialQueryCount < 0) {
+		throw new Error("Analytics initial query count is invalid");
+	}
 	if (options.signal?.aborted) throw new Error("Analytics query cancelled");
 	const controller = new AbortController();
 	const cancel = () => controller.abort(options.signal?.reason);
@@ -457,7 +464,7 @@ export async function executeAssistantAnalyticsQueryPlan(
 		) {
 			throw new Error("Analytics adapter query count is invalid");
 		}
-		const queryCount = 1 + projected.queryCount;
+		const queryCount = initialQueryCount + 1 + projected.queryCount;
 		if (queryCount > plan.bounds.maxQueryCount)
 			throw new Error("Analytics query count limit exceeded");
 		const rows = projected.rows;
