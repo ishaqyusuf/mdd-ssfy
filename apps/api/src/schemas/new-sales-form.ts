@@ -1,4 +1,5 @@
 import {
+	newSalesFormSeedSchema,
 	salesFormExtraCostSchema,
 	salesFormExtraCostTypeSchema,
 	salesFormLineItemSchema,
@@ -11,6 +12,10 @@ import {
 	SPECIAL_ORDER_COMMIT_INTENTS,
 	SPECIAL_ORDER_DECLARATIONS,
 } from "@gnd/sales/special-order";
+import {
+	SALES_REQUEST_AI_PROVIDERS,
+	isSalesRequestAIModel,
+} from "@gnd/settings";
 import { orderInboundStatuses } from "@gnd/utils/constants";
 import { z } from "zod";
 
@@ -166,13 +171,50 @@ export type SaveDraftNewSalesFormSchema = z.infer<
 	typeof saveDraftNewSalesFormSchema
 >;
 
+/**
+ * Ephemeral proof supplied only by the future low-touch finalization command.
+ * The server must replay and compare this seed against fresh authorities; it is
+ * never Sales metadata and must be removed before logging or persistence.
+ */
+export const salesRequestLowTouchFinalSaveClaimSchema = z
+	.object({
+		source: z.literal("pasted-text"),
+		generationId: z.string().uuid(),
+		configurationScope: z.string().trim().min(1).max(191),
+		configurationRevision: z.string().trim().min(1).max(128),
+		provider: z.enum(SALES_REQUEST_AI_PROVIDERS),
+		model: z.string().trim().min(1).max(128),
+		seed: newSalesFormSeedSchema,
+	})
+	.strict()
+	.superRefine((claim, ctx) => {
+		if (!isSalesRequestAIModel(claim.provider, claim.model)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["model"],
+				message: `Model ${claim.model} is not allowed for ${claim.provider}`,
+			});
+		}
+	});
+export type SalesRequestLowTouchFinalSaveClaim = z.infer<
+	typeof salesRequestLowTouchFinalSaveClaimSchema
+>;
+
 export const saveFinalNewSalesFormSchema = saveDraftNewSalesFormSchema.extend({
 	autosave: z.boolean().default(false),
 	commitIntent: z.literal("final").default("final"),
+	lowTouchClaim: salesRequestLowTouchFinalSaveClaimSchema.optional(),
 });
 export type SaveFinalNewSalesFormSchema = z.infer<
 	typeof saveFinalNewSalesFormSchema
 >;
+
+export function splitSalesRequestLowTouchFinalSaveClaim(
+	input: SaveFinalNewSalesFormSchema,
+) {
+	const { lowTouchClaim, ...payload } = input;
+	return { claim: lowTouchClaim ?? null, payload };
+}
 
 export const previewNewSalesFormAdjustmentSchema =
 	saveDraftNewSalesFormSchema.extend({

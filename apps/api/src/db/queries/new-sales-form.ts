@@ -38,6 +38,7 @@ import {
 	resolveNewSalesCustomerSchema,
 	saveDraftNewSalesFormSchema,
 	saveFinalNewSalesFormSchema,
+	splitSalesRequestLowTouchFinalSaveClaim,
 	searchNewSalesCustomersSchema,
 	searchNewSalesFormServiceSuggestionsSchema,
 	searchNewSalesFormShelfProductsSchema,
@@ -4773,7 +4774,16 @@ export async function saveFinalNewSalesForm(
 	ctx: TRPCContext,
 	input: SaveFinalNewSalesFormSchema,
 ) {
-	const payload = saveFinalNewSalesFormSchema.parse(input);
+	const parsed = saveFinalNewSalesFormSchema.parse(input);
+	const { claim: lowTouchClaim, payload } =
+		splitSalesRequestLowTouchFinalSaveClaim(parsed);
+	if (lowTouchClaim) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"Low-touch finalization is not enabled until its commercial preflight passes.",
+		});
+	}
 	const startedAt = performance.now();
 	logNewSalesFormSaveDiagnostic({
 		action: "save-final",
