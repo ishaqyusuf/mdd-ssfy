@@ -106,6 +106,10 @@ GND extension for reviewed query intents, optimized data access, and generative 
   inventory identities, duplicate-filter rejection, bounded scoped payloads, and
   runtime-validated query accounting. Both independent reviews are clean for this
   checkpoint; production loader binding remains the next unchecked work.
+- The complete Assistant API suite passes 124/124 with 694 assertions after the
+  counted-loader budget and empty-scope corrections. API typechecking is clean for
+  this work and stops only at the unrelated existing nullable string in
+  `packages/sales/src/copy-sales.ts:521`.
 - Next implementation slice will install bounded canonical projection adapters
   for Sales status, fulfillment blockers, and inventory exposure before checking
   the query-helper and execution-bound checklist items complete.
