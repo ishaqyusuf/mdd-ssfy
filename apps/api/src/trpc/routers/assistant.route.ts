@@ -28,7 +28,7 @@ import {
 	getAssistantConnectorManagementUrl,
 } from "@api/assistant/integrations";
 import {
-	assistantPreferenceSchema,
+	assistantPreferenceUpdateSchema,
 	assistantRecipeParametersSchema,
 	assistantSavedActionCreateSchema,
 	assistantSavedActionFromRunSchema,
@@ -291,11 +291,7 @@ export const assistantRouter = createTRPCRouter({
 		return getAssistantPreferences(ctx.db, actor);
 	}),
 	updatePreferences: protectedProcedure
-		.input(
-			assistantPreferenceSchema.omit({ version: true }).extend({
-				expectedVersion: z.number().int().positive(),
-			}),
-		)
+		.input(assistantPreferenceUpdateSchema)
 		.mutation(async ({ ctx, input }) => {
 			const actor = await actorOrThrow(ctx);
 			return updateAssistantPreferences(ctx.db, actor, input);

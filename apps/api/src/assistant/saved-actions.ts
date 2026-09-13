@@ -20,12 +20,23 @@ const scopeSchema = z.object({
 	scopeId: z.string().trim().min(1).max(191),
 });
 
+const assistantPreferenceFields = {
+	responseStyle: z.enum(["concise", "balanced", "explanatory"]),
+	responseDetail: z.enum(["brief", "standard", "detailed"]),
+	chartPresentation: z.enum(["auto", "table", "bar", "line", "area"]),
+};
+
 export const assistantPreferenceSchema = z
 	.object({
-		responseStyle: z.enum(["concise", "balanced", "explanatory"]),
-		responseDetail: z.enum(["brief", "standard", "detailed"]),
-		chartPresentation: z.enum(["auto", "table", "bar", "line", "area"]),
+		...assistantPreferenceFields,
 		version: z.number().int().positive(),
+	})
+	.strict();
+
+export const assistantPreferenceUpdateSchema = z
+	.object({
+		...assistantPreferenceFields,
+		expectedVersion: z.number().int().positive(),
 	})
 	.strict();
 
@@ -1181,22 +1192,19 @@ export async function updateAssistantPreferences(
 		expectedVersion: number;
 	},
 ) {
-	const parsed = assistantPreferenceSchema.omit({ version: true }).parse({
-		responseStyle: input.responseStyle,
-		responseDetail: input.responseDetail,
-		chartPresentation: input.chartPresentation,
-	});
+	const { expectedVersion, ...parsed } =
+		assistantPreferenceUpdateSchema.parse(input);
 	const scope = actionScope(actor);
 	const existing = await db.assistantPreference.findUnique({
 		where: { ownerUserId_scopeType_scopeId: scope },
 	});
 	if (!existing) {
-		if (input.expectedVersion !== 1)
+		if (expectedVersion !== 1)
 			throw new Error("Assistant preferences changed; reload and retry");
 		return db.assistantPreference.create({ data: { ...scope, ...parsed } });
 	}
 	const updated = await db.assistantPreference.updateMany({
-		where: { id: existing.id, version: input.expectedVersion },
+		where: { id: existing.id, version: expectedVersion },
 		data: { ...parsed, version: { increment: 1 } },
 	});
 	if (updated.count !== 1)
