@@ -66,6 +66,22 @@ export {
 } from "./crypto.js";
 export type { MailboxEncryptedSecret } from "./crypto.js";
 export {
+	MAILBOX_DISCONNECT_AUTHORITY_BEHAVIOR,
+	MAILBOX_DISCONNECT_CLAIM_BEHAVIOR,
+	MAILBOX_DISCONNECT_CLEANUP_BEHAVIOR,
+	disconnectMailboxConnection,
+} from "./disconnect-lifecycle.js";
+export type {
+	DisconnectMailboxConnectionResult,
+	MailboxDisconnectClaim,
+	MailboxDisconnectCleanupClaim,
+	MailboxDisconnectDependencies,
+	MailboxDisconnectFailurePhase,
+	MailboxDisconnectFailureReason,
+	MailboxDisconnectKeyRing,
+	MailboxDisconnectStore,
+} from "./disconnect-lifecycle.js";
+export {
 	MailboxProviderError,
 	mailboxProviderErrorEvidence,
 	resolveMailboxRetry,

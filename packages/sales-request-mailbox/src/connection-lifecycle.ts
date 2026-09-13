@@ -27,7 +27,7 @@ export type MailboxConnectionAuthoritySnapshot = {
 	ownerUserId: number;
 	employeeProfileId: number;
 	organizationId: number;
-	officeMembershipId: number;
+	officeAuthorityKey: string;
 	authorityRevision: string;
 	salesSettingsId: number;
 	salesSettingsRevision: number;
@@ -46,7 +46,7 @@ export type MailboxConnectionAttemptRecord = {
 	organizationId: number;
 	ownerUserId: number;
 	employeeProfileId: number;
-	officeMembershipId: number;
+	officeAuthorityKey: string;
 	provider: MailboxProvider;
 	redirectKey: MailboxOAuthRedirectKey;
 	issuedAt: Date;
@@ -100,8 +100,12 @@ export type MailboxConnectionAttemptTerminalReason =
 /**
  * The concrete store owns every transaction and current-record check. Start
  * authority resolution must select the employee's active profile and canonical
- * active office (primary first, then lowest stable office id), plus the single
- * current company-wide Sales Settings row and its mailbox policy.
+ * active office organization (primary first, then lowest stable office id), plus
+ * the single current company-wide Sales Settings row and its mailbox policy.
+ * `officeAuthorityKey` is opaque, bounded, versioned evidence derived by that
+ * future store from canonical user/profile/organization/active-role authority;
+ * it is not a database row or surrogate membership identifier. `organizationId`
+ * remains the canonical office identity and `authorityRevision` the drift fence.
  */
 export interface MailboxConnectionLifecycleStore {
 	resolveStartAuthority(input: {
@@ -274,7 +278,7 @@ function validateAuthority(
 		authority.ownerUserId === actorUserId &&
 		validPositiveInteger(authority.employeeProfileId) &&
 		validPositiveInteger(authority.organizationId) &&
-		validPositiveInteger(authority.officeMembershipId) &&
+		validIdentifier(authority.officeAuthorityKey) &&
 		validPositiveInteger(authority.salesSettingsId) &&
 		Number.isSafeInteger(authority.salesSettingsRevision) &&
 		authority.salesSettingsRevision >= 0 &&
@@ -311,7 +315,7 @@ function validateConsumedAttempt(input: {
 		attempt.redirectKey === input.redirectKey &&
 		validPositiveInteger(attempt.organizationId) &&
 		validPositiveInteger(attempt.employeeProfileId) &&
-		validPositiveInteger(attempt.officeMembershipId) &&
+		validIdentifier(attempt.officeAuthorityKey) &&
 		validPositiveInteger(attempt.salesSettingsId) &&
 		Number.isSafeInteger(attempt.salesSettingsRevision) &&
 		attempt.salesSettingsRevision >= 0 &&
@@ -407,7 +411,7 @@ export async function startMailboxConnection(
 	const stored = await dependencies.store.createAttempt({
 		...created.attempt,
 		employeeProfileId: authority.employeeProfileId,
-		officeMembershipId: authority.officeMembershipId,
+		officeAuthorityKey: authority.officeAuthorityKey,
 		salesSettingsId: authority.salesSettingsId,
 		salesSettingsRevision: authority.salesSettingsRevision,
 		policyRevision: policy.data.revision,

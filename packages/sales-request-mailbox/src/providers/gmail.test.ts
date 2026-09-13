@@ -182,6 +182,42 @@ describe("GmailSalesRequestMailboxAdapter", () => {
 		expect(new URLSearchParams(calls[1]?.body).get("token")).toBe("refresh-1");
 	});
 
+	test("treats only an exact bounded invalid_token revoke response as idempotent success", async () => {
+		const tokens = {
+			accessToken: "access-1",
+			refreshToken: "refresh-1",
+			grantedScopes: [] as const,
+		};
+		const idempotent = fixtureAdapter(() =>
+			json({ error: "invalid_token" }, { status: 400 }),
+		).adapter;
+		await expect(idempotent.revoke({ tokens })).resolves.toBeUndefined();
+		const oauth = fixtureAdapter(() =>
+			json({ error: "invalid_token" }, { status: 400 }),
+		).adapter;
+		await expect(
+			oauth.exchangeAuthorizationCode({ code: "code-1" }),
+		).rejects.toMatchObject({
+			code: "authorization-revoked",
+			provider: "gmail",
+		});
+
+		for (const response of [
+			json({ error: "invalid_request" }, { status: 400 }),
+			json({ error: "invalid_token", detail: "not-exact" }, { status: 400 }),
+			new Response("not-json", { status: 400 }),
+			new Response(`${" ".repeat(70 * 1024)}{"error":"invalid_token"}`, {
+				status: 400,
+			}),
+		]) {
+			const rejected = fixtureAdapter(() => response.clone()).adapter;
+			await expect(rejected.revoke({ tokens })).rejects.toMatchObject({
+				code: "malformed-response",
+				provider: "gmail",
+			});
+		}
+	});
+
 	test("lists a full-sync page, fetches bounded metadata, and carries the snapshot cursor opaquely", async () => {
 		let listPage = 0;
 		const { adapter, calls } = fixtureAdapter(({ request }) => {

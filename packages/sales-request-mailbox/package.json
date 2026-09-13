@@ -10,6 +10,7 @@
 		"./connection-lifecycle": "./src/connection-lifecycle.ts",
 		"./contracts": "./src/contracts.ts",
 		"./crypto": "./src/crypto.ts",
+		"./disconnect-lifecycle": "./src/disconnect-lifecycle.ts",
 		"./providers": "./src/providers/index.ts"
 	},
 	"scripts": {

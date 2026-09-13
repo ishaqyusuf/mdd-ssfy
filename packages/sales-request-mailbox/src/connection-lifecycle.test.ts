@@ -46,7 +46,7 @@ function authority(overrides: Record<string, unknown> = {}) {
 		ownerUserId: 20,
 		employeeProfileId: 30,
 		organizationId: 10,
-		officeMembershipId: 40,
+		officeAuthorityKey: "office-authority-v1:canonical-role-evidence",
 		authorityRevision: "authority-7",
 		salesSettingsId: 3,
 		salesSettingsRevision: 9,
@@ -64,7 +64,7 @@ function attempt(
 		organizationId: 10,
 		ownerUserId: 20,
 		employeeProfileId: 30,
-		officeMembershipId: 40,
+		officeAuthorityKey: "office-authority-v1:canonical-role-evidence",
 		provider: "gmail",
 		redirectKey: "sales-settings-mailbox",
 		issuedAt: NOW,
@@ -231,7 +231,7 @@ describe("mailbox connection lifecycle start", () => {
 			organizationId: 10,
 			ownerUserId: 20,
 			employeeProfileId: 30,
-			officeMembershipId: 40,
+			officeAuthorityKey: "office-authority-v1:canonical-role-evidence",
 			salesSettingsId: 3,
 			salesSettingsRevision: 9,
 			policyRevision: 4,
@@ -240,6 +240,9 @@ describe("mailbox connection lifecycle start", () => {
 		});
 		expect(JSON.stringify(persistence.calls.attempts)).not.toContain(
 			String(provider.calls.states[0]),
+		);
+		expect(JSON.stringify(persistence.calls.attempts)).not.toContain(
+			"officeMembershipId",
 		);
 	});
 
@@ -279,6 +282,28 @@ describe("mailbox connection lifecycle start", () => {
 			}),
 		).toEqual({ kind: "rejected", reason: "policy-disabled" });
 		expect(persistence.calls.attempts).toHaveLength(0);
+	});
+
+	test("rejects blank or unbounded opaque office authority evidence", async () => {
+		for (const officeAuthorityKey of ["", "x".repeat(256)]) {
+			const persistence = store({
+				async resolveStartAuthority() {
+					return {
+						kind: "authorized",
+						authority: authority({ officeAuthorityKey }),
+					};
+				},
+			});
+			const provider = adapter();
+			expect(
+				await startMailboxConnection(startInput, {
+					store: persistence.api,
+					adapters: { gmail: provider.api },
+				}),
+			).toEqual({ kind: "rejected", reason: "invalid-authority" });
+			expect(persistence.calls.attempts).toHaveLength(0);
+			expect(provider.calls.states).toHaveLength(0);
+		}
 	});
 
 	test("accepts no client organization, owner, redirect URI, or provider identity", async () => {
@@ -321,6 +346,24 @@ describe("mailbox connection lifecycle callback", () => {
 		).toEqual({ kind: "rejected", reason: "invalid-attempt" });
 		expect(persistence.calls.consumed).toHaveLength(0);
 		expect(provider.calls.codes).toHaveLength(0);
+	});
+
+	test("rejects invalid opaque office authority evidence before exchange", async () => {
+		for (const officeAuthorityKey of ["", "x".repeat(256)]) {
+			const persistence = store({
+				async consumeCallbackAttempt() {
+					return {
+						kind: "ready",
+						attempt: attempt({ officeAuthorityKey }),
+					};
+				},
+			});
+			const provider = adapter();
+			expect(
+				await completeMailboxConnection(callback, deps(persistence, provider)),
+			).toEqual({ kind: "rejected", reason: "invalid-attempt" });
+			expect(provider.calls.codes).toHaveLength(0);
+		}
 	});
 
 	test("wrong actor, provider, or redirect cannot consume another attempt", async () => {

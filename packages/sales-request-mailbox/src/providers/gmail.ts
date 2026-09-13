@@ -395,13 +395,24 @@ async function readBoundedJson(response: Response, maxBytes: number) {
 	}
 }
 
-async function providerErrorReasons(response: Response) {
+async function providerErrorEvidence(response: Response) {
 	try {
 		const value = await readBoundedJson(response, MAX_ERROR_BYTES);
-		if (!isRecord(value)) return [];
+		if (!isRecord(value)) {
+			return { reasons: [] as string[], exactInvalidToken: false };
+		}
 		const error = value.error;
-		if (typeof error === "string") return [error];
-		if (!isRecord(error)) return [];
+		const exactInvalidToken =
+			Object.keys(value).length === 1 && error === "invalid_token";
+		if (typeof error === "string") {
+			return {
+				reasons: [error.toLowerCase()],
+				exactInvalidToken,
+			};
+		}
+		if (!isRecord(error)) {
+			return { reasons: [] as string[], exactInvalidToken: false };
+		}
 		const reasons: string[] = [];
 		if (typeof error.status === "string") reasons.push(error.status);
 		if (Array.isArray(error.errors)) {
@@ -411,9 +422,12 @@ async function providerErrorReasons(response: Response) {
 				}
 			}
 		}
-		return reasons.map((reason) => reason.toLowerCase());
+		return {
+			reasons: reasons.map((reason) => reason.toLowerCase()),
+			exactInvalidToken: false,
+		};
 	} catch {
-		return [];
+		return { reasons: [] as string[], exactInvalidToken: false };
 	}
 }
 
@@ -1151,11 +1165,11 @@ export class GmailSalesRequestMailboxAdapter
 	) {
 		const response = await this.#performFetch(url, init);
 		if (!response.ok) {
-			const reasons = await providerErrorReasons(response.clone());
+			const evidence = await providerErrorEvidence(response);
 			throw statusError({
 				status: response.status,
 				context,
-				reasons,
+				reasons: evidence.reasons,
 				retryAfterMs: retryAfterMs(response, this.#validNow()),
 			});
 		}
@@ -1169,11 +1183,18 @@ export class GmailSalesRequestMailboxAdapter
 	) {
 		const response = await this.#performFetch(url, init);
 		if (!response.ok) {
-			const reasons = await providerErrorReasons(response.clone());
+			const evidence = await providerErrorEvidence(response);
+			if (
+				context === "revoke" &&
+				response.status === 400 &&
+				evidence.exactInvalidToken
+			) {
+				return;
+			}
 			throw statusError({
 				status: response.status,
 				context,
-				reasons,
+				reasons: evidence.reasons,
 				retryAfterMs: retryAfterMs(response, this.#validNow()),
 			});
 		}
