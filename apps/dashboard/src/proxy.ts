@@ -11,7 +11,13 @@ import {
 } from "./lib/routing/redirect-engine";
 
 const AUTHENTICATED_FALLBACK_ROUTE = "/settings/profile";
-const AUTHENTICATED_SAFE_ROUTES = new Set([AUTHENTICATED_FALLBACK_ROUTE]);
+const AUTHENTICATED_SAFE_ROUTES = new Set([
+    AUTHENTICATED_FALLBACK_ROUTE,
+    // The page performs the live database entitlement check. The proxy only has
+    // the role snapshot, so applying its legacy link rules here would reject
+    // individually entitled employees before the page can authorize them.
+    "/assistant",
+]);
 
 export const config = {
     matcher: [
