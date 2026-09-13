@@ -11,6 +11,7 @@
 		"./contracts": "./src/contracts.ts",
 		"./crypto": "./src/crypto.ts",
 		"./disconnect-lifecycle": "./src/disconnect-lifecycle.ts",
+		"./inbox-read": "./src/inbox-read.ts",
 		"./provider-request": "./src/provider-request.ts",
 		"./token-health-lifecycle": "./src/token-health-lifecycle.ts",
 		"./providers": "./src/providers/index.ts"

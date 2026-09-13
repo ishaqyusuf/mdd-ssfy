@@ -78,6 +78,7 @@ export type MailboxDisconnectFailureReason =
 	| "provider-revocation-deadline"
 	| "provider-revocation-failed"
 	| "state-transition-failed"
+	| "cleanup-cancelled"
 	| "cleanup-failed";
 
 /**
@@ -148,6 +149,7 @@ export type MailboxDisconnectDependencies = {
 
 export type DisconnectMailboxConnectionResult =
 	| { kind: "disconnected" }
+	| { kind: "cancelled" }
 	| { kind: "retry-pending" }
 	| {
 			kind: "rejected";
@@ -304,6 +306,7 @@ export async function disconnectMailboxConnection(
 	) {
 		return { kind: "rejected", reason: "connection-unavailable" };
 	}
+	if (input.signal?.aborted) return { kind: "cancelled" };
 	const now = input.now ?? dependencies.clock?.() ?? new Date();
 	if (!validDate(now)) throw new Error("invalid-mailbox-disconnect");
 	const clock = dependencies.clock ?? (() => new Date());
@@ -334,6 +337,16 @@ export async function disconnectMailboxConnection(
 			return claimed.claim.ownerUserId === input.actorUserId
 				? { kind: "retry-pending" }
 				: { kind: "rejected", reason: "connection-unavailable" };
+		}
+		if (input.signal?.aborted) {
+			await bestEffortRecordFailure(
+				dependencies.store,
+				claimed.claim,
+				"cleanup",
+				"cleanup-cancelled",
+				clock,
+			);
+			return { kind: "retry-pending" };
 		}
 		return finishLocalCleanup(claimed.claim, {
 			store: dependencies.store,
@@ -368,6 +381,16 @@ export async function disconnectMailboxConnection(
 				clock,
 			);
 		}
+		return { kind: "retry-pending" };
+	}
+	if (input.signal?.aborted) {
+		await bestEffortRecordFailure(
+			dependencies.store,
+			localClaim,
+			"provider-revocation",
+			"provider-revocation-cancelled",
+			clock,
+		);
 		return { kind: "retry-pending" };
 	}
 

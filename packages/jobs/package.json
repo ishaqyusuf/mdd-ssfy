@@ -27,6 +27,7 @@
     "@gnd/observability": "workspace:*",
     "@gnd/pdf": "workspace:*",
     "@gnd/sales": "workspace:*",
+    "@gnd/sales-request-mailbox": "workspace:*",
     "@gnd/settings": "workspace:*",
     "@gnd/square": "workspace:*",
     "@gnd/utils": "workspace:*",

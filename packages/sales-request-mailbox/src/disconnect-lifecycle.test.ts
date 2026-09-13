@@ -577,11 +577,14 @@ describe("mailbox disconnect lifecycle", () => {
 		expect(persistence.calls.completed).toHaveLength(0);
 	});
 
-	test("keeps cancelled Gmail revocation resumable with content-free evidence", async () => {
+	test("keeps cancellation during Gmail revocation resumable with content-free evidence", async () => {
 		const persistence = store();
 		const provider = adapter();
 		const cancellation = new AbortController();
-		cancellation.abort(new Error("caller-secret"));
+		provider.api.revoke = async () => {
+			cancellation.abort(new Error("caller-secret"));
+			return new Promise(() => undefined);
+		};
 
 		expect(
 			await disconnectMailboxConnection(
@@ -633,9 +636,11 @@ describe("mailbox disconnect lifecycle", () => {
 		expect(persistence.calls.completed).toHaveLength(0);
 	});
 
-	test("keeps Graph local-only even when the caller signal is cancelled", async () => {
+	test("does not claim Graph cleanup when the task is already cancelled", async () => {
+		let claimCalls = 0;
 		const persistence = store({
 			async claimDisconnect() {
+				claimCalls += 1;
 				return {
 					kind: "provider-revocation-required",
 					claim: claim({ provider: "microsoft-graph" }),
@@ -659,9 +664,82 @@ describe("mailbox disconnect lifecycle", () => {
 					keyRing: { resolve: () => KEY },
 				},
 			),
-		).toEqual({ kind: "disconnected" });
-		expect(localRevocations).toBe(1);
+		).toEqual({ kind: "cancelled" });
+		expect(claimCalls).toBe(0);
+		expect(localRevocations).toBe(0);
 		expect(persistence.calls.failures).toHaveLength(0);
+	});
+
+	test("does not revoke or clean up after cancellation while claiming", async () => {
+		let releaseClaim: (() => void) | undefined;
+		const persistence = store({
+			async claimDisconnect() {
+				await new Promise<void>((resolve) => {
+					releaseClaim = resolve;
+				});
+				return { kind: "cleanup-required", claim: cleanupClaim() };
+			},
+		});
+		const cancellation = new AbortController();
+		const provider = adapter();
+		const result = disconnectMailboxConnection(
+			{ ...input(), signal: cancellation.signal },
+			{
+				store: persistence.api,
+				adapters: { gmail: provider.api },
+				keyRing: { resolve: () => KEY },
+			},
+		);
+		await Promise.resolve();
+		cancellation.abort();
+		releaseClaim?.();
+
+		await expect(result).resolves.toEqual({ kind: "retry-pending" });
+		expect(provider.calls.revoked).toHaveLength(0);
+		expect(persistence.calls.revoked).toHaveLength(0);
+		expect(persistence.calls.completed).toHaveLength(0);
+		expect(persistence.calls.failures).toEqual([
+			expect.objectContaining({
+				phase: "cleanup",
+				reason: "cleanup-cancelled",
+			}),
+		]);
+	});
+
+	test("keeps provider revocation resumable after cancellation while claiming", async () => {
+		let releaseClaim: (() => void) | undefined;
+		const persistence = store({
+			async claimDisconnect() {
+				await new Promise<void>((resolve) => {
+					releaseClaim = resolve;
+				});
+				return { kind: "provider-revocation-required", claim: claim() };
+			},
+		});
+		const cancellation = new AbortController();
+		const provider = adapter();
+		const result = disconnectMailboxConnection(
+			{ ...input(), signal: cancellation.signal },
+			{
+				store: persistence.api,
+				adapters: { gmail: provider.api },
+				keyRing: { resolve: () => KEY },
+			},
+		);
+		await Promise.resolve();
+		cancellation.abort();
+		releaseClaim?.();
+
+		await expect(result).resolves.toEqual({ kind: "retry-pending" });
+		expect(provider.calls.revoked).toHaveLength(0);
+		expect(persistence.calls.revoked).toHaveLength(0);
+		expect(persistence.calls.completed).toHaveLength(0);
+		expect(persistence.calls.failures).toEqual([
+			expect.objectContaining({
+				phase: "provider-revocation",
+				reason: "provider-revocation-cancelled",
+			}),
+		]);
 	});
 
 	test("reads fresh time immediately before every durable disconnect mutation", async () => {
