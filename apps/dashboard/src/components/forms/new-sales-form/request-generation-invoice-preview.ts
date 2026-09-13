@@ -49,3 +49,14 @@ export function buildApprovedSalesRequestInvoicePreview(
 		setting: input.setting ?? null,
 	});
 }
+
+export function openApprovedSalesRequestInvoicePreview(
+	input: ApprovedSalesRequestInvoicePreviewInput,
+	open: (
+		page: ReturnType<typeof buildApprovedSalesRequestInvoicePreview>,
+	) => void,
+) {
+	const page = buildApprovedSalesRequestInvoicePreview(input);
+	open(page);
+	return page;
+}

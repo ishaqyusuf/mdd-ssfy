@@ -337,7 +337,7 @@ describe("Sales Request Generation native save/reopen proof", () => {
 		expect(source).toContain('commitIntent: "final"');
 	});
 
-	test("blocks generated-draft document actions before their persistence flush", () => {
+	test("keeps Print and Download blocked while Preview opens in memory before persistence", () => {
 		const source = readFileSync(
 			new URL("./new-sales-form.tsx", import.meta.url),
 			"utf8",
@@ -345,7 +345,6 @@ describe("Sales Request Generation native save/reopen proof", () => {
 		const handlers = [
 			["async function handlePrint(", "async function handleDownloadPdf("],
 			["async function handleDownloadPdf(", "async function handlePreview("],
-			["async function handlePreview(", "function handleOpenOverview("],
 		] as const;
 
 		for (const [startToken, endToken] of handlers) {
@@ -362,5 +361,26 @@ describe("Sales Request Generation native save/reopen proof", () => {
 			expect(holdGuard).toBeGreaterThanOrEqual(0);
 			expect(persistenceFlush).toBeGreaterThan(holdGuard);
 		}
+
+		const previewStart = source.indexOf("async function handlePreview(");
+		const previewEnd = source.indexOf(
+			"function handleOpenOverview(",
+			previewStart,
+		);
+		const previewHandler = source.slice(previewStart, previewEnd);
+		const holdGuard = previewHandler.indexOf(
+			"if (requestGeneration.manualSaveRequired)",
+		);
+		const inMemoryOpen = previewHandler.indexOf(
+			"openApprovedSalesRequestInvoicePreview",
+		);
+		const branchReturn = previewHandler.indexOf("return;", inMemoryOpen);
+		const persistenceFlush = previewHandler.indexOf("autosave.flush");
+
+		expect(previewStart).toBeGreaterThanOrEqual(0);
+		expect(previewEnd).toBeGreaterThan(previewStart);
+		expect(inMemoryOpen).toBeGreaterThan(holdGuard);
+		expect(branchReturn).toBeGreaterThan(inMemoryOpen);
+		expect(persistenceFlush).toBeGreaterThan(branchReturn);
 	});
 });

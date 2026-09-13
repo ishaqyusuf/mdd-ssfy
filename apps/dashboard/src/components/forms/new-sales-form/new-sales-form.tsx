@@ -29,6 +29,7 @@ import {
 	resolveUnpricedHptPersistence,
     salesFormPaymentMethods,
 } from "@gnd/sales/sales-form";
+import type { PrintPage } from "@gnd/sales/print/types";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {
@@ -76,7 +77,11 @@ import {
     writeRecoverySnapshot,
 } from "./local-recovery";
 import { toSaveDraftInput } from "./mappers";
-import { getRequestGenerationRecordRevision } from "./request-generation-transaction";
+import { openApprovedSalesRequestInvoicePreview } from "./request-generation-invoice-preview";
+import {
+	getFreshRequestGenerationLowTouchClaim,
+	getRequestGenerationRecordRevision,
+} from "./request-generation-transaction";
 import {
 	canOpenSalesRequestGeneration,
 	canShowSalesRequestGenerationEntry,
@@ -147,6 +152,14 @@ const SalesRequestGenerationPanel = dynamic(
 	{
 		ssr: false,
 	},
+);
+
+const RequestGenerationInvoicePreviewDialog = dynamic(
+	() =>
+		import("./request-generation-invoice-preview-dialog").then(
+			(mod) => mod.RequestGenerationInvoicePreviewDialog,
+		),
+	{ ssr: false },
 );
 
 const SalesHistory = dynamic(
@@ -475,6 +488,8 @@ export function NewSalesForm(props: Props) {
 	] = useState(false);
 	const manualSaveLockRef = useRef(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
+	const [requestGenerationInvoicePreview, setRequestGenerationInvoicePreview] =
+		useState<PrintPage | null>(null);
     const [historyPreview, setHistoryPreview] = useState<{
         entry: SalesHistoryEntry;
         record: NewSalesFormRecord;
@@ -1615,6 +1630,10 @@ export function NewSalesForm(props: Props) {
         const currentRecord = recordOverride || record;
         if (!currentRecord) return;
         if (intent === "final") {
+			const lowTouchClaim = getFreshRequestGenerationLowTouchClaim(
+				currentRecord,
+				requestGeneration,
+			);
 			const saveAttribution = requestGenerationOutcome.captureSave("final");
             let committed = false;
             setSaveFailure(null);
@@ -1622,6 +1641,7 @@ export function NewSalesForm(props: Props) {
             try {
                 const resp = await finalSave.mutateAsync({
                     ...toSaveDraftInput(currentRecord, false, "final"),
+					...(lowTouchClaim ? { lowTouchClaim } : {}),
                     commitIntent: "final",
                     autosave: false,
                 });
@@ -1938,14 +1958,13 @@ export function NewSalesForm(props: Props) {
 
     async function handlePreview() {
         if (isPreviewing) return;
-        await runWithManualSaveLock(async () => {
+		await runWithManualSaveLock(async () => {
 			if (!record || !validateBeforeSave()) return;
 			if (requestGeneration.manualSaveRequired) {
-				toast({
-					title: "Generated draft is not saved",
-					description:
-						"Review the in-form invoice summary, then use Save Draft or Finalize before opening the persisted preview.",
-				});
+				openApprovedSalesRequestInvoicePreview(
+					{ record, requestGeneration },
+					setRequestGenerationInvoicePreview,
+				);
 				return;
 			}
 			const unpricedDecision = resolveUnpricedHptPersistence(record, {
@@ -2202,6 +2221,10 @@ export function NewSalesForm(props: Props) {
 					generateDisabled={autosave.isSaving}
 				/>
 			) : null}
+			<RequestGenerationInvoicePreviewDialog
+				page={requestGenerationInvoicePreview}
+				onClose={() => setRequestGenerationInvoicePreview(null)}
+			/>
 			<Dialog
 				open={pendingUnpricedSaveIntent != null}
 				onOpenChange={(open) => {

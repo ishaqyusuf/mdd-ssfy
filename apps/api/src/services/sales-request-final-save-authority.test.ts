@@ -3,8 +3,8 @@ import type { SalesRequestLowTouchFinalSaveClaim } from "@api/schemas/new-sales-
 import {
 	SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
 	SALES_REQUEST_PROMPT_VERSION,
-	buildSalesRequestCommercialFingerprint,
 	type SalesRequestFinalSaveCandidate,
+	buildSalesRequestCommercialFingerprint,
 } from "@gnd/sales/sales-form/request-generation";
 import {
 	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
@@ -14,6 +14,7 @@ import {
 	type SalesRequestFinalSaveAuthorityDependencies,
 	resolveSalesRequestFinalSaveAuthority,
 } from "./sales-request-final-save-authority";
+import { createSalesRequestPilotReviewPolicyDigest } from "./sales-request-pilot-review";
 
 const revision = "a".repeat(64);
 const seedDigest = `h1:${"b".repeat(64)}`;
@@ -94,6 +95,7 @@ const claim: SalesRequestLowTouchFinalSaveClaim = {
 
 function dependencies(input?: {
 	benchmarkCurrent?: boolean;
+	advancementEligible?: boolean;
 	consumedSalesId?: number | null;
 	permissionOk?: boolean;
 }) {
@@ -143,12 +145,69 @@ function dependencies(input?: {
 			seenDb.push(db);
 			return {
 				settingId: 7,
-				approval: { approved: true },
+				approval: {
+					approved: true,
+					revision: 1,
+					policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+				},
 				approved: true,
 				source: "persisted" as const,
 			};
 		},
 		isBenchmarkCurrent: () => input?.benchmarkCurrent ?? true,
+		getPilotReviewPolicy: async (db: unknown) => {
+			seenDb.push(db);
+			const thresholds = {
+				policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+				minimumSucceededRuns: 1,
+				minimumAppliedRuns: 1,
+				maxProviderP95Ms: 20_000,
+				maxInputTokensPerAttempt: 50_000,
+				maxOutputTokensPerAttempt: 4_000,
+				pricingCurrency: "USD",
+				pricingEffectiveAt: "2026-09-01T00:00:00.000Z",
+				pricingEvidenceDigest: `sha256:${"a".repeat(64)}`,
+				inputPriceMicrosPerMillionTokens: 440_000,
+				outputPriceMicrosPerMillionTokens: 1_320_000,
+				maxEstimatedPeriodCostMicros: 250_000,
+				manualBaselineRequestFamily: "mixed-door-orders-v1",
+				manualBaselineMeasuredAt: "2026-09-01T00:00:00.000Z",
+				manualBaselineSampleCount: 10,
+				manualBaselineEvidenceDigest: `sha256:${"b".repeat(64)}`,
+				manualCorrectionBaselineP95Ms: 300_000,
+				maxUnsafeSelectionFeedbackCount: 0,
+				maxUnsafeApplyCount: 0,
+				minimumSaveReopenChecks: 1,
+			};
+			return {
+				settingId: 7,
+				source: "persisted" as const,
+				policy: {
+					provider: "openai" as const,
+					model: "gpt-5-mini",
+					thresholds,
+					digest: createSalesRequestPilotReviewPolicyDigest({
+						provider: "openai",
+						model: "gpt-5-mini",
+						thresholds,
+					}),
+					revision: 1,
+					changedAt: "2026-09-01T00:00:00.000Z",
+					changedByUserId: 42,
+				},
+			};
+		},
+		getLatestPilotReviewDecisions: async (db: unknown) => {
+			seenDb.push(db);
+			return [];
+		},
+		evaluatePilotAdvancement: () =>
+			input?.advancementEligible === false
+				? {
+						eligible: false,
+						blockers: ["exactly-two-periods-required" as const],
+					}
+				: { eligible: true, blockers: [] },
 		resolveGenerationRun: dbAware({
 			ok: true as const,
 			issues: [] as [],
@@ -260,7 +319,7 @@ describe("resolveSalesRequestFinalSaveAuthority", () => {
 			permissionRevision: "pa1:permission",
 			stockRevision: "sa1:stock",
 		});
-		expect(fixture.seenDb.length).toBe(8);
+		expect(fixture.seenDb.length).toBe(10);
 		expect(fixture.seenDb.every((value) => value === tx)).toBe(true);
 	});
 
@@ -410,6 +469,30 @@ describe("resolveSalesRequestFinalSaveAuthority", () => {
 		expect(fixture.seenDb).toEqual([]);
 	});
 
+	test("fails before authority reads when the ephemeral claim omits its exact seed", async () => {
+		const fixture = dependencies();
+		const result = await resolveSalesRequestFinalSaveAuthority({
+			db: database(),
+			actorUserId: 42,
+			claim: { ...claim, seed: undefined },
+			candidate: candidate(),
+			commercial: commercial(),
+			replaySeed: async () => ({ candidate: candidate(), issues: [] }),
+			dependencies: fixture.values,
+		});
+		expect(result).toEqual({
+			ok: false,
+			issues: [
+				{
+					code: "generation-authority-failed",
+					details: ["generation-seed-binding-invalid"],
+				},
+			],
+			authority: null,
+		});
+		expect(fixture.seenDb).toEqual([]);
+	});
+
 	test("fails closed on duplicate settings evidence and consumed generations", async () => {
 		const duplicate = dependencies();
 		expect(
@@ -546,5 +629,32 @@ describe("resolveSalesRequestFinalSaveAuthority", () => {
 				},
 			],
 		});
+	});
+
+	test("denies low-touch finalization until the current pilot has two passing periods", async () => {
+		const fixture = dependencies({ advancementEligible: false });
+		const result = await resolveSalesRequestFinalSaveAuthority({
+			db: database(),
+			actorUserId: 42,
+			claim,
+			candidate: candidate(),
+			commercial: commercial(),
+			replaySeed: async () => ({ candidate: candidate(), issues: [] }),
+			dependencies: fixture.values,
+		});
+
+		expect(result).toEqual({
+			ok: false,
+			issues: [
+				{
+					code: "pilot-advancement-ineligible",
+					details: ["exactly-two-periods-required"],
+				},
+			],
+			authority: null,
+		});
+		// Pilot membership, configuration, benchmark, review policy and periods
+		// are read from the transaction before any generation/commercial write path.
+		expect(fixture.seenDb.length).toBe(6);
 	});
 });

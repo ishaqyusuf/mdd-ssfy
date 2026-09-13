@@ -41,6 +41,9 @@ export type NewSalesFormSaveFinalInput = Exclude<
 	RouterInputs["newSalesForm"]["saveFinal"],
 	void
 >;
+export type NewSalesFormLowTouchClaim = NonNullable<
+	NewSalesFormSaveFinalInput["lowTouchClaim"]
+>;
 export type NewSalesFormRecalculateInput = Exclude<
 	RouterInputs["newSalesForm"]["recalculate"],
 	void

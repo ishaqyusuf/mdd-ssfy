@@ -56,7 +56,11 @@ const components: Record<number, WorkflowComponentRecord[]> = {
 };
 
 const preview = {
+	generationId: "11111111-1111-4111-8111-111111111111",
+	configurationScope: "sales-settings:7",
 	configurationRevision: "config-1",
+	provider: "openai",
+	model: "gpt-5-mini",
 	seed: {
 		schemaVersion: 2,
 		lineItems: [
@@ -79,7 +83,7 @@ function createRecord(customerProfileId: number | null = null) {
 		salesId: null,
 		slug: null,
 		version: "new-session-1",
-		form: { customerProfileId },
+		form: { customerId: 10, customerProfileId },
 		lineItems: [createEmptySalesFormLineItem(0)],
 		extraCosts: [],
 		summary: { taxRate: 0 },
@@ -119,6 +123,17 @@ describe("sales request generation apply boundary", () => {
 		});
 
 		expect(result.status).toBe("ready");
+		if (result.status === "ready") {
+			expect(result.proposal.lowTouchClaim).toMatchObject({
+				source: "pasted-text",
+				generationId: preview.generationId,
+				configurationScope: preview.configurationScope,
+				configurationRevision: preview.configurationRevision,
+				provider: preview.provider,
+				model: preview.model,
+			});
+			expect(result.proposal.lowTouchClaim?.seed).toEqual(preview.seed);
+		}
 		expect(applyCalls).toBe(0);
 		expect(baseRecord.lineItems).toHaveLength(1);
 	});

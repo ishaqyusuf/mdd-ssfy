@@ -39,6 +39,7 @@ import {
 	type UndoRequestGenerationProposalResult,
 	createInitialRequestGenerationState,
 	createRequestGenerationUndoTransaction,
+	getFreshRequestGenerationLowTouchClaim,
 	getRequestGenerationEditorPatch,
 	getRequestGenerationRecordRevision,
 	getRequestGenerationUndoAvailability,
@@ -122,8 +123,26 @@ const initialState = {
 function applySalesFormState(
 	reducer: (state: SalesFormState) => SalesFormState,
 ) {
-	return (state: NewSalesFormStore) =>
-		reducer(state as unknown as SalesFormState) as NewSalesFormStore;
+	return (state: NewSalesFormStore) => {
+		const next = reducer(
+			state as unknown as SalesFormState,
+		) as NewSalesFormStore;
+		if (
+			getFreshRequestGenerationLowTouchClaim(
+				next.record,
+				next.requestGeneration,
+			)
+		) {
+			return next;
+		}
+		return {
+			...next,
+			requestGeneration: {
+				...next.requestGeneration,
+				lowTouchClaim: null,
+			},
+		};
+	};
 }
 
 export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
@@ -153,6 +172,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 			)(state),
 			requestGeneration: {
 				...state.requestGeneration,
+				lowTouchClaim: null,
 				manualSaveRequired:
 					options?.manualSaveRequired ??
 					state.requestGeneration.manualSaveRequired,
@@ -222,18 +242,19 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	setSpecialOrder: (patch) =>
 		set((state) => {
 			if (!state.record) return state;
-			return {
-				...state,
+			return applySalesFormState((current) => ({
+				...current,
 				record: {
-					...state.record,
+					...current.record,
 					specialOrder: {
-						...state.record.specialOrder,
+						...(current.record as NewSalesFormRecord).specialOrder,
 						...patch,
 					},
 				},
 				dirty: true,
-				saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
-			};
+				saveStatus:
+					current.saveStatus === "error" ? "idle" : current.saveStatus,
+			}))(state);
 		}),
 	markSaving: () =>
 		set(applySalesFormState((state) => markSalesFormSaving(state))),
@@ -245,6 +266,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 			requestGeneration: {
 				...state.requestGeneration,
 				manualSaveRequired: false,
+				lowTouchClaim: null,
 			},
 		})),
 	markError: (message) =>
@@ -318,6 +340,14 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 					phase: "idle",
 					autosaveSuspended: false,
 					manualSaveRequired: true,
+					lowTouchClaim: proposal.lowTouchClaim
+						? {
+								claim: structuredClone(proposal.lowTouchClaim),
+								candidateRevision: getRequestGenerationRecordRevision(
+									proposal.record,
+								),
+							}
+						: null,
 					appliedProposalIds: [
 						...state.requestGeneration.appliedProposalIds,
 						proposal.proposalId,
@@ -350,6 +380,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 						phase: "idle",
 						autosaveSuspended: false,
 						manualSaveRequired: false,
+						lowTouchClaim: null,
 						appliedProposalIds,
 						undo: null,
 					},
@@ -376,6 +407,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 					phase: "idle",
 					autosaveSuspended: false,
 					manualSaveRequired: selective.retainedLineUids.length > 0,
+					lowTouchClaim: null,
 					appliedProposalIds,
 					undo: null,
 				},

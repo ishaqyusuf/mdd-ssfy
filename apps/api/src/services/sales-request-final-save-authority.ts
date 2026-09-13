@@ -1,3 +1,7 @@
+import {
+	type SalesRequestPilotReviewDatabase,
+	getLatestSalesRequestPilotReviewDecisions,
+} from "@api/db/queries/sales-request-pilot-review";
 import type { SalesRequestLowTouchFinalSaveClaim } from "@api/schemas/new-sales-form";
 import {
 	SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
@@ -11,6 +15,7 @@ import {
 	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
 	SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
 	getSalesRequestAISettings,
+	getSalesRequestPilotReviewPolicy,
 	getSalesRequestProviderBenchmarkApproval,
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 } from "@gnd/settings";
@@ -19,6 +24,11 @@ import { getSalesRequestConfigurationContext } from "./sales-request-configurati
 import { resolveSalesRequestGenerationRunAuthority } from "./sales-request-generation-run-authority";
 import { resolveSalesRequestPermissionAuthority } from "./sales-request-permission-authority";
 import { getSalesRequestPilotAccess } from "./sales-request-pilot";
+import { evaluateSalesRequestPilotAdvancement } from "./sales-request-pilot-advancement";
+import {
+	createSalesRequestPilotAuthority,
+	isSalesRequestPilotReviewPolicyCurrent,
+} from "./sales-request-pilot-review";
 import { resolveSalesRequestStockAuthority } from "./sales-request-stock-authority";
 
 type CommercialInput = Omit<
@@ -35,6 +45,7 @@ type AuthorityDatabase = Parameters<
 	Parameters<typeof getSalesRequestConfigurationContext>[0] &
 	Parameters<typeof getSalesRequestAISettings>[0] &
 	Parameters<typeof getSalesRequestProviderBenchmarkApproval>[0] &
+	Parameters<typeof getSalesRequestPilotReviewPolicy>[0] &
 	Parameters<typeof getSalesRequestPilotAccess>[0]["db"] & {
 		settings: {
 			findMany: (args: {
@@ -50,6 +61,7 @@ type AuthorityDatabase = Parameters<
 				take: number;
 			}) => Promise<Array<{ data: unknown }>>;
 		};
+		salesRequestPilotReviewDecision: SalesRequestPilotReviewDatabase["salesRequestPilotReviewDecision"];
 	};
 
 export type SalesRequestFinalSaveReplayResult = {
@@ -65,6 +77,7 @@ export type SalesRequestFinalSaveAuthorityIssueCode =
 	| "settings-evidence-invalid"
 	| "configuration-stale"
 	| "pilot-ineligible"
+	| "pilot-advancement-ineligible"
 	| "ai-selection-stale"
 	| "generation-authority-failed"
 	| "commercial-authority-failed"
@@ -127,6 +140,9 @@ export type SalesRequestFinalSaveAuthorityDependencies = {
 	getAISettings: typeof getSalesRequestAISettings;
 	getBenchmarkApproval: typeof getSalesRequestProviderBenchmarkApproval;
 	isBenchmarkCurrent: typeof isSalesRequestProviderBenchmarkApprovalCurrent;
+	getPilotReviewPolicy: typeof getSalesRequestPilotReviewPolicy;
+	getLatestPilotReviewDecisions: typeof getLatestSalesRequestPilotReviewDecisions;
+	evaluatePilotAdvancement: typeof evaluateSalesRequestPilotAdvancement;
 	resolveGenerationRun: typeof resolveSalesRequestGenerationRunAuthority;
 	resolveCommercial: typeof resolveSalesRequestCommercialAuthority;
 	resolvePermission: typeof resolveSalesRequestPermissionAuthority;
@@ -139,6 +155,9 @@ const DEFAULT_DEPENDENCIES: SalesRequestFinalSaveAuthorityDependencies = {
 	getAISettings: getSalesRequestAISettings,
 	getBenchmarkApproval: getSalesRequestProviderBenchmarkApproval,
 	isBenchmarkCurrent: isSalesRequestProviderBenchmarkApprovalCurrent,
+	getPilotReviewPolicy: getSalesRequestPilotReviewPolicy,
+	getLatestPilotReviewDecisions: getLatestSalesRequestPilotReviewDecisions,
+	evaluatePilotAdvancement: evaluateSalesRequestPilotAdvancement,
 	resolveGenerationRun: resolveSalesRequestGenerationRunAuthority,
 	resolveCommercial: resolveSalesRequestCommercialAuthority,
 	resolvePermission: resolveSalesRequestPermissionAuthority,
@@ -244,6 +263,17 @@ export async function resolveSalesRequestFinalSaveAuthority(input: {
 	if (input.candidate.type !== "order" && input.candidate.type !== "quote") {
 		return { ok: false, issues: [issue("surface-invalid")], authority: null };
 	}
+	if (!input.claim.seed) {
+		return {
+			ok: false,
+			issues: [
+				issue("generation-authority-failed", [
+					"generation-seed-binding-invalid",
+				]),
+			],
+			authority: null,
+		};
+	}
 
 	const settingsRows = await input.db.settings.findMany({
 		where: { type: "sales-settings", deletedAt: null },
@@ -332,11 +362,68 @@ export async function resolveSalesRequestFinalSaveAuthority(input: {
 		corpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
 		policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
 	});
+	const reviewPolicy = await dependencies.getPilotReviewPolicy(
+		input.db,
+		settingId,
+	);
+	const reviewPolicyCurrent =
+		reviewPolicy.source === "persisted" &&
+		reviewPolicy.policy !== null &&
+		isSalesRequestPilotReviewPolicyCurrent(
+			reviewPolicy.policy,
+			aiSettings.selection,
+		) &&
+		reviewPolicy.policy.thresholds.policyVersion ===
+			benchmark.approval?.policyVersion;
+	const currentPilotAuthority =
+		benchmarkCurrent &&
+		benchmark.approval &&
+		reviewPolicyCurrent &&
+		reviewPolicy.policy &&
+		positiveInteger(pilot.settingsRevision)
+			? createSalesRequestPilotAuthority(
+					{
+						scope: configuration.scope,
+						configurationRevision: configuration.revision,
+						provider: aiSettings.selection.provider,
+						model: aiSettings.selection.model,
+						promptVersion: SALES_REQUEST_PROMPT_VERSION,
+						schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+						pilotSettingsRevision: pilot.settingsRevision,
+						providerBenchmarkApprovalRevision: benchmark.approval.revision,
+					},
+					reviewPolicy.policy,
+				)
+			: null;
+	let advancement: ReturnType<typeof evaluateSalesRequestPilotAdvancement>;
+	try {
+		const periodDecisions = currentPilotAuthority
+			? await dependencies.getLatestPilotReviewDecisions(input.db, settingId)
+			: [];
+		advancement = dependencies.evaluatePilotAdvancement({
+			periodDecisions,
+			currentAuthority: currentPilotAuthority,
+		});
+	} catch {
+		advancement = {
+			eligible: false,
+			blockers: ["invalid-period-decision"] as const,
+		};
+	}
+	if (!advancement.eligible) {
+		return {
+			ok: false,
+			issues: [
+				issue("pilot-advancement-ineligible", [...advancement.blockers]),
+			],
+			authority: null,
+		};
+	}
 
 	const run = await dependencies.resolveGenerationRun({
 		db: input.db,
 		actorUserId: input.actorUserId,
-		claim: input.claim,
+		claim: { ...input.claim, seed: input.claim.seed },
 	});
 	if (!run.ok) {
 		return {

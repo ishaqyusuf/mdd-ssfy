@@ -4,6 +4,10 @@ import type {
 	WorkflowComponentRecord,
 	WorkflowRouteData,
 } from "@gnd/sales/sales-form";
+import {
+	type SalesRequestLowTouchCommercialCurrency,
+	evaluateSalesRequestLowTouchDraftEligibility,
+} from "@gnd/sales/sales-form/request-generation/low-touch-draft-policy";
 import type { SalesRequestGeneratePreviewOutput } from "./request-generation-controller";
 import {
 	type ApplyRequestGenerationProposalResult,
@@ -11,7 +15,7 @@ import {
 	type RequestGenerationPreparationIssue,
 	prepareRequestGenerationProposal,
 } from "./request-generation-transaction";
-import type { NewSalesFormRecord } from "./schema";
+import type { NewSalesFormLowTouchClaim, NewSalesFormRecord } from "./schema";
 
 export type SalesRequestGenerationApplyBlockedReason =
 	| "missing-preview"
@@ -228,6 +232,61 @@ function mapStoreApplyResult(
 	}
 }
 
+const CLIENT_VERIFIED_LOW_TOUCH_CURRENCY = {
+	configuration: true,
+	providerBenchmark: true,
+	catalog: true,
+	customer: false,
+	customerProfile: false,
+	prices: false,
+	taxes: false,
+	delivery: false,
+	discounts: false,
+	stock: false,
+	permissions: true,
+} as const satisfies SalesRequestLowTouchCommercialCurrency;
+
+const FINAL_SAVE_AUTHORITY_REASONS = new Set([
+	"customer-stale",
+	"customer-profile-stale",
+	"prices-stale",
+	"taxes-stale",
+	"delivery-stale",
+	"discounts-stale",
+	"stock-stale",
+]);
+
+function bindLowTouchClaimToPreparedProposal(
+	preview: SalesRequestGeneratePreviewOutput,
+	proposal: PreparedRequestGenerationProposal,
+) {
+	const eligibility = evaluateSalesRequestLowTouchDraftEligibility({
+		source: "pasted-text",
+		seed: preview.seed,
+		initialized: {
+			record: proposal.record,
+			unresolved: proposal.unresolved,
+			issues: [],
+		},
+		current: CLIENT_VERIFIED_LOW_TOUCH_CURRENCY,
+	});
+	const hasClientBlocker = eligibility.reasons.some(
+		({ code }) => !FINAL_SAVE_AUTHORITY_REASONS.has(code),
+	);
+	if (hasClientBlocker) return proposal;
+
+	const lowTouchClaim: NewSalesFormLowTouchClaim = {
+		source: "pasted-text",
+		generationId: preview.generationId,
+		configurationScope: preview.configurationScope,
+		configurationRevision: preview.configurationRevision,
+		provider: preview.provider,
+		model: preview.model,
+		seed: structuredClone(preview.seed),
+	};
+	return { ...proposal, lowTouchClaim };
+}
+
 export async function applySalesRequestGenerationProposal(
 	input: SalesRequestGenerationApplyInput,
 ): Promise<SalesRequestGenerationApplyResult> {
@@ -280,7 +339,13 @@ export async function applySalesRequestGenerationProposal(
 			);
 		}
 		if (input.performApply === false) {
-			return { status: "ready", proposal: prepared.proposal };
+			return {
+				status: "ready",
+				proposal: bindLowTouchClaimToPreparedProposal(
+					preview,
+					prepared.proposal,
+				),
+			};
 		}
 
 		const currentRevision = String(
@@ -295,9 +360,13 @@ export async function applySalesRequestGenerationProposal(
 			};
 		}
 
-		return mapStoreApplyResult(
-			input.applyProposal(prepared.proposal, currentRevision),
+		const proposal = bindLowTouchClaimToPreparedProposal(
+			preview,
 			prepared.proposal,
+		);
+		return mapStoreApplyResult(
+			input.applyProposal(proposal, currentRevision),
+			proposal,
 			currentRevision,
 		);
 	} catch (error) {

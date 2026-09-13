@@ -8,6 +8,7 @@ import {
 } from "@gnd/sales/sales-form";
 import { toSaveDraftInput } from "./mappers";
 import {
+	getFreshRequestGenerationLowTouchClaim,
 	getRequestGenerationUndoAvailability,
 	prepareRequestGenerationProposal,
 } from "./request-generation-transaction";
@@ -665,5 +666,59 @@ describe("sales request generation transaction", () => {
 		expect(serializedPayload).not.toContain('"configurationRevision"');
 		expect(serializedPayload).not.toContain('"unresolved"');
 		expect(serializedPayload).not.toContain("proposal-save-shape-1");
+	});
+
+	it("retains an ephemeral final-save claim only for the exact applied record", async () => {
+		const baseRecord = createRecord();
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+		const prepared = await prepareRequestGenerationProposal({
+			proposalId: "11111111-1111-4111-8111-111111111111",
+			configurationRevision: "config-1",
+			seed: doorSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+		if (prepared.status !== "ready") throw new Error("Expected ready proposal");
+		const lowTouchClaim = {
+			source: "pasted-text" as const,
+			generationId: "11111111-1111-4111-8111-111111111111",
+			configurationScope: "sales-settings:7",
+			configurationRevision: "config-1",
+			provider: "openai" as const,
+			model: "gpt-5-mini",
+			seed: doorSeed,
+		};
+		useNewSalesFormStore
+			.getState()
+			.applyRequestGenerationProposal(
+				{ ...prepared.proposal, lowTouchClaim },
+				"config-1",
+			);
+
+		let state = useNewSalesFormStore.getState();
+		expect(
+			getFreshRequestGenerationLowTouchClaim(
+				state.record,
+				state.requestGeneration,
+			),
+		).toEqual(lowTouchClaim);
+		expect(state.requestGeneration.manualSaveRequired).toBe(true);
+
+		useNewSalesFormStore
+			.getState()
+			.updateLineItem("generated-door", { description: "Representative edit" });
+		state = useNewSalesFormStore.getState();
+		expect(state.requestGeneration.lowTouchClaim).toBeNull();
+		expect(
+			getFreshRequestGenerationLowTouchClaim(
+				state.record,
+				state.requestGeneration,
+			),
+		).toBeNull();
+		// The explicit-save hold remains, so an edited generated draft still
+		// cannot enter autosave even after its low-touch provenance is stale.
+		expect(state.requestGeneration.manualSaveRequired).toBe(true);
 	});
 });

@@ -9,7 +9,7 @@ import {
 	hydrateSalesFormRecord,
 	initializeNewSalesFormSeed,
 } from "@gnd/sales/sales-form";
-import type { NewSalesFormRecord } from "./schema";
+import type { NewSalesFormLowTouchClaim, NewSalesFormRecord } from "./schema";
 
 export type RequestGenerationPhase =
 	| "idle"
@@ -25,6 +25,10 @@ export type RequestGenerationState = {
 	 * the representative uses an explicit Save Draft or Finalize command.
 	 */
 	manualSaveRequired: boolean;
+	lowTouchClaim: {
+		claim: NewSalesFormLowTouchClaim;
+		candidateRevision: string;
+	} | null;
 	appliedProposalIds: string[];
 	undo: RequestGenerationUndoTransaction | null;
 };
@@ -64,6 +68,7 @@ export type PreparedRequestGenerationProposal = {
 	generatedLineUids: string[];
 	replacedBootstrapLineUid: string | null;
 	unresolved: NewSalesFormSeed["unresolved"];
+	lowTouchClaim: NewSalesFormLowTouchClaim | null;
 };
 
 export type RequestGenerationPreparationIssue =
@@ -138,6 +143,7 @@ export function createInitialRequestGenerationState(): RequestGenerationState {
 		phase: "idle",
 		autosaveSuspended: false,
 		manualSaveRequired: false,
+		lowTouchClaim: null,
 		appliedProposalIds: [],
 		undo: null,
 	};
@@ -238,8 +244,25 @@ export async function prepareRequestGenerationProposal(
 			generatedLineUids: generatedLines.map((line) => line.uid),
 			replacedBootstrapLineUid: bootstrapLine?.uid || null,
 			unresolved: clone(initialized.unresolved),
+			lowTouchClaim: null,
 		},
 	};
+}
+
+export function getFreshRequestGenerationLowTouchClaim(
+	record: NewSalesFormRecord | null,
+	requestGeneration: RequestGenerationState,
+) {
+	const binding = requestGeneration.lowTouchClaim;
+	if (
+		!record ||
+		!requestGeneration.manualSaveRequired ||
+		!binding ||
+		binding.candidateRevision !== getRequestGenerationRecordRevision(record)
+	) {
+		return null;
+	}
+	return clone(binding.claim);
 }
 
 export function createRequestGenerationUndoTransaction(input: {

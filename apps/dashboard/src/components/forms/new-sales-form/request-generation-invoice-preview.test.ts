@@ -3,7 +3,10 @@ import {
 	createEmptySalesFormLineItem,
 	hydrateSalesFormRecord,
 } from "@gnd/sales/sales-form";
-import { buildApprovedSalesRequestInvoicePreview } from "./request-generation-invoice-preview";
+import {
+	buildApprovedSalesRequestInvoicePreview,
+	openApprovedSalesRequestInvoicePreview,
+} from "./request-generation-invoice-preview";
 import {
 	createInitialRequestGenerationState,
 	getRequestGenerationRecordRevision,
@@ -88,6 +91,26 @@ function appliedGenerationState(record: NewSalesFormRecord) {
 }
 
 describe("Sales Request Generation in-memory invoice preview", () => {
+	it("opens the composed in-memory page through the Preview action boundary", () => {
+		const record = nativeUnsavedRecord();
+		let opened = null as ReturnType<
+			typeof buildApprovedSalesRequestInvoicePreview
+		> | null;
+		const page = openApprovedSalesRequestInvoicePreview(
+			{
+				record,
+				requestGeneration: appliedGenerationState(record),
+			},
+			(value) => {
+				opened = value;
+			},
+		);
+
+		expect(opened).toBe(page);
+		expect(page.meta.salesNo).toBe("DRAFT ORDER");
+		expect(record.salesId).toBeNull();
+	});
+
 	it("composes the native unsaved record without mutating or persisting it", () => {
 		const record = nativeUnsavedRecord();
 		const before = structuredClone(record);
