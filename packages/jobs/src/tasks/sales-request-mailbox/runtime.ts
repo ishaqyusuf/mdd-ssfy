@@ -1,10 +1,12 @@
 import {
 	type MailboxDisconnectDependencies,
 	type MailboxMessageDetailDependencies,
+	type MailboxRetentionCleanupStore,
 	type MailboxSyncDependencies,
 	type MailboxSyncSource,
 	type MailboxTokenHealthDependencies,
 	disconnectMailboxConnection,
+	purgeExpiredMailboxContent,
 	runMailboxMessageDetail,
 	runMailboxSyncStream,
 	runMailboxTokenHealthLifecycle,
@@ -35,6 +37,7 @@ export const mailboxSyncJobPayloadSchema = mailboxJobPayloadSchema;
 export const mailboxMessageDetailJobPayloadSchema = mailboxJobPayloadSchema;
 export const mailboxTokenHealthJobPayloadSchema = mailboxJobPayloadSchema;
 export const mailboxDisconnectJobPayloadSchema = mailboxJobPayloadSchema;
+export const mailboxRetentionJobPayloadSchema = z.object({}).strict();
 
 export type MailboxJobPayload = z.infer<typeof mailboxJobPayloadSchema>;
 
@@ -100,6 +103,7 @@ export type SalesRequestMailboxJobDependencies = {
 	detail: MailboxMessageDetailDependencies;
 	tokenHealth: MailboxTokenHealthDependencies;
 	disconnect: MailboxDisconnectDependencies;
+	retention: MailboxRetentionCleanupStore;
 	clock?: () => Date;
 };
 
@@ -209,6 +213,18 @@ export function createSalesRequestMailboxJobRuntime(
 					signal: context.signal,
 				},
 				{ ...dependencies.disconnect, clock },
+			);
+		},
+		retention: async (
+			payload: unknown,
+			execution: SalesRequestMailboxJobContext,
+		) => {
+			mailboxRetentionJobPayloadSchema.parse(payload);
+			const context = jobContext(execution);
+			if (context.signal?.aborted) return { kind: "cancelled" } as const;
+			return purgeExpiredMailboxContent(
+				{ signal: context.signal },
+				dependencies.retention,
 			);
 		},
 	};

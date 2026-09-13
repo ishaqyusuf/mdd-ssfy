@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type {
 	MailboxDisconnectDependencies,
 	MailboxMessageDetailDependencies,
+	MailboxRetentionCleanupStore,
 	MailboxSyncDependencies,
 	MailboxTokenHealthDependencies,
 } from "@gnd/sales-request-mailbox";
@@ -12,6 +13,7 @@ import {
 	createSalesRequestMailboxJobRuntime,
 	mailboxDisconnectJobPayloadSchema,
 	mailboxMessageDetailJobPayloadSchema,
+	mailboxRetentionJobPayloadSchema,
 	mailboxSyncJobPayloadSchema,
 	mailboxTokenHealthJobPayloadSchema,
 } from "./runtime";
@@ -25,6 +27,7 @@ function lifecycleDependencies(input: {
 	detailClaims: unknown[];
 	healthClaims: unknown[];
 	disconnectClaims: unknown[];
+	retentionClaims: unknown[];
 }) {
 	const sync: MailboxSyncDependencies = {
 		adapters: {},
@@ -90,8 +93,24 @@ function lifecycleDependencies(input: {
 				unavailable("unused disconnect completion"),
 		},
 	};
+	const retention: MailboxRetentionCleanupStore = {
+		purgeExpiredMailboxData: async (claim) => {
+			input.retentionClaims.push(claim);
+			return {
+				counts: {
+					queueRows: 0,
+					memberships: 0,
+					leases: 0,
+					summaries: 0,
+					snapshots: 0,
+					oauthAttempts: 0,
+				},
+				hasMore: false,
+			};
+		},
+	};
 
-	return { sync, detail, tokenHealth, disconnect };
+	return { sync, detail, tokenHealth, disconnect, retention };
 }
 
 function workStore(input?: {
@@ -188,6 +207,17 @@ describe("Sales Request mailbox job payloads", () => {
 			);
 		}
 	});
+
+	test("retention accepts only an empty scheduler-owned payload", () => {
+		expect(mailboxRetentionJobPayloadSchema.parse({})).toEqual({});
+		expect(
+			mailboxRetentionJobPayloadSchema.safeParse({ limit: 500 }).success,
+		).toBe(false);
+		expect(
+			mailboxRetentionJobPayloadSchema.safeParse({ before: "2099-01-01" })
+				.success,
+		).toBe(false);
+	});
 });
 
 describe("Sales Request mailbox job runtime", () => {
@@ -198,6 +228,7 @@ describe("Sales Request mailbox job runtime", () => {
 			detailClaims: [] as unknown[],
 			healthClaims: [] as unknown[],
 			disconnectClaims: [] as unknown[],
+			retentionClaims: [] as unknown[],
 		};
 		const resolutionCalls: Array<{ kind: string; input: unknown }> = [];
 		const runtime = createSalesRequestMailboxJobRuntime({
@@ -221,6 +252,9 @@ describe("Sales Request mailbox job runtime", () => {
 				{ runId: "disconnect-run-1" },
 			),
 		).resolves.toEqual({ kind: "disconnected" });
+		await expect(
+			runtime.retention({}, { runId: "retention-run-1" }),
+		).resolves.toMatchObject({ hasMore: false });
 
 		expect(resolutionCalls).toEqual([
 			{ kind: "sync", input: { workId: "sync-work" } },
@@ -282,6 +316,9 @@ describe("Sales Request mailbox job runtime", () => {
 				now,
 			}),
 		]);
+		expect(calls.retentionClaims).toEqual([
+			expect.objectContaining({ limit: 200 }),
+		]);
 	});
 
 	test("an unresolved or forged work reference cannot claim lifecycle work", async () => {
@@ -290,6 +327,7 @@ describe("Sales Request mailbox job runtime", () => {
 			detailClaims: [] as unknown[],
 			healthClaims: [] as unknown[],
 			disconnectClaims: [] as unknown[],
+			retentionClaims: [] as unknown[],
 		};
 		const runtime = createSalesRequestMailboxJobRuntime({
 			work: workStore({ resolved: false }),
@@ -307,6 +345,7 @@ describe("Sales Request mailbox job runtime", () => {
 			detailClaims: [],
 			healthClaims: [],
 			disconnectClaims: [],
+			retentionClaims: [],
 		});
 	});
 
@@ -316,6 +355,7 @@ describe("Sales Request mailbox job runtime", () => {
 			detailClaims: [] as unknown[],
 			healthClaims: [] as unknown[],
 			disconnectClaims: [] as unknown[],
+			retentionClaims: [] as unknown[],
 		};
 		const resolutionCalls: Array<{ kind: string; input: unknown }> = [];
 		const runtime = createSalesRequestMailboxJobRuntime({
@@ -330,9 +370,13 @@ describe("Sales Request mailbox job runtime", () => {
 			[runtime.detail, "detail-run-1"],
 			[runtime.tokenHealth, "health-run-1"],
 			[runtime.disconnect, "disconnect-run-1"],
+			[runtime.retention, "retention-run-1"],
 		] as const) {
 			await expect(
-				handler({ workId: "work-1" }, { runId, signal: controller.signal }),
+				handler(handler === runtime.retention ? {} : { workId: "work-1" }, {
+					runId,
+					signal: controller.signal,
+				}),
 			).resolves.toEqual({ kind: "cancelled" });
 		}
 		expect(resolutionCalls).toEqual([]);
@@ -341,6 +385,7 @@ describe("Sales Request mailbox job runtime", () => {
 			detailClaims: [],
 			healthClaims: [],
 			disconnectClaims: [],
+			retentionClaims: [],
 		});
 	});
 
@@ -350,6 +395,7 @@ describe("Sales Request mailbox job runtime", () => {
 			detailClaims: [] as unknown[],
 			healthClaims: [] as unknown[],
 			disconnectClaims: [] as unknown[],
+			retentionClaims: [] as unknown[],
 		};
 		const controller = new AbortController();
 		const baseWork = workStore();
@@ -383,6 +429,7 @@ describe("Sales Request mailbox job runtime", () => {
 				detailClaims: [],
 				healthClaims: [],
 				disconnectClaims: [],
+				retentionClaims: [],
 			}),
 		});
 
