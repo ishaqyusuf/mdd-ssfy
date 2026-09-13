@@ -54,6 +54,27 @@ export type {
 	UpdateSalesRequestAISettingsInput,
 } from "./sales-request-ai-settings";
 export {
+	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+	SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+	getSalesRequestProviderBenchmarkApproval,
+	isSalesRequestProviderBenchmarkApprovalCurrent,
+	salesRequestProviderBenchmarkDecisionSchema,
+	salesRequestProviderBenchmarkApprovalInputSchema,
+	salesRequestProviderBenchmarkApprovalSchema,
+	updateSalesRequestProviderBenchmarkApproval,
+} from "./sales-request-provider-benchmark-settings";
+export type {
+	SalesRequestProviderBenchmarkApproval,
+	SalesRequestProviderBenchmarkApprovalInput,
+	SalesRequestProviderBenchmarkIdentity,
+	SalesRequestProviderBenchmarkApprovalResult,
+	SalesRequestProviderBenchmarkApprovalSource,
+	SalesRequestProviderBenchmarkApprovalUpdate,
+	SalesRequestProviderBenchmarkApprovalVerifier,
+	SalesRequestProviderBenchmarkDecision,
+	UpdateSalesRequestProviderBenchmarkApprovalInput,
+} from "./sales-request-provider-benchmark-settings";
+export {
 	DEFAULT_SALES_REQUEST_PILOT_SETTINGS,
 	getSalesRequestPilotSettings,
 	normalizeSalesRequestPilotSettingsInput,

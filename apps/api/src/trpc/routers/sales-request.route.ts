@@ -18,6 +18,7 @@ import {
 	setSalesRequestCatalogPolicySchema,
 	setSalesRequestDefaultSchema,
 	setSalesRequestPilotSettingsSchema,
+	setSalesRequestProviderBenchmarkApprovalSchema,
 	validateSalesRequestPreviewSchema,
 } from "@api/schemas/sales-request";
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
@@ -40,18 +41,24 @@ import { requireSalesRequestUsage } from "@api/services/sales-request-usage";
 import { requireStorefrontQuoteCreationPermission } from "@api/utils/storefront-permissions";
 import { salesRequestConfigurationCache } from "@gnd/cache/sales-request-configuration-cache";
 import { AppError } from "@gnd/errors";
+import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
 import {
 	SALES_REQUEST_AI_PROVIDER_CATALOG,
+	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+	SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
 	beginSalesRequestCatalogRegeneration,
 	completeSalesRequestCatalogRegeneration,
 	failSalesRequestCatalogRegeneration,
 	getSalesRequestAISettings,
 	getSalesRequestCatalogSettings,
 	getSalesRequestPilotSettings,
+	getSalesRequestProviderBenchmarkApproval,
+	isSalesRequestProviderBenchmarkApprovalCurrent,
 	updateSalesRequestAISettings,
 	updateSalesRequestCatalogPolicy,
 	updateSalesRequestGenerationDefault,
 	updateSalesRequestPilotSettings,
+	updateSalesRequestProviderBenchmarkApproval,
 } from "@gnd/settings";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../init";
@@ -70,22 +77,54 @@ function getProviderOptions() {
 type SalesRequestSettingsDb = Parameters<typeof getSalesRequestAISettings>[0] &
 	ConfigurationDatabase;
 
+const SALES_REQUEST_OUTPUT_SCHEMA_VERSION = 2;
+
+function providerBenchmarkSurface(
+	result: Awaited<ReturnType<typeof getSalesRequestAISettings>>,
+	requestGeneration: Awaited<
+		ReturnType<typeof getSalesRequestGenerationAdminSettings>
+	>,
+	providerBenchmark: Awaited<
+		ReturnType<typeof getSalesRequestProviderBenchmarkApproval>
+	>,
+) {
+	const current = isSalesRequestProviderBenchmarkApprovalCurrent(
+		providerBenchmark.approval,
+		{
+			...result.selection,
+			configurationRevision: requestGeneration.configurationRevision ?? "",
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
+			schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+			corpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+			policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+		},
+	);
+	return { ...providerBenchmark, approved: current, current };
+}
+
 async function readAISettingsSurface(
 	db: SalesRequestSettingsDb,
 	settingId: number,
 ) {
-	const [result, catalog, requestGeneration, pilot] = await Promise.all([
-		getSalesRequestAISettings(db, settingId),
-		getSalesRequestCatalogSettings(db, settingId),
-		getSalesRequestGenerationAdminSettings(db, { settingId }),
-		getSalesRequestPilotSettings(db, settingId),
-	]);
+	const [result, catalog, requestGeneration, pilot, providerBenchmark] =
+		await Promise.all([
+			getSalesRequestAISettings(db, settingId),
+			getSalesRequestCatalogSettings(db, settingId),
+			getSalesRequestGenerationAdminSettings(db, { settingId }),
+			getSalesRequestPilotSettings(db, settingId),
+			getSalesRequestProviderBenchmarkApproval(db, settingId),
+		]);
 	return {
 		settingId: result.settingId,
 		settings: result.selection,
 		source: result.source,
 		providers: getProviderOptions(),
 		catalog: { policy: catalog.policy, publication: catalog.publication },
+		providerBenchmark: providerBenchmarkSurface(
+			result,
+			requestGeneration,
+			providerBenchmark,
+		),
 		requestGeneration: {
 			...requestGeneration,
 			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
@@ -99,11 +138,15 @@ async function readAISettingsSurfaceWithSelection(
 	db: SalesRequestSettingsDb,
 	result: Awaited<ReturnType<typeof updateSalesRequestAISettings>>,
 ) {
-	const [catalog, requestGeneration, pilot] = await Promise.all([
-		getSalesRequestCatalogSettings(db, result.settingId),
-		getSalesRequestGenerationAdminSettings(db, { settingId: result.settingId }),
-		getSalesRequestPilotSettings(db, result.settingId),
-	]);
+	const [catalog, requestGeneration, pilot, providerBenchmark] =
+		await Promise.all([
+			getSalesRequestCatalogSettings(db, result.settingId),
+			getSalesRequestGenerationAdminSettings(db, {
+				settingId: result.settingId,
+			}),
+			getSalesRequestPilotSettings(db, result.settingId),
+			getSalesRequestProviderBenchmarkApproval(db, result.settingId),
+		]);
 	return {
 		changed: result.changed,
 		settingId: result.settingId,
@@ -111,6 +154,11 @@ async function readAISettingsSurfaceWithSelection(
 		source: result.source,
 		providers: getProviderOptions(),
 		catalog: { policy: catalog.policy, publication: catalog.publication },
+		providerBenchmark: providerBenchmarkSurface(
+			result,
+			requestGeneration,
+			providerBenchmark,
+		),
 		requestGeneration: {
 			...requestGeneration,
 			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
@@ -154,6 +202,45 @@ export const salesRequestRouter = createTRPCRouter({
 				...input,
 			});
 			return readAISettingsSurfaceWithSelection(ctx.db, result);
+		}),
+	updateProviderBenchmarkApproval: protectedProcedure
+		.input(setSalesRequestProviderBenchmarkApprovalSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSalesRequestSettingsAdmin(ctx);
+			if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+			const rows = await ctx.db.settings.findMany({
+				where: { type: "sales-settings", deletedAt: null },
+				select: { id: true },
+			});
+			const settingId = selectSalesRequestSettingId(rows.map((row) => row.id));
+			return updateSalesRequestProviderBenchmarkApproval(
+				ctx.db,
+				{
+					...input,
+					settingId,
+					approvedByUserId: ctx.userId,
+				},
+				async (tx, decision) => {
+					const current = await getSalesRequestConfigurationContext(tx, {
+						settingId,
+					});
+					if (
+						decision.configurationRevision !== current.revision ||
+						decision.promptVersion !== SALES_REQUEST_PROMPT_VERSION ||
+						decision.schemaVersion !== SALES_REQUEST_OUTPUT_SCHEMA_VERSION ||
+						decision.corpusVersion !==
+							SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION ||
+						decision.policyVersion !==
+							SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION
+					) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message:
+								"Benchmark evidence does not match the current Sales Request configuration, prompt, schema, corpus, and policy.",
+						});
+					}
+				},
+			);
 		}),
 	updateCatalogPolicy: protectedProcedure
 		.input(setSalesRequestCatalogPolicySchema)

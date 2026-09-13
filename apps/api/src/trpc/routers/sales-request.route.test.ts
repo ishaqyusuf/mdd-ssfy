@@ -138,6 +138,12 @@ test("AI settings query is Super Admin-only and defaults an unconfigured install
 			},
 			publication: { generation: 0, status: "stale" },
 		},
+		providerBenchmark: {
+			approval: null,
+			approved: false,
+			current: false,
+			source: "missing",
+		},
 	});
 	expect(fixture.getActiveSettingsReads()).toBe(1);
 });
@@ -322,6 +328,158 @@ test("AI settings mutation derives the lowest active row and preserves metadata"
 	});
 });
 
+test("benchmark approval is Super Admin-authored and bound to current runtime identity", async () => {
+	const fixture = requestContext({
+		unrelated: { preserve: true },
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
+			},
+		},
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+		},
+	});
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const benchmarkSnapshot = await getSalesRequestConfigurationContext(
+		fixture.transaction as Parameters<
+			typeof getSalesRequestConfigurationContext
+		>[0],
+		{ settingId: 7 },
+	);
+	const decision = {
+		approved: true,
+		provider: "openai" as const,
+		model: "gpt-5-mini",
+		evaluationRunId: "2026-09-13T120000Z-openai-v1",
+		corpusVersion: "sales-request-text-v1",
+		policyVersion: "pilot-gates-v1",
+		configurationRevision: benchmarkSnapshot.revision,
+		promptVersion: "new-sales-form-seed-v6",
+		schemaVersion: 2,
+		evidenceDigest: `sha256:${"a".repeat(64)}`,
+	};
+
+	await expect(
+		caller.updateProviderBenchmarkApproval(decision),
+	).resolves.toMatchObject({
+		changed: true,
+		approved: true,
+		approval: {
+			...decision,
+			approvedByUserId: 19,
+			revision: 1,
+			approvedAt: expect.any(String),
+		},
+	});
+	expect(fixture.getSettingsUpdates()).toBe(1);
+	expect(fixture.getSavedMeta()).toMatchObject({
+		unrelated: { preserve: true },
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+			providerBenchmarkApproval: {
+				...decision,
+				approvedByUserId: 19,
+				revision: 1,
+			},
+		},
+	});
+});
+
+test("benchmark approval rejects stale configuration evidence before writing", async () => {
+	const fixture = requestContext({
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
+			},
+		},
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+		},
+	});
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const benchmarkSnapshot = await getSalesRequestConfigurationContext(
+		fixture.transaction as Parameters<
+			typeof getSalesRequestConfigurationContext
+		>[0],
+		{ settingId: 7 },
+	);
+
+	await expect(
+		caller.updateProviderBenchmarkApproval({
+			approved: true,
+			provider: "openai",
+			model: "gpt-5-mini",
+			evaluationRunId: "run-1",
+			corpusVersion: "sales-request-text-v1",
+			policyVersion: "pilot-gates-v1",
+			configurationRevision: "0".repeat(64),
+			promptVersion: "new-sales-form-seed-v6",
+			schemaVersion: 2,
+			evidenceDigest: `sha256:${"a".repeat(64)}`,
+		}),
+	).rejects.toMatchObject({ code: "CONFLICT" });
+	await expect(
+		caller.updateProviderBenchmarkApproval({
+			approved: true,
+			provider: "openai",
+			model: "gpt-5-mini",
+			evaluationRunId: "run-1",
+			corpusVersion: "sales-request-text-v1",
+			policyVersion: "pilot-gates-v1",
+			configurationRevision: benchmarkSnapshot.revision,
+			promptVersion: "new-sales-form-seed-v5",
+			schemaVersion: 2,
+			evidenceDigest: `sha256:${"a".repeat(64)}`,
+		}),
+	).rejects.toMatchObject({ code: "CONFLICT" });
+	await expect(
+		caller.updateProviderBenchmarkApproval({
+			approved: true,
+			provider: "openai",
+			model: "gpt-5-mini",
+			evaluationRunId: "run-1",
+			corpusVersion: "sales-request-text-v1",
+			policyVersion: "pilot-gates-v1",
+			configurationRevision: benchmarkSnapshot.revision,
+			promptVersion: "new-sales-form-seed-v6",
+			schemaVersion: 1,
+			evidenceDigest: `sha256:${"a".repeat(64)}`,
+		}),
+	).rejects.toMatchObject({ code: "CONFLICT" });
+	await expect(
+		caller.updateProviderBenchmarkApproval({
+			approved: true,
+			provider: "openai",
+			model: "gpt-5-mini",
+			evaluationRunId: "run-1",
+			corpusVersion: "sales-request-text-v2",
+			policyVersion: "pilot-gates-v1",
+			configurationRevision: benchmarkSnapshot.revision,
+			promptVersion: "new-sales-form-seed-v6",
+			schemaVersion: 2,
+			evidenceDigest: `sha256:${"a".repeat(64)}`,
+		}),
+	).rejects.toMatchObject({ code: "CONFLICT" });
+	await expect(
+		caller.updateProviderBenchmarkApproval({
+			approved: true,
+			provider: "openai",
+			model: "gpt-5-mini",
+			evaluationRunId: "run-1",
+			corpusVersion: "sales-request-text-v1",
+			policyVersion: "pilot-gates-v2",
+			configurationRevision: benchmarkSnapshot.revision,
+			promptVersion: "new-sales-form-seed-v6",
+			schemaVersion: 2,
+			evidenceDigest: `sha256:${"a".repeat(64)}`,
+		}),
+	).rejects.toMatchObject({ code: "CONFLICT" });
+	expect(fixture.getSettingsUpdates()).toBe(0);
+});
+
 test("AI settings reject a provider whose server credential is missing", async () => {
 	const fixture = requestContext();
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
@@ -374,6 +532,20 @@ test("AI settings reject ordinary callers before selecting settings", async () =
 	});
 	await expect(
 		caller.updateAISettings({ provider: "openai", model: "gpt-5-mini" }),
+	).rejects.toMatchObject({ code: "FORBIDDEN" });
+	await expect(
+		caller.updateProviderBenchmarkApproval({
+			approved: true,
+			provider: "openai",
+			model: "gpt-5-mini",
+			evaluationRunId: "run-1",
+			corpusVersion: "sales-request-text-v1",
+			policyVersion: "pilot-gates-v1",
+			configurationRevision: "c".repeat(64),
+			promptVersion: "new-sales-form-seed-v6",
+			schemaVersion: 2,
+			evidenceDigest: `sha256:${"a".repeat(64)}`,
+		}),
 	).rejects.toMatchObject({ code: "FORBIDDEN" });
 	expect(settingsRead).toBe(false);
 });

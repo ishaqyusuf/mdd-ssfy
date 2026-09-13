@@ -6,10 +6,14 @@ import {
 	salesRequestAISelectionSchema,
 	salesRequestCatalogPolicySchema,
 	salesRequestPilotSettingsInputSchema,
+	salesRequestProviderBenchmarkDecisionSchema,
 } from "@gnd/settings";
 import { z } from "zod";
 
 export const setSalesRequestAISettingsSchema = salesRequestAISelectionSchema;
+
+export const setSalesRequestProviderBenchmarkApprovalSchema =
+	salesRequestProviderBenchmarkDecisionSchema;
 
 export const setSalesRequestCatalogPolicySchema =
 	salesRequestCatalogPolicySchema;

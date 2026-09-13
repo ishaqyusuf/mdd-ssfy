@@ -4,6 +4,7 @@ import {
 	recordSalesRequestGenerationOutcomeSchema,
 	salesRequestGenerationPilotSummarySchema,
 	setSalesRequestDefaultSchema,
+	setSalesRequestProviderBenchmarkApprovalSchema,
 	validateSalesRequestPreviewSchema,
 } from "./sales-request";
 
@@ -109,6 +110,36 @@ test("default writes accept a nullable component UID but never a client setting 
 			stepUid: "step",
 			componentUid: "component",
 			settingId: 7,
+		}).success,
+	).toBe(false);
+});
+
+test("benchmark decisions accept bounded evidence but never client actor metadata", () => {
+	const decision = {
+		approved: true,
+		provider: "openai" as const,
+		model: "gpt-5-mini",
+		evaluationRunId: "2026-09-13T120000Z-openai-v1",
+		corpusVersion: "sales-request-text-v1",
+		policyVersion: "pilot-gates-v1",
+		configurationRevision: "c".repeat(64),
+		promptVersion: "new-sales-form-seed-v6",
+		schemaVersion: 2,
+		evidenceDigest: `sha256:${"a".repeat(64)}`,
+	};
+	expect(
+		setSalesRequestProviderBenchmarkApprovalSchema.parse(decision),
+	).toEqual(decision);
+	expect(
+		setSalesRequestProviderBenchmarkApprovalSchema.safeParse({
+			...decision,
+			approvedByUserId: 99,
+		}).success,
+	).toBe(false);
+	expect(
+		setSalesRequestProviderBenchmarkApprovalSchema.safeParse({
+			...decision,
+			model: "deepseek-v4-flash",
 		}).success,
 	).toBe(false);
 });
