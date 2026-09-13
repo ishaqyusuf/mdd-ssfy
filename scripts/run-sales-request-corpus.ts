@@ -10,6 +10,7 @@ import {
 import { PrismaClient } from "@prisma/client";
 import {
 	type SalesRequestEvaluationApprovalArtifacts,
+	type SalesRequestEvaluationApprovalPacket,
 	assertSalesRequestEvaluationApproval,
 	consumeSalesRequestEvaluationApproval,
 	createSalesRequestEvaluationApprovalPacket,
@@ -125,6 +126,21 @@ function approvalSummary(
 		"```",
 		"",
 	].join("\n");
+}
+
+/** Claim the single approved call before constructing its provider. */
+export async function createSalesRequestProviderAfterApproval<T>(input: {
+	path: string;
+	packet: SalesRequestEvaluationApprovalPacket;
+	now?: Date;
+	createProvider: () => T;
+}) {
+	await consumeSalesRequestEvaluationApproval({
+		path: input.path,
+		packet: input.packet,
+		now: input.now,
+	});
+	return input.createProvider();
 }
 
 async function readJson(path: string) {
@@ -552,22 +568,23 @@ async function main() {
 			] as const) {
 				await assertArchivedArtifact(join(caseDirectory, name), serialized);
 			}
-			const rawProvider = createSalesRequestProvider({
-				selection,
-				maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
-				onEvaluationCapture: async (capture) => {
-					await writeJson(join(caseDirectory, "provider-response.json"), {
-						schemaVersion: 1,
-						receivedAt: new Date().toISOString(),
-						provider: selection.provider,
-						model: selection.model,
-						...capture,
-					});
-				},
-			});
-			await consumeSalesRequestEvaluationApproval({
+			const rawProvider = await createSalesRequestProviderAfterApproval({
 				path: join(runDirectory, "approval-consumed.json"),
 				packet: approvalPacket,
+				createProvider: () =>
+					createSalesRequestProvider({
+						selection,
+						maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+						onEvaluationCapture: async (capture) => {
+							await writeJson(join(caseDirectory, "provider-response.json"), {
+								schemaVersion: 1,
+								receivedAt: new Date().toISOString(),
+								provider: selection.provider,
+								model: selection.model,
+								...capture,
+							});
+						},
+					}),
 			});
 			await writeJson(join(runDirectory, "execution.json"), {
 				schemaVersion: 1,
@@ -715,9 +732,11 @@ async function main() {
 	}
 }
 
-main().catch((error) => {
-	console.error(
-		`[sales-request-corpus] ${error instanceof Error ? error.message : "failed"}`,
-	);
-	process.exitCode = 1;
-});
+if (import.meta.main) {
+	main().catch((error) => {
+		console.error(
+			`[sales-request-corpus] ${error instanceof Error ? error.message : "failed"}`,
+		);
+		process.exitCode = 1;
+	});
+}
