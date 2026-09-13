@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	createMailboxEnvironmentKeyRing,
 	createSalesRequestMailboxAdaptersFromEnvironment,
+	deriveMailboxInboxCursorKey,
 } from "./environment";
 
 const fakeFetch = globalThis.fetch;
@@ -53,6 +54,9 @@ describe("Sales Request mailbox environment composition", () => {
 			key: Buffer.alloc(32, 2),
 		});
 		expect(ring.resolve("v1")).toEqual(Buffer.alloc(32, 1));
+		const cursorKey = deriveMailboxInboxCursorKey(ring);
+		expect(cursorKey).toHaveLength(32);
+		expect(cursorKey).not.toEqual(ring.active().key);
 	});
 
 	test("fails closed for missing, malformed, or wrong-sized encryption keys", () => {

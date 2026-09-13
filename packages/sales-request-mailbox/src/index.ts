@@ -69,6 +69,7 @@ export type { MailboxEncryptedSecret } from "./crypto.js";
 export {
 	createMailboxEnvironmentKeyRing,
 	createSalesRequestMailboxAdaptersFromEnvironment,
+	deriveMailboxInboxCursorKey,
 } from "./environment.js";
 export type { MailboxEnvironmentKeyRing } from "./environment.js";
 export {

@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import type { SalesRequestMailboxAdapter } from "./adapter.js";
 import type { MailboxConnectionKeyRing } from "./connection-lifecycle.js";
 import type { MailboxProvider } from "./contracts.js";
@@ -83,6 +84,19 @@ export function createSalesRequestMailboxAdaptersFromEnvironment(
 
 export type MailboxEnvironmentKeyRing = MailboxConnectionKeyRing &
 	MailboxDisconnectKeyRing;
+
+export function deriveMailboxInboxCursorKey(
+	keyRing: Pick<MailboxConnectionKeyRing, "active">,
+) {
+	const active = keyRing.active();
+	if (!(active.key instanceof Buffer) || active.key.byteLength !== 32) {
+		throw new Error("Mailbox encryption is not configured.");
+	}
+	return createHmac("sha256", active.key)
+		.update("gnd:sales-request-mailbox-inbox-cursor-key:v1\0")
+		.update(active.keyVersion)
+		.digest();
+}
 
 export function createMailboxEnvironmentKeyRing(
 	environment: MailboxEnvironment,
