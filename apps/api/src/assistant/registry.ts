@@ -24,8 +24,13 @@ import {
 	assistantToolIdentitySchema,
 	createAssistantResultEnvelopeSchema,
 } from "./contracts";
+import {
+	assistantSalesPdfModes,
+	getAssistantSalesPdfStatus,
+	isAssistantSalesPdfModeSupported,
+} from "./pdf-artifacts";
 
-export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v3";
+export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v4";
 
 export const assistantToolDomains = [
 	"system",
@@ -142,7 +147,6 @@ const placeholderInputSchema = z
 const placeholderDataSchema = z
 	.object({ available: z.literal(false) })
 	.strict();
-
 const pageInputSchema = z
 	.object({
 		query: z.string().trim().min(1).max(120).optional(),
@@ -310,6 +314,37 @@ const detailedOrderSchema = orderSchema
 				})
 				.strict(),
 		),
+	})
+	.strict();
+const salesPdfInputSchema = orderIdentityInputSchema.extend({
+	mode: z.enum(assistantSalesPdfModes),
+});
+const salesPdfStatusSchema = z
+	.object({
+		mode: z.enum(assistantSalesPdfModes),
+		documentType: z.string().min(1).max(100),
+		status: z.enum([
+			"on_demand",
+			"queued",
+			"running",
+			"ready",
+			"stale",
+			"failed",
+			"cancelled",
+		]),
+		snapshotId: z.string().min(1).nullable(),
+		documentId: z.string().min(1).nullable(),
+		generatedAt: nullableText,
+		sourceUpdatedAt: nullableText,
+		expiresAt: nullableText,
+		revision: z.string().min(1),
+	})
+	.strict();
+const salesPdfStatusDataSchema = z
+	.object({
+		order: detailedOrderSchema.nullable(),
+		candidates: z.array(detailedOrderSchema).max(20),
+		pdf: salesPdfStatusSchema.nullable(),
 	})
 	.strict();
 const customerSchema = z
@@ -562,6 +597,7 @@ type CommunityUnitPage = z.infer<typeof communityUnitPageSchema>;
 type CommunityProjectSummary = NonNullable<
 	z.infer<typeof communityProjectSummarySchema>["project"]
 >;
+type SalesPdfInput = z.infer<typeof salesPdfInputSchema>;
 
 export type AssistantToolServices = {
 	findSalesOrders: (
@@ -616,6 +652,10 @@ export type AssistantToolServices = {
 		actor: AssistantToolActor,
 		input: z.infer<typeof communityUnitsInputSchema>,
 	) => Promise<CommunityUnitPage | null>;
+	getSalesPdfStatus: (
+		order: DetailedOrder,
+		mode: SalesPdfInput["mode"],
+	) => Promise<z.infer<typeof salesPdfStatusSchema>>;
 };
 
 function projectSalesPipeline(snapshot: SalesPipelineSnapshot) {
@@ -727,6 +767,12 @@ const defaultAssistantToolServices: AssistantToolServices = {
 		getAssistantCommunityProjectSummary(db, actor, projectId),
 	findCommunityUnits: (actor, input) =>
 		findAssistantCommunityUnits(db, actor, input),
+	getSalesPdfStatus: (order, mode) =>
+		getAssistantSalesPdfStatus(db, {
+			salesOrderId: order.id,
+			salesUpdatedAt: order.updatedAt,
+			mode,
+		}),
 };
 
 function definition(
@@ -1525,11 +1571,117 @@ const placeholders: AssistantToolDefinition[] = [
 		},
 	}),
 	definition({
+		toolId: "documents_get_sales_pdf_status",
+		version: 1,
+		domain: "documents",
+		title: "Check Sales PDF status",
+		description:
+			"Check current authorized invoice, quote, packing, or Production PDF readiness and freshness without generating or sending a document.",
+		capability: "implemented",
+		effect: "read",
+		requiredGrants: ["viewOrders"],
+		presentation: {
+			group: "Documents",
+			resultComponent: "document-status",
+			icon: "file-search",
+		},
+		inputSchema: salesPdfInputSchema,
+		outputSchema: salesPdfStatusDataSchema,
+		relatedTools: ["documents_generate_pdf", "sales_get_order_status"],
+		async handler(actor, rawInput, services) {
+			const input = salesPdfInputSchema.parse(rawInput);
+			const candidates = (
+				await services.getSalesOrderCandidates(actor, input)
+			).map((order) => redactOrderFinance(actor, order));
+			if (candidates.length !== 1) {
+				return assistantResultEnvelope({
+					status: candidates.length ? "requires_input" : "unavailable",
+					data: { order: null, candidates, pdf: null },
+					sources: candidates.map(orderSource),
+					entities: candidates.map(orderEntity),
+					warnings: [
+						candidates.length
+							? "Choose whether you mean the order or quote."
+							: "No authorized order or quote matched that number.",
+					],
+				});
+			}
+			const order = candidates[0];
+			if (!order) throw new Error("Assistant order resolution failed");
+			if (input.expectedRevision && input.expectedRevision !== order.revision) {
+				return assistantResultEnvelope({
+					status: "conflict",
+					data: { order, candidates: [], pdf: null },
+					sources: [orderSource(order)],
+					entities: [orderEntity(order)],
+					revision: order.revision,
+					warnings: [
+						"The Sales source changed. Review it before using a PDF snapshot.",
+					],
+				});
+			}
+			if (
+				!isAssistantSalesPdfModeSupported({
+					salesType: order.type,
+					mode: input.mode,
+				})
+			) {
+				return assistantResultEnvelope({
+					status: "requires_input",
+					data: { order, candidates: [], pdf: null },
+					sources: [orderSource(order)],
+					entities: [orderEntity(order)],
+					warnings: [
+						order.type === "quote"
+							? "Quotes support quote PDFs only."
+							: "Orders do not use quote PDFs.",
+					],
+				});
+			}
+			const pdf = await services.getSalesPdfStatus(order, input.mode);
+			return assistantResultEnvelope({
+				status: "success",
+				data: { order, candidates: [], pdf },
+				sources: [
+					orderSource(order),
+					...(pdf.snapshotId
+						? [
+								{
+									kind: "record" as const,
+									id: `sales-pdf:${pdf.snapshotId}@${pdf.revision}`,
+									label: `${order.orderNo} ${input.mode} PDF`,
+								},
+							]
+						: []),
+				],
+				entities: [
+					orderEntity(order),
+					...(pdf.documentId
+						? [
+								{
+									kind: "document" as const,
+									id: pdf.documentId,
+									label: `${order.orderNo} ${input.mode} PDF`,
+									mimeType: "application/pdf",
+								},
+							]
+						: []),
+				],
+				revision: pdf.revision,
+				allowedNextActions:
+					pdf.status === "ready"
+						? []
+						: [{ toolId: "documents_generate_pdf", toolVersion: 1 }],
+			});
+		},
+	}),
+	definition({
 		toolId: "documents_generate_pdf",
 		version: 1,
 		domain: "documents",
 		title: "Generate PDF",
-		description: "Generate a canonical private PDF artifact.",
+		description:
+			"Generate a canonical authorized Sales PDF artifact after explicit approval.",
 		capability: "coming_soon",
 		effect: "artifact",
 		requiredGrants: ["viewOrders"],

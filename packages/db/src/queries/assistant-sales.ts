@@ -166,6 +166,24 @@ export async function findAssistantSalesOrders(
 	};
 }
 
+export async function canAssistantAccessSalesOrderId(
+	db: Database,
+	actor: AssistantBusinessActor,
+	salesOrderId: number,
+) {
+	if (!Number.isSafeInteger(salesOrderId) || salesOrderId <= 0) return false;
+	const row = await db.salesOrders.findFirst({
+		where: {
+			AND: [
+				assistantSalesScopeWhere(actor),
+				{ id: salesOrderId, deletedAt: null },
+			],
+		},
+		select: { id: true },
+	});
+	return Boolean(row);
+}
+
 export async function getAssistantSalesOrderCandidates(
 	db: Database,
 	actor: AssistantBusinessActor,

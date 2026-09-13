@@ -34,6 +34,7 @@ describe("assistant document access", () => {
 			documentId: "document-1",
 		});
 		expect(result?.pathname).toBe("users/42/assistant/invoice.pdf");
+		expect(result?.access).toBe("private");
 		expect(queries).toHaveLength(2);
 		expect(JSON.stringify(queries)).toContain('"ownerUserId":42');
 		expect(JSON.stringify(queries)).toContain('"scopeId":"7"');
@@ -55,5 +56,43 @@ describe("assistant document access", () => {
 				documentId: "document-1",
 			}),
 		).toBe(null);
+	});
+
+	test("reauthorizes a generated Sales PDF before returning public storage", async () => {
+		let documentRead = 0;
+		const result = await resolveAssistantDocumentAccess(
+			{
+				storedDocument: {
+					findFirst: async () => {
+						documentRead += 1;
+						return documentRead === 1
+							? null
+							: {
+									ownerId: "101",
+									pathname: "sales/101/invoice.pdf",
+									url: "https://blob.example/invoice.pdf",
+									filename: "Invoice 09502PC.pdf",
+									mimeType: "application/pdf",
+								};
+					},
+				},
+				assistantConversation: { findFirst: async () => null },
+				salesOrders: { findFirst: async () => ({ id: 101 }) },
+			} as never,
+			{
+				actor: {
+					userId: 42,
+					scopeType: "organization",
+					scopeId: "7",
+					grants: { viewOrders: true },
+				} as never,
+				documentId: "sales-document-1",
+			},
+		);
+		expect(result).toMatchObject({
+			access: "public",
+			ownerId: "101",
+			pathname: "sales/101/invoice.pdf",
+		});
 	});
 });
