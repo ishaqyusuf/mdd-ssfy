@@ -136,6 +136,59 @@ function componentTitle(component: RequestConfigurationComponent) {
 	return null;
 }
 
+const DEFERRED_SHELF_ITEM_ROOT_UIDS = new Set(["2K7Mz"]);
+
+function isDeferredShelfItemRoot(component: RequestConfigurationRootComponent) {
+	if (component.uid && DEFERRED_SHELF_ITEM_ROOT_UIDS.has(component.uid)) {
+		return true;
+	}
+	const normalizedTitle = componentTitle(component)
+		?.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "");
+	return normalizedTitle === "shelfitem" || normalizedTitle === "shelfitems";
+}
+
+function withoutDeferredShelfItems(
+	source: RequestConfigurationSource,
+): RequestConfigurationSource {
+	const deferredRootUids = new Set(
+		source.rootComponents.flatMap((component) => {
+			return isDeferredShelfItemRoot(component) && component.uid
+				? [component.uid]
+				: [];
+		}),
+	);
+	if (deferredRootUids.size === 0) return source;
+
+	const routes = source.routes.filter(
+		(route) => !deferredRootUids.has(route.itemTypeUid),
+	);
+	const includedStepUids = new Set(routes.flatMap((route) => route.stepUids));
+	const steps = source.steps.filter(
+		(step) => step.uid && includedStepUids.has(step.uid),
+	);
+	const includedStepIds = new Set(steps.map((step) => step.id));
+	const defaults = source.defaults
+		? Object.fromEntries(
+				Object.entries(source.defaults).filter(([itemTypeUid]) =>
+					routes.some((route) => route.itemTypeUid === itemTypeUid),
+				),
+			)
+		: undefined;
+
+	return {
+		routes,
+		steps,
+		rootComponents: source.rootComponents.filter(
+			(component) => !component.uid || !deferredRootUids.has(component.uid),
+		),
+		components: source.components.filter((component) =>
+			includedStepIds.has(component.dykeStepId),
+		),
+		...(defaults && Object.keys(defaults).length ? { defaults } : {}),
+	};
+}
+
 function projectComponent(
 	component: RequestConfigurationComponent,
 ): ProjectedComponent | null {
@@ -473,9 +526,11 @@ function buildSnapshotRoutes(
 export async function projectRequestConfiguration(
 	input: ProjectRequestConfigurationInput,
 ): Promise<ProjectedRequestConfiguration> {
-	const source = await loadRequestConfigurationSource(
-		{ settingId: input.settingId },
-		input.repository,
+	const source = withoutDeferredShelfItems(
+		await loadRequestConfigurationSource(
+			{ settingId: input.settingId },
+			input.repository,
+		),
 	);
 	const rootStep = rootStepFromSource(source);
 	const rootStepUid = rootStep?.uid ?? null;

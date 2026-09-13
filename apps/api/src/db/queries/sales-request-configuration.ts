@@ -864,12 +864,13 @@ export async function getSalesRequestConfigurationStructuralRevision(
 		: [];
 
 	return hashCanonical({
-		// Bump whenever the cached wire projection changes. Version 5 keeps the
+		// Bump whenever the cached wire projection changes. Version 6 removes the
+		// deferred Shelf Items route from the model context. Version 5 keeps the
 		// complete active standard catalog for Moulding steps. Version 4 includes
 		// the sanitized height-driven door-size variation structure. Version 3 removes
 		// persisted custom components from the model catalog and moves custom
 		// capability to the authoritative step metadata.
-		version: 5,
+		version: 6,
 		settingId: input.settingId,
 		routes: routes.map((route) => ({
 			itemTypeUid: route.itemTypeUid,

@@ -203,6 +203,115 @@ describe("projectRequestConfiguration", () => {
 		);
 	});
 
+	it("omits the deferred Shelf Items route from model configuration", async () => {
+		const input = baseInput(
+			{
+				route: {
+					"door-root": { routeSequence: [{ uid: "door-step" }] },
+					"shelf-root": { routeSequence: [{ uid: "shelf-step" }] },
+				},
+			},
+			[
+				familyComponent({
+					id: 201,
+					uid: "door-choice",
+					dykeStepId: 30,
+					meta: {},
+				}),
+				familyComponent({
+					id: 202,
+					uid: "shelf-choice",
+					dykeStepId: 40,
+					meta: {},
+				}),
+			],
+			undefined,
+			[
+				{ id: 30, uid: "door-step", title: "Door" },
+				{ id: 40, uid: "shelf-step", title: "Shelf Items" },
+			],
+		);
+		const repository = input.repository;
+		input.repository = {
+			...repository,
+			getRootComponentsByUids: async (uids) =>
+				uids.map((uid, index) => ({
+					...rootComponent(uid, index + 1),
+					name: uid === "shelf-root" ? "Shelf Items" : "Door",
+				})),
+		};
+
+		const result = await projectRequestConfiguration(input);
+
+		expect(result.configuration.routes).toEqual([
+			expect.objectContaining({ itemTypeUid: "door-root" }),
+		]);
+		expect(
+			result.configuration.steps.find((step) => step.uid === "root-step")
+				?.components,
+		).toEqual([{ uid: "door-root", title: "Door" }]);
+		expect(result.configuration.steps).not.toContainEqual(
+			expect.objectContaining({ uid: "shelf-step" }),
+		);
+		expect(result.configurationJson).not.toContain("shelf-root");
+		expect(result.configurationJson).not.toContain("Shelf Items");
+	});
+
+	it("uses the stable Shelf Items root UID when its display title changes", async () => {
+		const input = baseInput(
+			{
+				route: {
+					"door-root": { routeSequence: [{ uid: "door-step" }] },
+					"2K7Mz": {
+						routeSequence: [{ uid: "door-step" }, { uid: "shelf-step" }],
+					},
+				},
+			},
+			[
+				familyComponent({
+					id: 201,
+					uid: "door-choice",
+					dykeStepId: 30,
+					meta: {},
+				}),
+				familyComponent({
+					id: 202,
+					uid: "shelf-choice",
+					dykeStepId: 40,
+					meta: {},
+				}),
+			],
+			undefined,
+			[
+				{ id: 30, uid: "door-step", title: "Door" },
+				{ id: 40, uid: "shelf-step", title: "Storage Products" },
+			],
+		);
+		const repository = input.repository;
+		input.repository = {
+			...repository,
+			getRootComponentsByUids: async (uids) =>
+				uids.map((uid, index) => ({
+					...rootComponent(uid, index + 1),
+					name: uid === "2K7Mz" ? "Storage Products" : "Door",
+				})),
+		};
+
+		const result = await projectRequestConfiguration(input);
+
+		expect(result.configuration.routes).toEqual([
+			expect.objectContaining({ itemTypeUid: "door-root" }),
+		]);
+		expect(result.configuration.steps).toContainEqual(
+			expect.objectContaining({ uid: "door-step" }),
+		);
+		expect(result.configuration.steps).not.toContainEqual(
+			expect.objectContaining({ uid: "shelf-step" }),
+		);
+		expect(result.configurationJson).not.toContain("2K7Mz");
+		expect(result.configurationJson).not.toContain("Storage Products");
+	});
+
 	it("uses stored route defaults when no runtime override is supplied", async () => {
 		const result = await projectRequestConfiguration(
 			baseInput(
