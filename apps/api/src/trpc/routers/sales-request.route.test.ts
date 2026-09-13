@@ -11,7 +11,7 @@ type SalesRequestCallerContext = Parameters<
 
 function superAdmin() {
 	return {
-		roles: [{ role: { name: "Super Admin", RoleHasPermissions: [] } }],
+		roles: [{ role: { id: 1, name: "Super Admin", RoleHasPermissions: [] } }],
 	};
 }
 
@@ -27,6 +27,7 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 	};
 	let activeSettingsReads = 0;
 	let settingsUpdates = 0;
+	let generationRunFindManyArgs: Record<string, unknown> | null = null;
 	const pilotReviewRows: Record<string, unknown>[] = [];
 
 	const settings = {
@@ -43,8 +44,24 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 	const db = {
 		users: {
 			findFirst: async () => userRecord,
+			findFirstOrThrow: async () => ({
+				id: 19,
+				email: "sales-request-test@example.com",
+				name: "Sales Request Test",
+				phoneNo: null,
+				roles: userRecord.roles,
+			}),
 			findMany: async ({ where }: { where: { id: { in: number[] } } }) =>
 				where.id.in.map((id) => ({ id })),
+		},
+		roles: {
+			findFirstOrThrow: async () => {
+				const role = userRecord.roles[0]?.role;
+				return {
+					name: role?.name ?? "Sales",
+					RoleHasPermissions: role?.RoleHasPermissions ?? [],
+				};
+			},
 		},
 		modelHasPermissions: { findMany: async () => [] },
 		settings,
@@ -104,7 +121,12 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 						],
 		},
 		salesOrders: { findMany: async () => [] },
-		salesRequestGenerationRun: { findMany: async () => [] },
+		salesRequestGenerationRun: {
+			findMany: async (args: Record<string, unknown>) => {
+				generationRunFindManyArgs = args;
+				return [];
+			},
+		},
 		salesRequestPilotReviewDecision: {
 			create: async ({ data }: { data: Record<string, unknown> }) => {
 				const duplicate = pilotReviewRows.some(
@@ -137,10 +159,43 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 		getSavedMeta: () => savedMeta,
 		getActiveSettingsReads: () => activeSettingsReads,
 		getSettingsUpdates: () => settingsUpdates,
+		getGenerationRunFindManyArgs: () => generationRunFindManyArgs,
 		getPilotReviewRows: () => pilotReviewRows,
 		transaction: db,
 	};
 }
+
+test("final-save exceptions are actor-owned, bounded, and permission checked", async () => {
+	const fixture = requestContext();
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+
+	const result = await caller.listFinalSaveExceptions({ limit: 10 });
+	expect(result).toEqual({
+		items: [],
+		truncated: false,
+	});
+	expect(fixture.getGenerationRunFindManyArgs()).toMatchObject({
+		where: {
+			actorUserId: 19,
+			status: "succeeded",
+			hasText: true,
+			applyOutcome: "applied",
+			saveFinalOutcome: "failed",
+			deletedAt: null,
+		},
+		take: 11,
+	});
+
+	const denied = requestContext(undefined, {
+		roles: [{ role: { id: 2, name: "Sales", RoleHasPermissions: [] } }],
+	});
+	await expect(
+		salesRequestRouter
+			.createCaller(denied.ctx)
+			.listFinalSaveExceptions({ limit: 10 }),
+	).rejects.toMatchObject({ code: "FORBIDDEN" });
+	expect(denied.getGenerationRunFindManyArgs()).toBeNull();
+});
 
 async function installCurrentBenchmarkApproval(
 	fixture: ReturnType<typeof requestContext>,

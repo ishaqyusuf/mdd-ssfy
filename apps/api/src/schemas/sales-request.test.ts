@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import {
 	generateSalesRequestPreviewSchema,
+	listSalesRequestFinalSaveExceptionsSchema,
 	recordSalesRequestGenerationOutcomeSchema,
 	salesRequestGenerationPilotSummarySchema,
 	setSalesRequestDefaultSchema,
@@ -199,6 +200,25 @@ test("generation outcomes are strict, bounded, and contain no content fields", (
 				outcome: "applied",
 				[field]: "private",
 			}).success,
+		).toBe(false);
+	}
+});
+
+test("final-save exception queue input is bounded and cannot select another actor", () => {
+	expect(listSalesRequestFinalSaveExceptionsSchema.parse({})).toEqual({
+		limit: 25,
+	});
+	expect(
+		listSalesRequestFinalSaveExceptionsSchema.parse({ limit: 50 }),
+	).toEqual({ limit: 50 });
+	for (const input of [
+		{ limit: 0 },
+		{ limit: 51 },
+		{ limit: 10, actorUserId: 8 },
+		{ limit: 10, text: "private request" },
+	]) {
+		expect(
+			listSalesRequestFinalSaveExceptionsSchema.safeParse(input).success,
 		).toBe(false);
 	}
 });

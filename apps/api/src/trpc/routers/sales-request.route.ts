@@ -3,6 +3,10 @@ import {
 	getSalesRequestGenerationAdminSettings,
 } from "@api/db/queries/sales-request-configuration";
 import {
+	type SalesRequestFinalSaveExceptionDatabase,
+	listSalesRequestFinalSaveExceptions,
+} from "@api/db/queries/sales-request-exceptions";
+import {
 	type SalesRequestPilotReviewDatabase,
 	getLatestSalesRequestPilotReviewDecisions,
 	recordSalesRequestPilotReviewDecision,
@@ -17,6 +21,7 @@ import {
 } from "@api/db/queries/sales-request-telemetry";
 import {
 	generateSalesRequestPreviewSchema,
+	listSalesRequestFinalSaveExceptionsSchema,
 	recordSalesRequestGenerationOutcomeSchema,
 	recordSalesRequestPilotReviewDecisionSchema,
 	salesRequestGenerationPilotSummarySchema,
@@ -56,6 +61,7 @@ import {
 	selectSalesRequestSettingId,
 } from "@api/services/sales-request-preview";
 import { requireSalesRequestUsage } from "@api/services/sales-request-usage";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { requireStorefrontQuoteCreationPermission } from "@api/utils/storefront-permissions";
 import { salesRequestConfigurationCache } from "@gnd/cache/sales-request-configuration-cache";
 import { AppError } from "@gnd/errors";
@@ -687,6 +693,22 @@ export const salesRequestRouter = createTRPCRouter({
 				{ ...input, actorUserId: ctx.userId },
 			),
 		),
+	listFinalSaveExceptions: protectedProcedure
+		.input(listSalesRequestFinalSaveExceptionsSchema)
+		.query(async ({ ctx, input }) => {
+			await requireAnyOperationalPermission(
+				ctx,
+				["editOrders"],
+				"You do not have permission to review sales request save exceptions.",
+			);
+			return listSalesRequestFinalSaveExceptions(
+				ctx.db as unknown as SalesRequestFinalSaveExceptionDatabase,
+				{
+					actorUserId: ctx.userId,
+					limit: input.limit,
+				},
+			);
+		}),
 	recordPilotReviewDecision: protectedProcedure
 		.input(recordSalesRequestPilotReviewDecisionSchema)
 		.mutation(async ({ ctx, input }) => {

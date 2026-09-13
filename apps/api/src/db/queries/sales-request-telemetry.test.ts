@@ -371,6 +371,43 @@ describe("sales request generation telemetry persistence", () => {
 		});
 	});
 
+	test("resolves a final-save exception monotonically after a successful retry", async () => {
+		const fixture = dbFixture();
+		const base = {
+			actorUserId: 7,
+			generationId: row().generationId,
+			now,
+		};
+		await recordSalesRequestGenerationOutcome(fixture.db, {
+			...base,
+			kind: "apply",
+			outcome: "applied",
+		});
+		await recordSalesRequestGenerationOutcome(fixture.db, {
+			...base,
+			kind: "save",
+			stage: "final",
+			outcome: "failed",
+		});
+		await expect(
+			recordSalesRequestGenerationOutcome(fixture.db, {
+				...base,
+				kind: "save",
+				stage: "final",
+				outcome: "saved",
+			}),
+		).resolves.toMatchObject({ recorded: true, duplicate: false });
+		await expect(
+			recordSalesRequestGenerationOutcome(fixture.db, {
+				...base,
+				kind: "save",
+				stage: "final",
+				outcome: "failed",
+			}),
+		).resolves.toMatchObject({ recorded: false, ignored: true });
+		expect(fixture.getRow().saveFinalOutcome).toBe("saved");
+	});
+
 	test("measures edited correction from Apply to feedback only", async () => {
 		const feedbackFixture = dbFixture();
 		await recordSalesRequestGenerationOutcome(feedbackFixture.db, {

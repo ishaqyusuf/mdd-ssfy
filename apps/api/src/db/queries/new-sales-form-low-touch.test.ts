@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { runLowTouchSerializableTransaction } from "./new-sales-form";
+import {
+	runLowTouchSerializableTransaction,
+	runNewSalesFormTransaction,
+} from "./new-sales-form";
 
 async function querySource() {
 	return Bun.file(new URL("./new-sales-form.ts", import.meta.url)).text();
@@ -65,6 +68,41 @@ describe("New Sales Form low-touch final-save boundary", () => {
 			}),
 		).rejects.toThrow("not retryable");
 		expect(ordinaryAttempts).toBe(1);
+	});
+
+	test("rolls back all callback effects when a late low-touch write fails", async () => {
+		const committed = { salesWrites: 0, generationConsumptions: 0 };
+		let options: unknown;
+		const db = {
+			$transaction: async (
+				callback: (tx: unknown) => Promise<unknown>,
+				transactionOptions: unknown,
+			) => {
+				options = transactionOptions;
+				const working = { ...committed };
+				const result = await callback(working);
+				Object.assign(committed, working);
+				return result;
+			},
+		};
+
+		await expect(
+			runNewSalesFormTransaction(db, true, async (tx) => {
+				const working = tx as typeof committed;
+				working.salesWrites += 1;
+				working.generationConsumptions += 1;
+				throw new Error("forced late audit failure");
+			}),
+		).rejects.toThrow("forced late audit failure");
+		expect(committed).toEqual({
+			salesWrites: 0,
+			generationConsumptions: 0,
+		});
+		expect(options).toEqual({
+			isolationLevel: "Serializable",
+			maxWait: 5_000,
+			timeout: 30_000,
+		});
 	});
 
 	test("passes the detached claim only to final-save internals", async () => {

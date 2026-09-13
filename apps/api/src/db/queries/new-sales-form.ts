@@ -267,7 +267,7 @@ export async function runLowTouchSerializableTransaction<T>(
 	throw new Error("Low-touch transaction retry invariant failed");
 }
 
-async function runNewSalesFormTransaction<T>(
+export async function runNewSalesFormTransaction<T>(
 	db: Pick<TRPCContext["db"], "$transaction">,
 	lowTouch: boolean,
 	callback: (tx: TransactionClient) => Promise<T>,

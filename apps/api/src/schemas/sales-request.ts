@@ -131,6 +131,12 @@ export const recordSalesRequestGenerationOutcomeSchema = z
 		}
 	});
 
+export const listSalesRequestFinalSaveExceptionsSchema = z
+	.object({
+		limit: z.number().int().min(1).max(50).default(25),
+	})
+	.strict();
+
 export const salesRequestGenerationPilotSummarySchema = z
 	.object({
 		// A UTC calendar date identifies one immutable, closed seven-day slice.
