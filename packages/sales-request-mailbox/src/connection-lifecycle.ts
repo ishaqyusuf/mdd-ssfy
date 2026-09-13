@@ -18,6 +18,10 @@ import {
 	createMailboxOAuthAttempt,
 	digestMailboxOAuthState,
 } from "./oauth-state.js";
+import {
+	MailboxProviderRequestAbort,
+	runMailboxProviderRequest,
+} from "./provider-request.js";
 
 const MAX_IDENTIFIER_LENGTH = 255;
 const MAX_TOKEN_LENGTH = 16 * 1024;
@@ -89,6 +93,8 @@ export type MailboxConnectionCommitRecord = {
 };
 
 export type MailboxConnectionAttemptTerminalReason =
+	| "attempt-expired"
+	| "caller-cancelled"
 	| "provider-authorization-failed"
 	| "provider-temporarily-unavailable"
 	| "provider-response-invalid"
@@ -568,8 +574,10 @@ async function bestEffortTerminalize(
 	store: MailboxConnectionLifecycleStore,
 	attempt: MailboxConnectionConsumedAttempt,
 	reason: MailboxConnectionAttemptTerminalReason,
-	now: Date,
+	clock?: () => Date,
 ) {
+	const now = clock?.() ?? new Date();
+	if (!validDate(now)) return;
 	// A provisional grant can represent the same provider account as an existing or
 	// concurrently winning connection. Revocation belongs only to explicit disconnect.
 	await Promise.allSettled([
@@ -595,6 +603,7 @@ export async function completeMailboxConnection(
 		state: string;
 		result: { kind: "code"; code: string } | { kind: "cancelled" };
 		now?: Date;
+		signal?: AbortSignal;
 	},
 	dependencies: MailboxConnectionLifecycleDependencies,
 ): Promise<CompleteMailboxConnectionResult> {
@@ -611,6 +620,7 @@ export async function completeMailboxConnection(
 	if (!(now instanceof Date) || Number.isNaN(now.getTime())) {
 		throw new Error("invalid-mailbox-connection-callback");
 	}
+	const clock = dependencies.clock ?? (() => new Date());
 	const consumed = await dependencies.store.consumeCallbackAttempt({
 		stateDigest: digestMailboxOAuthState(input.state),
 		actorUserId: input.actorUserId,
@@ -643,7 +653,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"authority-changed",
-			now,
+			clock,
 		);
 		return { kind: "rejected", reason: "invalid-attempt" };
 	}
@@ -653,7 +663,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"provider-response-invalid",
-			now,
+			clock,
 		);
 		return { kind: "provider-response-invalid" };
 	}
@@ -667,23 +677,50 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"provider-response-invalid",
-			now,
+			clock,
 		);
 		return { kind: "provider-response-invalid" };
 	}
+	const authorizationCode = input.result.code;
 
 	let exchange: { tokens: MailboxTokenSet; account: MailboxAccountIdentity };
 	try {
-		exchange = await adapter.exchangeAuthorizationCode({
-			code: input.result.code,
+		const exchangeStartedAt = clock?.() ?? new Date();
+		if (!validDate(exchangeStartedAt)) {
+			throw new Error("invalid-mailbox-connection-callback");
+		}
+		exchange = await runMailboxProviderRequest({
+			provider: input.provider,
+			signal: input.signal,
+			deadlineAt: attempt.expiresAt,
+			deadlineKind: "attempt-expired",
+			now: exchangeStartedAt,
+			request: (signal) =>
+				adapter.exchangeAuthorizationCode({
+					code: authorizationCode,
+					signal,
+				}),
 		});
 	} catch (error) {
+		if (error instanceof MailboxProviderRequestAbort) {
+			await bestEffortTerminalize(
+				dependencies.store,
+				attempt,
+				error.reason === "attempt-expired"
+					? "attempt-expired"
+					: "caller-cancelled",
+				clock,
+			);
+			return error.reason === "attempt-expired"
+				? { kind: "rejected", reason: "expired" }
+				: { kind: "cancelled" };
+		}
 		if (!(error instanceof MailboxProviderError)) {
 			await bestEffortTerminalize(
 				dependencies.store,
 				attempt,
 				"internal-failure",
-				now,
+				clock,
 			);
 			throw error;
 		}
@@ -692,7 +729,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			failure.reason,
-			now,
+			clock,
 		);
 		return failure.result;
 	}
@@ -707,7 +744,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"provider-response-invalid",
-			now,
+			clock,
 		);
 		return { kind: "provider-response-invalid" };
 	}
@@ -723,7 +760,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"internal-failure",
-			now,
+			clock,
 		);
 		throw new Error("invalid-mailbox-connection-id");
 	}
@@ -731,20 +768,41 @@ export async function completeMailboxConnection(
 	let prepared: Awaited<
 		ReturnType<MailboxConnectionLifecycleStore["prepareConnectionTarget"]>
 	>;
+	const prepareAt = clock?.() ?? new Date();
+	if (!validDate(prepareAt))
+		throw new Error("invalid-mailbox-connection-callback");
+	if (input.signal?.aborted) {
+		await bestEffortTerminalize(
+			dependencies.store,
+			attempt,
+			"caller-cancelled",
+			clock,
+		);
+		return { kind: "cancelled" };
+	}
+	if (prepareAt.getTime() >= attempt.expiresAt.getTime()) {
+		await bestEffortTerminalize(
+			dependencies.store,
+			attempt,
+			"attempt-expired",
+			clock,
+		);
+		return { kind: "rejected", reason: "expired" };
+	}
 	try {
 		prepared = await dependencies.store.prepareConnectionTarget({
 			attempt,
 			candidateConnectionId,
 			providerAccountId: validated.providerAccountId,
 			scopeFingerprint: validated.scopeFingerprint,
-			now,
+			now: prepareAt,
 		});
 	} catch (error) {
 		await bestEffortTerminalize(
 			dependencies.store,
 			attempt,
 			"internal-failure",
-			now,
+			clock,
 		);
 		throw error;
 	}
@@ -753,7 +811,7 @@ export async function completeMailboxConnection(
 			prepared.kind === "identity-conflict"
 				? "connection-unavailable"
 				: "authority-changed";
-		await bestEffortTerminalize(dependencies.store, attempt, reason, now);
+		await bestEffortTerminalize(dependencies.store, attempt, reason, clock);
 		return { kind: "rejected", reason };
 	}
 	const target = prepared.target;
@@ -771,7 +829,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"internal-failure",
-			now,
+			clock,
 		);
 		throw new Error("invalid-mailbox-connection-target");
 	}
@@ -782,7 +840,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"internal-failure",
-			now,
+			clock,
 		);
 		throw new Error("mailbox-connection-key-ring-required");
 	}
@@ -812,11 +870,33 @@ export async function completeMailboxConnection(
 			}),
 			tokenExpiresAt: validated.tokenExpiresAt,
 		};
+		const commitAt = clock?.() ?? new Date();
+		if (!validDate(commitAt)) {
+			throw new Error("invalid-mailbox-connection-callback");
+		}
+		if (input.signal?.aborted) {
+			await bestEffortTerminalize(
+				dependencies.store,
+				attempt,
+				"caller-cancelled",
+				clock,
+			);
+			return { kind: "cancelled" };
+		}
+		if (commitAt.getTime() >= attempt.expiresAt.getTime()) {
+			await bestEffortTerminalize(
+				dependencies.store,
+				attempt,
+				"attempt-expired",
+				clock,
+			);
+			return { kind: "rejected", reason: "expired" };
+		}
 		committed = await dependencies.store.commitConnection({
 			attempt,
 			target: prepared.target,
 			connection,
-			now,
+			now: commitAt,
 			reconnectBehavior: {
 				preserveOwner: true,
 				preservePreferences: true,
@@ -831,7 +911,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"internal-failure",
-			now,
+			clock,
 		);
 		throw error;
 	}
@@ -842,7 +922,7 @@ export async function completeMailboxConnection(
 				: committed.kind === "connection-changed"
 					? "connection-changed"
 					: "authority-changed";
-		await bestEffortTerminalize(dependencies.store, attempt, reason, now);
+		await bestEffortTerminalize(dependencies.store, attempt, reason, clock);
 		return { kind: "rejected", reason };
 	}
 	if (
@@ -854,7 +934,7 @@ export async function completeMailboxConnection(
 			dependencies.store,
 			attempt,
 			"internal-failure",
-			now,
+			clock,
 		);
 		throw new Error("invalid-mailbox-connection-commit");
 	}

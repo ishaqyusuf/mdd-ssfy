@@ -4,6 +4,7 @@ import { buildMailboxScopeFingerprint } from "./connection-lifecycle";
 import { MAILBOX_PROVIDER_AUTHORIZATION } from "./contracts";
 import { decryptMailboxSecret, encryptMailboxSecret } from "./crypto";
 import { MailboxProviderError } from "./errors";
+import { MailboxProviderRequestAbort } from "./provider-request";
 import {
 	MAILBOX_TOKEN_HEALTH_LEASE_MS,
 	MAILBOX_TOKEN_HEALTH_MAX_RETRY_ATTEMPTS,
@@ -462,6 +463,7 @@ describe("mailbox token refresh and health lifecycle", () => {
 					resolve: () => KEY,
 					active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
 				},
+				clock: () => NOW,
 			},
 		);
 		expect(result).toEqual({
@@ -508,6 +510,7 @@ describe("mailbox token refresh and health lifecycle", () => {
 						resolve: () => KEY,
 						active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
 					},
+					clock: () => NOW,
 				},
 			);
 			expect(result.kind).toBe("reauthorization-required");
@@ -603,6 +606,7 @@ describe("mailbox token refresh and health lifecycle", () => {
 						resolve: () => KEY,
 						active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
 					},
+					clock: () => NOW,
 				},
 			);
 			expect(result.kind, item.name).toBe("dead-lettered");
@@ -664,7 +668,11 @@ describe("mailbox token refresh and health lifecycle", () => {
 					},
 				},
 			);
-			expect(result).toEqual({ kind: "lease-contended" });
+			expect(result).toEqual(
+				failure === "expired"
+					? { kind: "lease-lost" }
+					: { kind: "lease-contended" },
+			);
 			if (failure === "expired")
 				expect(persistence.calls.commits).toHaveLength(0);
 		}
@@ -697,7 +705,7 @@ describe("mailbox token refresh and health lifecycle", () => {
 				clock: () => new Date(NOW.getTime() + MAILBOX_TOKEN_HEALTH_LEASE_MS),
 			},
 		);
-		expect(result).toEqual({ kind: "lease-contended" });
+		expect(result).toEqual({ kind: "lease-lost" });
 		expect(persistence.calls.settlements).toHaveLength(0);
 		expect(persistence.calls.commits).toHaveLength(0);
 	});
@@ -730,6 +738,7 @@ describe("mailbox token refresh and health lifecycle", () => {
 					resolve: () => KEY,
 					active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
 				},
+				clock: () => NOW,
 			},
 		);
 		expect(healthyResult).toEqual({ kind: "lease-contended" });
@@ -761,8 +770,181 @@ describe("mailbox token refresh and health lifecycle", () => {
 					resolve: () => KEY,
 					active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
 				},
+				clock: () => NOW,
 			},
 		);
 		expect(terminalResult).toEqual({ kind: "lease-contended" });
+	});
+
+	test("returns cancelled before claiming when the caller is already cancelled", async () => {
+		const persistence = store();
+		const cancellation = new AbortController();
+		cancellation.abort(new Error("caller-secret"));
+
+		expect(
+			await runMailboxTokenHealthLifecycle(
+				{
+					connectionId: CONNECTION_ID,
+					expectedConnectionRevision: 6,
+					operationId: OPERATION_ID,
+					reason: "token-expiring",
+					now: NOW,
+					signal: cancellation.signal,
+				},
+				{
+					store: persistence.api,
+					adapters: {
+						gmail: adapter(() => {
+							throw new Error("provider-must-not-run");
+						}),
+					},
+					keyRing: {
+						resolve: () => KEY,
+						active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
+					},
+				},
+			),
+		).toEqual({ kind: "cancelled" });
+		expect(persistence.calls.claims).toHaveLength(0);
+		expect(persistence.calls.commits).toHaveLength(0);
+		expect(persistence.calls.settlements).toHaveLength(0);
+	});
+
+	test("returns lease-lost when no provider-dispatch reserve remains", async () => {
+		const persistence = store();
+		let providerCalls = 0;
+
+		expect(
+			await runMailboxTokenHealthLifecycle(
+				{
+					connectionId: CONNECTION_ID,
+					expectedConnectionRevision: 6,
+					operationId: OPERATION_ID,
+					reason: "token-expiring",
+					now: NOW,
+				},
+				{
+					store: persistence.api,
+					adapters: {
+						gmail: adapter(() => {
+							providerCalls += 1;
+							throw new Error("provider-must-not-run");
+						}),
+					},
+					keyRing: {
+						resolve: () => KEY,
+						active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
+					},
+					clock: () => new Date(NOW.getTime() + MAILBOX_TOKEN_HEALTH_LEASE_MS),
+				},
+			),
+		).toEqual({ kind: "lease-lost" });
+		expect(providerCalls).toBe(0);
+		expect(persistence.calls.commits).toHaveLength(0);
+		expect(persistence.calls.settlements).toHaveLength(0);
+	});
+
+	test("fails closed on post-dispatch cancellation without consuming retry", async () => {
+		const persistence = store();
+		const cancellation = new AbortController();
+		const provider = adapter(() => {
+			persistence.markProviderStarted();
+			cancellation.abort(new Error("caller-secret"));
+			return {
+				accessToken: "must-not-commit",
+				refreshToken: "must-not-commit",
+				expiresAt: new Date(NOW.getTime() + 3_600_000),
+				grantedScopes: SCOPES,
+			};
+		});
+
+		expect(
+			await runMailboxTokenHealthLifecycle(
+				{
+					connectionId: CONNECTION_ID,
+					expectedConnectionRevision: 6,
+					operationId: OPERATION_ID,
+					reason: "token-expiring",
+					now: NOW,
+					signal: cancellation.signal,
+				},
+				{
+					store: persistence.api,
+					adapters: { gmail: provider },
+					keyRing: {
+						resolve: () => KEY,
+						active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
+					},
+					clock: () => NOW,
+				},
+			),
+		).toEqual({ kind: "reauthorization-required", connectionRevision: 7 });
+		expect(persistence.calls.commits).toHaveLength(0);
+		expect(persistence.calls.settlements).toEqual([
+			expect.objectContaining({
+				status: "reauthorization-required",
+				errorCode: "refresh-outcome-unknown",
+				retryAttempt: 0,
+				blockSync: true,
+			}),
+		]);
+		expect(JSON.stringify(persistence.calls.settlements)).not.toContain(
+			"secret",
+		);
+		expect(JSON.stringify(persistence.calls.commits)).not.toContain(
+			"must-not-commit",
+		);
+	});
+
+	test("fails closed on provider timeout and reports lease expiry as lease-lost", async () => {
+		for (const mode of ["timeout", "lease"] as const) {
+			const persistence = store();
+			const provider = adapter(() => {
+				persistence.markProviderStarted();
+				if (mode === "timeout") {
+					throw new MailboxProviderError({
+						provider: "gmail",
+						code: "network",
+						requestFailure: "request-timeout",
+					});
+				}
+				throw new MailboxProviderRequestAbort({
+					provider: "gmail",
+					reason: "lease-expired",
+				});
+			});
+
+			const result = await runMailboxTokenHealthLifecycle(
+				{
+					connectionId: CONNECTION_ID,
+					expectedConnectionRevision: 6,
+					operationId: OPERATION_ID,
+					reason: "token-expiring",
+					now: NOW,
+				},
+				{
+					store: persistence.api,
+					adapters: { gmail: provider },
+					keyRing: {
+						resolve: () => KEY,
+						active: () => ({ keyVersion: "k2", key: ACTIVE_KEY }),
+					},
+					clock: () => NOW,
+				},
+			);
+			expect(result).toEqual(
+				mode === "lease"
+					? { kind: "lease-lost" }
+					: { kind: "reauthorization-required", connectionRevision: 7 },
+			);
+			expect(persistence.calls.commits).toHaveLength(0);
+			expect(persistence.calls.settlements).toEqual([
+				expect.objectContaining({
+					status: "reauthorization-required",
+					errorCode: "refresh-outcome-unknown",
+					retryAttempt: 0,
+				}),
+			]);
+		}
 	});
 });

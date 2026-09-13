@@ -11,6 +11,10 @@ import {
 	mailboxEncryptedSecretSchema,
 } from "./crypto.js";
 import { MailboxProviderError } from "./errors.js";
+import {
+	MailboxProviderRequestAbort,
+	runMailboxProviderRequest,
+} from "./provider-request.js";
 
 const MAX_IDENTIFIER_LENGTH = 255;
 const MAX_TOKEN_LENGTH = 16 * 1024;
@@ -40,6 +44,7 @@ export type MailboxTokenHealthErrorCode =
 	| "rate-limited"
 	| "network"
 	| "provider-unavailable"
+	| "refresh-outcome-unknown"
 	| "internal-failure";
 
 export type MailboxTokenHealthClaim = {
@@ -74,6 +79,8 @@ export type MailboxTokenHealthResult =
 	| { kind: "retry-scheduled"; nextAttemptAt: Date }
 	| { kind: "not-due" }
 	| { kind: "lease-contended" }
+	| { kind: "lease-lost" }
+	| { kind: "cancelled" }
 	| {
 			kind: "rejected";
 			reason: "connection-unavailable" | "connection-changed";
@@ -105,6 +112,8 @@ export interface MailboxTokenHealthStore {
 	 * token is within the refresh window, unless the explicit forced-health mode
 	 * is supplied. The transaction validates every revision/authority/policy
 	 * fence and returns encrypted credential envelopes only.
+	 * An abandoned claimed operation must be treated as refresh-outcome-unknown
+	 * after lease expiry, never reclaimed with the possibly stale refresh token.
 	 */
 	claimTokenHealth(input: {
 		connectionId: string;
@@ -427,6 +436,7 @@ export async function runMailboxTokenHealthLifecycle(
 		operationId: string;
 		reason: MailboxTokenHealthReason;
 		now?: Date;
+		signal?: AbortSignal;
 	},
 	dependencies: MailboxTokenHealthDependencies,
 ): Promise<MailboxTokenHealthResult> {
@@ -437,8 +447,11 @@ export async function runMailboxTokenHealthLifecycle(
 	) {
 		return { kind: "rejected", reason: "connection-unavailable" };
 	}
+	if (input.signal?.aborted) return { kind: "cancelled" };
 	const now = input.now ?? dependencies.clock?.() ?? new Date();
 	if (!validDate(now)) throw new Error("invalid-mailbox-token-health");
+	const clock = dependencies.clock ?? (() => new Date());
+	const leaseClock = { clock };
 
 	let claimed: Awaited<ReturnType<MailboxTokenHealthStore["claimTokenHealth"]>>;
 	try {
@@ -474,15 +487,22 @@ export async function runMailboxTokenHealthLifecycle(
 	}
 
 	const { claim } = claimed;
-	if (!validClaim(claim, input, now)) return { kind: "lease-contended" };
+	if (!validClaim(claim, input, now)) {
+		return validDate(claim.leaseExpiresAt) &&
+			claim.leaseExpiresAt.getTime() <= now.getTime()
+			? { kind: "lease-lost" }
+			: { kind: "lease-contended" };
+	}
 	const adapter = dependencies.adapters[claim.provider];
 	if (!adapter || adapter.provider !== claim.provider) {
+		const checkedAt = freshLeaseTime(leaseClock, claim);
+		if (!checkedAt) return { kind: "lease-lost" };
 		return settleTerminal(
 			dependencies.store,
 			claim,
 			"dead-lettered",
 			"provider-mismatch",
-			now,
+			checkedAt,
 		);
 	}
 
@@ -503,23 +523,58 @@ export async function runMailboxTokenHealthLifecycle(
 			grantedScopes: claim.grantedScopes,
 		};
 	} catch {
+		const checkedAt = freshLeaseTime(leaseClock, claim);
+		if (!checkedAt) return { kind: "lease-lost" };
 		return settleTerminal(
 			dependencies.store,
 			claim,
 			"dead-lettered",
 			"credentials-unavailable",
-			now,
+			checkedAt,
 		);
 	}
 
 	const durableRefreshToken = currentTokens.refreshToken;
 	let refreshed: MailboxTokenSet;
+	let providerDispatched = false;
 	try {
-		refreshed = await adapter.refreshTokens({ tokens: currentTokens });
+		const providerStartedAt = clock?.() ?? new Date();
+		if (!validDate(providerStartedAt)) return { kind: "lease-lost" };
+		refreshed = await runMailboxProviderRequest({
+			provider: claim.provider,
+			signal: input.signal,
+			deadlineAt: claim.leaseExpiresAt,
+			deadlineKind: "lease-expired",
+			now: providerStartedAt,
+			request: (signal) => {
+				providerDispatched = true;
+				return adapter.refreshTokens({ tokens: currentTokens, signal });
+			},
+		});
 	} catch (error) {
 		currentTokens = { accessToken: "", grantedScopes: [] };
-		const checkedAt = freshLeaseTime(dependencies, claim);
-		if (!checkedAt) return { kind: "lease-contended" };
+		if (error instanceof MailboxProviderRequestAbort) {
+			if (!providerDispatched) {
+				return error.reason === "lease-expired"
+					? { kind: "lease-lost" }
+					: { kind: "cancelled" };
+			}
+			const checkedAt = freshLeaseTime(leaseClock, claim);
+			if (!checkedAt) return { kind: "lease-lost" };
+			const settlement = await settleTerminal(
+				dependencies.store,
+				claim,
+				"reauthorization-required",
+				"refresh-outcome-unknown",
+				checkedAt,
+				claim.retryAttempt,
+			);
+			return error.reason === "lease-expired"
+				? { kind: "lease-lost" }
+				: settlement;
+		}
+		const checkedAt = freshLeaseTime(leaseClock, claim);
+		if (!checkedAt) return { kind: "lease-lost" };
 		if (!(error instanceof MailboxProviderError)) {
 			return settleTerminal(
 				dependencies.store,
@@ -527,6 +582,16 @@ export async function runMailboxTokenHealthLifecycle(
 				"dead-lettered",
 				"internal-failure",
 				checkedAt,
+			);
+		}
+		if (providerDispatched && error.requestFailure === "request-timeout") {
+			return settleTerminal(
+				dependencies.store,
+				claim,
+				"reauthorization-required",
+				"refresh-outcome-unknown",
+				checkedAt,
+				claim.retryAttempt,
 			);
 		}
 		const failure = providerFailure(error, claim);
@@ -560,8 +625,18 @@ export async function runMailboxTokenHealthLifecycle(
 		});
 	}
 	currentTokens = { accessToken: "", grantedScopes: [] };
-	const checkedAt = freshLeaseTime(dependencies, claim);
-	if (!checkedAt) return { kind: "lease-contended" };
+	const checkedAt = freshLeaseTime(leaseClock, claim);
+	if (!checkedAt) return { kind: "lease-lost" };
+	if (input.signal?.aborted) {
+		return settleTerminal(
+			dependencies.store,
+			claim,
+			"reauthorization-required",
+			"refresh-outcome-unknown",
+			checkedAt,
+			claim.retryAttempt,
+		);
+	}
 	if (!refreshed || !Array.isArray(refreshed.grantedScopes)) {
 		return settleTerminal(
 			dependencies.store,
@@ -651,13 +726,25 @@ export async function runMailboxTokenHealthLifecycle(
 		);
 	}
 	try {
+		const commitAt = freshLeaseTime(leaseClock, claim);
+		if (!commitAt) return { kind: "lease-lost" };
+		if (input.signal?.aborted) {
+			return settleTerminal(
+				dependencies.store,
+				claim,
+				"reauthorization-required",
+				"refresh-outcome-unknown",
+				commitAt,
+				claim.retryAttempt,
+			);
+		}
 		committed = await dependencies.store.commitRefreshedTokens({
 			...mutationFence(claim),
 			credentials,
 			health: {
 				status: "healthy",
-				checkedAt,
-				refreshedAt: checkedAt,
+				checkedAt: commitAt,
+				refreshedAt: commitAt,
 				errorCode: null,
 				nextAttemptAt: null,
 				retryAttempt: 0,

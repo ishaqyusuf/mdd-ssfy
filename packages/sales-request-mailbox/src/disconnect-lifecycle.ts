@@ -2,6 +2,12 @@ import type { MailboxTokenSet, SalesRequestMailboxAdapter } from "./adapter.js";
 import { type MailboxProvider, mailboxProviderSchema } from "./contracts.js";
 import type { MailboxEncryptedSecret } from "./crypto.js";
 import { decryptMailboxSecret } from "./crypto.js";
+import { MailboxProviderError } from "./errors.js";
+import {
+	MAILBOX_PROVIDER_REVOKE_TIMEOUT_MS,
+	MailboxProviderRequestAbort,
+	runMailboxProviderRequest,
+} from "./provider-request.js";
 
 const MAX_IDENTIFIER_LENGTH = 255;
 const MAX_SCOPES = 20;
@@ -68,6 +74,8 @@ export type MailboxDisconnectFailurePhase = "provider-revocation" | "cleanup";
 export type MailboxDisconnectFailureReason =
 	| "credentials-unavailable"
 	| "provider-unavailable"
+	| "provider-revocation-cancelled"
+	| "provider-revocation-deadline"
 	| "provider-revocation-failed"
 	| "state-transition-failed"
 	| "cleanup-failed";
@@ -239,9 +247,11 @@ async function bestEffortRecordFailure(
 	claim: MailboxDisconnectCleanupClaim,
 	phase: MailboxDisconnectFailurePhase,
 	reason: MailboxDisconnectFailureReason,
-	now: Date,
+	clock?: () => Date,
 ) {
 	try {
+		const now = clock?.() ?? new Date();
+		if (!validDate(now)) return;
 		await store.recordDisconnectFailure({ ...claim, phase, reason, now });
 	} catch {
 		// The connection is already inactive and the durable claim remains resumable.
@@ -250,11 +260,12 @@ async function bestEffortRecordFailure(
 
 async function finishLocalCleanup(
 	claim: MailboxDisconnectCleanupClaim,
-	store: MailboxDisconnectStore,
-	now: Date,
+	dependencies: Pick<MailboxDisconnectDependencies, "store" | "clock">,
 ): Promise<DisconnectMailboxConnectionResult> {
 	try {
-		const completed = await store.completeDisconnect({
+		const now = dependencies.clock?.() ?? new Date();
+		if (!validDate(now)) return { kind: "retry-pending" };
+		const completed = await dependencies.store.completeDisconnect({
 			...claim,
 			now,
 			cleanupBehavior: MAILBOX_DISCONNECT_CLEANUP_BEHAVIOR,
@@ -264,11 +275,11 @@ async function finishLocalCleanup(
 			: { kind: "retry-pending" };
 	} catch {
 		await bestEffortRecordFailure(
-			store,
+			dependencies.store,
 			claim,
 			"cleanup",
 			"cleanup-failed",
-			now,
+			dependencies.clock,
 		);
 		return { kind: "retry-pending" };
 	}
@@ -280,6 +291,7 @@ export async function disconnectMailboxConnection(
 		connectionId: string;
 		expectedConnectionRevision: number;
 		now?: Date;
+		signal?: AbortSignal;
 	},
 	dependencies: MailboxDisconnectDependencies,
 ): Promise<DisconnectMailboxConnectionResult> {
@@ -294,6 +306,7 @@ export async function disconnectMailboxConnection(
 	}
 	const now = input.now ?? dependencies.clock?.() ?? new Date();
 	if (!validDate(now)) throw new Error("invalid-mailbox-disconnect");
+	const clock = dependencies.clock ?? (() => new Date());
 
 	const claimed = await dependencies.store.claimDisconnect({
 		actorUserId: input.actorUserId,
@@ -322,7 +335,10 @@ export async function disconnectMailboxConnection(
 				? { kind: "retry-pending" }
 				: { kind: "rejected", reason: "connection-unavailable" };
 		}
-		return finishLocalCleanup(claimed.claim, dependencies.store, now);
+		return finishLocalCleanup(claimed.claim, {
+			store: dependencies.store,
+			clock,
+		});
 	}
 
 	const providerClaim = claimed.claim;
@@ -349,7 +365,7 @@ export async function disconnectMailboxConnection(
 				localClaim,
 				"provider-revocation",
 				"state-transition-failed",
-				now,
+				clock,
 			);
 		}
 		return { kind: "retry-pending" };
@@ -362,7 +378,7 @@ export async function disconnectMailboxConnection(
 			localClaim,
 			"provider-revocation",
 			"provider-unavailable",
-			now,
+			clock,
 		);
 		return { kind: "retry-pending" };
 	}
@@ -392,21 +408,39 @@ export async function disconnectMailboxConnection(
 			localClaim,
 			"provider-revocation",
 			"credentials-unavailable",
-			now,
+			clock,
 		);
 		return { kind: "retry-pending" };
 	}
 
+	const providerTokens = tokens;
 	try {
-		await adapter.revoke({ tokens });
-	} catch {
+		if (providerClaim.provider === "microsoft-graph") {
+			await adapter.revoke({ tokens: providerTokens });
+		} else {
+			await runMailboxProviderRequest({
+				provider: providerClaim.provider,
+				signal: input.signal,
+				timeoutMs: MAILBOX_PROVIDER_REVOKE_TIMEOUT_MS,
+				now: clock?.() ?? new Date(),
+				request: (signal) => adapter.revoke({ tokens: providerTokens, signal }),
+			});
+		}
+	} catch (error) {
 		tokens = undefined;
+		const reason =
+			error instanceof MailboxProviderRequestAbort
+				? "provider-revocation-cancelled"
+				: error instanceof MailboxProviderError &&
+						error.requestFailure === "request-timeout"
+					? "provider-revocation-deadline"
+					: "provider-revocation-failed";
 		await bestEffortRecordFailure(
 			dependencies.store,
 			localClaim,
 			"provider-revocation",
-			"provider-revocation-failed",
-			now,
+			reason,
+			clock,
 		);
 		return { kind: "retry-pending" };
 	}
@@ -416,9 +450,11 @@ export async function disconnectMailboxConnection(
 		ReturnType<MailboxDisconnectStore["recordProviderRevoked"]>
 	>;
 	try {
+		const recordAt = clock?.() ?? new Date();
+		if (!validDate(recordAt)) return { kind: "retry-pending" };
 		recorded = await dependencies.store.recordProviderRevoked({
 			...localClaim,
-			now,
+			now: recordAt,
 		});
 	} catch {
 		await bestEffortRecordFailure(
@@ -426,12 +462,12 @@ export async function disconnectMailboxConnection(
 			localClaim,
 			"provider-revocation",
 			"state-transition-failed",
-			now,
+			clock,
 		);
 		return { kind: "retry-pending" };
 	}
 	if (recorded.kind !== "cleanup-required") {
 		return { kind: "retry-pending" };
 	}
-	return finishLocalCleanup(localClaim, dependencies.store, now);
+	return finishLocalCleanup(localClaim, { store: dependencies.store, clock });
 }

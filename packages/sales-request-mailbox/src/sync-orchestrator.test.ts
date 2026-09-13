@@ -349,6 +349,7 @@ describe("mailbox synchronization orchestration", () => {
 				since: new Date("2026-08-14T12:00:00.000Z"),
 				fullSync: true,
 				limit: 50,
+				signal: expect.any(AbortSignal),
 			}),
 		]);
 		expect(persistence.calls.commits).toHaveLength(1);
@@ -818,7 +819,80 @@ describe("mailbox synchronization orchestration", () => {
 			),
 		).resolves.toEqual({ kind: "lease-lost" });
 		expect(gmail.listInputs).toHaveLength(1);
-		expect(persistence.calls.commits).toHaveLength(1);
+		expect(persistence.calls.commits).toHaveLength(0);
+	});
+
+	test("returns caller cancellation without retrying or settling provider work", async () => {
+		const caller = new AbortController();
+		const persistence = store();
+		const gmail = adapter("gmail", []);
+		gmail.api.listMessages = async () => new Promise<MailboxSyncPage>(() => {});
+		const pending = runMailboxSyncStream(
+			{ ...runInput, signal: caller.signal },
+			{ store: persistence.api, adapters: { gmail: gmail.api } },
+		);
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		caller.abort("caller secret");
+
+		await expect(pending).resolves.toEqual({ kind: "cancelled" });
+		expect(persistence.calls.commits).toHaveLength(0);
+		expect(persistence.calls.settlements).toHaveLength(0);
+	});
+
+	test("returns lease expiry before the reserved settlement window without opening the provider", async () => {
+		const persistence = store({
+			kind: "claimed",
+			lease: claimedLease({
+				leaseFence: {
+					...claimedLease().leaseFence,
+					expiresAt: new Date("2026-09-13T12:00:00.250Z"),
+				},
+			}),
+		});
+		const gmail = adapter("gmail", []);
+
+		await expect(
+			runMailboxSyncStream(
+				{
+					...runInput,
+					leaseDurationMs: 1_000,
+				},
+				{ store: persistence.api, adapters: { gmail: gmail.api } },
+			),
+		).resolves.toEqual({ kind: "lease-lost" });
+		expect(gmail.listInputs).toHaveLength(0);
+		expect(persistence.calls.commits).toHaveLength(0);
+		expect(persistence.calls.settlements).toHaveLength(0);
+	});
+
+	test("keeps request-timeout evidence on the existing bounded retry path", async () => {
+		const persistence = store();
+		const gmail = adapter("gmail", [
+			new MailboxProviderError({
+				provider: "gmail",
+				code: "network",
+				requestFailure: "request-timeout",
+			}),
+		]);
+
+		await expect(
+			runMailboxSyncStream(runInput, {
+				store: persistence.api,
+				adapters: { gmail: gmail.api },
+			}),
+		).resolves.toEqual({ kind: "retry-pending", retryAfterMs: 5_000 });
+		expect(persistence.calls.settlements).toEqual([
+			{
+				kind: "retry",
+				value: expect.objectContaining({
+					evidence: expect.objectContaining({
+						code: "network",
+						requestFailure: "request-timeout",
+					}),
+				}),
+			},
+		]);
 	});
 
 	test("durably settles retry, reauthorization, and exhausted work", async () => {

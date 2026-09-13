@@ -248,6 +248,7 @@ describe("mailbox message detail projection", () => {
 			{
 				tokens: claimedLease().tokens,
 				providerMessageId: "message-1",
+				signal: expect.any(AbortSignal),
 			},
 		]);
 		expect(mailbox.calls.otherOperations).toBe(0);
@@ -279,7 +280,7 @@ describe("mailbox message detail projection", () => {
 				providerMessageId: "message-1",
 				providerThreadId: "thread-1",
 				sourceSummaryRevision: 8,
-				capturedAt: now,
+				capturedAt: new Date("2026-09-13T12:00:10.000Z"),
 				receivedAt: new Date("2026-09-12T10:00:00.000Z"),
 				expiresAt: new Date("2026-10-12T10:00:00.000Z"),
 				fromEmail: "customer@example.com",
@@ -424,6 +425,50 @@ describe("mailbox message detail projection", () => {
 		expect(afterFetch.calls.commits).toHaveLength(0);
 	});
 
+	test("returns caller cancellation without retrying or writing detail", async () => {
+		const caller = new AbortController();
+		const persistence = store();
+		const mailbox = provider([detail()]);
+		mailbox.api.getMessage = async () =>
+			new Promise<MailboxMessageDetail>(() => {});
+		const pending = runMailboxMessageDetail(
+			{ ...runInput, signal: caller.signal },
+			{ store: persistence.api, adapters: { gmail: mailbox.api } },
+		);
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		caller.abort("caller secret");
+
+		await expect(pending).resolves.toEqual({ kind: "cancelled" });
+		expect(persistence.calls.commits).toHaveLength(0);
+		expect(persistence.calls.withdrawals).toHaveLength(0);
+		expect(persistence.calls.retries).toHaveLength(0);
+		expect(persistence.calls.deadLetters).toHaveLength(0);
+	});
+
+	test("returns lease expiry before the reserved detail-fetch window without writing", async () => {
+		const persistence = store({
+			kind: "claimed",
+			lease: claimedLease({
+				leaseFence: {
+					...claimedLease().leaseFence,
+					expiresAt: new Date("2026-09-13T12:00:00.250Z"),
+				},
+			}),
+		});
+		const mailbox = provider([]);
+
+		await expect(
+			runMailboxMessageDetail(
+				{ ...runInput, leaseDurationMs: 1_000 },
+				{ store: persistence.api, adapters: { gmail: mailbox.api } },
+			),
+		).resolves.toEqual({ kind: "lease-lost" });
+		expect(mailbox.calls.getMessage).toHaveLength(0);
+		expect(persistence.calls.commits).toHaveLength(0);
+		expect(persistence.calls.withdrawals).toHaveLength(0);
+	});
+
 	test("withdraws expired summaries before provider access using the earlier receipt anchor", async () => {
 		const persistence = store({
 			kind: "claimed",
@@ -462,8 +507,77 @@ describe("mailbox message detail projection", () => {
 			adapters: { gmail: mailbox.api },
 		});
 		expect(persistence.calls.commits[0]).toMatchObject({
-			snapshot: { expiresAt: new Date("2026-10-13T12:00:00.000Z") },
+			snapshot: {
+				capturedAt: new Date("2026-09-13T12:00:10.000Z"),
+				expiresAt: new Date("2026-10-13T12:00:10.000Z"),
+			},
 		});
+	});
+
+	test("does not fetch detail after the fresh pre-provider retention check expires", async () => {
+		const persistence = store({
+			kind: "claimed",
+			lease: claimedLease({ policy: policy({ retentionDays: 1 }) }),
+		});
+		const mailbox = provider([detail()]);
+		const beforeExpiry = new Date("2026-09-13T11:59:59.000Z");
+		const expiredAtProviderStart = new Date("2026-09-13T12:00:01.000Z");
+
+		await expect(
+			runMailboxMessageDetail(
+				{
+					...runInput,
+					now: beforeExpiry,
+					leaseDurationMs: 61_000,
+					clock: () => expiredAtProviderStart,
+				},
+				{
+					store: persistence.api,
+					adapters: { gmail: mailbox.api },
+				},
+			),
+		).resolves.toEqual({ kind: "suppressed", reason: "retention-expired" });
+		expect(mailbox.calls.getMessage).toHaveLength(0);
+		expect(persistence.calls.withdrawals).toHaveLength(1);
+	});
+
+	test("recomputes retention from the fresh post-fetch capture time", async () => {
+		const persistence = store({
+			kind: "claimed",
+			lease: claimedLease({
+				policy: policy({ retentionDays: 1 }),
+				summary: summary({
+					receivedAt: new Date("2026-09-12T12:00:00.000Z"),
+				}),
+			}),
+		});
+		const mailbox = provider([
+			detail({
+				receivedAt: new Date("2026-09-12T12:00:00.000Z"),
+			}),
+		]);
+		const beforeExpiry = new Date("2026-09-13T11:59:59.000Z");
+		const capturedAfterExpiry = new Date("2026-09-13T12:00:01.000Z");
+		let clockCalls = 0;
+
+		await expect(
+			runMailboxMessageDetail(
+				{
+					...runInput,
+					now: beforeExpiry,
+					leaseDurationMs: 61_000,
+					clock: () =>
+						++clockCalls === 1 ? beforeExpiry : capturedAfterExpiry,
+				},
+				{
+					store: persistence.api,
+					adapters: { gmail: mailbox.api },
+				},
+			),
+		).resolves.toEqual({ kind: "suppressed", reason: "retention-expired" });
+		expect(mailbox.calls.getMessage).toHaveLength(1);
+		expect(persistence.calls.commits).toHaveLength(0);
+		expect(persistence.calls.withdrawals).toHaveLength(1);
 	});
 
 	test("re-runs deterministic exclusions on detail and withdraws exact work", async () => {
@@ -860,6 +974,30 @@ describe("mailbox message detail projection", () => {
 				},
 			}),
 		).resolves.toEqual({ kind: "dead-lettered", reason: "retry-exhausted" });
+	});
+
+	test("keeps detail request-timeout evidence on the existing retry path", async () => {
+		const persistence = store();
+		await expect(
+			runMailboxMessageDetail(runInput, {
+				store: persistence.api,
+				adapters: {
+					gmail: provider([
+						new MailboxProviderError({
+							provider: "gmail",
+							code: "network",
+							requestFailure: "request-timeout",
+						}),
+					]).api,
+				},
+			}),
+		).resolves.toEqual({ kind: "retry-pending", retryAfterMs: 5_000 });
+		expect(persistence.calls.retries[0]).toMatchObject({
+			evidence: {
+				code: "network",
+				requestFailure: "request-timeout",
+			},
+		});
 	});
 
 	test("propagates unknown provider and storage failures", async () => {

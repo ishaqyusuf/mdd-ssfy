@@ -523,6 +523,7 @@ describe("mailbox disconnect lifecycle", () => {
 			store: persistence.api,
 			adapters: { gmail: provider.api },
 			keyRing: { resolve: () => KEY },
+			clock: () => NOW,
 		};
 		expect(await disconnectMailboxConnection(input(), dependencies)).toEqual({
 			kind: "retry-pending",
@@ -574,5 +575,120 @@ describe("mailbox disconnect lifecycle", () => {
 		expect(Object.keys(result)).toEqual(["kind"]);
 		expect(provider.calls.revoked).toHaveLength(0);
 		expect(persistence.calls.completed).toHaveLength(0);
+	});
+
+	test("keeps cancelled Gmail revocation resumable with content-free evidence", async () => {
+		const persistence = store();
+		const provider = adapter();
+		const cancellation = new AbortController();
+		cancellation.abort(new Error("caller-secret"));
+
+		expect(
+			await disconnectMailboxConnection(
+				{ ...input(), signal: cancellation.signal },
+				{
+					store: persistence.api,
+					adapters: { gmail: provider.api },
+					keyRing: { resolve: () => KEY },
+				},
+			),
+		).toEqual({ kind: "retry-pending" });
+		expect(provider.calls.revoked).toHaveLength(0);
+		expect(persistence.calls.revoked).toHaveLength(0);
+		expect(persistence.calls.completed).toHaveLength(0);
+		expect(persistence.calls.failures).toEqual([
+			expect.objectContaining({
+				phase: "provider-revocation",
+				reason: "provider-revocation-cancelled",
+			}),
+		]);
+		expect(JSON.stringify(persistence.calls.failures)).not.toContain("secret");
+	});
+
+	test("records a bounded Gmail revoke deadline without completing cleanup", async () => {
+		const persistence = store();
+		const provider = adapter();
+		provider.api.revoke = async () => {
+			throw new MailboxProviderError({
+				provider: "gmail",
+				code: "network",
+				requestFailure: "request-timeout",
+			});
+		};
+
+		expect(
+			await disconnectMailboxConnection(input(), {
+				store: persistence.api,
+				adapters: { gmail: provider.api },
+				keyRing: { resolve: () => KEY },
+			}),
+		).toEqual({ kind: "retry-pending" });
+		expect(persistence.calls.failures).toEqual([
+			expect.objectContaining({
+				phase: "provider-revocation",
+				reason: "provider-revocation-deadline",
+			}),
+		]);
+		expect(persistence.calls.revoked).toHaveLength(0);
+		expect(persistence.calls.completed).toHaveLength(0);
+	});
+
+	test("keeps Graph local-only even when the caller signal is cancelled", async () => {
+		const persistence = store({
+			async claimDisconnect() {
+				return {
+					kind: "provider-revocation-required",
+					claim: claim({ provider: "microsoft-graph" }),
+				};
+			},
+		});
+		const cancellation = new AbortController();
+		cancellation.abort();
+		let localRevocations = 0;
+		const graph = adapter("microsoft-graph");
+		graph.api.revoke = async () => {
+			localRevocations += 1;
+		};
+
+		expect(
+			await disconnectMailboxConnection(
+				{ ...input(), signal: cancellation.signal },
+				{
+					store: persistence.api,
+					adapters: { "microsoft-graph": graph.api },
+					keyRing: { resolve: () => KEY },
+				},
+			),
+		).toEqual({ kind: "disconnected" });
+		expect(localRevocations).toBe(1);
+		expect(persistence.calls.failures).toHaveLength(0);
+	});
+
+	test("reads fresh time immediately before every durable disconnect mutation", async () => {
+		const persistence = store();
+		const provider = adapter();
+		const times = [0, 1, 2, 3].map(
+			(offset) => new Date(NOW.getTime() + offset),
+		);
+		let clockRead = 0;
+
+		expect(
+			await disconnectMailboxConnection(
+				{
+					actorUserId: 20,
+					connectionId: CONNECTION_ID,
+					expectedConnectionRevision: 6,
+				},
+				{
+					store: persistence.api,
+					adapters: { gmail: provider.api },
+					keyRing: { resolve: () => KEY },
+					clock: () => times[Math.min(clockRead++, times.length - 1)] as Date,
+				},
+			),
+		).toEqual({ kind: "disconnected" });
+		expect(persistence.calls.claims[0]).toMatchObject({ now: times[0] });
+		expect(persistence.calls.revoked[0]).toMatchObject({ now: times[2] });
+		expect(persistence.calls.completed[0]).toMatchObject({ now: times[3] });
 	});
 });

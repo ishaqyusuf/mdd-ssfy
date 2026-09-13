@@ -723,4 +723,91 @@ describe("mailbox connection lifecycle callback", () => {
 		expect(provider.calls.revocations).toHaveLength(0);
 		expect(persistence.calls.terminal).toHaveLength(1);
 	});
+
+	test("bounds exchange by attempt expiry and terminalizes the consumed attempt", async () => {
+		const persistence = store({
+			async consumeCallbackAttempt() {
+				return {
+					kind: "ready",
+					attempt: attempt({ expiresAt: new Date(NOW.getTime() + 260) }),
+				};
+			},
+		});
+		const provider = adapter();
+		provider.api.exchangeAuthorizationCode = async ({ code, signal }) => {
+			provider.calls.codes.push(code);
+			await new Promise<never>((_resolve, reject) => {
+				signal?.addEventListener(
+					"abort",
+					() => reject(new Error("late-secret")),
+					{ once: true },
+				);
+			});
+			throw new Error("unreachable");
+		};
+
+		expect(
+			await completeMailboxConnection(callback, deps(persistence, provider)),
+		).toEqual({ kind: "rejected", reason: "expired" });
+		expect(provider.calls.codes).toEqual(["authorization-code-secret"]);
+		expect(persistence.calls.prepared).toHaveLength(0);
+		expect(persistence.calls.committed).toHaveLength(0);
+		expect(persistence.calls.terminal).toEqual([
+			expect.objectContaining({ reason: "attempt-expired" }),
+		]);
+		expect(JSON.stringify(persistence.calls.terminal)).not.toContain("secret");
+	});
+
+	test("terminalizes caller cancellation without dispatching a pre-cancelled exchange", async () => {
+		const persistence = store();
+		const provider = adapter();
+		const cancellation = new AbortController();
+		cancellation.abort(new Error("caller-secret"));
+
+		expect(
+			await completeMailboxConnection(
+				{ ...callback, signal: cancellation.signal },
+				deps(persistence, provider),
+			),
+		).toEqual({ kind: "cancelled" });
+		expect(provider.calls.codes).toHaveLength(0);
+		expect(persistence.calls.prepared).toHaveLength(0);
+		expect(persistence.calls.committed).toHaveLength(0);
+		expect(persistence.calls.terminal).toEqual([
+			expect.objectContaining({ reason: "caller-cancelled" }),
+		]);
+		expect(JSON.stringify(persistence.calls.terminal)).not.toContain(
+			"caller-secret",
+		);
+	});
+
+	test("rechecks attempt expiry immediately before prepare and commit mutations", async () => {
+		for (const expiresBefore of ["prepare", "commit"] as const) {
+			const expiresAt = new Date(NOW.getTime() + 10_000);
+			const persistence = store({
+				async consumeCallbackAttempt() {
+					return { kind: "ready", attempt: attempt({ expiresAt }) };
+				},
+			});
+			const provider = adapter();
+			const result = await completeMailboxConnection(callback, {
+				...deps(persistence, provider),
+				clock: () => {
+					if (expiresBefore === "prepare") {
+						return provider.calls.codes.length > 0 ? expiresAt : NOW;
+					}
+					return persistence.calls.prepared.length > 0 ? expiresAt : NOW;
+				},
+			});
+
+			expect(result).toEqual({ kind: "rejected", reason: "expired" });
+			expect(persistence.calls.prepared).toHaveLength(
+				expiresBefore === "prepare" ? 0 : 1,
+			);
+			expect(persistence.calls.committed).toHaveLength(0);
+			expect(persistence.calls.terminal).toEqual([
+				expect.objectContaining({ reason: "attempt-expired" }),
+			]);
+		}
+	});
 });

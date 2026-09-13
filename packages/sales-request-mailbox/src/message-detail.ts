@@ -21,6 +21,11 @@ import {
 	resolveMailboxRetry,
 } from "./errors.js";
 import {
+	MAILBOX_PROVIDER_DEADLINE_RESERVE_MS,
+	MailboxProviderRequestAbort,
+	runMailboxProviderRequest,
+} from "./provider-request.js";
+import {
 	prepareMailboxDisplayText,
 	prepareMailboxModelInput,
 } from "./sanitization.js";
@@ -48,6 +53,7 @@ export type MailboxMessageDetailWorkInput = {
 	now: Date;
 	leaseDurationMs: number;
 	clock?: () => Date;
+	signal?: AbortSignal;
 };
 
 /** One writer may fetch/project a provider message across all source memberships. */
@@ -227,6 +233,7 @@ export type MailboxMessageDetailDependencies = {
 };
 
 export type MailboxMessageDetailRunResult =
+	| { kind: "cancelled" }
 	| { kind: "contended" | "not-found" | "stale-summary" }
 	| { kind: "suppressed"; reason: MailboxMessageDetailSuppressionReason }
 	| { kind: "withdrawn"; reason: "provider-not-found" }
@@ -536,6 +543,15 @@ export async function runMailboxMessageDetail(
 	dependencies: MailboxMessageDetailDependencies,
 ): Promise<MailboxMessageDetailRunResult> {
 	validateRunInput(input);
+	const clock = input.clock ?? (() => new Date());
+	const readClock = () => {
+		const value = clock();
+		if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+			throw new Error("invalid-mailbox-detail-clock");
+		}
+		return value;
+	};
+	if (input.signal?.aborted) return { kind: "cancelled" };
 	const requestedExpiresAt = new Date(
 		input.now.getTime() + input.leaseDurationMs,
 	);
@@ -555,6 +571,7 @@ export async function runMailboxMessageDetail(
 		leaseExpiresAt: requestedExpiresAt,
 	});
 	if (claimed.kind !== "claimed") return { kind: claimed.kind };
+	if (input.signal?.aborted) return { kind: "cancelled" };
 	const { lease } = claimed;
 	if (
 		lease.leaseScope.kind !== leaseScope.kind ||
@@ -649,19 +666,19 @@ export async function runMailboxMessageDetail(
 			retentionDays: policy.retentionDays,
 		},
 	};
-	const clock = input.clock ?? (() => new Date());
-	const leaseAlive = () => {
-		const value = clock();
-		if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
-			throw new Error("invalid-mailbox-detail-clock");
-		}
-		return value.getTime() < lease.leaseFence.expiresAt.getTime();
-	};
+	const controlFlowBeforeMutation =
+		(): MailboxMessageDetailRunResult | null => {
+			if (input.signal?.aborted) return { kind: "cancelled" };
+			return readClock().getTime() >= lease.leaseFence.expiresAt.getTime()
+				? { kind: "lease-lost" }
+				: null;
+		};
 	const withdraw = async (
 		reason: MailboxMessageDetailWithdrawalReason,
 		evidence?: ReturnType<typeof mailboxProviderErrorEvidence>,
 	): Promise<MailboxMessageDetailRunResult> => {
-		if (!leaseAlive()) return { kind: "lease-lost" };
+		const controlFlow = controlFlowBeforeMutation();
+		if (controlFlow) return controlFlow;
 		const fenced = fencedResult(
 			await dependencies.store.withdrawCurrentProjection({
 				...context,
@@ -700,36 +717,60 @@ export async function runMailboxMessageDetail(
 	if (!summaryDisposition.accepted) {
 		return withdraw(summaryDisposition.reason);
 	}
-	if (
-		expiry(
-			normalizedSummary.receivedAt,
-			input.now,
-			policy.retentionDays,
-		).getTime() <= input.now.getTime()
-	) {
-		return withdraw("retention-expired");
-	}
 	const adapter = dependencies.adapters[connection.provider];
 	if (!adapter || adapter.provider !== connection.provider) {
 		throw new Error("mailbox-detail-adapter-unavailable");
 	}
-	if (!leaseAlive()) return { kind: "lease-lost" };
+	const providerStartAt = readClock();
+	if (input.signal?.aborted) return { kind: "cancelled" };
+	if (providerStartAt.getTime() >= lease.leaseFence.expiresAt.getTime()) {
+		return { kind: "lease-lost" };
+	}
+	if (
+		expiry(
+			normalizedSummary.receivedAt,
+			providerStartAt,
+			policy.retentionDays,
+		).getTime() <= providerStartAt.getTime()
+	) {
+		return withdraw("retention-expired");
+	}
+	const providerRequest = runMailboxProviderRequest({
+		provider: connection.provider,
+		signal: input.signal,
+		deadlineAt: lease.leaseFence.expiresAt,
+		deadlineKind: "lease-expired",
+		deadlineReserveMs: MAILBOX_PROVIDER_DEADLINE_RESERVE_MS,
+		now: providerStartAt,
+		request: (signal) =>
+			adapter.getMessage({
+				tokens: lease.tokens,
+				providerMessageId: input.providerMessageId,
+				signal,
+			}),
+	});
 
 	let rawDetail: MailboxMessageDetail;
 	try {
-		rawDetail = await adapter.getMessage({
-			tokens: lease.tokens,
-			providerMessageId: input.providerMessageId,
-		});
+		rawDetail = await providerRequest;
 	} catch (error) {
+		if (error instanceof MailboxProviderRequestAbort) {
+			return error.reason === "caller-cancelled"
+				? { kind: "cancelled" }
+				: { kind: "lease-lost" };
+		}
 		if (!(error instanceof MailboxProviderError)) throw error;
 		if (error.provider !== connection.provider) throw error;
+		if (input.signal?.aborted) return { kind: "cancelled" };
+		const afterProviderError = controlFlowBeforeMutation();
+		if (afterProviderError) return afterProviderError;
 		const evidence = mailboxProviderErrorEvidence(error);
 		if (error.code === "not-found") {
 			return withdraw("provider-not-found", evidence);
 		}
-		if (!leaseAlive()) return { kind: "lease-lost" };
 		if (error.requiresReauthorization) {
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedResult(
 				await dependencies.store.settleReauthorization({
 					...context,
@@ -743,6 +784,8 @@ export async function runMailboxMessageDetail(
 			error.code === "malformed-response" ||
 			error.code === "account-mismatch"
 		) {
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedResult(
 				await dependencies.store.settleDeadLetter({
 					...context,
@@ -757,6 +800,8 @@ export async function runMailboxMessageDetail(
 			maxAttempts: MAILBOX_MESSAGE_DETAIL_MAX_RETRY_ATTEMPTS,
 		});
 		if (retry.action === "retry") {
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedResult(
 				await dependencies.store.settleRetry({
 					...context,
@@ -773,6 +818,8 @@ export async function runMailboxMessageDetail(
 			);
 		}
 		const reason = "retry-exhausted";
+		const controlFlow = controlFlowBeforeMutation();
+		if (controlFlow) return controlFlow;
 		const fenced = fencedResult(
 			await dependencies.store.settleDeadLetter({
 				...context,
@@ -781,6 +828,11 @@ export async function runMailboxMessageDetail(
 			}),
 		);
 		return fenced ?? { kind: "dead-lettered", reason };
+	}
+	if (input.signal?.aborted) return { kind: "cancelled" };
+	const capturedAt = readClock();
+	if (capturedAt.getTime() >= lease.leaseFence.expiresAt.getTime()) {
+		return { kind: "lease-lost" };
 	}
 
 	let normalizedDetail: MailboxMessageDetail;
@@ -799,7 +851,8 @@ export async function runMailboxMessageDetail(
 			provider: connection.provider,
 			code: "malformed-response",
 		});
-		if (!leaseAlive()) return { kind: "lease-lost" };
+		const controlFlow = controlFlowBeforeMutation();
+		if (controlFlow) return controlFlow;
 		const fenced = fencedResult(
 			await dependencies.store.settleDeadLetter({
 				...context,
@@ -823,10 +876,10 @@ export async function runMailboxMessageDetail(
 	}
 	const expiresAt = expiry(
 		normalizedDetail.receivedAt,
-		input.now,
+		capturedAt,
 		policy.retentionDays,
 	);
-	if (expiresAt.getTime() <= input.now.getTime()) {
+	if (expiresAt.getTime() <= capturedAt.getTime()) {
 		return withdraw("retention-expired");
 	}
 
@@ -867,7 +920,7 @@ export async function runMailboxMessageDetail(
 		providerMessageId: input.providerMessageId,
 		providerThreadId: content.providerThreadId,
 		sourceSummaryRevision: input.expectedSummaryRevision,
-		capturedAt: input.now,
+		capturedAt,
 		receivedAt: content.receivedAt,
 		expiresAt,
 		fromEmail: content.fromEmail,
@@ -905,7 +958,8 @@ export async function runMailboxMessageDetail(
 		contentChangeBehavior: "supersede-current-under-global-message-lease",
 		sourceRevisionBehavior: "ignore-older-source-revision",
 	};
-	if (!leaseAlive()) return { kind: "lease-lost" };
+	const controlFlow = controlFlowBeforeMutation();
+	if (controlFlow) return controlFlow;
 	const fenced = fencedResult(
 		await dependencies.store.commitSnapshotAndQueue({
 			...context,

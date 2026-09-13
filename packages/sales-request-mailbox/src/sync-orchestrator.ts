@@ -24,6 +24,11 @@ import {
 	MailboxProviderError,
 	mailboxProviderErrorEvidence,
 } from "./errors.js";
+import {
+	MAILBOX_PROVIDER_DEADLINE_RESERVE_MS,
+	MailboxProviderRequestAbort,
+	runMailboxProviderRequest,
+} from "./provider-request.js";
 
 export type MailboxSyncSource =
 	| { kind: "gmail-label"; labelId: string; key: string }
@@ -227,6 +232,7 @@ export type MailboxSyncSuppressionReason =
 	| "source-not-configured";
 
 export type MailboxSyncRunResult =
+	| { kind: "cancelled" }
 	| { kind: "contended" | "not-found" }
 	| { kind: "suppressed"; reason: MailboxSyncSuppressionReason }
 	| {
@@ -259,6 +265,7 @@ function validateRunInput(input: {
 	now: Date;
 	leaseDurationMs: number;
 	clock?: () => Date;
+	signal?: AbortSignal;
 }) {
 	if (
 		!validIdentifier(input.runId) ||
@@ -492,10 +499,20 @@ export async function runMailboxSyncStream(
 		leaseDurationMs: number;
 		budget?: MailboxSyncBudget;
 		clock?: () => Date;
+		signal?: AbortSignal;
 	},
 	dependencies: MailboxSyncDependencies,
 ): Promise<MailboxSyncRunResult> {
 	validateRunInput(input);
+	const clock = input.clock ?? (() => new Date());
+	const readClock = () => {
+		const value = clock();
+		if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+			throw new Error("invalid-mailbox-sync-clock");
+		}
+		return value;
+	};
+	if (input.signal?.aborted) return { kind: "cancelled" };
 	const requestedExpiresAt = new Date(
 		input.now.getTime() + input.leaseDurationMs,
 	);
@@ -507,6 +524,7 @@ export async function runMailboxSyncStream(
 		leaseExpiresAt: requestedExpiresAt,
 	});
 	if (claimed.kind !== "claimed") return { kind: claimed.kind };
+	if (input.signal?.aborted) return { kind: "cancelled" };
 	const { lease } = claimed;
 	if (lease.connectionId !== input.connectionId) {
 		throw new Error("mailbox-sync-lease-scope-mismatch");
@@ -520,10 +538,18 @@ export async function runMailboxSyncStream(
 		leaseFence: lease.leaseFence,
 		authorityFence: lease.authorityFence,
 	};
+	const controlFlowBeforeMutation = (): MailboxSyncRunResult | null => {
+		if (input.signal?.aborted) return { kind: "cancelled" };
+		return readClock().getTime() >= lease.leaseFence.expiresAt.getTime()
+			? { kind: "lease-lost" }
+			: null;
+	};
 
 	const suppress = async (
 		reason: MailboxSyncSuppressionReason,
 	): Promise<MailboxSyncRunResult> => {
+		const controlFlow = controlFlowBeforeMutation();
+		if (controlFlow) return controlFlow;
 		const commitFenceResult = fencedRunResult(
 			await dependencies.store.settleSuppressed({ ...context, reason }),
 		);
@@ -590,7 +616,19 @@ export async function runMailboxSyncStream(
 	let continuationFingerprints = [
 		...(lease.checkpoint?.continuationFingerprints ?? []),
 	];
-	const clock = input.clock ?? (() => new Date());
+	const runProviderOperation = <T>(
+		now: Date,
+		request: (signal: AbortSignal) => Promise<T>,
+	) =>
+		runMailboxProviderRequest({
+			provider: connection.provider,
+			signal: input.signal,
+			deadlineAt: lease.leaseFence.expiresAt,
+			deadlineKind: "lease-expired",
+			deadlineReserveMs: MAILBOX_PROVIDER_DEADLINE_RESERVE_MS,
+			now,
+			request,
+		});
 	// Validate the budget before opening a provider stream.
 	getMailboxSyncRequest(state, budget);
 	let messagesProjected = 0;
@@ -598,10 +636,8 @@ export async function runMailboxSyncStream(
 	let tombstonesProjected = 0;
 
 	while (true) {
-		const currentTime = clock();
-		if (!(currentTime instanceof Date) || Number.isNaN(currentTime.getTime())) {
-			throw new Error("invalid-mailbox-sync-clock");
-		}
+		const currentTime = readClock();
+		if (input.signal?.aborted) return { kind: "cancelled" };
 		if (currentTime.getTime() >= lease.leaseFence.expiresAt.getTime()) {
 			return { kind: "lease-lost" };
 		}
@@ -609,16 +645,29 @@ export async function runMailboxSyncStream(
 		let page: MailboxSyncPage;
 		let providerError: MailboxProviderError | undefined;
 		try {
-			page = await adapter.listMessages({
-				...request,
-				...sourceListInput(input.source),
-				tokens: lease.tokens,
-			});
+			page = await runProviderOperation(currentTime, (signal) =>
+				adapter.listMessages({
+					...request,
+					...sourceListInput(input.source),
+					tokens: lease.tokens,
+					signal,
+				}),
+			);
 		} catch (error) {
+			if (error instanceof MailboxProviderRequestAbort) {
+				return error.reason === "caller-cancelled"
+					? { kind: "cancelled" }
+					: { kind: "lease-lost" };
+			}
 			if (!(error instanceof MailboxProviderError)) throw error;
 			if (error.provider !== connection.provider) throw error;
 			providerError = error;
 			page = undefined as never;
+		}
+		if (input.signal?.aborted) return { kind: "cancelled" };
+		const afterProvider = readClock();
+		if (afterProvider.getTime() >= lease.leaseFence.expiresAt.getTime()) {
+			return { kind: "lease-lost" };
 		}
 
 		const transition = providerError
@@ -635,6 +684,8 @@ export async function runMailboxSyncStream(
 
 		if (transition.kind === "reset-cursor") {
 			const nextCheckpoint = durableCheckpoint(transition.state, false, []);
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedRunResult(
 				await dependencies.store.checkpointCursorReset({
 					...context,
@@ -655,6 +706,8 @@ export async function runMailboxSyncStream(
 				false,
 				continuationFingerprints,
 			);
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedRunResult(
 				await dependencies.store.settleRetry({
 					...context,
@@ -671,6 +724,8 @@ export async function runMailboxSyncStream(
 		}
 		if (transition.kind === "reauthorize") {
 			if (!providerError) throw new Error("mailbox-sync-transition-mismatch");
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedRunResult(
 				await dependencies.store.settleReauthorization({
 					...context,
@@ -686,6 +741,8 @@ export async function runMailboxSyncStream(
 			return { kind: "reauthorization-required" };
 		}
 		if (transition.kind === "fail") {
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedRunResult(
 				await dependencies.store.settleDeadLetter({
 					...context,
@@ -703,6 +760,8 @@ export async function runMailboxSyncStream(
 			? continuationFingerprint(page.nextPageToken)
 			: null;
 		if (nextFingerprint && continuationFingerprints.includes(nextFingerprint)) {
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedRunResult(
 				await dependencies.store.settleDeadLetter({
 					...context,
@@ -730,6 +789,8 @@ export async function runMailboxSyncStream(
 			terminal,
 			nextFingerprints,
 		);
+		const controlFlow = controlFlowBeforeMutation();
+		if (controlFlow) return controlFlow;
 		const settlementFenceResult = fencedRunResult(
 			await dependencies.store.commitPageAndCheckpoint({
 				...context,
@@ -761,6 +822,8 @@ export async function runMailboxSyncStream(
 			tombstonesProjected,
 		};
 		if (transition.truncated) {
+			const controlFlow = controlFlowBeforeMutation();
+			if (controlFlow) return controlFlow;
 			const fenced = fencedRunResult(
 				await dependencies.store.settleContinuation(settlement),
 			);
@@ -773,6 +836,8 @@ export async function runMailboxSyncStream(
 				tombstonesProjected,
 			};
 		}
+		const completeControlFlow = controlFlowBeforeMutation();
+		if (completeControlFlow) return completeControlFlow;
 		const fenced = fencedRunResult(
 			await dependencies.store.settleComplete(settlement),
 		);
