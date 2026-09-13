@@ -1,8 +1,8 @@
-import { salesRequestPilotReviewDecisionInputSchema } from "@api/services/sales-request-pilot-review";
 import {
 	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
 	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
-} from "@api/services/sales-request-telemetry";
+} from "@api/services/sales-request-feedback";
+import { salesRequestPilotReviewDecisionInputSchema } from "@api/services/sales-request-pilot-review";
 import {
 	salesRequestAISelectionSchema,
 	salesRequestCatalogPolicySchema,

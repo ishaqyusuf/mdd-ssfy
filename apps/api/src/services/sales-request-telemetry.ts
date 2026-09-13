@@ -1,7 +1,20 @@
 import { createHmac } from "node:crypto";
 import type { NewSalesFormSeed } from "@gnd/sales/sales-form-core";
-import { isValidSalesRequestPilotFeedback } from "./sales-request-pilot-evidence";
+import {
+	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
+	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
+	isValidSalesRequestPilotFeedback,
+} from "./sales-request-feedback";
 import type { SalesRequestProviderFailureDiagnostic } from "./sales-request-provider";
+
+export {
+	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
+	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
+} from "./sales-request-feedback";
+export type {
+	SalesRequestGenerationChangedFieldCategory,
+	SalesRequestGenerationIssueCategory,
+} from "./sales-request-feedback";
 
 export const SALES_REQUEST_GENERATION_STATUSES = [
 	"started",
@@ -17,41 +30,6 @@ export const SALES_REQUEST_GENERATION_STATUSES = [
 
 export type SalesRequestGenerationStatus =
 	(typeof SALES_REQUEST_GENERATION_STATUSES)[number];
-
-export const SALES_REQUEST_GENERATION_ISSUE_CATEGORIES = [
-	"ambiguous",
-	"unreadable",
-	"unsupported",
-	"missing-component",
-	"hidden-component",
-	"dependency",
-	"unpriced",
-	"wrong-quantity",
-	"wrong-delivery",
-	"wrong-component",
-	"unsafe-selection",
-	"other",
-] as const;
-
-export type SalesRequestGenerationIssueCategory =
-	(typeof SALES_REQUEST_GENERATION_ISSUE_CATEGORIES)[number];
-
-export const SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES = [
-	"customer",
-	"delivery",
-	"line-items",
-	"components",
-	"quantities",
-	"hpt",
-	"moulding",
-	"services",
-	"notes",
-	"extra-costs",
-	"other",
-] as const;
-
-export type SalesRequestGenerationChangedFieldCategory =
-	(typeof SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES)[number];
 
 export const SALES_REQUEST_GENERATION_FAILURE_STAGES = [
 	"provider-api",

@@ -3,6 +3,7 @@ import {
 	salesRequestPilotThresholdPolicySchema,
 } from "@gnd/settings";
 import { z } from "zod";
+import { isValidSalesRequestPilotFeedback } from "./sales-request-feedback";
 import {
 	type SalesRequestPilotEvidenceSignoff,
 	salesRequestPilotEvidenceSignoffSchema,
@@ -34,11 +35,6 @@ const providerTerminalStatuses = new Set([
 	"provider-error",
 	"invalid-output",
 	"configuration-changed",
-]);
-const feedbackOutcomes = new Set([
-	"accepted",
-	"accepted-with-edits",
-	"rejected",
 ]);
 
 export type SalesRequestPilotEvidenceRow = {
@@ -329,39 +325,6 @@ function validIssueCounts(value: unknown): value is {
 		boundedInteger(counts.unreadable, 100_000) &&
 		boundedInteger(counts.unsupported, 100_000)
 	);
-}
-
-/**
- * Validate persisted pilot feedback before it contributes to evidence or
- * comparison metrics. This intentionally covers legacy rows that may predate
- * the current ingress schema.
- */
-export function isValidSalesRequestPilotFeedback(
-	row: SalesRequestPilotEvidenceRow,
-) {
-	if (
-		typeof row.feedbackOutcome === "string" &&
-		feedbackOutcomes.has(row.feedbackOutcome) &&
-		Array.isArray(row.feedbackIssueCategories) &&
-		row.feedbackIssueCategories.length <= 12 &&
-		row.feedbackIssueCategories.every((value) => typeof value === "string")
-	) {
-		if (row.feedbackOutcome === "rejected") {
-			return row.feedbackIssueCategories.length > 0;
-		}
-		if (row.feedbackOutcome === "accepted-with-edits") {
-			return (
-				Array.isArray(row.feedbackChangedFieldCategories) &&
-				row.feedbackChangedFieldCategories.length > 0 &&
-				row.feedbackChangedFieldCategories.length <= 12 &&
-				row.feedbackChangedFieldCategories.every(
-					(value) => typeof value === "string",
-				)
-			);
-		}
-		return true;
-	}
-	return false;
 }
 
 function percentile(values: readonly number[], proportion: number) {

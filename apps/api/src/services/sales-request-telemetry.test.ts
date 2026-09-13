@@ -292,6 +292,37 @@ describe("sales request telemetry boundaries", () => {
 		});
 	});
 
+	test("fails comparison feedback coverage closed for unknown legacy categories", () => {
+		const report = aggregateSalesRequestGenerationRuns([
+			{
+				actorUserId: 17,
+				status: "succeeded",
+				consumedSalesId: null,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T10:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T10:05:00.000Z"),
+				feedbackOutcome: "accepted-with-edits",
+				feedbackIssueCategories: [],
+				feedbackChangedFieldCategories: ["invented-category"],
+			},
+		]);
+
+		expect(report.representativeComparison).toMatchObject({
+			comparison: {
+				status: "insufficient-evidence",
+				blockers: expect.arrayContaining(["assistive-feedback-incomplete"]),
+				observedLowTouchMinusAssistive: null,
+			},
+			arms: {
+				assistiveTextFirst: {
+					finalizedCount: 1,
+					correctionRate: { reviewedCount: 0, rateBasisPoints: null },
+				},
+			},
+		});
+	});
+
 	test("keeps incomplete, anonymized, or unclassified evidence out of comparison arms", () => {
 		const report = aggregateSalesRequestGenerationRuns([
 			{
