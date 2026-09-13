@@ -23,13 +23,14 @@ T19A foundation and single-account administrator presentation implemented on 202
 ## Dashboard
 
 - `/settings/assistant` is a normal dashboard settings page available only to Super Admin.
-- The access table shows the employee, enabled/disabled/revoked state, scheduled expiry, last reason, and last change.
+- The route follows the Midday dashboard pattern: server-side query prefetch, hydration, suspense/error boundaries, a compositional page header, and a dedicated `tables-2/assistant-access` feature folder.
+- The access table reads real employee accounts through `assistant.adminEntitlements` and shows the employee, enabled/disabled/revoked state, scheduled expiry, last reason, and last change.
 - Changing access opens a review dialog that requires an audit reason and supports an optional future expiry.
-- `/assistant-admin-preview` demonstrates the screen with synthetic records inside the standard dashboard header/sidebar layout and cannot mutate account access.
+- `/assistant-admin-preview` redirects to the canonical live settings route; synthetic employee fixtures are no longer part of the product UI.
 
 ## Validation
 
 - Focused entitlement and sidebar checks: 21 tests / 73 assertions.
 - Prisma client generation and focused Biome checks pass.
 - API typecheck reports only the existing unrelated Sales nullability diagnostic.
-- In-app browser validation confirmed the synthetic access screen at desktop width. An explicit UTC formatter removed the server/client hydration mismatch found during the first pass.
+- In-app browser validation confirmed the standard dashboard shell and 55 real database employee accounts at desktop width. No entitlement was changed during verification.
