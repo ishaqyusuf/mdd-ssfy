@@ -26,6 +26,7 @@ export const assistantResultStatuses = [
 	"denied",
 	"conflict",
 	"failed",
+	"not_implemented",
 ] as const;
 
 export const assistantSourceKinds = [

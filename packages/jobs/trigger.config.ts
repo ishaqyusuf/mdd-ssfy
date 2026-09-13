@@ -69,6 +69,6 @@ export default defineConfig({
     ],
     external: ["canvas", "next"],
   },
-  dirs: ["./src/tasks"],
+  dirs: ["./src/tasks", "../../apps/api/src/assistant/tasks"],
   instrumentations: [new PrismaInstrumentation()],
 });

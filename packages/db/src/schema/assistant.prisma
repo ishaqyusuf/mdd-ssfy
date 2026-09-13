@@ -13,10 +13,170 @@ model AssistantConversation {
     updatedAt      DateTime           @updatedAt
     messages       AssistantMessage[]
     runs           AssistantRun[]
+    featureRequests AssistantFeatureRequest[]
 
     @@index([ownerUserId, archivedAt, deletedAt, updatedAt], map: "asst_conv_owner_active_idx")
     @@index([ownerUserId, scopeType, scopeId, deletedAt], map: "asst_conv_scope_idx")
     @@index([retentionUntil, deletedAt], map: "asst_conv_retention_idx")
+}
+
+model AssistantFeatureRequest {
+    id                 String   @id @default(cuid()) @db.VarChar(191)
+    ownerUserId        Int
+    scopeType          String   @db.VarChar(50)
+    scopeId            String   @db.VarChar(191)
+    conversationId     String?  @db.VarChar(191)
+    canonicalKey       String   @db.Char(64)
+    summary            String   @db.VarChar(500)
+    category           String   @db.VarChar(50)
+    capabilityKey      String?  @db.VarChar(191)
+    classifierVersion  String   @db.VarChar(64)
+    status             String   @default("submitted") @db.VarChar(32)
+    occurrenceCount    Int      @default(1)
+    lastEventSequence  Int      @default(0)
+    analysisStatus     String   @default("queued") @db.VarChar(32)
+    analysis            Json?    @db.Json
+    analysisRevision   String?   @db.VarChar(64)
+    knowledgeSnapshot  Json      @db.Json
+    assignedToUserId   Int?
+    mergedIntoId       String?   @db.VarChar(191)
+    releaseId          String?   @db.VarChar(191)
+    reviewedAnalysisAt DateTime? @db.Timestamp(0)
+    reviewedByUserId   Int?
+    createdAt          DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime  @updatedAt
+    conversation       AssistantConversation? @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    mergedInto         AssistantFeatureRequest? @relation("assistantFeatureRequestMerge", fields: [mergedIntoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    mergedRequests     AssistantFeatureRequest[] @relation("assistantFeatureRequestMerge")
+    release            AssistantCapabilityRelease? @relation(fields: [releaseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    submissions        AssistantFeatureRequestSubmission[]
+    subscriptions      AssistantFeatureSubscription[]
+    events             AssistantFeatureRequestEvent[]
+    analysisJobs       AssistantFeatureAnalysisJob[]
+    outbox             AssistantFeatureNotificationOutbox[]
+
+    @@unique([scopeType, scopeId, canonicalKey], map: "asst_feature_request_scope_key_uq")
+    @@index([scopeType, scopeId, status, updatedAt], map: "asst_feature_request_scope_status_idx")
+    @@index([analysisStatus, updatedAt], map: "asst_feature_request_analysis_idx")
+    @@index([assignedToUserId, status, updatedAt], map: "asst_feature_request_owner_idx")
+    @@index([conversationId, createdAt], map: "asst_feature_request_conversation_idx")
+    @@index([mergedIntoId], map: "asst_feature_request_merge_idx")
+    @@index([releaseId], map: "asst_feature_request_release_idx")
+}
+
+model AssistantFeatureRequestSubmission {
+    id                 String   @id @default(cuid()) @db.VarChar(191)
+    requestId          String   @db.VarChar(191)
+    reporterUserId     Int
+    scopeType          String   @db.VarChar(50)
+    scopeId            String   @db.VarChar(191)
+    clientRequestId    String   @db.VarChar(191)
+    summary            String   @db.VarChar(500)
+    evidence           Json     @db.Json
+    consentVersion     String   @db.VarChar(64)
+    releaseOptIn       Boolean  @default(false)
+    createdAt          DateTime @default(now()) @db.Timestamp(0)
+    request            AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([reporterUserId, scopeType, scopeId, clientRequestId], map: "asst_feature_submission_request_uq")
+    @@index([reporterUserId, scopeType, scopeId, createdAt], map: "asst_feature_submission_reporter_idx")
+    @@index([requestId, createdAt], map: "asst_feature_submission_feature_idx")
+}
+
+model AssistantFeatureSubscription {
+    id               String    @id @default(cuid()) @db.VarChar(191)
+    requestId        String    @db.VarChar(191)
+    userId           Int
+    scopeType        String    @db.VarChar(50)
+    scopeId          String    @db.VarChar(191)
+    consentVersion   String    @db.VarChar(64)
+    consentEvidence  Json      @db.Json
+    activeKey        String    @default("active") @db.VarChar(191)
+    unsubscribedAt   DateTime? @db.Timestamp(0)
+    createdAt        DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime  @updatedAt
+    request          AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    outbox            AssistantFeatureNotificationOutbox[]
+
+    @@unique([requestId, userId, scopeType, scopeId, activeKey], map: "asst_feature_subscription_active_uq")
+    @@index([userId, scopeType, scopeId, unsubscribedAt], map: "asst_feature_subscription_user_idx")
+}
+
+model AssistantFeatureRequestEvent {
+    id          String   @id @default(cuid()) @db.VarChar(191)
+    requestId   String   @db.VarChar(191)
+    sequence    Int
+    type        String   @db.VarChar(50)
+    actorUserId Int?
+    payload     Json?    @db.Json
+    createdAt   DateTime @default(now()) @db.Timestamp(0)
+    request     AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([requestId, sequence], map: "asst_feature_event_sequence_uq")
+    @@index([requestId, createdAt], map: "asst_feature_event_request_idx")
+}
+
+model AssistantFeatureAnalysisJob {
+    id                String    @id @default(cuid()) @db.VarChar(191)
+    requestId         String    @db.VarChar(191)
+    revision          Int       @default(1)
+    status            String    @default("queued") @db.VarChar(32)
+    attempts          Int       @default(0)
+    maxAttempts       Int       @default(3)
+    claimedAt         DateTime? @db.Timestamp(0)
+    completedAt       DateTime? @db.Timestamp(0)
+    lastErrorCode     String?   @db.VarChar(100)
+    createdAt         DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime  @updatedAt
+    request           AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([requestId, revision], map: "asst_feature_analysis_revision_uq")
+    @@index([status, createdAt], map: "asst_feature_analysis_queue_idx")
+}
+
+model AssistantCapabilityRelease {
+    id                String    @id @default(cuid()) @db.VarChar(191)
+    capabilityKey     String    @db.VarChar(191)
+    version           String    @db.VarChar(64)
+    title             String    @db.VarChar(200)
+    status            String    @default("draft") @db.VarChar(32)
+    requiredGrants    Json      @db.Json
+    rolloutEvidence   Json?     @db.Json
+    verifiedAt        DateTime? @db.Timestamp(0)
+    verifiedByUserId  Int?
+    publishedAt       DateTime? @db.Timestamp(0)
+    publishedByUserId Int?
+    createdAt         DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime  @updatedAt
+    requests          AssistantFeatureRequest[]
+    outbox            AssistantFeatureNotificationOutbox[]
+
+    @@unique([capabilityKey, version], map: "asst_capability_release_version_uq")
+    @@index([status, verifiedAt, publishedAt], map: "asst_capability_release_status_idx")
+}
+
+model AssistantFeatureNotificationOutbox {
+    id             String    @id @default(cuid()) @db.VarChar(191)
+    requestId      String    @db.VarChar(191)
+    subscriptionId String?   @db.VarChar(191)
+    releaseId      String?   @db.VarChar(191)
+    kind           String    @db.VarChar(40)
+    dedupeKey      String    @unique(map: "asst_feature_notice_dedupe_uq") @db.Char(64)
+    status         String    @default("pending") @db.VarChar(32)
+    attempts       Int       @default(0)
+    availableAt    DateTime  @default(now()) @db.Timestamp(0)
+    deliveredAt    DateTime? @db.Timestamp(0)
+    lastErrorCode  String?   @db.VarChar(100)
+    createdAt      DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime  @updatedAt
+    request        AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    subscription   AssistantFeatureSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    release        AssistantCapabilityRelease? @relation(fields: [releaseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([status, availableAt], map: "asst_feature_notice_queue_idx")
+    @@index([requestId, kind, createdAt], map: "asst_feature_notice_request_idx")
+    @@index([subscriptionId], map: "asst_feature_notice_subscription_idx")
+    @@index([releaseId], map: "asst_feature_notice_release_idx")
 }
 
 model AssistantMessage {

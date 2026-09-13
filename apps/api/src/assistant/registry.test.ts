@@ -44,6 +44,7 @@ describe("assistant tool registry", () => {
 			"sales_get_order_status",
 			"sales_get_timeline",
 			"system_explain_capability",
+			"system_request_capability",
 			"system_search_tools",
 		]);
 		expect(discovered.every((tool) => tool.capability === "implemented")).toBe(

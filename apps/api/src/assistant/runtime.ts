@@ -135,6 +135,19 @@ function assistantCardForOutput(output: unknown) {
 			description: "Try a different name, number, or date range.",
 		};
 	}
+	if (status === "not_implemented") {
+		const data =
+			envelope?.data && typeof envelope.data === "object"
+				? (envelope.data as Record<string, unknown>)
+				: null;
+		return {
+			kind: "missing-feature",
+			title: "This feature isn’t available yet",
+			description: "Would you like to notify the developers to build it?",
+			actionLabel: "Review feature request",
+			requestSummary: boundedRuntimeString(data?.summary, 500),
+		};
+	}
 	const cards = {
 		requires_input: {
 			kind: "ambiguity",
@@ -736,7 +749,7 @@ function requireAssistantApiKey(
 	return key;
 }
 
-function createAssistantModel(
+export function createAssistantModel(
 	selection: AssistantRuntimeSelection,
 	environment?: Readonly<Record<string, string | undefined>>,
 ): LanguageModel {

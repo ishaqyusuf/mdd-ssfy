@@ -171,6 +171,15 @@ const explainCapabilityDataSchema = z
 		]),
 	})
 	.strict();
+const requestCapabilityInputSchema = z
+	.object({ summary: z.string().trim().min(10).max(500) })
+	.strict();
+const requestCapabilityDataSchema = z
+	.object({
+		summary: z.string().trim().min(10).max(500),
+		classifierVersion: z.literal("assistant-feature-classifier-v1"),
+	})
+	.strict();
 const placeholderInputSchema = z
 	.object({
 		query: z.string().max(500).optional(),
@@ -2162,6 +2171,39 @@ const placeholders: AssistantToolDefinition[] = [
 
 export const assistantToolRegistry: AssistantToolDefinition[] = [
 	definition({
+		toolId: "system_request_capability",
+		version: 1,
+		domain: "system",
+		title: "Request a missing capability",
+		description:
+			"Prepare the unavailable-feature review card after tool search confirms that no current capability fulfills the request.",
+		capability: "implemented",
+		effect: "draft",
+		requiredGrants: [],
+		presentation: {
+			group: "System",
+			resultComponent: "feature-request",
+			icon: "message-square-plus",
+		},
+		inputSchema: requestCapabilityInputSchema,
+		outputSchema: requestCapabilityDataSchema,
+		alwaysActive: true,
+		handler(_context, rawInput) {
+			const input = requestCapabilityInputSchema.parse(rawInput);
+			return {
+				status: "not_implemented" as const,
+				data: {
+					summary: input.summary,
+					classifierVersion: "assistant-feature-classifier-v1" as const,
+				},
+				sources: [],
+				observedAt: new Date().toISOString(),
+				warnings: [],
+				allowedNextActions: [],
+			};
+		},
+	}),
+	definition({
 		toolId: "system_explain_capability",
 		version: 1,
 		domain: "system",
@@ -2292,6 +2334,49 @@ export function getAssistantRegistryPublicDefinitions() {
 		.sort((left, right) => left.toolId.localeCompare(right.toolId));
 }
 
+export function getAssistantRegistryKnowledgeDefinitions(options?: {
+	domain?: string;
+	maxSchemaContracts?: number;
+}) {
+	const contractIds = new Set(
+		assistantToolRegistry
+			.filter(
+				(definition) =>
+					!options?.domain ||
+					definition.domain === options.domain ||
+					definition.alwaysActive === true,
+			)
+			.sort((left, right) => left.toolId.localeCompare(right.toolId))
+			.slice(0, options?.maxSchemaContracts ?? 6)
+			.map(({ toolId }) => toolId),
+	);
+	return assistantToolRegistry
+		.map((definition) => ({
+			...publicDefinition(definition),
+			requiredGrants: [...definition.requiredGrants],
+			anyOfGrants: [...(definition.anyOfGrants ?? [])],
+			...(contractIds.has(definition.toolId)
+				? {
+						inputContract: z.toJSONSchema(definition.inputSchema),
+						outputContract: z.toJSONSchema(definition.outputSchema),
+					}
+				: {}),
+		}))
+		.sort((left, right) => left.toolId.localeCompare(right.toolId));
+}
+
+export function getAssistantReleaseAuthority(toolId: string) {
+	const definition = assistantToolRegistry.find(
+		(candidate) => candidate.toolId === toolId,
+	);
+	if (!definition) return null;
+	return {
+		...publicDefinition(definition),
+		requiredGrants: [...definition.requiredGrants],
+		anyOfGrants: [...(definition.anyOfGrants ?? [])],
+	};
+}
+
 function assistantResultEnvelope<T = never>(input: {
 	status:
 		| "success"
@@ -2302,7 +2387,8 @@ function assistantResultEnvelope<T = never>(input: {
 		| "unavailable"
 		| "denied"
 		| "conflict"
-		| "failed";
+		| "failed"
+		| "not_implemented";
 	data?: T;
 	sources?: Array<{ kind: "record"; id: string; label: string }>;
 	warnings?: string[];

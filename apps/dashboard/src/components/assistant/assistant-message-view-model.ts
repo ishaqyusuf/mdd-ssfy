@@ -36,7 +36,8 @@ export type AssistantResponseCardKind =
 	| "partial"
 	| "permission"
 	| "degraded"
-	| "recoverable-error";
+	| "recoverable-error"
+	| "missing-feature";
 
 export type AssistantMessageViewModel = {
 	text: string;
@@ -70,6 +71,7 @@ export type AssistantMessageViewModel = {
 		title: string;
 		description: string | null;
 		actionLabel: string | null;
+		requestSummary: string | null;
 	}>;
 	showThinking: boolean;
 	hasContent: boolean;
@@ -197,6 +199,7 @@ const assistantCardKinds = new Set<AssistantResponseCardKind>([
 	"permission",
 	"degraded",
 	"recoverable-error",
+	"missing-feature",
 ]);
 
 function normalizeAssistantCard(part: Record<string, unknown>) {
@@ -213,6 +216,7 @@ function normalizeAssistantCard(part: Record<string, unknown>) {
 		title,
 		description: boundedString(data?.description, 500),
 		actionLabel: boundedString(data?.actionLabel, 80),
+		requestSummary: boundedString(data?.requestSummary, 500),
 	};
 }
 

@@ -193,3 +193,19 @@ redacted execution evidence so eligible chat outcomes can become favorites. The
 full Assistant API suite passes 151 tests and 772 assertions. Saved-result refreshes
 cannot remount a different active conversation, unresolved drafts remain completed
 but non-reusable, and failed MCP recording cannot replace the original tool error.
+
+## Missing-feature intake and release notices — 2026-09-13
+
+T16 adds a typed missing-capability result and editable request flow in the normal
+Assistant dashboard toolbar. Missing capability remains distinct from permission,
+prerequisite, ambiguity, outage, and degraded-rollout states. `Not now` writes
+nothing; developer notification and the initially unchecked release opt-in are
+independent choices.
+
+Canonical scoped requests retain idempotent user submissions, minimal evidence,
+explicit subscriptions, immutable sequenced events, bounded cited AI analysis,
+developer ownership/merge/review state, verified capability releases, and a
+deduplicated notification outbox. Super Admins manage triage and publication.
+Release delivery repeats consent and current access checks and covers subscribers
+from canonical requests plus merged duplicates. Users can review request status and
+unsubscribe from the Assistant menu.

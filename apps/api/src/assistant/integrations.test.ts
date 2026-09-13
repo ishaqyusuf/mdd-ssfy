@@ -92,17 +92,13 @@ describe("assistant integrations", () => {
 		expect(sessionUserId).toBe("42");
 		expect(Object.keys(tools)).toEqual(["COMPOSIO_SEARCH_TOOLS"]);
 		expect(
-			await (tools.COMPOSIO_SEARCH_TOOLS as { execute: () => Promise<unknown> })
-				.execute(),
+			await (
+				tools.COMPOSIO_SEARCH_TOOLS as { execute: () => Promise<unknown> }
+			).execute(),
 		).toEqual({ successful: true });
 		expect(reauthorized).toBe(1);
 		expect(
-			await getAssistantComposioTools(
-				actor,
-				[],
-				environment,
-				createClient,
-			),
+			await getAssistantComposioTools(actor, [], environment, createClient),
 		).toEqual({});
 	});
 });

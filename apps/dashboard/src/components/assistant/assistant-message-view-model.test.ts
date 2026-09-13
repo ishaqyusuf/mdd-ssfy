@@ -123,8 +123,34 @@ describe("assistant message view model", () => {
 				title: "Some records are unavailable",
 				description: "Two sources could not be reached.",
 				actionLabel: "Retry",
+				requestSummary: null,
 			},
 		]);
+	});
+
+	test("accepts a bounded missing-feature card summary", () => {
+		const view = normalizeAssistantMessage(
+			{
+				parts: [
+					{
+						type: "data-assistant-card",
+						data: {
+							kind: "missing-feature",
+							title: "This feature isn’t available yet",
+							description: "Would you like to notify the developers?",
+							actionLabel: "Review feature request",
+							requestSummary:
+								"Compose a training video from an approved script",
+						},
+					},
+				],
+			},
+			{ isStreaming: false, isLastMessage: true },
+		);
+		expect(view.cards[0]).toMatchObject({
+			kind: "missing-feature",
+			requestSummary: "Compose a training video from an approved script",
+		});
 	});
 
 	test("drops malformed parts and unsafe external sources", () => {

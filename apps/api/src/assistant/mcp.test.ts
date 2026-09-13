@@ -20,6 +20,7 @@ describe("assistant in-memory MCP", () => {
 			"sales_get_order_status",
 			"sales_get_timeline",
 			"system_explain_capability",
+			"system_request_capability",
 			"system_search_tools",
 		]);
 		expect(Object.keys(session.tools).sort()).toEqual([
@@ -32,6 +33,7 @@ describe("assistant in-memory MCP", () => {
 			"sales_get_order_status",
 			"sales_get_timeline",
 			"system_explain_capability",
+			"system_request_capability",
 			"system_search_tools",
 		]);
 		expect(session.toolEffects).toEqual({
@@ -44,6 +46,7 @@ describe("assistant in-memory MCP", () => {
 			sales_get_order_status: "read",
 			sales_get_timeline: "read",
 			system_explain_capability: "read",
+			system_request_capability: "draft",
 			system_search_tools: "read",
 		});
 		expect(

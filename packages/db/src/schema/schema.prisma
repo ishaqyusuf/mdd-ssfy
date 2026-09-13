@@ -381,6 +381,7 @@ model Notifications {
     createdAt   DateTime? @default(now()) @db.Timestamp(0)
     updatedAt   DateTime? @updatedAt
     deletedAt   DateTime?
+    assistantDeliveryKey String? @unique(map: "notifications_assistant_delivery_uq") @db.Char(64)
 
     @@index([createdAt, deletedAt, userId, seenAt, archivedAt])
     @@index([userId])

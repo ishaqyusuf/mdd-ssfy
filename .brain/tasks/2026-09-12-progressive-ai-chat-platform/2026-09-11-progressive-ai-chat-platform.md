@@ -22,15 +22,16 @@ In Progress
 User requested a detailed Brain plan, full checklist and broader suggestions for Midday-style progressive AI chat across GND, with schema-aware queries, user permissions, PDFs, order creation, personal reusable actions, and consented developer feature requests with release notifications.
 
 ## Implementation Progress
-- Completion: UI-first slice 5/5 (100%); roadmap ticketization 4/4 (100%); platform tickets 10/19 complete
-- Current Checklist: T11 production, inventory, fulfillment, and Community reads is in progress
-- Blockers: None for T11 implementation; pilot activation remains gated by T17.
+- Completion: UI-first slice 5/5 (100%); roadmap ticketization 5/5 (100%); platform tickets 16/20 complete
+- Current Checklist: T17 approval and execution safety is next
+- Blockers: None for T17 implementation.
 
 ## Roadmap Ticketization Checklist (2026-09-12)
 - [x] Audit the current local Midday assistant implementation and separate verified parity from GND extensions.
 - [x] Create the Midday parity matrix and dependency-ordered six-wave roadmap.
 - [x] Create the initial 18 dedicated implementation tickets and register each once in the Backlog ledger.
 - [x] Add T19 for individual access, usage metering/limits, and super-admin request governance.
+- [x] Add T20 for the complete Assistant admin, feature-delivery, implementation-history, and adoption workspace.
 
 ## UI-first Checklist (2026-09-12)
 - [x] Build assistant shell, composer and preview scenarios.
@@ -53,8 +54,9 @@ The linked plan owns detailed implementation and validation checklists.
 ## Dedicated Ticket Queue
 
 - T01–T09: Midday parity foundation and interaction behavior; complete.
-- T10: Sales and customer read tools complete. T11–T14: operations reads, PDFs, order drafts, schema-aware analytics, and charts.
-- T15–T19: favorites/preferences, missing-feature lifecycle, approval/security, individual access/usage governance, evaluations, and rollout.
+- T01–T15 complete: Midday chat parity, GND reads, PDFs, order drafts, analytics/charts, and saved actions/preferences.
+- T16 complete: missing-feature intake, triage, analysis, release subscriptions, and verified notices.
+- T17–T20: approval/security, individual access/usage governance, the admin feature-delivery center, evaluations, and rollout.
 
 See the linked plan's **Ticket Roadmap** and the [Midday parity contract](../../features/progressive-ai-chat-midday-parity.md) for exact file links and dependencies.
 

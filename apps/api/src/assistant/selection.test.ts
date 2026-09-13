@@ -25,6 +25,7 @@ describe("assistant tool selection", () => {
 
 		expect(selected.sort()).toEqual([
 			"system_explain_capability",
+			"system_request_capability",
 			"system_search_tools",
 		]);
 		expect(selected).not.toContain("sales_create_order");
@@ -33,12 +34,13 @@ describe("assistant tool selection", () => {
 
 	test("keeps capability discovery active across selections", async () => {
 		const selected = await selectAssistantTools(actor, "help me", {
-			maxTools: 2,
+			maxTools: 3,
 			environment: {},
 		});
 
 		expect(selected.sort()).toEqual([
 			"system_explain_capability",
+			"system_request_capability",
 			"system_search_tools",
 		]);
 		expect(

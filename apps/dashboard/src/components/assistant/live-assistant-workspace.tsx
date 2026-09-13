@@ -21,6 +21,7 @@ import {
 	History,
 	LoaderCircle,
 	MessageSquare,
+	MessageSquarePlus,
 	Plus,
 	RefreshCw,
 	Search,
@@ -57,8 +58,9 @@ import {
 	shouldSubmitAssistantComposerKey,
 } from "./assistant-chat-state";
 import { findAssistantDocumentEntity } from "./assistant-entities";
+import { AssistantFeatureRequestsDialog } from "./assistant-feature-requests-dialog";
 import { AssistantMessageRenderer } from "./assistant-message-renderer";
-import type { AssistantResponseCardKind } from "./assistant-message-view-model";
+import type { AssistantMessageViewModel } from "./assistant-message-view-model";
 import {
 	type AssistantOrderDraft,
 	AssistantOrderDraftCanvas,
@@ -126,6 +128,11 @@ function AssistantConversation(props: {
 	mentionedIntegrationIds: string[];
 	onIntegrationsSent: () => void;
 	onSuccessfulRun: (runId: string | null) => void;
+	onFeatureRequest: (input: {
+		summary: string;
+		runId: string | null;
+		messageId: string;
+	}) => void;
 }) {
 	const client = useTRPCClient();
 	const [input, setInput] = useState("");
@@ -421,8 +428,16 @@ function AssistantConversation(props: {
 	};
 
 	const busy = chat.status === "streaming" || chat.status === "submitted";
-	const retryLatest = useCallback(
-		(_kind?: AssistantResponseCardKind) => {
+	const handleCardAction = useCallback(
+		(card: AssistantMessageViewModel["cards"][number], messageId: string) => {
+			if (card.kind === "missing-feature" && card.requestSummary) {
+				props.onFeatureRequest({
+					summary: card.requestSummary,
+					runId: streamState.runId,
+					messageId,
+				});
+				return;
+			}
 			shouldStickRef.current = true;
 			const latestUser = [...chat.messages]
 				.reverse()
@@ -433,7 +448,7 @@ function AssistantConversation(props: {
 			chat.clearError();
 			void chat.regenerate();
 		},
-		[chat],
+		[chat, props.onFeatureRequest, streamState.runId],
 	);
 	const activeRun =
 		props.conversation.latestRun &&
@@ -465,7 +480,9 @@ function AssistantConversation(props: {
 									isStreaming={busy}
 									isLastMessage={message.id === latestMessageId}
 									onCardAction={
-										message.id === latestMessageId ? retryLatest : undefined
+										message.id === latestMessageId
+											? (card) => handleCardAction(card, message.id)
+											: undefined
 									}
 									onOpenEntity={openEntity}
 									onOpenOrderDraft={(draft) => {
@@ -670,6 +687,16 @@ export function LiveAssistantWorkspace() {
 	const [providersOpen, setProvidersOpen] = useState(false);
 	const [favoritesOpen, setFavoritesOpen] = useState(false);
 	const [preferencesOpen, setPreferencesOpen] = useState(false);
+	const requestedFeatureMode =
+		searchParams.get("featureRequests") === "triage" ? "triage" : "mine";
+	const [featureRequestsOpen, setFeatureRequestsOpen] = useState(() =>
+		["mine", "triage"].includes(searchParams.get("featureRequests") ?? ""),
+	);
+	const [initialFeatureRequest, setInitialFeatureRequest] = useState<{
+		summary: string;
+		runId: string | null;
+		messageId: string | null;
+	} | null>(null);
 	const [suggestedRunId, setSuggestedRunId] = useState<string | null>(null);
 	const [conversationRenderRevision, setConversationRenderRevision] =
 		useState(0);
@@ -935,6 +962,16 @@ export function LiveAssistantWorkspace() {
 					variant="ghost"
 					size="sm"
 					onClick={() => {
+						setInitialFeatureRequest(null);
+						setFeatureRequestsOpen(true);
+					}}
+				>
+					<MessageSquarePlus size={16} /> Requests
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={() => {
 						setHistoryOpen(true);
 						void loadHistory(search);
 					}}
@@ -1024,6 +1061,10 @@ export function LiveAssistantWorkspace() {
 					mentionedIntegrationIds={mentionedIntegrationIds}
 					onIntegrationsSent={() => setMentionedIntegrationIds([])}
 					onSuccessfulRun={setSuggestedRunId}
+					onFeatureRequest={(request) => {
+						setInitialFeatureRequest(request);
+						setFeatureRequestsOpen(true);
+					}}
 				/>
 			) : (
 				<>
@@ -1167,6 +1208,13 @@ export function LiveAssistantWorkspace() {
 				onUsePrompt={useSavedPrompt}
 				onConversationChanged={() => undefined}
 				onSuggestionSaved={() => undefined}
+			/>
+			<AssistantFeatureRequestsDialog
+				open={featureRequestsOpen}
+				onOpenChange={setFeatureRequestsOpen}
+				conversationId={conversationId}
+				initialRequest={initialFeatureRequest}
+				initialMode={requestedFeatureMode}
 			/>
 			<Dialog open={providersOpen} onOpenChange={setProvidersOpen}>
 				<DialogContent className="sm:max-w-md">

@@ -216,7 +216,7 @@ function AssistantResponseCards({
 	onAction,
 }: {
 	cards: AssistantMessageViewModel["cards"];
-	onAction?: (kind: AssistantMessageViewModel["cards"][number]["kind"]) => void;
+	onAction?: (card: AssistantMessageViewModel["cards"][number]) => void;
 }) {
 	return cards.map((card, index) => (
 		<aside
@@ -235,7 +235,7 @@ function AssistantResponseCards({
 				<strong>{card.title}</strong>
 				{card.description ? <p>{card.description}</p> : null}
 				{card.actionLabel && onAction ? (
-					<button type="button" onClick={() => onAction(card.kind)}>
+					<button type="button" onClick={() => onAction(card)}>
 						{card.actionLabel}
 					</button>
 				) : null}
@@ -288,9 +288,7 @@ function AssistantMessage({
 	message: UIMessage;
 	isStreaming: boolean;
 	isLastMessage: boolean;
-	onCardAction?: (
-		kind: AssistantMessageViewModel["cards"][number]["kind"],
-	) => void;
+	onCardAction?: (card: AssistantMessageViewModel["cards"][number]) => void;
 	onOpenEntity?: (
 		entity: AssistantMessageViewModel["entities"][number],
 	) => void;
@@ -375,9 +373,7 @@ export function AssistantMessageRenderer(props: {
 	message: UIMessage;
 	isStreaming: boolean;
 	isLastMessage: boolean;
-	onCardAction?: (
-		kind: AssistantMessageViewModel["cards"][number]["kind"],
-	) => void;
+	onCardAction?: (card: AssistantMessageViewModel["cards"][number]) => void;
 	onOpenEntity?: (
 		entity: AssistantMessageViewModel["entities"][number],
 	) => void;

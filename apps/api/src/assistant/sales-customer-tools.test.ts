@@ -116,7 +116,11 @@ describe("assistant Sales and customer tools", () => {
 			discoverAssistantTools({ ...actor, grants: {} }).map(
 				(tool) => tool.toolId,
 			),
-		).toEqual(["system_explain_capability", "system_search_tools"]);
+		).toEqual([
+			"system_explain_capability",
+			"system_request_capability",
+			"system_search_tools",
+		]);
 		const customerOnly = discoverAssistantTools({
 			...actor,
 			grants: { viewCustomers: true },

@@ -1,4 +1,21 @@
 import { resolveAssistantActor } from "@api/assistant/actor";
+import { analyzeAssistantFeatureRequest } from "@api/assistant/feature-analysis";
+import { deliverAssistantFeatureNotification } from "@api/assistant/feature-notifications";
+import {
+	assistantCapabilityReleaseSchema,
+	assistantFeatureRequestStatuses,
+	assistantFeatureRequestSubmitSchema,
+	assistantFeatureTriageSchema,
+	listAssistantFeatureRequestsForTriage,
+	listMyAssistantFeatureRequests,
+	prepareAssistantFeatureRequest,
+	processNextAssistantFeatureAnalysis,
+	publishAssistantCapabilityRelease,
+	retryAssistantFeatureAnalysis,
+	submitAssistantFeatureRequest,
+	triageAssistantFeatureRequest,
+	unsubscribeAssistantFeatureRequest,
+} from "@api/assistant/feature-requests";
 import {
 	getAssistantConnectedApps,
 	getAssistantConnectorManagementUrl,
@@ -49,6 +66,31 @@ async function actorOrThrow(ctx: {
 	return actor;
 }
 
+async function featureAdminOrThrow(ctx: {
+	db: Parameters<typeof resolveAssistantActor>[0];
+	userId: number;
+}) {
+	const user = await ctx.db.users.findFirst({
+		where: { id: ctx.userId, deletedAt: null, accessRevokedAt: null },
+		select: {
+			roles: {
+				where: { deletedAt: null, role: { deletedAt: null } },
+				select: { role: { select: { name: true } } },
+			},
+		},
+	});
+	if (
+		!user?.roles.some(
+			(entry) => entry.role?.name?.toLowerCase() === "super admin",
+		)
+	)
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only Super Admin can manage Assistant feature requests.",
+		});
+	return ctx.userId;
+}
+
 function scope(actor: { userId: number; scopeType: string; scopeId: string }) {
 	return {
 		ownerUserId: actor.userId,
@@ -68,6 +110,78 @@ function notFound(error: unknown): never {
 }
 
 export const assistantRouter = createTRPCRouter({
+	prepareFeatureRequest: protectedProcedure
+		.input(z.object({ summary: z.string().trim().min(10).max(500) }))
+		.query(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return prepareAssistantFeatureRequest(actor, input.summary);
+		}),
+	submitFeatureRequest: protectedProcedure
+		.input(assistantFeatureRequestSubmitSchema)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return submitAssistantFeatureRequest(ctx.db, actor, input);
+		}),
+	featureRequestsMine: protectedProcedure.query(async ({ ctx }) => {
+		const actor = await actorOrThrow(ctx);
+		return listMyAssistantFeatureRequests(ctx.db, actor);
+	}),
+	unsubscribeFeatureRequest: protectedProcedure
+		.input(z.object({ requestId: z.string().trim().min(1).max(191) }))
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return unsubscribeAssistantFeatureRequest(ctx.db, actor, input.requestId);
+		}),
+	featureRequestAdminAccess: protectedProcedure.query(async ({ ctx }) => {
+		try {
+			await featureAdminOrThrow(ctx);
+			return { canTriage: true as const };
+		} catch (error) {
+			if (!(error instanceof TRPCError) || error.code !== "FORBIDDEN")
+				throw error;
+			return { canTriage: false as const };
+		}
+	}),
+	featureRequestsTriage: protectedProcedure
+		.input(
+			z.object({
+				status: z.enum(assistantFeatureRequestStatuses).optional(),
+				take: z.number().int().min(1).max(100).default(50),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await featureAdminOrThrow(ctx);
+			return listAssistantFeatureRequestsForTriage(ctx.db, input);
+		}),
+	triageFeatureRequest: protectedProcedure
+		.input(assistantFeatureTriageSchema)
+		.mutation(async ({ ctx, input }) => {
+			const adminUserId = await featureAdminOrThrow(ctx);
+			return triageAssistantFeatureRequest(ctx.db, adminUserId, input);
+		}),
+	retryFeatureAnalysis: protectedProcedure
+		.input(z.object({ requestId: z.string().trim().min(1).max(191) }))
+		.mutation(async ({ ctx, input }) => {
+			await featureAdminOrThrow(ctx);
+			return retryAssistantFeatureAnalysis(ctx.db, input.requestId);
+		}),
+	processFeatureAnalysis: protectedProcedure.mutation(async ({ ctx }) => {
+		await featureAdminOrThrow(ctx);
+		return processNextAssistantFeatureAnalysis(
+			ctx.db,
+			analyzeAssistantFeatureRequest,
+		);
+	}),
+	processFeatureNotification: protectedProcedure.mutation(async ({ ctx }) => {
+		await featureAdminOrThrow(ctx);
+		return deliverAssistantFeatureNotification(ctx.db);
+	}),
+	publishFeatureRelease: protectedProcedure
+		.input(assistantCapabilityReleaseSchema)
+		.mutation(async ({ ctx, input }) => {
+			const adminUserId = await featureAdminOrThrow(ctx);
+			return publishAssistantCapabilityRelease(ctx.db, adminUserId, input);
+		}),
 	savedActions: protectedProcedure.query(async ({ ctx }) => {
 		const actor = await actorOrThrow(ctx);
 		return listAssistantSavedActions(ctx.db, actor);

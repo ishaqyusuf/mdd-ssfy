@@ -490,6 +490,76 @@ describe("assistant runtime", () => {
 		expect(serialized).not.toContain("private MCP content");
 	});
 
+	test("emits an editable request card only for the trusted missing-capability tool", async () => {
+		const chunks: unknown[] = [];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { system_request_capability: {} },
+			trustedResultTools: ["system_request_capability"],
+			trustedResultToolEffects: { system_request_capability: "draft" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-call",
+							toolCallId: "feature-1",
+							toolName: "system_request_capability",
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "feature-1",
+							toolName: "system_request_capability",
+							output: {
+								structuredContent: {
+									status: "not_implemented",
+									data: {
+										summary: "Compose a training video from an approved script",
+										classifierVersion: "assistant-feature-classifier-v1",
+									},
+								},
+							},
+						};
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 2 }),
+				}),
+			}),
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(chunks).toContainEqual({
+			type: "data-assistant-card",
+			id: "card-feature-1",
+			data: {
+				kind: "missing-feature",
+				title: "This feature isn’t available yet",
+				description: "Would you like to notify the developers to build it?",
+				actionLabel: "Review feature request",
+				requestSummary: "Compose a training video from an approved script",
+			},
+		});
+	});
+
 	for (const terminalType of ["error", "abort"] as const) {
 		test(`closes partial stream parts and fails on ${terminalType} chunks`, async () => {
 			const chunks: unknown[] = [];

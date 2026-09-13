@@ -140,7 +140,9 @@ export async function benchmarkAssistantToolSelection() {
 					);
 					const queryIndex = cases.findIndex(({ query }) => query === value);
 					const quantized = definition
-						? toolVectors[definition.toolId]
+						? definition.toolId === "system_request_capability"
+							? Array.from({ length: embeddingFixture.dimension }, () => 0)
+							: toolVectors[definition.toolId]
 						: embeddingFixture.queries[queryIndex];
 					if (!quantized)
 						throw new Error("Embedding benchmark fixture drifted");
