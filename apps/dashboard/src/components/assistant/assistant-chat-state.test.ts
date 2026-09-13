@@ -1,10 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import {
 	buildAssistantChatRequest,
+	getAssistantIntegrationIdsForMessage,
+	getAssistantRequestId,
 	initialAssistantStreamState,
 	parseAssistantRequestLimit,
 	persistedMessagesToUi,
 	reduceAssistantData,
+	rotateAssistantRequestId,
+	shouldSubmitAssistantComposerKey,
 } from "./assistant-chat-state";
 
 describe("assistant chat state", () => {
@@ -25,6 +29,57 @@ describe("assistant chat state", () => {
 			parts: [{ type: "text", text: "latest" }],
 		});
 		expect(request.requestId.length > 0).toBe(true);
+	});
+
+	test("rotates request identity for an explicit retry", () => {
+		const requestIds = new Map<string, string>();
+		const first = getAssistantRequestId(requestIds, "message-1");
+		const retry = rotateAssistantRequestId(requestIds, "message-1");
+		expect(retry).not.toBe(first);
+		expect(getAssistantRequestId(requestIds, "message-1")).toBe(retry);
+	});
+
+	test("reuses one request identity for retries of the same user message", () => {
+		const requestIds = new Map<string, string>();
+		const first = getAssistantRequestId(requestIds, "message-1");
+		expect(getAssistantRequestId(requestIds, "message-1")).toBe(first);
+		expect(getAssistantRequestId(requestIds, "message-2")).not.toBe(first);
+	});
+
+	test("submits Enter while preserving Shift+Enter and IME composition", () => {
+		expect(
+			shouldSubmitAssistantComposerKey({
+				key: "Enter",
+				shiftKey: false,
+				isComposing: false,
+			}),
+		).toBe(true);
+		expect(
+			shouldSubmitAssistantComposerKey({
+				key: "Enter",
+				shiftKey: true,
+				isComposing: false,
+			}),
+		).toBe(false);
+		expect(
+			shouldSubmitAssistantComposerKey({
+				key: "Enter",
+				shiftKey: false,
+				isComposing: true,
+			}),
+		).toBe(false);
+	});
+
+	test("reuses the connector context captured by the original message", () => {
+		const integrations = new Map<string, string[]>();
+		expect(
+			getAssistantIntegrationIdsForMessage(integrations, "message-1", [
+				"quickbooks",
+			]),
+		).toEqual(["quickbooks"]);
+		expect(
+			getAssistantIntegrationIdsForMessage(integrations, "message-1", []),
+		).toEqual(["quickbooks"]);
 	});
 
 	test("reduces title, limits, run cursors, warnings and terminal state", () => {
@@ -63,6 +118,30 @@ describe("assistant chat state", () => {
 			runSequence: 4,
 			remaining: 99,
 		});
+	});
+
+	test("keeps bounded safe source links from stream data", () => {
+		const state = reduceAssistantData(initialAssistantStreamState, {
+			type: "data-source",
+			data: {
+				id: "web-1",
+				label: "Current source",
+				url: "https://example.com/source",
+			},
+		});
+		expect(state.sources).toEqual([
+			{
+				id: "web-1",
+				label: "Current source",
+				url: "https://example.com/source",
+			},
+		]);
+		expect(
+			reduceAssistantData(state, {
+				type: "data-run",
+				data: { runId: "run-next", status: "running" },
+			}).sources,
+		).toEqual([]);
 	});
 
 	test("hydrates durable user and assistant messages", () => {

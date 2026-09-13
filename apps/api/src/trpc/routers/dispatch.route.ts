@@ -2144,7 +2144,7 @@ export const dispatchRouters = createTRPCRouter({
 					),
 					folder: proofFolder,
 					contentType: attachment.contentType,
-					body: decodeValidatedDocumentBase64({
+					body: await decodeValidatedDocumentBase64({
 						content: attachment.base64,
 						contentType: attachment.contentType,
 						maxBytes: 5_500_000,

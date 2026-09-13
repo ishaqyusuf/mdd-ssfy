@@ -4,9 +4,17 @@ import {
 	appendAssistantGeneratedMessage,
 	getAssistantModelHistory,
 } from "@gnd/db/queries";
+import { get } from "@vercel/blob";
 import type { ModelMessage } from "ai";
+import { getDocument } from "pdfjs-dist/build/pdf.mjs";
+import sharp from "sharp";
+import { getAssistantComposioTools } from "./integrations";
 import { createAssistantMcpExecutionClient } from "./mcp";
-import { type AssistantRuntimeInput, createAssistantRuntime } from "./runtime";
+import {
+	type AssistantRuntimeInput,
+	createAssistantRuntime,
+	getAssistantRuntimeIdentity,
+} from "./runtime";
 import {
 	createAssistantPrepareStep,
 	warmAssistantToolIndex,
@@ -14,11 +22,20 @@ import {
 
 type AssistantTurnActor = AssistantRuntimeInput["actor"];
 
+const ASSISTANT_PREPROCESSING_DEADLINE_MS = 15_000;
+const ASSISTANT_MAX_IMAGE_PIXELS = 25_000_000;
+const ASSISTANT_MAX_NORMALIZED_IMAGE_BYTES = 8_000_000;
+
 type AssistantTurnDocument = {
 	id: string;
 	filename: string | null;
 	mimeType: string | null;
 	description: string | null;
+	url: string | null;
+	pathname: string;
+	size: number | null;
+	provider: string;
+	sourceType: string | null;
 };
 
 type AssistantTurnHistory = Array<{
@@ -41,6 +58,7 @@ type AssistantTurnOutcome =
 	  };
 
 type ExecuteAssistantTurnDependencies = {
+	preprocessingDeadlineMs: number;
 	loadHistory(input: {
 		actor: AssistantTurnActor;
 		conversationId: string;
@@ -49,6 +67,10 @@ type ExecuteAssistantTurnDependencies = {
 		conversationId: string;
 		documentIds: string[];
 	}): Promise<AssistantTurnDocument[]>;
+	loadDocumentBytes(input: {
+		document: AssistantTurnDocument;
+		signal: AbortSignal;
+	}): Promise<Uint8Array>;
 	executeRuntime(input: AssistantRuntimeInput): Promise<AssistantTurnOutcome>;
 	persistAssistantMessage(input: {
 		actor: AssistantTurnActor;
@@ -60,6 +82,7 @@ type ExecuteAssistantTurnDependencies = {
 };
 
 const defaultDependencies: ExecuteAssistantTurnDependencies = {
+	preprocessingDeadlineMs: ASSISTANT_PREPROCESSING_DEADLINE_MS,
 	loadHistory({ actor, conversationId }) {
 		return getAssistantModelHistory(db, {
 			conversationId,
@@ -78,6 +101,8 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 				status: "ready",
 				isCurrent: true,
 				visibility: "private",
+				provider: "vercel-blob",
+				sourceType: "authenticated_browser_upload",
 				deletedAt: null,
 			},
 			select: {
@@ -85,18 +110,56 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 				filename: true,
 				mimeType: true,
 				description: true,
+				url: true,
+				pathname: true,
+				size: true,
+				provider: true,
+				sourceType: true,
 			},
 		});
 	},
-	async executeRuntime(input) {
-		const session = await createAssistantMcpExecutionClient(
-			input.actor,
-			input.reauthorizeActor,
+	async loadDocumentBytes({ document, signal }) {
+		if (
+			document.provider !== "vercel-blob" ||
+			document.sourceType !== "authenticated_browser_upload"
+		) {
+			throw new Error("Uploaded document content is unavailable");
+		}
+		const response = await get(document.pathname, {
+			access: "private",
+			abortSignal: signal,
+			useCache: false,
+		});
+		if (!response?.stream || response.statusCode !== 200) {
+			throw new Error("Uploaded document content is unavailable");
+		}
+		if (response.blob.size > 8_000_000) {
+			throw new Error("Uploaded document is too large");
+		}
+		const bytes = new Uint8Array(
+			await new Response(response.stream).arrayBuffer(),
 		);
+		if (!bytes.length || bytes.length > 8_000_000) {
+			throw new Error("Uploaded document content is unavailable");
+		}
+		return bytes;
+	},
+	async executeRuntime(input) {
+		const [session, composioTools] = await Promise.all([
+			createAssistantMcpExecutionClient(input.actor, input.reauthorizeActor),
+			getAssistantComposioTools(
+				input.actor,
+				input.mentionedIntegrations.map(({ id }) => id),
+				process.env,
+				undefined,
+				input.reauthorizeActor,
+			),
+		]);
 		try {
 			await warmAssistantToolIndex(input.actor);
 			return await createAssistantRuntime({
-				modelTools: session.tools,
+				modelTools: { ...session.tools, ...composioTools },
+				alwaysActiveTools: Object.keys(composioTools),
 				prepareStep: createAssistantPrepareStep(input.actor),
 				cleanup: session.close,
 			}).execute(input);
@@ -118,6 +181,86 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 		});
 	},
 };
+
+function throwIfAssistantPreprocessingAborted(signal: AbortSignal) {
+	if (signal.aborted) {
+		throw signal.reason instanceof Error
+			? signal.reason
+			: new Error("Assistant attachment preprocessing was cancelled");
+	}
+}
+
+async function extractAssistantPdfText(bytes: Uint8Array, signal: AbortSignal) {
+	throwIfAssistantPreprocessingAborted(signal);
+	const loadingTask = getDocument({
+		data: bytes,
+		isEvalSupported: false,
+		stopAtErrors: true,
+	});
+	const abort = () => void loadingTask.destroy();
+	signal.addEventListener("abort", abort, { once: true });
+	try {
+		const document = await loadingTask.promise;
+		let text = "";
+		for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+			throwIfAssistantPreprocessingAborted(signal);
+			const page = await document.getPage(pageNumber);
+			const content = await page.getTextContent();
+			const pageText = content.items
+				.flatMap((item) => ("str" in item ? [item.str] : []))
+				.join(" ");
+			text += `\n[Page ${pageNumber}] ${pageText}`;
+			if (text.length > 50_000) return `${text.slice(0, 50_000)}\n[truncated]`;
+		}
+		return text.trim() || "[PDF contains no extractable text]";
+	} finally {
+		signal.removeEventListener("abort", abort);
+		await loadingTask.destroy();
+	}
+}
+
+async function prepareAssistantImage(
+	bytes: Uint8Array,
+	mimeType: string,
+	signal: AbortSignal,
+) {
+	throwIfAssistantPreprocessingAborted(signal);
+	const image = sharp(bytes, {
+		failOn: "warning",
+		limitInputPixels: ASSISTANT_MAX_IMAGE_PIXELS,
+		sequentialRead: true,
+	});
+	const abort = () =>
+		image.destroy(
+			signal.reason instanceof Error
+				? signal.reason
+				: new Error("Assistant attachment preprocessing was cancelled"),
+		);
+	signal.addEventListener("abort", abort, { once: true });
+	try {
+		const metadata = await image.metadata();
+		throwIfAssistantPreprocessingAborted(signal);
+		if (
+			!metadata.width ||
+			!metadata.height ||
+			metadata.width * metadata.height > ASSISTANT_MAX_IMAGE_PIXELS
+		) {
+			throw new Error("Uploaded image dimensions are too large");
+		}
+		const nativeMimeTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+		if (nativeMimeTypes.has(mimeType)) {
+			return { bytes, mimeType };
+		}
+		const normalized = new Uint8Array(await image.rotate().jpeg().toBuffer());
+		throwIfAssistantPreprocessingAborted(signal);
+		if (normalized.byteLength > ASSISTANT_MAX_NORMALIZED_IMAGE_BYTES) {
+			throw new Error("Normalized assistant image is too large");
+		}
+		return { bytes: normalized, mimeType: "image/jpeg" };
+	} finally {
+		signal.removeEventListener("abort", abort);
+	}
+}
 
 export async function executeAssistantConversationTurn(
 	input: {
@@ -148,13 +291,112 @@ export async function executeAssistantConversationTurn(
 		input.request.message.parts
 			.flatMap((part) => (part.type === "text" ? [part.text] : []))
 			.join("\n") || "Review the attached uploaded document context.";
-	const modelMessages: ModelMessage[] =
-		history.length > 0
-			? history.map((message) => ({
-					role: message.role,
-					content: message.text,
-				}))
-			: [{ role: "user", content: fallbackText }];
+	const declaredAttachmentBytes = documents.reduce(
+		(total, document) => total + (document.size ?? 8_000_000),
+		0,
+	);
+	if (declaredAttachmentBytes > 16_000_000) {
+		throw new Error("Assistant attachments cannot exceed 16 MB per message");
+	}
+	const preprocessingController = new AbortController();
+	const preprocessingTimeout = setTimeout(
+		() =>
+			preprocessingController.abort(
+				new Error("Assistant attachment preprocessing timed out"),
+			),
+		Math.max(1, dependencies.preprocessingDeadlineMs),
+	);
+	const preprocessingSignal = AbortSignal.any([
+		input.signal,
+		preprocessingController.signal,
+	]);
+	let attachmentParts: Array<
+		| { type: "text"; text: string }
+		| { type: "image"; image: Uint8Array; mediaType: string }
+	>;
+	try {
+		const documentContent: Array<{
+			document: AssistantTurnDocument;
+			bytes: Uint8Array;
+		}> = [];
+		let loadedAttachmentBytes = 0;
+		for (const document of documents) {
+			const bytes = await dependencies.loadDocumentBytes({
+				document,
+				signal: preprocessingSignal,
+			});
+			throwIfAssistantPreprocessingAborted(preprocessingSignal);
+			loadedAttachmentBytes += bytes.byteLength;
+			if (loadedAttachmentBytes > 16_000_000) {
+				throw new Error(
+					"Assistant attachments cannot exceed 16 MB per message",
+				);
+			}
+			documentContent.push({ document, bytes });
+		}
+		const provider = getAssistantRuntimeIdentity().provider;
+		attachmentParts = await Promise.all(
+			documentContent.map(async ({ document, bytes }) => {
+				if (document.mimeType === "application/pdf") {
+					return {
+						type: "text" as const,
+						text: `[Uploaded PDF: ${document.filename || "document.pdf"}]\n${await extractAssistantPdfText(bytes, preprocessingSignal)}`,
+					};
+				}
+				if (provider === "deepseek") {
+					throw new Error(
+						"The configured assistant model cannot analyze images",
+					);
+				}
+				if (!document.mimeType?.startsWith("image/")) {
+					throw new Error("Uploaded document type is unsupported by the model");
+				}
+				const normalized = await prepareAssistantImage(
+					bytes,
+					document.mimeType,
+					preprocessingSignal,
+				);
+				return {
+					type: "image" as const,
+					image: normalized.bytes,
+					mediaType: normalized.mimeType,
+				};
+			}),
+		);
+	} finally {
+		clearTimeout(preprocessingTimeout);
+	}
+	const triggerMessageId = input.run.triggerMessageId;
+	const modelMessages: ModelMessage[] = history.length
+		? history.map((message): ModelMessage => {
+				if (message.role === "assistant") {
+					return { role: "assistant", content: message.text };
+				}
+				return {
+					role: "user",
+					content:
+						message.id === triggerMessageId && attachmentParts.length
+							? [
+									{
+										type: "text" as const,
+										text: message.text || fallbackText,
+									},
+									...attachmentParts,
+								]
+							: message.text,
+				};
+			})
+		: [
+				{
+					role: "user",
+					content: attachmentParts.length
+						? [
+								{ type: "text" as const, text: fallbackText },
+								...attachmentParts,
+							]
+						: fallbackText,
+				},
+			];
 	const outcome = await dependencies.executeRuntime({
 		actor: input.actor,
 		modelMessages,

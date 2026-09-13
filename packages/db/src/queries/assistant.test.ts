@@ -340,6 +340,154 @@ describe("assistant persistence queries", () => {
 		});
 	});
 
+	it("adopts only the actor's staged assistant upload before persisting it", async () => {
+		let adoption: Record<string, unknown> | undefined;
+		let created: Record<string, unknown> | undefined;
+		let documentReadCount = 0;
+		const tx = {
+			storedDocument: {
+				updateMany: async (args: Record<string, unknown>) => {
+					adoption = args;
+					return { count: 1 };
+				},
+				findMany: async () => {
+					documentReadCount += 1;
+					return [
+						{
+							id: "document-a",
+							filename: "request.png",
+							mimeType: "image/png",
+							size: 1200,
+							ownerType:
+								documentReadCount === 1 ? "user" : "assistant_conversation",
+						},
+					];
+				},
+			},
+			assistantMessage: {
+				findFirst: async () => null,
+				create: async ({ data }: { data: Record<string, unknown> }) => {
+					created = data;
+					return { id: "message-a", ...data };
+				},
+			},
+			assistantConversation: {
+				updateMany: async () => ({ count: 1 }),
+				findUnique: async () => ({ lastSequence: 1 }),
+				update: async () => ({}),
+			},
+		};
+		const db = {
+			$transaction: async (callback: (client: typeof tx) => unknown) =>
+				callback(tx),
+		};
+
+		await appendAssistantUserMessage(db as never, {
+			conversationId: "conversation-a",
+			ownerUserId: 9,
+			clientRequestId: "request-file",
+			parts: [{ type: "file", documentId: "document-a" }],
+		});
+
+		expect(adoption).toMatchObject({
+			where: {
+				id: { in: ["document-a"] },
+				ownerType: "user",
+				ownerId: "9",
+				ownerKey: "staged:assistant-documents",
+				uploadedBy: 9,
+			},
+			data: {
+				ownerType: "assistant_conversation",
+				ownerId: "conversation-a",
+				visibility: "private",
+				isCurrent: true,
+			},
+		});
+		expect(created).toMatchObject({
+			parts: [
+				{
+					type: "file",
+					documentId: "document-a",
+					mediaType: "image/png",
+					filename: "request.png",
+				},
+			],
+		});
+	});
+
+	it("rejects a staged attachment lost to a concurrent adoption", async () => {
+		const tx = {
+			storedDocument: {
+				findMany: async () => [
+					{
+						id: "document-a",
+						filename: "request.png",
+						mimeType: "image/png",
+						size: 1200,
+						ownerType: "user",
+					},
+				],
+				updateMany: async () => ({ count: 0 }),
+			},
+			assistantMessage: { findFirst: async () => null },
+			assistantConversation: { updateMany: async () => ({ count: 1 }) },
+		};
+		const db = {
+			$transaction: async (callback: (client: typeof tx) => unknown) =>
+				callback(tx),
+		};
+
+		await expect(
+			appendAssistantUserMessage(db as never, {
+				conversationId: "conversation-a",
+				ownerUserId: 9,
+				clientRequestId: "request-race",
+				parts: [{ type: "file", documentId: "document-a" }],
+			}),
+		).rejects.toThrow("unavailable");
+	});
+
+	it("rejects an oversized attachment aggregate before adopting documents", async () => {
+		let adopted = false;
+		const tx = {
+			storedDocument: {
+				findMany: async () =>
+					["a", "b", "c"].map((id) => ({
+						id,
+						filename: `${id}.png`,
+						mimeType: "image/png",
+						size: 6_000_000,
+					})),
+				updateMany: async () => {
+					adopted = true;
+					return { count: 3 };
+				},
+			},
+			assistantMessage: { findFirst: async () => null },
+			assistantConversation: {
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+		const db = {
+			$transaction: async (callback: (client: typeof tx) => unknown) =>
+				callback(tx),
+		};
+
+		await expect(
+			appendAssistantUserMessage(db as never, {
+				conversationId: "conversation-a",
+				ownerUserId: 9,
+				clientRequestId: "request-large-files",
+				parts: ["a", "b", "c"].map((documentId) => ({
+					type: "file" as const,
+					documentId,
+				})),
+			}),
+		).rejects.toThrow("unavailable");
+		expect(adopted).toBe(false);
+	});
+
 	it("fails closed when sequence allocation cannot match conversation ownership", async () => {
 		const tx = {
 			assistantMessage: { findFirst: async () => null },

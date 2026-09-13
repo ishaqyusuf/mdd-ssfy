@@ -104,7 +104,7 @@ export const userRoutes = createTRPCRouter({
 				ownerId: String(props.ctx.userId),
 				kind: "attachment" as const,
 			};
-			const body = decodeValidatedDocumentBase64(props.input);
+			const body = await decodeValidatedDocumentBase64(props.input);
 			const uploaded = await documents.upload({
 				filename: props.input.filename,
 				folder: buildOwnerDocumentFolder(owner),

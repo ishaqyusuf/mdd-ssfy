@@ -6,6 +6,11 @@ export type AssistantStreamState = {
 	status: string | null;
 	rateLimit: { limit: number; remaining: number; resetAt: string } | null;
 	notice: string | null;
+	sources: Array<{
+		id: string;
+		label: string;
+		url: string | null;
+	}>;
 	messageSequence: number;
 	runSequence: number;
 };
@@ -16,6 +21,7 @@ export const initialAssistantStreamState: AssistantStreamState = {
 	status: null,
 	rateLimit: null,
 	notice: null,
+	sources: [],
 	messageSequence: 0,
 	runSequence: 0,
 };
@@ -48,6 +54,7 @@ export function parseAssistantRequestLimit(
 export function buildAssistantChatRequest(
 	conversationId: string,
 	messages: UIMessage[],
+	context?: { requestId?: string; mentionedIntegrationIds?: string[] },
 ) {
 	const latest = [...messages]
 		.reverse()
@@ -67,12 +74,52 @@ export function buildAssistantChatRequest(
 	}
 	return {
 		conversationId,
-		requestId: crypto.randomUUID(),
+		requestId: context?.requestId ?? crypto.randomUUID(),
 		message: { id: latest.id, role: "user" as const, parts },
 		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
 		localTime: new Date().toISOString(),
-		mentionedIntegrationIds: [] as string[],
+		mentionedIntegrationIds: context?.mentionedIntegrationIds ?? [],
 	};
+}
+
+export function getAssistantRequestId(
+	requestIds: Map<string, string>,
+	messageId: string,
+) {
+	const existing = requestIds.get(messageId);
+	if (existing) return existing;
+	const created = crypto.randomUUID();
+	requestIds.set(messageId, created);
+	return created;
+}
+
+export function rotateAssistantRequestId(
+	requestIds: Map<string, string>,
+	messageId: string,
+) {
+	const created = crypto.randomUUID();
+	requestIds.set(messageId, created);
+	return created;
+}
+
+export function shouldSubmitAssistantComposerKey(input: {
+	key: string;
+	shiftKey: boolean;
+	isComposing: boolean;
+}) {
+	return input.key === "Enter" && !input.shiftKey && !input.isComposing;
+}
+
+export function getAssistantIntegrationIdsForMessage(
+	integrationIdsByMessage: Map<string, string[]>,
+	messageId: string,
+	currentIntegrationIds: string[],
+) {
+	const existing = integrationIdsByMessage.get(messageId);
+	if (existing) return existing;
+	const captured = [...currentIntegrationIds];
+	integrationIdsByMessage.set(messageId, captured);
+	return captured;
 }
 
 export function reduceAssistantData(
@@ -93,6 +140,7 @@ export function reduceAssistantData(
 			runId: data.runId,
 			status: String(data.status ?? "running"),
 			notice: null,
+			sources: [],
 		};
 	}
 	if (part.type === "data-sequence") {
@@ -104,6 +152,27 @@ export function reduceAssistantData(
 	}
 	if (part.type === "data-warning" && typeof data.message === "string") {
 		return { ...state, notice: data.message };
+	}
+	if (
+		part.type === "data-source" &&
+		typeof data.id === "string" &&
+		typeof data.label === "string"
+	) {
+		const source = {
+			id: data.id,
+			label: data.label,
+			url:
+				typeof data.url === "string" && data.url.startsWith("https://")
+					? data.url
+					: null,
+		};
+		return {
+			...state,
+			sources: [
+				...state.sources.filter((item) => item.id !== source.id),
+				source,
+			].slice(-20),
+		};
 	}
 	if (part.type === "data-terminal-status") {
 		const status = String(data.status ?? state.status);

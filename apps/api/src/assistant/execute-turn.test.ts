@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { executeAssistantConversationTurn } from "./execute-turn";
 
+const onePixelPng = new Uint8Array(
+	Buffer.from(
+		"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+		"base64",
+	),
+);
+
 const actor = {
 	userId: 42,
 	scopeType: "organization",
@@ -17,6 +24,77 @@ const actor = {
 };
 
 describe("executeAssistantConversationTurn", () => {
+	test("passes authorized uploaded bytes through the model boundary", async () => {
+		let receivedMessages: unknown;
+		await executeAssistantConversationTurn(
+			{
+				actor,
+				request: {
+					conversationId: "conversation-1",
+					requestId: "request-file",
+					message: {
+						id: "client-message-file",
+						role: "user",
+						parts: [
+							{ type: "text", text: "Describe this image" },
+							{ type: "file", documentId: "document-1" },
+						],
+					},
+					mentionedIntegrationIds: [],
+				},
+				run: { runId: "run-file", triggerMessageId: "stored-message-file" },
+				writer: { write() {} },
+				signal: new AbortController().signal,
+			},
+			{
+				loadHistory: async () => [
+					{
+						id: "stored-message-file",
+						sequence: 1,
+						role: "user",
+						text: "Describe this image",
+					},
+				],
+				loadDocuments: async () => [
+					{
+						id: "document-1",
+						filename: "photo.png",
+						mimeType: "image/png",
+						description: null,
+						url: "https://example.com/photo.png",
+						pathname: "assistant/photo.png",
+						size: onePixelPng.byteLength,
+						provider: "vercel-blob",
+						sourceType: "authenticated_browser_upload",
+					},
+				],
+				loadDocumentBytes: async () => onePixelPng,
+				executeRuntime: async (input) => {
+					receivedMessages = input.modelMessages;
+					return {
+						status: "succeeded",
+						assistantText: "A sample image.",
+						usage: { totalTokens: 3 },
+					};
+				},
+				persistAssistantMessage: async () => undefined,
+			},
+		);
+		expect(receivedMessages).toEqual([
+			{
+				role: "user",
+				content: [
+					{ type: "text", text: "Describe this image" },
+					{
+						type: "image",
+						image: onePixelPng,
+						mediaType: "image/png",
+					},
+				],
+			},
+		]);
+	});
+
 	test("uses durable two-turn history and persists the reply before success", async () => {
 		const events: string[] = [];
 		let receivedMessages: unknown;
@@ -136,5 +214,61 @@ describe("executeAssistantConversationTurn", () => {
 
 		expect(outcome.status).toBe("cancelled");
 		expect(persisted).toBe(false);
+	});
+
+	test("aborts attachment download when preprocessing exceeds its deadline", async () => {
+		let runtimeCalled = false;
+		await expect(
+			executeAssistantConversationTurn(
+				{
+					actor,
+					request: {
+						conversationId: "conversation-1",
+						requestId: "request-timeout",
+						message: {
+							id: "client-message-timeout",
+							role: "user",
+							parts: [{ type: "file", documentId: "document-1" }],
+						},
+						mentionedIntegrationIds: [],
+					},
+					run: { runId: "run-timeout" },
+					writer: { write() {} },
+					signal: new AbortController().signal,
+				},
+				{
+					preprocessingDeadlineMs: 5,
+					loadHistory: async () => [],
+					loadDocuments: async () => [
+						{
+							id: "document-1",
+							filename: "slow.png",
+							mimeType: "image/png",
+							description: null,
+							url: null,
+							pathname: "assistant/slow.png",
+							size: 10,
+							provider: "vercel-blob",
+							sourceType: "authenticated_browser_upload",
+						},
+					],
+					loadDocumentBytes: ({ signal }) =>
+						new Promise((_, reject) => {
+							signal.addEventListener("abort", () => reject(signal.reason), {
+								once: true,
+							});
+						}),
+					executeRuntime: async () => {
+						runtimeCalled = true;
+						return {
+							status: "succeeded",
+							assistantText: "late",
+							usage: {},
+						};
+					},
+				},
+			),
+		).rejects.toThrow("preprocessing timed out");
+		expect(runtimeCalled).toBe(false);
 	});
 });

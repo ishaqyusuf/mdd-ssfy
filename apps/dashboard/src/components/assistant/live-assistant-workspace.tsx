@@ -16,6 +16,8 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import {
 	Archive,
 	ArrowUp,
+	ExternalLink,
+	Globe2,
 	History,
 	LoaderCircle,
 	MessageSquare,
@@ -30,11 +32,23 @@ import {
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+	AssistantAttachmentPicker,
+	useAssistantAttachments,
+} from "./assistant-attachment-picker";
+import {
+	type AssistantAttachment,
+	assistantAttachmentParts,
+} from "./assistant-attachments";
+import {
 	buildAssistantChatRequest,
+	getAssistantIntegrationIdsForMessage,
+	getAssistantRequestId,
 	initialAssistantStreamState,
 	parseAssistantRequestLimit,
 	persistedMessagesToUi,
 	reduceAssistantData,
+	rotateAssistantRequestId,
+	shouldSubmitAssistantComposerKey,
 } from "./assistant-chat-state";
 import styles from "./assistant.module.css";
 
@@ -57,6 +71,33 @@ const activeStatuses = new Set([
 	"waiting_for_approval",
 ]);
 
+const defaultSuggestions = [
+	{
+		id: "find-order-status" as const,
+		title: "Find an order",
+		description: "Check current status, customer, and next step.",
+		prompt: "Find an order and show its current status and next step.",
+	},
+	{
+		id: "customer-summary" as const,
+		title: "Summarize a customer",
+		description: "Review authorized customer and sales context.",
+		prompt: "Summarize a customer’s recent authorized account activity.",
+	},
+	{
+		id: "inventory-availability" as const,
+		title: "Check inventory",
+		description: "Find availability for a product or component.",
+		prompt: "Check inventory availability for a product or component.",
+	},
+	{
+		id: "create-document" as const,
+		title: "Create a document",
+		description: "Prepare a PDF from authorized workspace data.",
+		prompt: "Help me create a PDF document from authorized workspace data.",
+	},
+];
+
 function textFromMessage(message: UIMessage) {
 	return message.parts
 		.filter(
@@ -69,9 +110,15 @@ function textFromMessage(message: UIMessage) {
 
 function AssistantConversation(props: {
 	conversation: LoadedConversation;
-	pendingPrompt: string | null;
+	pendingPrompt: {
+		text: string;
+		attachments: AssistantAttachment[];
+	} | null;
 	onPendingSent: () => void;
 	onChanged: () => void;
+	onOpenProviders: () => void;
+	mentionedIntegrationIds: string[];
+	onIntegrationsSent: () => void;
 }) {
 	const client = useTRPCClient();
 	const [input, setInput] = useState("");
@@ -80,6 +127,7 @@ function AssistantConversation(props: {
 	);
 	const [streamState, setStreamState] = useState(initialAssistantStreamState);
 	const [reconnecting, setReconnecting] = useState(false);
+	const attachmentState = useAssistantAttachments();
 	const [requestLimitError, setRequestLimitError] = useState<{
 		limit: number;
 		remaining: number;
@@ -87,6 +135,8 @@ function AssistantConversation(props: {
 	} | null>(null);
 	const mountedRef = useRef(true);
 	const bottomRef = useRef<HTMLDivElement>(null);
+	const requestIdsRef = useRef(new Map<string, string>());
+	const integrationIdsRef = useRef(new Map<string, string[]>());
 
 	const transport = useMemo(
 		() =>
@@ -106,11 +156,27 @@ function AssistantConversation(props: {
 					}
 					return response;
 				},
-				prepareSendMessagesRequest: ({ messages }) => ({
-					body: buildAssistantChatRequest(props.conversation.id, messages),
-				}),
+				prepareSendMessagesRequest: ({ messages }) => {
+					const latestUser = [...messages]
+						.reverse()
+						.find((message) => message.role === "user");
+					return {
+						body: buildAssistantChatRequest(props.conversation.id, messages, {
+							requestId: latestUser
+								? getAssistantRequestId(requestIdsRef.current, latestUser.id)
+								: undefined,
+							mentionedIntegrationIds: latestUser
+								? getAssistantIntegrationIdsForMessage(
+										integrationIdsRef.current,
+										latestUser.id,
+										props.mentionedIntegrationIds,
+									)
+								: [],
+						}),
+					};
+				},
 			}),
-		[props.conversation.id],
+		[props.conversation.id, props.mentionedIntegrationIds],
 	);
 
 	const chat = useChat({
@@ -173,15 +239,29 @@ function AssistantConversation(props: {
 
 	useEffect(() => {
 		if (!props.pendingPrompt) return;
-		void chat.sendMessage({ text: props.pendingPrompt });
+		void chat.sendMessage({
+			parts: [
+				...(props.pendingPrompt.text
+					? [{ type: "text" as const, text: props.pendingPrompt.text }]
+					: []),
+				...assistantAttachmentParts(props.pendingPrompt.attachments),
+			],
+		});
 		props.onPendingSent();
-	}, [chat.sendMessage, props.pendingPrompt, props.onPendingSent]);
+		props.onIntegrationsSent();
+	}, [
+		chat.sendMessage,
+		props.pendingPrompt,
+		props.onPendingSent,
+		props.onIntegrationsSent,
+	]);
 
 	const send = useCallback(() => {
 		const value = input.trim();
 		if (
-			!value ||
+			(!value && !attachmentState.attachments.length) ||
 			!online ||
+			attachmentState.uploading ||
 			chat.status === "streaming" ||
 			chat.status === "submitted"
 		)
@@ -189,8 +269,15 @@ function AssistantConversation(props: {
 		setInput("");
 		setRequestLimitError(null);
 		chat.clearError();
-		void chat.sendMessage({ text: value });
-	}, [chat, input, online]);
+		void chat.sendMessage({
+			parts: [
+				...(value ? [{ type: "text" as const, text: value }] : []),
+				...assistantAttachmentParts(attachmentState.attachments),
+			],
+		});
+		attachmentState.clear();
+		props.onIntegrationsSent();
+	}, [chat, input, online, attachmentState, props.onIntegrationsSent]);
 
 	const reconnect = async () => {
 		const run = streamState.runId
@@ -324,7 +411,14 @@ function AssistantConversation(props: {
 					</section>
 				)}
 			</div>
-			<footer className={styles.composerArea}>
+			<footer
+				className={styles.composerArea}
+				onDragOver={(event) => event.preventDefault()}
+				onDrop={(event) => {
+					event.preventDefault();
+					void attachmentState.addFiles(Array.from(event.dataTransfer.files));
+				}}
+			>
 				{!online ? (
 					<div className={styles.liveWarning} role="alert">
 						<WifiOff size={14} /> You’re offline. Your draft is safe; reconnect
@@ -346,6 +440,15 @@ function AssistantConversation(props: {
 							size="sm"
 							variant="outline"
 							onClick={() => {
+								const latestUser = [...chat.messages]
+									.reverse()
+									.find((message) => message.role === "user");
+								if (latestUser) {
+									rotateAssistantRequestId(
+										requestIdsRef.current,
+										latestUser.id,
+									);
+								}
 								chat.clearError();
 								void chat.regenerate();
 							}}
@@ -384,17 +487,30 @@ function AssistantConversation(props: {
 						send();
 					}}
 				>
+					<AssistantAttachmentPicker
+						attachments={attachmentState.attachments}
+						uploading={attachmentState.uploading}
+						error={attachmentState.error}
+						onAdd={(files) => void attachmentState.addFiles(files)}
+						onRemove={attachmentState.remove}
+					/>
 					<Textarea
 						value={input}
 						onChange={(event) => setInput(event.target.value)}
+						onPaste={(event) => {
+							const files = Array.from(event.clipboardData.files);
+							if (files.length) void attachmentState.addFiles(files);
+						}}
 						placeholder="Ask anything about your work…"
 						aria-label="Message the assistant"
 						rows={2}
 						onKeyDown={(event) => {
 							if (
-								event.key === "Enter" &&
-								!event.shiftKey &&
-								!event.nativeEvent.isComposing
+								shouldSubmitAssistantComposerKey({
+									key: event.key,
+									shiftKey: event.shiftKey,
+									isComposing: event.nativeEvent.isComposing,
+								})
 							) {
 								event.preventDefault();
 								send();
@@ -402,7 +518,12 @@ function AssistantConversation(props: {
 						}}
 					/>
 					<div className={styles.composerBottom}>
-						<span className={styles.contextButton}>GND workspace</span>
+						<span className={styles.contextButton}>
+							GND workspace
+							{props.mentionedIntegrationIds.length
+								? ` + ${props.mentionedIntegrationIds.length} app`
+								: ""}
+						</span>
 						<span className={styles.composerHint}>
 							Shift + Enter for a new line
 						</span>
@@ -426,7 +547,11 @@ function AssistantConversation(props: {
 							<Button
 								type="submit"
 								size="icon"
-								disabled={!input.trim() || !online}
+								disabled={
+									(!input.trim() && !attachmentState.attachments.length) ||
+									!online ||
+									attachmentState.uploading
+								}
 								aria-label="Send message"
 							>
 								<ArrowUp size={18} />
@@ -434,8 +559,29 @@ function AssistantConversation(props: {
 						)}
 					</div>
 				</form>
+				{streamState.sources.length ? (
+					<section className={styles.liveSources} aria-label="Response sources">
+						<strong>Sources</strong>
+						{streamState.sources.map((source) =>
+							source.url ? (
+								<a
+									key={source.id}
+									href={source.url}
+									target="_blank"
+									rel="noreferrer"
+								>
+									{source.label} <ExternalLink size={11} />
+								</a>
+							) : (
+								<span key={source.id}>{source.label}</span>
+							),
+						)}
+					</section>
+				) : null}
 				<div className={styles.footerNote}>
-					<span>Responses follow your current permissions</span>
+					<button type="button" onClick={props.onOpenProviders}>
+						<Globe2 size={11} /> Sources and connected apps
+					</button>
 					<span>
 						{streamState.status
 							? `Last action: ${streamState.status}`
@@ -459,6 +605,42 @@ export function LiveAssistantWorkspace() {
 	const [history, setHistory] = useState<ConversationSummary[]>([]);
 	const [historyError, setHistoryError] = useState<string | null>(null);
 	const [historyOpen, setHistoryOpen] = useState(false);
+	const [providersOpen, setProvidersOpen] = useState(false);
+	const [providers, setProviders] = useState<{
+		webSearch: {
+			id: string;
+			name: string;
+			enabled: boolean;
+			alwaysActive: true;
+		};
+		connectedApps: Array<{ id: string; name: string }>;
+		managementUrl: string | null;
+	}>({
+		webSearch: {
+			id: "web_search",
+			name: "Web search",
+			enabled: false,
+			alwaysActive: true,
+		},
+		connectedApps: [],
+		managementUrl: null,
+	});
+	const [mentionedIntegrationIds, setMentionedIntegrationIds] = useState<
+		string[]
+	>([]);
+	const [suggestions, setSuggestions] =
+		useState<
+			Array<{
+				id:
+					| "find-order-status"
+					| "customer-summary"
+					| "inventory-availability"
+					| "create-document";
+				title: string;
+				description: string;
+				prompt: string;
+			}>
+		>(defaultSuggestions);
 	const [search, setSearch] = useState("");
 	const [loading, setLoading] = useState(Boolean(conversationId));
 	const [error, setError] = useState<string | null>(null);
@@ -466,8 +648,10 @@ export function LiveAssistantWorkspace() {
 	const [draft, setDraft] = useState("");
 	const [pendingPrompt, setPendingPrompt] = useState<{
 		conversationId: string;
-		prompt: string;
+		text: string;
+		attachments: AssistantAttachment[];
 	} | null>(null);
+	const attachmentState = useAssistantAttachments();
 	const requestedConversationId = searchParams.get("chat");
 	const historyRequestRef = useRef(0);
 	const conversationRequestRef = useRef(0);
@@ -558,6 +742,18 @@ export function LiveAssistantWorkspace() {
 		void loadHistory("");
 	}, [loadHistory]);
 	useEffect(() => {
+		void client.assistant.providers
+			.query()
+			.then(setProviders)
+			.catch(() => null);
+		void client.assistant.suggestions
+			.query()
+			.then((availableSuggestions) => {
+				if (availableSuggestions.length) setSuggestions(availableSuggestions);
+			})
+			.catch(() => null);
+	}, [client]);
+	useEffect(() => {
 		if (conversationId === requestedConversationId) return;
 		const currentUrlConversationId = new URL(
 			window.location.href,
@@ -565,6 +761,7 @@ export function LiveAssistantWorkspace() {
 		if (currentUrlConversationId === conversationId) return;
 		startRequestRef.current += 1;
 		setPendingPrompt(null);
+		setMentionedIntegrationIds([]);
 		setConversationId(requestedConversationId);
 	}, [conversationId, requestedConversationId]);
 	useEffect(() => {
@@ -579,6 +776,8 @@ export function LiveAssistantWorkspace() {
 	const selectConversation = (id: string) => {
 		startRequestRef.current += 1;
 		setPendingPrompt(null);
+		setMentionedIntegrationIds([]);
+		attachmentState.discard();
 		setConversationId(id);
 		updateUrl(id);
 		setHistoryOpen(false);
@@ -590,6 +789,8 @@ export function LiveAssistantWorkspace() {
 		setConversation(null);
 		setLoading(false);
 		setPendingPrompt(null);
+		setMentionedIntegrationIds([]);
+		attachmentState.discard();
 		setDraft("");
 		setError(null);
 		setActionError(null);
@@ -597,16 +798,29 @@ export function LiveAssistantWorkspace() {
 	};
 	const start = async () => {
 		const prompt = draft.trim();
-		if (!prompt) return;
+		if (
+			(!prompt && !attachmentState.attachments.length) ||
+			attachmentState.uploading
+		)
+			return;
 		const request = ++startRequestRef.current;
 		setLoading(true);
 		try {
 			const created = await client.assistant.create.mutate({
-				title: prompt.slice(0, 80),
+				title: (
+					prompt ||
+					attachmentState.attachments[0]?.name ||
+					"New chat"
+				).slice(0, 80),
 			});
 			if (request !== startRequestRef.current) return;
 			setDraft("");
-			setPendingPrompt({ conversationId: created.id, prompt });
+			setPendingPrompt({
+				conversationId: created.id,
+				text: prompt,
+				attachments: attachmentState.attachments,
+			});
+			attachmentState.clear();
 			setConversationId(created.id);
 			updateUrl(created.id);
 			await loadHistory("");
@@ -650,6 +864,13 @@ export function LiveAssistantWorkspace() {
 				>
 					<History size={16} /> History
 				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={() => setProvidersOpen(true)}
+				>
+					<Globe2 size={16} /> Sources
+				</Button>
 				<Button variant="outline" size="sm" onClick={newChat}>
 					<Plus size={16} /> New chat
 				</Button>
@@ -690,7 +911,10 @@ export function LiveAssistantWorkspace() {
 					conversation={conversation}
 					pendingPrompt={
 						pendingPrompt?.conversationId === conversation.id
-							? pendingPrompt.prompt
+							? {
+									text: pendingPrompt.text,
+									attachments: pendingPrompt.attachments,
+								}
 							: null
 					}
 					onPendingSent={() =>
@@ -702,6 +926,9 @@ export function LiveAssistantWorkspace() {
 						void loadConversation(conversation.id);
 						void loadHistory("");
 					}}
+					onOpenProviders={() => setProvidersOpen(true)}
+					mentionedIntegrationIds={mentionedIntegrationIds}
+					onIntegrationsSent={() => setMentionedIntegrationIds([])}
 				/>
 			) : (
 				<>
@@ -720,6 +947,23 @@ export function LiveAssistantWorkspace() {
 								document. The assistant only uses actions your account can
 								access.
 							</p>
+							<div className={styles.liveSuggestions}>
+								{suggestions.map((suggestion) => (
+									<button
+										type="button"
+										key={suggestion.title}
+										onClick={() => {
+											setDraft(suggestion.prompt);
+											void client.assistant.recordSuggestionUse.mutate({
+												id: suggestion.id,
+											});
+										}}
+									>
+										<strong>{suggestion.title}</strong>
+										<span>{suggestion.description}</span>
+									</button>
+								))}
+							</div>
 							{error ? (
 								<div className={styles.liveWarning} role="alert">
 									{error}
@@ -727,7 +971,16 @@ export function LiveAssistantWorkspace() {
 							) : null}
 						</section>
 					</div>
-					<footer className={styles.composerArea}>
+					<footer
+						className={styles.composerArea}
+						onDragOver={(event) => event.preventDefault()}
+						onDrop={(event) => {
+							event.preventDefault();
+							void attachmentState.addFiles(
+								Array.from(event.dataTransfer.files),
+							);
+						}}
+					>
 						<form
 							className={styles.composer}
 							onSubmit={(event) => {
@@ -735,18 +988,31 @@ export function LiveAssistantWorkspace() {
 								void start();
 							}}
 						>
+							<AssistantAttachmentPicker
+								attachments={attachmentState.attachments}
+								uploading={attachmentState.uploading}
+								error={attachmentState.error}
+								onAdd={(files) => void attachmentState.addFiles(files)}
+								onRemove={attachmentState.remove}
+							/>
 							<Textarea
 								autoFocus
 								value={draft}
 								onChange={(event) => setDraft(event.target.value)}
+								onPaste={(event) => {
+									const files = Array.from(event.clipboardData.files);
+									if (files.length) void attachmentState.addFiles(files);
+								}}
 								placeholder="Ask anything about your work…"
 								aria-label="Message the assistant"
 								rows={2}
 								onKeyDown={(event) => {
 									if (
-										event.key === "Enter" &&
-										!event.shiftKey &&
-										!event.nativeEvent.isComposing
+										shouldSubmitAssistantComposerKey({
+											key: event.key,
+											shiftKey: event.shiftKey,
+											isComposing: event.nativeEvent.isComposing,
+										})
 									) {
 										event.preventDefault();
 										void start();
@@ -754,14 +1020,22 @@ export function LiveAssistantWorkspace() {
 								}}
 							/>
 							<div className={styles.composerBottom}>
-								<span className={styles.contextButton}>GND workspace</span>
+								<span className={styles.contextButton}>
+									GND workspace
+									{mentionedIntegrationIds.length
+										? ` + ${mentionedIntegrationIds.length} app`
+										: ""}
+								</span>
 								<span className={styles.composerHint}>
 									Shift + Enter for a new line
 								</span>
 								<Button
 									type="submit"
 									size="icon"
-									disabled={!draft.trim()}
+									disabled={
+										(!draft.trim() && !attachmentState.attachments.length) ||
+										attachmentState.uploading
+									}
 									aria-label="Send message"
 								>
 									<ArrowUp size={18} />
@@ -771,6 +1045,64 @@ export function LiveAssistantWorkspace() {
 					</footer>
 				</>
 			)}
+			<Dialog open={providersOpen} onOpenChange={setProvidersOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Sources and connected apps</DialogTitle>
+						<DialogDescription>
+							Choose a connected app to mention in your next message. Web search
+							is controlled by workspace policy.
+						</DialogDescription>
+					</DialogHeader>
+					<div className={styles.providerList}>
+						<div>
+							<Globe2 size={17} />
+							<span>
+								<strong>{providers?.webSearch.name ?? "Web search"}</strong>
+								<small>
+									{providers?.webSearch.enabled
+										? "Available for current public information"
+										: "Not configured for this workspace"}
+								</small>
+							</span>
+						</div>
+						{providers?.connectedApps.map((provider) => {
+							const selected = mentionedIntegrationIds.includes(provider.id);
+							return (
+								<button
+									type="button"
+									key={provider.id}
+									aria-pressed={selected}
+									onClick={() =>
+										setMentionedIntegrationIds((current) =>
+											selected
+												? current.filter((id) => id !== provider.id)
+												: [...current, provider.id],
+										)
+									}
+								>
+									<MessageSquare size={17} />
+									<span>
+										<strong>{provider.name}</strong>
+										<small>
+											{selected ? "Mentioned in next message" : "Mention app"}
+										</small>
+									</span>
+								</button>
+							);
+						})}
+						{!providers.connectedApps.length ? (
+							<p className={styles.muted}>
+								No connected-app provider is configured yet. Unavailable or
+								forged mentions are rejected by the server.
+							</p>
+						) : null}
+						{providers?.managementUrl ? (
+							<a href={providers.managementUrl}>Manage connected apps</a>
+						) : null}
+					</div>
+				</DialogContent>
+			</Dialog>
 			<Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
 				<DialogContent className="max-h-[80dvh] overflow-y-auto sm:max-w-xl">
 					<DialogHeader>

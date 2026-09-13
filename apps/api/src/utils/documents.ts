@@ -23,6 +23,7 @@ export function createApiVercelBlobDocumentService(options: {
   token?: string;
   addRandomSuffix?: boolean;
   allowOverwrite?: boolean;
+  access?: "public" | "private";
 }) {
   return createDocumentService(
     createVercelBlobProvider({
@@ -34,7 +35,7 @@ export function createApiVercelBlobDocumentService(options: {
         ),
       del: options.del,
       token: options.token || process.env.BLOB_READ_WRITE_TOKEN,
-      access: "public",
+      access: options.access ?? "public",
       addRandomSuffix: options.addRandomSuffix ?? true,
       allowOverwrite: options.allowOverwrite,
     }),

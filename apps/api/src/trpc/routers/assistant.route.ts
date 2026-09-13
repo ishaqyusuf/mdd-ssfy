@@ -1,5 +1,13 @@
 import { resolveAssistantActor } from "@api/assistant/actor";
 import {
+	getAssistantConnectedApps,
+	getAssistantConnectorManagementUrl,
+} from "@api/assistant/integrations";
+import {
+	assistantSuggestionCatalog,
+	getAssistantSuggestions,
+} from "@api/assistant/suggestions";
+import {
 	AssistantConversationAccessError,
 	archiveAssistantConversation,
 	createAssistantConversation,
@@ -39,6 +47,45 @@ function notFound(error: unknown): never {
 }
 
 export const assistantRouter = createTRPCRouter({
+	suggestions: protectedProcedure.query(async ({ ctx }) => {
+		const actor = await actorOrThrow(ctx);
+		return getAssistantSuggestions(actor.grants);
+	}),
+	recordSuggestionUse: protectedProcedure
+		.input(
+			z.object({
+				id: z.enum(
+					assistantSuggestionCatalog.map(({ id }) => id) as [
+						(typeof assistantSuggestionCatalog)[number]["id"],
+						...(typeof assistantSuggestionCatalog)[number]["id"][],
+					],
+				),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await actorOrThrow(ctx);
+			await ctx.db.event.create({
+				data: {
+					type: "assistant_suggestion_used",
+					data: { suggestionId: input.id },
+					userId: ctx.userId,
+				},
+			});
+			return { recorded: true as const };
+		}),
+	providers: protectedProcedure.query(async ({ ctx }) => {
+		const actor = await actorOrThrow(ctx);
+		return {
+			webSearch: {
+				id: "web_search" as const,
+				name: "Web search",
+				enabled: Boolean(process.env.ASSISTANT_WEB_SEARCH_API_KEY?.trim()),
+				alwaysActive: true as const,
+			},
+			connectedApps: await getAssistantConnectedApps(actor),
+			managementUrl: getAssistantConnectorManagementUrl(),
+		};
+	}),
 	create: protectedProcedure
 		.input(
 			z.object({ title: z.string().trim().max(500).optional() }).optional(),

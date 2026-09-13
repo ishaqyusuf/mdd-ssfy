@@ -1,6 +1,10 @@
 import { camel, consoleLog } from ".";
 
-export const blobPaths = ["inbound-documents", "dispatch-documents"] as const;
+export const blobPaths = [
+	"inbound-documents",
+	"dispatch-documents",
+	"assistant-documents",
+] as const;
 export type BlobPath = (typeof blobPaths)[number];
 
 export const inboundFilterStatus = [

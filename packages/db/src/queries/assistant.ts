@@ -5,7 +5,8 @@ export const ASSISTANT_ATTACHMENT_OWNER_TYPE = "assistant_conversation";
 export const ASSISTANT_MAX_MESSAGE_PARTS = 20;
 export const ASSISTANT_MAX_TEXT_CHARS = 32_000;
 export const ASSISTANT_MAX_TEXT_BYTES = 60_000;
-export const ASSISTANT_MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+export const ASSISTANT_MAX_ATTACHMENT_BYTES = 8_000_000;
+export const ASSISTANT_MAX_ATTACHMENT_TOTAL_BYTES = 16_000_000;
 
 export class AssistantConversationAccessError extends Error {
 	readonly code = "ASSISTANT_CONVERSATION_NOT_FOUND";
@@ -235,21 +236,45 @@ async function resolveOwnedClientParts(
 		),
 	];
 	if (documentIds.length === 0) return parts;
+	if (documentIds.length > 5) {
+		throw new AssistantMessageValidationError(
+			"A message can include at most five attachments",
+		);
+	}
 
 	const documents = await tx.storedDocument.findMany({
 		where: {
 			id: { in: documentIds },
-			ownerType: ASSISTANT_ATTACHMENT_OWNER_TYPE,
-			ownerId: input.conversationId,
+			OR: [
+				{
+					ownerType: "user",
+					ownerId: String(input.ownerUserId),
+					ownerKey: "staged:assistant-documents",
+					uploadedBy: input.ownerUserId,
+					sourceType: "authenticated_browser_upload",
+				},
+				{
+					ownerType: ASSISTANT_ATTACHMENT_OWNER_TYPE,
+					ownerId: input.conversationId,
+					visibility: "private",
+					isCurrent: true,
+				},
+			],
 			status: "ready",
-			isCurrent: true,
-			visibility: "private",
 			deletedAt: null,
 		},
-		select: { id: true, filename: true, mimeType: true, size: true },
+		select: {
+			id: true,
+			filename: true,
+			mimeType: true,
+			size: true,
+			ownerType: true,
+		},
 	});
 	if (
 		documents.length !== documentIds.length ||
+		documents.reduce((total, document) => total + (document.size ?? 0), 0) >
+			ASSISTANT_MAX_ATTACHMENT_TOTAL_BYTES ||
 		documents.some(
 			(document) =>
 				!isAllowedAssistantMimeType(document.mimeType) ||
@@ -262,7 +287,55 @@ async function resolveOwnedClientParts(
 		);
 	}
 
-	const byId = new Map(documents.map((document) => [document.id, document]));
+	const stagedDocumentCount = documents.filter(
+		(document) => document.ownerType === "user",
+	).length;
+	const adoption = await tx.storedDocument.updateMany({
+		where: {
+			id: { in: documentIds },
+			ownerType: "user",
+			ownerId: String(input.ownerUserId),
+			ownerKey: "staged:assistant-documents",
+			uploadedBy: input.ownerUserId,
+			sourceType: "authenticated_browser_upload",
+			status: "ready",
+			deletedAt: null,
+		},
+		data: {
+			ownerType: ASSISTANT_ATTACHMENT_OWNER_TYPE,
+			ownerId: input.conversationId,
+			ownerKey: null,
+			visibility: "private",
+			isCurrent: true,
+		},
+	});
+	if (adoption.count !== stagedDocumentCount) {
+		throw new AssistantMessageValidationError(
+			"One or more attachments are unavailable",
+		);
+	}
+
+	const ownedDocuments = await tx.storedDocument.findMany({
+		where: {
+			id: { in: documentIds },
+			ownerType: ASSISTANT_ATTACHMENT_OWNER_TYPE,
+			ownerId: input.conversationId,
+			visibility: "private",
+			isCurrent: true,
+			status: "ready",
+			deletedAt: null,
+		},
+		select: { id: true, filename: true, mimeType: true, size: true },
+	});
+	if (ownedDocuments.length !== documentIds.length) {
+		throw new AssistantMessageValidationError(
+			"One or more attachments are unavailable",
+		);
+	}
+
+	const byId = new Map(
+		ownedDocuments.map((document) => [document.id, document]),
+	);
 	return parts.map((part) => {
 		if (part.type === "text") return part;
 		const document = byId.get(part.documentId);

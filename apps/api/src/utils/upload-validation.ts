@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { getDocument } from "pdfjs-dist/build/pdf.mjs";
 
 export const supportedDocumentMimeTypes = [
 	"image/png",
@@ -59,10 +60,11 @@ function matchesMimeType(body: Buffer, contentType: SupportedDocumentMimeType) {
 	}
 }
 
-export function decodeValidatedDocumentBase64(input: {
+export async function decodeValidatedDocumentBase64(input: {
 	content: string;
 	contentType: SupportedDocumentMimeType;
 	maxBytes?: number;
+	maxPdfPages?: number;
 }) {
 	const maxBytes = input.maxBytes ?? 8_000_000;
 	const body = Buffer.from(input.content, "base64");
@@ -80,6 +82,32 @@ export function decodeValidatedDocumentBase64(input: {
 			code: "BAD_REQUEST",
 			message: "Document bytes do not match the declared file type.",
 		});
+	}
+	if (input.contentType === "application/pdf" && input.maxPdfPages) {
+		let document: Awaited<ReturnType<typeof getDocument>["promise"]> | null =
+			null;
+		let pageCount = 0;
+		try {
+			document = await getDocument({
+				data: new Uint8Array(body),
+				isEvalSupported: false,
+				stopAtErrors: true,
+			}).promise;
+			pageCount = document.numPages;
+		} catch {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "PDF document is malformed, encrypted, or cannot be verified.",
+			});
+		} finally {
+			await document?.destroy();
+		}
+		if (pageCount > input.maxPdfPages) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `PDF documents cannot exceed ${input.maxPdfPages} pages.`,
+			});
+		}
 	}
 	return body;
 }

@@ -19,7 +19,7 @@ export type VercelBlobProviderOptions = {
 		pathname: string,
 		body: DocumentUploadInput["body"],
 		options?: {
-			access?: "public";
+			access?: "public" | "private";
 			contentType?: string;
 			token?: string;
 			addRandomSuffix?: boolean;
@@ -29,7 +29,7 @@ export type VercelBlobProviderOptions = {
 	) => Promise<VercelBlobPutResult>;
 	del?: (urlOrPathname: string, options?: { token?: string }) => Promise<void>;
 	token?: string;
-	access?: "public";
+	access?: "public" | "private";
 	addRandomSuffix?: boolean;
 	allowOverwrite?: boolean;
 	cacheControlMaxAge?: number;

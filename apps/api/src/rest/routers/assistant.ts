@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { resolveAssistantActor } from "@api/assistant/actor";
 import { executeAssistantConversationTurn } from "@api/assistant/execute-turn";
+import { resolveAssistantIntegrationIds } from "@api/assistant/integrations";
 import { getAssistantRuntimeIdentity } from "@api/assistant/runtime";
 import {
 	type AssistantChatRequest,
@@ -484,8 +485,8 @@ const defaultDependencies: AssistantRouterDependencies = {
 			shouldExecute: claim.claimed,
 		};
 	},
-	async resolveIntegrations(_actor, _integrationIds) {
-		return [];
+	async resolveIntegrations(actor, integrationIds) {
+		return resolveAssistantIntegrationIds(actor, integrationIds);
 	},
 	completeRun(input) {
 		return completeAssistantRun(db, {
