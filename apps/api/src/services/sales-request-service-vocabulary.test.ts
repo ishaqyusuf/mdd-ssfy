@@ -206,6 +206,45 @@ describe("Sales Request service vocabulary query seam", () => {
 		expect(JSON.stringify(first)).not.toContain("999999");
 	});
 
+	test("fresh authority reads bypass cache lookup and publication", async () => {
+		let databaseReads = 0;
+		let cacheReads = 0;
+		let cacheWrites = 0;
+		const result = await getSalesRequestServiceVocabulary(
+			{
+				salesOrders: {
+					findMany: async () => {
+						databaseReads += 1;
+						return [
+							order("2026-09-13T10:00:00.000Z", [
+								serviceLine(serviceRow("Install Service")),
+							]),
+						];
+					},
+				},
+			},
+			{
+				fresh: true,
+				cache: {
+					get: async () => {
+						cacheReads += 1;
+						return undefined;
+					},
+					set: async () => {
+						cacheWrites += 1;
+					},
+				},
+			},
+		);
+
+		expect(result.names).toEqual(["INSTALL SERVICE"]);
+		expect({ databaseReads, cacheReads, cacheWrites }).toEqual({
+			databaseReads: 1,
+			cacheReads: 0,
+			cacheWrites: 0,
+		});
+	});
+
 	test("returns names-only output through the callable names seam", async () => {
 		const db = {
 			salesOrders: {

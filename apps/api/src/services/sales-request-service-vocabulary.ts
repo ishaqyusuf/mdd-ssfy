@@ -128,6 +128,8 @@ export type GetSalesRequestServiceVocabularyInput = {
 	scope?: string;
 	cache?: SalesRequestServiceVocabularyCache;
 	now?: () => Date;
+	/** Bypass both cache read and publication for transactional authority checks. */
+	fresh?: boolean;
 };
 
 export type SalesRequestServiceVocabularyResult = {
@@ -382,12 +384,14 @@ export async function getSalesRequestServiceVocabulary(
 	const key = createCacheKey(input);
 	const cache = input.cache ?? salesRequestServiceVocabularyCache;
 	let cached: Awaited<ReturnType<typeof cache.get>>;
-	try {
-		cached = await cache.get(key);
-	} catch (error) {
-		logger.warn("Service vocabulary cache read failed; using database", {
-			error,
-		});
+	if (!input.fresh) {
+		try {
+			cached = await cache.get(key);
+		} catch (error) {
+			logger.warn("Service vocabulary cache read failed; using database", {
+				error,
+			});
+		}
 	}
 	if (cached) {
 		return {
@@ -427,17 +431,22 @@ export async function getSalesRequestServiceVocabulary(
 		excluded: extracted.diagnostics.excluded,
 	});
 
-	try {
-		await cache.set(key, {
-			schemaVersion: SALES_REQUEST_SERVICE_VOCABULARY_SCHEMA_VERSION,
-			names: extracted.names,
-			generatedAt: (input.now ?? (() => new Date()))().toISOString(),
-			revision,
-		});
-	} catch (error) {
-		logger.warn("Service vocabulary cache write failed; returning fresh data", {
-			error,
-		});
+	if (!input.fresh) {
+		try {
+			await cache.set(key, {
+				schemaVersion: SALES_REQUEST_SERVICE_VOCABULARY_SCHEMA_VERSION,
+				names: extracted.names,
+				generatedAt: (input.now ?? (() => new Date()))().toISOString(),
+				revision,
+			});
+		} catch (error) {
+			logger.warn(
+				"Service vocabulary cache write failed; returning fresh data",
+				{
+					error,
+				},
+			);
+		}
 	}
 
 	return {

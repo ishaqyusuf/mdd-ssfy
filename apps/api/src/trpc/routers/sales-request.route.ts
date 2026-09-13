@@ -41,7 +41,10 @@ import { requireSalesRequestUsage } from "@api/services/sales-request-usage";
 import { requireStorefrontQuoteCreationPermission } from "@api/utils/storefront-permissions";
 import { salesRequestConfigurationCache } from "@gnd/cache/sales-request-configuration-cache";
 import { AppError } from "@gnd/errors";
-import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
+import {
+	SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+	SALES_REQUEST_PROMPT_VERSION,
+} from "@gnd/sales/sales-form/request-generation";
 import {
 	SALES_REQUEST_AI_PROVIDER_CATALOG,
 	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
@@ -76,8 +79,6 @@ function getProviderOptions() {
 
 type SalesRequestSettingsDb = Parameters<typeof getSalesRequestAISettings>[0] &
 	ConfigurationDatabase;
-
-const SALES_REQUEST_OUTPUT_SCHEMA_VERSION = 2;
 
 function providerBenchmarkSurface(
 	result: Awaited<ReturnType<typeof getSalesRequestAISettings>>,

@@ -3,6 +3,7 @@ import {
 	type SalesRequestConfigurationSnapshotOptions,
 	getSalesRequestConfigurationSnapshot,
 } from "@api/db/queries/sales-request-configuration";
+import type { SalesRequestServiceVocabularyCache } from "@gnd/cache/sales-request-service-vocabulary-cache";
 import { serializeSalesRequestConfiguration } from "@gnd/sales/sales-form/request-generation";
 import { getSalesRequestServiceVocabulary } from "./sales-request-service-vocabulary";
 
@@ -28,12 +29,17 @@ export function attachSalesRequestServiceVocabulary<
 export async function getSalesRequestConfigurationContext(
 	db: ContextDatabase,
 	input: { settingId: number },
-	options: SalesRequestConfigurationSnapshotOptions = {},
+	options: SalesRequestConfigurationSnapshotOptions & {
+		freshServiceVocabulary?: boolean;
+		serviceVocabularyCache?: SalesRequestServiceVocabularyCache;
+	} = {},
 ) {
 	const [snapshot, vocabulary] = await Promise.all([
 		getSalesRequestConfigurationSnapshot(db, input, options),
 		getSalesRequestServiceVocabulary(db, {
 			scope: `sales-settings:${input.settingId}`,
+			fresh: options.freshServiceVocabulary,
+			cache: options.serviceVocabularyCache,
 		}),
 	]);
 	return {

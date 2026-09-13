@@ -4,6 +4,7 @@ import {
 } from "../contracts/new-sales-form-seed";
 
 export const SALES_REQUEST_PROMPT_VERSION = "new-sales-form-seed-v6";
+export const SALES_REQUEST_OUTPUT_SCHEMA_VERSION = 2 as const;
 
 /** Configuration is already scoped and serialized by the server. */
 export function buildSalesRequestInstructions(
