@@ -42,7 +42,7 @@ export type AssistantAnalyticsQueryPlan = {
 		| "sales-pipeline-blockers"
 		| "sales-inventory-overview";
 	bounds: {
-		queryCount: 1;
+		maxQueryCount: number;
 		maxRows: number;
 		maxBytes: number;
 		timeoutMs: number;
@@ -128,9 +128,7 @@ function appendFilter(
 		values.push(...filterValues);
 		return;
 	}
-	clauses.push(
-		`${column} ${filter.operator === "gte" ? ">=" : filter.operator === "lte" ? "<=" : "="} ?`,
-	);
+	clauses.push(`${column} = ?`);
 	values.push(filterValues[0] as string | number);
 }
 
@@ -276,6 +274,7 @@ function compileStatement(
 		`so.id IN (${scope})`,
 		"so.deletedAt IS NULL",
 		"so.archivedAt IS NULL",
+		"so.type = 'order'",
 		"so.createdAt >= CONVERT_TZ(?, ?, 'UTC')",
 		"so.createdAt <= CONVERT_TZ(?, ?, 'UTC')",
 	);
@@ -324,15 +323,6 @@ export function compileAssistantAnalyticsQueryPlan(
 			"Analytics cursor requires a reviewed keyset pagination adapter",
 		);
 	}
-	if (
-		intent.metric === "sales.orderCountByStatus" ||
-		intent.metric === "fulfillment.blockersByReason" ||
-		intent.metric === "inventory.shortageExposureByCategory"
-	) {
-		throw new Error(
-			`Analytics metric ${intent.metric} requires its canonical projection adapter`,
-		);
-	}
 	assertTimezone(authority.timezone);
 	const scopeKind =
 		intent.domain === "community" ? "project-ids" : "sales-order-ids";
@@ -359,7 +349,12 @@ export function compileAssistantAnalyticsQueryPlan(
 		metric: intent.metric,
 		...statement,
 		bounds: {
-			queryCount: 1,
+			maxQueryCount:
+				statement.postProcessor === "none"
+					? 1
+					: statement.postProcessor === "sales-inventory-overview"
+						? 1 + Math.ceil(scopeIds.length / 50)
+						: 1 + 4 * Math.ceil(scopeIds.length / 250),
 			maxRows: MAX_QUERY_ROWS,
 			maxBytes: MAX_QUERY_BYTES,
 			timeoutMs: QUERY_TIMEOUT_MS,
@@ -389,10 +384,26 @@ export type AssistantAnalyticsQueryRunner = (input: {
 	signal: AbortSignal;
 }) => Promise<readonly unknown[]>;
 
+export type AssistantAnalyticsCanonicalAdapter = (input: {
+	plan: AssistantAnalyticsQueryPlan;
+	scopedRows: readonly unknown[];
+	signal: AbortSignal;
+}) => Promise<{ rows: readonly unknown[]; queryCount: number }>;
+
+function measureRows(rows: readonly unknown[]) {
+	const serialized = JSON.stringify(rows, (_key, value) =>
+		typeof value === "bigint" ? value.toString() : value,
+	);
+	return new TextEncoder().encode(serialized).byteLength;
+}
+
 export async function executeAssistantAnalyticsQueryPlan(
 	plan: AssistantAnalyticsQueryPlan,
 	run: AssistantAnalyticsQueryRunner,
-	options: { signal?: AbortSignal } = {},
+	options: {
+		signal?: AbortSignal;
+		canonicalAdapter?: AssistantAnalyticsCanonicalAdapter;
+	} = {},
 ) {
 	if (options.signal?.aborted) throw new Error("Analytics query cancelled");
 	const controller = new AbortController();
@@ -409,7 +420,7 @@ export async function executeAssistantAnalyticsQueryPlan(
 		controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
 	});
 	try {
-		const rows = await Promise.race([
+		const scopedRows = await Promise.race([
 			run({
 				text: plan.text,
 				values: plan.values,
@@ -417,17 +428,52 @@ export async function executeAssistantAnalyticsQueryPlan(
 			}),
 			aborted,
 		]);
+		if (scopedRows.length > plan.bounds.maxRows)
+			throw new Error("Analytics scoped query row limit exceeded");
+		if (measureRows(scopedRows) > plan.bounds.maxBytes)
+			throw new Error("Analytics scoped query byte limit exceeded");
+		const projected =
+			plan.postProcessor === "none"
+				? { rows: scopedRows, queryCount: 0 }
+				: await Promise.race([
+						options.canonicalAdapter?.({
+							plan,
+							scopedRows,
+							signal: controller.signal,
+						}) ??
+							Promise.reject(
+								new Error(
+									"Analytics canonical projection adapter is unavailable",
+								),
+							),
+						aborted,
+					]);
+		if (
+			!Number.isSafeInteger(projected.queryCount) ||
+			projected.queryCount < 0 ||
+			(plan.postProcessor !== "none" &&
+				scopedRows.length > 0 &&
+				projected.queryCount === 0)
+		) {
+			throw new Error("Analytics adapter query count is invalid");
+		}
+		const queryCount = 1 + projected.queryCount;
+		if (queryCount > plan.bounds.maxQueryCount)
+			throw new Error("Analytics query count limit exceeded");
+		const rows = projected.rows;
 		if (controller.signal.aborted)
 			throw new Error("Analytics query cancelled or timed out");
 		if (rows.length > plan.bounds.maxRows)
 			throw new Error("Analytics query row limit exceeded");
-		const serialized = JSON.stringify(rows, (_key, value) =>
-			typeof value === "bigint" ? value.toString() : value,
-		);
-		const bytes = new TextEncoder().encode(serialized).byteLength;
+		const bytes = measureRows(rows);
 		if (bytes > plan.bounds.maxBytes)
 			throw new Error("Analytics query byte limit exceeded");
-		return { rows, rowCount: rows.length, bytes, queryCount: 1 as const };
+		return {
+			rows,
+			rowCount: rows.length,
+			bytes,
+			queryCount,
+		};
 	} finally {
 		clearTimeout(timeout);
 		if (rejectOnAbort)

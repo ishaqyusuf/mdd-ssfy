@@ -46,8 +46,11 @@ GND extension for reviewed query intents, optimized data access, and generative 
   `viewOrderPayment`; production counts only submissions with no material review
   or an approved review, matching the canonical finalized-submission policy.
 - Reject projection-backed status, blocker, and inventory metrics until their
-  canonical adapters are installed. Reject cursors until a deterministic keyset
-  cursor is available instead of accepting intent that would be ignored.
+  canonical adapters are installed. The adapters now hydrate only IDs returned
+  by the scoped base query, fail closed on incomplete or conflicting evidence,
+  deduplicate by reviewed identities, and apply validated filters/grouping/sort/
+  limits after canonical projection. Reject cursors until deterministic keyset
+  pagination is available instead of accepting intent that would be ignored.
 - Bound each executable plan to one query, 5,000 rows, 2 MB, eight seconds, 2,000
   scoped IDs, a measured cost ceiling, best-effort cancellation, and a hard
   deadline race for non-cooperative drivers.
@@ -97,6 +100,12 @@ GND extension for reviewed query intents, optimized data access, and generative 
   compiler changes. Independent specification and standards reviews found no
   remaining actionable issue in this slice; database-enforced cancellation stays
   explicitly pending with the concrete database runner.
+- Canonical projection tests pass 28/28 with 276 focused assertions across the
+  catalog, compiler, and adapters. They cover empty scopes, order-only status,
+  payment-blocker privacy, exact deduplication, incomplete snapshots, conflicting
+  inventory identities, duplicate-filter rejection, bounded scoped payloads, and
+  runtime-validated query accounting. Both independent reviews are clean for this
+  checkpoint; production loader binding remains the next unchecked work.
 - Next implementation slice will install bounded canonical projection adapters
   for Sales status, fulfillment blockers, and inventory exposure before checking
   the query-helper and execution-bound checklist items complete.

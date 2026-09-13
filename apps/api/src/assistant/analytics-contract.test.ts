@@ -193,6 +193,15 @@ describe("assistant analytics semantic contract", () => {
 		expect(
 			assistantAnalyticsQueryIntentSchema.safeParse({
 				...validIntent,
+				filters: [
+					{ field: "salesRepId", operator: "eq", value: 7 },
+					{ field: "salesRepId", operator: "in", value: [7, 8] },
+				],
+			}).success,
+		).toBe(false);
+		expect(
+			assistantAnalyticsQueryIntentSchema.safeParse({
+				...validIntent,
 				dateRange: { from: "2026-09-01", to: "2026-06-01" },
 			}).success,
 		).toBe(false);

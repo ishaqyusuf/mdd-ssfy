@@ -210,20 +210,13 @@ export const assistantAnalyticsCatalog = {
 					valueType: "code",
 				},
 				{
-					field: "type",
-					sourceField: "SalesOrders.type",
-					operators: ["eq", "in"],
-					valueType: "enum",
-					allowedValues: ["order", "quote"],
-				},
-				{
 					field: "salesRepId",
 					sourceField: "SalesOrders.salesRepId",
 					operators: ["eq", "in"],
 					valueType: "id",
 				},
 			],
-			allowedGroups: ["none", "status", "type", "salesRepId"],
+			allowedGroups: ["none", "status", "salesRepId"],
 			allowedJoins: [
 				{
 					from: "SalesOrders",
@@ -711,6 +704,17 @@ export const assistantAnalyticsQueryIntentSchema = z
 			});
 		}
 		for (const [index, filter] of intent.filters.entries()) {
+			if (
+				intent.filters.findIndex(
+					(candidate) => candidate.field === filter.field,
+				) !== index
+			) {
+				context.addIssue({
+					code: "custom",
+					path: ["filters", index, "field"],
+					message: "Each analytics filter field may appear only once",
+				});
+			}
 			const contract = metric.filterContracts.find(
 				(candidate) => candidate.field === filter.field,
 			);

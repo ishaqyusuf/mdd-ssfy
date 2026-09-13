@@ -19,6 +19,7 @@ const authority = {
 		viewOrders: true,
 		viewOrderPayment: true,
 		viewProduction: true,
+		viewInventory: true,
 		viewCommunity: true,
 	},
 	salesOrderIds: [9, 2, 9],
@@ -50,7 +51,7 @@ describe("assistant analytics query plan", () => {
 			scopeKind: "sales-order-ids",
 		});
 		expect(plan.bounds).toMatchObject({
-			queryCount: 1,
+			maxQueryCount: 1,
 			maxRows: 5000,
 			timeoutMs: 8000,
 		});
@@ -81,18 +82,20 @@ describe("assistant analytics query plan", () => {
 		expect(plan.text).not.toContain("so.id = ops.salesOrderId");
 	});
 
-	test("rejects projection-backed metrics until their canonical adapter is installed", () => {
-		expect(() =>
-			compileAssistantAnalyticsQueryPlan(
-				{
-					...base,
-					metric: "sales.orderCountByStatus",
-					filters: [],
-					groupBy: "status",
-				},
-				authority,
-			),
-		).toThrow("canonical projection adapter");
+	test("compiles projection-backed metrics for their canonical adapter", () => {
+		const plan = compileAssistantAnalyticsQueryPlan(
+			{
+				...base,
+				metric: "sales.orderCountByStatus",
+				filters: [],
+				groupBy: "status",
+			},
+			authority,
+		);
+		expect(plan.postProcessor).toBe("sales-pipeline-status");
+		expect(plan.bounds.maxQueryCount).toBe(5);
+		expect(plan.text).toContain("so.id IN (?, ?)");
+		expect(plan.text).toContain("so.type = 'order'");
 	});
 
 	test("keeps project scope inside the child aggregate join", () => {
@@ -269,5 +272,28 @@ describe("assistant analytics query plan", () => {
 			{ value: 12n },
 		]);
 		expect(result.bytes).toBeGreaterThan(0);
+	});
+
+	test("rejects invalid accounting from a custom canonical adapter", async () => {
+		const plan = compileAssistantAnalyticsQueryPlan(
+			{
+				...base,
+				metric: "sales.orderCountByStatus",
+				filters: [],
+				groupBy: "status",
+			},
+			authority,
+		);
+		for (const queryCount of [Number.NaN, -1, 0, 1.5]) {
+			await expect(
+				executeAssistantAnalyticsQueryPlan(
+					plan,
+					async () => [{ id: 1, type: "order", salesRepId: 7 }],
+					{
+						canonicalAdapter: async () => ({ rows: [], queryCount }),
+					},
+				),
+			).rejects.toThrow("query count is invalid");
+		}
 	});
 });
