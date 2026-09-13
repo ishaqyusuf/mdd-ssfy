@@ -141,13 +141,6 @@ export const assistantAnalyticsCatalog = {
 					valueType: "date",
 				},
 				{
-					field: "type",
-					sourceField: "SalesOrders.type",
-					operators: ["eq", "in"],
-					valueType: "enum",
-					allowedValues: ["order", "quote"],
-				},
-				{
 					field: "salesRepId",
 					sourceField: "SalesOrders.salesRepId",
 					operators: ["eq", "in"],
@@ -160,7 +153,7 @@ export const assistantAnalyticsCatalog = {
 					valueType: "id",
 				},
 			],
-			allowedGroups: ["none", "day", "week", "month", "type", "salesRepId"],
+			allowedGroups: ["none", "day", "week", "month", "salesRepId"],
 			allowedJoins: [],
 		},
 		{
@@ -320,6 +313,7 @@ export const assistantAnalyticsCatalog = {
 				"OrderProductionSubmissions",
 				"SalesOrderItems",
 				"SalesOrders",
+				"SalesProductionSubmissionMaterialReview",
 			],
 			sourceAuthorities: [
 				{
@@ -339,6 +333,12 @@ export const assistantAnalyticsCatalog = {
 					name: "SalesOrders",
 					path: "packages/db/src/schema/sales.prisma",
 					revision: "sales-orders-v1",
+				},
+				{
+					kind: "prisma-model",
+					name: "SalesProductionSubmissionMaterialReview",
+					path: "packages/db/src/schema/sales.prisma",
+					revision: "production-material-review-v1",
 				},
 			],
 			stableIdFields: ["OrderProductionSubmissions.id"],
@@ -383,6 +383,11 @@ export const assistantAnalyticsCatalog = {
 				{
 					from: "SalesOrderItems",
 					to: "SalesOrders",
+					cardinality: "many-to-one",
+				},
+				{
+					from: "OrderProductionSubmissions",
+					to: "SalesProductionSubmissionMaterialReview",
 					cardinality: "many-to-one",
 				},
 			],
@@ -506,8 +511,7 @@ export const assistantAnalyticsCatalog = {
 			requiredGrant: "viewCommunity",
 			queryOwner: "community",
 			sourceRevision: "community-progress-v1",
-			softDeletePolicy:
-				"exclude deleted or archived projects, homes, and tasks",
+			softDeletePolicy: "exclude deleted or archived projects and homes",
 			deletedPolicy: "exclude",
 			archivePolicy: "exclude",
 			unit: "count",

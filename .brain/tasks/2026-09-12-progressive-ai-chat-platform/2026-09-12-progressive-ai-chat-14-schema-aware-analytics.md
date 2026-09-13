@@ -40,6 +40,17 @@ GND extension for reviewed query intents, optimized data access, and generative 
 - Mark one-to-many Community aggregation as pre-aggregated before joins and retain
   per-metric query owner, source revision, grant, unit, timezone, currency, soft
   deletion, lifecycle, scope, and freshness metadata.
+- Compile the first directly executable metrics through reviewed MySQL statements
+  whose identifiers come only from code switches and whose actor scope, timezone,
+  dates, filters, and limits remain bound values. Revenue additionally requires
+  `viewOrderPayment`; production counts only submissions with no material review
+  or an approved review, matching the canonical finalized-submission policy.
+- Reject projection-backed status, blocker, and inventory metrics until their
+  canonical adapters are installed. Reject cursors until a deterministic keyset
+  cursor is available instead of accepting intent that would be ignored.
+- Bound each executable plan to one query, 5,000 rows, 2 MB, eight seconds, 2,000
+  scoped IDs, a measured cost ceiling, best-effort cancellation, and a hard
+  deadline race for non-cooperative drivers.
 
 ## Implementation Checklist
 - [x] Build a versioned semantic catalog from Prisma plus reviewed lifecycle, metric, join, scope, unit, and freshness metadata.
@@ -77,5 +88,15 @@ GND extension for reviewed query intents, optimized data access, and generative 
   `git diff --check` pass. API typechecking reaches only the unrelated existing
   nullable-string error in `packages/sales/src/copy-sales.ts:521` and concurrent
   `runtime-lock.ts` BuildConfig error outside this ticket.
-- Next implementation slice will compile the first metrics through scoped,
-  parameterized query helpers and add execution bounds.
+- The first query-plan slice passes 12/12 tests with 40 assertions. It verifies
+  grant enforcement, scope in joins and aggregate predicates, exact grouping,
+  placeholder/value parity, actor-timezone date filters, canonical finalized
+  production, archive exclusion, cursor rejection, cost/row/byte bounds, hard
+  timeout, cancellation, and BigInt result sizing.
+- The full Assistant API suite passes 117/117 with 674 assertions after the
+  compiler changes. Independent specification and standards reviews found no
+  remaining actionable issue in this slice; database-enforced cancellation stays
+  explicitly pending with the concrete database runner.
+- Next implementation slice will install bounded canonical projection adapters
+  for Sales status, fulfillment blockers, and inventory exposure before checking
+  the query-helper and execution-bound checklist items complete.

@@ -13,7 +13,7 @@ const validIntent = {
 	metric: "sales.revenueByPeriod" as const,
 	dateRange: { from: "2026-06-01", to: "2026-09-01" },
 	filters: [
-		{ field: "type" as const, operator: "eq" as const, value: "order" },
+		{ field: "salesRepId" as const, operator: "eq" as const, value: 7 },
 	],
 	groupBy: "week" as const,
 };
