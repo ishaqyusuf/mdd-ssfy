@@ -1,8 +1,31 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildCanonicalSalesSourceRevision,
 	getSalesPipelineSnapshots,
 	resolveSalesPipelineSnapshotFromOrder,
 } from "./sales-pipeline-order";
+
+describe("buildCanonicalSalesSourceRevision", () => {
+	it("changes when either detailed or pipeline evidence changes", () => {
+		const first = buildCanonicalSalesSourceRevision({
+			orderRevision: "order-1",
+			pipelineRevision: "pipeline-1",
+		});
+		expect(first).toHaveLength(24);
+		expect(
+			buildCanonicalSalesSourceRevision({
+				orderRevision: "order-2",
+				pipelineRevision: "pipeline-1",
+			}),
+		).not.toBe(first);
+		expect(
+			buildCanonicalSalesSourceRevision({
+				orderRevision: "order-1",
+				pipelineRevision: "pipeline-2",
+			}),
+		).not.toBe(first);
+	});
+});
 
 function order(overrides: Record<string, unknown> = {}) {
 	return {
@@ -112,20 +135,36 @@ describe("resolveSalesPipelineSnapshotFromOrder", () => {
 
 describe("getSalesPipelineSnapshots", () => {
 	it("loads independent evidence concurrently without changing the canonical snapshot", async () => {
-		const sources = [42, 43].map((id) => order({
-			id,
-			assignments: [{
-				id: id * 10, assignedToId: id, qtyAssigned: id === 42 ? 1 : 3,
-				qtyCompleted: 0, dueDate: null, assignedAt: null, completedAt: null,
-				updatedAt: new Date("2026-09-02T12:00:00Z"), submissions: [],
-			}],
-			deliveries: [{
-				id: id * 20, status: "queue", meta: {}, dueDate: null, driverId: null,
-				updatedAt: new Date("2026-09-02T12:00:00Z"),
-				items: [{ id: id * 30, qty: id === 42 ? 1 : 2 }],
-				_count: { stockAllocations: 0 },
-			}],
-		})) as Array<Record<string, unknown>>;
+		const sources = [42, 43].map((id) =>
+			order({
+				id,
+				assignments: [
+					{
+						id: id * 10,
+						assignedToId: id,
+						qtyAssigned: id === 42 ? 1 : 3,
+						qtyCompleted: 0,
+						dueDate: null,
+						assignedAt: null,
+						completedAt: null,
+						updatedAt: new Date("2026-09-02T12:00:00Z"),
+						submissions: [],
+					},
+				],
+				deliveries: [
+					{
+						id: id * 20,
+						status: "queue",
+						meta: {},
+						dueDate: null,
+						driverId: null,
+						updatedAt: new Date("2026-09-02T12:00:00Z"),
+						items: [{ id: id * 30, qty: id === 42 ? 1 : 2 }],
+						_count: { stockAllocations: 0 },
+					},
+				],
+			}),
+		) as Array<Record<string, unknown>>;
 		let started = 0;
 		const db = {
 			salesOrders: {
@@ -134,14 +173,20 @@ describe("getSalesPipelineSnapshots", () => {
 					await Promise.resolve();
 					if (started !== 4) throw new Error("Evidence reads were serialized");
 					const rows = select.assignments ? sources.toReversed() : sources;
-					return rows.map((source) => Object.fromEntries(Object.keys(select).map((key) => [key, source[key]])));
+					return rows.map((source) =>
+						Object.fromEntries(
+							Object.keys(select).map((key) => [key, source[key]]),
+						),
+					);
 				},
 			},
 		};
 
 		const snapshots = await getSalesPipelineSnapshots(db as never, [42, 43]);
 		for (const source of sources) {
-			expect(snapshots.get(Number(source.id))).toEqual(resolveSalesPipelineSnapshotFromOrder(source as never));
+			expect(snapshots.get(Number(source.id))).toEqual(
+				resolveSalesPipelineSnapshotFromOrder(source as never),
+			);
 		}
 		expect(snapshots.get(42)?.production.requiredQty).toBe(5);
 		expect(snapshots.get(42)?.production.assignedQty).toBe(1);
@@ -164,19 +209,32 @@ describe("getSalesPipelineSnapshots", () => {
 			Array.from({ length: 251 }, (_, index) => index + 1),
 		);
 
-		expect(batches.map((batch) => batch.length)).toEqual([250, 250, 250, 250, 1, 1, 1, 1]);
+		expect(batches.map((batch) => batch.length)).toEqual([
+			250, 250, 250, 250, 1, 1, 1, 1,
+		]);
 	});
 
-	it.each(["grandTotal", "itemControls", "assignments", "deliveries"])("rejects missing %s evidence instead of manufacturing an empty stage", async (relation) => {
-		const source = order() as Record<string, unknown>;
-		const db = {
-			salesOrders: {
-				findMany: async ({ select }: { select: Record<string, unknown> }) =>
-					select[relation] ? [] : [Object.fromEntries(Object.keys(select).map((key) => [key, source[key]]))],
-			},
-		};
-		await expect(getSalesPipelineSnapshots(db as never, [42])).rejects.toThrow(
-			"Sales Pipeline evidence changed while loading order 42.",
-		);
-	});
+	it.each(["grandTotal", "itemControls", "assignments", "deliveries"])(
+		"rejects missing %s evidence instead of manufacturing an empty stage",
+		async (relation) => {
+			const source = order() as Record<string, unknown>;
+			const db = {
+				salesOrders: {
+					findMany: async ({ select }: { select: Record<string, unknown> }) =>
+						select[relation]
+							? []
+							: [
+									Object.fromEntries(
+										Object.keys(select).map((key) => [key, source[key]]),
+									),
+								],
+				},
+			};
+			await expect(
+				getSalesPipelineSnapshots(db as never, [42]),
+			).rejects.toThrow(
+				"Sales Pipeline evidence changed while loading order 42.",
+			);
+		},
+	);
 });

@@ -1,3 +1,7 @@
+import {
+	getUserSpecificPermissions,
+	mergePermissionRecords,
+} from "@gnd/auth/utils";
 import { Prisma, db } from "@gnd/db";
 import {
 	type CreateStoredDocumentRecordInput,
@@ -10,6 +14,10 @@ import {
 } from "@gnd/documents";
 import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import {
+	getAuthorizedCanonicalSalesSource,
+	salesDocumentModeRequiresPaymentAccess,
+} from "@gnd/sales/assistant-source";
+import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
 	createOrRefreshSalesPrintData,
@@ -18,15 +26,21 @@ import {
 	salesPrintDataToPrintDocumentData,
 } from "@gnd/sales/pdf-system";
 import type { PrintMode } from "@gnd/sales/print/types";
+import { generatePermissions } from "@gnd/utils/constants";
 import { type SalesDocumentAccessToken, tokenize } from "@gnd/utils/tokenizer";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 import { addDays } from "date-fns";
 import {
 	type TaskName,
 	type WarmSalesDocumentSnapshotPayload,
 	warmSalesDocumentSnapshotSchema,
 } from "../../schema";
+import {
+	ASSISTANT_PDF_MAX_ATTEMPTS,
+	assistantPdfFailureState,
+	cleanupAssistantPdfUpload,
+} from "./assistant-pdf-lifecycle";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 const DEFAULT_LINK_TTL_DAYS = 7;
@@ -47,6 +61,11 @@ type SalesDocumentMeta = {
 	dispatchId?: number | null;
 	scopeKey?: string | null;
 	title?: string | null;
+	assistantJobKey?: string | null;
+	sourceRevision?: string | null;
+	requestedByUserId?: number | null;
+	scopeType?: "organization" | "user" | null;
+	scopeId?: string | null;
 };
 
 function buildSalesDocumentTypeKey(input: {
@@ -124,6 +143,86 @@ async function isSalesSnapshotStale(
 		sourceUpdatedAt: snapshot.sourceUpdatedAt,
 		saleUpdatedAt,
 	});
+}
+
+async function resolveAssistantPdfAuthorization(
+	request: NonNullable<WarmSalesDocumentSnapshotPayload["assistantRequest"]>,
+	salesOrderId: number,
+	mode: PrintMode,
+) {
+	const [user, specificPermissions] = await Promise.all([
+		db.users.findFirst({
+			where: {
+				id: request.userId,
+				deletedAt: null,
+				accessRevokedAt: null,
+			},
+			select: {
+				roles: {
+					where: {
+						deletedAt: null,
+						organization: { deletedAt: null },
+						role: { deletedAt: null },
+					},
+					orderBy: [
+						{ organization: { primary: "desc" as const } },
+						{ organizationId: "asc" as const },
+					],
+					take: 1,
+					select: {
+						organizationId: true,
+						role: {
+							select: {
+								name: true,
+								RoleHasPermissions: {
+									where: {
+										deletedAt: null,
+										permission: { deletedAt: null },
+									},
+									select: {
+										permission: { select: { id: true, name: true } },
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}),
+		getUserSpecificPermissions(db, request.userId),
+	]);
+	if (!user) return null;
+	const organizationId = user.roles[0]?.organizationId;
+	const role = user.roles[0]?.role;
+	const currentScope = organizationId
+		? { scopeType: "organization" as const, scopeId: String(organizationId) }
+		: { scopeType: "user" as const, scopeId: String(request.userId) };
+	if (
+		currentScope.scopeType !== request.scopeType ||
+		currentScope.scopeId !== request.scopeId
+	)
+		return null;
+	const grants = generatePermissions(
+		role?.name,
+		mergePermissionRecords(
+			role?.RoleHasPermissions.map(({ permission }) => permission) ?? [],
+			specificPermissions,
+		),
+	);
+	if (
+		!grants.viewOrders ||
+		(salesDocumentModeRequiresPaymentAccess(mode) && !grants.viewOrderPayment)
+	)
+		return null;
+	return getAuthorizedCanonicalSalesSource(
+		db,
+		{
+			userId: request.userId,
+			...currentScope,
+			grants,
+		},
+		salesOrderId,
+	);
 }
 
 function sanitizeFilename(value: string) {
@@ -290,14 +389,18 @@ function createStoredDocumentRepository(): StoredDocumentRepository {
 	};
 }
 
-async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
+async function warmSnapshot(
+	payload: WarmSalesDocumentSnapshotPayload,
+	attemptNumber = ASSISTANT_PDF_MAX_ATTEMPTS,
+	providerRunId?: string,
+) {
 	const repository = createSalesDocumentSnapshotRepository();
 	const documentType = buildSalesDocumentTypeKey({
 		mode: payload.mode,
 		dispatchId: payload.dispatchId ?? null,
 	});
 
-	if (!payload.forceRegenerate) {
+	if (!payload.snapshotId && !payload.forceRegenerate) {
 		const current = await resolveCurrentSalesDocument(repository, {
 			salesOrderId: payload.salesOrderId,
 			documentType,
@@ -333,35 +436,185 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 		}
 	}
 
-	const latest = await repository.findLatestVersion({
-		salesOrderId: payload.salesOrderId,
-		documentType,
-	});
-
-	await repository.clearCurrentByType?.({
-		salesOrderId: payload.salesOrderId,
-		documentType,
-	});
-
 	const sourceUpdatedAt = await getSalesOrderSourceUpdatedAt(
 		payload.salesOrderId,
 	);
-
-	const pending = await repository.create({
-		salesOrderId: payload.salesOrderId,
-		documentType,
-		version: (latest?.version || 0) + 1,
-		generationStatus: "pending",
-		isCurrent: true,
-		sourceUpdatedAt,
-		meta: {
-			mode: payload.mode,
-			dispatchId: payload.dispatchId ?? null,
-			scopeKey: buildSalesDocumentScopeKey(payload),
-			templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
+	const pending = payload.snapshotId
+		? await db.salesDocumentSnapshot.findFirst({
+				where: {
+					id: payload.snapshotId,
+					salesOrderId: payload.salesOrderId,
+					documentType,
+					generationStatus: "pending",
+					isCurrent: true,
+					deletedAt: null,
+				},
+			})
+		: await (async () => {
+				const latest = await repository.findLatestVersion({
+					salesOrderId: payload.salesOrderId,
+					documentType,
+				});
+				await repository.clearCurrentByType?.({
+					salesOrderId: payload.salesOrderId,
+					documentType,
+				});
+				return repository.create({
+					salesOrderId: payload.salesOrderId,
+					documentType,
+					version: (latest?.version || 0) + 1,
+					generationStatus: "pending",
+					isCurrent: true,
+					sourceUpdatedAt,
+					meta: {
+						mode: payload.mode,
+						dispatchId: payload.dispatchId ?? null,
+						scopeKey: buildSalesDocumentScopeKey(payload),
+						templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
+					},
+				});
+			})();
+	if (!pending) {
+		return {
+			ok: false,
+			cancelled: true,
+			snapshotId: payload.snapshotId ?? null,
+			documentType,
+		};
+	}
+	const pendingMeta = getSnapshotMeta(
+		pending.meta as SalesDocumentSnapshotRecord["meta"],
+	);
+	const assistantRequest = payload.assistantRequest;
+	if (
+		payload.snapshotId &&
+		pendingMeta.assistantJobKey &&
+		(!assistantRequest ||
+			pendingMeta.requestedByUserId !== assistantRequest.userId ||
+			pendingMeta.scopeType !== assistantRequest.scopeType ||
+			pendingMeta.scopeId !== assistantRequest.scopeId ||
+			pendingMeta.sourceRevision !== assistantRequest.sourceRevision)
+	) {
+		await db.salesDocumentSnapshot.updateMany({
+			where: {
+				id: pending.id,
+				generationStatus: "pending",
+				isCurrent: true,
+			},
+			data: {
+				generationStatus: "cancelled",
+				isCurrent: false,
+				invalidatedAt: new Date(),
+				errorMessage: "Assistant PDF authorization context is invalid.",
+			},
+		});
+		return {
+			ok: false,
+			cancelled: true,
+			snapshotId: pending.id,
+			documentType,
+		};
+	}
+	if (assistantRequest) {
+		const authorized = await resolveAssistantPdfAuthorization(
+			assistantRequest,
+			payload.salesOrderId,
+			payload.mode,
+		);
+		if (!authorized) {
+			await db.salesDocumentSnapshot.updateMany({
+				where: {
+					id: pending.id,
+					generationStatus: "pending",
+					isCurrent: true,
+				},
+				data: {
+					generationStatus: "cancelled",
+					isCurrent: false,
+					invalidatedAt: new Date(),
+					errorMessage: "Assistant PDF access is no longer authorized.",
+				},
+			});
+			return {
+				ok: false,
+				cancelled: true,
+				snapshotId: pending.id,
+				documentType,
+			};
+		}
+		if (authorized.revision !== assistantRequest.sourceRevision) {
+			await db.salesDocumentSnapshot.updateMany({
+				where: {
+					id: pending.id,
+					generationStatus: "pending",
+					isCurrent: true,
+				},
+				data: {
+					generationStatus: "stale",
+					isCurrent: false,
+					invalidatedAt: new Date(),
+					errorMessage: null,
+				},
+			});
+			return {
+				ok: false,
+				stale: true,
+				snapshotId: pending.id,
+				documentType,
+			};
+		}
+	}
+	if (
+		payload.snapshotId &&
+		!assistantRequest &&
+		(!sourceUpdatedAt ||
+			!pending.sourceUpdatedAt ||
+			sourceUpdatedAt.getTime() !== pending.sourceUpdatedAt.getTime())
+	) {
+		await db.salesDocumentSnapshot.updateMany({
+			where: {
+				id: pending.id,
+				generationStatus: "pending",
+				isCurrent: true,
+			},
+			data: {
+				generationStatus: "stale",
+				isCurrent: false,
+				invalidatedAt: new Date(),
+				errorMessage: null,
+			},
+		});
+		return {
+			ok: false,
+			stale: true,
+			snapshotId: pending.id,
+			documentType,
+		};
+	}
+	const claimed = await db.salesDocumentSnapshot.updateMany({
+		where: {
+			id: pending.id,
+			generationStatus: "pending",
+			isCurrent: true,
+			deletedAt: null,
+		},
+		data: {
+			generationStatus: "generating",
+			...(assistantRequest && providerRunId
+				? { providerJobId: providerRunId }
+				: {}),
 		},
 	});
+	if (claimed.count !== 1) {
+		return {
+			ok: false,
+			cancelled: true,
+			snapshotId: pending.id,
+			documentType,
+		};
+	}
 
+	let cleanupGeneratedDocument: (() => Promise<void>) | null = null;
 	try {
 		const printDataResult = await createOrRefreshSalesPrintData(db, {
 			salesOrderId: payload.salesOrderId,
@@ -402,6 +655,7 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 						...options,
 						access: options?.access ?? "public",
 					}),
+				del,
 				token: process.env.BLOB_READ_WRITE_TOKEN,
 				access: "public",
 				addRandomSuffix: true,
@@ -427,6 +681,59 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 			durationMs: Date.now() - uploadStart,
 			size: uploaded.size ?? null,
 		});
+		const cleanupUpload = async (storedDocumentId?: string) => {
+			const cleanup = await cleanupAssistantPdfUpload({
+				pathname: uploaded.pathname,
+				storedDocumentId,
+				deleteBlob: (pathname) => documentService.delete({ pathname }),
+				markDeleted: (documentId) =>
+					db.storedDocument.updateMany({
+						where: { id: documentId, deletedAt: null },
+						data: {
+							isCurrent: false,
+							status: "deleted",
+							deletedAt: new Date(),
+						},
+					}),
+				markCleanupRequired: (documentId) =>
+					db.storedDocument.updateMany({
+						where: { id: documentId, deletedAt: null },
+						data: { isCurrent: false, status: "cleanup_required" },
+					}),
+				recordCleanupRequired: () =>
+					db.storedDocument.create({
+						data: {
+							ownerType: "sales_order",
+							ownerId: String(payload.salesOrderId),
+							ownerKey: documentType,
+							kind: buildStoredDocumentKind(documentType),
+							provider: uploaded.provider,
+							pathname: uploaded.pathname,
+							url: uploaded.url,
+							filename: uploaded.filename,
+							mimeType: uploaded.contentType,
+							size: uploaded.size,
+							visibility: "public",
+							status: "cleanup_required",
+							isCurrent: false,
+							generated: true,
+							sourceType: "sales_document_snapshot",
+							sourceId: pending.id,
+							description: "Cleanup required after PDF registration failure.",
+						},
+					}),
+			});
+			if (cleanup.status === "cleanup_required") {
+				logger.error("Sales PDF cleanup requires recovery", {
+					salesOrderId: payload.salesOrderId,
+					snapshotId: pending.id,
+					documentId: storedDocumentId ?? null,
+					pathname: uploaded.pathname,
+					cleanupError: cleanup.error,
+				});
+			}
+		};
+		cleanupGeneratedDocument = () => cleanupUpload();
 
 		const storedDocument = await registry.registerUploaded({
 			ownerType: "sales_order",
@@ -446,6 +753,7 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 				dispatchId: payload.dispatchId ?? null,
 			},
 		});
+		cleanupGeneratedDocument = () => cleanupUpload(storedDocument.id);
 
 		const expiresAt = addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString();
 		const accessToken = tokenize({
@@ -454,40 +762,136 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 			documentType,
 			expiry: expiresAt,
 		} satisfies SalesDocumentAccessToken);
+		if (assistantRequest) {
+			const authorized = await resolveAssistantPdfAuthorization(
+				assistantRequest,
+				payload.salesOrderId,
+				payload.mode,
+			);
+			const completionState = !authorized
+				? ("cancelled" as const)
+				: authorized.revision !== assistantRequest.sourceRevision
+					? ("stale" as const)
+					: null;
+			if (completionState) {
+				await cleanupGeneratedDocument();
+				await db.salesDocumentSnapshot.updateMany({
+					where: {
+						id: pending.id,
+						generationStatus: "generating",
+						isCurrent: true,
+					},
+					data: {
+						generationStatus: completionState,
+						isCurrent: false,
+						invalidatedAt: new Date(),
+						errorMessage:
+							completionState === "cancelled"
+								? "Assistant PDF access is no longer authorized."
+								: null,
+					},
+				});
+				return {
+					ok: false,
+					...(completionState === "cancelled"
+						? { cancelled: true }
+						: { stale: true }),
+					snapshotId: pending.id,
+					documentType,
+				};
+			}
+		}
 
-		const snapshot = await repository.update({
-			id: pending.id,
-			storedDocumentId: storedDocument.id,
-			generationStatus: "ready",
-			sourceUpdatedAt,
-			generatedAt: new Date(),
-			errorMessage: null,
-			meta: {
-				mode: payload.mode,
-				dispatchId: payload.dispatchId ?? null,
-				scopeKey: buildSalesDocumentScopeKey(payload),
-				templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
-				accessToken,
-				expiresAt,
-				title,
-				salesPrintDataId: printDataResult.record.id,
+		const currentBeforeCompletion = await db.salesDocumentSnapshot.findFirst({
+			where: {
+				id: pending.id,
+				generationStatus: "generating",
+				isCurrent: true,
+				deletedAt: null,
+			},
+			select: { meta: true },
+		});
+		if (!currentBeforeCompletion) {
+			await cleanupGeneratedDocument();
+			return {
+				ok: false,
+				cancelled: true,
+				snapshotId: pending.id,
+				documentType,
+			};
+		}
+		const currentMeta = getSnapshotMeta(
+			currentBeforeCompletion.meta as SalesDocumentSnapshotRecord["meta"],
+		);
+		const completed = await db.salesDocumentSnapshot.updateMany({
+			where: {
+				id: pending.id,
+				generationStatus: "generating",
+				isCurrent: true,
+				deletedAt: null,
+			},
+			data: {
+				storedDocumentId: storedDocument.id,
+				generationStatus: "ready",
+				sourceUpdatedAt,
+				generatedAt: new Date(),
+				errorMessage: null,
+				meta: {
+					...currentMeta,
+					mode: payload.mode,
+					dispatchId: payload.dispatchId ?? null,
+					scopeKey: buildSalesDocumentScopeKey(payload),
+					templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
+					accessToken,
+					expiresAt,
+					title,
+					...(assistantRequest
+						? { sourceRevision: assistantRequest.sourceRevision }
+						: {}),
+					salesPrintDataId: printDataResult.record.id,
+				},
 			},
 		});
+		if (completed.count !== 1) {
+			await cleanupGeneratedDocument();
+			return {
+				ok: false,
+				cancelled: true,
+				snapshotId: pending.id,
+				documentType,
+			};
+		}
+		cleanupGeneratedDocument = null;
 
 		return {
 			ok: true,
 			reused: false,
-			snapshotId: snapshot.id,
+			snapshotId: pending.id,
 			documentType,
 		};
 	} catch (error) {
-		await repository.update({
-			id: pending.id,
-			generationStatus: "failed",
-			isCurrent: false,
-			failedAt: new Date(),
-			errorMessage:
-				error instanceof Error ? error.message : "Unable to generate PDF.",
+		await cleanupGeneratedDocument?.().catch((cleanupError) => {
+			logger.error("Sales PDF failure cleanup could not be recorded", {
+				salesOrderId: payload.salesOrderId,
+				snapshotId: pending.id,
+				cleanupError,
+			});
+		});
+		const failure = assistantPdfFailureState({
+			hasAssistantSnapshot: Boolean(payload.snapshotId && assistantRequest),
+			attemptNumber,
+		});
+		await db.salesDocumentSnapshot.updateMany({
+			where: {
+				id: pending.id,
+				generationStatus: { in: ["pending", "generating"] },
+			},
+			data: {
+				...failure,
+				failedAt: failure.generationStatus === "failed" ? new Date() : null,
+				errorMessage:
+					error instanceof Error ? error.message : "Unable to generate PDF.",
+			},
 		});
 		throw error;
 	}
@@ -498,8 +902,9 @@ export const warmSalesDocumentSnapshot = schemaTask({
 	schema: warmSalesDocumentSnapshotSchema,
 	machine: "micro",
 	maxDuration: 300,
-	run: async (payload) => {
+	retry: { maxAttempts: ASSISTANT_PDF_MAX_ATTEMPTS },
+	run: async (payload, { ctx }) => {
 		logger.info("Warming sales document snapshot", payload);
-		return warmSnapshot(payload);
+		return warmSnapshot(payload, ctx.attempt.number, ctx.run.id);
 	},
 });

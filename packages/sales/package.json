@@ -16,6 +16,7 @@
 		"./legacy-order-status": "./src/legacy-order-status.ts",
 		"./sales-pipeline": "./src/sales-pipeline.ts",
 		"./sales-pipeline-order": "./src/sales-pipeline-order.ts",
+		"./assistant-source": "./src/assistant-source.ts",
 		"./sales-pipeline-commands": "./src/sales-pipeline-commands.ts",
 		"./sales-pipeline-rollout": "./src/sales-pipeline-rollout.ts",
 		"./schedule-move": "./src/schedule-move.ts",

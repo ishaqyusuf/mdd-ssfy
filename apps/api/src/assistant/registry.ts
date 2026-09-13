@@ -14,8 +14,12 @@ import {
 	getAssistantSalesOrderCandidates,
 	getAssistantSalesTimeline,
 } from "@gnd/db/queries";
+import { salesDocumentModeRequiresPaymentAccess } from "@gnd/sales/assistant-source";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
-import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
+import {
+	buildCanonicalSalesSourceRevision,
+	getSalesPipelineSnapshots,
+} from "@gnd/sales/sales-pipeline-order";
 import { z } from "zod";
 import {
 	type AssistantCapabilityState,
@@ -26,11 +30,13 @@ import {
 } from "./contracts";
 import {
 	assistantSalesPdfModes,
+	cancelAssistantSalesPdfJob,
 	getAssistantSalesPdfStatus,
 	isAssistantSalesPdfModeSupported,
+	queueAssistantSalesPdfJob,
 } from "./pdf-artifacts";
 
-export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v4";
+export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v5";
 
 export const assistantToolDomains = [
 	"system",
@@ -318,6 +324,15 @@ const detailedOrderSchema = orderSchema
 	.strict();
 const salesPdfInputSchema = orderIdentityInputSchema.extend({
 	mode: z.enum(assistantSalesPdfModes),
+	snapshotId: z.string().cuid().optional(),
+});
+const salesPdfGenerationInputSchema = salesPdfInputSchema.extend({
+	expectedRevision: z.string().trim().min(1).max(191),
+	forceRegenerate: z.boolean().default(false),
+});
+const salesPdfCancelInputSchema = salesPdfInputSchema.extend({
+	snapshotId: z.string().cuid(),
+	expectedRevision: z.string().trim().min(1).max(191),
 });
 const salesPdfStatusSchema = z
 	.object({
@@ -655,7 +670,31 @@ export type AssistantToolServices = {
 	getSalesPdfStatus: (
 		order: DetailedOrder,
 		mode: SalesPdfInput["mode"],
+		snapshotId?: string,
 	) => Promise<z.infer<typeof salesPdfStatusSchema>>;
+	queueSalesPdfJob: (
+		actor: AssistantToolActor,
+		order: DetailedOrder,
+		mode: SalesPdfInput["mode"],
+		forceRegenerate: boolean,
+	) => Promise<{
+		jobId: string;
+		triggerRunId: string | null;
+		status:
+			| "queued"
+			| "running"
+			| "ready"
+			| "failed"
+			| "cancelled"
+			| "stale"
+			| "on_demand";
+		reused: boolean;
+	}>;
+	cancelSalesPdfJob: (
+		order: DetailedOrder,
+		mode: SalesPdfInput["mode"],
+		snapshotId: string,
+	) => Promise<boolean>;
 };
 
 function projectSalesPipeline(snapshot: SalesPipelineSnapshot) {
@@ -718,10 +757,10 @@ async function loadCanonicalSalesOrders(orders: RawDetailedOrder[]) {
 		return {
 			...order,
 			pipeline: projectSalesPipeline(snapshot),
-			revision: createHash("sha256")
-				.update(`${order.revision}:${snapshot.revision}`)
-				.digest("hex")
-				.slice(0, 24),
+			revision: buildCanonicalSalesSourceRevision({
+				orderRevision: order.revision,
+				pipelineRevision: snapshot.revision,
+			}),
 		};
 	});
 }
@@ -767,10 +806,39 @@ const defaultAssistantToolServices: AssistantToolServices = {
 		getAssistantCommunityProjectSummary(db, actor, projectId),
 	findCommunityUnits: (actor, input) =>
 		findAssistantCommunityUnits(db, actor, input),
-	getSalesPdfStatus: (order, mode) =>
+	getSalesPdfStatus: (order, mode, snapshotId) =>
 		getAssistantSalesPdfStatus(db, {
 			salesOrderId: order.id,
-			salesUpdatedAt: order.updatedAt,
+			sourceRevision: order.revision,
+			mode,
+			snapshotId,
+		}),
+	queueSalesPdfJob: (actor, order, mode, forceRegenerate) =>
+		queueAssistantSalesPdfJob(db, {
+			salesOrderId: order.id,
+			salesUpdatedAt:
+				order.updatedAt ??
+				(() => {
+					throw new Error("Sales PDF source revision is unavailable");
+				})(),
+			mode,
+			forceRegenerate,
+			sourceRevision: order.revision,
+			actor: {
+				userId: actor.userId,
+				scopeType:
+					actor.scopeType === "organization" || actor.scopeType === "user"
+						? actor.scopeType
+						: (() => {
+								throw new Error("Assistant actor scope is invalid");
+							})(),
+				scopeId: actor.scopeId,
+			},
+		}),
+	cancelSalesPdfJob: (order, mode, snapshotId) =>
+		cancelAssistantSalesPdfJob(db, {
+			snapshotId,
+			salesOrderId: order.id,
 			mode,
 		}),
 };
@@ -1254,6 +1322,82 @@ const salesCustomerDefinitions: AssistantToolDefinition[] = [
 	}),
 ];
 
+async function resolveSalesPdfOrder(
+	actor: AssistantToolActor,
+	input: SalesPdfInput,
+	services: AssistantToolServices,
+) {
+	if (
+		salesDocumentModeRequiresPaymentAccess(input.mode) &&
+		actor.grants.viewOrderPayment !== true
+	) {
+		return {
+			result: assistantResultEnvelope({
+				status: "unavailable",
+				data: { order: null, candidates: [], pdf: null },
+				warnings: [
+					"Payment access is required for this price-bearing Sales PDF.",
+				],
+			}),
+		};
+	}
+	const candidates = (await services.getSalesOrderCandidates(actor, input)).map(
+		(order) => redactOrderFinance(actor, order),
+	);
+	if (candidates.length !== 1) {
+		return {
+			result: assistantResultEnvelope({
+				status: candidates.length ? "requires_input" : "unavailable",
+				data: { order: null, candidates, pdf: null },
+				sources: candidates.map(orderSource),
+				entities: candidates.map(orderEntity),
+				warnings: [
+					candidates.length
+						? "Choose whether you mean the order or quote."
+						: "No authorized order or quote matched that number.",
+				],
+			}),
+		};
+	}
+	const order = candidates[0];
+	if (!order) throw new Error("Assistant order resolution failed");
+	if (input.expectedRevision && input.expectedRevision !== order.revision) {
+		return {
+			result: assistantResultEnvelope({
+				status: "conflict",
+				data: { order, candidates: [], pdf: null },
+				sources: [orderSource(order)],
+				entities: [orderEntity(order)],
+				revision: order.revision,
+				warnings: [
+					"The Sales source changed. Review it before using a PDF snapshot.",
+				],
+			}),
+		};
+	}
+	if (
+		!isAssistantSalesPdfModeSupported({
+			salesType: order.type,
+			mode: input.mode,
+		})
+	) {
+		return {
+			result: assistantResultEnvelope({
+				status: "requires_input",
+				data: { order, candidates: [], pdf: null },
+				sources: [orderSource(order)],
+				entities: [orderEntity(order)],
+				warnings: [
+					order.type === "quote"
+						? "Quotes support quote PDFs only."
+						: "Orders do not use quote PDFs.",
+				],
+			}),
+		};
+	}
+	return { order };
+}
+
 const placeholders: AssistantToolDefinition[] = [
 	definition({
 		toolId: "sales_create_order",
@@ -1590,6 +1734,18 @@ const placeholders: AssistantToolDefinition[] = [
 		relatedTools: ["documents_generate_pdf", "sales_get_order_status"],
 		async handler(actor, rawInput, services) {
 			const input = salesPdfInputSchema.parse(rawInput);
+			if (
+				salesDocumentModeRequiresPaymentAccess(input.mode) &&
+				actor.grants.viewOrderPayment !== true
+			) {
+				return assistantResultEnvelope({
+					status: "unavailable",
+					data: { order: null, candidates: [], pdf: null },
+					warnings: [
+						"Payment access is required for this price-bearing Sales PDF.",
+					],
+				});
+			}
 			const candidates = (
 				await services.getSalesOrderCandidates(actor, input)
 			).map((order) => redactOrderFinance(actor, order));
@@ -1638,7 +1794,11 @@ const placeholders: AssistantToolDefinition[] = [
 					],
 				});
 			}
-			const pdf = await services.getSalesPdfStatus(order, input.mode);
+			const pdf = await services.getSalesPdfStatus(
+				order,
+				input.mode,
+				input.snapshotId,
+			);
 			return assistantResultEnvelope({
 				status: "success",
 				data: { order, candidates: [], pdf },
@@ -1690,8 +1850,151 @@ const placeholders: AssistantToolDefinition[] = [
 			resultComponent: "document",
 			icon: "file-text",
 		},
-		inputSchema: placeholderInputSchema,
-		outputSchema: placeholderDataSchema,
+		inputSchema: salesPdfGenerationInputSchema,
+		outputSchema: salesPdfStatusDataSchema,
+		relatedTools: ["documents_get_sales_pdf_status", "documents_cancel_pdf"],
+		async handler(actor, rawInput, services) {
+			const input = salesPdfGenerationInputSchema.parse(rawInput);
+			const resolved = await resolveSalesPdfOrder(actor, input, services);
+			if ("result" in resolved) return resolved.result;
+			const { order } = resolved;
+			const job = await services.queueSalesPdfJob(
+				actor,
+				order,
+				input.mode,
+				input.forceRegenerate,
+			);
+			const pdf = await services.getSalesPdfStatus(
+				order,
+				input.mode,
+				job.jobId,
+			);
+			const isReady = pdf.status === "ready";
+			const failed = job.status === "failed";
+			const cancelled = job.status === "cancelled";
+			const stale = job.status === "stale";
+			const running = job.status === "running";
+			return assistantResultEnvelope({
+				status: isReady
+					? "success"
+					: failed
+						? "failed"
+						: cancelled || stale
+							? "conflict"
+							: "pending",
+				data: { order, candidates: [], pdf },
+				sources: [orderSource(order)],
+				entities: [
+					orderEntity(order),
+					...(pdf.documentId
+						? [
+								{
+									kind: "document" as const,
+									id: pdf.documentId,
+									label: `${order.orderNo} ${input.mode} PDF`,
+									mimeType: "application/pdf",
+								},
+							]
+						: []),
+				],
+				revision: pdf.revision,
+				artifact: {
+					id: job.jobId,
+					status: isReady
+						? "ready"
+						: failed
+							? "failed"
+							: cancelled
+								? "cancelled"
+								: stale
+									? "failed"
+									: running
+										? "running"
+										: "queued",
+				},
+				job: {
+					id: job.jobId,
+					status: isReady
+						? "succeeded"
+						: failed
+							? "failed"
+							: cancelled
+								? "cancelled"
+								: stale
+									? "failed"
+									: running
+										? "running"
+										: "queued",
+				},
+				warnings: failed
+					? ["PDF generation is unavailable."]
+					: stale
+						? ["The Sales source changed before PDF generation completed."]
+						: [],
+				allowedNextActions:
+					isReady || stale
+						? []
+						: [
+								{ toolId: "documents_get_sales_pdf_status", toolVersion: 1 },
+								{ toolId: "documents_cancel_pdf", toolVersion: 1 },
+							],
+			});
+		},
+	}),
+	definition({
+		toolId: "documents_cancel_pdf",
+		version: 1,
+		domain: "documents",
+		title: "Cancel PDF generation",
+		description:
+			"Cancel one current queued or running Sales PDF job after explicit approval.",
+		capability: "coming_soon",
+		effect: "artifact",
+		requiredGrants: ["viewOrders"],
+		presentation: {
+			group: "Documents",
+			resultComponent: "document-status",
+			icon: "circle-stop",
+		},
+		inputSchema: salesPdfCancelInputSchema,
+		outputSchema: salesPdfStatusDataSchema,
+		relatedTools: ["documents_get_sales_pdf_status", "documents_generate_pdf"],
+		async handler(actor, rawInput, services) {
+			const input = salesPdfCancelInputSchema.parse(rawInput);
+			const resolved = await resolveSalesPdfOrder(actor, input, services);
+			if ("result" in resolved) return resolved.result;
+			const { order } = resolved;
+			const cancelled = await services.cancelSalesPdfJob(
+				order,
+				input.mode,
+				input.snapshotId,
+			);
+			return assistantResultEnvelope({
+				status: cancelled ? "success" : "conflict",
+				data: { order, candidates: [], pdf: null },
+				sources: [orderSource(order)],
+				entities: [orderEntity(order)],
+				...(cancelled
+					? {
+							artifact: {
+								id: input.snapshotId,
+								status: "cancelled" as const,
+							},
+							job: {
+								id: input.snapshotId,
+								status: "cancelled" as const,
+							},
+						}
+					: {}),
+				revision: order.revision,
+				warnings: cancelled
+					? []
+					: ["The PDF job is no longer cancellable. Refresh its status."],
+				allowedNextActions: [
+					{ toolId: "documents_get_sales_pdf_status", toolVersion: 1 },
+				],
+			});
+		},
 	}),
 	definition({
 		toolId: "finance_summarize_orders",
@@ -1863,12 +2166,35 @@ export function getAssistantRegistryPublicDefinitions() {
 }
 
 function assistantResultEnvelope<T = never>(input: {
-	status: "success" | "partial" | "requires_input" | "unavailable" | "conflict";
+	status:
+		| "success"
+		| "partial"
+		| "pending"
+		| "requires_input"
+		| "requires_approval"
+		| "unavailable"
+		| "denied"
+		| "conflict"
+		| "failed";
 	data?: T;
 	sources?: Array<{ kind: "record"; id: string; label: string }>;
 	warnings?: string[];
 	entities?: AssistantEntityReference[];
 	revision?: string;
+	artifact?: {
+		id: string;
+		status: "queued" | "running" | "ready" | "failed" | "cancelled";
+	};
+	job?: {
+		id: string;
+		status:
+			| "queued"
+			| "running"
+			| "retrying"
+			| "succeeded"
+			| "failed"
+			| "cancelled";
+	};
 	allowedNextActions?: Array<{ toolId: string; toolVersion: number }>;
 }) {
 	return {
@@ -1879,6 +2205,8 @@ function assistantResultEnvelope<T = never>(input: {
 		warnings: input.warnings ?? [],
 		...(input.entities?.length ? { entities: input.entities } : {}),
 		...(input.revision ? { revision: input.revision } : {}),
+		...(input.artifact ? { artifact: input.artifact } : {}),
+		...(input.job ? { job: input.job } : {}),
 		allowedNextActions: input.allowedNextActions ?? [],
 	};
 }

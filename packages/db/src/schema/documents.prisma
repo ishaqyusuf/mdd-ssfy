@@ -38,6 +38,7 @@ model SalesDocumentSnapshot {
     id               String   @id @default(cuid())
     salesOrderId     Int
     storedDocumentId String?  @db.VarChar(191)
+    providerJobId    String?  @unique(map: "sales_doc_provider_job_uq") @db.VarChar(191)
     documentType     String   @db.VarChar(100)
     version          Int      @default(1)
     generationStatus String   @default("pending") @db.VarChar(50)

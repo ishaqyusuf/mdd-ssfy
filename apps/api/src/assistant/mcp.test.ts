@@ -7,7 +7,7 @@ describe("assistant in-memory MCP", () => {
 			userId: 42,
 			scopeType: "organization",
 			scopeId: "7",
-			grants: { viewOrders: true },
+			grants: { viewOrders: true, viewOrderPayment: true },
 		});
 
 		expect(session.definitions.tools.map((tool) => tool.name).sort()).toEqual([

@@ -6,6 +6,7 @@ import {
 	findAssistantSalesOrders,
 	getAssistantCustomerOrderHistory,
 	getAssistantCustomerSummary,
+	getAssistantSalesOrderById,
 	getAssistantSalesOrderCandidates,
 	getAssistantSalesTimeline,
 } from "./assistant-sales";
@@ -141,6 +142,29 @@ describe("assistant Sales/customer query boundary", () => {
 			{ orderNo: "09502PC" },
 		);
 		expect(result.map(({ type }) => type)).toEqual(["order", "quote"]);
+	});
+
+	test("loads one detailed order by id within the actor scope", async () => {
+		let query: unknown;
+		const db = {
+			salesOrders: {
+				findFirst: async (input: unknown) => {
+					query = input;
+					return {
+						...order(),
+						deliveries: [],
+						payments: [],
+						stat: [],
+					};
+				},
+			},
+		} as unknown as Database;
+		const result = await getAssistantSalesOrderById(db, organizationActor, 101);
+		expect(result).toMatchObject({ id: 101, orderNo: "09502PC" });
+		expect((query as { where: { AND: unknown[] } }).where.AND).toEqual([
+			{ orgId: 7 },
+			{ id: 101, deletedAt: null },
+		]);
 	});
 
 	test("bounds payments and revises detailed status when related evidence changes", async () => {

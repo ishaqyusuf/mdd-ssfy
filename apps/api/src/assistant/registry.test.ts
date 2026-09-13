@@ -11,7 +11,7 @@ const actor = {
 	userId: 42,
 	scopeType: "organization",
 	scopeId: "7",
-	grants: { viewOrders: true, editOrders: false },
+	grants: { viewOrders: true, viewOrderPayment: true, editOrders: false },
 };
 
 describe("assistant tool registry", () => {
@@ -21,7 +21,7 @@ describe("assistant tool registry", () => {
 		);
 
 		expect(new Set(identities).size).toBe(identities.length);
-		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v4");
+		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v5");
 		for (const tool of assistantToolRegistry) {
 			expect(tool.toolId).toMatch(/^[a-z][a-z0-9]*_[a-z][a-z0-9_]*$/);
 			expect(tool.version).toBeGreaterThan(0);

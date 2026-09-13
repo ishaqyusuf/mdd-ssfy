@@ -58,7 +58,41 @@ describe("queueSalesDocumentSnapshotWarmup", () => {
 					templateId: "template-7",
 					forceRegenerate: true,
 				},
+				undefined,
 			],
 		]);
+	});
+
+	it("forwards a pre-created Assistant snapshot identity", async () => {
+		process.env.NODE_ENV = "test";
+		await queueSalesDocumentSnapshotWarmup(
+			{
+				snapshotId: "cm1234567890123456789012",
+				salesOrderId: 21438,
+				mode: "invoice",
+				idempotencyKey: "assistant-sales-pdf:snapshot-1",
+				assistantRequest: {
+					userId: 7,
+					scopeType: "organization",
+					scopeId: "3",
+					sourceRevision: "revision-1",
+				},
+			},
+			triggerMock,
+		);
+		expect(triggerCalls[0]?.[1]).toMatchObject({
+			snapshotId: "cm1234567890123456789012",
+			salesOrderId: 21438,
+			mode: "invoice",
+			assistantRequest: {
+				userId: 7,
+				scopeType: "organization",
+				scopeId: "3",
+				sourceRevision: "revision-1",
+			},
+		});
+		expect(triggerCalls[0]?.[2]).toEqual({
+			idempotencyKey: "assistant-sales-pdf:snapshot-1",
+		});
 	});
 });

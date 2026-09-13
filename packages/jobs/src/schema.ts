@@ -97,6 +97,7 @@ export type AttachSignedDispatchPdfPayload = z.infer<
 >;
 
 export const warmSalesDocumentSnapshotSchema = z.object({
+	snapshotId: z.string().cuid().optional(),
 	salesOrderId: z.number(),
 	mode: z.enum([
 		"invoice",
@@ -108,6 +109,15 @@ export const warmSalesDocumentSnapshotSchema = z.object({
 	dispatchId: z.number().optional().nullable(),
 	templateId: z.string().optional().default("template-2"),
 	forceRegenerate: z.boolean().optional().default(false),
+	assistantRequest: z
+		.object({
+			userId: z.number().int().positive(),
+			scopeType: z.enum(["organization", "user"]),
+			scopeId: z.string().min(1),
+			sourceRevision: z.string().min(1),
+		})
+		.strict()
+		.optional(),
 });
 export type WarmSalesDocumentSnapshotPayload = z.infer<
 	typeof warmSalesDocumentSnapshotSchema

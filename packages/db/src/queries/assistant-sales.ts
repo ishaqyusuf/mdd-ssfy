@@ -184,6 +184,115 @@ export async function canAssistantAccessSalesOrderId(
 	return Boolean(row);
 }
 
+const assistantSalesOrderDetailSelect = {
+	...salesOrderListSelect,
+	deliveries: {
+		where: { deletedAt: null },
+		orderBy: { id: "desc" as const },
+		take: 3,
+		select: {
+			id: true,
+			status: true,
+			deliveryMode: true,
+			dueDate: true,
+			deliveredAt: true,
+			updatedAt: true,
+		},
+	},
+	payments: {
+		where: { deletedAt: null },
+		orderBy: [{ createdAt: "desc" as const }, { id: "desc" as const }],
+		take: 5,
+		select: {
+			id: true,
+			amount: true,
+			status: true,
+			reviewStatus: true,
+			updatedAt: true,
+		},
+	},
+	stat: {
+		where: { deletedAt: null },
+		orderBy: { type: "asc" as const },
+		select: {
+			type: true,
+			status: true,
+			total: true,
+			percentage: true,
+			createdAt: true,
+		},
+	},
+} satisfies Prisma.SalesOrdersSelect;
+
+type AssistantSalesOrderDetailRow = Prisma.SalesOrdersGetPayload<{
+	select: typeof assistantSalesOrderDetailSelect;
+}>;
+
+function mapDetailedOrder(row: AssistantSalesOrderDetailRow) {
+	const base = mapOrder(row);
+	const deliveries = row.deliveries.map((delivery) => ({
+		id: delivery.id,
+		status: delivery.status,
+		mode: delivery.deliveryMode,
+		dueAt: delivery.dueDate?.toISOString?.() || null,
+		deliveredAt: delivery.deliveredAt?.toISOString?.() || null,
+		updatedAt: delivery.updatedAt.toISOString(),
+	}));
+	const payments = row.payments.map((payment) => ({
+		amount: String(payment.amount),
+		status: payment.status,
+		reviewStatus: payment.reviewStatus,
+	}));
+	const statistics = row.stat.map((stat) => ({
+		type: stat.type,
+		status: stat.status,
+		total: stat.total == null ? null : String(stat.total),
+		percentage: stat.percentage == null ? null : String(stat.percentage),
+	}));
+	return {
+		...base,
+		deliveries,
+		payments,
+		statistics,
+		revision: revision([
+			base.revision,
+			row.deliveries.map((item) => [item.id, item.updatedAt]),
+			row.payments.map((item) => [
+				item.id,
+				item.updatedAt,
+				item.amount,
+				item.status,
+				item.reviewStatus,
+			]),
+			row.stat.map((item) => [
+				item.type,
+				item.createdAt,
+				item.status,
+				item.total,
+				item.percentage,
+			]),
+		]),
+	};
+}
+
+export async function getAssistantSalesOrderById(
+	db: Database,
+	actor: AssistantBusinessActor,
+	salesOrderId: number,
+) {
+	if (!Number.isSafeInteger(salesOrderId) || salesOrderId <= 0) return null;
+	const row = await db.salesOrders.findFirst({
+		where: {
+			AND: [
+				assistantSalesScopeWhere(actor),
+				{ id: salesOrderId, deletedAt: null },
+			],
+		},
+		select: assistantSalesOrderDetailSelect,
+	});
+	return row ? mapDetailedOrder(row) : null;
+}
+
 export async function getAssistantSalesOrderCandidates(
 	db: Database,
 	actor: AssistantBusinessActor,
@@ -199,92 +308,9 @@ export async function getAssistantSalesOrderCandidates(
 		},
 		orderBy: { id: "desc" },
 		take: 3,
-		select: {
-			...salesOrderListSelect,
-			deliveries: {
-				where: { deletedAt: null },
-				orderBy: { id: "desc" },
-				take: 3,
-				select: {
-					id: true,
-					status: true,
-					deliveryMode: true,
-					dueDate: true,
-					deliveredAt: true,
-					updatedAt: true,
-				},
-			},
-			payments: {
-				where: { deletedAt: null },
-				orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-				take: 5,
-				select: {
-					id: true,
-					amount: true,
-					status: true,
-					reviewStatus: true,
-					updatedAt: true,
-				},
-			},
-			stat: {
-				where: { deletedAt: null },
-				orderBy: { type: "asc" },
-				select: {
-					type: true,
-					status: true,
-					total: true,
-					percentage: true,
-					createdAt: true,
-				},
-			},
-		},
+		select: assistantSalesOrderDetailSelect,
 	});
-	return rows.map((row) => {
-		const base = mapOrder(row);
-		const deliveries = row.deliveries.map((delivery) => ({
-			id: delivery.id,
-			status: delivery.status,
-			mode: delivery.deliveryMode,
-			dueAt: delivery.dueDate?.toISOString?.() || null,
-			deliveredAt: delivery.deliveredAt?.toISOString?.() || null,
-			updatedAt: delivery.updatedAt.toISOString(),
-		}));
-		const payments = row.payments.map((payment) => ({
-			amount: String(payment.amount),
-			status: payment.status,
-			reviewStatus: payment.reviewStatus,
-		}));
-		const statistics = row.stat.map((stat) => ({
-			type: stat.type,
-			status: stat.status,
-			total: stat.total == null ? null : String(stat.total),
-			percentage: stat.percentage == null ? null : String(stat.percentage),
-		}));
-		return {
-			...base,
-			deliveries,
-			payments,
-			statistics,
-			revision: revision([
-				base.revision,
-				row.deliveries.map((item) => [item.id, item.updatedAt]),
-				row.payments.map((item) => [
-					item.id,
-					item.updatedAt,
-					item.amount,
-					item.status,
-					item.reviewStatus,
-				]),
-				row.stat.map((item) => [
-					item.type,
-					item.createdAt,
-					item.status,
-					item.total,
-					item.percentage,
-				]),
-			]),
-		};
-	});
+	return rows.map(mapDetailedOrder);
 }
 
 export async function getAssistantSalesTimeline(

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Database, Prisma, TransactionClient } from "@gnd/db";
 import { sum } from "@gnd/utils";
 import {
@@ -6,8 +7,17 @@ import {
 	resolveSalesPipelineSnapshot,
 } from "./sales-pipeline";
 
-export const salesPipelineOrderSelect = {
+export function buildCanonicalSalesSourceRevision(input: {
+	orderRevision: string;
+	pipelineRevision: string;
+}) {
+	return createHash("sha256")
+		.update(`${input.orderRevision}:${input.pipelineRevision}`)
+		.digest("hex")
+		.slice(0, 24);
+}
 
+export const salesPipelineOrderSelect = {
 	id: true,
 	orderId: true,
 	status: true,
