@@ -87,7 +87,23 @@ export {
 	mailboxProviderErrorEvidence,
 	resolveMailboxRetry,
 } from "./errors.js";
-export type { MailboxProviderErrorCode } from "./errors.js";
+export type {
+	MailboxProviderErrorCode,
+	MailboxProviderRequestFailure,
+} from "./errors.js";
+export {
+	MAILBOX_PROVIDER_DEADLINE_RESERVE_MS,
+	MAILBOX_PROVIDER_REQUEST_TIMEOUT_MS,
+	MAILBOX_PROVIDER_REVOKE_TIMEOUT_MS,
+	MailboxProviderRequestAbort,
+	classifyMailboxProviderTransportError,
+	readBoundedMailboxProviderResponse,
+	runMailboxProviderRequest,
+} from "./provider-request.js";
+export type {
+	MailboxProviderRequestAbortReason,
+	MailboxProviderRequestTimeoutKind,
+} from "./provider-request.js";
 export {
 	MAILBOX_OAUTH_REDIRECT_KEYS,
 	MAILBOX_OAUTH_STATE_TTL_MS,

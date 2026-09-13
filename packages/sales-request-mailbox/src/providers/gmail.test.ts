@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { MailboxProviderError } from "../errors";
+import { MailboxProviderRequestAbort } from "../provider-request";
 import {
 	type GmailMailboxAdapterConfig,
 	GmailSalesRequestMailboxAdapter,
@@ -180,6 +181,42 @@ describe("GmailSalesRequestMailboxAdapter", () => {
 			grantedScopes: ["scope-a"],
 		});
 		expect(new URLSearchParams(calls[1]?.body).get("token")).toBe("refresh-1");
+	});
+
+	test("propagates caller cancellation to the Gmail transport safely", async () => {
+		const caller = new AbortController();
+		const { adapter, calls } = fixtureAdapter(
+			({ request }) =>
+				new Promise<Response>((_resolve, reject) => {
+					if (request.signal.aborted) {
+						reject(new Error("raw gmail cancellation secret"));
+						return;
+					}
+					request.signal.addEventListener(
+						"abort",
+						() => reject(new Error("raw gmail cancellation secret")),
+						{ once: true },
+					);
+				}),
+		);
+
+		const pending = adapter.refreshTokens({
+			tokens: {
+				accessToken: "access-1",
+				refreshToken: "refresh-1",
+				grantedScopes: [],
+			},
+			signal: caller.signal,
+		});
+		caller.abort();
+
+		await expect(pending).rejects.toBeInstanceOf(MailboxProviderRequestAbort);
+		await expect(pending).rejects.toMatchObject({
+			provider: "gmail",
+			reason: "caller-cancelled",
+		});
+		expect(calls[0]?.request.signal.aborted).toBe(true);
+		await expect(pending).rejects.not.toThrow("raw gmail cancellation secret");
 	});
 
 	test("treats only an exact bounded invalid_token revoke response as idempotent success", async () => {

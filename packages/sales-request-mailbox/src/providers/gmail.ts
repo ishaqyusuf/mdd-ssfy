@@ -7,6 +7,13 @@ import type {
 } from "../adapter.js";
 import { MAILBOX_PROVIDER_AUTHORIZATION } from "../contracts.js";
 import { MailboxProviderError } from "../errors.js";
+import {
+	MAILBOX_PROVIDER_REVOKE_TIMEOUT_MS,
+	MailboxProviderRequestAbort,
+	classifyMailboxProviderTransportError,
+	readBoundedMailboxProviderResponse,
+	runMailboxProviderRequest,
+} from "../provider-request.js";
 
 const PROVIDER = "gmail" as const;
 const AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -352,41 +359,25 @@ function parseSummary(
 	};
 }
 
-async function readBoundedBytes(response: Response, maxBytes: number) {
-	const contentLength = response.headers.get("content-length");
-	if (contentLength && /^\d+$/.test(contentLength)) {
-		const declaredLength = Number(contentLength);
-		if (!Number.isSafeInteger(declaredLength) || declaredLength > maxBytes) {
-			await response.body?.cancel().catch(() => undefined);
-			throw malformedResponse();
-		}
-	}
-	if (!response.body) return new Uint8Array();
-
-	const reader = response.body.getReader();
-	const chunks: Uint8Array[] = [];
-	let total = 0;
-	while (true) {
-		const result = await reader.read();
-		if (result.done) break;
-		total += result.value.byteLength;
-		if (total > maxBytes) {
-			await reader.cancel().catch(() => undefined);
-			throw malformedResponse();
-		}
-		chunks.push(result.value);
-	}
-	const bytes = new Uint8Array(total);
-	let offset = 0;
-	for (const chunk of chunks) {
-		bytes.set(chunk, offset);
-		offset += chunk.byteLength;
-	}
-	return bytes;
+async function readBoundedBytes(
+	response: Response,
+	maxBytes: number,
+	signal?: AbortSignal,
+) {
+	return readBoundedMailboxProviderResponse({
+		provider: PROVIDER,
+		response,
+		maxBytes,
+		signal,
+	});
 }
 
-async function readBoundedJson(response: Response, maxBytes: number) {
-	const bytes = await readBoundedBytes(response, maxBytes);
+async function readBoundedJson(
+	response: Response,
+	maxBytes: number,
+	signal?: AbortSignal,
+) {
+	const bytes = await readBoundedBytes(response, maxBytes, signal);
 	if (bytes.byteLength === 0) throw malformedResponse();
 	try {
 		return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
@@ -395,9 +386,9 @@ async function readBoundedJson(response: Response, maxBytes: number) {
 	}
 }
 
-async function providerErrorEvidence(response: Response) {
+async function providerErrorEvidence(response: Response, signal?: AbortSignal) {
 	try {
-		const value = await readBoundedJson(response, MAX_ERROR_BYTES);
+		const value = await readBoundedJson(response, MAX_ERROR_BYTES, signal);
 		if (!isRecord(value)) {
 			return { reasons: [] as string[], exactInvalidToken: false };
 		}
@@ -426,7 +417,13 @@ async function providerErrorEvidence(response: Response) {
 			reasons: reasons.map((reason) => reason.toLowerCase()),
 			exactInvalidToken: false,
 		};
-	} catch {
+	} catch (error) {
+		if (
+			error instanceof MailboxProviderRequestAbort ||
+			(error instanceof MailboxProviderError && error.requestFailure)
+		) {
+			throw error;
+		}
 		return { reasons: [] as string[], exactInvalidToken: false };
 	}
 }
@@ -617,93 +614,122 @@ export class GmailSalesRequestMailboxAdapter
 		return url.toString();
 	}
 
-	async exchangeAuthorizationCode(input: { code: string }) {
-		const body = new URLSearchParams({
-			client_id: this.#clientId,
-			client_secret: this.#clientSecret,
-			code: inputString(input.code, MAX_TOKEN_BYTES),
-			grant_type: "authorization_code",
-			redirect_uri: this.#redirectUri,
+	async exchangeAuthorizationCode(input: {
+		code: string;
+		signal?: AbortSignal;
+	}) {
+		return runMailboxProviderRequest({
+			provider: PROVIDER,
+			signal: input.signal,
+			request: async (signal) => {
+				const body = new URLSearchParams({
+					client_id: this.#clientId,
+					client_secret: this.#clientSecret,
+					code: inputString(input.code, MAX_TOKEN_BYTES),
+					grant_type: "authorization_code",
+					redirect_uri: this.#redirectUri,
+				});
+				const value = await this.#requestJson(
+					TOKEN_URL,
+					{
+						method: "POST",
+						headers: { "content-type": "application/x-www-form-urlencoded" },
+						body,
+					},
+					"oauth",
+					MAX_PROFILE_BYTES,
+					signal,
+				);
+				const tokens = this.#parseTokenSet(value);
+				if (!tokens.refreshToken) {
+					throw new MailboxProviderError({
+						provider: PROVIDER,
+						code: "authorization-revoked",
+					});
+				}
+				const accountValue = await this.#requestJson(
+					USER_INFO_URL,
+					{ headers: this.#authorizationHeaders(tokens) },
+					"api",
+					MAX_PROFILE_BYTES,
+					signal,
+				);
+				if (!isRecord(accountValue)) throw malformedResponse();
+				const providerAccountId = requiredString(accountValue.id, 255);
+				const email = requiredString(accountValue.email, 320).toLowerCase();
+				if (findEmailAddresses(email)[0] !== email) throw malformedResponse();
+				const displayName = optionalString(accountValue.name, 255);
+				return {
+					tokens,
+					account: {
+						provider: PROVIDER,
+						providerAccountId,
+						email,
+						...(displayName ? { displayName } : {}),
+					},
+				};
+			},
 		});
-		const value = await this.#requestJson(
-			TOKEN_URL,
-			{
-				method: "POST",
-				headers: { "content-type": "application/x-www-form-urlencoded" },
-				body,
-			},
-			"oauth",
-			MAX_PROFILE_BYTES,
-		);
-		const tokens = this.#parseTokenSet(value);
-		if (!tokens.refreshToken) {
-			throw new MailboxProviderError({
-				provider: PROVIDER,
-				code: "authorization-revoked",
-			});
-		}
-		const accountValue = await this.#requestJson(
-			USER_INFO_URL,
-			{ headers: this.#authorizationHeaders(tokens) },
-			"api",
-			MAX_PROFILE_BYTES,
-		);
-		if (!isRecord(accountValue)) throw malformedResponse();
-		const providerAccountId = requiredString(accountValue.id, 255);
-		const email = requiredString(accountValue.email, 320).toLowerCase();
-		if (findEmailAddresses(email)[0] !== email) throw malformedResponse();
-		const displayName = optionalString(accountValue.name, 255);
-		return {
-			tokens,
-			account: {
-				provider: PROVIDER,
-				providerAccountId,
-				email,
-				...(displayName ? { displayName } : {}),
-			},
-		};
 	}
 
-	async refreshTokens(input: { tokens: MailboxTokenSet }) {
-		const refreshToken = input.tokens.refreshToken;
-		if (!refreshToken) {
-			throw new MailboxProviderError({
-				provider: PROVIDER,
-				code: "authorization-revoked",
-			});
-		}
-		const body = new URLSearchParams({
-			client_id: this.#clientId,
-			client_secret: this.#clientSecret,
-			grant_type: "refresh_token",
-			refresh_token: inputString(refreshToken, MAX_TOKEN_BYTES),
-		});
-		const value = await this.#requestJson(
-			TOKEN_URL,
-			{
-				method: "POST",
-				headers: { "content-type": "application/x-www-form-urlencoded" },
-				body,
+	async refreshTokens(input: {
+		tokens: MailboxTokenSet;
+		signal?: AbortSignal;
+	}) {
+		return runMailboxProviderRequest({
+			provider: PROVIDER,
+			signal: input.signal,
+			request: async (signal) => {
+				const refreshToken = input.tokens.refreshToken;
+				if (!refreshToken) {
+					throw new MailboxProviderError({
+						provider: PROVIDER,
+						code: "authorization-revoked",
+					});
+				}
+				const body = new URLSearchParams({
+					client_id: this.#clientId,
+					client_secret: this.#clientSecret,
+					grant_type: "refresh_token",
+					refresh_token: inputString(refreshToken, MAX_TOKEN_BYTES),
+				});
+				const value = await this.#requestJson(
+					TOKEN_URL,
+					{
+						method: "POST",
+						headers: { "content-type": "application/x-www-form-urlencoded" },
+						body,
+					},
+					"oauth",
+					MAX_PROFILE_BYTES,
+					signal,
+				);
+				return this.#parseTokenSet(value, input.tokens);
 			},
-			"oauth",
-			MAX_PROFILE_BYTES,
-		);
-		return this.#parseTokenSet(value, input.tokens);
+		});
 	}
 
-	async revoke(input: { tokens: MailboxTokenSet }) {
-		const token = input.tokens.refreshToken ?? input.tokens.accessToken;
-		await this.#requestVoid(
-			REVOKE_URL,
-			{
-				method: "POST",
-				headers: { "content-type": "application/x-www-form-urlencoded" },
-				body: new URLSearchParams({
-					token: inputString(token, MAX_TOKEN_BYTES),
-				}),
+	async revoke(input: { tokens: MailboxTokenSet; signal?: AbortSignal }) {
+		return runMailboxProviderRequest({
+			provider: PROVIDER,
+			signal: input.signal,
+			timeoutMs: MAILBOX_PROVIDER_REVOKE_TIMEOUT_MS,
+			request: async (signal) => {
+				const token = input.tokens.refreshToken ?? input.tokens.accessToken;
+				await this.#requestVoid(
+					REVOKE_URL,
+					{
+						method: "POST",
+						headers: { "content-type": "application/x-www-form-urlencoded" },
+						body: new URLSearchParams({
+							token: inputString(token, MAX_TOKEN_BYTES),
+						}),
+					},
+					"revoke",
+					signal,
+				);
 			},
-			"revoke",
-		);
+		});
 	}
 
 	async listMessages(input: {
@@ -715,6 +741,7 @@ export class GmailSalesRequestMailboxAdapter
 		since: Date | null;
 		fullSync: boolean;
 		limit: number;
+		signal?: AbortSignal;
 	}): Promise<MailboxSyncPage> {
 		if (
 			!Number.isSafeInteger(input.limit) ||
@@ -723,51 +750,69 @@ export class GmailSalesRequestMailboxAdapter
 		) {
 			throw malformedResponse();
 		}
-		return input.fullSync
-			? this.#listFullMessages(input)
-			: this.#listHistoryMessages(input);
+		return runMailboxProviderRequest({
+			provider: PROVIDER,
+			signal: input.signal,
+			request: (signal) =>
+				input.fullSync
+					? this.#listFullMessages(input, signal)
+					: this.#listHistoryMessages(input, signal),
+		});
 	}
 
 	async getMessage(input: {
 		tokens: MailboxTokenSet;
 		providerMessageId: string;
+		signal?: AbortSignal;
 	}): Promise<MailboxMessageDetail> {
-		const providerMessageId = validateMessageId(input.providerMessageId);
-		const url = new URL(
-			`${API_ROOT}/messages/${encodeURIComponent(providerMessageId)}`,
-		);
-		url.searchParams.set("format", "full");
-		const value = await this.#apiJson(
-			input.tokens,
-			url,
-			"api",
-			MAX_MESSAGE_BYTES,
-		);
-		const summary = parseSummary(value, providerMessageId);
-		if (!isRecord(value) || !isRecord(value.payload)) throw malformedResponse();
-		const headers = parseHeaders(value.payload);
-		const bodies = await this.#extractBodies(
-			input.tokens,
-			providerMessageId,
-			value.payload,
-		);
-		return {
-			...summary,
-			toEmails: findEmailAddresses(headerValue(headers, "To") ?? ""),
-			ccEmails: findEmailAddresses(headerValue(headers, "Cc") ?? ""),
-			...(bodies.text ? { textBody: bodies.text } : {}),
-			...(bodies.html ? { htmlBody: bodies.html } : {}),
-		};
+		return runMailboxProviderRequest({
+			provider: PROVIDER,
+			signal: input.signal,
+			request: async (signal) => {
+				const providerMessageId = validateMessageId(input.providerMessageId);
+				const url = new URL(
+					`${API_ROOT}/messages/${encodeURIComponent(providerMessageId)}`,
+				);
+				url.searchParams.set("format", "full");
+				const value = await this.#apiJson(
+					input.tokens,
+					url,
+					"api",
+					MAX_MESSAGE_BYTES,
+					signal,
+				);
+				const summary = parseSummary(value, providerMessageId);
+				if (!isRecord(value) || !isRecord(value.payload))
+					throw malformedResponse();
+				const headers = parseHeaders(value.payload);
+				const bodies = await this.#extractBodies(
+					input.tokens,
+					providerMessageId,
+					value.payload,
+					signal,
+				);
+				return {
+					...summary,
+					toEmails: findEmailAddresses(headerValue(headers, "To") ?? ""),
+					ccEmails: findEmailAddresses(headerValue(headers, "Cc") ?? ""),
+					...(bodies.text ? { textBody: bodies.text } : {}),
+					...(bodies.html ? { htmlBody: bodies.html } : {}),
+				};
+			},
+		});
 	}
 
-	async #listFullMessages(input: {
-		tokens: MailboxTokenSet;
-		cursor?: string;
-		pageToken?: string;
-		labelId?: string;
-		since: Date | null;
-		limit: number;
-	}) {
+	async #listFullMessages(
+		input: {
+			tokens: MailboxTokenSet;
+			cursor?: string;
+			pageToken?: string;
+			labelId?: string;
+			since: Date | null;
+			limit: number;
+		},
+		signal: AbortSignal,
+	) {
 		const since = validSince(input.since, this.#validNow());
 		let snapshotCursor: string;
 		let providerPageToken: string | undefined;
@@ -782,6 +827,7 @@ export class GmailSalesRequestMailboxAdapter
 				new URL(`${API_ROOT}/profile`),
 				"api",
 				MAX_PROFILE_BYTES,
+				signal,
 			);
 			if (!isRecord(profile)) throw malformedResponse();
 			snapshotCursor = validateCursor(profile.historyId);
@@ -792,10 +838,16 @@ export class GmailSalesRequestMailboxAdapter
 		url.searchParams.set("q", `after:${Math.floor(since.getTime() / 1000)}`);
 		url.searchParams.append("labelIds", input.labelId?.trim() || "INBOX");
 		if (providerPageToken) url.searchParams.set("pageToken", providerPageToken);
-		const value = await this.#apiJson(input.tokens, url, "api", MAX_LIST_BYTES);
+		const value = await this.#apiJson(
+			input.tokens,
+			url,
+			"api",
+			MAX_LIST_BYTES,
+			signal,
+		);
 		if (!isRecord(value)) throw malformedResponse();
 		const ids = this.#parseListedMessageIds(value.messages, input.limit);
-		const summaries = await this.#fetchSummaries(input.tokens, ids);
+		const summaries = await this.#fetchSummaries(input.tokens, ids, signal);
 		const nextProviderPageToken = optionalProviderPageToken(
 			value.nextPageToken,
 		);
@@ -815,13 +867,16 @@ export class GmailSalesRequestMailboxAdapter
 		};
 	}
 
-	async #listHistoryMessages(input: {
-		tokens: MailboxTokenSet;
-		cursor?: string;
-		pageToken?: string;
-		labelId?: string;
-		limit: number;
-	}) {
+	async #listHistoryMessages(
+		input: {
+			tokens: MailboxTokenSet;
+			cursor?: string;
+			pageToken?: string;
+			labelId?: string;
+			limit: number;
+		},
+		signal: AbortSignal,
+	) {
 		const startCursor = validateCursor(input.cursor);
 		let providerPageToken: string | undefined;
 		let carriedCompletionCursor = startCursor;
@@ -847,6 +902,7 @@ export class GmailSalesRequestMailboxAdapter
 			url,
 			"history",
 			MAX_LIST_BYTES,
+			signal,
 		);
 		if (!isRecord(value)) throw malformedResponse();
 		const completionCursor = value.historyId
@@ -860,6 +916,7 @@ export class GmailSalesRequestMailboxAdapter
 		const summaries = await this.#fetchSummaries(
 			input.tokens,
 			changes.addedIds.filter((id) => !changes.removedIds.includes(id)),
+			signal,
 		);
 		const nextProviderPageToken = optionalProviderPageToken(
 			value.nextPageToken,
@@ -970,7 +1027,11 @@ export class GmailSalesRequestMailboxAdapter
 		return { addedIds, removedIds };
 	}
 
-	async #fetchSummaries(tokens: MailboxTokenSet, ids: readonly string[]) {
+	async #fetchSummaries(
+		tokens: MailboxTokenSet,
+		ids: readonly string[],
+		signal: AbortSignal,
+	) {
 		const messages: MailboxMessageSummary[] = [];
 		const missingIds: string[] = [];
 		for (let offset = 0; offset < ids.length; offset += 5) {
@@ -988,6 +1049,7 @@ export class GmailSalesRequestMailboxAdapter
 							url,
 							"api",
 							MAX_METADATA_BYTES,
+							signal,
 						);
 						return { message: parseSummary(value, id) };
 					} catch (error) {
@@ -1013,6 +1075,7 @@ export class GmailSalesRequestMailboxAdapter
 		tokens: MailboxTokenSet,
 		messageId: string,
 		payload: JsonRecord,
+		signal: AbortSignal,
 	) {
 		const values = { text: "", html: "" };
 		const budget = { parts: 0 };
@@ -1058,6 +1121,7 @@ export class GmailSalesRequestMailboxAdapter
 						url,
 						"api",
 						Math.ceil((MAX_BODY_BYTES * 4) / 3) + MAX_PROFILE_BYTES,
+						signal,
 					);
 					if (!isRecord(attachment)) throw malformedResponse();
 					if (
@@ -1148,12 +1212,14 @@ export class GmailSalesRequestMailboxAdapter
 		url: URL,
 		context: RequestContext,
 		maxBytes: number,
+		signal: AbortSignal,
 	) {
 		return this.#requestJson(
 			url,
 			{ headers: this.#authorizationHeaders(tokens) },
 			context,
 			maxBytes,
+			signal,
 		);
 	}
 
@@ -1162,10 +1228,11 @@ export class GmailSalesRequestMailboxAdapter
 		init: RequestInit,
 		context: RequestContext,
 		maxBytes: number,
+		signal: AbortSignal,
 	) {
-		const response = await this.#performFetch(url, init);
+		const response = await this.#performFetch(url, init, signal);
 		if (!response.ok) {
-			const evidence = await providerErrorEvidence(response);
+			const evidence = await providerErrorEvidence(response, signal);
 			throw statusError({
 				status: response.status,
 				context,
@@ -1173,17 +1240,18 @@ export class GmailSalesRequestMailboxAdapter
 				retryAfterMs: retryAfterMs(response, this.#validNow()),
 			});
 		}
-		return readBoundedJson(response, maxBytes);
+		return readBoundedJson(response, maxBytes, signal);
 	}
 
 	async #requestVoid(
 		url: string | URL,
 		init: RequestInit,
 		context: RequestContext,
+		signal: AbortSignal,
 	) {
-		const response = await this.#performFetch(url, init);
+		const response = await this.#performFetch(url, init, signal);
 		if (!response.ok) {
-			const evidence = await providerErrorEvidence(response);
+			const evidence = await providerErrorEvidence(response, signal);
 			if (
 				context === "revoke" &&
 				response.status === 400 &&
@@ -1198,14 +1266,22 @@ export class GmailSalesRequestMailboxAdapter
 				retryAfterMs: retryAfterMs(response, this.#validNow()),
 			});
 		}
-		await readBoundedBytes(response, MAX_ERROR_BYTES);
+		await readBoundedBytes(response, MAX_ERROR_BYTES, signal);
 	}
 
-	async #performFetch(url: string | URL, init: RequestInit) {
+	async #performFetch(
+		url: string | URL,
+		init: RequestInit,
+		signal: AbortSignal,
+	) {
 		try {
-			return await this.#fetch(url, init);
-		} catch {
-			throw new MailboxProviderError({ provider: PROVIDER, code: "network" });
+			return await this.#fetch(url, { ...init, signal });
+		} catch (error) {
+			throw classifyMailboxProviderTransportError({
+				provider: PROVIDER,
+				error,
+				signal,
+			});
 		}
 	}
 

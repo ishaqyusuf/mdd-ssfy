@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { MailboxProviderError } from "../errors";
+import { MailboxProviderRequestAbort } from "../provider-request";
 import {
 	type MicrosoftGraphFetch,
 	MicrosoftGraphMailboxAdapter,
@@ -46,6 +47,36 @@ describe("Microsoft Graph mailbox adapter", () => {
 			})) satisfies MicrosoftGraphFetch;
 		const result = await adapter(fetch).refreshTokens({ tokens });
 		expect(result.refreshToken).toBe("refresh");
+	});
+
+	test("propagates caller cancellation to the Graph transport safely", async () => {
+		const caller = new AbortController();
+		let receivedSignal: AbortSignal | undefined;
+		const fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+			receivedSignal = init?.signal ?? undefined;
+			return new Promise<Response>((_resolve, reject) => {
+				init?.signal?.addEventListener(
+					"abort",
+					() => reject(new Error("raw graph cancellation secret")),
+					{ once: true },
+				);
+			});
+		}) satisfies MicrosoftGraphFetch;
+		const pending = adapter(fetch).refreshTokens({
+			tokens,
+			signal: caller.signal,
+		});
+
+		caller.abort();
+
+		await expect(pending).rejects.toBeInstanceOf(MailboxProviderRequestAbort);
+		await expect(pending).rejects.toMatchObject({
+			provider: "microsoft-graph",
+			reason: "caller-cancelled",
+		});
+		expect(receivedSignal).toBeDefined();
+		expect(receivedSignal?.aborted).toBe(true);
+		await expect(pending).rejects.not.toThrow("raw graph cancellation secret");
 	});
 
 	test("exchanges a code and derives provider-owned account identity", async () => {

@@ -51,9 +51,16 @@ export interface SalesRequestMailboxAdapter {
 	createAuthorizationUrl(input: { state: string }): Promise<string>;
 	exchangeAuthorizationCode(input: {
 		code: string;
+		signal?: AbortSignal;
 	}): Promise<{ tokens: MailboxTokenSet; account: MailboxAccountIdentity }>;
-	refreshTokens(input: { tokens: MailboxTokenSet }): Promise<MailboxTokenSet>;
-	revoke(input: { tokens: MailboxTokenSet }): Promise<void>;
+	refreshTokens(input: {
+		tokens: MailboxTokenSet;
+		signal?: AbortSignal;
+	}): Promise<MailboxTokenSet>;
+	revoke(input: {
+		tokens: MailboxTokenSet;
+		signal?: AbortSignal;
+	}): Promise<void>;
 	listMessages(input: {
 		tokens: MailboxTokenSet;
 		cursor?: string;
@@ -63,14 +70,17 @@ export interface SalesRequestMailboxAdapter {
 		since: Date | null;
 		fullSync: boolean;
 		limit: number;
+		signal?: AbortSignal;
 	}): Promise<MailboxSyncPage>;
 	getMessage(input: {
 		tokens: MailboxTokenSet;
 		providerMessageId: string;
+		signal?: AbortSignal;
 	}): Promise<MailboxMessageDetail>;
 	renewSubscription?(input: {
 		tokens: MailboxTokenSet;
 		callbackUrl: string;
 		currentSubscriptionId?: string;
+		signal?: AbortSignal;
 	}): Promise<{ subscriptionId: string; expiresAt: Date }>;
 }

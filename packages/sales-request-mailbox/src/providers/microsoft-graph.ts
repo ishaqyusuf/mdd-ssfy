@@ -9,6 +9,11 @@ import type {
 import type { MailboxAutomationHeaders } from "../contracts.js";
 import { MAILBOX_PROVIDER_AUTHORIZATION } from "../contracts.js";
 import { MailboxProviderError } from "../errors.js";
+import {
+	classifyMailboxProviderTransportError,
+	readBoundedMailboxProviderResponse,
+	runMailboxProviderRequest,
+} from "../provider-request.js";
 
 const GRAPH_ORIGIN = "https://graph.microsoft.com";
 const GRAPH_ROOT = `${GRAPH_ORIGIN}/v1.0`;
@@ -95,40 +100,13 @@ function providerError(status: number, retryAfter: string | null) {
 	});
 }
 
-async function boundedResponseText(response: Response) {
-	if (!response.body) return "";
-	const reader = response.body.getReader();
-	const chunks: Uint8Array[] = [];
-	let total = 0;
-	try {
-		while (true) {
-			const result = await reader.read();
-			if (result.done) break;
-			total += result.value.byteLength;
-			if (total > MAX_RESPONSE_BYTES) {
-				await reader.cancel();
-				throw new MailboxProviderError({
-					provider: "microsoft-graph",
-					code: "malformed-response",
-				});
-			}
-			chunks.push(result.value);
-		}
-	} catch (error) {
-		if (error instanceof MailboxProviderError) throw error;
-		throw new MailboxProviderError({
-			provider: "microsoft-graph",
-			code: "network",
-		});
-	} finally {
-		reader.releaseLock();
-	}
-	const bytes = new Uint8Array(total);
-	let offset = 0;
-	for (const chunk of chunks) {
-		bytes.set(chunk, offset);
-		offset += chunk.byteLength;
-	}
+async function boundedResponseText(response: Response, signal?: AbortSignal) {
+	const bytes = await readBoundedMailboxProviderResponse({
+		provider: "microsoft-graph",
+		response,
+		maxBytes: MAX_RESPONSE_BYTES,
+		signal,
+	});
 	return new TextDecoder().decode(bytes);
 }
 
@@ -137,17 +115,20 @@ async function json(
 	url: string,
 	init?: RequestInit,
 	authorizationFailureOnBadRequest = false,
+	signal?: AbortSignal,
 ) {
 	let response: Response;
 	try {
-		response = await fetcher(url, init);
-	} catch {
-		throw new MailboxProviderError({
+		response = await fetcher(url, { ...init, signal });
+	} catch (error) {
+		throw classifyMailboxProviderTransportError({
 			provider: "microsoft-graph",
-			code: "network",
+			error,
+			signal,
 		});
 	}
 	if (!response.ok) {
+		void response.body?.cancel().catch(() => undefined);
 		if (authorizationFailureOnBadRequest && response.status === 400) {
 			throw new MailboxProviderError({
 				provider: "microsoft-graph",
@@ -158,12 +139,13 @@ async function json(
 	}
 	const declared = Number(response.headers.get("content-length"));
 	if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+		void response.body?.cancel().catch(() => undefined);
 		throw new MailboxProviderError({
 			provider: "microsoft-graph",
 			code: "malformed-response",
 		});
 	}
-	const text = await boundedResponseText(response);
+	const text = await boundedResponseText(response, signal);
 	try {
 		return JSON.parse(text) as unknown;
 	} catch {
@@ -329,6 +311,7 @@ export class MicrosoftGraphMailboxAdapter
 	async #token(
 		body: URLSearchParams,
 		previous?: MailboxTokenSet,
+		signal?: AbortSignal,
 	): Promise<MailboxTokenSet> {
 		const value = record(
 			await json(
@@ -340,6 +323,7 @@ export class MicrosoftGraphMailboxAdapter
 					body,
 				},
 				true,
+				signal,
 			),
 		);
 		const accessToken = secret(value.access_token);
@@ -375,17 +359,30 @@ export class MicrosoftGraphMailboxAdapter
 		};
 	}
 
-	async exchangeAuthorizationCode(input: { code: string }) {
+	async exchangeAuthorizationCode(input: {
+		code: string;
+		signal?: AbortSignal;
+	}) {
+		return runMailboxProviderRequest({
+			provider: this.provider,
+			signal: input.signal,
+			request: (signal) => this.#exchangeAuthorizationCode(input.code, signal),
+		});
+	}
+
+	async #exchangeAuthorizationCode(code: string, signal: AbortSignal) {
 		const tokens = await this.#token(
 			new URLSearchParams({
 				client_id: this.#clientId,
 				client_secret: this.#clientSecret,
 				redirect_uri: this.#redirectUri,
 				grant_type: "authorization_code",
-				code: required(input.code, "code"),
+				code: required(code, "code"),
 				scope:
 					MAILBOX_PROVIDER_AUTHORIZATION["microsoft-graph"].scopes.join(" "),
 			}),
+			undefined,
+			signal,
 		);
 		if (!tokens.refreshToken) {
 			throw new MailboxProviderError({
@@ -398,6 +395,8 @@ export class MicrosoftGraphMailboxAdapter
 				this.#fetch,
 				`${GRAPH_ROOT}/me?$select=id,mail,userPrincipalName,displayName`,
 				{ headers: bearer(tokens.accessToken) },
+				false,
+				signal,
 			),
 		);
 		const providerAccountId = text(profile.id, 255);
@@ -421,11 +420,19 @@ export class MicrosoftGraphMailboxAdapter
 		};
 	}
 
-	async refreshTokens(input: { tokens: MailboxTokenSet }) {
-		const refreshToken = required(
-			input.tokens.refreshToken ?? "",
-			"refreshToken",
-		);
+	async refreshTokens(input: {
+		tokens: MailboxTokenSet;
+		signal?: AbortSignal;
+	}) {
+		return runMailboxProviderRequest({
+			provider: this.provider,
+			signal: input.signal,
+			request: (signal) => this.#refreshTokens(input.tokens, signal),
+		});
+	}
+
+	async #refreshTokens(tokens: MailboxTokenSet, signal: AbortSignal) {
+		const refreshToken = required(tokens.refreshToken ?? "", "refreshToken");
 		const refreshed = await this.#token(
 			new URLSearchParams({
 				client_id: this.#clientId,
@@ -435,7 +442,8 @@ export class MicrosoftGraphMailboxAdapter
 				scope:
 					MAILBOX_PROVIDER_AUTHORIZATION["microsoft-graph"].scopes.join(" "),
 			}),
-			input.tokens,
+			tokens,
+			signal,
 		);
 		return {
 			...refreshed,
@@ -443,7 +451,7 @@ export class MicrosoftGraphMailboxAdapter
 		};
 	}
 
-	async revoke(_input: { tokens: MailboxTokenSet }) {
+	async revoke(_input: { tokens: MailboxTokenSet; signal?: AbortSignal }) {
 		// Graph has no least-privilege single-token revocation endpoint for these scopes.
 		// Disconnect deletes GND's encrypted credentials; never revoke all user sessions.
 	}
@@ -457,7 +465,22 @@ export class MicrosoftGraphMailboxAdapter
 		since: Date | null;
 		fullSync: boolean;
 		limit: number;
+		signal?: AbortSignal;
 	}): Promise<MailboxSyncPage> {
+		return runMailboxProviderRequest({
+			provider: this.provider,
+			signal: input.signal,
+			request: (signal) => this.#listMessages(input, signal),
+		});
+	}
+
+	async #listMessages(
+		input: Omit<
+			Parameters<SalesRequestMailboxAdapter["listMessages"]>[0],
+			"signal"
+		>,
+		signal: AbortSignal,
+	): Promise<MailboxSyncPage> {
 		if (
 			!Number.isSafeInteger(input.limit) ||
 			input.limit < 1 ||
@@ -506,9 +529,15 @@ export class MicrosoftGraphMailboxAdapter
 			url = initial.toString();
 		}
 		const value = record(
-			await json(this.#fetch, url, {
-				headers: bearer(input.tokens.accessToken),
-			}),
+			await json(
+				this.#fetch,
+				url,
+				{
+					headers: bearer(input.tokens.accessToken),
+				},
+				false,
+				signal,
+			),
 		);
 		if (!Array.isArray(value.value)) {
 			throw new MailboxProviderError({
@@ -559,14 +588,35 @@ export class MicrosoftGraphMailboxAdapter
 	async getMessage(input: {
 		tokens: MailboxTokenSet;
 		providerMessageId: string;
+		signal?: AbortSignal;
 	}): Promise<MailboxMessageDetail> {
+		return runMailboxProviderRequest({
+			provider: this.provider,
+			signal: input.signal,
+			request: (signal) => this.#getMessage(input, signal),
+		});
+	}
+
+	async #getMessage(
+		input: Omit<
+			Parameters<SalesRequestMailboxAdapter["getMessage"]>[0],
+			"signal"
+		>,
+		signal: AbortSignal,
+	): Promise<MailboxMessageDetail> {
 		const requestedId = required(input.providerMessageId, "providerMessageId");
 		const id = encodeURIComponent(requestedId);
 		const url = `${GRAPH_ROOT}/me/messages/${id}?$select=id,conversationId,parentFolderId,from,subject,receivedDateTime,hasAttachments,internetMessageHeaders,body,toRecipients,ccRecipients`;
 		const value = record(
-			await json(this.#fetch, url, {
-				headers: bearer(input.tokens.accessToken),
-			}),
+			await json(
+				this.#fetch,
+				url,
+				{
+					headers: bearer(input.tokens.accessToken),
+				},
+				false,
+				signal,
+			),
 		);
 		const base = summary(value);
 		if (base.providerMessageId !== requestedId) {

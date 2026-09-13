@@ -10,6 +10,9 @@ export type MailboxProviderErrorCode =
 	| "malformed-response"
 	| "account-mismatch";
 
+/** A finite provider deadline is retryable evidence; control-flow aborts use a typed error. */
+export type MailboxProviderRequestFailure = "request-timeout";
+
 const retryableCodes = new Set<MailboxProviderErrorCode>([
 	"cursor-invalid",
 	"rate-limited",
@@ -24,11 +27,13 @@ export class MailboxProviderError extends Error {
 	readonly retryDelayExceeded: boolean;
 	readonly retryable: boolean;
 	readonly requiresReauthorization: boolean;
+	readonly requestFailure: MailboxProviderRequestFailure | null;
 
 	constructor(input: {
 		code: MailboxProviderErrorCode;
 		provider: MailboxProvider;
 		retryAfterMs?: number;
+		requestFailure?: MailboxProviderRequestFailure;
 	}) {
 		super("Mailbox provider operation failed");
 		this.name = "MailboxProviderError";
@@ -43,6 +48,7 @@ export class MailboxProviderError extends Error {
 				: null;
 		this.retryable = retryableCodes.has(input.code);
 		this.requiresReauthorization = input.code === "authorization-revoked";
+		this.requestFailure = input.requestFailure ?? null;
 	}
 }
 
@@ -53,6 +59,7 @@ export function mailboxProviderErrorEvidence(error: MailboxProviderError) {
 		retryable: error.retryable,
 		requiresReauthorization: error.requiresReauthorization,
 		retryAfterMs: error.retryAfterMs,
+		...(error.requestFailure ? { requestFailure: error.requestFailure } : {}),
 	};
 }
 
