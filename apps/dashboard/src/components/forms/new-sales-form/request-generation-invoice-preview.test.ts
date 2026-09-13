@@ -4,14 +4,28 @@ import {
 	hydrateSalesFormRecord,
 } from "@gnd/sales/sales-form";
 import {
+	SalesRequestInvoicePreviewStaleError,
 	buildApprovedSalesRequestInvoicePreview,
 	openApprovedSalesRequestInvoicePreview,
+	openCurrentApprovedSalesRequestInvoicePreview,
+	resolveApprovedSalesRequestInvoicePreviewContext,
 } from "./request-generation-invoice-preview";
 import {
+	type RequestGenerationState,
 	createInitialRequestGenerationState,
 	getRequestGenerationRecordRevision,
 } from "./request-generation-transaction";
-import type { NewSalesFormRecord } from "./schema";
+import type {
+	NewSalesFormPrintContext,
+	NewSalesFormRecord,
+	NewSalesFormResolvedCustomer,
+} from "./schema";
+
+type ResolvedCustomerPreviewContext = Pick<
+	NewSalesFormResolvedCustomer,
+	"customer" | "billingAddress" | "shippingAddress"
+>;
+type PreviewPrintContext = NewSalesFormPrintContext;
 
 function nativeUnsavedRecord() {
 	return hydrateSalesFormRecord({
@@ -51,10 +65,12 @@ function nativeUnsavedRecord() {
 			grandTotal: 300,
 			amountDue: 300,
 		},
-	}) as NewSalesFormRecord;
+	}) as unknown as NewSalesFormRecord;
 }
 
-function appliedGenerationState(record: NewSalesFormRecord) {
+function appliedGenerationState(
+	record: NewSalesFormRecord,
+): RequestGenerationState {
 	const state = createInitialRequestGenerationState();
 	return {
 		...state,
@@ -70,9 +86,12 @@ function appliedGenerationState(record: NewSalesFormRecord) {
 				lastSaveError: null,
 				lastSavedAt: null,
 				editor: {
-					activeLineUid: null,
+					stepDisplayMode: "compact",
+					activeItem: null,
 					activeStepByLine: {},
-					collapsedLineUids: [],
+					doorViewMode: "selection",
+					mouldingViewMode: "selection",
+					isOverviewOpen: false,
 					showMobileSummary: false,
 					autosaveEnabled: true,
 				},
@@ -91,6 +110,246 @@ function appliedGenerationState(record: NewSalesFormRecord) {
 }
 
 describe("Sales Request Generation in-memory invoice preview", () => {
+	it("uses the authoritative resolved customer addresses and loaded print setting", () => {
+		const billingAddress = {
+			addressId: 201,
+			name: "Sample Construction",
+			address1: "100 Billing Way",
+			address2: "",
+			city: "Miami",
+			country: "",
+			formattedAddress: "",
+			lat: 0,
+			lng: 0,
+			placeId: "",
+			state: "FL",
+			zip_code: "33101",
+			email: "billing@example.com",
+			phoneNo: "305-555-0200",
+			phoneNo2: "305-555-0201",
+		};
+		const shippingAddress = {
+			addressId: 202,
+			name: "Sample Jobsite",
+			address1: "200 Shipping Way",
+			address2: "",
+			city: "Miami",
+			country: "",
+			formattedAddress: "",
+			lat: 0,
+			lng: 0,
+			placeId: "",
+			state: "FL",
+			zip_code: "33102",
+			email: "shipping@example.com",
+			phoneNo: "305-555-0300",
+			phoneNo2: null,
+		};
+		const settingsMeta = {
+			route: {
+				"interior-door": {
+					config: { hasSwing: false, noHandle: true },
+				},
+			},
+		};
+
+		const context = resolveApprovedSalesRequestInvoicePreviewContext({
+			resolvedCustomer: {
+				customer: {
+					name: "Sample Customer",
+					businessName: "Sample Construction",
+					phone: "305-555-0100",
+					phoneNo: "305-555-0100",
+					phoneNo2: null,
+					email: "sample@example.com",
+					address: null,
+				},
+				billingAddress,
+				shippingAddress,
+			},
+			printContext: {
+				settingId: 7,
+				settingsMeta,
+			},
+		});
+		expect(context).toEqual({
+			customer: {
+				name: "Sample Customer",
+				businessName: "Sample Construction",
+				phone: "305-555-0100",
+				phoneNo: "305-555-0100",
+				phoneNo2: null,
+				email: "sample@example.com",
+				address: null,
+			},
+			billingAddress: {
+				...billingAddress,
+				meta: { zip_code: "33101" },
+			},
+			shippingAddress: {
+				...shippingAddress,
+				meta: { zip_code: "33102" },
+			},
+			setting: {
+				id: 7,
+				data: settingsMeta,
+			},
+		});
+
+		const record = nativeUnsavedRecord();
+		const page = buildApprovedSalesRequestInvoicePreview({
+			record,
+			requestGeneration: appliedGenerationState(record),
+			...context,
+		});
+		expect(page.billing.lines).toContain("305-555-0200 (305-555-0201)");
+		expect(page.billing.lines).toContain("billing@example.com");
+		expect(page.billing.lines).toContain("Miami FL 33101");
+		expect(page.shipping.lines).toContain("shipping@example.com");
+		expect(page.shipping.lines).toContain("Miami FL 33102");
+	});
+
+	it("uses the billing address when the resolved shipping address is absent", () => {
+		const record = nativeUnsavedRecord();
+		const context = resolveApprovedSalesRequestInvoicePreviewContext({
+			resolvedCustomer: {
+				customer: {
+					name: "Sample Customer",
+					businessName: null,
+					phone: "305-555-0100",
+					phoneNo: "305-555-0100",
+					phoneNo2: null,
+					email: "sample@example.com",
+					address: null,
+				},
+				billingAddress: {
+					addressId: 201,
+					name: "Sample Construction",
+					address1: "100 Billing Way",
+					address2: "",
+					city: "Miami",
+					country: "",
+					formattedAddress: "",
+					lat: 0,
+					lng: 0,
+					placeId: "",
+					state: "FL",
+					zip_code: "33101",
+					email: null,
+					phoneNo: null,
+					phoneNo2: null,
+				},
+				shippingAddress: null,
+			},
+			printContext: { settingId: 7, settingsMeta: {} },
+		});
+
+		const page = buildApprovedSalesRequestInvoicePreview({
+			record,
+			requestGeneration: appliedGenerationState(record),
+			...context,
+		});
+		expect(page.shipping.lines).toContain("100 Billing Way");
+		expect(page.shipping.lines).toContain("Miami FL 33101");
+	});
+
+	it("waits for fresh preview context and rejects record drift or read failure", async () => {
+		const record = nativeUnsavedRecord();
+		let resolveCustomer!: (value: ResolvedCustomerPreviewContext) => void;
+		let resolvePrintContext!: (value: PreviewPrintContext) => void;
+		const customerPromise = new Promise<ResolvedCustomerPreviewContext>(
+			(resolve) => {
+				resolveCustomer = resolve;
+			},
+		);
+		const printContextPromise = new Promise<PreviewPrintContext>((resolve) => {
+			resolvePrintContext = resolve;
+		});
+		let opened = false;
+		const pending = openCurrentApprovedSalesRequestInvoicePreview({
+			record,
+			requestGeneration: appliedGenerationState(record),
+			loadResolvedCustomer: () => customerPromise,
+			loadPrintContext: () => printContextPromise,
+			getCurrentRecord: () => record,
+			validateCurrentRecord: () => true,
+			open: () => {
+				opened = true;
+			},
+		});
+		resolveCustomer({
+			customer: {
+				name: "Sample Customer",
+				businessName: null,
+				phone: null,
+				phoneNo: null,
+				phoneNo2: null,
+				email: null,
+				address: null,
+			},
+			billingAddress: null,
+			shippingAddress: null,
+		});
+		await Promise.resolve();
+		expect(opened).toBe(false);
+		resolvePrintContext({ settingId: 7, settingsMeta: {} });
+		await pending;
+		expect(opened).toBe(true);
+
+		let driftError: unknown;
+		try {
+			await openCurrentApprovedSalesRequestInvoicePreview({
+				record,
+				requestGeneration: appliedGenerationState(record),
+				loadResolvedCustomer: async () => ({
+					customer: {
+						name: "Sample Customer",
+						businessName: null,
+						phone: null,
+						phoneNo: null,
+						phoneNo2: null,
+						email: null,
+						address: null,
+					},
+					billingAddress: null,
+					shippingAddress: null,
+				}),
+				loadPrintContext: async () => ({ settingId: 7, settingsMeta: {} }),
+				getCurrentRecord: () => ({ ...record }),
+				validateCurrentRecord: () => true,
+				open: () => {
+					throw new Error("must not open");
+				},
+			});
+		} catch (error) {
+			driftError = error;
+		}
+		expect(driftError instanceof SalesRequestInvoicePreviewStaleError).toBe(
+			true,
+		);
+
+		let readError: unknown;
+		try {
+			await openCurrentApprovedSalesRequestInvoicePreview({
+				record,
+				requestGeneration: appliedGenerationState(record),
+				loadResolvedCustomer: async () => {
+					throw new Error("customer read failed");
+				},
+				loadPrintContext: async () => ({ settingId: 7, settingsMeta: {} }),
+				getCurrentRecord: () => record,
+				validateCurrentRecord: () => true,
+				open: () => {
+					throw new Error("must not open");
+				},
+			});
+		} catch (error) {
+			readError = error;
+		}
+		expect(readError instanceof Error).toBe(true);
+		expect((readError as Error).message).toBe("customer read failed");
+	});
+
 	it("opens the composed in-memory page through the Preview action boundary", () => {
 		const record = nativeUnsavedRecord();
 		let opened = null as ReturnType<

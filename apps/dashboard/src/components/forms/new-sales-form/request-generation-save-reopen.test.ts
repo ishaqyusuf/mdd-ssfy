@@ -372,7 +372,7 @@ describe("Sales Request Generation native save/reopen proof", () => {
 			"if (requestGeneration.manualSaveRequired)",
 		);
 		const inMemoryOpen = previewHandler.indexOf(
-			"openApprovedSalesRequestInvoicePreview",
+			"openCurrentApprovedSalesRequestInvoicePreview",
 		);
 		const branchReturn = previewHandler.indexOf("return;", inMemoryOpen);
 		const persistenceFlush = previewHandler.indexOf("autosave.flush");

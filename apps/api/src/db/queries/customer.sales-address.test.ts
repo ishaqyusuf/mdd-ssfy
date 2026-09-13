@@ -358,13 +358,16 @@ describe("sales address recipient hydration", () => {
 			addressBooks: [
 				{
 					address1: "400 Primary Address Blvd",
+					email: "primary@example.com",
 					id: 201,
 					isPrimary: true,
-					meta: {},
+					meta: { zip_code: "33101" },
 					name: "Primary Recipient",
+					phoneNo: "305-555-0100",
+					phoneNo2: "305-555-0101",
 				},
 			],
-			businessName: null,
+			businessName: "Sample Construction",
 			customerTypeId: 1,
 			email: null,
 			id: 42,
@@ -390,6 +393,13 @@ describe("sales address recipient hydration", () => {
 
 		expect(result.billing.lines).toContain("400 Primary Address Blvd");
 		expect(result.shipping.lines).toContain("400 Primary Address Blvd");
+		expect(result.customer.businessName).toBe("Sample Construction");
+		expect(result.billingAddress).toMatchObject({
+			email: "primary@example.com",
+			phoneNo: "305-555-0100",
+			phoneNo2: "305-555-0101",
+			zip_code: "33101",
+		});
 		expect(result.billing.lines).not.toContain("Legacy Customer Address");
 		expect(result.shipping.lines).not.toContain("same as billing");
 	});

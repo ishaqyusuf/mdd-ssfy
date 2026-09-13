@@ -4,6 +4,7 @@ import {
 	deleteNewSalesFormShelfProduct,
 	getNewSalesForm,
 	getNewSalesFormHistorySnapshot,
+	getNewSalesFormPrintContext,
 	getNewSalesFormShelfCategories,
 	getNewSalesFormShelfProductDetails,
 	getNewSalesFormShelfProductIndex,
@@ -122,6 +123,9 @@ export const newSalesFormRouter = createTRPCRouter({
 		.query(async (props) => {
 			return getNewSalesFormStepRouting(props.ctx, props.input);
 		}),
+	getPrintContext: protectedProcedure.query(async ({ ctx }) => {
+		return getNewSalesFormPrintContext(ctx);
+	}),
 	getShelfCategories: protectedProcedure
 		.input(getNewSalesFormShelfCategoriesSchema)
 		.query(async (props) => {

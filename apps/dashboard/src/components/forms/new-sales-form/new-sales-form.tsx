@@ -77,7 +77,10 @@ import {
     writeRecoverySnapshot,
 } from "./local-recovery";
 import { toSaveDraftInput } from "./mappers";
-import { openApprovedSalesRequestInvoicePreview } from "./request-generation-invoice-preview";
+import {
+	openCurrentApprovedSalesRequestInvoicePreview,
+	SalesRequestInvoicePreviewStaleError,
+} from "./request-generation-invoice-preview";
 import {
 	getFreshRequestGenerationLowTouchClaim,
 	getRequestGenerationRecordRevision,
@@ -1961,10 +1964,52 @@ export function NewSalesForm(props: Props) {
 		await runWithManualSaveLock(async () => {
 			if (!record || !validateBeforeSave()) return;
 			if (requestGeneration.manualSaveRequired) {
-				openApprovedSalesRequestInvoicePreview(
-					{ record, requestGeneration },
-					setRequestGenerationInvoicePreview,
-				);
+				try {
+					const previewRecord = record;
+					await openCurrentApprovedSalesRequestInvoicePreview({
+						record: previewRecord,
+						requestGeneration,
+						loadResolvedCustomer: () =>
+							queryClient.fetchQuery(
+								trpc.newSalesForm.resolveCustomer.queryOptions(
+									{
+										customerId: Number(previewRecord.form.customerId),
+										billingId:
+											previewRecord.form.billingAddressId || undefined,
+										shippingId:
+											previewRecord.form.shippingAddressId || undefined,
+									},
+									{ staleTime: 0 },
+								),
+							),
+						loadPrintContext: () =>
+							queryClient.fetchQuery(
+								trpc.newSalesForm.getPrintContext.queryOptions(undefined, {
+									staleTime: 0,
+								}),
+							),
+						getCurrentRecord: () => useNewSalesFormStore.getState().record,
+						validateCurrentRecord: validateBeforeSave,
+						open: setRequestGenerationInvoicePreview,
+					});
+				} catch (error) {
+					if (error instanceof SalesRequestInvoicePreviewStaleError) {
+						toast({
+							title: "Preview changed",
+							description: "Review the latest form values and preview again.",
+							variant: "destructive",
+						});
+						return;
+					}
+					toast({
+						title: "Preview unavailable",
+						description: getErrorMessage(
+							error,
+							"Unable to load current customer and Sales settings.",
+						),
+						variant: "destructive",
+					});
+				}
 				return;
 			}
 			const unpricedDecision = resolveUnpricedHptPersistence(record, {

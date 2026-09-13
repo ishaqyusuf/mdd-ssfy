@@ -58,6 +58,10 @@ export type NewSalesFormDeleteLineItemInput = Exclude<
 >;
 
 export type NewSalesFormRecord = RouterOutputs["newSalesForm"]["get"];
+export type NewSalesFormResolvedCustomer =
+	RouterOutputs["newSalesForm"]["resolveCustomer"];
+export type NewSalesFormPrintContext =
+	RouterOutputs["newSalesForm"]["getPrintContext"];
 export type NewSalesFormAdjustmentPreview =
 	RouterOutputs["newSalesForm"]["previewAdjustment"];
 export type NewSalesFormStepRouting =

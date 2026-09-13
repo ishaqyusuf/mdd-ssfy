@@ -1938,6 +1938,9 @@ function salesAddressFormData(
 		placeId: meta?.placeId ?? "",
 		state: address.state ?? "",
 		zip_code: meta?.zip_code ?? "",
+		email: address.email,
+		phoneNo: address.phoneNo,
+		phoneNo2: address.phoneNo2,
 	};
 }
 
@@ -2000,7 +2003,10 @@ export async function getSalesCustomer(
 		].filter(Boolean),
 		customer: {
 			name: customer?.name || customer?.businessName,
+			businessName: customer?.businessName,
 			phone: customer?.phoneNo,
+			phoneNo: customer?.phoneNo,
+			phoneNo2: customer?.phoneNo2,
 			email: customer?.email,
 			address: billing,
 		},

@@ -1,6 +1,10 @@
 import { buildInvoicePrintPageFromSalesFormSnapshot } from "@gnd/sales/print/snapshot-sections";
 import type { RequestGenerationState } from "./request-generation-transaction";
-import type { NewSalesFormRecord } from "./schema";
+import type {
+	NewSalesFormPrintContext,
+	NewSalesFormRecord,
+	NewSalesFormResolvedCustomer,
+} from "./schema";
 
 type InvoiceSnapshotInput = Parameters<
 	typeof buildInvoicePrintPageFromSalesFormSnapshot
@@ -15,6 +19,86 @@ export type ApprovedSalesRequestInvoicePreviewInput = {
 	salesperson?: unknown;
 	setting?: InvoiceSnapshotInput["setting"];
 };
+
+type ResolvedCustomerPreviewContext = Pick<
+	NewSalesFormResolvedCustomer,
+	"customer" | "billingAddress" | "shippingAddress"
+>;
+
+function toPrintAddress(
+	address:
+		| ResolvedCustomerPreviewContext["billingAddress"]
+		| ResolvedCustomerPreviewContext["shippingAddress"],
+) {
+	if (!address) return null;
+	return {
+		...address,
+		meta: { zip_code: address.zip_code },
+	};
+}
+
+export function resolveApprovedSalesRequestInvoicePreviewContext(input: {
+	resolvedCustomer: ResolvedCustomerPreviewContext;
+	printContext: NewSalesFormPrintContext;
+}) {
+	return {
+		customer: {
+			...input.resolvedCustomer.customer,
+			phoneNo:
+				input.resolvedCustomer.customer.phoneNo ??
+				input.resolvedCustomer.customer.phone,
+		},
+		billingAddress: toPrintAddress(input.resolvedCustomer.billingAddress),
+		shippingAddress: toPrintAddress(
+			input.resolvedCustomer.shippingAddress ??
+				input.resolvedCustomer.billingAddress,
+		),
+		setting: {
+			id: input.printContext.settingId ?? undefined,
+			data: input.printContext.settingsMeta,
+		} as InvoiceSnapshotInput["setting"],
+	};
+}
+
+export class SalesRequestInvoicePreviewStaleError extends Error {
+	constructor() {
+		super("The Sales form changed while invoice preview data was loading");
+		this.name = "SalesRequestInvoicePreviewStaleError";
+	}
+}
+
+export async function openCurrentApprovedSalesRequestInvoicePreview(input: {
+	record: NewSalesFormRecord;
+	requestGeneration: RequestGenerationState;
+	loadResolvedCustomer: () => Promise<ResolvedCustomerPreviewContext>;
+	loadPrintContext: () => Promise<NewSalesFormPrintContext>;
+	getCurrentRecord: () => NewSalesFormRecord | null;
+	validateCurrentRecord: (record: NewSalesFormRecord) => boolean;
+	open: (
+		page: ReturnType<typeof buildApprovedSalesRequestInvoicePreview>,
+	) => void;
+}) {
+	const [resolvedCustomer, printContext] = await Promise.all([
+		input.loadResolvedCustomer(),
+		input.loadPrintContext(),
+	]);
+	const currentRecord = input.getCurrentRecord();
+	if (currentRecord !== input.record) {
+		throw new SalesRequestInvoicePreviewStaleError();
+	}
+	if (!input.validateCurrentRecord(currentRecord)) return null;
+	return openApprovedSalesRequestInvoicePreview(
+		{
+			record: currentRecord,
+			requestGeneration: input.requestGeneration,
+			...resolveApprovedSalesRequestInvoicePreviewContext({
+				resolvedCustomer,
+				printContext,
+			}),
+		},
+		input.open,
+	);
+}
 
 /**
  * Composes a review-only invoice from the same native record shown by the New

@@ -1849,6 +1849,22 @@ export async function getNewSalesFormStepRouting(
 	);
 }
 
+/** Read only the current Sales setting fields needed by an in-memory print preview. */
+export async function getNewSalesFormPrintContext(ctx: TRPCContext) {
+	const setting = await ctx.db.settings.findFirst({
+		where: {
+			type: "sales-settings",
+			deletedAt: null,
+		},
+		orderBy: { id: "asc" },
+		select: { id: true, meta: true },
+	});
+	return {
+		settingId: setting?.id ?? null,
+		settingsMeta: safeRecord(setting?.meta),
+	};
+}
+
 /** Bypass workflow caches for correctness-critical transactional replay. */
 export async function getFreshNewSalesFormStepRouting(ctx: TRPCContext) {
 	const [setting, steps] = await Promise.all([
