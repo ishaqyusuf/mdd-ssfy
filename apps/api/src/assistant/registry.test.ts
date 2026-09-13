@@ -21,7 +21,7 @@ describe("assistant tool registry", () => {
 		);
 
 		expect(new Set(identities).size).toBe(identities.length);
-		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v5");
+		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v6");
 		for (const tool of assistantToolRegistry) {
 			expect(tool.toolId).toMatch(/^[a-z][a-z0-9]*_[a-z][a-z0-9_]*$/);
 			expect(tool.version).toBeGreaterThan(0);

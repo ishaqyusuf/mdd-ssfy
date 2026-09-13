@@ -15,6 +15,7 @@ import {
 	getAssistantSalesTimeline,
 } from "@gnd/db/queries";
 import { salesDocumentModeRequiresPaymentAccess } from "@gnd/sales/assistant-source";
+import { newSalesFormSeedSchema } from "@gnd/sales/sales-form-core";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import {
 	buildCanonicalSalesSourceRevision,
@@ -36,7 +37,7 @@ import {
 	queueAssistantSalesPdfJob,
 } from "./pdf-artifacts";
 
-export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v5";
+export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v6";
 
 export const assistantToolDomains = [
 	"system",
@@ -362,6 +363,31 @@ const salesPdfStatusDataSchema = z
 		pdf: salesPdfStatusSchema.nullable(),
 	})
 	.strict();
+const salesRequestDraftInputSchema = z
+	.object({
+		type: z.enum(["order", "quote"]).default("order"),
+		text: z.string().trim().min(1).max(50_000),
+	})
+	.strict();
+const salesRequestDraftPreviewSchema = z
+	.object({
+		type: z.enum(["order", "quote"]),
+		generationId: z.string().uuid(),
+		seed: newSalesFormSeedSchema,
+		configurationScope: z.string().min(1).max(191),
+		configurationRevision: z.string().min(1).max(128),
+		promptVersion: z.string().min(1).max(100),
+		provider: z.string().min(1).max(32),
+		model: z.string().min(1).max(100),
+		usage: z
+			.object({
+				inputTokens: z.number().int().nonnegative().nullable(),
+				outputTokens: z.number().int().nonnegative().nullable(),
+			})
+			.strict(),
+		unresolvedCount: z.number().int().nonnegative(),
+	})
+	.strict();
 const customerSchema = z
 	.object({
 		id: z.number().int().positive(),
@@ -613,6 +639,8 @@ type CommunityProjectSummary = NonNullable<
 	z.infer<typeof communityProjectSummarySchema>["project"]
 >;
 type SalesPdfInput = z.infer<typeof salesPdfInputSchema>;
+type SalesRequestDraftInput = z.infer<typeof salesRequestDraftInputSchema>;
+type SalesRequestDraftPreview = z.infer<typeof salesRequestDraftPreviewSchema>;
 
 export type AssistantToolServices = {
 	findSalesOrders: (
@@ -695,6 +723,10 @@ export type AssistantToolServices = {
 		mode: SalesPdfInput["mode"],
 		snapshotId: string,
 	) => Promise<boolean>;
+	draftSalesOrderFromRequest: (
+		actor: AssistantToolActor,
+		input: SalesRequestDraftInput,
+	) => Promise<Omit<SalesRequestDraftPreview, "type" | "unresolvedCount">>;
 };
 
 function projectSalesPipeline(snapshot: SalesPipelineSnapshot) {
@@ -841,6 +873,11 @@ const defaultAssistantToolServices: AssistantToolServices = {
 			salesOrderId: order.id,
 			mode,
 		}),
+	draftSalesOrderFromRequest: async () => {
+		throw new Error(
+			"Assistant Sales request drafting awaits the T17 execution boundary",
+		);
+	},
 };
 
 function definition(
@@ -1399,6 +1436,52 @@ async function resolveSalesPdfOrder(
 }
 
 const placeholders: AssistantToolDefinition[] = [
+	definition({
+		toolId: "sales_draft_from_request",
+		version: 1,
+		domain: "sales",
+		title: "Draft an order from a customer request",
+		description:
+			"Generate a typed native Sales form preview from customer request text using the published catalog configuration; unresolved specifications remain explicit for review.",
+		capability: "coming_soon",
+		effect: "draft",
+		requiredGrants: ["editOrders"],
+		presentation: {
+			group: "Sales",
+			resultComponent: "order-draft",
+			icon: "file-plus",
+		},
+		inputSchema: salesRequestDraftInputSchema,
+		outputSchema: salesRequestDraftPreviewSchema,
+		relatedTools: ["sales_create_order"],
+		async handler(actor, rawInput, services) {
+			const input = salesRequestDraftInputSchema.parse(rawInput);
+			const generated = await services.draftSalesOrderFromRequest(actor, input);
+			const preview = salesRequestDraftPreviewSchema.parse({
+				...generated,
+				type: input.type,
+				unresolvedCount: generated.seed.unresolved.length,
+			});
+			return assistantResultEnvelope({
+				status: preview.unresolvedCount ? "requires_input" : "success",
+				data: preview,
+				sources: [
+					{
+						kind: "record",
+						id: `sales-catalog:${preview.configurationScope}@${preview.configurationRevision}`,
+						label: "Published Sales configuration",
+					},
+				],
+				revision: preview.configurationRevision,
+				warnings: preview.unresolvedCount
+					? [
+							`${preview.unresolvedCount} request field${preview.unresolvedCount === 1 ? " is" : "s are"} unresolved and must be reviewed.`,
+						]
+					: [],
+				allowedNextActions: [],
+			});
+		},
+	}),
 	definition({
 		toolId: "sales_create_order",
 		version: 1,
