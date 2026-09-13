@@ -4,6 +4,7 @@ import {
 } from "@gnd/auth/utils";
 import type { Database } from "@gnd/db";
 import { generatePermissions } from "@gnd/utils/constants";
+import { getAssistantAccessState } from "./access-governance";
 
 export type AssistantActor = {
 	userId: number;
@@ -20,14 +21,12 @@ export type AssistantActor = {
 	countryCode: string | null;
 };
 
-export function hasAssistantAccess(grants: Record<string, boolean>) {
-	return Boolean(grants.viewOrders || grants.editOrders || grants.viewSales);
-}
-
 export async function resolveAssistantActor(
 	db: Database,
 	userId: number,
 ): Promise<AssistantActor | null> {
+	const access = await getAssistantAccessState(db, userId);
+	if (!access.enabled) return null;
 	const [profile, specificPermissions] = await Promise.all([
 		db.users.findFirst({
 			where: { id: userId, deletedAt: null, accessRevokedAt: null },
@@ -117,5 +116,5 @@ export async function resolveAssistantActor(
 			mergePermissionRecords(rolePermissions, specificPermissions),
 		) as unknown as Record<string, boolean>,
 	};
-	return hasAssistantAccess(actor.grants) ? actor : null;
+	return actor;
 }

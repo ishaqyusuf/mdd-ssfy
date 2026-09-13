@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { Header } from "./header";
 import {
+	getAssistantAccessLinkModules,
 	getSalesFinanceMigrationLinkModules,
 	linkModules,
 } from "./sidebar-links";
@@ -54,14 +55,22 @@ function NavLayoutClient({ children, pageTabDefaults }) {
 		refetchOnWindowFocus: false,
 		staleTime: Number.POSITIVE_INFINITY,
 	});
+	const { data: assistantAccess } = useQuery({
+		...trpc.assistant.bootstrap.queryOptions(),
+		enabled: auth.enabled && status === "authenticated",
+		staleTime: 30_000,
+	});
 	const navDefaults = defaults;
 	const navigationLinkModules = useMemo(
 		() =>
-			getSalesFinanceMigrationLinkModules({
-				can: auth.can,
-				modules: linkModules,
+			getAssistantAccessLinkModules({
+				enabled: assistantAccess?.enabled === true,
+				modules: getSalesFinanceMigrationLinkModules({
+					can: auth.can,
+					modules: linkModules,
+				}),
 			}),
-		[auth.can],
+		[assistantAccess?.enabled, auth.can],
 	);
 
 	return (

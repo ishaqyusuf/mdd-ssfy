@@ -1,3 +1,9 @@
+import {
+	assistantEntitlementUpdateSchema,
+	getAssistantAccessState,
+	listAssistantEntitlements,
+	updateAssistantEntitlement,
+} from "@api/assistant/access-governance";
 import { resolveAssistantActor } from "@api/assistant/actor";
 import {
 	assistantProposalCreateSchema,
@@ -81,7 +87,11 @@ async function featureAdminOrThrow(ctx: {
 		where: { id: ctx.userId, deletedAt: null, accessRevokedAt: null },
 		select: {
 			roles: {
-				where: { deletedAt: null, role: { deletedAt: null } },
+				where: {
+					deletedAt: null,
+					organization: { deletedAt: null },
+					role: { deletedAt: null },
+				},
 				select: { role: { select: { name: true } } },
 			},
 		},
@@ -117,6 +127,26 @@ function notFound(error: unknown): never {
 }
 
 export const assistantRouter = createTRPCRouter({
+	bootstrap: protectedProcedure.query(async ({ ctx }) =>
+		getAssistantAccessState(ctx.db, ctx.userId),
+	),
+	adminEntitlements: protectedProcedure
+		.input(
+			z.object({
+				search: z.string().trim().max(100).optional(),
+				take: z.number().int().min(1).max(100).default(50),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await featureAdminOrThrow(ctx);
+			return listAssistantEntitlements(ctx.db, input);
+		}),
+	updateEntitlement: protectedProcedure
+		.input(assistantEntitlementUpdateSchema)
+		.mutation(async ({ ctx, input }) => {
+			const adminUserId = await featureAdminOrThrow(ctx);
+			return updateAssistantEntitlement(ctx.db, adminUserId, input);
+		}),
 	createProposal: protectedProcedure
 		.input(assistantProposalCreateSchema)
 		.mutation(async ({ ctx, input }) => {

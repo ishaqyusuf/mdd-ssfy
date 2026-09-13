@@ -20,6 +20,42 @@ model AssistantConversation {
     @@index([retentionUntil, deletedAt], map: "asst_conv_retention_idx")
 }
 
+model AssistantUserEntitlement {
+    id              String                      @id @default(cuid()) @db.VarChar(191)
+    userId          Int                         @unique(map: "asst_entitlement_user_uq")
+    enabled         Boolean                     @default(false)
+    expiresAt       DateTime?                   @db.Timestamp(0)
+    reason          String?                     @db.VarChar(500)
+    createdByUserId Int
+    updatedByUserId Int
+    version         Int                         @default(1)
+    createdAt       DateTime                    @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime                    @updatedAt
+    user            Users                       @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    events          AssistantEntitlementEvent[]
+
+    @@index([enabled, expiresAt, updatedAt], map: "asst_entitlement_state_idx")
+    @@index([updatedByUserId, updatedAt], map: "asst_entitlement_admin_idx")
+}
+
+model AssistantEntitlementEvent {
+    id              String                   @id @default(cuid()) @db.VarChar(191)
+    entitlementId   String                   @db.VarChar(191)
+    userId          Int
+    type            String                   @db.VarChar(32)
+    enabled         Boolean
+    expiresAt       DateTime?                @db.Timestamp(0)
+    reason          String?                  @db.VarChar(500)
+    actorUserId     Int?
+    entitlementVersion Int
+    createdAt       DateTime                 @default(now()) @db.Timestamp(0)
+    entitlement     AssistantUserEntitlement @relation(fields: [entitlementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([entitlementId, entitlementVersion], map: "asst_entitlement_event_version_uq")
+    @@index([userId, createdAt], map: "asst_entitlement_event_user_idx")
+    @@index([actorUserId, createdAt], map: "asst_entitlement_event_actor_idx")
+}
+
 model AssistantFeatureRequest {
     id                 String   @id @default(cuid()) @db.VarChar(191)
     ownerUserId        Int

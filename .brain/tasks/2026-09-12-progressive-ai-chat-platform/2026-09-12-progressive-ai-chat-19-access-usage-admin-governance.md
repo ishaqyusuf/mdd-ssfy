@@ -1,7 +1,7 @@
 # Task: Progressive AI Chat T19 — Control individual access, usage, quotas, and admin governance
 
 ## Status
-Backlog
+In Progress
 
 ## Priority
 High
@@ -77,14 +77,14 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - AI analysis: `queued`, `running`, `ready_for_review`, `approved`, `needs_revision`, `failed`. AI analysis never accepts, prioritizes, or releases a request without an authorized human action.
 
 ## Implementation Progress
-- Completion: 0%
-- Current Checklist: 0/15 — access and usage governance
-- Blockers: T02, T03, T06, T16, T17
+- Completion: 15%
+- Current Checklist: 2/15 — individual entitlement enforcement foundation
+- Blockers: None for T19A; administrator UI, bulk operations, usage accounting, quotas, and request governance remain.
 
 ## Implementation Checklist
-- [ ] T19A: Add individual entitlement storage and immutable audit events with enabled/disabled state, optional expiry, actor, reason, and timestamps.
+- [x] T19A: Add individual entitlement storage and immutable audit events with enabled/disabled state, optional expiry, actor, reason, and timestamps.
 - [ ] T19A: Resolve entitlement from authenticated server context and enforce it at navigation bootstrap, history, stream/reconnect, tool catalog/execution, background jobs, artifacts, and release notifications.
-- [ ] T19A: Preserve all existing domain permissions, organization/user row scope, and field redaction after assistant access is enabled.
+- [x] T19A: Preserve all existing domain permissions, organization/user row scope, and field redaction after assistant access is enabled.
 - [ ] T19A: Build super-admin access controls with search/filter, single and bulk enable/disable, expiry, reason capture, current-state labels, and audit timeline.
 - [ ] T19B: Persist an idempotent usage ledger per provider request/run with actor snapshot, model/provider, request class, token categories, tool calls, latency, outcome, and estimated cost in integer micros.
 - [ ] T19B: Normalize provider usage receipts and versioned price snapshots; add unknown-usage reconciliation without exposing prompt or tool payloads in routine reports.
@@ -125,5 +125,7 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - Keep organization-wide safety caps and chargeback/showback reporting as a later extension; the first implementation remains per-user as requested.
 
 ## Validation Evidence
+- 2026-09-13 T19A foundation adds explicit fail-closed per-user entitlement state, audited enable/disable/expiry transitions, optimistic administrator updates, bootstrap/navigation/direct-route gating, and enforcement through the existing Assistant actor boundary. Enabling access continues to derive all business grants and scope from current role and individual domain permissions.
+- Focused access and sidebar validation passes 21 tests / 73 assertions; Prisma client generation and focused Biome checks pass. API typecheck reaches only the unrelated existing `packages/sales/src/copy-sales.ts:521` nullable-string diagnostic.
 - 2026-09-13 planning review expanded the ticket into four delivery slices with explicit data, API, dashboard, lifecycle, privacy, accounting, and acceptance contracts.
 - Planning only; no entitlement, quota, usage ledger, admin screen, request-board behavior, schema, or application code is implemented by this ticket update.
