@@ -67,6 +67,11 @@ export {
 } from "./crypto.js";
 export type { MailboxEncryptedSecret } from "./crypto.js";
 export {
+	createMailboxEnvironmentKeyRing,
+	createSalesRequestMailboxAdaptersFromEnvironment,
+} from "./environment.js";
+export type { MailboxEnvironmentKeyRing } from "./environment.js";
+export {
 	MAILBOX_DISCONNECT_AUTHORITY_BEHAVIOR,
 	MAILBOX_DISCONNECT_CLAIM_BEHAVIOR,
 	MAILBOX_DISCONNECT_CLEANUP_BEHAVIOR,
