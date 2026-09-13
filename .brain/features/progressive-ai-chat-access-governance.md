@@ -11,6 +11,7 @@ T19A foundation and single-account administrator presentation implemented on 202
 - Enabling Assistant does not grant any business capability. The actor continues to receive only current domain grants, organization/user scope, row filters, and field projection rules.
 - The same actor resolver protects conversation APIs, streaming and reconnect, tools, generated documents, saved actions, jobs, and feature-release eligibility.
 - Dashboard bootstrap hides Assistant navigation until the current account has active access. Direct navigation rechecks the entitlement on the server.
+- The entitlement-gated Chat entry bypasses the legacy role-rule visibility check after bootstrap approves access, so individually enabled accounts can see it regardless of role. Entitlement changes invalidate the current bootstrap state immediately.
 - Super Admin mutations use optimistic versions, require a reason, support optional future expiry, and append an immutable event in the same transaction.
 - Scheduled expiry is reconciled once at the next access check. Its audit actor is `null`, which denotes the system rather than falsely attributing expiry to the employee.
 

@@ -31,6 +31,7 @@ export type LinkItem = {
 	paths?: string[];
 	level?;
 	show?: boolean;
+	entitlementGranted?: boolean;
 	meta?: boolean;
 	wip?: boolean;
 	badge?: string;
@@ -722,7 +723,18 @@ export function getAssistantAccessLinkModules({
 	enabled: boolean;
 	modules?: typeof linkModules;
 }) {
-	if (enabled) return modules;
+	if (enabled)
+		return modules.map((module) => ({
+			...module,
+			sections: module.sections.map((section) => ({
+				...section,
+				links: section.links.map((link) =>
+					link?.href === "/assistant"
+						? { ...link, entitlementGranted: true, show: true }
+						: link,
+				),
+			})),
+		}));
 	return modules.map((module) => ({
 		...module,
 		sections: module.sections.map((section) => ({

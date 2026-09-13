@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import type { ICan } from "@/types/auth";
 import {
 	_role,
+	getAssistantAccessLinkModules,
 	getLinkModules,
 	getSalesFinanceMigrationLinkModules,
 	validateLinks,
@@ -59,6 +60,20 @@ const inventoryValidationRoutes = [
 ];
 
 describe("sidebar role access", () => {
+	test("shows Chat for an individually enabled account without a role grant", () => {
+		const entitledModules = getAssistantAccessLinkModules({
+			enabled: true,
+			modules: validateLinks({
+				role: { name: "1099 Contractor" },
+				can: permissions(),
+				userId: "contractor-1",
+			}),
+		});
+		const links = getLinkModules(entitledModules);
+
+		expect(links.linksNameMap["/assistant"]?.hasAccess).toBe(true);
+	});
+
 	test("matches roles without case, dash, or underscore sensitivity", () => {
 		for (const role of [
 			"Super Admin",
@@ -165,10 +180,7 @@ describe("sidebar role access", () => {
 		);
 
 		const v2Source = readFileSync(
-			join(
-				appRoot,
-				"(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx",
-			),
+			join(appRoot, "(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx"),
 			"utf8",
 		);
 		expect(v2Source).toContain('rules={[_perm.is("editOrders")]}');

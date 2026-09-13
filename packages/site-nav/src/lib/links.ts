@@ -22,6 +22,10 @@ export const validateLinks = ({
   return linkModules.map((lm) => {
     lm.sections = lm.sections.map((s) => {
       s.links = s.links.map((lnk) => {
+        if (lnk.entitlementGranted === true) {
+          lnk.show = true;
+          return lnk;
+        }
         if (accessMode === "open") {
           if (lnk.subLinks?.length) {
             lnk.subLinks = lnk.subLinks.map((sl) => {

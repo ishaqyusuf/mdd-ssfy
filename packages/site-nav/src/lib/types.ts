@@ -18,6 +18,7 @@ export type LinkItem = {
 	wip?: boolean;
 	badge?: string;
 	show?: boolean;
+	entitlementGranted?: boolean;
 	globalIndex?;
 	index?;
 	access?;

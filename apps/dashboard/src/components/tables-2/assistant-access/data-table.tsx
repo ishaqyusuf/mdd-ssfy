@@ -3,6 +3,7 @@
 import { AssistantAccessHeader } from "@/components/assistant-access-header";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
+import { Calendar } from "@gnd/ui/calendar";
 import {
 	Dialog,
 	DialogContent,
@@ -12,6 +13,7 @@ import {
 	DialogTitle,
 } from "@gnd/ui/dialog";
 import { Input } from "@gnd/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import {
 	Table,
 	TableBody,
@@ -32,6 +34,8 @@ import {
 	getFilteredRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
 	type AssistantAccessRow,
@@ -48,6 +52,7 @@ export function AssistantAccessDataTable() {
 	const [selected, setSelected] = useState<AssistantAccessRow | null>(null);
 	const [nextEnabled, setNextEnabled] = useState(false);
 	const [expiresAt, setExpiresAt] = useState("");
+	const [expiryPickerOpen, setExpiryPickerOpen] = useState(false);
 	const [reason, setReason] = useState("");
 	const { data } = useSuspenseQuery(
 		trpc.assistant.adminEntitlements.queryOptions({ take: 100 }),
@@ -56,9 +61,14 @@ export function AssistantAccessDataTable() {
 	const update = useMutation(
 		trpc.assistant.updateEntitlement.mutationOptions({
 			async onSuccess() {
-				await queryClient.invalidateQueries({
-					queryKey: trpc.assistant.adminEntitlements.queryKey(),
-				});
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.assistant.adminEntitlements.queryKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.assistant.bootstrap.queryKey(),
+					}),
+				]);
 				setSelected(null);
 				toast({ title: "Assistant access updated", variant: "success" });
 			},
@@ -81,6 +91,7 @@ export function AssistantAccessDataTable() {
 				: "",
 		);
 		setReason("");
+		setExpiryPickerOpen(false);
 	}
 
 	const table = useReactTable({
@@ -188,12 +199,38 @@ export function AssistantAccessDataTable() {
 								htmlFor="assistant-access-expiry"
 							>
 								<span className="font-medium">Expiry (optional)</span>
-								<Input
-									id="assistant-access-expiry"
-									type="datetime-local"
-									value={expiresAt}
-									onChange={(event) => setExpiresAt(event.target.value)}
-								/>
+								<Popover
+									open={expiryPickerOpen}
+									onOpenChange={setExpiryPickerOpen}
+								>
+									<PopoverTrigger asChild>
+										<Button
+											id="assistant-access-expiry"
+											type="button"
+											variant="outline"
+											className="justify-start font-normal"
+										>
+											<CalendarIcon data-icon="inline-start" />
+											{expiresAt
+												? format(fromDateInput(expiresAt), "MMM d, yyyy")
+												: "Pick a date"}
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="w-auto p-0" align="start">
+										<Calendar
+											mode="single"
+											selected={
+												expiresAt ? fromDateInput(expiresAt) : undefined
+											}
+											disabled={{ before: new Date() }}
+											onSelect={(date) => {
+												setExpiresAt(date ? format(date, "yyyy-MM-dd") : "");
+												if (date) setExpiryPickerOpen(false);
+											}}
+											initialFocus
+										/>
+									</PopoverContent>
+								</Popover>
 							</label>
 						) : null}
 						{nextEnabled ? null : (
@@ -224,7 +261,7 @@ export function AssistantAccessDataTable() {
 								update.mutate({
 									userId: selected.id,
 									enabled: nextEnabled,
-									expiresAt: expiresAt ? new Date(expiresAt) : null,
+									expiresAt: expiresAt ? expiryAtEndOfDay(expiresAt) : null,
 									reason: nextEnabled
 										? "Enabled by Super Admin"
 										: reason.trim(),
@@ -257,7 +294,16 @@ function Summary({
 
 function toLocalDateTime(value: Date | string) {
 	const date = new Date(value);
-	return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-		.toISOString()
-		.slice(0, 16);
+	return format(date, "yyyy-MM-dd");
+}
+
+function fromDateInput(value: string) {
+	const [year, month, day] = value.split("-").map(Number);
+	return new Date(year, month - 1, day);
+}
+
+function expiryAtEndOfDay(value: string) {
+	const date = fromDateInput(value);
+	date.setHours(23, 59, 59, 999);
+	return date;
 }
