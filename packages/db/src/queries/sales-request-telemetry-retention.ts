@@ -36,6 +36,6 @@ export async function anonymizeSalesRequestGenerationRunsForUser(
 ) {
 	return db.salesRequestGenerationRun.updateMany({
 		where: { actorUserId, deletedAt: null },
-		data: { actorUserId: null },
+		data: { actorUserId: null, seedDigest: null },
 	});
 }

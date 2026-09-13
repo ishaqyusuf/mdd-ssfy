@@ -136,6 +136,7 @@ describe("sales request generation telemetry persistence", () => {
 			model: "gpt-5-mini",
 			promptVersion: "new-sales-form-seed-v6",
 			schemaVersion: 2,
+			seedDigest: `h1:${"c".repeat(64)}`,
 			inputTokens: 100,
 			outputTokens: 20,
 			issueCounts: { ambiguous: 1, unreadable: 0, unsupported: 0 },
@@ -147,12 +148,54 @@ describe("sales request generation telemetry persistence", () => {
 				data: expect.objectContaining({
 					status: "succeeded",
 					latencyMs: 4_500,
+					seedDigest: `h1:${"c".repeat(64)}`,
 				}),
 			},
 		});
 		expect(JSON.stringify(fixture.calls.at(-1))).not.toMatch(
 			/source|private|error.*body/i,
 		);
+	});
+
+	test("omits malformed seed digests instead of persisting or erasing content", async () => {
+		const fixture = dbFixture();
+		await completeSalesRequestGenerationRun(fixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			status: "succeeded",
+			completedAt: now,
+			latencyMs: 100,
+			seedDigest: "private seed content",
+		});
+
+		expect(fixture.calls.at(-1)).toMatchObject({
+			method: "updateMany",
+			args: { data: { status: "succeeded" } },
+		});
+		expect(
+			(fixture.calls.at(-1)?.args as { data: Record<string, unknown> }).data,
+		).not.toHaveProperty("seedDigest");
+	});
+
+	test("rejects completion after the retention deadline", async () => {
+		const fixture = dbFixture();
+		fixture.db.salesRequestGenerationRun.updateMany = async (args: unknown) => {
+			fixture.calls.push({ method: "updateMany", args });
+			return { count: 0 };
+		};
+
+		await expect(
+			completeSalesRequestGenerationRun(fixture.db, {
+				actorUserId: 7,
+				generationId: row().generationId,
+				status: "succeeded",
+				completedAt: now,
+				latencyMs: 100,
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		expect(fixture.calls.at(-1)).toMatchObject({
+			args: { where: { retentionUntil: { gt: now } } },
+		});
 	});
 
 	test("binds outcomes to the creating actor and makes repeated writes idempotent", async () => {
@@ -256,7 +299,7 @@ describe("sales request generation telemetry persistence", () => {
 		});
 		expect(fixture.calls[1]?.args).toMatchObject({
 			where: { actorUserId: 7, deletedAt: null },
-			data: { actorUserId: null },
+			data: { actorUserId: null, seedDigest: null },
 		});
 	});
 

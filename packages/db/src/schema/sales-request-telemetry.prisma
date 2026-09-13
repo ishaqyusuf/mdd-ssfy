@@ -9,6 +9,7 @@ model SalesRequestGenerationRun {
     model                           String    @db.VarChar(100)
     promptVersion                   String?   @db.VarChar(64)
     schemaVersion                   Int?
+    seedDigest                     String?   @db.VarChar(67)
     status                          String    @db.VarChar(32)
     failureStage                    String?   @db.VarChar(32)
     hasText                         Boolean   @default(false)

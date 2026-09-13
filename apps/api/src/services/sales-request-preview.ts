@@ -10,6 +10,7 @@ import {
 	type SalesRequestGenerationCompleteEvent,
 	type SalesRequestGenerationTelemetry,
 	countSalesRequestGenerationIssues,
+	createSalesRequestSeedDigest,
 } from "./sales-request-telemetry";
 
 type Snapshot = Awaited<
@@ -168,6 +169,12 @@ export async function createSalesRequestPreview(
 			model: result.model ?? snapshot.aiSelection.model,
 			promptVersion: result.promptVersion,
 			schemaVersion: result.seed.schemaVersion,
+			seedDigest: createSalesRequestSeedDigest({
+				seed: result.seed,
+				generationId,
+				configurationScope: snapshot.scope,
+				configurationRevision: snapshot.revision,
+			}),
 			...(result.usage.inputTokens !== undefined
 				? { inputTokens: result.usage.inputTokens }
 				: {}),

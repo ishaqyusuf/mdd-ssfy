@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+import type { NewSalesFormSeed } from "@gnd/sales/sales-form-core";
 import type { SalesRequestProviderFailureDiagnostic } from "./sales-request-provider";
 
 export const SALES_REQUEST_GENERATION_STATUSES = [
@@ -80,11 +82,70 @@ export type SalesRequestGenerationCompleteEvent = {
 	model?: string;
 	promptVersion?: string;
 	schemaVersion?: number;
+	seedDigest?: string;
 	inputTokens?: number;
 	outputTokens?: number;
 	issueCounts?: SalesRequestGenerationIssueCounts;
 	failureStage?: SalesRequestProviderFailureDiagnostic["stage"];
 };
+
+function salesRequestSeedDigestSecret() {
+	const secret =
+		process.env.SALES_REQUEST_SEED_HMAC_SECRET?.trim() ||
+		process.env.AUTH_SECRET?.trim() ||
+		process.env.BETTER_AUTH_SECRET?.trim() ||
+		process.env.JWT_SECRET?.trim() ||
+		(process.env.NODE_ENV !== "production"
+			? "gnd-local-sales-request-seed-hmac-v1"
+			: "");
+	if (!secret) {
+		throw new Error("Sales Request seed binding is not configured.");
+	}
+	return secret;
+}
+
+function canonicalJson(value: unknown): string {
+	if (value === null) return "null";
+	if (typeof value === "string" || typeof value === "boolean") {
+		return JSON.stringify(value);
+	}
+	if (typeof value === "number") {
+		if (!Number.isFinite(value)) {
+			throw new TypeError("Sales Request seed contains a non-finite number.");
+		}
+		return JSON.stringify(value);
+	}
+	if (typeof value !== "object") {
+		throw new TypeError("Sales Request seed contains a non-JSON value.");
+	}
+	if (Array.isArray(value)) {
+		return `[${value.map(canonicalJson).join(",")}]`;
+	}
+	return `{${Object.entries(value)
+		.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+		.map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
+		.join(",")}}`;
+}
+
+/** Create a run-scoped pseudonymous binding without retaining the seed content. */
+export function createSalesRequestSeedDigest(input: {
+	seed: NewSalesFormSeed;
+	generationId: string;
+	configurationScope: string;
+	configurationRevision: string;
+}) {
+	const digest = createHmac("sha256", salesRequestSeedDigestSecret())
+		.update("gnd:sales-request-seed:h1\0")
+		.update(input.generationId)
+		.update("\0")
+		.update(input.configurationScope)
+		.update("\0")
+		.update(input.configurationRevision)
+		.update("\0")
+		.update(canonicalJson(input.seed))
+		.digest("hex");
+	return `h1:${digest}`;
+}
 
 export type SalesRequestGenerationTelemetry = {
 	onStart?: (event: SalesRequestGenerationStartEvent) => Promise<void> | void;

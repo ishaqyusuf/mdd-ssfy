@@ -85,6 +85,12 @@ function boundedTokens(value: unknown) {
 	return boundedCount(value, 100_000_000);
 }
 
+function boundedSeedDigest(value: unknown) {
+	return typeof value === "string" && /^h1:[a-f0-9]{64}$/.test(value)
+		? value
+		: null;
+}
+
 function boundedIssueCounts(value: unknown) {
 	return normalizeSalesRequestGenerationIssueCounts(value);
 }
@@ -166,6 +172,10 @@ export async function completeSalesRequestGenerationRun(
 		data.promptVersion = boundedToken(input.promptVersion, 64, "unknown");
 	if (input.schemaVersion !== undefined)
 		data.schemaVersion = boundedCount(input.schemaVersion, 100);
+	if (input.seedDigest !== undefined) {
+		const seedDigest = boundedSeedDigest(input.seedDigest);
+		if (seedDigest) data.seedDigest = seedDigest;
+	}
 	if (input.inputTokens !== undefined)
 		data.inputTokens = boundedTokens(input.inputTokens);
 	if (input.outputTokens !== undefined)
@@ -175,14 +185,17 @@ export async function completeSalesRequestGenerationRun(
 	if (input.failureStage)
 		data.failureStage = boundedToken(input.failureStage, 32, "unknown");
 
-	return db.salesRequestGenerationRun.updateMany({
+	const result = await db.salesRequestGenerationRun.updateMany({
 		where: {
 			generationId: input.generationId,
 			actorUserId: input.actorUserId,
 			deletedAt: null,
+			retentionUntil: { gt: input.completedAt },
 		},
 		data,
 	});
+	if (result.count !== 1) unavailableGenerationRun();
+	return result;
 }
 
 export type SalesRequestGenerationOutcome =

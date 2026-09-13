@@ -139,6 +139,7 @@ test("successful preview returns only the validated seed and configuration ident
 		value: {
 			generationId: result.generationId,
 			status: "succeeded",
+			seedDigest: expect.stringMatching(/^h1:[a-f0-9]{64}$/),
 		},
 	});
 	expect(JSON.stringify(events)).not.toMatch(/one door|base64|private/i);

@@ -4,6 +4,7 @@ import {
 	SALES_REQUEST_GENERATION_STATUSES,
 	aggregateSalesRequestGenerationRuns,
 	countSalesRequestGenerationIssues,
+	createSalesRequestSeedDigest,
 } from "./sales-request-telemetry";
 
 describe("sales request telemetry boundaries", () => {
@@ -18,6 +19,78 @@ describe("sales request telemetry boundaries", () => {
 				],
 			}),
 		).toEqual({ ambiguous: 1, unreadable: 1, unsupported: 1 });
+	});
+
+	test("digests only the canonical validated seed shape", () => {
+		const seed = {
+			schemaVersion: 1 as const,
+			lineItems: [],
+			unresolved: [
+				{
+					lineUid: null,
+					stepId: null,
+					field: "request",
+					status: "unsupported" as const,
+					reason: "No configured item route matches the request",
+				},
+			],
+		};
+		const reordered = {
+			unresolved: seed.unresolved.map((entry) => ({
+				reason: entry.reason,
+				status: entry.status,
+				field: entry.field,
+				stepId: entry.stepId,
+				lineUid: entry.lineUid,
+			})),
+			lineItems: seed.lineItems,
+			schemaVersion: seed.schemaVersion,
+		};
+		const firstUnresolved = seed.unresolved[0];
+		if (!firstUnresolved) throw new Error("Expected an unresolved fixture.");
+
+		const identity = {
+			generationId: "11111111-1111-4111-8111-111111111111",
+			configurationScope: "sales-settings:7",
+			configurationRevision: "revision-one",
+		};
+		const digest = (candidate: typeof seed) =>
+			createSalesRequestSeedDigest({ seed: candidate, ...identity });
+
+		expect(digest(seed)).toMatch(/^h1:[a-f0-9]{64}$/);
+		expect(digest(reordered)).toBe(digest(seed));
+		expect(
+			createSalesRequestSeedDigest({
+				seed,
+				...identity,
+				generationId: "22222222-2222-4222-8222-222222222222",
+			}),
+		).not.toBe(digest(seed));
+		expect(
+			digest({
+				...seed,
+				unresolved: [{ ...firstUnresolved, reason: "Different fact" }],
+			}),
+		).not.toBe(digest(seed));
+	});
+
+	test("rejects non-JSON values before creating a seed binding", () => {
+		const seed = {
+			schemaVersion: 1 as const,
+			lineItems: [],
+			unresolved: [],
+		};
+		expect(() =>
+			createSalesRequestSeedDigest({
+				seed: {
+					...seed,
+					schemaVersion: Number.NaN as 1,
+				},
+				generationId: "11111111-1111-4111-8111-111111111111",
+				configurationScope: "sales-settings:7",
+				configurationRevision: "revision-one",
+			}),
+		).toThrow("non-finite number");
 	});
 
 	test("aggregates metadata without exposing actor or source fields", () => {
