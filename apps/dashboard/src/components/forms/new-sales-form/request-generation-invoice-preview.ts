@@ -1,4 +1,4 @@
-import { buildInvoicePrintPageFromSalesFormSnapshot } from "@gnd/sales/print";
+import { buildInvoicePrintPageFromSalesFormSnapshot } from "@gnd/sales/print/snapshot-sections";
 import type { RequestGenerationState } from "./request-generation-transaction";
 import type { NewSalesFormRecord } from "./schema";
 
