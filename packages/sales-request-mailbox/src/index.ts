@@ -5,13 +5,13 @@ export type {
 	MailboxSyncPage,
 	MailboxTokenSet,
 	SalesRequestMailboxAdapter,
-} from "./adapter.js";
+} from "./adapter";
 export {
 	buildMailboxScopeFingerprint,
 	completeMailboxConnection,
 	startMailboxConnection,
 	validateMailboxGrantedScopes,
-} from "./connection-lifecycle.js";
+} from "./connection-lifecycle";
 export type {
 	CompleteMailboxConnectionResult,
 	MailboxConnectionAttemptRecord,
@@ -25,7 +25,7 @@ export type {
 	MailboxConnectionStartAuthorityRejection,
 	MailboxConnectionTarget,
 	StartMailboxConnectionResult,
-} from "./connection-lifecycle.js";
+} from "./connection-lifecycle";
 export {
 	DEFAULT_SALES_REQUEST_MAILBOX_POLICY,
 	MAILBOX_AUTOMATION_MODES,
@@ -45,7 +45,7 @@ export {
 	resolveMailboxAutomationMode,
 	salesRequestMailboxPolicyInputSchema,
 	salesRequestMailboxPolicySchema,
-} from "./contracts.js";
+} from "./contracts";
 export type {
 	MailboxAccessResource,
 	MailboxAutomationMode,
@@ -59,25 +59,25 @@ export type {
 	MailboxProviderAccountIdentity,
 	SalesRequestMailboxPolicy,
 	SalesRequestMailboxPolicyInput,
-} from "./contracts.js";
+} from "./contracts";
 export {
 	decryptMailboxSecret,
 	encryptMailboxSecret,
 	mailboxEncryptedSecretSchema,
-} from "./crypto.js";
-export type { MailboxEncryptedSecret } from "./crypto.js";
+} from "./crypto";
+export type { MailboxEncryptedSecret } from "./crypto";
 export {
 	createMailboxEnvironmentKeyRing,
 	createSalesRequestMailboxAdaptersFromEnvironment,
 	deriveMailboxInboxCursorKey,
-} from "./environment.js";
-export type { MailboxEnvironmentKeyRing } from "./environment.js";
+} from "./environment";
+export type { MailboxEnvironmentKeyRing } from "./environment";
 export {
 	MAILBOX_DISCONNECT_AUTHORITY_BEHAVIOR,
 	MAILBOX_DISCONNECT_CLAIM_BEHAVIOR,
 	MAILBOX_DISCONNECT_CLEANUP_BEHAVIOR,
 	disconnectMailboxConnection,
-} from "./disconnect-lifecycle.js";
+} from "./disconnect-lifecycle";
 export type {
 	DisconnectMailboxConnectionResult,
 	MailboxDisconnectClaim,
@@ -87,16 +87,16 @@ export type {
 	MailboxDisconnectFailureReason,
 	MailboxDisconnectKeyRing,
 	MailboxDisconnectStore,
-} from "./disconnect-lifecycle.js";
+} from "./disconnect-lifecycle";
 export {
 	MailboxProviderError,
 	mailboxProviderErrorEvidence,
 	resolveMailboxRetry,
-} from "./errors.js";
+} from "./errors";
 export type {
 	MailboxProviderErrorCode,
 	MailboxProviderRequestFailure,
-} from "./errors.js";
+} from "./errors";
 export {
 	MAILBOX_PROVIDER_DEADLINE_RESERVE_MS,
 	MAILBOX_PROVIDER_REQUEST_TIMEOUT_MS,
@@ -105,59 +105,59 @@ export {
 	classifyMailboxProviderTransportError,
 	readBoundedMailboxProviderResponse,
 	runMailboxProviderRequest,
-} from "./provider-request.js";
+} from "./provider-request";
 export type {
 	MailboxProviderRequestAbortReason,
 	MailboxProviderRequestTimeoutKind,
-} from "./provider-request.js";
+} from "./provider-request";
 export {
 	MAILBOX_OAUTH_REDIRECT_KEYS,
 	MAILBOX_OAUTH_STATE_TTL_MS,
 	createMailboxOAuthAttempt,
 	digestMailboxOAuthState,
 	validateMailboxOAuthAttempt,
-} from "./oauth-state.js";
+} from "./oauth-state";
 export type {
 	MailboxOAuthAttempt,
 	MailboxOAuthRedirectKey,
-} from "./oauth-state.js";
+} from "./oauth-state";
 export {
 	MAILBOX_MODEL_INPUT_GUARD,
 	parseMailboxModelInput,
 	prepareMailboxDisplayText,
 	prepareMailboxModelInput,
-} from "./sanitization.js";
+} from "./sanitization";
 export {
 	advanceMailboxSync,
 	beginMailboxSync,
 	DEFAULT_MAILBOX_SYNC_BUDGET,
-} from "./cursor-recovery.js";
+} from "./cursor-recovery";
 export type {
 	MailboxSyncBudget,
 	MailboxSyncState,
-} from "./cursor-recovery.js";
+} from "./cursor-recovery";
 export {
 	GmailSalesRequestMailboxAdapter,
 	MicrosoftGraphMailboxAdapter,
 	createSalesRequestMailboxAdapter,
-} from "./providers/index.js";
+} from "./providers/index";
 export type {
 	GmailMailboxAdapterConfig,
 	MicrosoftGraphMailboxAdapterConfig,
 	SalesRequestMailboxAdapterFactoryInput,
-} from "./providers/index.js";
+} from "./providers/index";
 export {
 	mailboxSyncSourceProvider,
 	resolveMailboxSyncSources,
 	runMailboxSyncStream,
-} from "./sync-orchestrator.js";
+} from "./sync-orchestrator";
 export {
 	MAILBOX_TOKEN_HEALTH_LEASE_MS,
 	MAILBOX_TOKEN_HEALTH_MAX_RETRY_ATTEMPTS,
 	MAILBOX_TOKEN_REFRESH_BEFORE_EXPIRY_MS,
 	MAILBOX_TOKEN_REFRESH_COMMIT_BEHAVIOR,
 	runMailboxTokenHealthLifecycle,
-} from "./token-health-lifecycle.js";
+} from "./token-health-lifecycle";
 export type {
 	MailboxTokenHealthClaim,
 	MailboxTokenHealthDependencies,
@@ -165,13 +165,13 @@ export type {
 	MailboxTokenHealthReason,
 	MailboxTokenHealthResult,
 	MailboxTokenHealthStore,
-} from "./token-health-lifecycle.js";
+} from "./token-health-lifecycle";
 export {
 	MAILBOX_MESSAGE_DETAIL_MAX_RETRY_ATTEMPTS,
 	buildMailboxMessageContentHash,
 	buildMailboxSourceMembershipIdentity,
 	runMailboxMessageDetail,
-} from "./message-detail.js";
+} from "./message-detail";
 export type {
 	MailboxMessageDetailDependencies,
 	MailboxMessageDetailLeaseScope,
@@ -184,7 +184,7 @@ export type {
 	MailboxMessageSnapshot,
 	MailboxQueueProjection,
 	MailboxSourceMembershipProjection,
-} from "./message-detail.js";
+} from "./message-detail";
 export type {
 	MailboxSyncAuthorityFence,
 	MailboxSyncCheckpoint,
@@ -198,7 +198,7 @@ export type {
 	MailboxSyncSummaryProjection,
 	MailboxSyncSuppressionReason,
 	MailboxSyncTombstoneProjection,
-} from "./sync-orchestrator.js";
+} from "./sync-orchestrator";
 export {
 	DEFAULT_MAILBOX_INBOX_STATUS_COUNTS,
 	MAILBOX_CONNECTION_STATES,
@@ -229,15 +229,15 @@ export {
 	projectMailboxInboxDetail,
 	projectMailboxInboxPage,
 	projectMailboxInboxSummary,
-} from "./inbox-read.js";
+} from "./inbox-read";
 export {
 	issueMailboxInboxCursor,
 	readMailboxInboxCursor,
-} from "./inbox-cursor.js";
+} from "./inbox-cursor";
 export type {
 	MailboxInboxCursorScope,
 	MailboxInboxKeyset,
-} from "./inbox-cursor.js";
+} from "./inbox-cursor";
 export type {
 	MailboxAdminHealthProjection,
 	MailboxAdminHealthSource,
@@ -255,12 +255,12 @@ export type {
 	MailboxInboxSummary,
 	MailboxInboxSummarySource,
 	MailboxQueueStatus,
-} from "./inbox-read.js";
+} from "./inbox-read";
 export {
 	MAILBOX_RETENTION_PURGE_BEHAVIOR,
 	purgeExpiredMailboxContent,
-} from "./retention-cleanup.js";
+} from "./retention-cleanup";
 export type {
 	MailboxRetentionCleanupStore,
 	MailboxRetentionPurgeCounts,
-} from "./retention-cleanup.js";
+} from "./retention-cleanup";

@@ -3,25 +3,25 @@ import type {
 	MailboxAccountIdentity,
 	MailboxTokenSet,
 	SalesRequestMailboxAdapter,
-} from "./adapter.js";
+} from "./adapter";
 import {
 	MAILBOX_PROVIDER_AUTHORIZATION,
 	type MailboxProvider,
 	mailboxProviderAccountIdentitySchema,
 	salesRequestMailboxPolicySchema,
-} from "./contracts.js";
-import type { MailboxEncryptedSecret } from "./crypto.js";
-import { encryptMailboxSecret } from "./crypto.js";
-import { MailboxProviderError } from "./errors.js";
+} from "./contracts";
+import type { MailboxEncryptedSecret } from "./crypto";
+import { encryptMailboxSecret } from "./crypto";
+import { MailboxProviderError } from "./errors";
 import {
 	type MailboxOAuthRedirectKey,
 	createMailboxOAuthAttempt,
 	digestMailboxOAuthState,
-} from "./oauth-state.js";
+} from "./oauth-state";
 import {
 	MailboxProviderRequestAbort,
 	runMailboxProviderRequest,
-} from "./provider-request.js";
+} from "./provider-request";
 
 const MAX_IDENTIFIER_LENGTH = 255;
 const MAX_TOKEN_LENGTH = 16 * 1024;

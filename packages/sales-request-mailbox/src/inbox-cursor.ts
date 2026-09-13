@@ -4,7 +4,7 @@ import {
 	MAILBOX_INBOX_CURSOR_MAX_CHARS,
 	mailboxInboxCursorSchema,
 	mailboxInboxPageRequestSchema,
-} from "./inbox-read.js";
+} from "./inbox-read";
 
 const CURSOR_VERSION = 1 as const;
 const CURSOR_PREFIX = "mbx1";

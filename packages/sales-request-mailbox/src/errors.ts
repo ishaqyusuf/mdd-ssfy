@@ -1,4 +1,4 @@
-import type { MailboxProvider } from "./contracts.js";
+import type { MailboxProvider } from "./contracts";
 
 export type MailboxProviderErrorCode =
 	| "authorization-revoked"

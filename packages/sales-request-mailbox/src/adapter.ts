@@ -1,4 +1,4 @@
-import type { MailboxAutomationHeaders, MailboxProvider } from "./contracts.js";
+import type { MailboxAutomationHeaders, MailboxProvider } from "./contracts";
 
 export type MailboxTokenSet = {
 	accessToken: string;

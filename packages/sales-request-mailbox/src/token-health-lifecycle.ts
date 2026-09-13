@@ -1,20 +1,20 @@
-import type { MailboxTokenSet, SalesRequestMailboxAdapter } from "./adapter.js";
+import type { MailboxTokenSet, SalesRequestMailboxAdapter } from "./adapter";
 import {
 	buildMailboxScopeFingerprint,
 	validateMailboxGrantedScopes,
-} from "./connection-lifecycle.js";
-import { type MailboxProvider, mailboxProviderSchema } from "./contracts.js";
-import type { MailboxEncryptedSecret } from "./crypto.js";
+} from "./connection-lifecycle";
+import { type MailboxProvider, mailboxProviderSchema } from "./contracts";
+import type { MailboxEncryptedSecret } from "./crypto";
 import {
 	decryptMailboxSecret,
 	encryptMailboxSecret,
 	mailboxEncryptedSecretSchema,
-} from "./crypto.js";
-import { MailboxProviderError } from "./errors.js";
+} from "./crypto";
+import { MailboxProviderError } from "./errors";
 import {
 	MailboxProviderRequestAbort,
 	runMailboxProviderRequest,
-} from "./provider-request.js";
+} from "./provider-request";
 
 const MAX_IDENTIFIER_LENGTH = 255;
 const MAX_TOKEN_LENGTH = 16 * 1024;

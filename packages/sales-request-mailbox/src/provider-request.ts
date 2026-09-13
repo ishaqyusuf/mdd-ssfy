@@ -1,5 +1,5 @@
-import type { MailboxProvider } from "./contracts.js";
-import { MailboxProviderError } from "./errors.js";
+import type { MailboxProvider } from "./contracts";
+import { MailboxProviderError } from "./errors";
 
 export const MAILBOX_PROVIDER_REQUEST_TIMEOUT_MS = 30_000;
 export const MAILBOX_PROVIDER_REVOKE_TIMEOUT_MS = 15_000;

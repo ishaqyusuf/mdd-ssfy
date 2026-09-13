@@ -1,12 +1,12 @@
 import { createHmac } from "node:crypto";
-import type { SalesRequestMailboxAdapter } from "./adapter.js";
-import type { MailboxConnectionKeyRing } from "./connection-lifecycle.js";
-import type { MailboxProvider } from "./contracts.js";
-import type { MailboxDisconnectKeyRing } from "./disconnect-lifecycle.js";
+import type { SalesRequestMailboxAdapter } from "./adapter";
+import type { MailboxConnectionKeyRing } from "./connection-lifecycle";
+import type { MailboxProvider } from "./contracts";
+import type { MailboxDisconnectKeyRing } from "./disconnect-lifecycle";
 import {
 	GmailSalesRequestMailboxAdapter,
 	MicrosoftGraphMailboxAdapter,
-} from "./providers/index.js";
+} from "./providers/index";
 
 type MailboxEnvironment = Readonly<Record<string, string | undefined>>;
 

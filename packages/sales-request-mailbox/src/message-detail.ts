@@ -4,7 +4,7 @@ import type {
 	MailboxMessageSummary,
 	MailboxTokenSet,
 	SalesRequestMailboxAdapter,
-} from "./adapter.js";
+} from "./adapter";
 import {
 	type MailboxConnectionConfiguration,
 	type MailboxExclusionReason,
@@ -14,21 +14,21 @@ import {
 	mailboxAutomationHeadersSchema,
 	mailboxConnectionConfigurationSchema,
 	salesRequestMailboxPolicySchema,
-} from "./contracts.js";
+} from "./contracts";
 import {
 	MailboxProviderError,
 	mailboxProviderErrorEvidence,
 	resolveMailboxRetry,
-} from "./errors.js";
+} from "./errors";
 import {
 	MAILBOX_PROVIDER_DEADLINE_RESERVE_MS,
 	MailboxProviderRequestAbort,
 	runMailboxProviderRequest,
-} from "./provider-request.js";
+} from "./provider-request";
 import {
 	prepareMailboxDisplayText,
 	prepareMailboxModelInput,
-} from "./sanitization.js";
+} from "./sanitization";
 import {
 	type MailboxSyncAuthorityFence,
 	type MailboxSyncLeaseFence,
@@ -36,7 +36,7 @@ import {
 	type MailboxSyncSource,
 	mailboxSyncSourceProvider,
 	resolveMailboxSyncSources,
-} from "./sync-orchestrator.js";
+} from "./sync-orchestrator";
 
 export const MAILBOX_MESSAGE_DETAIL_MAX_RETRY_ATTEMPTS = 5;
 const DAY_MS = 24 * 60 * 60_000;

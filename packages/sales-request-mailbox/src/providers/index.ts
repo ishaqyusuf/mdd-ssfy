@@ -1,12 +1,12 @@
-import type { SalesRequestMailboxAdapter } from "../adapter.js";
+import type { SalesRequestMailboxAdapter } from "../adapter";
 import {
 	type GmailMailboxAdapterConfig,
 	GmailSalesRequestMailboxAdapter,
-} from "./gmail.js";
+} from "./gmail";
 import {
 	MicrosoftGraphMailboxAdapter,
 	type MicrosoftGraphMailboxAdapterConfig,
-} from "./microsoft-graph.js";
+} from "./microsoft-graph";
 
 export type SalesRequestMailboxAdapterFactoryInput =
 	| { provider: "gmail"; config: GmailMailboxAdapterConfig }

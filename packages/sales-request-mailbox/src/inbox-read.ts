@@ -3,10 +3,10 @@ import {
 	type MailboxProvider,
 	mailboxProviderSchema,
 	resolveMailboxAccess,
-} from "./contracts.js";
-import type { MailboxProviderErrorCode } from "./errors.js";
-import { prepareMailboxDisplayText } from "./sanitization.js";
-import type { MailboxTokenHealthErrorCode } from "./token-health-lifecycle.js";
+} from "./contracts";
+import type { MailboxProviderErrorCode } from "./errors";
+import { prepareMailboxDisplayText } from "./sanitization";
+import type { MailboxTokenHealthErrorCode } from "./token-health-lifecycle";
 
 /**
  * The Inbox is a queue projection, not a second mail client. Keep its read

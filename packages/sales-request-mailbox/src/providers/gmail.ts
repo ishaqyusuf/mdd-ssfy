@@ -4,16 +4,16 @@ import type {
 	MailboxSyncPage,
 	MailboxTokenSet,
 	SalesRequestMailboxAdapter,
-} from "../adapter.js";
-import { MAILBOX_PROVIDER_AUTHORIZATION } from "../contracts.js";
-import { MailboxProviderError } from "../errors.js";
+} from "../adapter";
+import { MAILBOX_PROVIDER_AUTHORIZATION } from "../contracts";
+import { MailboxProviderError } from "../errors";
 import {
 	MAILBOX_PROVIDER_REVOKE_TIMEOUT_MS,
 	MailboxProviderRequestAbort,
 	classifyMailboxProviderTransportError,
 	readBoundedMailboxProviderResponse,
 	runMailboxProviderRequest,
-} from "../provider-request.js";
+} from "../provider-request";
 
 const PROVIDER = "gmail" as const;
 const AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth";

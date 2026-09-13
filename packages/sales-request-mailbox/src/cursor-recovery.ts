@@ -1,5 +1,5 @@
-import type { MailboxSyncPage } from "./adapter.js";
-import { type MailboxProviderError, resolveMailboxRetry } from "./errors.js";
+import type { MailboxSyncPage } from "./adapter";
+import { type MailboxProviderError, resolveMailboxRetry } from "./errors";
 
 export const DEFAULT_MAILBOX_SYNC_BUDGET = {
 	pageSize: 50,

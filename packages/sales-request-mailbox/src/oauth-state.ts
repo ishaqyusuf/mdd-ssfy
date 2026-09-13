@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import type { MailboxProvider } from "./contracts.js";
+import type { MailboxProvider } from "./contracts";
 
 export const MAILBOX_OAUTH_STATE_TTL_MS = 10 * 60_000;
 export const MAILBOX_OAUTH_REDIRECT_KEYS = [

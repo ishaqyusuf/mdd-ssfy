@@ -5,15 +5,15 @@ import type {
 	MailboxSyncPage,
 	MailboxTokenSet,
 	SalesRequestMailboxAdapter,
-} from "../adapter.js";
-import type { MailboxAutomationHeaders } from "../contracts.js";
-import { MAILBOX_PROVIDER_AUTHORIZATION } from "../contracts.js";
-import { MailboxProviderError } from "../errors.js";
+} from "../adapter";
+import type { MailboxAutomationHeaders } from "../contracts";
+import { MAILBOX_PROVIDER_AUTHORIZATION } from "../contracts";
+import { MailboxProviderError } from "../errors";
 import {
 	classifyMailboxProviderTransportError,
 	readBoundedMailboxProviderResponse,
 	runMailboxProviderRequest,
-} from "../provider-request.js";
+} from "../provider-request";
 
 const GRAPH_ORIGIN = "https://graph.microsoft.com";
 const GRAPH_ROOT = `${GRAPH_ORIGIN}/v1.0`;

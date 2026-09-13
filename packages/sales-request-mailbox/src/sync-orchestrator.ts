@@ -4,7 +4,7 @@ import type {
 	MailboxSyncPage,
 	MailboxTokenSet,
 	SalesRequestMailboxAdapter,
-} from "./adapter.js";
+} from "./adapter";
 import {
 	type MailboxConnectionConfiguration,
 	type MailboxExclusionReason,
@@ -12,23 +12,23 @@ import {
 	applyMailboxExclusions,
 	mailboxConnectionConfigurationSchema,
 	salesRequestMailboxPolicySchema,
-} from "./contracts.js";
+} from "./contracts";
 import {
 	DEFAULT_MAILBOX_SYNC_BUDGET,
 	type MailboxSyncBudget,
 	type MailboxSyncState,
 	advanceMailboxSync,
 	getMailboxSyncRequest,
-} from "./cursor-recovery.js";
+} from "./cursor-recovery";
 import {
 	MailboxProviderError,
 	mailboxProviderErrorEvidence,
-} from "./errors.js";
+} from "./errors";
 import {
 	MAILBOX_PROVIDER_DEADLINE_RESERVE_MS,
 	MailboxProviderRequestAbort,
 	runMailboxProviderRequest,
-} from "./provider-request.js";
+} from "./provider-request";
 
 export type MailboxSyncSource =
 	| { kind: "gmail-label"; labelId: string; key: string }
