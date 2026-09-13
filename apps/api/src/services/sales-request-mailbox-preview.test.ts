@@ -215,6 +215,62 @@ describe("Sales Request mailbox preview bridge", () => {
 		expect(terminalEvents[0]).not.toMatchObject({ status: "succeeded" });
 	});
 
+	test("rejects changed sanitized content even when persisted identities are unchanged", async () => {
+		const resolutions: MailboxSalesRequestPreviewResolution[] = [
+			resolvedSource(),
+			resolvedSource({
+				modelInput: prepareMailboxModelInput({
+					text: "Two exterior doors",
+				}),
+			}),
+		];
+
+		await expect(
+			createSalesRequestMailboxPreview(
+				{
+					actorUserId: 42,
+					queueIdentity,
+					type: "order",
+					signal,
+				},
+				{
+					resolveAuthorizedQueue: async () =>
+						resolutions.shift() ?? resolvedSource(),
+					...previewDependencies({ providerCalls: [], contexts: [] }),
+				},
+			),
+		).rejects.toMatchObject({
+			name: "SalesRequestMailboxPreviewError",
+			reason: "stale",
+		});
+	});
+
+	test("rejects snapshot replacement even when content hash and model input match", async () => {
+		const resolutions: MailboxSalesRequestPreviewResolution[] = [
+			resolvedSource(),
+			resolvedSource({ snapshotIdentity: `mbs1:${"e".repeat(64)}` }),
+		];
+
+		await expect(
+			createSalesRequestMailboxPreview(
+				{
+					actorUserId: 42,
+					queueIdentity,
+					type: "quote",
+					signal,
+				},
+				{
+					resolveAuthorizedQueue: async () =>
+						resolutions.shift() ?? resolvedSource(),
+					...previewDependencies({ providerCalls: [], contexts: [] }),
+				},
+			),
+		).rejects.toMatchObject({
+			name: "SalesRequestMailboxPreviewError",
+			reason: "stale",
+		});
+	});
+
 	test("rejects a resolver response bound to a different queue", async () => {
 		let previewDependenciesCreated = false;
 		await expect(
