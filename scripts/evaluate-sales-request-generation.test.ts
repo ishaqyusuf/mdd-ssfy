@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { selectedFixtures } from "./evaluate-sales-request-generation";
 
-test("live evaluation requires one explicit case", () => {
+test("direct live evaluation is disabled in favor of the approval-bound runner", () => {
 	expect(() => selectedFixtures(["--live"])).toThrow(
-		"Live evaluation requires exactly one --case=<id>",
+		"Direct live evaluation is disabled",
 	);
 	expect(() =>
 		selectedFixtures([
@@ -11,8 +11,8 @@ test("live evaluation requires one explicit case", () => {
 			"--case=english-explicit-interior",
 			"--case=spanish-explicit-exterior",
 		]),
-	).toThrow("Live evaluation requires exactly one --case=<id>");
-	expect(
+	).toThrow("Direct live evaluation is disabled");
+	expect(() =>
 		selectedFixtures(["--live", "--case=english-explicit-interior"]),
-	).toHaveLength(1);
+	).toThrow("Direct live evaluation is disabled");
 });

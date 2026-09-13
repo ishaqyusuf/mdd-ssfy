@@ -167,7 +167,7 @@ describe("sales request evaluation corpus", () => {
 		});
 
 		expect(result).toMatchObject({
-			status: "ok",
+			status: "review-required",
 			metrics: {
 				providerOracle: {
 					wholeOrderMatch: false,
@@ -242,7 +242,7 @@ describe("sales request evaluation corpus", () => {
 		expect(providerCalls).toBe(0);
 	});
 
-	test("fails closed when a provider or normalized fact expectation is not met", async () => {
+	test("retains scores and seed for review when a fact expectation is not met", async () => {
 		const output = {
 			schemaVersion: 2 as const,
 			lineItems: [],
@@ -277,12 +277,17 @@ describe("sales request evaluation corpus", () => {
 		});
 
 		expect(result).toMatchObject({
-			status: "error",
+			status: "review-required",
 			validation: {
-				status: "failed",
-				error:
-					"Corpus case fact-locked-case failed fact expectation request-unsupported at provider unresolved[0].",
+				status: "review-required",
+				facts: "failed",
+				issues: [
+					"fact-mismatch:request-unsupported:provider:unresolved[0]",
+					"fact-mismatch:request-unsupported:seed:unresolved[0]",
+				],
 			},
+			seed: output,
+			metrics: { lineCount: 0, unresolvedCount: 1 },
 		});
 	});
 
@@ -355,11 +360,15 @@ describe("sales request evaluation corpus", () => {
 		});
 
 		expect(result).toMatchObject({
-			status: "error",
+			status: "review-required",
 			validation: {
-				error:
-					"Corpus case shelf-excluded contains an excluded Shelf Items selection in provider output.",
+				status: "review-required",
+				issues: [
+					"excluded-shelf-item:provider:lineItems[0].formSteps.1",
+					"excluded-shelf-item:seed:lineItems[0].formSteps.1",
+				],
 			},
+			seed: output,
 		});
 	});
 

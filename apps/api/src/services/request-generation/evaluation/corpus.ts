@@ -143,13 +143,13 @@ export function getSalesRequestCorpusOracleCoverage(
 
 export type SalesRequestCorpusCaseResult =
 	| {
-			status: "ok";
+			status: "ok" | "review-required";
 			caseId: string;
 			providerOutput: unknown;
 			seed: unknown;
 			validation: {
-				status: "passed";
-				facts: "passed";
+				status: "passed" | "review-required";
+				facts: "passed" | "failed";
 				normalization: "passed";
 				initializer: "passed" | "blocked";
 				saveReopen: "passed" | "blocked";
@@ -212,11 +212,12 @@ function valueAtPath(value: unknown, path: string): unknown {
 	return current;
 }
 
-function assertFactExpectations(input: {
+function getFactExpectationIssues(input: {
 	caseData: SalesRequestCorpusCase;
 	providerOutput: unknown;
 	seed: NewSalesFormSeed;
 }) {
+	const issues: string[] = [];
 	for (const fact of input.caseData.factExpectations.facts) {
 		for (const [stage, output, expectation] of [
 			["provider", input.providerOutput, fact.provider],
@@ -228,12 +229,11 @@ function assertFactExpectations(input: {
 					expectation.value,
 				)
 			) {
-				throw new Error(
-					`Corpus case ${input.caseData.id} failed fact expectation ${fact.id} at ${stage} ${expectation.path}.`,
-				);
+				issues.push(`fact-mismatch:${fact.id}:${stage}:${expectation.path}`);
 			}
 		}
 	}
+	return issues;
 }
 
 type CompatibilityConfiguration = {
@@ -253,7 +253,7 @@ type CompatibilityConfiguration = {
 	visibilityByComponentUid: Record<string, unknown>;
 };
 
-function assertShelfItemsExcluded(input: {
+function getShelfItemSelectionPaths(input: {
 	caseId: string;
 	configurationJson: string;
 	output: NewSalesFormSeed;
@@ -269,20 +269,40 @@ function assertShelfItemsExcluded(input: {
 			),
 		),
 	);
-	const selectsShelfItems = input.output.lineItems.some((line) =>
-		line.formSteps.some((step) => {
-			if ("prodUid" in step) return shelfItemUids.has(step.prodUid);
-			if ("meta" in step) {
-				return step.meta.selectedProdUids.some((uid) => shelfItemUids.has(uid));
+	return input.output.lineItems.flatMap((line, lineIndex) =>
+		line.formSteps.flatMap((step) => {
+			if ("prodUid" in step && shelfItemUids.has(step.prodUid)) {
+				return [
+					`${input.stage}:lineItems[${lineIndex}].formSteps.${step.stepId}`,
+				];
 			}
-			return false;
+			if (
+				"meta" in step &&
+				step.meta.selectedProdUids.some((uid) => shelfItemUids.has(uid))
+			) {
+				return [
+					`${input.stage}:lineItems[${lineIndex}].formSteps.${step.stepId}`,
+				];
+			}
+			return [];
 		}),
 	);
-	if (selectsShelfItems) {
-		throw new Error(
-			`Corpus case ${input.caseId} contains an excluded Shelf Items selection in ${input.stage} output.`,
-		);
-	}
+}
+
+function appendUnsafePaths(
+	metrics: EvaluationMetrics | null,
+	paths: string[],
+): EvaluationMetrics | null {
+	if (!metrics || paths.length === 0) return metrics;
+	const unsafeGuessPaths = [
+		...new Set([...metrics.unsafeGuessPaths, ...paths]),
+	];
+	return {
+		...metrics,
+		wholeOrderMatch: false,
+		unsafeGuesses: unsafeGuessPaths.length,
+		unsafeGuessPaths,
+	};
 }
 
 export type SalesRequestCorpusSeedCompatibility = {
@@ -545,21 +565,21 @@ export async function evaluateSalesRequestCorpusCase(input: {
 		const latencyMs = Math.round((performance.now() - startedAt) * 100) / 100;
 		const parsedProviderOutput =
 			newSalesFormSeedV2Schema.safeParse(providerOutput);
-		if (parsedProviderOutput.success) {
-			assertShelfItemsExcluded({
-				caseId: input.caseData.id,
-				configurationJson: input.configurationJson,
-				output: parsedProviderOutput.data,
-				stage: "provider",
-			});
-		}
-		assertShelfItemsExcluded({
+		const providerShelfPaths = parsedProviderOutput.success
+			? getShelfItemSelectionPaths({
+					caseId: input.caseData.id,
+					configurationJson: input.configurationJson,
+					output: parsedProviderOutput.data,
+					stage: "provider",
+				})
+			: [];
+		const seedShelfPaths = getShelfItemSelectionPaths({
 			caseId: input.caseData.id,
 			configurationJson: input.configurationJson,
 			output: result.seed,
 			stage: "seed",
 		});
-		assertFactExpectations({
+		const factIssues = getFactExpectationIssues({
 			caseData: input.caseData,
 			providerOutput,
 			seed: result.seed,
@@ -568,18 +588,51 @@ export async function evaluateSalesRequestCorpusCase(input: {
 			result.seed,
 			input.configurationJson,
 		);
+		const providerOracle = appendUnsafePaths(
+			input.caseData.expectedProviderOutput && parsedProviderOutput.success
+				? scoreNewSalesFormSeed(
+						input.caseData.expectedProviderOutput,
+						parsedProviderOutput.data,
+						{
+							latencyMs,
+							inputTokens: result.usage.inputTokens,
+							outputTokens: result.usage.outputTokens,
+						},
+					)
+				: null,
+			providerShelfPaths,
+		);
+		const seedOracle = appendUnsafePaths(
+			input.caseData.expectedSeed
+				? scoreNewSalesFormSeed(input.caseData.expectedSeed, result.seed, {
+						latencyMs,
+						inputTokens: result.usage.inputTokens,
+						outputTokens: result.usage.outputTokens,
+					})
+				: null,
+			seedShelfPaths,
+		);
+		const qualityIssues = [
+			...factIssues,
+			...providerShelfPaths.map((path) => `excluded-shelf-item:${path}`),
+			...seedShelfPaths.map((path) => `excluded-shelf-item:${path}`),
+		];
+		const reviewRequired =
+			qualityIssues.length > 0 ||
+			providerOracle?.wholeOrderMatch === false ||
+			seedOracle?.wholeOrderMatch === false;
 		return {
-			status: "ok",
+			status: reviewRequired ? "review-required" : "ok",
 			caseId: input.caseData.id,
 			providerOutput,
 			seed: result.seed,
 			validation: {
-				status: "passed",
-				facts: "passed",
+				status: reviewRequired ? "review-required" : "passed",
+				facts: factIssues.length ? "failed" : "passed",
 				normalization: "passed",
 				initializer: compatibility.initializer,
 				saveReopen: compatibility.saveReopen,
-				issues: compatibility.issues,
+				issues: [...qualityIssues, ...compatibility.issues],
 			},
 			metrics: {
 				latencyMs,
@@ -587,25 +640,8 @@ export async function evaluateSalesRequestCorpusCase(input: {
 				outputTokens: result.usage.outputTokens ?? null,
 				lineCount: result.seed.lineItems.length,
 				unresolvedCount: result.seed.unresolved.length,
-				providerOracle:
-					input.caseData.expectedProviderOutput && parsedProviderOutput.success
-						? scoreNewSalesFormSeed(
-								input.caseData.expectedProviderOutput,
-								parsedProviderOutput.data,
-								{
-									latencyMs,
-									inputTokens: result.usage.inputTokens,
-									outputTokens: result.usage.outputTokens,
-								},
-							)
-						: null,
-				seedOracle: input.caseData.expectedSeed
-					? scoreNewSalesFormSeed(input.caseData.expectedSeed, result.seed, {
-							latencyMs,
-							inputTokens: result.usage.inputTokens,
-							outputTokens: result.usage.outputTokens,
-						})
-					: null,
+				providerOracle,
+				seedOracle,
 			},
 		};
 	} catch (error) {

@@ -1,31 +1,27 @@
 import {
-	DEFAULT_SALES_REQUEST_AI_SELECTION,
-	getSalesRequestAIProviderOption,
-	salesRequestAISelectionSchema,
-} from "@gnd/settings";
-import {
 	EVALUATION_FIXTURES,
 	createFixtureProvider,
 	evaluateSalesRequestFixtures,
 } from "../apps/api/src/services/request-generation/evaluation/harness";
-import { createSalesRequestProvider } from "../apps/api/src/services/sales-request-generation";
 
 function usage() {
 	console.log(
 		[
-			"Usage: bun scripts/evaluate-sales-request-generation.ts [--case=<id>] [--json] [--live] [--provider=<id>] [--model=<id>]",
+			"Usage: bun scripts/evaluate-sales-request-generation.ts [--case=<id>] [--json]",
 			"",
 			"Default mode uses only hand-authored mock proposals and makes no network calls.",
-			"--live requires exactly one --case and uses the selected provider's SALES_REQUEST_*_API_KEY for that synthetic fixture.",
+			"Paid evaluation is available only through run-sales-request-corpus.ts after a one-time prepare-only approval packet is reviewed.",
 		].join("\n"),
 	);
 }
 
 export function selectedFixtures(args: string[]) {
-	const caseArgs = args.filter((arg) => arg.startsWith("--case="));
-	if (args.includes("--live") && caseArgs.length !== 1) {
-		throw new Error("Live evaluation requires exactly one --case=<id>");
+	if (args.includes("--live")) {
+		throw new Error(
+			"Direct live evaluation is disabled; use the digest-bound run-sales-request-corpus.ts workflow.",
+		);
 	}
+	const caseArgs = args.filter((arg) => arg.startsWith("--case="));
 	const caseArg = caseArgs[0];
 	if (!caseArg) return EVALUATION_FIXTURES;
 	const id = caseArg.slice("--case=".length);
@@ -69,36 +65,11 @@ async function main() {
 		usage();
 		return;
 	}
-	const live = args.includes("--live");
 	const fixtures = selectedFixtures(args);
-
-	if (!live) {
-		const report = await evaluateSalesRequestFixtures(
-			createFixtureProvider(fixtures),
-			fixtures,
-			"mock",
-		);
-		if (args.includes("--json")) console.log(JSON.stringify(report, null, 2));
-		else printReport(report);
-		return;
-	}
-
-	const providerArg = args.find((arg) => arg.startsWith("--provider="));
-	const modelArg = args.find((arg) => arg.startsWith("--model="));
-	const provider = salesRequestAISelectionSchema.shape.provider.parse(
-		providerArg?.slice("--provider=".length) ??
-			DEFAULT_SALES_REQUEST_AI_SELECTION.provider,
-	);
-	const selection = salesRequestAISelectionSchema.parse({
-		provider,
-		model:
-			modelArg?.slice("--model=".length) ??
-			getSalesRequestAIProviderOption(provider).defaultModel,
-	});
 	const report = await evaluateSalesRequestFixtures(
-		createSalesRequestProvider({ selection }),
+		createFixtureProvider(fixtures),
 		fixtures,
-		"live",
+		"mock",
 	);
 	if (args.includes("--json")) console.log(JSON.stringify(report, null, 2));
 	else printReport(report);
