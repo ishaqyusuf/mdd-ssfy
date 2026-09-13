@@ -134,20 +134,20 @@ export function AssistantResult({
 			{kind === "pdf" ? (
 				<>
 					<p>
-						Here’s how your invoice will appear in chat. You can review the
-						document before downloading or sharing it.
+						This invoice PDF is not ready yet. Review the exact request before
+						starting generation.
 					</p>
 					<section className={styles.resultCard}>
 						<div className={styles.document}>
 							<FileText size={34} strokeWidth={1.3} />
 							<div>
 								<h2>Invoice · DEMO-1042</h2>
-								<p>Oakridge residence · PDF preview</p>
+								<p>Oakridge residence · Current Sales revision</p>
 							</div>
-							<span className={styles.status}>Sample</span>
+							<span className={styles.status}>Not generated</span>
 						</div>
 						<Button variant="outline" onClick={onDocument}>
-							Preview document <ArrowUpRight size={15} className="ml-2" />
+							Review PDF generation <ArrowUpRight size={15} className="ml-2" />
 						</Button>
 						<div className={styles.source}>
 							UI demonstration · No PDF generated or sent

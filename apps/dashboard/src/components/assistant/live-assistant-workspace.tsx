@@ -82,6 +82,19 @@ type LoadedConversation = ConversationSummary & {
 	latestRun: { id: string; status: string; lastSequence: number } | null;
 };
 
+type PendingAssistantApproval = {
+	proposalId: string;
+	approvalToken: string;
+	expiresAt: Date | string;
+	review: {
+		title: string;
+		effect: string;
+		targetRevision: string | null;
+		parameters: unknown;
+		diff: { summary: string; changes: string[] };
+	};
+};
+
 const activeStatuses = new Set([
 	"queued",
 	"running",
@@ -141,6 +154,10 @@ function AssistantConversation(props: {
 	);
 	const [streamState, setStreamState] = useState(initialAssistantStreamState);
 	const [reconnecting, setReconnecting] = useState(false);
+	const [pendingApproval, setPendingApproval] =
+		useState<PendingAssistantApproval | null>(null);
+	const [approvalBusy, setApprovalBusy] = useState(false);
+	const [approvalNotice, setApprovalNotice] = useState<string | null>(null);
 	const attachmentState = useAssistantAttachments();
 	const [requestLimitError, setRequestLimitError] = useState<{
 		limit: number;
@@ -428,6 +445,79 @@ function AssistantConversation(props: {
 	};
 
 	const busy = chat.status === "streaming" || chat.status === "submitted";
+	const createDocumentProposal = useCallback(
+		async (action: AssistantMessageViewModel["documentActions"][number]) => {
+			setApprovalBusy(true);
+			setApprovalNotice(null);
+			try {
+				const result = await client.assistant.createProposal.mutate({
+					conversationId: props.conversation.id,
+					clientRequestId: crypto.randomUUID(),
+					toolId: action.data.toolId,
+					toolVersion: action.data.toolVersion,
+					input: action.data.input,
+				});
+				if (!result.review)
+					throw new Error("The approval review is unavailable");
+				setPendingApproval({
+					proposalId: result.proposalId,
+					approvalToken: result.approvalToken,
+					expiresAt: result.expiresAt,
+					review: result.review,
+				});
+			} catch (error) {
+				setApprovalNotice(
+					error instanceof Error
+						? error.message
+						: "The document approval could not be prepared.",
+				);
+			} finally {
+				setApprovalBusy(false);
+			}
+		},
+		[client, props.conversation.id],
+	);
+	const decideDocumentProposal = useCallback(
+		async (decision: "approve" | "reject") => {
+			if (!pendingApproval) return;
+			setApprovalBusy(true);
+			setApprovalNotice(null);
+			try {
+				const result = await client.assistant.decideProposal.mutate({
+					proposalId: pendingApproval.proposalId,
+					approvalToken: pendingApproval.approvalToken,
+					confirmationRequestId: crypto.randomUUID(),
+					decision,
+				});
+				if (["processing", "unknown"].includes(result.status)) {
+					setApprovalNotice(
+						result.status === "unknown"
+							? "The outcome is being reconciled. The action will not be repeated."
+							: "The action is still being processed.",
+					);
+					return;
+				}
+				setPendingApproval(null);
+				setApprovalNotice(
+					result.status === "succeeded"
+						? "PDF generation started."
+						: result.status === "rejected"
+							? "PDF generation was declined."
+							: `Document action status: ${result.status}.`,
+				);
+				props.onChanged();
+			} catch (error) {
+				setApprovalNotice(
+					error instanceof Error
+						? error.message
+						: "The approval decision could not be processed.",
+				);
+			} finally {
+				setApprovalBusy(false);
+			}
+		},
+		[client, pendingApproval, props],
+	);
 	const handleCardAction = useCallback(
 		(card: AssistantMessageViewModel["cards"][number], messageId: string) => {
 			if (card.kind === "missing-feature" && card.requestSummary) {
@@ -488,6 +578,9 @@ function AssistantConversation(props: {
 									onOpenOrderDraft={(draft) => {
 										void setArtifactParams({ assistantArtifact: null });
 										setOrderDraft(draft);
+									}}
+									onCreateDocumentProposal={(action) => {
+										void createDocumentProposal(action);
 									}}
 								/>
 							))}
@@ -668,6 +761,71 @@ function AssistantConversation(props: {
 				draft={orderDraft}
 				onClose={() => setOrderDraft(null)}
 			/>
+			<Dialog
+				open={Boolean(pendingApproval)}
+				onOpenChange={(open) => {
+					if (!open && !approvalBusy) setPendingApproval(null);
+				}}
+			>
+				<DialogContent className="sm:max-w-xl">
+					<DialogHeader>
+						<DialogTitle>Review document action</DialogTitle>
+						<DialogDescription>
+							Confirm the exact request below. Authorization and record revision
+							will be checked again before execution.
+						</DialogDescription>
+					</DialogHeader>
+					{pendingApproval ? (
+						<div className="space-y-4 text-sm">
+							<div className="rounded-md border bg-muted/30 p-3">
+								<strong>{pendingApproval.review.title}</strong>
+								<p className="text-muted-foreground">
+									{pendingApproval.review.diff.summary}
+								</p>
+							</div>
+							<dl className="grid gap-2 sm:grid-cols-[8rem_1fr]">
+								<dt className="text-muted-foreground">Effect</dt>
+								<dd className="capitalize">{pendingApproval.review.effect}</dd>
+								{pendingApproval.review.targetRevision ? (
+									<>
+										<dt className="text-muted-foreground">Record revision</dt>
+										<dd className="break-all font-mono text-xs">
+											{pendingApproval.review.targetRevision}
+										</dd>
+									</>
+								) : null}
+							</dl>
+							<pre className="max-h-56 overflow-auto rounded-md border bg-muted/30 p-3 text-xs">
+								{JSON.stringify(pendingApproval.review.parameters, null, 2)}
+							</pre>
+							<p className="text-xs text-muted-foreground">
+								Expires {new Date(pendingApproval.expiresAt).toLocaleString()}.
+							</p>
+							{approvalNotice ? <output>{approvalNotice}</output> : null}
+							<div className="flex justify-end gap-2">
+								<Button
+									type="button"
+									variant="outline"
+									disabled={approvalBusy}
+									onClick={() => void decideDocumentProposal("reject")}
+								>
+									Decline
+								</Button>
+								<Button
+									type="button"
+									disabled={approvalBusy}
+									onClick={() => void decideDocumentProposal("approve")}
+								>
+									{approvalBusy ? "Processing…" : "Confirm and generate"}
+								</Button>
+							</div>
+						</div>
+					) : null}
+				</DialogContent>
+			</Dialog>
+			{approvalNotice && !pendingApproval ? (
+				<output className={styles.liveStatus}>{approvalNotice}</output>
+			) : null}
 		</>
 	);
 }

@@ -47,6 +47,7 @@ type Panel =
 	| "requests"
 	| "save"
 	| "request"
+	| "approval"
 	| "document"
 	| null;
 const icons = [ChartNoAxesCombined, Search, FileText, Sparkles];
@@ -139,6 +140,7 @@ export function AssistantWorkspace() {
 		requests: "Your feature requests",
 		save: "Keep a useful action close",
 		request: "Help shape what comes next",
+		approval: "Review document action",
 		document: "Invoice preview",
 	};
 	return (
@@ -214,7 +216,7 @@ export function AssistantWorkspace() {
 										setPanel("save");
 									}}
 									onRequest={() => openRequest(turn.prompt)}
-									onDocument={() => setPanel("document")}
+									onDocument={() => setPanel("approval")}
 								/>
 							</section>
 						))}
@@ -654,6 +656,53 @@ export function AssistantWorkspace() {
 								Illustrative document. No tax, pricing calculation, PDF file or
 								actual invoice has been created.
 							</p>
+						</div>
+					) : null}
+					{panel === "approval" ? (
+						<div className="grid gap-4 text-sm">
+							<div className="rounded-md border bg-muted/30 p-3">
+								<strong>Generate PDF</strong>
+								<p className={styles.muted}>
+									Confirm generate PDF. Authorization and record revision will
+									be checked again before execution.
+								</p>
+							</div>
+							<dl className="grid gap-2 sm:grid-cols-[8rem_1fr]">
+								<dt className="text-muted-foreground">Effect</dt>
+								<dd>Artifact generation</dd>
+								<dt className="text-muted-foreground">Record revision</dt>
+								<dd className="font-mono text-xs">demo-order-revision-7</dd>
+							</dl>
+							<pre className="rounded-md border bg-muted/30 p-3 text-xs">
+								{JSON.stringify(
+									{
+										orderNo: "DEMO-1042",
+										mode: "invoice",
+										expectedRevision: "demo-order-revision-7",
+										forceRegenerate: false,
+									},
+									null,
+									2,
+								)}
+							</pre>
+							<p className={styles.muted}>
+								Preview only · No PDF will be generated from this screen.
+							</p>
+							<div className="flex justify-end gap-2">
+								<Button variant="outline" onClick={() => setPanel(null)}>
+									Decline
+								</Button>
+								<Button
+									onClick={() => {
+										setPanel("document");
+										setNotice(
+											"Preview confirmation accepted; no PDF was generated.",
+										);
+									}}
+								>
+									Confirm and generate
+								</Button>
+							</div>
 						</div>
 					) : null}
 				</DialogContent>

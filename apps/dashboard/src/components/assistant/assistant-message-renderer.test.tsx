@@ -255,4 +255,46 @@ describe("AssistantMessageRenderer", () => {
 		expect(render(true)).toContain("Review order draft");
 		expect(render(false)).not.toContain("Review order draft");
 	});
+
+	test("renders a trusted document proposal action only with a proposal handler", () => {
+		const message = {
+			id: "message-document-action",
+			role: "assistant",
+			parts: [
+				{
+					type: "data-assistant-document-action",
+					id: "document-action-1",
+					data: {
+						toolId: "documents_generate_pdf",
+						toolVersion: 1,
+						label: "Generate invoice PDF",
+						input: {
+							orderNo: "09502PC",
+							mode: "invoice",
+							expectedRevision: "revision-7",
+							forceRegenerate: false,
+						},
+					},
+				},
+			],
+		} as UIMessage;
+		const enabled = renderToStaticMarkup(
+			<AssistantMessageRenderer
+				message={message}
+				isStreaming={false}
+				isLastMessage={false}
+				onCreateDocumentProposal={() => {}}
+			/>,
+		);
+		const disabled = renderToStaticMarkup(
+			<AssistantMessageRenderer
+				message={message}
+				isStreaming={false}
+				isLastMessage={false}
+			/>,
+		);
+		expect(enabled).toContain('aria-label="Available document actions"');
+		expect(enabled).toContain("Generate invoice PDF");
+		expect(disabled).not.toContain("Generate invoice PDF");
+	});
 });

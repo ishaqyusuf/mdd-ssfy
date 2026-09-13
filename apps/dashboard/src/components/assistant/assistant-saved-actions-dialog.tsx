@@ -59,6 +59,22 @@ type Memory = {
 	version: number;
 };
 
+type PendingApproval = {
+	proposalId: string;
+	approvalToken: string;
+	expiresAt: Date | string;
+	review: {
+		title: string;
+		effect: string;
+		targetRevision: string | null;
+		parameters: unknown;
+		diff: {
+			summary: string;
+			changes: string[];
+		};
+	};
+};
+
 const defaultPreference: Preference = {
 	responseStyle: "balanced",
 	responseDetail: "standard",
@@ -123,6 +139,8 @@ export function AssistantSavedActionsDialog({
 	const [parameters, setParameters] = useState<Record<string, string>>({});
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
+	const [pendingApproval, setPendingApproval] =
+		useState<PendingApproval | null>(null);
 	const [busy, setBusy] = useState(false);
 
 	const load = useCallback(async () => {
@@ -246,6 +264,12 @@ export function AssistantSavedActionsDialog({
 				onUsePrompt(result.prompt);
 				onOpenChange(false);
 			} else if (result.status === "requires_approval") {
+				setPendingApproval({
+					proposalId: result.proposalId,
+					approvalToken: result.approvalToken,
+					expiresAt: result.expiresAt,
+					review: result.review,
+				});
 				setNotice("A fresh approval proposal was created for this run.");
 			} else if (result.status === "repair_required") {
 				setNotice("This recipe needs review before it can run.");
@@ -257,6 +281,39 @@ export function AssistantSavedActionsDialog({
 		} catch (error) {
 			setNotice(
 				error instanceof Error ? error.message : "Favorite could not run.",
+			);
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	const decideApproval = async (decision: "approve" | "reject") => {
+		if (!pendingApproval) return;
+		setBusy(true);
+		try {
+			const result = await client.assistant.decideProposal.mutate({
+				proposalId: pendingApproval.proposalId,
+				approvalToken: pendingApproval.approvalToken,
+				confirmationRequestId: crypto.randomUUID(),
+				decision,
+			});
+			setNotice(
+				result.status === "succeeded"
+					? "Approved action completed."
+					: result.status === "rejected"
+						? "Approval declined."
+						: result.status === "unknown"
+							? "The outcome is being checked. The action will not be repeated."
+							: `Approval status: ${result.status}.`,
+			);
+			if (!["processing", "unknown"].includes(result.status))
+				setPendingApproval(null);
+			await load();
+		} catch (error) {
+			setNotice(
+				error instanceof Error
+					? error.message
+					: "Approval could not be processed.",
 			);
 		} finally {
 			setBusy(false);
@@ -328,6 +385,61 @@ export function AssistantSavedActionsDialog({
 					<output className="block rounded-md bg-muted px-3 py-2 text-sm">
 						{notice}
 					</output>
+				) : null}
+				{pendingApproval ? (
+					<section className="space-y-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30">
+						<div>
+							<strong>Review required</strong>
+							<p className="text-muted-foreground">
+								{pendingApproval.review.diff.summary} Expires{" "}
+								{new Date(pendingApproval.expiresAt).toLocaleTimeString()}.
+							</p>
+						</div>
+						<dl className="grid gap-2 rounded-md border bg-background p-3 sm:grid-cols-[8rem_1fr]">
+							<dt className="text-muted-foreground">Action</dt>
+							<dd className="font-medium">{pendingApproval.review.title}</dd>
+							<dt className="text-muted-foreground">Effect</dt>
+							<dd className="capitalize">{pendingApproval.review.effect}</dd>
+							{pendingApproval.review.targetRevision ? (
+								<>
+									<dt className="text-muted-foreground">Record revision</dt>
+									<dd className="break-all font-mono text-xs">
+										{pendingApproval.review.targetRevision}
+									</dd>
+								</>
+							) : null}
+						</dl>
+						<div className="space-y-1">
+							<p className="font-medium">Parameters</p>
+							<pre className="max-h-48 overflow-auto rounded-md border bg-background p-3 text-xs">
+								{JSON.stringify(pendingApproval.review.parameters, null, 2)}
+							</pre>
+						</div>
+						{pendingApproval.review.diff.changes.length ? (
+							<ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+								{pendingApproval.review.diff.changes.map((change) => (
+									<li key={change}>{change}</li>
+								))}
+							</ul>
+						) : null}
+						<div className="flex justify-end gap-2">
+							<Button
+								type="button"
+								variant="outline"
+								disabled={busy}
+								onClick={() => void decideApproval("reject")}
+							>
+								Decline
+							</Button>
+							<Button
+								type="button"
+								disabled={busy}
+								onClick={() => void decideApproval("approve")}
+							>
+								Confirm action
+							</Button>
+						</div>
+					</section>
 				) : null}
 				{mode === "favorites" ? (
 					<div className="space-y-5">

@@ -116,6 +116,18 @@ export type AssistantToolDefinition = {
 	proposalPreflight?: AssistantProposalPreflight;
 };
 
+export const assistantEffectPolicies = {
+	read: { confirmation: "none", directExecution: true },
+	draft: { confirmation: "none", directExecution: true },
+	artifact: { confirmation: "explicit", directExecution: false },
+	write: { confirmation: "explicit", directExecution: false },
+	external_send: { confirmation: "explicit", directExecution: false },
+	destructive: { confirmation: "explicit", directExecution: false },
+} as const satisfies Record<
+	AssistantEffect,
+	{ confirmation: "none" | "explicit"; directExecution: boolean }
+>;
+
 const searchToolsInputSchema = z
 	.object({
 		query: z.string().trim().min(1).max(200),
@@ -1460,7 +1472,7 @@ const placeholders: AssistantToolDefinition[] = [
 		title: "Draft an order from a customer request",
 		description:
 			"Generate a typed native Sales form preview from customer request text using the published catalog configuration; unresolved specifications remain explicit for review.",
-		capability: "coming_soon",
+		capability: "implemented",
 		effect: "draft",
 		requiredGrants: ["editOrders"],
 		presentation: {
@@ -1935,7 +1947,10 @@ const placeholders: AssistantToolDefinition[] = [
 				allowedNextActions:
 					pdf.status === "ready"
 						? []
-						: [{ toolId: "documents_generate_pdf", toolVersion: 1 }],
+						: pdf.snapshotId &&
+								["queued", "running", "retrying"].includes(pdf.status)
+							? [{ toolId: "documents_cancel_pdf", toolVersion: 1 }]
+							: [{ toolId: "documents_generate_pdf", toolVersion: 1 }],
 			});
 		},
 	}),
@@ -1946,7 +1961,7 @@ const placeholders: AssistantToolDefinition[] = [
 		title: "Generate PDF",
 		description:
 			"Generate a canonical authorized Sales PDF artifact after explicit approval.",
-		capability: "coming_soon",
+		capability: "implemented",
 		effect: "artifact",
 		requiredGrants: ["viewOrders"],
 		presentation: {
@@ -1957,6 +1972,13 @@ const placeholders: AssistantToolDefinition[] = [
 		inputSchema: salesPdfGenerationInputSchema,
 		outputSchema: salesPdfStatusDataSchema,
 		relatedTools: ["documents_get_sales_pdf_status", "documents_cancel_pdf"],
+		async proposalPreflight(actor, rawInput, services) {
+			const input = salesPdfGenerationInputSchema.parse(rawInput);
+			const resolved = await resolveSalesPdfOrder(actor, input, services);
+			if ("result" in resolved)
+				throw new Error("Sales PDF target is unavailable");
+			return { ok: true, targetRevision: resolved.order.revision };
+		},
 		async handler(actor, rawInput, services) {
 			const input = salesPdfGenerationInputSchema.parse(rawInput);
 			const resolved = await resolveSalesPdfOrder(actor, input, services);
@@ -2052,7 +2074,7 @@ const placeholders: AssistantToolDefinition[] = [
 		title: "Cancel PDF generation",
 		description:
 			"Cancel one current queued or running Sales PDF job after explicit approval.",
-		capability: "coming_soon",
+		capability: "implemented",
 		effect: "artifact",
 		requiredGrants: ["viewOrders"],
 		presentation: {
@@ -2063,6 +2085,13 @@ const placeholders: AssistantToolDefinition[] = [
 		inputSchema: salesPdfCancelInputSchema,
 		outputSchema: salesPdfStatusDataSchema,
 		relatedTools: ["documents_get_sales_pdf_status", "documents_generate_pdf"],
+		async proposalPreflight(actor, rawInput, services) {
+			const input = salesPdfCancelInputSchema.parse(rawInput);
+			const resolved = await resolveSalesPdfOrder(actor, input, services);
+			if ("result" in resolved)
+				throw new Error("Sales PDF target is unavailable");
+			return { ok: true, targetRevision: resolved.order.revision };
+		},
 		async handler(actor, rawInput, services) {
 			const input = salesPdfCancelInputSchema.parse(rawInput);
 			const resolved = await resolveSalesPdfOrder(actor, input, services);
@@ -2292,9 +2321,29 @@ export function getExecutableAssistantDefinitions(actor: AssistantToolActor) {
 	return assistantToolRegistry.filter(
 		(tool) =>
 			tool.capability === "implemented" &&
+			assistantEffectPolicies[tool.effect].directExecution &&
 			isAuthorized(actor, tool) &&
 			tool.handler,
 	);
+}
+
+export function getAssistantPermissionMatrix() {
+	return assistantToolRegistry.map((definition) => ({
+		toolId: definition.toolId,
+		version: definition.version,
+		effect: definition.effect,
+		requiredGrants: [...definition.requiredGrants],
+		anyOfGrants: [...(definition.anyOfGrants ?? [])],
+		confirmation: assistantEffectPolicies[definition.effect].confirmation,
+		checks: [
+			"catalog_visibility",
+			"execution",
+			"row_selection",
+			"field_projection",
+			"artifact_retrieval",
+			"job_resume",
+		] as const,
+	}));
 }
 
 function publicDefinition(definition: AssistantToolDefinition) {
@@ -2315,7 +2364,10 @@ function publicDefinition(definition: AssistantToolDefinition) {
 export function discoverAssistantTools(actor: AssistantToolActor) {
 	return assistantToolRegistry
 		.filter(
-			(tool) => tool.capability === "implemented" && isAuthorized(actor, tool),
+			(tool) =>
+				tool.capability === "implemented" &&
+				assistantEffectPolicies[tool.effect].directExecution &&
+				isAuthorized(actor, tool),
 		)
 		.map(publicDefinition)
 		.sort((left, right) => left.toolId.localeCompare(right.toolId));
@@ -2442,6 +2494,7 @@ export async function executeRegisteredAssistantTool(
 	if (
 		!definition ||
 		definition.capability !== "implemented" ||
+		!assistantEffectPolicies[definition.effect].directExecution ||
 		!isAuthorized(actor, definition) ||
 		!definition.handler
 	) {
@@ -2490,4 +2543,84 @@ export async function preflightRegisteredAssistantProposal(
 		})
 		.strict()
 		.parse(result);
+}
+
+export async function executeApprovedAssistantProposal(
+	actor: AssistantToolActor,
+	input: {
+		toolId: string;
+		version: number;
+		payload: unknown;
+		expectedTargetRevision?: string | null;
+	},
+	serviceOverrides: Partial<AssistantToolServices> = {},
+) {
+	const definition = assistantToolRegistry.find(
+		(tool) => tool.toolId === input.toolId && tool.version === input.version,
+	);
+	if (
+		!definition ||
+		definition.capability !== "implemented" ||
+		assistantEffectPolicies[definition.effect].confirmation !== "explicit" ||
+		!isAuthorized(actor, definition) ||
+		!definition.proposalPreflight ||
+		!definition.handler
+	)
+		throw new AssistantProposalPrecommitError(
+			"denied",
+			"Assistant proposal is not executable",
+		);
+	const proposalPayload =
+		input.expectedTargetRevision &&
+		definition.domain === "documents" &&
+		input.payload &&
+		typeof input.payload === "object" &&
+		!Array.isArray(input.payload)
+			? { ...input.payload, expectedRevision: input.expectedTargetRevision }
+			: input.payload;
+	let parsedInput: unknown;
+	try {
+		parsedInput = definition.inputSchema.parse(proposalPayload);
+	} catch {
+		throw new AssistantProposalPrecommitError(
+			"failed",
+			"Assistant proposal payload is invalid",
+		);
+	}
+	const services = { ...defaultAssistantToolServices, ...serviceOverrides };
+	let preflight: { ok: true; targetRevision?: string };
+	try {
+		preflight = await definition.proposalPreflight(
+			actor,
+			parsedInput,
+			services,
+		);
+	} catch {
+		throw new AssistantProposalPrecommitError(
+			"conflict",
+			"Assistant proposal target is unavailable",
+		);
+	}
+	if (
+		input.expectedTargetRevision &&
+		preflight.targetRevision !== input.expectedTargetRevision
+	)
+		throw new AssistantProposalPrecommitError(
+			"conflict",
+			"Assistant proposal target changed",
+		);
+	const result = await definition.handler(actor, parsedInput, services);
+	return createAssistantResultEnvelopeSchema(definition.outputSchema).parse(
+		result,
+	);
+}
+
+export class AssistantProposalPrecommitError extends Error {
+	constructor(
+		readonly code: "conflict" | "denied" | "failed",
+		message: string,
+	) {
+		super(message);
+		this.name = "AssistantProposalPrecommitError";
+	}
 }

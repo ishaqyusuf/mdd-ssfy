@@ -311,4 +311,36 @@ describe("assistant message view model", () => {
 		);
 		expect(view.analytics).toEqual([{ id: valid.id, data: valid.data }]);
 	});
+
+	test("accepts only a strict trusted document proposal action", () => {
+		const valid = {
+			type: "data-assistant-document-action",
+			id: "document-action-1",
+			data: {
+				toolId: "documents_generate_pdf",
+				toolVersion: 1,
+				label: "Generate invoice PDF",
+				input: {
+					orderNo: "09502PC",
+					mode: "invoice",
+					expectedRevision: "revision-7",
+					forceRegenerate: false,
+				},
+			},
+		};
+		const view = normalizeAssistantMessage(
+			{
+				parts: [
+					valid,
+					{
+						...valid,
+						id: "forged",
+						data: { ...valid.data, toolId: "orders_delete" },
+					},
+				],
+			},
+			{ isLastMessage: false, isStreaming: false },
+		);
+		expect(view.documentActions).toEqual([{ id: valid.id, data: valid.data }]);
+	});
 });

@@ -3,6 +3,7 @@ import type { Database, Prisma } from "@gnd/db";
 import { z } from "zod";
 
 import { assistantAnalyticsResultSchema } from "./analytics-result-contract";
+import { buildAssistantProposalReview } from "./approvals";
 import { assistantSalesRequestDraftPreviewSchema } from "./order-draft-contract";
 
 import {
@@ -1019,6 +1020,12 @@ export async function executeAssistantSavedAction(
 	}
 	const nonce = randomUUID();
 	const requestId = randomUUID();
+	const review = buildAssistantProposalReview({
+		toolId: definition.toolId,
+		effect: definition.effect,
+		payload: toolInput,
+		targetRevision: proposalPreflight.targetRevision,
+	});
 	const proposal = await db.$transaction(async (tx) => {
 		const run = await tx.assistantRun.create({
 			data: {
@@ -1043,6 +1050,7 @@ export async function executeAssistantSavedAction(
 				payloadHash: hash(toolInput),
 				payload: toolInput as Prisma.InputJsonValue,
 				targetRevision: proposalPreflight.targetRevision,
+				diff: review.diff as Prisma.InputJsonValue,
 				status: "pending",
 				expiresAt: new Date(now.getTime() + 15 * 60_000),
 				nonceHash: hash(nonce),
@@ -1060,6 +1068,7 @@ export async function executeAssistantSavedAction(
 		proposalId: proposal.id,
 		approvalToken: nonce,
 		expiresAt: proposal.expiresAt,
+		review,
 	};
 }
 

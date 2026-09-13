@@ -11,12 +11,12 @@ const actor = {
 };
 
 describe("Assistant Sales request draft tool", () => {
-	test("keeps the typed preview behind T17 while preserving its native seed contract", async () => {
+	test("activates the safe typed preview after the approval boundary lands", async () => {
 		const definition = assistantToolRegistry.find(
 			(tool) => tool.toolId === "sales_draft_from_request",
 		);
 		expect(definition).toMatchObject({
-			capability: "coming_soon",
+			capability: "implemented",
 			effect: "draft",
 			requiredGrants: ["editOrders"],
 			presentation: { resultComponent: "order-draft" },

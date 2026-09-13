@@ -1213,4 +1213,162 @@ describe("assistant runtime", () => {
 		expect(result.status).toBe("succeeded");
 		expect(result.assistantText).toBe("Saved answer");
 	});
+
+	test("emits a trusted revision-bound PDF proposal action from a status result", async () => {
+		const chunks: unknown[] = [];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { documents_get_sales_pdf_status: {} },
+			trustedResultTools: ["documents_get_sales_pdf_status"],
+			trustedResultToolEffects: { documents_get_sales_pdf_status: "read" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-call",
+							toolCallId: "pdf-status-1",
+							toolName: "documents_get_sales_pdf_status",
+							input: { orderNo: "09502PC", mode: "invoice" },
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "pdf-status-1",
+							toolName: "documents_get_sales_pdf_status",
+							output: {
+								structuredContent: {
+									status: "success",
+									data: {
+										order: { orderNo: "09502PC", revision: "revision-7" },
+										candidates: [],
+										pdf: { status: "missing" },
+									},
+									allowedNextActions: [
+										{ toolId: "documents_generate_pdf", toolVersion: 1 },
+									],
+								},
+							},
+						};
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 4 }),
+				}),
+			}),
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Create the invoice PDF" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(chunks).toContainEqual({
+			type: "data-assistant-document-action",
+			id: "document-action-pdf-status-1",
+			data: {
+				toolId: "documents_generate_pdf",
+				toolVersion: 1,
+				label: "Generate invoice PDF",
+				input: {
+					orderNo: "09502PC",
+					mode: "invoice",
+					expectedRevision: "revision-7",
+					forceRegenerate: false,
+				},
+			},
+		});
+	});
+
+	test("emits a trusted PDF cancellation action for active generation", async () => {
+		const chunks: unknown[] = [];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { documents_get_sales_pdf_status: {} },
+			trustedResultTools: ["documents_get_sales_pdf_status"],
+			trustedResultToolEffects: { documents_get_sales_pdf_status: "read" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-call",
+							toolCallId: "pdf-status-active",
+							toolName: "documents_get_sales_pdf_status",
+							input: { orderNo: "09502PC", mode: "invoice" },
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "pdf-status-active",
+							toolName: "documents_get_sales_pdf_status",
+							output: {
+								structuredContent: {
+									status: "success",
+									data: {
+										order: { orderNo: "09502PC", revision: "revision-8" },
+										candidates: [],
+										pdf: { status: "running", snapshotId: "snapshot-8" },
+									},
+									allowedNextActions: [
+										{ toolId: "documents_cancel_pdf", toolVersion: 1 },
+									],
+								},
+							},
+						};
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 4 }),
+				}),
+			}),
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Cancel the invoice PDF" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(chunks).toContainEqual({
+			type: "data-assistant-document-action",
+			id: "document-action-pdf-status-active",
+			data: {
+				toolId: "documents_cancel_pdf",
+				toolVersion: 1,
+				label: "Cancel invoice PDF generation",
+				input: {
+					orderNo: "09502PC",
+					mode: "invoice",
+					snapshotId: "snapshot-8",
+					expectedRevision: "revision-8",
+				},
+			},
+		});
+	});
 });

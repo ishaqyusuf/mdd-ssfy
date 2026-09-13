@@ -211,6 +211,36 @@ function AssistantOrderDraftLinks({
 	);
 }
 
+function AssistantDocumentActions({
+	actions,
+	onCreateProposal,
+}: {
+	actions: AssistantMessageViewModel["documentActions"];
+	onCreateProposal?: (
+		action: AssistantMessageViewModel["documentActions"][number],
+	) => void;
+}) {
+	if (!actions.length || !onCreateProposal) return null;
+	return (
+		<nav className={styles.entityLinks} aria-label="Available document actions">
+			{actions.map((action) => (
+				<button
+					type="button"
+					key={action.id}
+					onClick={() => onCreateProposal(action)}
+				>
+					<FilePlus2 size={15} />
+					<span>
+						{action.data.label}
+						<small>Review the exact document request before it runs</small>
+					</span>
+					<ChevronRight size={14} />
+				</button>
+			))}
+		</nav>
+	);
+}
+
 function AssistantResponseCards({
 	cards,
 	onAction,
@@ -284,6 +314,7 @@ function AssistantMessage({
 	onCardAction,
 	onOpenEntity,
 	onOpenOrderDraft,
+	onCreateDocumentProposal,
 }: {
 	message: UIMessage;
 	isStreaming: boolean;
@@ -294,6 +325,9 @@ function AssistantMessage({
 	) => void;
 	onOpenOrderDraft?: (
 		draft: AssistantMessageViewModel["orderDrafts"][number],
+	) => void;
+	onCreateDocumentProposal?: (
+		action: AssistantMessageViewModel["documentActions"][number],
 	) => void;
 }) {
 	const [copied, setCopied] = useState(false);
@@ -353,6 +387,10 @@ function AssistantMessage({
 					drafts={view.orderDrafts}
 					onOpen={onOpenOrderDraft}
 				/>
+				<AssistantDocumentActions
+					actions={view.documentActions}
+					onCreateProposal={onCreateDocumentProposal}
+				/>
 				<AssistantSources sources={view.sources} />
 			</div>
 		</section>
@@ -365,7 +403,8 @@ const MemoizedAssistantMessage = memo(AssistantMessage, (previous, next) => {
 		previous.message === next.message &&
 		previous.onCardAction === next.onCardAction &&
 		previous.onOpenEntity === next.onOpenEntity &&
-		previous.onOpenOrderDraft === next.onOpenOrderDraft
+		previous.onOpenOrderDraft === next.onOpenOrderDraft &&
+		previous.onCreateDocumentProposal === next.onCreateDocumentProposal
 	);
 });
 
@@ -379,6 +418,9 @@ export function AssistantMessageRenderer(props: {
 	) => void;
 	onOpenOrderDraft?: (
 		draft: AssistantMessageViewModel["orderDrafts"][number],
+	) => void;
+	onCreateDocumentProposal?: (
+		action: AssistantMessageViewModel["documentActions"][number],
 	) => void;
 }) {
 	if (props.message.role === "user") {

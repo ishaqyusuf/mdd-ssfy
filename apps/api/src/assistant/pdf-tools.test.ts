@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createAssistantResultEnvelopeSchema } from "./contracts";
 import {
 	assistantToolRegistry,
+	executeApprovedAssistantProposal,
 	executeRegisteredAssistantTool,
 } from "./registry";
 
@@ -210,6 +211,36 @@ describe("Assistant PDF tools", () => {
 			artifact: { id: "snapshot-1", status: "queued" },
 			job: { id: "snapshot-1", status: "queued" },
 		});
+	});
+
+	test("does not queue a PDF when the approved Sales revision changed", async () => {
+		let queueCalls = 0;
+		await expect(
+			executeApprovedAssistantProposal(
+				actor,
+				{
+					toolId: "documents_generate_pdf",
+					version: 1,
+					payload: {
+						orderNo: "09502PC",
+						mode: "invoice",
+						expectedRevision: "attacker-revision",
+						forceRegenerate: false,
+					},
+					expectedTargetRevision: "order-revision-1",
+				},
+				{
+					getSalesOrderCandidates: async () => [
+						{ ...order, revision: "order-revision-2" },
+					],
+					queueSalesPdfJob: async () => {
+						queueCalls += 1;
+						throw new Error("must not queue");
+					},
+				},
+			),
+		).rejects.toThrow("unavailable");
+		expect(queueCalls).toBe(0);
 	});
 
 	test("reports a source-stale generation as terminal without cancellation", async () => {

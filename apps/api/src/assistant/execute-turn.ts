@@ -14,6 +14,7 @@ import {
 	assistantEntityReferenceSchema,
 	assistantInvalidationTagSchema,
 } from "./contracts";
+import { assistantDocumentProposalActionPartSchema } from "./document-action-contract";
 import { getAssistantComposioTools } from "./integrations";
 import { createAssistantMcpExecutionClient } from "./mcp";
 import { assistantOrderDraftPartSchema } from "./order-draft-contract";
@@ -144,6 +145,10 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 	}
 	if (part.type === "data-assistant-analytics") {
 		const parsed = assistantAnalyticsPartSchema.safeParse(part);
+		return parsed.success ? (parsed.data as Prisma.InputJsonValue) : null;
+	}
+	if (part.type === "data-assistant-document-action") {
+		const parsed = assistantDocumentProposalActionPartSchema.safeParse(part);
 		return parsed.success ? (parsed.data as Prisma.InputJsonValue) : null;
 	}
 	if (part.type === "data-assistant-invalidation") {

@@ -20,6 +20,7 @@ import {
 	assistantResultStatuses,
 	assistantSourceKinds,
 } from "./contracts";
+import { assistantDocumentProposalActionSchema } from "./document-action-contract";
 import { assistantSalesRequestDraftPreviewSchema } from "./order-draft-contract";
 import {
 	ASSISTANT_PROMPT_VERSION,
@@ -121,6 +122,66 @@ function assistantEnvelopeFromOutput(output: unknown) {
 		: null;
 }
 
+function documentProposalActionFromResult(
+	rawInput: unknown,
+	envelope: Record<string, unknown>,
+) {
+	const input =
+		rawInput && typeof rawInput === "object"
+			? (rawInput as Record<string, unknown>)
+			: null;
+	const data =
+		envelope.data && typeof envelope.data === "object"
+			? (envelope.data as Record<string, unknown>)
+			: null;
+	const order =
+		data?.order && typeof data.order === "object"
+			? (data.order as Record<string, unknown>)
+			: null;
+	const nextActions = Array.isArray(envelope.allowedNextActions)
+		? envelope.allowedNextActions
+		: [];
+	const nextAction = nextActions.find((candidate) => {
+		if (!candidate || typeof candidate !== "object") return false;
+		const action = candidate as Record<string, unknown>;
+		return (
+			(action.toolId === "documents_generate_pdf" ||
+				action.toolId === "documents_cancel_pdf") &&
+			action.toolVersion === 1
+		);
+	});
+	if (!nextAction || typeof nextAction !== "object") return null;
+	const toolId = boundedRuntimeString(
+		(nextAction as Record<string, unknown>).toolId,
+		100,
+	);
+	const mode = boundedRuntimeString(input?.mode, 20);
+	const orderNo = boundedRuntimeString(order?.orderNo, 100);
+	const expectedRevision = boundedRuntimeString(order?.revision, 191);
+	const pdf =
+		data?.pdf && typeof data.pdf === "object"
+			? (data.pdf as Record<string, unknown>)
+			: null;
+	const snapshotId = boundedRuntimeString(pdf?.snapshotId, 191);
+	const parsed = assistantDocumentProposalActionSchema.safeParse({
+		toolId,
+		toolVersion: 1,
+		label:
+			toolId === "documents_cancel_pdf"
+				? mode
+					? `Cancel ${mode} PDF generation`
+					: "Cancel PDF generation"
+				: mode
+					? `Generate ${mode} PDF`
+					: "Generate PDF",
+		input:
+			toolId === "documents_cancel_pdf"
+				? { orderNo, mode, snapshotId, expectedRevision }
+				: { orderNo, mode, expectedRevision, forceRegenerate: false },
+	});
+	return parsed.success ? parsed.data : null;
+}
+
 function assistantCardForOutput(output: unknown) {
 	const envelope = assistantEnvelopeFromOutput(output);
 	const status = boundedRuntimeString(envelope?.status, 40);
@@ -205,6 +266,7 @@ async function writeSafeAssistantStream(input: {
 	trustedResultToolEffects: ReadonlyMap<string, AssistantEffect>;
 }) {
 	const toolNames = new Map<string, string>();
+	const toolInputs = new Map<string, unknown>();
 	const runningTools = new Map<string, string>();
 	const openTextIds = new Set<string>();
 	let assistantText = "";
@@ -252,6 +314,7 @@ async function writeSafeAssistantStream(input: {
 				const name = boundedRuntimeString(part.toolName, 100);
 				if (id && name && input.allowedTools.has(name)) {
 					toolNames.set(id, name);
+					if (type === "tool-call") toolInputs.set(id, part.input);
 					runningTools.set(id, name);
 					input.writer.write({
 						type: "data-assistant-tool",
@@ -357,6 +420,24 @@ async function writeSafeAssistantStream(input: {
 				if (type === "tool-result" && trustedResult) {
 					const envelope = assistantEnvelopeFromOutput(part.output);
 					const status = boundedRuntimeString(envelope?.status, 40);
+					if (
+						id &&
+						envelope &&
+						knownName === "documents_get_sales_pdf_status" &&
+						status === "success"
+					) {
+						const action = documentProposalActionFromResult(
+							toolInputs.get(id),
+							envelope,
+						);
+						if (action) {
+							input.writer.write({
+								type: "data-assistant-document-action",
+								id: `document-action-${id}`,
+								data: action,
+							});
+						}
+					}
 					if (
 						id &&
 						knownName === "analytics_query" &&

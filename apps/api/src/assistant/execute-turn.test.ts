@@ -214,6 +214,21 @@ describe("executeAssistantConversationTurn", () => {
 						},
 					});
 					input.writer.write({
+						type: "data-assistant-document-action",
+						id: "document-action-1",
+						data: {
+							toolId: "documents_generate_pdf",
+							toolVersion: 1,
+							label: "Generate invoice PDF",
+							input: {
+								orderNo: "09502PC",
+								mode: "invoice",
+								expectedRevision: "revision-7",
+								forceRegenerate: false,
+							},
+						},
+					});
+					input.writer.write({
 						type: "data-assistant-entity",
 						id: "unsafe",
 						data: { kind: "app", id: "admin/secrets", label: "Unsafe" },
@@ -292,6 +307,21 @@ describe("executeAssistantConversationTurn", () => {
 							label: "Live",
 						},
 						sources: [{ id: "sales-v1", label: "SalesOrders" }],
+					},
+				},
+				{
+					type: "data-assistant-document-action",
+					id: "document-action-1",
+					data: {
+						toolId: "documents_generate_pdf",
+						toolVersion: 1,
+						label: "Generate invoice PDF",
+						input: {
+							orderNo: "09502PC",
+							mode: "invoice",
+							expectedRevision: "revision-7",
+							forceRegenerate: false,
+						},
 					},
 				},
 			],

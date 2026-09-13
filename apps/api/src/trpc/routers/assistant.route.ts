@@ -1,4 +1,11 @@
 import { resolveAssistantActor } from "@api/assistant/actor";
+import {
+	assistantProposalCreateSchema,
+	assistantProposalDecisionSchema,
+	createAssistantActionProposal,
+	decideAssistantActionProposal,
+	getAssistantActionProposal,
+} from "@api/assistant/approvals";
 import { analyzeAssistantFeatureRequest } from "@api/assistant/feature-analysis";
 import { deliverAssistantFeatureNotification } from "@api/assistant/feature-notifications";
 import {
@@ -110,6 +117,24 @@ function notFound(error: unknown): never {
 }
 
 export const assistantRouter = createTRPCRouter({
+	createProposal: protectedProcedure
+		.input(assistantProposalCreateSchema)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return createAssistantActionProposal(ctx.db, actor, input);
+		}),
+	proposal: protectedProcedure
+		.input(z.object({ proposalId: z.string().trim().min(1).max(191) }))
+		.query(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return getAssistantActionProposal(ctx.db, actor, input.proposalId);
+		}),
+	decideProposal: protectedProcedure
+		.input(assistantProposalDecisionSchema)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return decideAssistantActionProposal(ctx.db, actor, input);
+		}),
 	prepareFeatureRequest: protectedProcedure
 		.input(z.object({ summary: z.string().trim().min(10).max(500) }))
 		.query(async ({ ctx, input }) => {

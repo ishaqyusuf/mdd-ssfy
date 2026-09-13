@@ -283,8 +283,13 @@ model AssistantActionProposal {
     idempotencyKey   String       @db.VarChar(191)
     eventSequence    Int
     confirmedAt      DateTime?    @db.Timestamp(0)
+    confirmationRequestId String? @unique(map: "asst_proposal_confirmation_request_uq") @db.VarChar(191)
+    executionStartedAt DateTime?  @db.Timestamp(0)
+    executionCompletedAt DateTime? @db.Timestamp(0)
     consumedAt       DateTime?    @db.Timestamp(0)
     rejectedAt       DateTime?    @db.Timestamp(0)
+    result           Json?        @db.Json
+    errorCode        String?      @db.VarChar(100)
     createdAt        DateTime     @default(now()) @db.Timestamp(0)
     updatedAt        DateTime     @updatedAt
     run              AssistantRun @relation(fields: [runId], references: [id], onDelete: NoAction, onUpdate: NoAction)
