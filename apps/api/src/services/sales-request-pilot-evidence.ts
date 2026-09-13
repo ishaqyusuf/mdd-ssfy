@@ -1,3 +1,16 @@
+import {
+	type SalesRequestPilotThresholdPolicy,
+	salesRequestPilotThresholdPolicySchema,
+} from "@gnd/settings";
+import { z } from "zod";
+import {
+	type SalesRequestPilotEvidenceSignoff,
+	salesRequestPilotEvidenceSignoffSchema,
+} from "./sales-request-pilot-evidence-signoff";
+
+export type { SalesRequestPilotThresholdPolicy } from "@gnd/settings";
+export type { SalesRequestPilotEvidenceSignoff } from "./sales-request-pilot-evidence-signoff";
+
 export const SALES_REQUEST_PILOT_EVIDENCE_VERSION =
 	"sales-request-pilot-evidence-v1";
 export const SALES_REQUEST_PILOT_EVIDENCE_MAX_ROWS = 10_000;
@@ -5,9 +18,6 @@ export const SALES_REQUEST_PILOT_EVIDENCE_MAX_ROWS = 10_000;
 const MAX_COUNT = 100_000_000;
 const MAX_DURATION_MS = 86_400_000;
 const MAX_PROVIDER_LATENCY_MS = 300_000;
-const VERSION_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
-const SHA256_DIGEST = /^sha256:[a-f0-9]{64}$/;
-const ISO_UTC_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 const terminalStatuses = new Set([
 	"succeeded",
@@ -17,9 +27,8 @@ const terminalStatuses = new Set([
 	"configuration-error",
 	"cancelled",
 	"usage-denied",
-	"unknown",
 ]);
-const knownStatuses = new Set(["started", ...terminalStatuses]);
+const knownStatuses = new Set(["started", "unknown", ...terminalStatuses]);
 const providerTerminalStatuses = new Set([
 	"succeeded",
 	"provider-error",
@@ -53,47 +62,6 @@ export type SalesRequestPilotEvidenceCollection = {
 	periodClosed: boolean;
 	retentionWindowAvailable: boolean;
 	sourceTruncated: boolean;
-};
-
-export type SalesRequestPilotThresholdPolicy = {
-	policyVersion: string;
-	minimumSucceededRuns: number;
-	minimumAppliedRuns: number;
-	maxProviderP95Ms: number;
-	maxInputTokensPerAttempt: number;
-	maxOutputTokensPerAttempt: number;
-	pricingCurrency: string;
-	pricingEffectiveAt: string;
-	pricingEvidenceDigest: string;
-	inputPriceMicrosPerMillionTokens: number;
-	outputPriceMicrosPerMillionTokens: number;
-	maxEstimatedPeriodCostMicros: number;
-	manualBaselineRequestFamily: string;
-	manualBaselineMeasuredAt: string;
-	manualBaselineSampleCount: number;
-	manualBaselineEvidenceDigest: string;
-	manualCorrectionBaselineP95Ms: number;
-	maxUnsafeSelectionFeedbackCount: number;
-	maxUnsafeApplyCount: number;
-	minimumSaveReopenChecks: number;
-};
-
-/**
- * Aggregate-only human evidence. A later persistence adapter is responsible for
- * verifying that the digest and named reviewer are durable before passing it here.
- */
-export type SalesRequestPilotEvidenceSignoff = {
-	status: "verified";
-	reviewerUserId: number;
-	reviewedAt: string;
-	evidenceDigest: string;
-	authorityMatched: boolean;
-	benchmarkPassed: boolean;
-	unsafeApplyCount: number;
-	ambiguousUnsupportedFactCount: number;
-	ambiguousUnsupportedVisibleCount: number;
-	saveReopenCheckedCount: number;
-	saveReopenSucceededCount: number;
 };
 
 type CoverageCount = {
@@ -197,6 +165,141 @@ export type SalesRequestPilotThresholdEvaluationInput = {
 	signoff: SalesRequestPilotEvidenceSignoff;
 };
 
+const evidenceCountSchema = z.number().int().nonnegative().max(MAX_COUNT);
+const nullableEvidenceCountSchema = evidenceCountSchema.nullable();
+const evidenceBlockerSchema = z.string().min(1).max(128);
+const coverageCountSchema = z
+	.object({
+		expected: evidenceCountSchema,
+		observed: evidenceCountSchema,
+		missing: evidenceCountSchema,
+		complete: z.boolean(),
+	})
+	.strict();
+const thresholdCheckSchema = z
+	.object({
+		id: z.enum([
+			"minimum-succeeded-runs",
+			"minimum-applied-runs",
+			"benchmark",
+			"authority",
+			"provider-latency-p95",
+			"input-token-ceiling",
+			"output-token-ceiling",
+			"estimated-period-cost",
+			"correction-below-manual",
+			"unsafe-selection-feedback",
+			"unsafe-apply",
+			"ambiguous-unsupported-containment",
+			"save-reopen",
+			"save-failures",
+			"evidence-semantics",
+		]),
+		status: z.enum(["pass", "fail"]),
+	})
+	.strict();
+const thresholdEvaluationSchema = z
+	.object({
+		status: z.enum(["pass", "fail", "not-evaluable"]),
+		blockers: z.array(evidenceBlockerSchema).max(64),
+		checks: z.array(thresholdCheckSchema).max(32),
+		estimatedPeriodCostMicros: nullableEvidenceCountSchema,
+	})
+	.strict();
+const durationSummarySchema = z
+	.object({
+		sampleCount: evidenceCountSchema,
+		p50Ms: nullableEvidenceCountSchema,
+		p95Ms: nullableEvidenceCountSchema,
+	})
+	.strict();
+
+/** Strict aggregate-only persistence boundary for pilot review evidence. */
+export const salesRequestPilotEvidenceSchema: z.ZodType<SalesRequestPilotEvidence> =
+	z
+		.object({
+			version: z.literal(SALES_REQUEST_PILOT_EVIDENCE_VERSION),
+			reviewability: z
+				.object({
+					status: z.enum(["reviewable", "not-reviewable"]),
+					blockers: z.array(evidenceBlockerSchema).max(64),
+				})
+				.strict(),
+			coverage: z
+				.object({
+					lifecycle: coverageCountSchema,
+					providerAttemptMarker: coverageCountSchema,
+					providerLatency: coverageCountSchema,
+					tokenUsage: z
+						.object({
+							expected: evidenceCountSchema,
+							inputObserved: evidenceCountSchema,
+							outputObserved: evidenceCountSchema,
+							inputMissing: evidenceCountSchema,
+							outputMissing: evidenceCountSchema,
+							complete: z.boolean(),
+						})
+						.strict(),
+					issueCounts: coverageCountSchema,
+					feedback: coverageCountSchema,
+					acceptedApplication: coverageCountSchema,
+					correction: coverageCountSchema,
+					advancementComplete: z.boolean(),
+				})
+				.strict(),
+			metrics: z
+				.object({
+					generationCount: evidenceCountSchema,
+					succeededCount: evidenceCountSchema,
+					providerAttemptCount: evidenceCountSchema,
+					statusCounts: z.record(
+						z.string().min(1).max(64),
+						evidenceCountSchema,
+					),
+					tokenTotals: z
+						.object({
+							input: nullableEvidenceCountSchema,
+							output: nullableEvidenceCountSchema,
+						})
+						.strict(),
+					maxTokensPerAttempt: z
+						.object({
+							input: nullableEvidenceCountSchema,
+							output: nullableEvidenceCountSchema,
+						})
+						.strict(),
+					issueTotals: z
+						.object({
+							ambiguous: evidenceCountSchema,
+							unreadable: evidenceCountSchema,
+							unsupported: evidenceCountSchema,
+						})
+						.strict()
+						.nullable(),
+					outcomes: z
+						.object({
+							applied: evidenceCountSchema,
+							accepted: evidenceCountSchema,
+							acceptedWithEdits: evidenceCountSchema,
+							rejected: evidenceCountSchema,
+							saveFailures: evidenceCountSchema,
+							unsafeSelectionFeedback: evidenceCountSchema,
+						})
+						.strict(),
+					providerLatency: durationSummarySchema,
+					correction: durationSummarySchema,
+					semanticViolations: z
+						.object({
+							acceptedWithoutApply: evidenceCountSchema,
+							appliedWithoutFeedback: evidenceCountSchema,
+						})
+						.strict(),
+				})
+				.strict(),
+			advancement: thresholdEvaluationSchema,
+		})
+		.strict();
+
 function isDate(value: unknown): value is Date {
 	return value instanceof Date && Number.isFinite(value.getTime());
 }
@@ -282,58 +385,7 @@ function notEvaluable(
 }
 
 function validThresholdPolicy(value: SalesRequestPilotThresholdPolicy) {
-	return (
-		VERSION_TOKEN.test(value.policyVersion) &&
-		boundedInteger(value.minimumSucceededRuns, 10_000) &&
-		value.minimumSucceededRuns > 0 &&
-		boundedInteger(value.minimumAppliedRuns, 10_000) &&
-		value.minimumAppliedRuns > 0 &&
-		boundedInteger(value.maxProviderP95Ms, MAX_PROVIDER_LATENCY_MS) &&
-		value.maxProviderP95Ms > 0 &&
-		boundedInteger(value.maxInputTokensPerAttempt) &&
-		boundedInteger(value.maxOutputTokensPerAttempt) &&
-		/^[A-Z]{3}$/.test(value.pricingCurrency) &&
-		ISO_UTC_DATE_TIME.test(value.pricingEffectiveAt) &&
-		Number.isFinite(Date.parse(value.pricingEffectiveAt)) &&
-		SHA256_DIGEST.test(value.pricingEvidenceDigest) &&
-		boundedInteger(value.inputPriceMicrosPerMillionTokens, 1_000_000_000) &&
-		boundedInteger(value.outputPriceMicrosPerMillionTokens, 1_000_000_000) &&
-		boundedInteger(value.maxEstimatedPeriodCostMicros, MAX_COUNT) &&
-		VERSION_TOKEN.test(value.manualBaselineRequestFamily) &&
-		ISO_UTC_DATE_TIME.test(value.manualBaselineMeasuredAt) &&
-		Number.isFinite(Date.parse(value.manualBaselineMeasuredAt)) &&
-		boundedInteger(value.manualBaselineSampleCount, 10_000) &&
-		value.manualBaselineSampleCount > 0 &&
-		SHA256_DIGEST.test(value.manualBaselineEvidenceDigest) &&
-		boundedInteger(value.manualCorrectionBaselineP95Ms, MAX_DURATION_MS) &&
-		value.manualCorrectionBaselineP95Ms > 0 &&
-		boundedInteger(value.maxUnsafeSelectionFeedbackCount, 10_000) &&
-		boundedInteger(value.maxUnsafeApplyCount, 10_000) &&
-		boundedInteger(value.minimumSaveReopenChecks, 10_000) &&
-		value.minimumSaveReopenChecks > 0
-	);
-}
-
-function validSignoff(value: SalesRequestPilotEvidenceSignoff) {
-	return (
-		value.status === "verified" &&
-		Number.isSafeInteger(value.reviewerUserId) &&
-		value.reviewerUserId > 0 &&
-		typeof value.reviewedAt === "string" &&
-		ISO_UTC_DATE_TIME.test(value.reviewedAt) &&
-		Number.isFinite(Date.parse(value.reviewedAt)) &&
-		SHA256_DIGEST.test(value.evidenceDigest) &&
-		typeof value.authorityMatched === "boolean" &&
-		typeof value.benchmarkPassed === "boolean" &&
-		boundedInteger(value.unsafeApplyCount, 10_000) &&
-		boundedInteger(value.ambiguousUnsupportedFactCount, 100_000) &&
-		boundedInteger(value.ambiguousUnsupportedVisibleCount, 100_000) &&
-		value.ambiguousUnsupportedVisibleCount <=
-			value.ambiguousUnsupportedFactCount &&
-		boundedInteger(value.saveReopenCheckedCount, 10_000) &&
-		boundedInteger(value.saveReopenSucceededCount, 10_000) &&
-		value.saveReopenSucceededCount <= value.saveReopenCheckedCount
-	);
+	return salesRequestPilotThresholdPolicySchema.safeParse(value).success;
 }
 
 function exactCostMicros(
@@ -370,6 +422,16 @@ export function deriveSalesRequestPilotEvidence(
 	if (input.collection.sourceTruncated)
 		reviewBlockers.push("row-set-truncated");
 	if (!rows.length) reviewBlockers.push("no-runs");
+	if (
+		rows.some(
+			(row) =>
+				typeof row.status !== "string" ||
+				!knownStatuses.has(row.status) ||
+				row.status === "unknown",
+		)
+	) {
+		reviewBlockers.push("unknown-status");
+	}
 
 	const terminalRows = rows.filter(
 		(row) =>
@@ -585,7 +647,11 @@ export function evaluateSalesRequestPilotThresholds(
 	if (!validThresholdPolicy(input.thresholds)) {
 		return notEvaluable("invalid-threshold-policy");
 	}
-	if (!validSignoff(input.signoff)) return notEvaluable("invalid-signoff");
+	if (
+		!salesRequestPilotEvidenceSignoffSchema.safeParse(input.signoff).success
+	) {
+		return notEvaluable("invalid-signoff");
+	}
 	const blockers: string[] = [];
 	if (evidence.reviewability.status !== "reviewable") {
 		blockers.push("period-not-reviewable");

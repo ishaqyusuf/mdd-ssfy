@@ -1,3 +1,4 @@
+import { salesRequestPilotReviewDecisionInputSchema } from "@api/services/sales-request-pilot-review";
 import {
 	SALES_REQUEST_GENERATION_CHANGED_FIELD_CATEGORIES,
 	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
@@ -5,6 +6,7 @@ import {
 import {
 	salesRequestAISelectionSchema,
 	salesRequestCatalogPolicySchema,
+	salesRequestPilotReviewPolicyInputSchema,
 	salesRequestPilotSettingsInputSchema,
 	salesRequestProviderBenchmarkDecisionSchema,
 } from "@gnd/settings";
@@ -20,6 +22,12 @@ export const setSalesRequestCatalogPolicySchema =
 
 export const setSalesRequestPilotSettingsSchema =
 	salesRequestPilotSettingsInputSchema;
+
+export const setSalesRequestPilotReviewPolicySchema =
+	salesRequestPilotReviewPolicyInputSchema;
+
+export const recordSalesRequestPilotReviewDecisionSchema =
+	salesRequestPilotReviewDecisionInputSchema;
 
 export const salesRequestPilotAccessSchema = z
 	.object({

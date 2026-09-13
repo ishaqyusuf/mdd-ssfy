@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
+import { createSalesRequestPilotReviewPolicyDigest } from "@api/services/sales-request-pilot-review";
 import { getSalesRequestAISettings } from "@gnd/settings";
 
 import { salesRequestRouter } from "./sales-request.route";
@@ -26,6 +27,7 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 	};
 	let activeSettingsReads = 0;
 	let settingsUpdates = 0;
+	const pilotReviewRows: Record<string, unknown>[] = [];
 
 	const settings = {
 		findMany: async () => {
@@ -103,6 +105,28 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 		},
 		salesOrders: { findMany: async () => [] },
 		salesRequestGenerationRun: { findMany: async () => [] },
+		salesRequestPilotReviewDecision: {
+			create: async ({ data }: { data: Record<string, unknown> }) => {
+				const duplicate = pilotReviewRows.some(
+					(row) =>
+						row.settingId === data.settingId &&
+						(row.periodStart as Date).getTime() ===
+							(data.periodStart as Date).getTime(),
+				);
+				if (duplicate) throw { code: "P2002" };
+				pilotReviewRows.push(data);
+				return data;
+			},
+			findMany: async ({ take }: { take?: number }) =>
+				[...pilotReviewRows]
+					.sort(
+						(left, right) =>
+							(right.periodStart as Date).getTime() -
+							(left.periodStart as Date).getTime(),
+					)
+					.slice(0, take)
+					.map(({ settingId: _settingId, ...row }) => row),
+		},
 		$queryRaw: async () => [{ id: 7 }],
 		$transaction: async (callback: (tx: unknown) => Promise<unknown>) =>
 			callback(db),
@@ -113,6 +137,7 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 		getSavedMeta: () => savedMeta,
 		getActiveSettingsReads: () => activeSettingsReads,
 		getSettingsUpdates: () => settingsUpdates,
+		getPilotReviewRows: () => pilotReviewRows,
 		transaction: db,
 	};
 }
@@ -172,6 +197,80 @@ async function setCatalogPublication(
 			},
 		},
 	});
+}
+
+function currentPilotReviewPolicy() {
+	const thresholds = {
+		policyVersion: "pilot-gates-v1",
+		minimumSucceededRuns: 1,
+		minimumAppliedRuns: 1,
+		maxProviderP95Ms: 20_000,
+		maxInputTokensPerAttempt: 50_000,
+		maxOutputTokensPerAttempt: 4_000,
+		pricingCurrency: "USD",
+		pricingEffectiveAt: "2026-09-01T00:00:00.000Z",
+		pricingEvidenceDigest: `sha256:${"a".repeat(64)}`,
+		inputPriceMicrosPerMillionTokens: 440_000,
+		outputPriceMicrosPerMillionTokens: 1_320_000,
+		maxEstimatedPeriodCostMicros: 250_000,
+		manualBaselineRequestFamily: "mixed-door-orders-v1",
+		manualBaselineMeasuredAt: "2026-09-01T00:00:00.000Z",
+		manualBaselineSampleCount: 10,
+		manualBaselineEvidenceDigest: `sha256:${"b".repeat(64)}`,
+		manualCorrectionBaselineP95Ms: 300_000,
+		maxUnsafeSelectionFeedbackCount: 0,
+		maxUnsafeApplyCount: 0,
+		minimumSaveReopenChecks: 1,
+	};
+	return {
+		provider: "openai" as const,
+		model: "gpt-5-mini",
+		thresholds,
+		digest: createSalesRequestPilotReviewPolicyDigest({
+			provider: "openai",
+			model: "gpt-5-mini",
+			thresholds,
+		}),
+		revision: 1,
+		changedAt: "2026-09-01T00:00:00.000Z",
+		changedByUserId: 7,
+	};
+}
+
+function reviewReadyRun(input: {
+	periodStart: string;
+	scope: string;
+	configurationRevision: string;
+	pilotSettingsRevision?: number;
+}) {
+	const startedAt = new Date(`${input.periodStart}T12:00:00.000Z`);
+	return {
+		scope: input.scope,
+		configurationRevision: input.configurationRevision,
+		provider: "openai",
+		model: "gpt-5-mini",
+		promptVersion: "new-sales-form-seed-v6",
+		schemaVersion: 2,
+		pilotSettingsRevision: input.pilotSettingsRevision ?? 1,
+		providerBenchmarkApprovalRevision: 1,
+		status: "succeeded",
+		startedAt,
+		completedAt: new Date(startedAt.getTime() + 30_000),
+		providerAttemptedAt: new Date(startedAt.getTime() + 1_000),
+		providerLatencyMs: 5_000,
+		inputTokens: 1_000,
+		outputTokens: 200,
+		issueCounts: { ambiguous: 0, unreadable: 0, unsupported: 0 },
+		applyOutcome: "applied",
+		saveDraftOutcome: "saved",
+		saveFinalOutcome: null,
+		feedbackOutcome: "accepted-with-edits",
+		feedbackIssueCategories: [],
+		feedbackChangedFieldCategories: ["line-items"],
+		correctionMs: 20_000,
+		retentionUntil: new Date("2026-12-31T00:00:00.000Z"),
+		deletedAt: null,
+	};
 }
 
 test("AI settings query is Super Admin-only and defaults an unconfigured install", async () => {
@@ -278,6 +377,7 @@ test("preview validation accepts only the current server-derived identity", asyn
 		},
 		requestGeneration: {
 			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilotReviewPolicy: currentPilotReviewPolicy(),
 			pilot: {
 				enabled: true,
 				cohortUserIds: [19],
@@ -956,6 +1056,332 @@ test("generation outcome writes are actor-bound and expose no source payload", a
 	);
 });
 
+test("pilot review policy is Super Admin-managed and server-digested", async () => {
+	const meta = {
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [19],
+				revision: 1,
+				changedAt: "2026-09-01T00:00:00.000Z",
+			},
+		},
+	};
+	const policy = currentPilotReviewPolicy();
+	const input = {
+		provider: policy.provider,
+		model: policy.model,
+		thresholds: policy.thresholds,
+	};
+	const fixture = requestContext(meta);
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+
+	await expect(caller.updatePilotReviewPolicy(input)).resolves.toMatchObject({
+		changed: true,
+		policy: {
+			digest: createSalesRequestPilotReviewPolicyDigest(input),
+			revision: 1,
+		},
+	});
+	expect(fixture.getSavedMeta()).toMatchObject({
+		requestGeneration: {
+			pilot: { revision: 2 },
+			pilotReviewPolicy: {
+				digest: createSalesRequestPilotReviewPolicyDigest(input),
+			},
+		},
+	});
+
+	const ordinary = requestContext(meta, {
+		roles: [{ role: { name: "Sales", RoleHasPermissions: [] } }],
+	});
+	await expect(
+		salesRequestRouter
+			.createCaller(ordinary.ctx)
+			.updatePilotReviewPolicy(input),
+	).rejects.toMatchObject({ code: "FORBIDDEN" });
+	expect(ordinary.getSettingsUpdates()).toBe(0);
+});
+
+test("pilot review rejects a requested pass when server thresholds fail", async () => {
+	const periodStart = new Date(Date.now() - 8 * 24 * 60 * 60 * 1_000)
+		.toISOString()
+		.slice(0, 10);
+	const policy = currentPilotReviewPolicy();
+	policy.thresholds.minimumSucceededRuns = 2;
+	policy.digest = createSalesRequestPilotReviewPolicyDigest({
+		provider: policy.provider,
+		model: policy.model,
+		thresholds: policy.thresholds,
+	});
+	const meta = {
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
+			},
+		},
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilotReviewPolicy: policy,
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [19],
+				revision: 1,
+				changedAt: "2026-09-01T00:00:00.000Z",
+			},
+		},
+	};
+	const fixture = requestContext(meta, {
+		roles: [{ role: { name: "Sales", RoleHasPermissions: [] } }],
+	});
+	const snapshot = await installCurrentBenchmarkApproval(fixture, meta);
+	fixture.transaction.salesRequestGenerationRun.findMany = async () => [
+		reviewReadyRun({
+			periodStart,
+			scope: snapshot.scope,
+			configurationRevision: snapshot.revision,
+		}),
+	];
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+	try {
+		await expect(
+			caller.recordPilotReviewDecision({
+				periodStart,
+				decision: "pass",
+				signoff: {
+					unsafeApplyCount: 0,
+					ambiguousUnsupportedFactCount: 0,
+					ambiguousUnsupportedVisibleCount: 0,
+					saveReopenCheckedCount: 1,
+					saveReopenSucceededCount: 1,
+				},
+			}),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
+	expect(fixture.getPilotReviewRows()).toHaveLength(0);
+});
+
+test("named pilot reviewers write one immutable server-derived review per period", async () => {
+	const periodStart = new Date(Date.now() - 8 * 24 * 60 * 60 * 1_000)
+		.toISOString()
+		.slice(0, 10);
+	const meta = {
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
+			},
+		},
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilotReviewPolicy: currentPilotReviewPolicy(),
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [19],
+				revision: 1,
+				changedAt: "2026-09-01T00:00:00.000Z",
+			},
+		},
+	};
+	const fixture = requestContext(meta, {
+		roles: [{ role: { name: "Sales", RoleHasPermissions: [] } }],
+	});
+	const snapshot = await installCurrentBenchmarkApproval(fixture, meta);
+	fixture.transaction.salesRequestGenerationRun.findMany = async () => [
+		reviewReadyRun({
+			periodStart,
+			scope: snapshot.scope,
+			configurationRevision: snapshot.revision,
+		}),
+	];
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const input = {
+		periodStart,
+		decision: "pass" as const,
+		signoff: {
+			unsafeApplyCount: 0,
+			ambiguousUnsupportedFactCount: 0,
+			ambiguousUnsupportedVisibleCount: 0,
+			saveReopenCheckedCount: 1,
+			saveReopenSucceededCount: 1,
+		},
+	};
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+	try {
+		await expect(
+			caller.recordPilotReviewDecision(input),
+		).resolves.toMatchObject({
+			decision: "pass",
+			thresholdEvaluation: { status: "pass" },
+			advancement: {
+				eligible: false,
+				blockers: ["exactly-two-periods-required"],
+			},
+		});
+		await expect(caller.recordPilotReviewDecision(input)).rejects.toMatchObject(
+			{
+				code: "CONFLICT",
+			},
+		);
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
+	expect(fixture.getPilotReviewRows()).toHaveLength(1);
+	const storedReview = fixture.getPilotReviewRows()[0];
+	expect((storedReview?.reviewedAt as Date).getUTCMilliseconds()).toBe(0);
+	expect((storedReview?.signoff as { reviewedAt: string }).reviewedAt).toMatch(
+		/\.000Z$/,
+	);
+	expect(JSON.stringify(fixture.getPilotReviewRows())).not.toMatch(
+		/requestText|providerResponse|email|phone|image/i,
+	);
+});
+
+test("pilot review rejects an active cohort member who is not a named reviewer", async () => {
+	const meta = {
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
+			},
+		},
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilotReviewPolicy: currentPilotReviewPolicy(),
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [42],
+				revision: 1,
+				changedAt: "2026-09-01T00:00:00.000Z",
+			},
+		},
+	};
+	const fixture = requestContext(meta, {
+		roles: [{ role: { name: "Sales", RoleHasPermissions: [] } }],
+	});
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+	try {
+		await expect(
+			caller.recordPilotReviewDecision({
+				periodStart: "2026-09-01",
+				decision: "fail",
+				signoff: {
+					unsafeApplyCount: 0,
+					ambiguousUnsupportedFactCount: 0,
+					ambiguousUnsupportedVisibleCount: 0,
+					saveReopenCheckedCount: 0,
+					saveReopenSucceededCount: 0,
+				},
+			}),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
+});
+
+test("two adjacent server-derived passing reviews unlock advancement", async () => {
+	const todayUtc = new Date(
+		`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`,
+	);
+	const firstStart = new Date(todayUtc.getTime() - 14 * 24 * 60 * 60 * 1_000)
+		.toISOString()
+		.slice(0, 10);
+	const secondStart = new Date(todayUtc.getTime() - 7 * 24 * 60 * 60 * 1_000)
+		.toISOString()
+		.slice(0, 10);
+	const meta = {
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
+			},
+		},
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilotReviewPolicy: currentPilotReviewPolicy(),
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [19],
+				revision: 1,
+				changedAt: "2026-09-01T00:00:00.000Z",
+			},
+		},
+	};
+	const fixture = requestContext(meta, {
+		roles: [{ role: { name: "Sales", RoleHasPermissions: [] } }],
+	});
+	const snapshot = await installCurrentBenchmarkApproval(fixture, meta);
+	const runs = [firstStart, secondStart].map((periodStart) =>
+		reviewReadyRun({
+			periodStart,
+			scope: snapshot.scope,
+			configurationRevision: snapshot.revision,
+		}),
+	);
+	fixture.transaction.salesRequestGenerationRun.findMany = async ({
+		where,
+	}: {
+		where: { startedAt: { gte: Date; lt: Date } };
+	}) =>
+		runs.filter(
+			(run) =>
+				run.startedAt >= where.startedAt.gte &&
+				run.startedAt < where.startedAt.lt,
+		);
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const signoff = {
+		unsafeApplyCount: 0,
+		ambiguousUnsupportedFactCount: 0,
+		ambiguousUnsupportedVisibleCount: 0,
+		saveReopenCheckedCount: 1,
+		saveReopenSucceededCount: 1,
+	};
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+	try {
+		await expect(
+			caller.recordPilotReviewDecision({
+				periodStart: firstStart,
+				decision: "pass",
+				signoff,
+			}),
+		).resolves.toMatchObject({ advancement: { eligible: false } });
+		await expect(
+			caller.recordPilotReviewDecision({
+				periodStart: secondStart,
+				decision: "pass",
+				signoff,
+			}),
+		).resolves.toMatchObject({
+			advancement: { eligible: true, blockers: [] },
+		});
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
+});
+
 test("pilot summary remains Super Admin-only and aggregate-only", async () => {
 	const closedPeriodStart = new Date(Date.now() - 8 * 24 * 60 * 60 * 1_000)
 		.toISOString()
@@ -992,6 +1418,7 @@ test("pilot summary remains Super Admin-only and aggregate-only", async () => {
 		},
 		requestGeneration: {
 			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilotReviewPolicy: currentPilotReviewPolicy(),
 			pilot: {
 				enabled: true,
 				cohortUserIds: [19],
@@ -1019,6 +1446,10 @@ test("pilot summary remains Super Admin-only and aggregate-only", async () => {
 		eligibleForAdvancement: false,
 		authority: { status: "blocked", blockers: ["no-runs"] },
 		metrics: { generationCount: 0 },
+		advancement: {
+			eligible: false,
+			blockers: ["exactly-two-periods-required"],
+		},
 	});
 	expect(result).not.toHaveProperty("runs");
 });

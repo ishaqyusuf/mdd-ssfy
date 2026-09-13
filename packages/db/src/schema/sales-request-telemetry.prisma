@@ -51,3 +51,27 @@ model SalesRequestGenerationRun {
     @@index([retentionUntil, deletedAt], map: "sales_req_gen_retention_idx")
     @@index([consumedSalesId], map: "sales_req_gen_consumed_sales_idx")
 }
+
+/// Immutable, aggregate-only weekly review evidence. Never store request text,
+/// generated/provider payloads, contacts, credentials, or per-representative rows.
+model SalesRequestPilotReviewDecision {
+    id                    Int      @id @default(autoincrement())
+    settingId             Int
+    periodStart           DateTime @db.Timestamp(0)
+    periodEnd             DateTime @db.Timestamp(0)
+    decision              String   @db.VarChar(16)
+    authority             Json     @db.Json
+    authorityDigest       String   @db.VarChar(71)
+    evidence              Json     @db.Json
+    evidenceDigest        String   @db.VarChar(71)
+    thresholdPolicy       Json     @db.Json
+    thresholdPolicyDigest String   @db.VarChar(71)
+    thresholdPolicyVersion String  @db.VarChar(64)
+    signoff               Json     @db.Json
+    reviewerUserId        Int
+    reviewedAt            DateTime @db.Timestamp(0)
+    createdAt             DateTime @default(now()) @db.Timestamp(0)
+
+    @@unique([settingId, periodStart], map: "sales_req_pilot_review_period_key")
+    @@index([settingId, periodStart], map: "sales_req_pilot_review_setting_period_idx")
+}

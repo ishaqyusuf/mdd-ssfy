@@ -248,6 +248,22 @@ describe("deriveSalesRequestPilotEvidence", () => {
 		});
 	});
 
+	test("fails closed when a malformed or explicit unknown status reaches a review period", () => {
+		for (const status of ["unknown", "invented-status", null]) {
+			const evidence = deriveSalesRequestPilotEvidence(
+				[row({ status, completedAt: new Date("2026-09-13T00:00:00.000Z") })],
+				{ collection, thresholds, signoff },
+			);
+
+			expect(evidence.reviewability).toMatchObject({
+				status: "not-reviewable",
+				blockers: expect.arrayContaining(["unknown-status"]),
+			});
+			expect(evidence.coverage.lifecycle.complete).toBe(false);
+			expect(evidence.advancement.status).toBe("not-evaluable");
+		}
+	});
+
 	test("detects accepted/apply semantics and missing correction samples", () => {
 		const evidence = deriveSalesRequestPilotEvidence(
 			[
@@ -366,6 +382,19 @@ describe("evaluateSalesRequestPilotThresholds", () => {
 			signoff: { ...signoff, evidenceDigest: "sha256:not-a-digest" },
 		});
 		expect(invalidSignoff).toMatchObject({
+			status: "not-evaluable",
+			blockers: ["invalid-signoff"],
+		});
+
+		const inconsistentSignoff = evaluateSalesRequestPilotThresholds(evidence, {
+			thresholds,
+			signoff: {
+				...signoff,
+				ambiguousUnsupportedFactCount: 0,
+				ambiguousUnsupportedVisibleCount: 1,
+			},
+		});
+		expect(inconsistentSignoff).toMatchObject({
 			status: "not-evaluable",
 			blockers: ["invalid-signoff"],
 		});

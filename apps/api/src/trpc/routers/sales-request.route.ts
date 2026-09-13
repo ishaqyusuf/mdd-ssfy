@@ -3,6 +3,11 @@ import {
 	getSalesRequestGenerationAdminSettings,
 } from "@api/db/queries/sales-request-configuration";
 import {
+	type SalesRequestPilotReviewDatabase,
+	getLatestSalesRequestPilotReviewDecisions,
+	recordSalesRequestPilotReviewDecision,
+} from "@api/db/queries/sales-request-pilot-review";
+import {
 	type SalesRequestTelemetryDatabase,
 	completeSalesRequestGenerationRun,
 	createSalesRequestGenerationRun,
@@ -13,11 +18,13 @@ import {
 import {
 	generateSalesRequestPreviewSchema,
 	recordSalesRequestGenerationOutcomeSchema,
+	recordSalesRequestPilotReviewDecisionSchema,
 	salesRequestGenerationPilotSummarySchema,
 	salesRequestPilotAccessSchema,
 	setSalesRequestAISettingsSchema,
 	setSalesRequestCatalogPolicySchema,
 	setSalesRequestDefaultSchema,
+	setSalesRequestPilotReviewPolicySchema,
 	setSalesRequestPilotSettingsSchema,
 	setSalesRequestProviderBenchmarkApprovalSchema,
 	validateSalesRequestPreviewSchema,
@@ -35,6 +42,15 @@ import {
 	requireActiveSalesRequestPilotActors,
 	requireSalesRequestPilotAccess,
 } from "@api/services/sales-request-pilot";
+import { evaluateSalesRequestPilotAdvancement } from "@api/services/sales-request-pilot-advancement";
+import { evaluateSalesRequestPilotThresholds } from "@api/services/sales-request-pilot-evidence";
+import {
+	createSalesRequestPilotEvidenceDigest,
+	createSalesRequestPilotEvidenceSignoff,
+	createSalesRequestPilotReviewEvidenceRecord,
+	createSalesRequestPilotReviewPolicyDigest,
+} from "@api/services/sales-request-pilot-review";
+import { resolveSalesRequestPilotReviewAuthority } from "@api/services/sales-request-pilot-review-authority";
 import {
 	createSalesRequestPreview,
 	selectSalesRequestSettingId,
@@ -56,6 +72,7 @@ import {
 	failSalesRequestCatalogRegeneration,
 	getSalesRequestAISettings,
 	getSalesRequestCatalogSettings,
+	getSalesRequestPilotReviewPolicy,
 	getSalesRequestPilotSettings,
 	getSalesRequestProviderBenchmarkApproval,
 	isSalesRequestCatalogPublicationCurrent,
@@ -63,6 +80,7 @@ import {
 	updateSalesRequestAISettings,
 	updateSalesRequestCatalogPolicy,
 	updateSalesRequestGenerationDefault,
+	updateSalesRequestPilotReviewPolicy,
 	updateSalesRequestPilotSettings,
 	updateSalesRequestProviderBenchmarkApproval,
 } from "@gnd/settings";
@@ -139,18 +157,34 @@ function requireCurrentProviderBenchmark(input: {
 	}
 }
 
+function isUniqueConstraintError(error: unknown) {
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		"code" in error &&
+		(error as { code?: unknown }).code === "P2002"
+	);
+}
+
 async function readAISettingsSurface(
 	db: SalesRequestSettingsDb,
 	settingId: number,
 ) {
-	const [result, catalog, requestGeneration, pilot, providerBenchmark] =
-		await Promise.all([
-			getSalesRequestAISettings(db, settingId),
-			getSalesRequestCatalogSettings(db, settingId),
-			getSalesRequestGenerationAdminSettings(db, { settingId }),
-			getSalesRequestPilotSettings(db, settingId),
-			getSalesRequestProviderBenchmarkApproval(db, settingId),
-		]);
+	const [
+		result,
+		catalog,
+		requestGeneration,
+		pilot,
+		providerBenchmark,
+		pilotReviewPolicy,
+	] = await Promise.all([
+		getSalesRequestAISettings(db, settingId),
+		getSalesRequestCatalogSettings(db, settingId),
+		getSalesRequestGenerationAdminSettings(db, { settingId }),
+		getSalesRequestPilotSettings(db, settingId),
+		getSalesRequestProviderBenchmarkApproval(db, settingId),
+		getSalesRequestPilotReviewPolicy(db, settingId),
+	]);
 	return {
 		settingId: result.settingId,
 		settings: result.selection,
@@ -167,6 +201,8 @@ async function readAISettingsSurface(
 			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
 			pilot: pilot.settings,
 			pilotSource: pilot.source,
+			pilotReviewPolicy: pilotReviewPolicy.policy,
+			pilotReviewPolicySource: pilotReviewPolicy.source,
 		},
 	};
 }
@@ -175,15 +211,21 @@ async function readAISettingsSurfaceWithSelection(
 	db: SalesRequestSettingsDb,
 	result: Awaited<ReturnType<typeof updateSalesRequestAISettings>>,
 ) {
-	const [catalog, requestGeneration, pilot, providerBenchmark] =
-		await Promise.all([
-			getSalesRequestCatalogSettings(db, result.settingId),
-			getSalesRequestGenerationAdminSettings(db, {
-				settingId: result.settingId,
-			}),
-			getSalesRequestPilotSettings(db, result.settingId),
-			getSalesRequestProviderBenchmarkApproval(db, result.settingId),
-		]);
+	const [
+		catalog,
+		requestGeneration,
+		pilot,
+		providerBenchmark,
+		pilotReviewPolicy,
+	] = await Promise.all([
+		getSalesRequestCatalogSettings(db, result.settingId),
+		getSalesRequestGenerationAdminSettings(db, {
+			settingId: result.settingId,
+		}),
+		getSalesRequestPilotSettings(db, result.settingId),
+		getSalesRequestProviderBenchmarkApproval(db, result.settingId),
+		getSalesRequestPilotReviewPolicy(db, result.settingId),
+	]);
 	return {
 		changed: result.changed,
 		settingId: result.settingId,
@@ -201,6 +243,8 @@ async function readAISettingsSurfaceWithSelection(
 			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
 			pilot: pilot.settings,
 			pilotSource: pilot.source,
+			pilotReviewPolicy: pilotReviewPolicy.policy,
+			pilotReviewPolicySource: pilotReviewPolicy.source,
 		},
 	};
 }
@@ -338,6 +382,42 @@ export const salesRequestRouter = createTRPCRouter({
 				settingId,
 				...input,
 			});
+		}),
+	updatePilotReviewPolicy: protectedProcedure
+		.input(setSalesRequestPilotReviewPolicySchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSalesRequestSettingsAdmin(ctx);
+			if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+			const rows = await ctx.db.settings.findMany({
+				where: { type: "sales-settings", deletedAt: null },
+				select: { id: true },
+			});
+			const settingId = selectSalesRequestSettingId(rows.map((row) => row.id));
+			const digest = createSalesRequestPilotReviewPolicyDigest(input);
+			return updateSalesRequestPilotReviewPolicy(
+				ctx.db,
+				{
+					...input,
+					settingId,
+					changedByUserId: ctx.userId,
+					digest,
+				},
+				(candidate) => {
+					if (
+						candidate.digest !==
+						createSalesRequestPilotReviewPolicyDigest({
+							provider: candidate.provider,
+							model: candidate.model,
+							thresholds: candidate.thresholds,
+						})
+					) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: "Pilot review policy digest verification failed.",
+						});
+					}
+				},
+			);
 		}),
 	regenerateConfiguration: protectedProcedure.mutation(async ({ ctx }) => {
 		await requireSalesRequestSettingsAdmin(ctx);
@@ -607,75 +687,172 @@ export const salesRequestRouter = createTRPCRouter({
 				{ ...input, actorUserId: ctx.userId },
 			),
 		),
+	recordPilotReviewDecision: protectedProcedure
+		.input(recordSalesRequestPilotReviewDecisionSchema)
+		.mutation(async ({ ctx, input }) => {
+			if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+			try {
+				return await ctx.db.$transaction(
+					async (tx) => {
+						const reviewAuthority =
+							await resolveSalesRequestPilotReviewAuthority({
+								db: tx,
+								featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
+								reviewerUserId: ctx.userId,
+							});
+						const summary = await getSalesRequestGenerationPilotSummary(
+							tx as unknown as SalesRequestTelemetryDatabase,
+							{
+								periodStart: input.periodStart,
+								authority: reviewAuthority.baseAuthority,
+							},
+						);
+						if (
+							summary.period.from === null ||
+							summary.period.toExclusive === null ||
+							summary.authority.status !== "matched" ||
+							!summary.coverage.complete
+						) {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message:
+									"This pilot period is not closed, complete, and authority-matched.",
+							});
+						}
+						const evidence = createSalesRequestPilotReviewEvidenceRecord({
+							periodStart: input.periodStart,
+							periodEnd: summary.period.toExclusive.toISOString().slice(0, 10),
+							evidence: summary.evidence,
+						});
+						const evidenceDigest =
+							createSalesRequestPilotEvidenceDigest(evidence);
+						const signoff = createSalesRequestPilotEvidenceSignoff({
+							reviewerUserId: ctx.userId,
+							reviewedAt: new Date(),
+							evidenceDigest,
+							authorityMatched: true,
+							values: input.signoff,
+						});
+						const thresholdEvaluation = evaluateSalesRequestPilotThresholds(
+							summary.evidence,
+							{
+								thresholds: reviewAuthority.reviewPolicy.policy.thresholds,
+								signoff,
+							},
+						);
+						if (thresholdEvaluation.status === "not-evaluable") {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: `Pilot evidence is not evaluable: ${thresholdEvaluation.blockers.join(", ")}`,
+							});
+						}
+						const decision = thresholdEvaluation.status;
+						if (input.decision !== decision) {
+							throw new TRPCError({
+								code: "CONFLICT",
+								message: `The server-derived pilot review decision is ${decision}.`,
+							});
+						}
+						await recordSalesRequestPilotReviewDecision(
+							tx as unknown as SalesRequestPilotReviewDatabase,
+							{
+								settingId: reviewAuthority.settingId,
+								periodStart: summary.period.from,
+								periodEnd: summary.period.toExclusive,
+								decision,
+								authority: reviewAuthority.currentAuthority,
+								evidence,
+								evidenceDigest,
+								thresholdPolicy: reviewAuthority.reviewPolicy.policy.thresholds,
+								signoff,
+							},
+						);
+						const periodDecisions =
+							await getLatestSalesRequestPilotReviewDecisions(
+								tx as unknown as SalesRequestPilotReviewDatabase,
+								reviewAuthority.settingId,
+							);
+						return {
+							periodStart: input.periodStart,
+							periodEnd: evidence.periodEnd,
+							decision,
+							thresholdEvaluation,
+							advancement: evaluateSalesRequestPilotAdvancement({
+								periodDecisions,
+								currentAuthority: reviewAuthority.currentAuthority,
+							}),
+						};
+					},
+					{ isolationLevel: "Serializable" },
+				);
+			} catch (error) {
+				if (isUniqueConstraintError(error)) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "This pilot period already has an immutable review.",
+					});
+				}
+				throw error;
+			}
+		}),
 	pilotSummary: protectedProcedure
 		.input(salesRequestGenerationPilotSummarySchema)
 		.query(async ({ ctx, input }) => {
 			await requireSalesRequestSettingsAdmin(ctx);
 			return ctx.db.$transaction(
 				async (tx) => {
-					const rows = await tx.settings.findMany({
-						where: { type: "sales-settings", deletedAt: null },
-						select: { id: true },
-					});
-					const settingId = selectSalesRequestSettingId(
-						rows.map((row) => row.id),
+					const reviewAuthority = await resolveSalesRequestPilotReviewAuthority(
+						{
+							db: tx,
+							featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
+						},
 					);
-					const snapshot = await getSalesRequestConfigurationContext(tx, {
-						settingId,
-					});
-					const [aiSettings, pilot, providerBenchmark] = await Promise.all([
-						getSalesRequestAISettings(tx, settingId),
-						getSalesRequestPilotSettings(tx, settingId),
-						getSalesRequestProviderBenchmarkApproval(tx, settingId),
-					]);
-					const authorityBlockers: string[] = [];
-					if (
-						process.env.SALES_REQUEST_AI_ENABLED !== "true" ||
-						!pilot.settings.enabled
-					) {
-						authorityBlockers.push("pilot-disabled");
-					}
-					if (pilot.source !== "persisted" || pilot.settings.revision <= 0) {
-						authorityBlockers.push("pilot-settings-unavailable");
-					}
-					const benchmarkCurrent =
-						isSalesRequestProviderBenchmarkApprovalCurrent(
-							providerBenchmark.approval,
-							{
-								...aiSettings.selection,
-								configurationRevision: snapshot.revision,
-								promptVersion: SALES_REQUEST_PROMPT_VERSION,
-								schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
-								corpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
-								policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
-							},
-						);
-					if (
-						aiSettings.source !== "persisted" ||
-						providerBenchmark.source !== "persisted" ||
-						!providerBenchmark.approval ||
-						!benchmarkCurrent
-					) {
-						authorityBlockers.push("provider-benchmark-unavailable");
-					}
-					const authority =
-						authorityBlockers.length === 0 && providerBenchmark.approval
-							? {
-									scope: snapshot.scope,
-									configurationRevision: snapshot.revision,
-									provider: aiSettings.selection.provider,
-									model: aiSettings.selection.model,
-									promptVersion: SALES_REQUEST_PROMPT_VERSION,
-									schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
-									pilotSettingsRevision: pilot.settings.revision,
-									providerBenchmarkApprovalRevision:
-										providerBenchmark.approval.revision,
-								}
-							: null;
-					return getSalesRequestGenerationPilotSummary(
+					const summary = await getSalesRequestGenerationPilotSummary(
 						tx as unknown as SalesRequestTelemetryDatabase,
-						{ ...input, authority, authorityBlockers },
+						{
+							...input,
+							authority: reviewAuthority.baseAuthority,
+							authorityBlockers: reviewAuthority.authorityBlockers,
+						},
 					);
+					let periodDecisions = [] as Awaited<
+						ReturnType<typeof getLatestSalesRequestPilotReviewDecisions>
+					>;
+					let invalidPeriodDecision = false;
+					try {
+						periodDecisions = await getLatestSalesRequestPilotReviewDecisions(
+							tx as unknown as SalesRequestPilotReviewDatabase,
+							reviewAuthority.settingId,
+						);
+					} catch {
+						invalidPeriodDecision = true;
+					}
+					const advancement = invalidPeriodDecision
+						? {
+								eligible: false,
+								blockers: ["invalid-period-decision"] as const,
+							}
+						: evaluateSalesRequestPilotAdvancement({
+								periodDecisions,
+								currentAuthority: reviewAuthority.currentAuthority,
+							});
+					return {
+						...summary,
+						eligibleForAdvancement: advancement.eligible,
+						advancement,
+						reviewedPeriods: periodDecisions.map((period) => ({
+							periodStart: period.periodStart,
+							periodEnd: period.periodEnd,
+							decision: period.decision,
+							reviewerUserId: period.reviewerUserId,
+							reviewedAt: period.reviewedAt,
+							authorityDigest: period.authorityDigest,
+							evidenceDigest: period.evidenceDigest,
+							thresholdPolicyVersion: period.thresholdPolicyVersion,
+							thresholdPolicyDigest: period.thresholdPolicyDigest,
+						})),
+						reviewPolicy: reviewAuthority.reviewPolicy,
+					};
 				},
 				{ isolationLevel: "RepeatableRead" },
 			);

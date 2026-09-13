@@ -83,6 +83,19 @@ export {
 	salesRequestPilotSettingsSchema,
 	updateSalesRequestPilotSettings,
 } from "./sales-request-pilot-settings";
+export {
+	getSalesRequestPilotReviewPolicy,
+	salesRequestPilotReviewPolicyInputSchema,
+	salesRequestPilotReviewPolicySchema,
+	salesRequestPilotThresholdPolicySchema,
+	updateSalesRequestPilotReviewPolicy,
+} from "./sales-request-pilot-review-policy";
+export type {
+	SalesRequestPilotReviewPolicy,
+	SalesRequestPilotReviewPolicySource,
+	SalesRequestPilotReviewPolicyVerifier,
+	SalesRequestPilotThresholdPolicy,
+} from "./sales-request-pilot-review-policy";
 export type {
 	SalesRequestPilotSettings,
 	SalesRequestPilotSettingsInput,
