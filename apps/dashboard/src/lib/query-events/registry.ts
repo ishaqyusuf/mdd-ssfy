@@ -228,6 +228,12 @@ export const QUERY_EVENTS = {
 			...salesProductionTargets,
 		],
 	},
+	"community.projects.changed": {
+		targets: [pathTarget("community.getCommunityProjects")],
+	},
+	"documents.changed": {
+		targets: [pathTarget("user.getProfile")],
+	},
 	"jobs.changed": {
 		targets: jobsTargets,
 	},

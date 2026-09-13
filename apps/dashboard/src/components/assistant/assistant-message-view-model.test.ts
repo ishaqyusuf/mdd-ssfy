@@ -198,4 +198,25 @@ describe("assistant message view model", () => {
 		);
 		expect(view.sources[0]?.scope).toBe("workspace");
 	});
+
+	test("normalizes only trusted typed entity parts", () => {
+		const view = normalizeAssistantMessage(
+			{
+				parts: [
+					{
+						type: "data-assistant-entity",
+						data: { kind: "order", id: "09502PC", label: "Order 09502PC" },
+					},
+					{
+						type: "data-assistant-entity",
+						data: { kind: "app", id: "admin", label: "Admin" },
+					},
+				],
+			},
+			{ isLastMessage: false, isStreaming: false },
+		);
+		expect(view.entities).toEqual([
+			{ kind: "order", id: "09502PC", label: "Order 09502PC" },
+		]);
+	});
 });

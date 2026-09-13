@@ -154,6 +154,10 @@ describe("assistant runtime", () => {
 			createModel: () => ({}) as never,
 			modelTools: { orders_search: {}, orders_create: {} },
 			trustedResultTools: ["orders_search", "orders_create"],
+			trustedResultToolEffects: {
+				orders_search: "read",
+				orders_create: "artifact",
+			},
 			createAgent: () => ({
 				stream: async () => ({
 					textStream: (async function* () {})(),
@@ -195,6 +199,19 @@ describe("assistant runtime", () => {
 											private: "do not stream",
 										},
 									],
+									entities: [
+										{
+											kind: "order",
+											id: "09502PC",
+											label: "Order 09502PC",
+										},
+										{
+											kind: "app",
+											id: "admin/secrets",
+											label: "Unsafe",
+										},
+									],
+									invalidationTags: ["sales.orders", "database.all"],
 								},
 							},
 						};
@@ -218,6 +235,29 @@ describe("assistant runtime", () => {
 							type: "tool-output-denied",
 							toolCallId: "c2",
 							toolName: "orders_create",
+						};
+						yield {
+							type: "tool-call",
+							toolCallId: "c3",
+							toolName: "orders_create",
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "c3",
+							toolName: "orders_create",
+							output: {
+								structuredContent: {
+									status: "partial",
+									entities: [
+										{
+											kind: "order",
+											id: "09503PC",
+											label: "Order 09503PC",
+										},
+									],
+									invalidationTags: ["sales.orders", "database.all"],
+								},
+							},
 						};
 						yield {
 							type: "source",
@@ -302,6 +342,15 @@ describe("assistant runtime", () => {
 				},
 			},
 			{
+				type: "data-assistant-entity",
+				id: "entity-c1-1",
+				data: {
+					kind: "order",
+					id: "09502PC",
+					label: "Order 09502PC",
+				},
+			},
+			{
 				type: "data-assistant-tool",
 				id: "tool-c2",
 				data: { id: "c2", name: "orders_create", status: "running" },
@@ -328,6 +377,39 @@ describe("assistant runtime", () => {
 					title: "Action not approved",
 					description: "The action was not run.",
 				},
+			},
+			{
+				type: "data-assistant-tool",
+				id: "tool-c3",
+				data: { id: "c3", name: "orders_create", status: "running" },
+			},
+			{
+				type: "data-assistant-tool",
+				id: "tool-c3",
+				data: { id: "c3", name: "orders_create", status: "complete" },
+			},
+			{
+				type: "data-assistant-card",
+				id: "card-c3",
+				data: {
+					kind: "partial",
+					title: "Some results are unavailable",
+					description: "The assistant completed part of the request.",
+				},
+			},
+			{
+				type: "data-assistant-entity",
+				id: "entity-c3-1",
+				data: {
+					kind: "order",
+					id: "09503PC",
+					label: "Order 09503PC",
+				},
+			},
+			{
+				type: "data-assistant-invalidation",
+				id: "invalidation-c3",
+				data: { toolCallId: "c3", tags: ["sales.orders"] },
 			},
 			{
 				type: "data-source",

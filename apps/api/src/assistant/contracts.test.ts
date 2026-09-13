@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
 	assistantCapabilityStateSchema,
 	assistantEffectSchema,
+	assistantEntityReferenceSchema,
+	assistantInvalidationTagSchema,
 	assistantToolIdentitySchema,
 	createAssistantResultEnvelopeSchema,
 } from "./contracts";
@@ -109,5 +111,66 @@ describe("assistant public contracts", () => {
 				allowedNextActions: [],
 			}),
 		).toThrow();
+	});
+
+	test("accepts only typed dashboard entity references", () => {
+		expect(
+			assistantEntityReferenceSchema.parse({
+				kind: "order",
+				id: "09502PC",
+				label: "Order 09502PC",
+			}),
+		).toEqual({ kind: "order", id: "09502PC", label: "Order 09502PC" });
+		expect(
+			assistantEntityReferenceSchema.parse({
+				kind: "document",
+				id: "doc:1",
+				label: "Invoice 09502PC",
+				mimeType: "application/pdf",
+			}),
+		).toMatchObject({ kind: "document", mimeType: "application/pdf" });
+		expect(() =>
+			assistantEntityReferenceSchema.parse({
+				kind: "app",
+				id: "admin/secrets",
+				label: "Unsafe destination",
+			}),
+		).toThrow();
+		expect(() =>
+			assistantEntityReferenceSchema.parse({
+				kind: "inventory",
+				id: "not-an-integer",
+				label: "Missing product",
+			}),
+		).toThrow();
+		expect(() =>
+			assistantEntityReferenceSchema.parse({
+				kind: "community",
+				id: "9007199254740993",
+				label: "Unsafe numeric ID",
+			}),
+		).toThrow();
+	});
+
+	test("keeps assistant invalidation tags on the reviewed allowlist", () => {
+		expect(assistantInvalidationTagSchema.parse("sales.orders")).toBe(
+			"sales.orders",
+		);
+		expect(() =>
+			assistantInvalidationTagSchema.parse("database.all"),
+		).toThrow();
+
+		const result = orderResultEnvelopeSchema.parse({
+			status: "success",
+			data: { orderId: "09502PC" },
+			sources: [],
+			observedAt: "2026-09-13T12:00:00.000Z",
+			warnings: [],
+			allowedNextActions: [],
+			entities: [{ kind: "order", id: "09502PC", label: "Order 09502PC" }],
+			invalidationTags: ["sales.orders"],
+		});
+		expect(result.entities?.[0]?.kind).toBe("order");
+		expect(result.invalidationTags).toEqual(["sales.orders"]);
 	});
 });

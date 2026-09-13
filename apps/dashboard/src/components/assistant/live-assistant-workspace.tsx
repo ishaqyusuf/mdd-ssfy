@@ -29,7 +29,9 @@ import {
 	WifiOff,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { parseAsString, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AssistantArtifactCanvas } from "./assistant-artifact-canvas";
 import {
 	AssistantAttachmentPicker,
 	useAssistantAttachments,
@@ -51,9 +53,12 @@ import {
 	shouldStickToAssistantBottom,
 	shouldSubmitAssistantComposerKey,
 } from "./assistant-chat-state";
+import { findAssistantDocumentEntity } from "./assistant-entities";
 import { AssistantMessageRenderer } from "./assistant-message-renderer";
 import type { AssistantResponseCardKind } from "./assistant-message-view-model";
 import styles from "./assistant.module.css";
+import { useAssistantEntityNavigation } from "./use-assistant-entity-navigation";
+import { useAssistantToolInvalidation } from "./use-assistant-tool-invalidation";
 
 type ConversationSummary = {
 	id: string;
@@ -126,6 +131,9 @@ function AssistantConversation(props: {
 		remaining: number;
 		resetAt: string;
 	} | null>(null);
+	const [artifactParams, setArtifactParams] = useQueryStates({
+		assistantArtifact: parseAsString,
+	});
 	const mountedRef = useRef(true);
 	const bodyRef = useRef<HTMLDivElement>(null);
 	const bottomRef = useRef<HTMLDivElement>(null);
@@ -195,6 +203,25 @@ function AssistantConversation(props: {
 		},
 		onFinish: () => props.onChanged(),
 	});
+	const documentArtifact = useMemo(
+		() =>
+			findAssistantDocumentEntity(
+				chat.messages,
+				artifactParams.assistantArtifact,
+			),
+		[artifactParams.assistantArtifact, chat.messages],
+	);
+	const openDocument = useCallback(
+		(document: NonNullable<typeof documentArtifact>) =>
+			void setArtifactParams({ assistantArtifact: document.id }),
+		[setArtifactParams],
+	);
+	const closeDocument = useCallback(
+		() => void setArtifactParams({ assistantArtifact: null }),
+		[setArtifactParams],
+	);
+	const openEntity = useAssistantEntityNavigation(openDocument);
+	useAssistantToolInvalidation(chat.messages);
 
 	useEffect(() => {
 		const update = () => setOnline(navigator.onLine);
@@ -383,7 +410,7 @@ function AssistantConversation(props: {
 		<>
 			<div
 				ref={bodyRef}
-				className={`${styles.body} ${chat.messages.length ? styles.withMessages : ""}`}
+				className={`${styles.body} ${chat.messages.length ? styles.withMessages : ""} ${documentArtifact ? styles.bodyCanvasOpen : ""}`}
 				onScroll={(event) => {
 					shouldStickRef.current = shouldStickToAssistantBottom({
 						scrollHeight: event.currentTarget.scrollHeight,
@@ -408,6 +435,7 @@ function AssistantConversation(props: {
 									onCardAction={
 										message.id === latestMessageId ? retryLatest : undefined
 									}
+									onOpenEntity={openEntity}
 								/>
 							))}
 							<div ref={bottomRef} />
@@ -437,7 +465,7 @@ function AssistantConversation(props: {
 				)}
 			</div>
 			<footer
-				className={styles.composerArea}
+				className={`${styles.composerArea} ${documentArtifact ? styles.composerCanvasOpen : ""}`}
 				onDragOver={(event) => event.preventDefault()}
 				onDrop={(event) => {
 					event.preventDefault();
@@ -579,6 +607,10 @@ function AssistantConversation(props: {
 					</span>
 				</div>
 			</footer>
+			<AssistantArtifactCanvas
+				document={documentArtifact}
+				onClose={closeDocument}
+			/>
 		</>
 	);
 }

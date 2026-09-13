@@ -142,6 +142,21 @@ describe("executeAssistantConversationTurn", () => {
 				executeRuntime: async (input) => {
 					events.push("runtime");
 					receivedMessages = input.modelMessages;
+					input.writer.write({
+						type: "data-assistant-entity",
+						id: "entity-1",
+						data: { kind: "document", id: "doc:1", label: "Invoice" },
+					});
+					input.writer.write({
+						type: "data-assistant-invalidation",
+						id: "invalidation-1",
+						data: { toolCallId: "call-1", tags: ["sales.orders"] },
+					});
+					input.writer.write({
+						type: "data-assistant-entity",
+						id: "unsafe",
+						data: { kind: "app", id: "admin/secrets", label: "Unsafe" },
+					});
 					return {
 						status: "succeeded",
 						assistantText: "It is in Production.",
@@ -166,6 +181,18 @@ describe("executeAssistantConversationTurn", () => {
 			runId: "run-2",
 			parentMessageId: "stored-message-3",
 			assistantText: "It is in Production.",
+			assistantParts: [
+				{
+					type: "data-assistant-entity",
+					id: "entity-1",
+					data: { kind: "document", id: "doc:1", label: "Invoice" },
+				},
+				{
+					type: "data-assistant-invalidation",
+					id: "invalidation-1",
+					data: { toolCallId: "call-1", tags: ["sales.orders"] },
+				},
+			],
 		});
 		expect(events).toEqual(["runtime", "persist"]);
 		expect(outcome).toEqual({

@@ -88,6 +88,7 @@ export async function createAssistantMcpExecutionClient(
 	actor: AssistantToolActor,
 	resolveCurrentActor?: () => Promise<AssistantToolActor>,
 ) {
+	const executableDefinitions = getExecutableAssistantDefinitions(actor);
 	const server = createAssistantMcpServer(actor, resolveCurrentActor);
 	const [clientTransport, serverTransport] =
 		InMemoryTransport.createLinkedPair();
@@ -105,6 +106,12 @@ export async function createAssistantMcpExecutionClient(
 		return {
 			definitions,
 			tools,
+			toolEffects: Object.fromEntries(
+				executableDefinitions.map((definition) => [
+					definition.toolId,
+					definition.effect,
+				]),
+			),
 			async close() {
 				if (closed) return;
 				closed = true;

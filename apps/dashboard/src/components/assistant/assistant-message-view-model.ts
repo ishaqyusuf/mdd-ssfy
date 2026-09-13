@@ -1,3 +1,6 @@
+import type { AssistantEntityReference } from "@api/assistant/contracts";
+import { parseAssistantEntity } from "./assistant-entities";
+
 const hiddenAssistantTools = new Set(["search_tools", "system_search_tools"]);
 
 const assistantToolLabels: Record<string, string> = {
@@ -45,6 +48,7 @@ export type AssistantMessageViewModel = {
 		freshness: string | null;
 	}>;
 	files: Array<{ id: string; name: string; mediaType: string }>;
+	entities: AssistantEntityReference[];
 	cards: Array<{
 		kind: AssistantResponseCardKind;
 		title: string;
@@ -251,6 +255,13 @@ export function normalizeAssistantMessage(
 		const card = normalizeAssistantCard(part);
 		return card ? [card] : [];
 	});
+	const entities = parts
+		.flatMap((part) => {
+			if (part.type !== "data-assistant-entity") return [];
+			const entity = parseAssistantEntity(part.data);
+			return entity ? [entity] : [];
+		})
+		.slice(0, 20);
 	const showThinking =
 		options.isStreaming &&
 		options.isLastMessage &&
@@ -263,6 +274,7 @@ export function normalizeAssistantMessage(
 		tools,
 		sources,
 		files,
+		entities,
 		cards,
 		showThinking,
 		hasContent:
@@ -270,6 +282,7 @@ export function normalizeAssistantMessage(
 			tools.length > 0 ||
 			sources.length > 0 ||
 			files.length > 0 ||
+			entities.length > 0 ||
 			cards.length > 0,
 	};
 }

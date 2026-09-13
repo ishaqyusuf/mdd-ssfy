@@ -52,12 +52,36 @@ export const assistantJobStatuses = [
 	"cancelled",
 ] as const;
 
+export const assistantInvalidationTags = [
+	"sales.orders",
+	"sales.quotes",
+	"sales.payments",
+	"sales.pipeline",
+	"customers",
+	"inventory.catalog",
+	"inventory.stock",
+	"inventory.inbound",
+	"community.projects",
+	"documents",
+] as const;
+
+export const assistantAppDestinations = [
+	"sales-orders",
+	"sales-customers",
+	"inventory",
+	"community",
+	"documents",
+	"assistant",
+] as const;
+
 export const assistantCapabilityStateSchema = z.enum(assistantCapabilityStates);
 export const assistantEffectSchema = z.enum(assistantEffects);
 export const assistantResultStatusSchema = z.enum(assistantResultStatuses);
 export const assistantSourceKindSchema = z.enum(assistantSourceKinds);
 export const assistantArtifactStatusSchema = z.enum(assistantArtifactStatuses);
 export const assistantJobStatusSchema = z.enum(assistantJobStatuses);
+export const assistantInvalidationTagSchema = z.enum(assistantInvalidationTags);
+export const assistantAppDestinationSchema = z.enum(assistantAppDestinations);
 
 export const assistantToolIdSchema = z
 	.string()
@@ -96,6 +120,53 @@ export const assistantJobReferenceSchema = z
 	})
 	.strict();
 
+const assistantEntityBaseSchema = z.object({
+	id: z.string().trim().min(1).max(191),
+	label: z.string().trim().min(1).max(200),
+});
+
+export const assistantEntityReferenceSchema = z.discriminatedUnion("kind", [
+	assistantEntityBaseSchema.extend({ kind: z.literal("order") }).strict(),
+	assistantEntityBaseSchema.extend({ kind: z.literal("customer") }).strict(),
+	assistantEntityBaseSchema
+		.extend({
+			kind: z.literal("inventory"),
+			id: z
+				.string()
+				.regex(/^\d+$/)
+				.refine(
+					(value) => Number.isSafeInteger(Number(value)) && Number(value) > 0,
+					"Inventory IDs must be positive safe integers.",
+				),
+		})
+		.strict(),
+	assistantEntityBaseSchema
+		.extend({
+			kind: z.literal("community"),
+			id: z
+				.string()
+				.regex(/^\d+$/)
+				.refine(
+					(value) => Number.isSafeInteger(Number(value)) && Number(value) > 0,
+					"Community IDs must be positive safe integers.",
+				),
+		})
+		.strict(),
+	assistantEntityBaseSchema
+		.extend({
+			kind: z.literal("document"),
+			mimeType: z.string().trim().min(1).max(100).optional(),
+		})
+		.strict(),
+	z
+		.object({
+			kind: z.literal("app"),
+			id: assistantAppDestinationSchema,
+			label: z.string().trim().min(1).max(200),
+		})
+		.strict(),
+]);
+
 const assistantResultEnvelopeBaseSchema = z
 	.object({
 		status: assistantResultStatusSchema,
@@ -106,6 +177,11 @@ const assistantResultEnvelopeBaseSchema = z
 		warnings: z.array(z.string().min(1)).max(50),
 		artifact: assistantArtifactReferenceSchema.optional(),
 		job: assistantJobReferenceSchema.optional(),
+		entities: z.array(assistantEntityReferenceSchema).max(20).optional(),
+		invalidationTags: z
+			.array(assistantInvalidationTagSchema)
+			.max(20)
+			.optional(),
 		allowedNextActions: z.array(assistantToolIdentitySchema).max(50),
 	})
 	.strict();
@@ -126,3 +202,9 @@ export type AssistantResultEnvelope<TData = unknown> = z.infer<
 	typeof assistantResultEnvelopeBaseSchema
 > & { data?: TData };
 export type AssistantToolIdentity = z.infer<typeof assistantToolIdentitySchema>;
+export type AssistantEntityReference = z.infer<
+	typeof assistantEntityReferenceSchema
+>;
+export type AssistantInvalidationTag = z.infer<
+	typeof assistantInvalidationTagSchema
+>;

@@ -154,6 +154,33 @@ function AssistantSources({
 	);
 }
 
+function AssistantEntityLinks({
+	entities,
+	onOpen,
+}: {
+	entities: AssistantMessageViewModel["entities"];
+	onOpen?: (entity: AssistantMessageViewModel["entities"][number]) => void;
+}) {
+	if (!entities.length || !onOpen) return null;
+	return (
+		<nav className={styles.entityLinks} aria-label="Related workspace records">
+			{entities.map((entity) => (
+				<button
+					type="button"
+					key={`${entity.kind}:${entity.id}`}
+					onClick={() => onOpen(entity)}
+				>
+					<span>{entity.label}</span>
+					<small>
+						{entity.kind === "app" ? "Open page" : `Open ${entity.kind}`}
+					</small>
+					<ChevronRight size={14} />
+				</button>
+			))}
+		</nav>
+	);
+}
+
 function AssistantResponseCards({
 	cards,
 	onAction,
@@ -225,12 +252,16 @@ function AssistantMessage({
 	isStreaming,
 	isLastMessage,
 	onCardAction,
+	onOpenEntity,
 }: {
 	message: UIMessage;
 	isStreaming: boolean;
 	isLastMessage: boolean;
 	onCardAction?: (
 		kind: AssistantMessageViewModel["cards"][number]["kind"],
+	) => void;
+	onOpenEntity?: (
+		entity: AssistantMessageViewModel["entities"][number],
 	) => void;
 }) {
 	const [copied, setCopied] = useState(false);
@@ -279,6 +310,7 @@ function AssistantMessage({
 				) : null}
 				<AssistantToolProgress tools={view.tools} />
 				<AssistantResponseCards cards={view.cards} onAction={onCardAction} />
+				<AssistantEntityLinks entities={view.entities} onOpen={onOpenEntity} />
 				<AssistantSources sources={view.sources} />
 			</div>
 		</section>
@@ -287,7 +319,11 @@ function AssistantMessage({
 
 const MemoizedAssistantMessage = memo(AssistantMessage, (previous, next) => {
 	if (previous.isLastMessage || next.isLastMessage) return false;
-	return previous.message === next.message;
+	return (
+		previous.message === next.message &&
+		previous.onCardAction === next.onCardAction &&
+		previous.onOpenEntity === next.onOpenEntity
+	);
 });
 
 export function AssistantMessageRenderer(props: {
@@ -296,6 +332,9 @@ export function AssistantMessageRenderer(props: {
 	isLastMessage: boolean;
 	onCardAction?: (
 		kind: AssistantMessageViewModel["cards"][number]["kind"],
+	) => void;
+	onOpenEntity?: (
+		entity: AssistantMessageViewModel["entities"][number],
 	) => void;
 }) {
 	if (props.message.role === "user") {

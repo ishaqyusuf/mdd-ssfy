@@ -14,6 +14,8 @@ import {
 import { z } from "zod";
 import {
 	type AssistantEffect,
+	assistantEntityReferenceSchema,
+	assistantInvalidationTagSchema,
 	assistantResultStatuses,
 	assistantSourceKinds,
 } from "./contracts";
@@ -178,6 +180,7 @@ async function writeSafeAssistantStream(input: {
 	writer: AssistantRuntimeWriter;
 	allowedTools: ReadonlySet<string>;
 	trustedResultTools: ReadonlySet<string>;
+	trustedResultToolEffects: ReadonlyMap<string, AssistantEffect>;
 }) {
 	const toolNames = new Map<string, string>();
 	const runningTools = new Map<string, string>();
@@ -327,6 +330,51 @@ async function writeSafeAssistantStream(input: {
 							},
 						});
 						sourceCount += 1;
+					}
+				}
+				if (type === "tool-result" && trustedResult) {
+					const envelope = assistantEnvelopeFromOutput(part.output);
+					const status = boundedRuntimeString(envelope?.status, 40);
+					if (status === "success" || status === "partial") {
+						const entities = Array.isArray(envelope?.entities)
+							? envelope.entities
+							: [];
+						for (const [index, rawEntity] of entities.slice(0, 20).entries()) {
+							const parsed =
+								assistantEntityReferenceSchema.safeParse(rawEntity);
+							if (!parsed.success) continue;
+							input.writer.write({
+								type: "data-assistant-entity",
+								id: `entity-${id ?? "result"}-${index + 1}`,
+								data: parsed.data,
+							});
+						}
+						if (
+							id &&
+							["write", "artifact", "external_send", "destructive"].includes(
+								input.trustedResultToolEffects.get(knownName) ?? "",
+							)
+						) {
+							const tags = Array.isArray(envelope?.invalidationTags)
+								? envelope.invalidationTags
+								: [];
+							const parsedTags = Array.from(
+								new Set(
+									tags.slice(0, 20).flatMap((tag) => {
+										const parsed =
+											assistantInvalidationTagSchema.safeParse(tag);
+										return parsed.success ? [parsed.data] : [];
+									}),
+								),
+							);
+							if (parsedTags.length) {
+								input.writer.write({
+									type: "data-assistant-invalidation",
+									id: `invalidation-${id}`,
+									data: { toolCallId: id, tags: parsedTags },
+								});
+							}
+						}
 					}
 				}
 				continue;
@@ -689,6 +737,7 @@ export function createAssistantRuntime(options?: {
 	tools?: AssistantRuntimeToolEntry[];
 	modelTools?: Record<string, unknown>;
 	trustedResultTools?: string[];
+	trustedResultToolEffects?: Record<string, AssistantEffect>;
 	prepareStep?: unknown;
 	deadlineMs?: number;
 	createModel?: (selection: AssistantRuntimeSelection) => LanguageModel;
@@ -708,6 +757,9 @@ export function createAssistantRuntime(options?: {
 	const trustedResultTools = new Set(
 		options?.trustedResultTools ??
 			(options?.tools ?? []).map(({ name }) => name),
+	);
+	const trustedResultToolEffects = new Map<string, AssistantEffect>(
+		Object.entries(options?.trustedResultToolEffects ?? {}),
 	);
 	const deadlineMs = Math.max(
 		1,
@@ -814,6 +866,7 @@ export function createAssistantRuntime(options?: {
 						writer: input.writer,
 						allowedTools: new Set(Object.keys(runtimeTools)),
 						trustedResultTools,
+						trustedResultToolEffects,
 					});
 				} else {
 					for await (const delta of result.textStream) {

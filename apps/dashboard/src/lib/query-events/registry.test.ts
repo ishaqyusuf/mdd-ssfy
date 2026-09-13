@@ -26,7 +26,19 @@ describe("query event mutation registry", () => {
 	});
 	it("keeps the critical-domain rollout registered", () => {
 		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(105);
-		expect(Object.keys(QUERY_EVENTS).length).toBe(16);
+		expect(Object.keys(QUERY_EVENTS).length).toBe(18);
+	});
+	it("refreshes Community projects and user documents for assistant mutations", () => {
+		expect(
+			resolveQueryEventTargets({ name: "community.projects.changed" }).map(
+				(target) => target.route,
+			),
+		).toEqual(["community.getCommunityProjects"]);
+		expect(
+			resolveQueryEventTargets({ name: "documents.changed" }).map(
+				(target) => target.route,
+			),
+		).toEqual(["user.getProfile"]);
 	});
 
 	it("refreshes production and dispatch projections after layered cancellation", () => {

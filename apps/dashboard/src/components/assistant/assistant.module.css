@@ -953,6 +953,134 @@
 .responseCard button {
 	display: block;
 }
+.entityLinks {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 7px;
+	margin-top: 12px;
+}
+.entityLinks button {
+	position: relative;
+	display: grid;
+	gap: 2px;
+	padding: 10px 32px 10px 11px;
+	border: 1px solid var(--border);
+	border-radius: 7px;
+	background: color-mix(in srgb, var(--background) 82%, var(--muted));
+	text-align: left;
+	transition: border-color 160ms ease, background-color 160ms ease;
+}
+.entityLinks button:hover,
+.entityLinks button:focus-visible {
+	border-color: color-mix(in srgb, var(--assistant-green) 58%, var(--border));
+	background: color-mix(in srgb, var(--assistant-green) 7%, var(--background));
+}
+.entityLinks span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: 550;
+}
+.entityLinks small {
+	color: var(--muted-foreground);
+	font-size: 9px;
+	text-transform: capitalize;
+}
+.entityLinks svg {
+	position: absolute;
+	top: 50%;
+	right: 10px;
+	transform: translateY(-50%);
+	color: var(--muted-foreground);
+}
+.artifactCanvas {
+	position: fixed;
+	z-index: 45;
+	top: 70px;
+	right: 0;
+	left: auto;
+	display: flex;
+	flex-direction: column;
+	width: min(650px, calc(100vw - 72px));
+	height: calc(100dvh - 70px);
+	border-left: 1px solid var(--border);
+	background: var(--background);
+	color: var(--foreground);
+	box-shadow: -18px 0 50px rgb(0 0 0 / 12%);
+	animation: assistant-canvas-enter 180ms ease-out;
+}
+@media (min-width: 701px) {
+	.bodyCanvasOpen {
+		padding-right: calc(min(650px, 100vw - 72px) + 28px);
+	}
+	.composerCanvasOpen {
+		margin-right: min(650px, calc(100vw - 72px));
+	}
+}
+.artifactCanvas > header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	min-height: 62px;
+	padding: 10px 14px 10px 18px;
+	border-bottom: 1px solid var(--border);
+}
+.artifactCanvas > header > div,
+.artifactCanvas > header span {
+	display: flex;
+}
+.artifactCanvas > header > div {
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+.artifactCanvas > header span {
+	flex-direction: column;
+	min-width: 0;
+}
+.artifactCanvas > header small {
+	color: var(--muted-foreground);
+	font-size: 9px;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+}
+.artifactCanvas > header strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 13px;
+}
+.artifactViewport {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 20px;
+	background: color-mix(in srgb, var(--muted) 45%, var(--background));
+}
+.artifactCanvas > footer {
+	display: flex;
+	justify-content: flex-end;
+	padding: 12px 16px;
+	border-top: 1px solid var(--border);
+}
+.artifactCanvas > footer button {
+	gap: 7px;
+}
+@keyframes assistant-canvas-enter {
+	from {
+		transform: translateX(24px);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
 .responseCard strong {
 	font-size: 12px;
 }
@@ -1041,10 +1169,20 @@
 	.messageSources > div {
 		grid-template-columns: 1fr;
 	}
+	.entityLinks {
+		grid-template-columns: 1fr;
+	}
+	.artifactCanvas {
+		top: 0;
+		width: 100vw;
+		height: 100dvh;
+		border-left: 0;
+	}
 }
 @media (prefers-reduced-motion: reduce) {
 	.spin,
-	.messageThinking span {
+	.messageThinking span,
+	.artifactCanvas {
 		animation: none;
 	}
 }

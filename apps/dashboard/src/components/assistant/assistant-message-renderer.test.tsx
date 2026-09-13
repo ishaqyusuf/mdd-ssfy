@@ -188,4 +188,33 @@ describe("AssistantMessageRenderer", () => {
 		expect(html).toContain("<button");
 		expect(html).not.toContain("aria-live");
 	});
+
+	test("renders typed entity actions only when navigation is provided", () => {
+		const html = renderToStaticMarkup(
+			<AssistantMessageRenderer
+				message={
+					{
+						id: "message-entity",
+						role: "assistant",
+						parts: [
+							{
+								type: "data-assistant-entity",
+								data: {
+									kind: "order",
+									id: "09502PC",
+									label: "Order 09502PC",
+								},
+							},
+						],
+					} as UIMessage
+				}
+				isStreaming={false}
+				isLastMessage={false}
+				onOpenEntity={() => {}}
+			/>,
+		);
+		expect(html).toContain('aria-label="Related workspace records"');
+		expect(html).toContain("Order 09502PC");
+		expect(html).toContain("Open order");
+	});
 });

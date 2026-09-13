@@ -18,6 +18,10 @@ describe("assistant in-memory MCP", () => {
 			"system_explain_capability",
 			"system_search_tools",
 		]);
+		expect(session.toolEffects).toEqual({
+			system_explain_capability: "read",
+			system_search_tools: "read",
+		});
 		expect(
 			session.definitions.tools.every(
 				(tool) => !("handler" in tool) && !("grants" in tool),

@@ -1,5 +1,5 @@
 import type { AssistantChatRequest } from "@api/schemas/assistant";
-import { db } from "@gnd/db";
+import { type Prisma, db } from "@gnd/db";
 import {
 	appendAssistantGeneratedMessage,
 	getAssistantModelHistory,
@@ -8,6 +8,10 @@ import { get } from "@vercel/blob";
 import type { ModelMessage } from "ai";
 import { getDocument } from "pdfjs-dist/build/pdf.mjs";
 import sharp from "sharp";
+import {
+	assistantEntityReferenceSchema,
+	assistantInvalidationTagSchema,
+} from "./contracts";
 import { getAssistantComposioTools } from "./integrations";
 import { createAssistantMcpExecutionClient } from "./mcp";
 import {
@@ -78,8 +82,53 @@ type ExecuteAssistantTurnDependencies = {
 		runId: string;
 		parentMessageId: string | null;
 		assistantText: string;
+		assistantParts: Prisma.InputJsonValue[];
 	}): Promise<void>;
 };
+
+function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
+	if (!chunk || typeof chunk !== "object") return null;
+	const part = chunk as { type?: unknown; id?: unknown; data?: unknown };
+	if (typeof part.id !== "string" || !part.id.trim() || part.id.length > 240)
+		return null;
+	if (part.type === "data-assistant-entity") {
+		const parsed = assistantEntityReferenceSchema.safeParse(part.data);
+		return parsed.success
+			? ({
+					type: part.type,
+					id: part.id,
+					data: parsed.data,
+				} as Prisma.InputJsonValue)
+			: null;
+	}
+	if (part.type === "data-assistant-invalidation") {
+		if (!part.data || typeof part.data !== "object") return null;
+		const data = part.data as { toolCallId?: unknown; tags?: unknown };
+		if (
+			typeof data.toolCallId !== "string" ||
+			!data.toolCallId.trim() ||
+			data.toolCallId.length > 160 ||
+			!Array.isArray(data.tags)
+		)
+			return null;
+		const tags = Array.from(
+			new Set(
+				data.tags.flatMap((tag) => {
+					const parsed = assistantInvalidationTagSchema.safeParse(tag);
+					return parsed.success ? [parsed.data] : [];
+				}),
+			),
+		);
+		return tags.length
+			? ({
+					type: part.type,
+					id: part.id,
+					data: { toolCallId: data.toolCallId, tags },
+				} as Prisma.InputJsonValue)
+			: null;
+	}
+	return null;
+}
 
 const defaultDependencies: ExecuteAssistantTurnDependencies = {
 	preprocessingDeadlineMs: ASSISTANT_PREPROCESSING_DEADLINE_MS,
@@ -162,6 +211,7 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 				trustedResultTools: Object.keys(session.tools).filter(
 					(toolName) => !(toolName in composioTools),
 				),
+				trustedResultToolEffects: session.toolEffects,
 				alwaysActiveTools: Object.keys(composioTools),
 				prepareStep: createAssistantPrepareStep(input.actor),
 				cleanup: session.close,
@@ -178,7 +228,10 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 			scopeType: input.actor.scopeType,
 			scopeId: input.actor.scopeId,
 			runId: input.runId,
-			parts: [{ type: "text", text: input.assistantText }],
+			parts: [
+				{ type: "text", text: input.assistantText },
+				...input.assistantParts,
+			],
 			searchText: input.assistantText,
 			parentMessageId: input.parentMessageId,
 		});
@@ -400,6 +453,7 @@ export async function executeAssistantConversationTurn(
 						: fallbackText,
 				},
 			];
+	const assistantParts: Prisma.InputJsonValue[] = [];
 	const outcome = await dependencies.executeRuntime({
 		actor: input.actor,
 		modelMessages,
@@ -413,7 +467,13 @@ export async function executeAssistantConversationTurn(
 			id,
 			name: id,
 		})),
-		writer: input.writer,
+		writer: {
+			write(chunk) {
+				input.writer.write(chunk);
+				const persistentPart = persistentAssistantPart(chunk);
+				if (persistentPart) assistantParts.push(persistentPart);
+			},
+		},
 		signal: input.signal,
 		reauthorizeActor: input.reauthorizeActor,
 	});
@@ -431,6 +491,7 @@ export async function executeAssistantConversationTurn(
 		runId: input.run.runId,
 		parentMessageId: input.run.triggerMessageId ?? null,
 		assistantText: outcome.assistantText,
+		assistantParts,
 	});
 	return {
 		status: outcome.status,
