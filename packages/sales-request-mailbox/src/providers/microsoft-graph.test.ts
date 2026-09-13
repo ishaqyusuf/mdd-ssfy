@@ -159,6 +159,26 @@ describe("Microsoft Graph mailbox adapter", () => {
 		expect(detail.headers.loopMarker).toBe("sales@example.com");
 	});
 
+	test("rejects a getMessage response whose provider identity changed", async () => {
+		const fetch = (async () =>
+			Response.json({
+				id: "different-message",
+				from: { emailAddress: { address: "buyer@example.com" } },
+				receivedDateTime: "2026-09-13T10:00:00.000Z",
+				hasAttachments: false,
+				internetMessageHeaders: [],
+				body: { contentType: "text", content: "Need a door" },
+				toRecipients: [],
+				ccRecipients: [],
+			})) satisfies MicrosoftGraphFetch;
+		await expect(
+			adapter(fetch).getMessage({
+				tokens,
+				providerMessageId: "expected-message",
+			}),
+		).rejects.toMatchObject({ code: "malformed-response" });
+	});
+
 	test("rejects a delta page without exactly one continuation", async () => {
 		const fetch = (async () =>
 			Response.json({ value: [] })) satisfies MicrosoftGraphFetch;
@@ -215,6 +235,7 @@ describe("Microsoft Graph mailbox adapter", () => {
 	test("maps authorization, cursor, rate, and network failures", async () => {
 		for (const [status, code] of [
 			[401, "authorization-revoked"],
+			[404, "not-found"],
 			[410, "cursor-invalid"],
 			[429, "rate-limited"],
 		] as const) {

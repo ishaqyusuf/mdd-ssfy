@@ -91,6 +91,25 @@ export {
 	resolveMailboxSyncSources,
 	runMailboxSyncStream,
 } from "./sync-orchestrator.js";
+export {
+	MAILBOX_MESSAGE_DETAIL_MAX_RETRY_ATTEMPTS,
+	buildMailboxMessageContentHash,
+	buildMailboxSourceMembershipIdentity,
+	runMailboxMessageDetail,
+} from "./message-detail.js";
+export type {
+	MailboxMessageDetailDependencies,
+	MailboxMessageDetailLeaseScope,
+	MailboxMessageDetailRunResult,
+	MailboxMessageDetailStore,
+	MailboxMessageDetailStoreLease,
+	MailboxMessageDetailSuppressionReason,
+	MailboxMessageDetailWithdrawalReason,
+	MailboxMessageDetailWorkInput,
+	MailboxMessageSnapshot,
+	MailboxQueueProjection,
+	MailboxSourceMembershipProjection,
+} from "./message-detail.js";
 export type {
 	MailboxSyncAuthorityFence,
 	MailboxSyncCheckpoint,

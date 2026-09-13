@@ -74,6 +74,12 @@ function providerError(status: number, retryAfter: string | null) {
 			code: "cursor-invalid",
 		});
 	}
+	if (status === 404) {
+		return new MailboxProviderError({
+			provider: "microsoft-graph",
+			code: "not-found",
+		});
+	}
 	if (status === 429) {
 		return new MailboxProviderError({
 			provider: "microsoft-graph",
@@ -554,9 +560,8 @@ export class MicrosoftGraphMailboxAdapter
 		tokens: MailboxTokenSet;
 		providerMessageId: string;
 	}): Promise<MailboxMessageDetail> {
-		const id = encodeURIComponent(
-			required(input.providerMessageId, "providerMessageId"),
-		);
+		const requestedId = required(input.providerMessageId, "providerMessageId");
+		const id = encodeURIComponent(requestedId);
 		const url = `${GRAPH_ROOT}/me/messages/${id}?$select=id,conversationId,parentFolderId,from,subject,receivedDateTime,hasAttachments,internetMessageHeaders,body,toRecipients,ccRecipients`;
 		const value = record(
 			await json(this.#fetch, url, {
@@ -564,6 +569,12 @@ export class MicrosoftGraphMailboxAdapter
 			}),
 		);
 		const base = summary(value);
+		if (base.providerMessageId !== requestedId) {
+			throw new MailboxProviderError({
+				provider: this.provider,
+				code: "malformed-response",
+			});
+		}
 		const body = record(value.body);
 		const content = text(body.content, 200_000);
 		const contentType = text(body.contentType, 20)?.toLowerCase();

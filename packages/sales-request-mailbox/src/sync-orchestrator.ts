@@ -151,7 +151,10 @@ type MailboxSyncSettlement = MailboxSyncLeaseContext & {
  * still matches current records in the same transaction. Page commits atomically,
  * idempotently apply projections and compare-and-set the stream checkpoint. An
  * ambiguous storage failure is retried by reclaiming the stream, so callers must
- * permit the same provider page to be replayed.
+ * permit the same provider page to be replayed. The concrete store, not this sync
+ * runner, atomically assigns/increments a monotonic summaryRevision for each exact
+ * connection+source+provider-message projection during commitPageAndCheckpoint.
+ * A later detail claim verifies that persisted revision against its work input.
  */
 export interface MailboxSyncStore {
 	claimLease(input: {
