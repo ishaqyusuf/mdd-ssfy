@@ -153,6 +153,7 @@ describe("sales request telemetry boundaries", () => {
 				startedAt: new Date("2026-09-12T10:00:00.000Z"),
 				saveFinalAt: new Date("2026-09-12T10:10:00.000Z"),
 				feedbackOutcome: "accepted",
+				feedbackIssueCategories: [],
 			},
 			{
 				generationId: "assistive-two",
@@ -164,6 +165,8 @@ describe("sales request telemetry boundaries", () => {
 				startedAt: new Date("2026-09-12T11:00:00.000Z"),
 				saveFinalAt: new Date("2026-09-12T11:20:00.000Z"),
 				feedbackOutcome: "accepted-with-edits",
+				feedbackIssueCategories: [],
+				feedbackChangedFieldCategories: ["line-items"],
 			},
 			{
 				generationId: "low-touch-one",
@@ -175,6 +178,8 @@ describe("sales request telemetry boundaries", () => {
 				startedAt: new Date("2026-09-12T12:00:00.000Z"),
 				saveFinalAt: new Date("2026-09-12T12:05:00.000Z"),
 				feedbackOutcome: "accepted-with-edits",
+				feedbackIssueCategories: [],
+				feedbackChangedFieldCategories: ["line-items"],
 			},
 			{
 				generationId: "failed-low-touch-attempt",
@@ -186,6 +191,8 @@ describe("sales request telemetry boundaries", () => {
 				startedAt: new Date("2026-09-12T13:00:00.000Z"),
 				saveFinalAt: new Date("2026-09-12T13:01:00.000Z"),
 				feedbackOutcome: "accepted-with-edits",
+				feedbackIssueCategories: [],
+				feedbackChangedFieldCategories: ["line-items"],
 			},
 		]);
 
@@ -238,6 +245,53 @@ describe("sales request telemetry boundaries", () => {
 		);
 	});
 
+	test("fails comparison feedback coverage closed for malformed legacy category payloads", () => {
+		const report = aggregateSalesRequestGenerationRuns([
+			{
+				actorUserId: 17,
+				status: "succeeded",
+				consumedSalesId: null,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T10:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T10:05:00.000Z"),
+				feedbackOutcome: "accepted-with-edits",
+				feedbackIssueCategories: [],
+				feedbackChangedFieldCategories: [],
+			},
+			{
+				actorUserId: 18,
+				status: "succeeded",
+				consumedSalesId: 41,
+				applyOutcome: "applied",
+				saveFinalOutcome: "saved",
+				startedAt: new Date("2026-09-12T11:00:00.000Z"),
+				saveFinalAt: new Date("2026-09-12T11:05:00.000Z"),
+				feedbackOutcome: "accepted",
+				feedbackIssueCategories: [],
+			},
+		]);
+
+		expect(report.representativeComparison).toMatchObject({
+			comparison: {
+				status: "insufficient-evidence",
+				autonomyDecisionEligible: false,
+				blockers: ["assistive-feedback-incomplete"],
+				observedLowTouchMinusAssistive: null,
+			},
+			arms: {
+				assistiveTextFirst: {
+					finalizedCount: 1,
+					correctionRate: { reviewedCount: 0, rateBasisPoints: null },
+				},
+				lowTouchConsumedFinalSave: {
+					finalizedCount: 1,
+					correctionRate: { reviewedCount: 1, rateBasisPoints: 0 },
+				},
+			},
+		});
+	});
+
 	test("keeps incomplete, anonymized, or unclassified evidence out of comparison arms", () => {
 		const report = aggregateSalesRequestGenerationRuns([
 			{
@@ -249,6 +303,7 @@ describe("sales request telemetry boundaries", () => {
 				startedAt: new Date("2026-09-12T10:00:00.000Z"),
 				saveFinalAt: new Date("2026-09-12T10:05:00.000Z"),
 				feedbackOutcome: "accepted",
+				feedbackIssueCategories: [],
 			},
 			{
 				status: "succeeded",
@@ -313,6 +368,7 @@ describe("sales request telemetry boundaries", () => {
 				startedAt: new Date("2026-09-12T12:00:00.000Z"),
 				saveFinalAt: new Date("2026-09-12T12:05:00.000Z"),
 				feedbackOutcome: "accepted",
+				feedbackIssueCategories: [],
 			},
 		]);
 

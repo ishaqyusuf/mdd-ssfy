@@ -331,7 +331,14 @@ function validIssueCounts(value: unknown): value is {
 	);
 }
 
-function validFeedback(row: SalesRequestPilotEvidenceRow) {
+/**
+ * Validate persisted pilot feedback before it contributes to evidence or
+ * comparison metrics. This intentionally covers legacy rows that may predate
+ * the current ingress schema.
+ */
+export function isValidSalesRequestPilotFeedback(
+	row: SalesRequestPilotEvidenceRow,
+) {
 	if (
 		typeof row.feedbackOutcome === "string" &&
 		feedbackOutcomes.has(row.feedbackOutcome) &&
@@ -461,7 +468,7 @@ export function deriveSalesRequestPilotEvidence(
 	const issueRows = succeededRows.filter((row) =>
 		validIssueCounts(row.issueCounts),
 	);
-	const feedbackRows = succeededRows.filter(validFeedback);
+	const feedbackRows = succeededRows.filter(isValidSalesRequestPilotFeedback);
 	const acceptedRows = feedbackRows.filter(
 		(row) =>
 			row.feedbackOutcome === "accepted" ||
@@ -523,8 +530,9 @@ export function deriveSalesRequestPilotEvidence(
 	);
 	const semanticViolations = {
 		acceptedWithoutApply: acceptedApplicationCoverage.missing,
-		appliedWithoutFeedback: appliedRows.filter((row) => !validFeedback(row))
-			.length,
+		appliedWithoutFeedback: appliedRows.filter(
+			(row) => !isValidSalesRequestPilotFeedback(row),
+		).length,
 	};
 	const advancementComplete =
 		lifecycleCoverage.complete &&

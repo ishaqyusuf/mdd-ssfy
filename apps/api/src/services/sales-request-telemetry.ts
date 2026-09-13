@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { NewSalesFormSeed } from "@gnd/sales/sales-form-core";
+import { isValidSalesRequestPilotFeedback } from "./sales-request-pilot-evidence";
 import type { SalesRequestProviderFailureDiagnostic } from "./sales-request-provider";
 
 export const SALES_REQUEST_GENERATION_STATUSES = [
@@ -468,8 +469,9 @@ function representativeComparisonArm(
 		.filter((value): value is number => value !== null);
 	const reviewedRows = rows.filter(
 		(row) =>
-			row.feedbackOutcome === "accepted" ||
-			row.feedbackOutcome === "accepted-with-edits",
+			isValidSalesRequestPilotFeedback(row) &&
+			(row.feedbackOutcome === "accepted" ||
+				row.feedbackOutcome === "accepted-with-edits"),
 	);
 	const acceptedWithEditsCount = reviewedRows.filter(
 		(row) => row.feedbackOutcome === "accepted-with-edits",
