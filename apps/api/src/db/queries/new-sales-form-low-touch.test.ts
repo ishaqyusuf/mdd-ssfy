@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	persistSalesRequestLowTouchFinalization,
 	runLowTouchSerializableTransaction,
 	runNewSalesFormTransaction,
 } from "./new-sales-form";
@@ -26,11 +27,10 @@ describe("New Sales Form low-touch final-save boundary", () => {
 			"tx.salesOrders.create({",
 			authority,
 		);
-		const consumption = source.indexOf(
-			"consumeSalesRequestGenerationRun(",
+		const finalization = source.indexOf(
+			"persistSalesRequestLowTouchFinalization({",
 			firstSalesWrite,
 		);
-		const audit = source.indexOf("tx.salesHistory.create({", consumption);
 		const transactionEnd = source.indexOf(
 			"const canonical = await getNewSalesForm",
 			transactionStart,
@@ -41,11 +41,10 @@ describe("New Sales Form low-touch final-save boundary", () => {
 		expect(draftRecheck).toBeGreaterThan(transactionStart);
 		expect(draftRecheck).toBeLessThan(authority);
 		expect(firstSalesWrite).toBeGreaterThan(authority);
-		expect(consumption).toBeGreaterThan(firstSalesWrite);
-		expect(audit).toBeGreaterThan(consumption);
-		expect(transactionEnd).toBeGreaterThan(audit);
+		expect(finalization).toBeGreaterThan(firstSalesWrite);
+		expect(transactionEnd).toBeGreaterThan(finalization);
 		expect(source).toContain('isolationLevel: "Serializable"');
-		expect(source.slice(authority, consumption)).toContain(
+		expect(source.slice(authority, finalization)).toContain(
 			'authority.authority.kind === "idempotent-replay"',
 		);
 	});
@@ -70,8 +69,9 @@ describe("New Sales Form low-touch final-save boundary", () => {
 		expect(ordinaryAttempts).toBe(1);
 	});
 
-	test("rolls back all callback effects when a late low-touch write fails", async () => {
-		const committed = { salesWrites: 0, generationConsumptions: 0 };
+	test("rolls back generation consumption when the low-touch audit write fails", async () => {
+		const committed = { generationConsumptions: 0, audits: 0 };
+		const attempts: string[] = [];
 		let options: unknown;
 		const db = {
 			$transaction: async (
@@ -79,24 +79,68 @@ describe("New Sales Form low-touch final-save boundary", () => {
 				transactionOptions: unknown,
 			) => {
 				options = transactionOptions;
-				const working = { ...committed };
+				const working = {
+					...committed,
+					salesHistory: {
+						create: async () => {
+							attempts.push("audit");
+							working.audits += 1;
+							throw new Error("forced late audit failure");
+						},
+					},
+				};
 				const result = await callback(working);
-				Object.assign(committed, working);
+				committed.generationConsumptions = working.generationConsumptions;
+				committed.audits = working.audits;
 				return result;
 			},
 		};
 
 		await expect(
 			runNewSalesFormTransaction(db, true, async (tx) => {
-				const working = tx as typeof committed;
-				working.salesWrites += 1;
-				working.generationConsumptions += 1;
-				throw new Error("forced late audit failure");
+				await persistSalesRequestLowTouchFinalization(
+					{
+						tx,
+						actorUserId: 17,
+						salesId: 91,
+						authority: {
+							kind: "finalize",
+							settingId: 3,
+							generationId: "generation-1",
+							configurationScope: "sales-request",
+							configurationRevision: "configuration-1",
+							promptVersion: "prompt-1",
+							outputSchemaVersion: 2,
+							benchmarkCorpusVersion: "corpus-1",
+							benchmarkPolicyVersion: "policy-1",
+							provider: "deepseek",
+							model: "deepseek-v4-flash",
+							commercialRevision: "commercial-1",
+							commercialFingerprint: "fingerprint-1",
+							permissionRevision: "permission-1",
+							stockRevision: "stock-1",
+						},
+					},
+					{
+						consumeGenerationRun: async (transaction, input) => {
+							attempts.push("consume");
+							expect(input).toEqual({
+								actorUserId: 17,
+								generationId: "generation-1",
+								salesId: 91,
+							});
+							(
+								transaction as unknown as typeof committed
+							).generationConsumptions += 1;
+						},
+					},
+				);
 			}),
 		).rejects.toThrow("forced late audit failure");
+		expect(attempts).toEqual(["consume", "audit"]);
 		expect(committed).toEqual({
-			salesWrites: 0,
 			generationConsumptions: 0,
+			audits: 0,
 		});
 		expect(options).toEqual({
 			isolationLevel: "Serializable",
@@ -125,7 +169,7 @@ describe("New Sales Form low-touch final-save boundary", () => {
 		expect(finalSave).not.toContain("payload: parsed");
 		expect(finalSave).not.toContain("payload: lowTouchClaim");
 		expect(source).toContain(
-			"configurationScope: lowTouchAuthority.configurationScope",
+			"configurationScope: input.authority.configurationScope",
 		);
 		expect(source).toContain("_idempotentReplay: _idempotentReplay");
 		expect(source).toContain(

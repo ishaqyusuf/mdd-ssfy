@@ -44,7 +44,10 @@ import {
 	splitSalesRequestLowTouchFinalSaveClaim,
 	updateNewSalesFormShelfProductSchema,
 } from "@api/schemas/new-sales-form";
-import { resolveSalesRequestFinalSaveAuthority } from "@api/services/sales-request-final-save-authority";
+import {
+	type SalesRequestFinalSaveAuthorityResult,
+	resolveSalesRequestFinalSaveAuthority,
+} from "@api/services/sales-request-final-save-authority";
 import {
 	type GetSalesRequestServiceVocabularyInput,
 	getSalesRequestServiceVocabulary as loadSalesRequestServiceVocabulary,
@@ -279,6 +282,62 @@ export async function runNewSalesFormTransaction<T>(
 			timeout: 30_000,
 		});
 	return lowTouch ? runLowTouchSerializableTransaction(operation) : operation();
+}
+
+type SalesRequestLowTouchFinalizeAuthority = Extract<
+	Extract<SalesRequestFinalSaveAuthorityResult, { ok: true }>["authority"],
+	{ kind: "finalize" }
+>;
+
+export async function persistSalesRequestLowTouchFinalization(
+	input: {
+		tx: TransactionClient;
+		actorUserId: number;
+		salesId: number;
+		authority: SalesRequestLowTouchFinalizeAuthority;
+	},
+	dependencies: {
+		consumeGenerationRun: (
+			db: Parameters<typeof consumeSalesRequestGenerationRun>[0],
+			input: Parameters<typeof consumeSalesRequestGenerationRun>[1],
+		) => Promise<unknown>;
+	} = { consumeGenerationRun: consumeSalesRequestGenerationRun },
+) {
+	await dependencies.consumeGenerationRun(
+		input.tx as unknown as Parameters<
+			typeof consumeSalesRequestGenerationRun
+		>[0],
+		{
+			actorUserId: input.actorUserId,
+			generationId: input.authority.generationId,
+			salesId: input.salesId,
+		},
+	);
+	await input.tx.salesHistory.create({
+		data: {
+			salesId: input.salesId,
+			name: "Sales request low-touch finalization",
+			data: {
+				event: "sales_request_low_touch_finalized",
+				schemaVersion: 1,
+				actorUserId: input.actorUserId,
+				settingId: input.authority.settingId,
+				generationId: input.authority.generationId,
+				configurationScope: input.authority.configurationScope,
+				configurationRevision: input.authority.configurationRevision,
+				promptVersion: input.authority.promptVersion,
+				outputSchemaVersion: input.authority.outputSchemaVersion,
+				benchmarkCorpusVersion: input.authority.benchmarkCorpusVersion,
+				benchmarkPolicyVersion: input.authority.benchmarkPolicyVersion,
+				provider: input.authority.provider,
+				model: input.authority.model,
+				commercialRevision: input.authority.commercialRevision,
+				commercialFingerprint: input.authority.commercialFingerprint,
+				permissionRevision: input.authority.permissionRevision,
+				stockRevision: input.authority.stockRevision,
+			},
+		},
+	});
 }
 
 function withoutPo(meta: NewSalesFormMeta) {
@@ -3400,13 +3459,8 @@ async function saveNewSalesFormInternal(
 				}
 			}
 			const isNew = !(payload.salesId || payload.slug);
-			let lowTouchAuthority: Extract<
-				Extract<
-					Awaited<ReturnType<typeof resolveSalesRequestFinalSaveAuthority>>,
-					{ ok: true }
-				>["authority"],
-				{ kind: "finalize" }
-			> | null = null;
+			let lowTouchAuthority: SalesRequestLowTouchFinalizeAuthority | null =
+				null;
 			if (lowTouchClaim) {
 				if (!ctx.userId) {
 					throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -4835,40 +4889,11 @@ async function saveNewSalesFormInternal(
 				stageProposal: true,
 			});
 			if (lowTouchAuthority && ctx.userId) {
-				await consumeSalesRequestGenerationRun(
-					tx as unknown as Parameters<
-						typeof consumeSalesRequestGenerationRun
-					>[0],
-					{
-						actorUserId: ctx.userId,
-						generationId: lowTouchAuthority.generationId,
-						salesId: currentId,
-					},
-				);
-				await tx.salesHistory.create({
-					data: {
-						salesId: currentId,
-						name: "Sales request low-touch finalization",
-						data: {
-							event: "sales_request_low_touch_finalized",
-							schemaVersion: 1,
-							actorUserId: ctx.userId,
-							settingId: lowTouchAuthority.settingId,
-							generationId: lowTouchAuthority.generationId,
-							configurationScope: lowTouchAuthority.configurationScope,
-							configurationRevision: lowTouchAuthority.configurationRevision,
-							promptVersion: lowTouchAuthority.promptVersion,
-							outputSchemaVersion: lowTouchAuthority.outputSchemaVersion,
-							benchmarkCorpusVersion: lowTouchAuthority.benchmarkCorpusVersion,
-							benchmarkPolicyVersion: lowTouchAuthority.benchmarkPolicyVersion,
-							provider: lowTouchAuthority.provider,
-							model: lowTouchAuthority.model,
-							commercialRevision: lowTouchAuthority.commercialRevision,
-							commercialFingerprint: lowTouchAuthority.commercialFingerprint,
-							permissionRevision: lowTouchAuthority.permissionRevision,
-							stockRevision: lowTouchAuthority.stockRevision,
-						},
-					},
+				await persistSalesRequestLowTouchFinalization({
+					tx,
+					actorUserId: ctx.userId,
+					salesId: currentId,
+					authority: lowTouchAuthority,
 				});
 			}
 
