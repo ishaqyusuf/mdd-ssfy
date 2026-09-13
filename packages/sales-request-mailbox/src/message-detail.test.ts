@@ -279,7 +279,6 @@ describe("mailbox message detail projection", () => {
 				provider: "gmail",
 				providerMessageId: "message-1",
 				providerThreadId: "thread-1",
-				sourceSummaryRevision: 8,
 				capturedAt: new Date("2026-09-13T12:00:10.000Z"),
 				receivedAt: new Date("2026-09-12T10:00:00.000Z"),
 				expiresAt: new Date("2026-10-12T10:00:00.000Z"),
@@ -292,10 +291,18 @@ describe("mailbox message detail projection", () => {
 				displayText: "Need two doors.",
 				modelInput: expect.stringContaining('"Need two doors."'),
 			},
+			snapshotBehavior: {
+				identity: "connection-message-schema-content-hash",
+				write: "insert-once-reuse-existing",
+				neverOverwriteContent: true,
+				neverExtendExpiry: true,
+				keepSourceRevisionOnMembership: true,
+			},
 			queueProjection: {
 				initialStatus: "new",
 				sameIdentityBehavior: "preserve-status",
-				contentChangeBehavior: "supersede-current-under-global-message-lease",
+				contentChangeBehavior:
+					"supersede-and-reset-new-under-global-message-lease",
 				sourceRevisionBehavior: "ignore-older-source-revision",
 				sourceMembershipIdentity: buildMailboxSourceMembershipIdentity({
 					connectionId: "connection-1",
@@ -308,6 +315,7 @@ describe("mailbox message detail projection", () => {
 				sourceKey: gmailInbox.key,
 				summaryRevision: 8,
 				state: "active",
+				currentBehavior: "replace-active-source-membership-atomically",
 				revisionBehavior: "ignore-older-source-revision",
 			},
 		});
@@ -818,7 +826,8 @@ describe("mailbox message detail projection", () => {
 		expect(first.commit).toMatchObject({
 			queueProjection: {
 				sameIdentityBehavior: "preserve-status",
-				contentChangeBehavior: "supersede-current-under-global-message-lease",
+				contentChangeBehavior:
+					"supersede-and-reset-new-under-global-message-lease",
 				sourceRevisionBehavior: "ignore-older-source-revision",
 			},
 		});

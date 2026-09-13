@@ -84,7 +84,6 @@ export type MailboxMessageSnapshot = {
 	provider: MailboxProvider;
 	providerMessageId: string;
 	providerThreadId: string | null;
-	sourceSummaryRevision: number;
 	capturedAt: Date;
 	receivedAt: Date;
 	expiresAt: Date;
@@ -107,6 +106,7 @@ export type MailboxSourceMembershipProjection = {
 	providerMessageId: string;
 	summaryRevision: number;
 	state: "active";
+	currentBehavior: "replace-active-source-membership-atomically";
 	revisionBehavior: "ignore-older-source-revision";
 };
 
@@ -122,9 +122,17 @@ export type MailboxQueueProjection = {
 	snapshotSchemaVersion: 1;
 	initialStatus: "new";
 	sameIdentityBehavior: "preserve-status";
-	contentChangeBehavior: "supersede-current-under-global-message-lease";
+	contentChangeBehavior: "supersede-and-reset-new-under-global-message-lease";
 	sourceRevisionBehavior: "ignore-older-source-revision";
 };
+
+export const MAILBOX_SNAPSHOT_COMMIT_BEHAVIOR = {
+	identity: "connection-message-schema-content-hash",
+	write: "insert-once-reuse-existing",
+	neverOverwriteContent: true,
+	neverExtendExpiry: true,
+	keepSourceRevisionOnMembership: true,
+} as const;
 
 export type MailboxMessageDetailSuppressionReason =
 	| "policy-disabled"
@@ -193,6 +201,7 @@ export interface MailboxMessageDetailStore {
 	commitSnapshotAndQueue(
 		input: MailboxMessageDetailLeaseContext & {
 			snapshot: MailboxMessageSnapshot;
+			snapshotBehavior: typeof MAILBOX_SNAPSHOT_COMMIT_BEHAVIOR;
 			sourceMembership: MailboxSourceMembershipProjection;
 			queueProjection: MailboxQueueProjection;
 		},
@@ -919,7 +928,6 @@ export async function runMailboxMessageDetail(
 		provider: connection.provider,
 		providerMessageId: input.providerMessageId,
 		providerThreadId: content.providerThreadId,
-		sourceSummaryRevision: input.expectedSummaryRevision,
 		capturedAt,
 		receivedAt: content.receivedAt,
 		expiresAt,
@@ -941,6 +949,7 @@ export async function runMailboxMessageDetail(
 		providerMessageId: input.providerMessageId,
 		summaryRevision: input.expectedSummaryRevision,
 		state: "active",
+		currentBehavior: "replace-active-source-membership-atomically",
 		revisionBehavior: "ignore-older-source-revision",
 	};
 	const queueProjection: MailboxQueueProjection = {
@@ -955,7 +964,7 @@ export async function runMailboxMessageDetail(
 		snapshotSchemaVersion: 1,
 		initialStatus: "new",
 		sameIdentityBehavior: "preserve-status",
-		contentChangeBehavior: "supersede-current-under-global-message-lease",
+		contentChangeBehavior: "supersede-and-reset-new-under-global-message-lease",
 		sourceRevisionBehavior: "ignore-older-source-revision",
 	};
 	const controlFlow = controlFlowBeforeMutation();
@@ -964,6 +973,7 @@ export async function runMailboxMessageDetail(
 		await dependencies.store.commitSnapshotAndQueue({
 			...context,
 			snapshot,
+			snapshotBehavior: MAILBOX_SNAPSHOT_COMMIT_BEHAVIOR,
 			sourceMembership,
 			queueProjection,
 		}),

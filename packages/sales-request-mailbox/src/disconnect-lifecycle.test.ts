@@ -552,6 +552,7 @@ describe("mailbox disconnect lifecycle", () => {
 			now: NOW,
 			cleanupBehavior: {
 				eraseCredentials: true,
+				eraseProviderAccountIdentity: true,
 				erasePrivateSyncState: true,
 				purgeRetainedSourceContent: "immediately",
 				retainAudit: "content-free-only",

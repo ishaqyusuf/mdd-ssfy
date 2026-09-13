@@ -14,6 +14,7 @@
 		"./inbox-cursor": "./src/inbox-cursor.ts",
 		"./inbox-read": "./src/inbox-read.ts",
 		"./provider-request": "./src/provider-request.ts",
+		"./retention-cleanup": "./src/retention-cleanup.ts",
 		"./token-health-lifecycle": "./src/token-health-lifecycle.ts",
 		"./providers": "./src/providers/index.ts"
 	},

@@ -33,6 +33,7 @@ export const MAILBOX_DISCONNECT_CLAIM_BEHAVIOR = {
 
 export const MAILBOX_DISCONNECT_CLEANUP_BEHAVIOR = {
 	eraseCredentials: true,
+	eraseProviderAccountIdentity: true,
 	erasePrivateSyncState: true,
 	purgeRetainedSourceContent: "immediately",
 	retainAudit: "content-free-only",

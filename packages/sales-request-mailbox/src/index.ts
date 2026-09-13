@@ -250,3 +250,11 @@ export type {
 	MailboxInboxSummarySource,
 	MailboxQueueStatus,
 } from "./inbox-read.js";
+export {
+	MAILBOX_RETENTION_PURGE_BEHAVIOR,
+	purgeExpiredMailboxContent,
+} from "./retention-cleanup.js";
+export type {
+	MailboxRetentionCleanupStore,
+	MailboxRetentionPurgeCounts,
+} from "./retention-cleanup.js";
