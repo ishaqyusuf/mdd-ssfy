@@ -724,7 +724,11 @@ export function validateNewSalesFormSeedConfiguration(
 }
 
 export async function generateNewSalesFormSeed(
-	input: SalesRequestProviderInput & { configurationRevision: string },
+	input: SalesRequestProviderInput & {
+		configurationRevision: string;
+		/** Decoded source used by deterministic grounding checks when text is framed. */
+		groundingText?: string;
+	},
 	provider: SalesRequestProvider,
 	options?: {
 		onProviderFailure?: (
@@ -741,7 +745,12 @@ export async function generateNewSalesFormSeed(
 	signal.throwIfAborted();
 	let generated: Awaited<ReturnType<SalesRequestProvider>>;
 	try {
-		generated = await provider({ ...input, images, signal });
+		generated = await provider({
+			text: input.text,
+			images,
+			configurationJson: input.configurationJson,
+			signal,
+		});
 	} catch (error) {
 		try {
 			options?.onProviderFailure?.(classifySalesRequestProviderFailure(error));
@@ -763,7 +772,7 @@ export async function generateNewSalesFormSeed(
 	const configured = validateNewSalesFormSeedConfiguration(
 		parsed.data,
 		input.configurationJson,
-		input.text,
+		input.groundingText ?? input.text,
 	);
 	return {
 		seed: configured,

@@ -52,13 +52,13 @@ describe("sales request mailbox inbox read contracts", () => {
 				limit: 20,
 				search: "  door quote  ",
 				status: "needs-review",
-				cursor: "mbx1.opaque-server-cursor",
+				cursor: "mbx1.opaque-server.cursor-signature",
 			}),
 		).toEqual({
 			limit: 20,
 			search: "door quote",
 			status: "needs-review",
-			cursor: "mbx1.opaque-server-cursor",
+			cursor: "mbx1.opaque-server.cursor-signature",
 		});
 		expect(mailboxInboxPageRequestSchema.parse({})).toEqual({ limit: 50 });
 		expect(
@@ -74,6 +74,11 @@ describe("sales request mailbox inbox read contracts", () => {
 		expect(
 			mailboxInboxPageRequestSchema.safeParse({
 				search: "x".repeat(MAILBOX_INBOX_SEARCH_MAX_CHARS + 1),
+			}).success,
+		).toBe(false);
+		expect(
+			mailboxInboxPageRequestSchema.safeParse({
+				cursor: `   mbx1.payload.signature${" ".repeat(3_000)}`,
 			}).success,
 		).toBe(false);
 	});
@@ -165,7 +170,7 @@ describe("sales request mailbox inbox read contracts", () => {
 	test("returns bounded status counts and opaque pagination only", () => {
 		const projected = projectMailboxInboxPage({
 			items: [summary()],
-			nextCursor: "mbx1.opaque-next-cursor",
+			nextCursor: "mbx1.opaque-next.cursor-signature",
 			statusCounts: {
 				...DEFAULT_MAILBOX_INBOX_STATUS_COUNTS,
 				new: 1,
@@ -174,7 +179,7 @@ describe("sales request mailbox inbox read contracts", () => {
 			rawPayload: { access_token: "provider-token-secret" },
 		});
 		expect(projected.items).toHaveLength(1);
-		expect(projected.nextCursor).toBe("mbx1.opaque-next-cursor");
+		expect(projected.nextCursor).toBe("mbx1.opaque-next.cursor-signature");
 		expect(projected.statusCounts.new).toBe(1);
 		expect(JSON.stringify(projected)).not.toContain("provider-cursor-secret");
 		expect(JSON.stringify(projected)).not.toContain("provider-token-secret");

@@ -817,6 +817,46 @@ test("accepts a source-grounded custom value only on a custom-capable step", asy
 	).resolves.toMatchObject({ seed });
 });
 
+test("uses decoded grounding text without exposing it to the provider", async () => {
+	const customConfiguration = structuredClone(configuration);
+	customConfiguration.steps[1] = {
+		...customConfiguration.steps[1],
+		custom: true,
+	};
+	const seed = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "line-custom-envelope",
+				qty: 1,
+				formSteps: [
+					{ stepId: 1, prodUid: "exterior" },
+					{ stepId: 2, value: "6-9/16 INCH" },
+				],
+			},
+		],
+		unresolved: [],
+	} as const;
+	let providerInput: Record<string, unknown> | undefined;
+
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "canonical safety envelope",
+				groundingText: "Customer requests a 6-9/16 inch jamb",
+				configurationJson: JSON.stringify(customConfiguration),
+			},
+			async (received) => {
+				providerInput = received as unknown as Record<string, unknown>;
+				return { output: seed };
+			},
+		),
+	).resolves.toMatchObject({ seed });
+	expect(providerInput).toMatchObject({ text: "canonical safety envelope" });
+	expect(providerInput).not.toHaveProperty("groundingText");
+});
+
 test("rejects a custom value that was not stated by the customer", async () => {
 	const customConfiguration = structuredClone(configuration);
 	customConfiguration.steps[1] = {

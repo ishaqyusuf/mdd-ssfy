@@ -87,6 +87,8 @@ function assertCurrentSnapshot(
 export async function createSalesRequestPreview(
 	input: {
 		text: string;
+		/** Decoded source for grounding when text is a canonical safety envelope. */
+		groundingText?: string;
 		images: SalesRequestImage[];
 		signal: AbortSignal;
 	},

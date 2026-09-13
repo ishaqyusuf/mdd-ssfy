@@ -116,6 +116,8 @@ export type {
 	MailboxOAuthRedirectKey,
 } from "./oauth-state.js";
 export {
+	MAILBOX_MODEL_INPUT_GUARD,
+	parseMailboxModelInput,
 	prepareMailboxDisplayText,
 	prepareMailboxModelInput,
 } from "./sanitization.js";
@@ -222,6 +224,14 @@ export {
 	projectMailboxInboxPage,
 	projectMailboxInboxSummary,
 } from "./inbox-read.js";
+export {
+	issueMailboxInboxCursor,
+	readMailboxInboxCursor,
+} from "./inbox-cursor.js";
+export type {
+	MailboxInboxCursorScope,
+	MailboxInboxKeyset,
+} from "./inbox-cursor.js";
 export type {
 	MailboxAdminHealthProjection,
 	MailboxAdminHealthSource,

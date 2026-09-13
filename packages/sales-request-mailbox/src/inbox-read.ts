@@ -35,10 +35,13 @@ export const MAILBOX_INBOX_MAX_RETRY_ATTEMPTS = 5;
 
 const boundedCursorSchema = z
 	.string()
-	.trim()
 	.min(1)
 	.max(MAILBOX_INBOX_CURSOR_MAX_CHARS)
-	.regex(/^mbx1\.[A-Za-z0-9_-]+$/, "Inbox cursor must be opaque.");
+	.refine((value) => value === value.trim(), "Inbox cursor must be trimmed.")
+	.regex(
+		/^mbx1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
+		"Inbox cursor must be opaque.",
+	);
 
 /** A cursor is an API-issued keyset envelope, never a provider cursor. */
 export const mailboxInboxCursorSchema = boundedCursorSchema;
