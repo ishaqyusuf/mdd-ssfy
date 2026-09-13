@@ -39,6 +39,19 @@ export type SalesRequestCatalogSettings = {
 	publication: SalesRequestCatalogPublication;
 };
 
+export function isSalesRequestCatalogPublicationCurrent(
+	publication: Pick<
+		SalesRequestCatalogPublication,
+		"publishedRevision" | "status"
+	>,
+	configurationRevision: string,
+) {
+	return (
+		publication.status === "published" &&
+		publication.publishedRevision === configurationRevision
+	);
+}
+
 type RecordValue = Record<string, unknown>;
 
 function isRecord(value: unknown): value is RecordValue {

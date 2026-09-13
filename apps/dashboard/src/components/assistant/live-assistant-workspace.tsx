@@ -56,6 +56,10 @@ import {
 import { findAssistantDocumentEntity } from "./assistant-entities";
 import { AssistantMessageRenderer } from "./assistant-message-renderer";
 import type { AssistantResponseCardKind } from "./assistant-message-view-model";
+import {
+	type AssistantOrderDraft,
+	AssistantOrderDraftCanvas,
+} from "./assistant-order-draft-canvas";
 import styles from "./assistant.module.css";
 import { useAssistantEntityNavigation } from "./use-assistant-entity-navigation";
 import { useAssistantToolInvalidation } from "./use-assistant-tool-invalidation";
@@ -131,6 +135,9 @@ function AssistantConversation(props: {
 		remaining: number;
 		resetAt: string;
 	} | null>(null);
+	const [orderDraft, setOrderDraft] = useState<AssistantOrderDraft | null>(
+		null,
+	);
 	const [artifactParams, setArtifactParams] = useQueryStates({
 		assistantArtifact: parseAsString,
 	});
@@ -212,8 +219,10 @@ function AssistantConversation(props: {
 		[artifactParams.assistantArtifact, chat.messages],
 	);
 	const openDocument = useCallback(
-		(document: NonNullable<typeof documentArtifact>) =>
-			void setArtifactParams({ assistantArtifact: document.id }),
+		(document: NonNullable<typeof documentArtifact>) => {
+			setOrderDraft(null);
+			return void setArtifactParams({ assistantArtifact: document.id });
+		},
 		[setArtifactParams],
 	);
 	const closeDocument = useCallback(
@@ -410,7 +419,7 @@ function AssistantConversation(props: {
 		<>
 			<div
 				ref={bodyRef}
-				className={`${styles.body} ${chat.messages.length ? styles.withMessages : ""} ${documentArtifact ? styles.bodyCanvasOpen : ""}`}
+				className={`${styles.body} ${chat.messages.length ? styles.withMessages : ""} ${documentArtifact || orderDraft ? styles.bodyCanvasOpen : ""}`}
 				onScroll={(event) => {
 					shouldStickRef.current = shouldStickToAssistantBottom({
 						scrollHeight: event.currentTarget.scrollHeight,
@@ -436,6 +445,10 @@ function AssistantConversation(props: {
 										message.id === latestMessageId ? retryLatest : undefined
 									}
 									onOpenEntity={openEntity}
+									onOpenOrderDraft={(draft) => {
+										void setArtifactParams({ assistantArtifact: null });
+										setOrderDraft(draft);
+									}}
 								/>
 							))}
 							<div ref={bottomRef} />
@@ -465,7 +478,7 @@ function AssistantConversation(props: {
 				)}
 			</div>
 			<footer
-				className={`${styles.composerArea} ${documentArtifact ? styles.composerCanvasOpen : ""}`}
+				className={`${styles.composerArea} ${documentArtifact || orderDraft ? styles.composerCanvasOpen : ""}`}
 				onDragOver={(event) => event.preventDefault()}
 				onDrop={(event) => {
 					event.preventDefault();
@@ -610,6 +623,10 @@ function AssistantConversation(props: {
 			<AssistantArtifactCanvas
 				document={documentArtifact}
 				onClose={closeDocument}
+			/>
+			<AssistantOrderDraftCanvas
+				draft={orderDraft}
+				onClose={() => setOrderDraft(null)}
 			/>
 		</>
 	);

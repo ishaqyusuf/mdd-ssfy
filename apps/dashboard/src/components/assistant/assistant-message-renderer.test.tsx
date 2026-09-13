@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { NEW_SALES_FORM_SEED_EXAMPLE } from "@gnd/sales/sales-form-core";
 import type { UIMessage } from "ai";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AssistantMessageRenderer } from "./assistant-message-renderer";
@@ -216,5 +217,42 @@ describe("AssistantMessageRenderer", () => {
 		expect(html).toContain('aria-label="Related workspace records"');
 		expect(html).toContain("Order 09502PC");
 		expect(html).toContain("Open order");
+	});
+
+	test("renders a native draft review action only when a canvas handler is present", () => {
+		const part = {
+			type: "data-assistant-order-draft",
+			id: "order-draft-1",
+			data: {
+				type: "order",
+				generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
+				seed: NEW_SALES_FORM_SEED_EXAMPLE,
+				configurationScope: "sales-settings:1",
+				configurationRevision: "catalog-revision-4",
+				promptVersion: "sales-request-v4",
+				provider: "openai",
+				model: "gpt-5-mini",
+				usage: { inputTokens: 120, outputTokens: 40 },
+				unresolvedCount: 0,
+			},
+		};
+		const render = (enabled: boolean) =>
+			renderToStaticMarkup(
+				<AssistantMessageRenderer
+					message={
+						{
+							id: "message-draft",
+							role: "assistant",
+							parts: [part],
+						} as UIMessage
+					}
+					isStreaming={false}
+					isLastMessage={false}
+					{...(enabled ? { onOpenOrderDraft: () => {} } : {})}
+				/>,
+			);
+		expect(render(true)).toContain('aria-label="Generated Sales drafts"');
+		expect(render(true)).toContain("Review order draft");
+		expect(render(false)).not.toContain("Review order draft");
 	});
 });

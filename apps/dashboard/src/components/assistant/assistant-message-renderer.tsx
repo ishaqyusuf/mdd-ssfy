@@ -8,6 +8,7 @@ import {
 	CircleDashed,
 	Copy,
 	ExternalLink,
+	FilePlus2,
 	FileText,
 	LoaderCircle,
 	LockKeyhole,
@@ -181,6 +182,34 @@ function AssistantEntityLinks({
 	);
 }
 
+function AssistantOrderDraftLinks({
+	drafts,
+	onOpen,
+}: {
+	drafts: AssistantMessageViewModel["orderDrafts"];
+	onOpen?: (draft: AssistantMessageViewModel["orderDrafts"][number]) => void;
+}) {
+	if (!drafts.length || !onOpen) return null;
+	return (
+		<nav className={styles.entityLinks} aria-label="Generated Sales drafts">
+			{drafts.map((draft) => (
+				<button type="button" key={draft.id} onClick={() => onOpen(draft)}>
+					<FilePlus2 size={15} />
+					<span>
+						Review {draft.data.type} draft
+						<small>
+							{draft.data.seed.lineItems.length} line item
+							{draft.data.seed.lineItems.length === 1 ? "" : "s"} ·{" "}
+							{draft.data.unresolvedCount} unresolved
+						</small>
+					</span>
+					<ChevronRight size={14} />
+				</button>
+			))}
+		</nav>
+	);
+}
+
 function AssistantResponseCards({
 	cards,
 	onAction,
@@ -253,6 +282,7 @@ function AssistantMessage({
 	isLastMessage,
 	onCardAction,
 	onOpenEntity,
+	onOpenOrderDraft,
 }: {
 	message: UIMessage;
 	isStreaming: boolean;
@@ -262,6 +292,9 @@ function AssistantMessage({
 	) => void;
 	onOpenEntity?: (
 		entity: AssistantMessageViewModel["entities"][number],
+	) => void;
+	onOpenOrderDraft?: (
+		draft: AssistantMessageViewModel["orderDrafts"][number],
 	) => void;
 }) {
 	const [copied, setCopied] = useState(false);
@@ -311,6 +344,10 @@ function AssistantMessage({
 				<AssistantToolProgress tools={view.tools} />
 				<AssistantResponseCards cards={view.cards} onAction={onCardAction} />
 				<AssistantEntityLinks entities={view.entities} onOpen={onOpenEntity} />
+				<AssistantOrderDraftLinks
+					drafts={view.orderDrafts}
+					onOpen={onOpenOrderDraft}
+				/>
 				<AssistantSources sources={view.sources} />
 			</div>
 		</section>
@@ -322,7 +359,8 @@ const MemoizedAssistantMessage = memo(AssistantMessage, (previous, next) => {
 	return (
 		previous.message === next.message &&
 		previous.onCardAction === next.onCardAction &&
-		previous.onOpenEntity === next.onOpenEntity
+		previous.onOpenEntity === next.onOpenEntity &&
+		previous.onOpenOrderDraft === next.onOpenOrderDraft
 	);
 });
 
@@ -335,6 +373,9 @@ export function AssistantMessageRenderer(props: {
 	) => void;
 	onOpenEntity?: (
 		entity: AssistantMessageViewModel["entities"][number],
+	) => void;
+	onOpenOrderDraft?: (
+		draft: AssistantMessageViewModel["orderDrafts"][number],
 	) => void;
 }) {
 	if (props.message.role === "user") {

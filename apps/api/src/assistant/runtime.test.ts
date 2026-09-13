@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { NEW_SALES_FORM_SEED_EXAMPLE } from "@gnd/sales/sales-form-core";
 import {
 	ASSISTANT_MAX_SELECTED_TOOLS,
 	createAssistantRuntime,
@@ -669,6 +670,83 @@ describe("assistant runtime", () => {
 				status: "complete",
 			},
 		});
+	});
+
+	test("emits only a validated native order draft artifact from the trusted tool", async () => {
+		const chunks: unknown[] = [];
+		const draft = {
+			type: "order",
+			generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
+			seed: NEW_SALES_FORM_SEED_EXAMPLE,
+			configurationScope: "sales-settings:1",
+			configurationRevision: "catalog-revision-4",
+			promptVersion: "sales-request-v4",
+			provider: "openai",
+			model: "gpt-5-mini",
+			usage: { inputTokens: 120, outputTokens: 40 },
+			unresolvedCount: NEW_SALES_FORM_SEED_EXAMPLE.unresolved.length,
+		};
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { sales_draft_from_request: {} },
+			trustedResultTools: ["sales_draft_from_request"],
+			trustedResultToolEffects: { sales_draft_from_request: "draft" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-call",
+							toolCallId: "draft-1",
+							toolName: "sales_draft_from_request",
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "draft-1",
+							toolName: "sales_draft_from_request",
+							output: {
+								content: [{ type: "text", text: "private raw output" }],
+								structuredContent: {
+									status: "requires_input",
+									data: draft,
+								},
+							},
+						};
+						yield { type: "text-delta", id: "answer", text: "Review it." };
+						yield { type: "text-end", id: "answer" };
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 4 }),
+				}),
+			}),
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Draft an order" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(chunks).toContainEqual({
+			type: "data-assistant-order-draft",
+			id: "order-draft-draft-1",
+			data: draft,
+		});
+		expect(JSON.stringify(chunks)).not.toContain("private raw output");
 	});
 
 	test("adds policy-controlled web search and emits safe URL sources", async () => {

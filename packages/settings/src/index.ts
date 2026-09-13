@@ -40,6 +40,7 @@ export {
 	completeSalesRequestCatalogRegeneration,
 	failSalesRequestCatalogRegeneration,
 	getSalesRequestCatalogSettings,
+	isSalesRequestCatalogPublicationCurrent,
 	salesRequestCatalogPolicySchema,
 	updateSalesRequestCatalogPolicy,
 } from "./sales-request-catalog-settings";

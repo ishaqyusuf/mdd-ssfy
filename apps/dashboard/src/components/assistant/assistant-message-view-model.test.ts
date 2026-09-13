@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { NEW_SALES_FORM_SEED_EXAMPLE } from "@gnd/sales/sales-form-core";
 import {
 	formatAssistantToolLabel,
 	normalizeAssistantMessage,
@@ -218,5 +219,32 @@ describe("assistant message view model", () => {
 		expect(view.entities).toEqual([
 			{ kind: "order", id: "09502PC", label: "Order 09502PC" },
 		]);
+	});
+
+	test("accepts only a strictly validated native order draft part", () => {
+		const valid = {
+			type: "data-assistant-order-draft",
+			id: "order-draft-call-1",
+			data: {
+				type: "order",
+				generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
+				seed: NEW_SALES_FORM_SEED_EXAMPLE,
+				configurationScope: "sales-settings:1",
+				configurationRevision: "catalog-revision-4",
+				promptVersion: "sales-request-v4",
+				provider: "openai",
+				model: "gpt-5-mini",
+				usage: { inputTokens: 120, outputTokens: 40 },
+				unresolvedCount: NEW_SALES_FORM_SEED_EXAMPLE.unresolved.length,
+			},
+		};
+		const view = normalizeAssistantMessage(
+			{
+				parts: [valid, { ...valid, id: "forged", private: "secret" }],
+			},
+			{ isLastMessage: false, isStreaming: false },
+		);
+		expect(view.orderDrafts).toEqual([{ id: valid.id, data: valid.data }]);
+		expect(JSON.stringify(view)).not.toContain("secret");
 	});
 });

@@ -31,6 +31,7 @@ import {
 	getSalesRequestCatalogSettings,
 	getSalesRequestPilotSettings,
 	getSalesRequestProviderBenchmarkApproval,
+	isSalesRequestCatalogPublicationCurrent,
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 } from "@gnd/settings";
 import type { AssistantToolActor } from "./registry";
@@ -123,8 +124,10 @@ function requirePublishedDraftCatalog(input: {
 	configurationRevision: string;
 }) {
 	if (
-		input.publication.status !== "published" ||
-		input.publication.publishedRevision !== input.configurationRevision
+		!isSalesRequestCatalogPublicationCurrent(
+			input.publication,
+			input.configurationRevision,
+		)
 	) {
 		throw new AppError({
 			code: "VALIDATION_FAILED",

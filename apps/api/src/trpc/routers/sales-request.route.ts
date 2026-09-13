@@ -58,6 +58,7 @@ import {
 	getSalesRequestCatalogSettings,
 	getSalesRequestPilotSettings,
 	getSalesRequestProviderBenchmarkApproval,
+	isSalesRequestCatalogPublicationCurrent,
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 	updateSalesRequestAISettings,
 	updateSalesRequestCatalogPolicy,
@@ -536,11 +537,24 @@ export const salesRequestRouter = createTRPCRouter({
 					const settingId = selectSalesRequestSettingId(
 						rows.map((row) => row.id),
 					);
-					const [snapshot, aiSettings, providerBenchmark] = await Promise.all([
-						getSalesRequestConfigurationContext(tx, { settingId }),
-						getSalesRequestAISettings(tx, settingId),
-						getSalesRequestProviderBenchmarkApproval(tx, settingId),
-					]);
+					const [snapshot, aiSettings, catalog, providerBenchmark] =
+						await Promise.all([
+							getSalesRequestConfigurationContext(tx, { settingId }),
+							getSalesRequestAISettings(tx, settingId),
+							getSalesRequestCatalogSettings(tx, settingId),
+							getSalesRequestProviderBenchmarkApproval(tx, settingId),
+						]);
+					if (
+						!isSalesRequestCatalogPublicationCurrent(
+							catalog.publication,
+							snapshot.revision,
+						)
+					) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: "The published Sales Request catalog changed.",
+						});
+					}
 					requireCurrentProviderBenchmark({
 						aiSettings,
 						configurationRevision: snapshot.revision,

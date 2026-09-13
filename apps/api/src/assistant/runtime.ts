@@ -19,6 +19,7 @@ import {
 	assistantResultStatuses,
 	assistantSourceKinds,
 } from "./contracts";
+import { assistantSalesRequestDraftPreviewSchema } from "./order-draft-contract";
 import {
 	ASSISTANT_PROMPT_VERSION,
 	type AssistantPromptContext,
@@ -341,6 +342,22 @@ async function writeSafeAssistantStream(input: {
 				if (type === "tool-result" && trustedResult) {
 					const envelope = assistantEnvelopeFromOutput(part.output);
 					const status = boundedRuntimeString(envelope?.status, 40);
+					if (
+						id &&
+						knownName === "sales_draft_from_request" &&
+						(status === "success" || status === "requires_input")
+					) {
+						const draft = assistantSalesRequestDraftPreviewSchema.safeParse(
+							envelope?.data,
+						);
+						if (draft.success) {
+							input.writer.write({
+								type: "data-assistant-order-draft",
+								id: `order-draft-${id}`,
+								data: draft.data,
+							});
+						}
+					}
 					if (
 						status === "success" ||
 						status === "partial" ||

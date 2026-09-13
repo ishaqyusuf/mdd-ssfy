@@ -22,9 +22,9 @@ High
 GND-specific text and image request workflow using the existing Sales Request generator and native form initializer. Depends on T09, T10, and T17.
 
 ## Implementation Progress
-- Completion: 13%
-- Current Checklist: 1/8 — typed native preview and guarded live Sales Request
-  orchestration are complete; native form hydration and canvas editing remain
+- Completion: 25%
+- Current Checklist: 2/8 — typed guarded preview plus durable native form
+  hydration are complete; full evidence presentation and canvas editing remain
 - Blockers: T09 and T10 are complete. T17 remains the activation and nested-usage
   accounting gate for paid draft generation and reviewed order creation.
 
@@ -46,10 +46,13 @@ GND-specific text and image request workflow using the existing Sales Request ge
   invoking a provider.
 - Thread the request cancellation signal from MCP through the registry into Sales
   Request generation so abandoned chat turns do not continue paid work.
+- Stream and persist only a strictly parsed `data-assistant-order-draft` part,
+  then prepare it in an adjacent dashboard canvas through the existing native
+  Sales proposal and generic initializer path.
 
 ## Implementation Checklist
 - [x] Expose existing text request generation as a typed preview tool using published configuration.
-- [ ] Hydrate the native `NewSalesFormSeed` through the existing generic initializer.
+- [x] Hydrate the native `NewSalesFormSeed` through the existing generic initializer.
 - [ ] Show source evidence, unresolved fields, catalog revision, services/delivery, and authoritative pricing.
 - [ ] Open the existing Sales form in the artifact canvas for edit/apply/discard without duplicating pricing logic.
 - [ ] Persist a reviewed action proposal before order creation and recheck permission/configuration/revision on confirm.
@@ -74,5 +77,17 @@ GND-specific text and image request workflow using the existing Sales Request ge
   `git diff --check`, and the independent standards review are clean. API
   typechecking reaches only the pre-existing nullable value error in
   `packages/sales/src/copy-sales.ts:521`.
-- Next implementation slice will connect the native seed initializer and editable
-  Sales form artifact canvas.
+- Trusted draft output is strictly parsed, emitted as a dedicated durable chat
+  part, restored from conversation history, parsed again in the dashboard, and
+  opened in an adjacent draft canvas inside the normal dashboard shell.
+- The canvas reuses `applySalesRequestGenerationProposal` with
+  `performApply: false`, the native generic initializer, fresh component
+  resolution, and exact published-revision validation. Unresolved, stale,
+  initializer-blocked, query-failure, loading, and draft-switch states have
+  focused coverage and accessible terminal/status presentation.
+- Combined focused and complete suites pass: Assistant 96/96, dashboard Assistant
+  43/43, Sales Request route/settings/canvas matrix 31/31. Dashboard typechecking
+  is clean; API typechecking still reaches only the unrelated existing
+  `copy-sales.ts:521` error. Both independent reviews are clean after fixes.
+- Next implementation slice will show complete source, service, delivery, and
+  pricing evidence before enabling edit/apply/discard behavior.

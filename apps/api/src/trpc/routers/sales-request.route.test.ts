@@ -147,6 +147,33 @@ async function installCurrentBenchmarkApproval(
 	return snapshot;
 }
 
+async function setCatalogPublication(
+	fixture: ReturnType<typeof requestContext>,
+	revision: string,
+	status: "published" | "stale" = "published",
+) {
+	const saved = fixture.getSavedMeta() as Record<string, unknown>;
+	const requestGeneration = (saved.requestGeneration ?? {}) as Record<
+		string,
+		unknown
+	>;
+	await fixture.transaction.settings.update({
+		data: {
+			meta: {
+				...saved,
+				requestGeneration: {
+					...requestGeneration,
+					catalogPublication: {
+						generation: 1,
+						status,
+						publishedRevision: revision,
+					},
+				},
+			},
+		},
+	});
+}
+
 test("AI settings query is Super Admin-only and defaults an unconfigured install", async () => {
 	const fixture = requestContext();
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
@@ -279,9 +306,15 @@ test("preview validation accepts only the current server-derived identity", asyn
 		provider: aiSettings.selection.provider,
 		model: aiSettings.selection.model,
 	};
+	await setCatalogPublication(fixture, snapshot.revision);
 
 	try {
 		await expect(caller.validatePreview(current)).resolves.toEqual(current);
+		await setCatalogPublication(fixture, snapshot.revision, "stale");
+		await expect(caller.validatePreview(current)).rejects.toMatchObject({
+			code: "CONFLICT",
+		});
+		await setCatalogPublication(fixture, snapshot.revision);
 		await expect(
 			caller.validatePreview({
 				...current,
@@ -324,6 +357,7 @@ test("preview and Apply validation fail closed without a current provider benchm
 		>[0],
 		{ settingId: 7 },
 	);
+	await setCatalogPublication(fixture, snapshot.revision);
 
 	try {
 		await expect(

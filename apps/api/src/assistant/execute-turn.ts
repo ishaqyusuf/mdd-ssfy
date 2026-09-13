@@ -14,6 +14,7 @@ import {
 } from "./contracts";
 import { getAssistantComposioTools } from "./integrations";
 import { createAssistantMcpExecutionClient } from "./mcp";
+import { assistantOrderDraftPartSchema } from "./order-draft-contract";
 import {
 	type AssistantRuntimeInput,
 	createAssistantRuntime,
@@ -100,6 +101,10 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 					data: parsed.data,
 				} as Prisma.InputJsonValue)
 			: null;
+	}
+	if (part.type === "data-assistant-order-draft") {
+		const parsed = assistantOrderDraftPartSchema.safeParse(part);
+		return parsed.success ? (parsed.data as Prisma.InputJsonValue) : null;
 	}
 	if (part.type === "data-assistant-invalidation") {
 		if (!part.data || typeof part.data !== "object") return null;

@@ -1,4 +1,8 @@
 import type { AssistantEntityReference } from "@api/assistant/contracts";
+import {
+	type AssistantSalesRequestDraftPreview,
+	assistantOrderDraftPartSchema,
+} from "@api/assistant/order-draft-contract";
 import { parseAssistantEntity } from "./assistant-entities";
 
 const hiddenAssistantTools = new Set(["search_tools", "system_search_tools"]);
@@ -49,6 +53,10 @@ export type AssistantMessageViewModel = {
 	}>;
 	files: Array<{ id: string; name: string; mediaType: string }>;
 	entities: AssistantEntityReference[];
+	orderDrafts: Array<{
+		id: string;
+		data: AssistantSalesRequestDraftPreview;
+	}>;
 	cards: Array<{
 		kind: AssistantResponseCardKind;
 		title: string;
@@ -262,6 +270,12 @@ export function normalizeAssistantMessage(
 			return entity ? [entity] : [];
 		})
 		.slice(0, 20);
+	const orderDrafts = parts.flatMap((part) => {
+		const parsed = assistantOrderDraftPartSchema.safeParse(part);
+		return parsed.success
+			? [{ id: parsed.data.id, data: parsed.data.data }]
+			: [];
+	});
 	const showThinking =
 		options.isStreaming &&
 		options.isLastMessage &&
@@ -275,6 +289,7 @@ export function normalizeAssistantMessage(
 		sources,
 		files,
 		entities,
+		orderDrafts,
 		cards,
 		showThinking,
 		hasContent:
@@ -283,6 +298,7 @@ export function normalizeAssistantMessage(
 			sources.length > 0 ||
 			files.length > 0 ||
 			entities.length > 0 ||
+			orderDrafts.length > 0 ||
 			cards.length > 0,
 	};
 }

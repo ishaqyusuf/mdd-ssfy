@@ -15,7 +15,6 @@ import {
 	getAssistantSalesTimeline,
 } from "@gnd/db/queries";
 import { salesDocumentModeRequiresPaymentAccess } from "@gnd/sales/assistant-source";
-import { newSalesFormSeedSchema } from "@gnd/sales/sales-form-core";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import {
 	buildCanonicalSalesSourceRevision,
@@ -29,6 +28,10 @@ import {
 	assistantToolIdentitySchema,
 	createAssistantResultEnvelopeSchema,
 } from "./contracts";
+import {
+	assistantSalesRequestDraftInputSchema,
+	assistantSalesRequestDraftPreviewSchema,
+} from "./order-draft-contract";
 import { createAssistantSalesRequestDraft } from "./order-drafts";
 import {
 	assistantSalesPdfModes,
@@ -369,31 +372,6 @@ const salesPdfStatusDataSchema = z
 		pdf: salesPdfStatusSchema.nullable(),
 	})
 	.strict();
-const salesRequestDraftInputSchema = z
-	.object({
-		type: z.enum(["order", "quote"]).default("order"),
-		text: z.string().trim().min(1).max(50_000),
-	})
-	.strict();
-const salesRequestDraftPreviewSchema = z
-	.object({
-		type: z.enum(["order", "quote"]),
-		generationId: z.string().uuid(),
-		seed: newSalesFormSeedSchema,
-		configurationScope: z.string().min(1).max(191),
-		configurationRevision: z.string().min(1).max(128),
-		promptVersion: z.string().min(1).max(100),
-		provider: z.string().min(1).max(32),
-		model: z.string().min(1).max(100),
-		usage: z
-			.object({
-				inputTokens: z.number().int().nonnegative().nullable(),
-				outputTokens: z.number().int().nonnegative().nullable(),
-			})
-			.strict(),
-		unresolvedCount: z.number().int().nonnegative(),
-	})
-	.strict();
 const customerSchema = z
 	.object({
 		id: z.number().int().positive(),
@@ -645,8 +623,12 @@ type CommunityProjectSummary = NonNullable<
 	z.infer<typeof communityProjectSummarySchema>["project"]
 >;
 type SalesPdfInput = z.infer<typeof salesPdfInputSchema>;
-type SalesRequestDraftInput = z.infer<typeof salesRequestDraftInputSchema>;
-type SalesRequestDraftPreview = z.infer<typeof salesRequestDraftPreviewSchema>;
+type SalesRequestDraftInput = z.infer<
+	typeof assistantSalesRequestDraftInputSchema
+>;
+type SalesRequestDraftPreview = z.infer<
+	typeof assistantSalesRequestDraftPreviewSchema
+>;
 
 export type AssistantToolServices = {
 	findSalesOrders: (
@@ -1454,17 +1436,17 @@ const placeholders: AssistantToolDefinition[] = [
 			resultComponent: "order-draft",
 			icon: "file-plus",
 		},
-		inputSchema: salesRequestDraftInputSchema,
-		outputSchema: salesRequestDraftPreviewSchema,
+		inputSchema: assistantSalesRequestDraftInputSchema,
+		outputSchema: assistantSalesRequestDraftPreviewSchema,
 		relatedTools: ["sales_create_order"],
 		async handler(actor, rawInput, services, execution) {
-			const input = salesRequestDraftInputSchema.parse(rawInput);
+			const input = assistantSalesRequestDraftInputSchema.parse(rawInput);
 			const generated = await services.draftSalesOrderFromRequest(
 				actor,
 				input,
 				execution?.signal,
 			);
-			const preview = salesRequestDraftPreviewSchema.parse({
+			const preview = assistantSalesRequestDraftPreviewSchema.parse({
 				...generated,
 				type: input.type,
 				unresolvedCount: generated.seed.unresolved.length,

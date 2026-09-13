@@ -4,6 +4,7 @@ import {
 	completeSalesRequestCatalogRegeneration,
 	failSalesRequestCatalogRegeneration,
 	getSalesRequestCatalogSettings,
+	isSalesRequestCatalogPublicationCurrent,
 	updateSalesRequestCatalogPolicy,
 } from "./sales-request-catalog-settings";
 
@@ -31,6 +32,26 @@ function fakeDatabase(initialMeta: unknown) {
 }
 
 describe("sales request catalog settings", () => {
+	it("accepts only an exact published catalog revision", () => {
+		expect(
+			isSalesRequestCatalogPublicationCurrent(
+				{ generation: 2, status: "published", publishedRevision: "rev-2" },
+				"rev-2",
+			),
+		).toBe(true);
+		expect(
+			isSalesRequestCatalogPublicationCurrent(
+				{ generation: 2, status: "stale", publishedRevision: "rev-2" },
+				"rev-2",
+			),
+		).toBe(false);
+		expect(
+			isSalesRequestCatalogPublicationCurrent(
+				{ generation: 2, status: "published", publishedRevision: "rev-1" },
+				"rev-2",
+			),
+		).toBe(false);
+	});
 	it("defaults to a 90-day grace period and stale generation zero", async () => {
 		const fixture = fakeDatabase({ route: { preserved: true } });
 		await expect(

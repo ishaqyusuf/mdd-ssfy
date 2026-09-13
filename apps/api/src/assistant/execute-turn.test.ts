@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { NEW_SALES_FORM_SEED_EXAMPLE } from "@gnd/sales/sales-form-core";
 import { executeAssistantConversationTurn } from "./execute-turn";
 
 const onePixelPng = new Uint8Array(
@@ -153,6 +154,22 @@ describe("executeAssistantConversationTurn", () => {
 						data: { toolCallId: "call-1", tags: ["sales.orders"] },
 					});
 					input.writer.write({
+						type: "data-assistant-order-draft",
+						id: "order-draft-1",
+						data: {
+							type: "order",
+							generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
+							seed: NEW_SALES_FORM_SEED_EXAMPLE,
+							configurationScope: "sales-settings:1",
+							configurationRevision: "catalog-revision-4",
+							promptVersion: "sales-request-v4",
+							provider: "openai",
+							model: "gpt-5-mini",
+							usage: { inputTokens: 120, outputTokens: 40 },
+							unresolvedCount: NEW_SALES_FORM_SEED_EXAMPLE.unresolved.length,
+						},
+					});
+					input.writer.write({
 						type: "data-assistant-entity",
 						id: "unsafe",
 						data: { kind: "app", id: "admin/secrets", label: "Unsafe" },
@@ -191,6 +208,22 @@ describe("executeAssistantConversationTurn", () => {
 					type: "data-assistant-invalidation",
 					id: "invalidation-1",
 					data: { toolCallId: "call-1", tags: ["sales.orders"] },
+				},
+				{
+					type: "data-assistant-order-draft",
+					id: "order-draft-1",
+					data: {
+						type: "order",
+						generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
+						seed: NEW_SALES_FORM_SEED_EXAMPLE,
+						configurationScope: "sales-settings:1",
+						configurationRevision: "catalog-revision-4",
+						promptVersion: "sales-request-v4",
+						provider: "openai",
+						model: "gpt-5-mini",
+						usage: { inputTokens: 120, outputTokens: 40 },
+						unresolvedCount: NEW_SALES_FORM_SEED_EXAMPLE.unresolved.length,
+					},
 				},
 			],
 		});
