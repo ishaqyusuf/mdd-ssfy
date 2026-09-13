@@ -14,6 +14,12 @@ export * from "./reliability-cursor";
 export * from "./reliability-trigger";
 export * from "./sales-tax-report";
 export * from "./sales-request-telemetry-retention";
+export * from "./sales-request-mailbox-authority";
+export * from "./sales-request-mailbox-content";
+export * from "./sales-request-mailbox-content-preview";
+export * from "./sales-request-mailbox-content-stores";
+export * from "./sales-request-mailbox-lifecycle";
+export * from "./sales-request-mailbox-scheduler";
 export * from "./short-links";
 export * from "./users";
 export {
