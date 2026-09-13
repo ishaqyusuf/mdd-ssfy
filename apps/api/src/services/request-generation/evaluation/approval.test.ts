@@ -24,11 +24,28 @@ function packetInput() {
 		maxOutputTokens: 4_000,
 		maxRetries: 0 as const,
 		providerTimeoutMs: 45_000,
+		pricingSnapshot: {
+			schemaVersion: 1 as const,
+			provider: "deepseek" as const,
+			model: "deepseek-v4-flash",
+			currency: "USD",
+			effectiveAt: "2026-09-13",
+			sourceDigest: `sha256:${digest}`,
+			ratesPerMillionTokens: {
+				inputMicros: 440_000,
+				cachedInputMicros: 14_000,
+				outputMicros: 1_320_000,
+			},
+			maxEstimatedCallCostMicros: 25_000,
+		},
 		artifacts: {
 			configuration: "configuration",
 			configurationSource: "configuration-source",
 			factExpectations: "fact-expectations",
 			modelInput: "model-input",
+			evaluationRuntimeLock: "evaluation-runtime-lock",
+			pricingSnapshot: "pricing-snapshot",
+			pricingSource: "pricing-source",
 			providerOracle: "provider-oracle",
 			providerRuntimeOptions: "provider-runtime-options",
 			request: "request",
@@ -53,6 +70,9 @@ describe("sales request evaluation approval packet", () => {
 			maxRetries: 0,
 			approvedCallLimit: 1,
 			imageEvaluation: "deferred",
+			pricingCurrency: "USD",
+			pricingEffectiveAt: "2026-09-13",
+			maxEstimatedCallCostMicros: 25_000,
 		});
 		expect(first.approvalDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
 		expect(changed.approvalDigest).not.toBe(first.approvalDigest);

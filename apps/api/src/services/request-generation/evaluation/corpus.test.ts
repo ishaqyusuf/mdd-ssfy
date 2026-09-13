@@ -287,7 +287,28 @@ describe("sales request evaluation corpus", () => {
 				],
 			},
 			seed: output,
-			metrics: { lineCount: 0, unresolvedCount: 1 },
+			metrics: {
+				lineCount: 0,
+				unresolvedCount: 1,
+				factExpectations: {
+					provider: {
+						all: { expected: 1, matched: 0, matchRate: 0 },
+						ambiguousUnsupportedContainment: {
+							expected: 1,
+							matched: 0,
+							matchRate: 0,
+						},
+					},
+					seed: {
+						all: { expected: 1, matched: 0, matchRate: 0 },
+						ambiguousUnsupportedContainment: {
+							expected: 1,
+							matched: 0,
+							matchRate: 0,
+						},
+					},
+				},
+			},
 		});
 	});
 

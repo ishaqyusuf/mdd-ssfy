@@ -20,6 +20,10 @@ import {
 	getSalesRequestCorpusOracleCoverage,
 	loadSalesRequestCorpus,
 } from "../apps/api/src/services/request-generation/evaluation/corpus";
+import {
+	calculateSalesRequestEvaluationCost,
+	salesRequestEvaluationPricingSnapshotSchema,
+} from "../apps/api/src/services/request-generation/evaluation/pricing";
 import { getSalesRequestConfigurationContext } from "../apps/api/src/services/sales-request-configuration-context";
 import {
 	SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
@@ -28,12 +32,28 @@ import {
 	createSalesRequestProvider,
 	getSalesRequestProviderRuntimeOptions,
 } from "../apps/api/src/services/sales-request-generation";
+import type { SalesRequestProvider } from "../apps/api/src/services/sales-request-provider";
 
 const repositoryRoot = resolve(import.meta.dir, "..");
 const corpusRoot = join(
 	repositoryRoot,
 	".brain/evaluations/sales-request-generation",
 );
+const pricingRoot = join(corpusRoot, "pricing");
+const evaluationRuntimeFiles = [
+	"apps/api/src/services/request-generation/evaluation/approval.ts",
+	"apps/api/src/services/request-generation/evaluation/benchmark-evidence.ts",
+	"apps/api/src/services/request-generation/evaluation/corpus.ts",
+	"apps/api/src/services/request-generation/evaluation/harness.ts",
+	"apps/api/src/services/request-generation/evaluation/pricing.ts",
+	"apps/api/src/services/sales-request-generation.ts",
+	"apps/api/src/services/sales-request-provider.ts",
+	"packages/sales/src/sales-form/request-generation/index.ts",
+	"packages/sales/src/sales-form/request-generation/prompt.ts",
+	"scripts/finalize-sales-request-benchmark.ts",
+	"scripts/run-sales-request-corpus.ts",
+	"bun.lock",
+] as const;
 
 function argument(name: string) {
 	const prefix = `--${name}=`;
@@ -69,6 +89,57 @@ function serializeJson(value: unknown) {
 	return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+function approvalSummary(
+	packet: NonNullable<
+		ReturnType<typeof createSalesRequestEvaluationApprovalPacket>
+	>,
+	artifacts: SalesRequestEvaluationApprovalArtifacts,
+) {
+	const scope = packet.scope;
+	const command = [
+		"bun --env-file=.env.local scripts/run-sales-request-corpus.ts",
+		"--live",
+		`--case=${scope.caseId}`,
+		`--setting-id=${scope.settingId}`,
+		`--provider=${scope.provider}`,
+		`--model=${scope.model}`,
+		`--run-id=${scope.runId}`,
+		`--pricing-date=${scope.pricingEffectiveAt}`,
+		`--approved-digest=${packet.approvalDigest}`,
+	].join(" ");
+	return [
+		`# Sales Request benchmark approval: ${scope.caseId}`,
+		"",
+		`- Provider/model: \`${scope.provider}/${scope.model}\``,
+		`- Configuration: \`${scope.configurationRevision}\``,
+		`- Prompt/output: \`${scope.promptVersion}/${scope.outputContract}\``,
+		`- Maximum output tokens: ${scope.maxOutputTokens}`,
+		`- Retries: ${scope.maxRetries}`,
+		`- Timeout: ${scope.providerTimeoutMs} ms`,
+		`- Conservative cost ceiling: ${scope.maxEstimatedCallCostMicros} micro-${scope.pricingCurrency}`,
+		`- Pricing effective: ${scope.pricingEffectiveAt}`,
+		`- Pricing evidence: \`${scope.pricingSourceDigest}\``,
+		`- Approval digest: \`${packet.approvalDigest}\``,
+		"- Image evaluation: deferred",
+		"",
+		"## Bound artifacts",
+		"",
+		...Object.entries(artifacts)
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(
+				([name, value]) =>
+					`- ${name}: ${Buffer.byteLength(value, "utf8")} bytes, \`${packet.artifactSha256[name as keyof typeof packet.artifactSha256]}\``,
+			),
+		"",
+		"## Exact one-call command",
+		"",
+		"```sh",
+		command,
+		"```",
+		"",
+	].join("\n");
+}
+
 async function readJson(path: string) {
 	return JSON.parse(await readFile(path, "utf8")) as unknown;
 }
@@ -80,6 +151,84 @@ async function assertArchivedArtifact(path: string, expected: string) {
 			`Prepared evaluation artifact changed after review: ${path}`,
 		);
 	}
+}
+
+async function buildEvaluationRuntimeLock() {
+	const files = await Promise.all(
+		evaluationRuntimeFiles.map(async (path) => ({
+			path,
+			sha256: sha256(await readFile(join(repositoryRoot, path), "utf8")),
+		})),
+	);
+	return serializeJson({ schemaVersion: 1, files });
+}
+
+async function readPricingSnapshot(input: {
+	provider: string;
+	model: string;
+	pricingDate: string | undefined;
+}) {
+	if (!input.pricingDate || !/^\d{4}-\d{2}-\d{2}$/.test(input.pricingDate)) {
+		throw new Error(
+			"Prepare/live evaluation requires --pricing-date=YYYY-MM-DD",
+		);
+	}
+	const directory = join(
+		pricingRoot,
+		safeSegment(input.provider, "pricing provider"),
+		safeSegment(input.model, "pricing model"),
+	);
+	const snapshotPath = join(directory, `${input.pricingDate}.json`);
+	const sourcePath = join(directory, `${input.pricingDate}.source.md`);
+	const source = await readFile(sourcePath, "utf8");
+	const snapshot = salesRequestEvaluationPricingSnapshotSchema.parse(
+		JSON.parse(await readFile(snapshotPath, "utf8")),
+	);
+	if (
+		snapshot.provider !== input.provider ||
+		snapshot.model !== input.model ||
+		snapshot.effectiveAt !== input.pricingDate ||
+		snapshot.sourceDigest !== `sha256:${sha256(source)}`
+	) {
+		throw new Error(
+			"Pricing snapshot does not match its provider, model, date, or source evidence.",
+		);
+	}
+	return {
+		snapshot,
+		serializedSnapshot: serializeJson(snapshot),
+		source,
+	};
+}
+
+function requirePricing(
+	pricing: Awaited<ReturnType<typeof readPricingSnapshot>> | null,
+) {
+	if (!pricing) throw new Error("Evaluation pricing is unavailable");
+	return pricing;
+}
+
+function requireApprovalArtifacts(
+	artifacts: SalesRequestEvaluationApprovalArtifacts | null,
+) {
+	if (!artifacts)
+		throw new Error("Evaluation approval artifacts are unavailable");
+	return artifacts;
+}
+
+function resultTokenUsage(
+	result: Awaited<ReturnType<typeof evaluateSalesRequestCorpusCase>>,
+) {
+	if (result.status === "error") {
+		return {
+			inputTokens: result.metrics.providerFailure?.inputTokens ?? null,
+			outputTokens: result.metrics.providerFailure?.outputTokens ?? null,
+		};
+	}
+	return {
+		inputTokens: result.metrics.inputTokens,
+		outputTokens: result.metrics.outputTokens,
+	};
 }
 
 async function main() {
@@ -118,6 +267,15 @@ async function main() {
 			getSalesRequestAIProviderOption(provider).defaultModel,
 	});
 	const runId = safeSegment(argument("run-id") ?? defaultRunId(), "run ID");
+	const pricing =
+		live || prepareOnly
+			? await readPricingSnapshot({
+					provider: selection.provider,
+					model: selection.model,
+					pricingDate: argument("pricing-date"),
+				})
+			: null;
+	const evaluationRuntimeLock = await buildEvaluationRuntimeLock();
 	const cases = await loadSalesRequestCorpus(
 		join(corpusRoot, "cases"),
 		selectedCaseId,
@@ -186,6 +344,24 @@ async function main() {
 			};
 		});
 		const singlePreparedCase = preparedCases[0];
+		const approvalArtifacts =
+			live || prepareOnly
+				? ({
+						configuration: configurationJson,
+						configurationSource: configurationSourceJson,
+						factExpectations: singlePreparedCase.serialized.factExpectations,
+						modelInput: singlePreparedCase.serialized.modelInput,
+						evaluationRuntimeLock,
+						pricingSnapshot: requirePricing(pricing).serializedSnapshot,
+						pricingSource: requirePricing(pricing).source,
+						providerOracle: singlePreparedCase.serialized.providerOracle,
+						providerRuntimeOptions: serializeJson(
+							providerRuntimeOptions ?? null,
+						),
+						request: singlePreparedCase.serialized.request,
+						seedOracle: singlePreparedCase.serialized.seedOracle,
+					} satisfies SalesRequestEvaluationApprovalArtifacts)
+				: null;
 		const approvalPacket =
 			live || prepareOnly
 				? createSalesRequestEvaluationApprovalPacket({
@@ -201,18 +377,8 @@ async function main() {
 						maxOutputTokens: SALES_REQUEST_MAX_OUTPUT_TOKENS,
 						maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
 						providerTimeoutMs: SALES_REQUEST_PROVIDER_TIMEOUT_MS,
-						artifacts: {
-							configuration: configurationJson,
-							configurationSource: configurationSourceJson,
-							factExpectations: singlePreparedCase.serialized.factExpectations,
-							modelInput: singlePreparedCase.serialized.modelInput,
-							providerOracle: singlePreparedCase.serialized.providerOracle,
-							providerRuntimeOptions: serializeJson(
-								providerRuntimeOptions ?? null,
-							),
-							request: singlePreparedCase.serialized.request,
-							seedOracle: singlePreparedCase.serialized.seedOracle,
-						} satisfies SalesRequestEvaluationApprovalArtifacts,
+						pricingSnapshot: requirePricing(pricing).snapshot,
+						artifacts: requireApprovalArtifacts(approvalArtifacts),
 					})
 				: null;
 		const manifest = {
@@ -231,6 +397,7 @@ async function main() {
 			imageEvaluation: "deferred",
 			serviceVocabularyRevision: snapshot.serviceVocabularyRevision,
 			providerRuntimeOptions,
+			...(pricing ? { pricing: pricing.snapshot } : {}),
 			maxOutputTokens: SALES_REQUEST_MAX_OUTPUT_TOKENS,
 			maxRetries:
 				live || prepareOnly ? SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES : null,
@@ -252,6 +419,28 @@ async function main() {
 				{ flag: "wx" },
 			);
 			await writeJson(join(runDirectory, "manifest.json"), manifest);
+			await writeFile(
+				join(runDirectory, "evaluation-runtime-lock.json"),
+				evaluationRuntimeLock,
+				{ flag: "wx" },
+			);
+			await writeFile(
+				join(runDirectory, "provider-runtime-options.json"),
+				serializeJson(providerRuntimeOptions ?? null),
+				{ flag: "wx" },
+			);
+			if (pricing) {
+				await writeFile(
+					join(runDirectory, "pricing-snapshot.json"),
+					pricing.serializedSnapshot,
+					{ flag: "wx" },
+				);
+				await writeFile(
+					join(runDirectory, "pricing-source.md"),
+					pricing.source,
+					{ flag: "wx" },
+				);
+			}
 			for (const prepared of preparedCases) {
 				const caseDirectory = join(runDirectory, prepared.caseData.id);
 				await mkdir(caseDirectory);
@@ -289,6 +478,14 @@ async function main() {
 			}
 			if (approvalPacket) {
 				await writeJson(join(runDirectory, "approval.json"), approvalPacket);
+				await writeFile(
+					join(runDirectory, "approval-summary.md"),
+					approvalSummary(
+						approvalPacket,
+						requireApprovalArtifacts(approvalArtifacts),
+					),
+					{ flag: "wx" },
+				);
 			}
 		}
 
@@ -306,7 +503,7 @@ async function main() {
 			return;
 		}
 
-		let liveProvider = null;
+		let liveProvider: SalesRequestProvider | null = null;
 		if (live) {
 			if (!approvalPacket) throw new Error("Approval packet is unavailable");
 			const caseDirectory = join(runDirectory, singlePreparedCase.caseData.id);
@@ -316,12 +513,35 @@ async function main() {
 				approvedDigest: argument("approved-digest"),
 			});
 			await assertArchivedArtifact(
+				join(runDirectory, "approval-summary.md"),
+				approvalSummary(
+					approvalPacket,
+					requireApprovalArtifacts(approvalArtifacts),
+				),
+			);
+			await assertArchivedArtifact(
 				join(runDirectory, "configuration-source.json"),
 				configurationSourceJson,
 			);
 			await assertArchivedArtifact(
 				join(runDirectory, "configuration.json"),
 				configurationJson,
+			);
+			await assertArchivedArtifact(
+				join(runDirectory, "evaluation-runtime-lock.json"),
+				evaluationRuntimeLock,
+			);
+			await assertArchivedArtifact(
+				join(runDirectory, "provider-runtime-options.json"),
+				serializeJson(providerRuntimeOptions ?? null),
+			);
+			await assertArchivedArtifact(
+				join(runDirectory, "pricing-snapshot.json"),
+				requirePricing(pricing).serializedSnapshot,
+			);
+			await assertArchivedArtifact(
+				join(runDirectory, "pricing-source.md"),
+				requirePricing(pricing).source,
 			);
 			for (const [name, serialized] of [
 				["request.json", singlePreparedCase.serialized.request],
@@ -338,7 +558,7 @@ async function main() {
 			] as const) {
 				await assertArchivedArtifact(join(caseDirectory, name), serialized);
 			}
-			liveProvider = createSalesRequestProvider({
+			const rawProvider = createSalesRequestProvider({
 				selection,
 				maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
 			});
@@ -357,8 +577,29 @@ async function main() {
 				maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
 				startedAt: new Date().toISOString(),
 			});
+			liveProvider = async (request) => {
+				const result = await rawProvider(request);
+				await writeJson(
+					join(
+						runDirectory,
+						singlePreparedCase.caseData.id,
+						"provider-return.json",
+					),
+					{
+						schemaVersion: 1,
+						receivedAt: new Date().toISOString(),
+						provider: result.provider,
+						model: result.model,
+						inputTokens: result.inputTokens ?? null,
+						outputTokens: result.outputTokens ?? null,
+						output: result.output,
+					},
+				);
+				return result;
+			};
 		}
 		const results = [];
+		const costs = [];
 		for (const prepared of preparedCases) {
 			const { caseData } = prepared;
 			const caseDirectory = join(runDirectory, caseData.id);
@@ -396,9 +637,43 @@ async function main() {
 				result.validation,
 			);
 			await writeJson(join(caseDirectory, "metrics.json"), result.metrics);
+			const cost = pricing
+				? calculateSalesRequestEvaluationCost({
+						pricingSnapshot: pricing.snapshot,
+						usage: resultTokenUsage(result),
+					})
+				: null;
+			if (cost) {
+				await writeJson(join(caseDirectory, "cost-estimate.json"), cost);
+				costs.push({ caseId: caseData.id, cost });
+			}
+			await writeJson(join(caseDirectory, "review-template.json"), {
+				schemaVersion: 1,
+				status: "pending",
+				runId,
+				caseId: caseData.id,
+				provider: selection.provider,
+				model: selection.model,
+				reviewerUserId: null,
+				reviewedAt: null,
+				decision: null,
+				factReviews: caseData.factExpectations.facts.map(({ id }) => ({
+					factId: id,
+					provider: "not-reviewed",
+					normalized: "not-reviewed",
+					safety: "not-reviewed",
+				})),
+				correction: {
+					method: null,
+					durationMs: null,
+					changedFieldCategories: [],
+				},
+				nativeSaveReopen: null,
+				stopReasons: [],
+			});
 			await writeFile(
 				join(caseDirectory, "review.md"),
-				`# Human review: ${caseData.label}\n\nStatus: Pending\n\n## Correct selections\n\nTODO\n\n## Missing or incorrect selections\n\nTODO\n\n## Unsafe guesses\n\nTODO\n`,
+				`# Human review: ${caseData.label}\n\nStatus: Pending\n\nCopy \`review-template.json\` to \`review.json\`, complete every bounded field, then run the offline finalizer. Do not add request text, customer contacts, credentials, or free-text notes.\n`,
 				{ flag: "wx" },
 			);
 			results.push(result);
@@ -419,9 +694,19 @@ async function main() {
 					status: result.status,
 					metrics: result.metrics,
 				})),
+				costs,
 			},
 		);
 		console.log(runDirectory);
+		if (
+			live &&
+			(results.some(({ status }) => status !== "ok") ||
+				costs.some(
+					({ cost }) => !cost.evaluable || cost.withinCeiling !== true,
+				))
+		) {
+			process.exitCode = 2;
+		}
 	} finally {
 		await db.$disconnect();
 	}

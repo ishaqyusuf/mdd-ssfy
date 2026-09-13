@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import type { SalesRequestAIProvider } from "@gnd/settings";
 import { z } from "zod";
+import type { SalesRequestEvaluationPricingSnapshot } from "./pricing";
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
 const approvalDigestSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/);
@@ -20,6 +21,10 @@ const approvalScopeSchema = z
 		maxOutputTokens: z.number().int().positive(),
 		maxRetries: z.literal(0),
 		providerTimeoutMs: z.number().int().positive(),
+		pricingEffectiveAt: z.string().date(),
+		pricingCurrency: z.string().regex(/^[A-Z]{3}$/),
+		pricingSourceDigest: approvalDigestSchema,
+		maxEstimatedCallCostMicros: z.number().int().nonnegative(),
 		imageEvaluation: z.literal("deferred"),
 		approvedCallLimit: z.literal(1),
 	})
@@ -31,6 +36,9 @@ const artifactSha256Schema = z
 		configurationSource: sha256Schema,
 		factExpectations: sha256Schema,
 		modelInput: sha256Schema,
+		evaluationRuntimeLock: sha256Schema,
+		pricingSnapshot: sha256Schema,
+		pricingSource: sha256Schema,
 		providerOracle: sha256Schema,
 		providerRuntimeOptions: sha256Schema,
 		request: sha256Schema,
@@ -85,6 +93,7 @@ export function createSalesRequestEvaluationApprovalPacket(input: {
 	maxOutputTokens: number;
 	maxRetries: 0;
 	providerTimeoutMs: number;
+	pricingSnapshot: SalesRequestEvaluationPricingSnapshot;
 	artifacts: SalesRequestEvaluationApprovalArtifacts;
 }): SalesRequestEvaluationApprovalPacket {
 	const unsigned = {
@@ -103,6 +112,11 @@ export function createSalesRequestEvaluationApprovalPacket(input: {
 			maxOutputTokens: input.maxOutputTokens,
 			maxRetries: input.maxRetries,
 			providerTimeoutMs: input.providerTimeoutMs,
+			pricingEffectiveAt: input.pricingSnapshot.effectiveAt,
+			pricingCurrency: input.pricingSnapshot.currency,
+			pricingSourceDigest: input.pricingSnapshot.sourceDigest,
+			maxEstimatedCallCostMicros:
+				input.pricingSnapshot.maxEstimatedCallCostMicros,
 			imageEvaluation: "deferred" as const,
 			approvedCallLimit: 1 as const,
 		},

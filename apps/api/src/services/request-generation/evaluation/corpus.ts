@@ -69,7 +69,7 @@ const factExpectationSchema = z
 	})
 	.strict();
 
-const factExpectationsSchema = z
+export const salesRequestCorpusFactExpectationsSchema = z
 	.object({
 		shelfItemsExcluded: z.literal(true),
 		facts: z.array(factExpectationSchema).min(1).max(500),
@@ -116,8 +116,28 @@ export type SalesRequestCorpusConfigurationLock = z.infer<
 	typeof configurationLockSchema
 >;
 export type SalesRequestCorpusFactExpectations = z.infer<
-	typeof factExpectationsSchema
+	typeof salesRequestCorpusFactExpectationsSchema
 >;
+
+type SalesRequestFactMetricBucket = {
+	expected: number;
+	matched: number;
+	matchRate: number | null;
+};
+
+export type SalesRequestFactStageMetrics = {
+	all: SalesRequestFactMetricBucket;
+	supportedAccuracy: SalesRequestFactMetricBucket;
+	ambiguousUnsupportedContainment: SalesRequestFactMetricBucket;
+	byClassification: Record<
+		"supported" | "ambiguous" | "custom" | "unsupported",
+		SalesRequestFactMetricBucket
+	>;
+	byFamily: Record<
+		"door-hpt" | "mouldings" | "services" | "delivery" | "custom-value",
+		SalesRequestFactMetricBucket
+	>;
+};
 
 export type SalesRequestCorpusCase = z.infer<typeof caseMetadataSchema> & {
 	text: string;
@@ -161,6 +181,10 @@ export type SalesRequestCorpusCaseResult =
 				outputTokens: number | null;
 				lineCount: number;
 				unresolvedCount: number;
+				factExpectations: {
+					provider: SalesRequestFactStageMetrics;
+					seed: SalesRequestFactStageMetrics;
+				};
 				providerOracle: EvaluationMetrics | null;
 				seedOracle: EvaluationMetrics | null;
 			};
@@ -212,7 +236,77 @@ function valueAtPath(value: unknown, path: string): unknown {
 	return current;
 }
 
-function getFactExpectationIssues(input: {
+const factClassifications = [
+	"supported",
+	"ambiguous",
+	"custom",
+	"unsupported",
+] as const;
+const factFamilies = [
+	"door-hpt",
+	"mouldings",
+	"services",
+	"delivery",
+	"custom-value",
+] as const;
+
+function factMetricBucket(expected: number, matched: number) {
+	return {
+		expected,
+		matched,
+		matchRate: expected === 0 ? null : matched / expected,
+	};
+}
+
+function scoreFactStage(
+	facts: SalesRequestCorpusFactExpectations["facts"],
+	output: unknown,
+	stage: "provider" | "seed",
+): SalesRequestFactStageMetrics {
+	const matches = new Map(
+		facts.map((fact) => [
+			fact.id,
+			isDeepStrictEqual(
+				valueAtPath(output, fact[stage].path),
+				fact[stage].value,
+			),
+		]),
+	);
+	const bucket = (
+		predicate: (
+			fact: SalesRequestCorpusFactExpectations["facts"][number],
+		) => boolean,
+	) => {
+		const selected = facts.filter(predicate);
+		return factMetricBucket(
+			selected.length,
+			selected.filter((fact) => matches.get(fact.id) === true).length,
+		);
+	};
+	return {
+		all: bucket(() => true),
+		supportedAccuracy: bucket((fact) => fact.classification === "supported"),
+		ambiguousUnsupportedContainment: bucket(
+			(fact) =>
+				fact.classification === "ambiguous" ||
+				fact.classification === "unsupported",
+		),
+		byClassification: Object.fromEntries(
+			factClassifications.map((classification) => [
+				classification,
+				bucket((fact) => fact.classification === classification),
+			]),
+		) as SalesRequestFactStageMetrics["byClassification"],
+		byFamily: Object.fromEntries(
+			factFamilies.map((family) => [
+				family,
+				bucket((fact) => fact.family === family),
+			]),
+		) as SalesRequestFactStageMetrics["byFamily"],
+	};
+}
+
+export function evaluateSalesRequestFactExpectations(input: {
 	caseData: SalesRequestCorpusCase;
 	providerOutput: unknown;
 	seed: NewSalesFormSeed;
@@ -233,7 +327,21 @@ function getFactExpectationIssues(input: {
 			}
 		}
 	}
-	return issues;
+	return {
+		issues,
+		metrics: {
+			provider: scoreFactStage(
+				input.caseData.factExpectations.facts,
+				input.providerOutput,
+				"provider",
+			),
+			seed: scoreFactStage(
+				input.caseData.factExpectations.facts,
+				input.seed,
+				"seed",
+			),
+		},
+	};
 }
 
 type CompatibilityConfiguration = {
@@ -487,7 +595,7 @@ export async function loadSalesRequestCorpus(
 		);
 		const factExpectations = await readRequiredJson(
 			join(directory, "fact-expectations.json"),
-			factExpectationsSchema,
+			salesRequestCorpusFactExpectationsSchema,
 		);
 		const expectedProviderOutput = await readOptionalSeed(
 			join(directory, "expected-provider-output.json"),
@@ -579,7 +687,7 @@ export async function evaluateSalesRequestCorpusCase(input: {
 			output: result.seed,
 			stage: "seed",
 		});
-		const factIssues = getFactExpectationIssues({
+		const factEvaluation = evaluateSalesRequestFactExpectations({
 			caseData: input.caseData,
 			providerOutput,
 			seed: result.seed,
@@ -613,7 +721,7 @@ export async function evaluateSalesRequestCorpusCase(input: {
 			seedShelfPaths,
 		);
 		const qualityIssues = [
-			...factIssues,
+			...factEvaluation.issues,
 			...providerShelfPaths.map((path) => `excluded-shelf-item:${path}`),
 			...seedShelfPaths.map((path) => `excluded-shelf-item:${path}`),
 		];
@@ -628,7 +736,7 @@ export async function evaluateSalesRequestCorpusCase(input: {
 			seed: result.seed,
 			validation: {
 				status: reviewRequired ? "review-required" : "passed",
-				facts: factIssues.length ? "failed" : "passed",
+				facts: factEvaluation.issues.length ? "failed" : "passed",
 				normalization: "passed",
 				initializer: compatibility.initializer,
 				saveReopen: compatibility.saveReopen,
@@ -640,6 +748,7 @@ export async function evaluateSalesRequestCorpusCase(input: {
 				outputTokens: result.usage.outputTokens ?? null,
 				lineCount: result.seed.lineItems.length,
 				unresolvedCount: result.seed.unresolved.length,
+				factExpectations: factEvaluation.metrics,
 				providerOracle,
 				seedOracle,
 			},
