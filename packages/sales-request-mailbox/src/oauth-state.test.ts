@@ -43,6 +43,9 @@ describe("mailbox OAuth state", () => {
 				state: created.state,
 				attempt: created.attempt,
 				provider: "gmail",
+				organizationId: 2,
+				ownerUserId: 7,
+				redirectKey: "sales-settings-mailbox",
 				now,
 			}),
 		).toEqual({ valid: true });
@@ -51,6 +54,9 @@ describe("mailbox OAuth state", () => {
 				state: created.state,
 				attempt: created.attempt,
 				provider: "microsoft-graph",
+				organizationId: 2,
+				ownerUserId: 7,
+				redirectKey: "sales-settings-mailbox",
 				now,
 			}),
 		).toEqual({ valid: false, reason: "provider-mismatch" });
@@ -59,6 +65,9 @@ describe("mailbox OAuth state", () => {
 				state: created.state,
 				attempt: created.attempt,
 				provider: "gmail",
+				organizationId: 2,
+				ownerUserId: 7,
+				redirectKey: "sales-settings-mailbox",
 				now: created.attempt.expiresAt,
 			}),
 		).toEqual({ valid: false, reason: "expired" });
@@ -67,6 +76,9 @@ describe("mailbox OAuth state", () => {
 				state: created.state,
 				attempt: { ...created.attempt, consumedAt: now },
 				provider: "gmail",
+				organizationId: 2,
+				ownerUserId: 7,
+				redirectKey: "sales-settings-mailbox",
 				now,
 			}),
 		).toEqual({ valid: false, reason: "already-consumed" });
@@ -75,8 +87,33 @@ describe("mailbox OAuth state", () => {
 				state: "bad",
 				attempt: created.attempt,
 				provider: "gmail",
+				organizationId: 2,
+				ownerUserId: 7,
+				redirectKey: "sales-settings-mailbox",
 				now,
 			}),
 		).toEqual({ valid: false, reason: "state-invalid" });
+		expect(
+			validateMailboxOAuthAttempt({
+				state: created.state,
+				attempt: created.attempt,
+				provider: "gmail",
+				organizationId: 99,
+				ownerUserId: 7,
+				redirectKey: "sales-settings-mailbox",
+				now,
+			}),
+		).toEqual({ valid: false, reason: "authority-mismatch" });
+		expect(
+			validateMailboxOAuthAttempt({
+				state: created.state,
+				attempt: created.attempt,
+				provider: "gmail",
+				organizationId: 2,
+				ownerUserId: 7,
+				redirectKey: "sales-request-inbox",
+				now,
+			}),
+		).toEqual({ valid: false, reason: "redirect-mismatch" });
 	});
 });

@@ -55,6 +55,9 @@ export function validateMailboxOAuthAttempt(input: {
 	state: string;
 	attempt: MailboxOAuthAttempt;
 	provider: MailboxProvider;
+	organizationId: number;
+	ownerUserId: number;
+	redirectKey: MailboxOAuthRedirectKey;
 	now?: Date;
 }):
 	| { valid: true }
@@ -63,6 +66,8 @@ export function validateMailboxOAuthAttempt(input: {
 			reason:
 				| "state-invalid"
 				| "provider-mismatch"
+				| "authority-mismatch"
+				| "redirect-mismatch"
 				| "expired"
 				| "already-consumed";
 	  } {
@@ -79,6 +84,15 @@ export function validateMailboxOAuthAttempt(input: {
 	}
 	if (input.attempt.provider !== input.provider) {
 		return { valid: false, reason: "provider-mismatch" };
+	}
+	if (
+		input.attempt.organizationId !== input.organizationId ||
+		input.attempt.ownerUserId !== input.ownerUserId
+	) {
+		return { valid: false, reason: "authority-mismatch" };
+	}
+	if (input.attempt.redirectKey !== input.redirectKey) {
+		return { valid: false, reason: "redirect-mismatch" };
 	}
 	if (input.attempt.consumedAt) {
 		return { valid: false, reason: "already-consumed" };
