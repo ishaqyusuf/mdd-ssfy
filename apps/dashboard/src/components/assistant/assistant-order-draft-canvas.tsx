@@ -7,7 +7,8 @@ import type {
 	WorkflowRouteData,
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
-import { AlertCircle, FilePlus2, X } from "lucide-react";
+import { AlertCircle, FilePlus2, Pencil, X } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
 	useCustomerProfilesQuery,
@@ -24,12 +25,29 @@ import {
 import { SalesRequestReviewContent } from "../forms/new-sales-form/request-generation-panel";
 import { buildSalesRequestReviewModel } from "../forms/new-sales-form/request-generation-presentation";
 import type { NewSalesFormRecord } from "../forms/new-sales-form/schema";
+import { useNewSalesFormStore } from "../forms/new-sales-form/store";
 import {
 	assistantArtifactDialogAttributes,
 	syncAssistantArtifactDialogMode,
 } from "./assistant-artifact-canvas";
 import type { AssistantMessageViewModel } from "./assistant-message-view-model";
 import styles from "./assistant.module.css";
+
+const AssistantItemWorkflowPanel = dynamic(
+	() =>
+		import("../forms/new-sales-form/sections/item-workflow-panel").then(
+			(module) => module.ItemWorkflowPanel,
+		),
+	{ ssr: false },
+);
+
+const AssistantInvoiceOverviewPanel = dynamic(
+	() =>
+		import("../forms/new-sales-form/sections/invoice-overview-panel").then(
+			(module) => module.InvoiceOverviewPanel,
+		),
+	{ ssr: false },
+);
 
 export type AssistantOrderDraft =
 	AssistantMessageViewModel["orderDrafts"][number];
@@ -44,6 +62,27 @@ export function selectAssistantOrderDraftPreparation(
 	state: AssistantOrderDraftPreparationState | null,
 ) {
 	return draftId && state?.draftId === draftId ? state.result : null;
+}
+
+type AssistantSalesEditorStore = Pick<
+	ReturnType<typeof useNewSalesFormStore.getState>,
+	"applyRequestGenerationProposal" | "hydrate"
+>;
+
+export function applyAssistantOrderDraftToSalesEditor(input: {
+	baseRecord: NewSalesFormRecord;
+	preparation: SalesRequestGenerationApplyResult | null;
+	currentConfigurationRevision: string;
+	store: AssistantSalesEditorStore;
+}) {
+	if (input.preparation?.status !== "ready") {
+		return { status: "unavailable" as const };
+	}
+	input.store.hydrate(structuredClone(input.baseRecord));
+	return input.store.applyRequestGenerationProposal(
+		input.preparation.proposal,
+		input.currentConfigurationRevision,
+	);
 }
 
 export async function prepareAssistantOrderDraftCanvas(input: {
@@ -279,6 +318,10 @@ export function AssistantOrderDraftCanvas({
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
 	const titleId = useId();
 	const [compact, setCompact] = useState(false);
+	const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+	const [editorError, setEditorError] = useState<string | null>(null);
+	const [editorPending, setEditorPending] = useState(false);
+	const previousSalesRecordRef = useRef<NewSalesFormRecord | null>(null);
 	const [preparationState, setPreparationState] =
 		useState<AssistantOrderDraftPreparationState | null>(null);
 	const type = draft?.data.type ?? "order";
@@ -382,6 +425,53 @@ export function AssistantOrderDraftCanvas({
 		draft.id,
 		preparationState,
 	);
+	const isEditing = editingDraftId === draft.id;
+	const restorePreviousSalesRecord = () => {
+		const store = useNewSalesFormStore.getState();
+		if (previousSalesRecordRef.current) {
+			store.hydrate(previousSalesRecordRef.current);
+		} else {
+			store.reset();
+		}
+		previousSalesRecordRef.current = null;
+		setEditingDraftId(null);
+	};
+	const beginEditing = async () => {
+		if (!bootstrap.data || preparation?.status !== "ready") return;
+		setEditorPending(true);
+		setEditorError(null);
+		try {
+			const current = await validatePreview.mutateAsync({
+				type: draft.data.type,
+				configurationScope: draft.data.configurationScope,
+				configurationRevision: draft.data.configurationRevision,
+				provider: draft.data.provider,
+				model: draft.data.model,
+			});
+			previousSalesRecordRef.current = useNewSalesFormStore.getState().record
+				? structuredClone(useNewSalesFormStore.getState().record)
+				: null;
+			const result = applyAssistantOrderDraftToSalesEditor({
+				baseRecord: bootstrap.data as NewSalesFormRecord,
+				preparation,
+				currentConfigurationRevision: current.configurationRevision,
+				store: useNewSalesFormStore.getState(),
+			});
+			if (result.status !== "applied" && result.status !== "already-applied") {
+				restorePreviousSalesRecord();
+				setEditorError(
+					"The draft changed and could not be opened for editing.",
+				);
+				return;
+			}
+			setEditingDraftId(draft.id);
+		} catch {
+			restorePreviousSalesRecord();
+			setEditorError("The current Sales configuration could not be verified.");
+		} finally {
+			setEditorPending(false);
+		}
+	};
 	return (
 		<dialog
 			ref={canvasRef}
@@ -391,6 +481,7 @@ export function AssistantOrderDraftCanvas({
 			data-order-draft-id={draft.id}
 			onCancel={(event) => {
 				event.preventDefault();
+				if (isEditing) restorePreviousSalesRecord();
 				onClose();
 			}}
 		>
@@ -407,48 +498,100 @@ export function AssistantOrderDraftCanvas({
 					type="button"
 					variant="ghost"
 					size="icon"
-					onClick={onClose}
+					onClick={() => {
+						if (isEditing) restorePreviousSalesRecord();
+						onClose();
+					}}
 					aria-label="Close order draft"
 				>
 					<X size={17} />
 				</Button>
 			</header>
 			<div className="flex-1 space-y-5 overflow-y-auto p-5">
-				<AssistantOrderDraftPreparationStatus preparation={preparation} />
-				<AssistantOrderDraftProvenance draft={draft} />
-				<div className="grid grid-cols-2 gap-3">
-					<div className="rounded-lg border p-3">
-						<small className="text-muted-foreground">Line items</small>
-						<div className="mt-1 text-xl font-semibold">
-							{draft.data.seed.lineItems.length}
-						</div>
-					</div>
-					<div className="rounded-lg border p-3">
-						<small className="text-muted-foreground">Needs review</small>
-						<div className="mt-1 text-xl font-semibold">
-							{draft.data.unresolvedCount}
-						</div>
-					</div>
-				</div>
-				{reviewModel ? (
-					<SalesRequestReviewContent model={reviewModel} />
-				) : routing.isPending ? (
-					<div
-						role="status"
-						className="h-24 animate-pulse rounded-lg bg-muted"
-						aria-label="Loading Sales catalog evidence"
-					/>
+				{isEditing ? (
+					<>
+						<section className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+							<strong>Editing a local Sales draft</strong>
+							<p className="mt-1">
+								Changes stay in this canvas and are not saved as an order until
+								the reviewed confirmation step.
+							</p>
+						</section>
+						<AssistantItemWorkflowPanel />
+						<AssistantInvoiceOverviewPanel
+							mode="create"
+							type={draft.data.type}
+							canEditCustomer={false}
+							canEnrollSpecialOrder={false}
+						/>
+					</>
 				) : (
-					<section
-						role="alert"
-						className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
-					>
-						<AlertCircle className="mr-2 inline" size={16} /> Catalog evidence
-						could not be loaded.
-					</section>
+					<>
+						<AssistantOrderDraftPreparationStatus preparation={preparation} />
+						<AssistantOrderDraftProvenance draft={draft} />
+						<div className="grid grid-cols-2 gap-3">
+							<div className="rounded-lg border p-3">
+								<small className="text-muted-foreground">Line items</small>
+								<div className="mt-1 text-xl font-semibold">
+									{draft.data.seed.lineItems.length}
+								</div>
+							</div>
+							<div className="rounded-lg border p-3">
+								<small className="text-muted-foreground">Needs review</small>
+								<div className="mt-1 text-xl font-semibold">
+									{draft.data.unresolvedCount}
+								</div>
+							</div>
+						</div>
+						{reviewModel ? (
+							<SalesRequestReviewContent model={reviewModel} />
+						) : routing.isPending ? (
+							<div
+								role="status"
+								className="h-24 animate-pulse rounded-lg bg-muted"
+								aria-label="Loading Sales catalog evidence"
+							/>
+						) : (
+							<section
+								role="alert"
+								className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
+							>
+								<AlertCircle className="mr-2 inline" size={16} /> Catalog
+								evidence could not be loaded.
+							</section>
+						)}
+						<AssistantOrderDraftPricing preparation={preparation} />
+					</>
 				)}
-				<AssistantOrderDraftPricing preparation={preparation} />
+				{editorError ? (
+					<p
+						role="alert"
+						className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm"
+					>
+						{editorError}
+					</p>
+				) : null}
 			</div>
+			<footer className="flex items-center justify-end gap-2 border-t p-4">
+				{isEditing ? (
+					<Button
+						type="button"
+						variant="outline"
+						onClick={restorePreviousSalesRecord}
+					>
+						Discard draft
+					</Button>
+				) : (
+					<Button
+						type="button"
+						onClick={() => void beginEditing()}
+						disabled={preparation?.status !== "ready" || editorPending}
+					>
+						<Pencil className="mr-2" size={16} />{" "}
+						{editorPending ? "Verifying…" : "Edit in Sales form"}
+					</Button>
+				)}
+			</footer>
 		</dialog>
 	);
 }

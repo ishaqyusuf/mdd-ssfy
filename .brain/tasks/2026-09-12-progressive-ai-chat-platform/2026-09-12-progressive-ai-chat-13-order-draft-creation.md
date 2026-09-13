@@ -22,9 +22,9 @@ High
 GND-specific text and image request workflow using the existing Sales Request generator and native form initializer. Depends on T09, T10, and T17.
 
 ## Implementation Progress
-- Completion: 38%
-- Current Checklist: 3/8 — typed guarded preview, durable native form
-  hydration, and complete evidence presentation are ready; canvas editing remains
+- Completion: 50%
+- Current Checklist: 4/8 — preview, native hydration, evidence, and local Sales
+  editing are ready; reviewed confirmation and canonical save remain
 - Blockers: T09 and T10 are complete. T17 remains the activation and nested-usage
   accounting gate for paid draft generation and reviewed order creation.
 
@@ -52,12 +52,16 @@ GND-specific text and image request workflow using the existing Sales Request ge
 - Reuse the native Sales Request review presentation for catalog selections,
   HPT/moulding/service rows, delivery, unresolved facts, defaults, and warnings;
   show money only from the prepared native Sales record.
+- Enter edit mode only after another current-revision check, hydrate the existing
+  Sales form store from the same bootstrap record, and apply through the existing
+  proposal transaction. Keep the save/autosave boundary unmounted until reviewed
+  confirmation exists, and restore prior form state on discard.
 
 ## Implementation Checklist
 - [x] Expose existing text request generation as a typed preview tool using published configuration.
 - [x] Hydrate the native `NewSalesFormSeed` through the existing generic initializer.
 - [x] Show source evidence, unresolved fields, catalog revision, services/delivery, and authoritative pricing.
-- [ ] Open the existing Sales form in the artifact canvas for edit/apply/discard without duplicating pricing logic.
+- [x] Open the existing Sales form in the artifact canvas for edit/apply/discard without duplicating pricing logic.
 - [ ] Persist a reviewed action proposal before order creation and recheck permission/configuration/revision on confirm.
 - [ ] Execute canonical save with idempotency and return the exact saved order/result links.
 - [ ] Add request-image OCR/evidence mapping only after text acceptance and reject low-quality/illegible inputs.
@@ -89,7 +93,7 @@ GND-specific text and image request workflow using the existing Sales Request ge
   initializer-blocked, query-failure, loading, and draft-switch states have
   focused coverage and accessible terminal/status presentation.
 - Combined focused and complete suites pass: Assistant 96/96, dashboard Assistant
-  45/45, Sales Request route/settings/canvas matrix 31/31. Dashboard typechecking
+  47/47, Sales Request route/settings/canvas matrix 31/31. Dashboard typechecking
   is clean; API typechecking still reaches only the unrelated existing
   `copy-sales.ts:521` error. Both independent reviews are clean after fixes.
 - The canvas now renders durable generation and catalog provenance, reuses the
@@ -97,5 +101,10 @@ GND-specific text and image request workflow using the existing Sales Request ge
   presents line, adjustment, subtotal, tax, and grand-total values only from the
   initialized native Sales proposal. Focused canvas/panel tests pass 12/12 and
   dashboard typechecking remains clean.
-- Next implementation slice will add explicit edit/apply/discard behavior through
-  the existing Sales form state and proposal transaction boundaries.
+- The canvas now performs a second revision validation, hydrates and applies the
+  proposal through `useNewSalesFormStore`, and mounts the existing workflow and
+  invoice overview panels for local editing. No save/autosave hook is mounted;
+  discard restores the previous Sales store record. Focused canvas coverage is
+  8/8 and dashboard typechecking is clean.
+- Next implementation slice will persist a reviewed action proposal and add the
+  permission/configuration/revision recheck at confirmation.

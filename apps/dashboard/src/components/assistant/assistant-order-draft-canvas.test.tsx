@@ -6,6 +6,7 @@ import {
 	AssistantOrderDraftPreparationStatus,
 	AssistantOrderDraftPricing,
 	AssistantOrderDraftProvenance,
+	applyAssistantOrderDraftToSalesEditor,
 	prepareAssistantOrderDraftCanvas,
 	selectAssistantOrderDraftPreparation,
 } from "./assistant-order-draft-canvas";
@@ -199,5 +200,50 @@ describe("assistant order draft canvas", () => {
 		expect(markup).toContain("$50.00 stated delivery charge");
 		expect(markup).toContain("Line 1 · Size · width");
 		expect(markup).toContain("Choose one width");
+	});
+
+	test("hydrates and applies through the existing Sales proposal transaction", () => {
+		const calls: string[] = [];
+		const baseRecord = { salesId: null, lineItems: [] } as never;
+		const proposal = { proposalId: "proposal-1" } as never;
+		const result = applyAssistantOrderDraftToSalesEditor({
+			baseRecord,
+			preparation: { status: "ready", proposal },
+			currentConfigurationRevision: "catalog-revision-4",
+			store: {
+				hydrate(record) {
+					expect(record).not.toBe(baseRecord);
+					calls.push("hydrate");
+				},
+				applyRequestGenerationProposal(received, revision) {
+					expect(received).toBe(proposal);
+					expect(revision).toBe("catalog-revision-4");
+					calls.push("apply");
+					return { status: "applied" };
+				},
+			},
+		});
+		expect(result.status).toBe("applied");
+		expect(calls).toEqual(["hydrate", "apply"]);
+	});
+
+	test("does not touch Sales form state before a native proposal is ready", () => {
+		let touched = false;
+		const result = applyAssistantOrderDraftToSalesEditor({
+			baseRecord: {} as never,
+			preparation: null,
+			currentConfigurationRevision: "catalog-revision-4",
+			store: {
+				hydrate() {
+					touched = true;
+				},
+				applyRequestGenerationProposal() {
+					touched = true;
+					return { status: "unavailable" };
+				},
+			},
+		});
+		expect(result.status).toBe("unavailable");
+		expect(touched).toBe(false);
 	});
 });
