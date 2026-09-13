@@ -33,6 +33,7 @@ import { salesFinanceRouter } from "./sales-finance.route";
 import { salesPaymentProcessorRouter } from "./sales-payment-processor.route";
 import { salesRefundsRouter } from "./sales-refunds.route";
 import { salesRepDashboardRouter } from "./sales-rep-dashboard.route";
+import { salesRequestMailboxRouter } from "./sales-request-mailbox.route";
 import { salesRequestRouter } from "./sales-request.route";
 import { salesShelfItems } from "./sales-shelf-item";
 import { salesRouter } from "./sales.route";
@@ -84,6 +85,7 @@ export const appRouter = createTRPCRouter({
 	notes: notesRouter,
 	newSalesForm: newSalesFormRouter,
 	salesRequest: salesRequestRouter,
+	salesRequestMailbox: salesRequestMailboxRouter,
 	print: printRouter,
 	sales: salesRouter,
 	salesFinance: salesFinanceRouter,

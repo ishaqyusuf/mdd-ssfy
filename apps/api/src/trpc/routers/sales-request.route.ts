@@ -13,10 +13,7 @@ import {
 } from "@api/db/queries/sales-request-pilot-review";
 import {
 	type SalesRequestTelemetryDatabase,
-	completeSalesRequestGenerationRun,
-	createSalesRequestGenerationRun,
 	getSalesRequestGenerationPilotSummary,
-	markSalesRequestGenerationProviderAttempted,
 	recordSalesRequestGenerationOutcome,
 } from "@api/db/queries/sales-request-telemetry";
 import {
@@ -38,8 +35,6 @@ import {
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
 import {
 	SALES_REQUEST_AI_CREDENTIAL_ENV_BY_PROVIDER,
-	SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
-	createSalesRequestProvider,
 	getSalesRequestProviderApiKey,
 } from "@api/services/sales-request-generation";
 import { requireActiveSalesRequestMailboxEmployees } from "@api/services/sales-request-mailbox-employees";
@@ -62,7 +57,7 @@ import {
 	createSalesRequestPreview,
 	selectSalesRequestSettingId,
 } from "@api/services/sales-request-preview";
-import { requireSalesRequestUsage } from "@api/services/sales-request-usage";
+import { createSalesRequestPreviewDependencies } from "@api/services/sales-request-preview-dependencies";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { requireStorefrontQuoteCreationPermission } from "@api/utils/storefront-permissions";
 import { salesRequestConfigurationCache } from "@gnd/cache/sales-request-configuration-cache";
@@ -518,114 +513,17 @@ export const salesRequestRouter = createTRPCRouter({
 	generatePreview: protectedProcedure
 		.input(generateSalesRequestPreviewSchema)
 		.mutation(async ({ ctx, input, signal }) => {
-			if (process.env.SALES_REQUEST_AI_ENABLED !== "true") {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Sales request generation is not enabled.",
-				});
-			}
 			return createSalesRequestPreview(
 				{
 					text: input.text,
 					images: [],
 					signal: signal ?? new AbortController().signal,
 				},
-				{
-					authorize: async () => {
-						await requireSalesRequestPilotAccess({
-							db: ctx.db,
-							userId: ctx.userId,
-							surface: input.type,
-						});
-						await requireStorefrontQuoteCreationPermission({
-							db: ctx.db,
-							userId: ctx.userId,
-						});
-					},
-					reserveUsage: () => requireSalesRequestUsage(ctx.userId),
-					readSnapshot: () =>
-						ctx.db.$transaction(
-							async (tx) => {
-								const rows = await tx.settings.findMany({
-									where: { type: "sales-settings", deletedAt: null },
-									select: { id: true },
-								});
-								const settingId = selectSalesRequestSettingId(
-									rows.map((row) => row.id),
-								);
-								const snapshot = await getSalesRequestConfigurationContext(
-									tx,
-									{ settingId },
-									{ cache: salesRequestConfigurationCache },
-								);
-								const [aiSettings, pilot, providerBenchmark] =
-									await Promise.all([
-										getSalesRequestAISettings(tx, settingId),
-										getSalesRequestPilotSettings(tx, settingId),
-										getSalesRequestProviderBenchmarkApproval(tx, settingId),
-									]);
-								if (aiSettings.source === "invalid") {
-									throw new TRPCError({
-										code: "PRECONDITION_FAILED",
-										message:
-											"Sales request AI settings need administrator review.",
-									});
-								}
-								requireCurrentProviderBenchmark({
-									aiSettings,
-									configurationRevision: snapshot.revision,
-									providerBenchmark,
-								});
-								if (
-									pilot.source !== "persisted" ||
-									!pilot.settings.enabled ||
-									pilot.settings.revision <= 0 ||
-									!providerBenchmark.approval
-								) {
-									throw new AppError({
-										code: "VALIDATION_FAILED",
-										publicMessage:
-											"Sales Request pilot authority needs administrator review before generation.",
-										transportCode: "PRECONDITION_FAILED",
-										reportable: false,
-									});
-								}
-								return {
-									...snapshot,
-									aiSelection: aiSettings.selection,
-									pilotSettingsRevision: pilot.settings.revision,
-									providerBenchmarkApprovalRevision:
-										providerBenchmark.approval.revision,
-								};
-							},
-							{ isolationLevel: "RepeatableRead" },
-						),
-					createProvider: (selection) =>
-						createSalesRequestProvider({
-							selection,
-							maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
-						}),
-					telemetry: {
-						beginRun: async (event) => {
-							await createSalesRequestGenerationRun(
-								ctx.db as unknown as SalesRequestTelemetryDatabase,
-								{ ...event, actorUserId: ctx.userId },
-							);
-						},
-						markProviderAttempted: async (event) => {
-							await markSalesRequestGenerationProviderAttempted(
-								ctx.db as unknown as SalesRequestTelemetryDatabase,
-								{ ...event, actorUserId: ctx.userId },
-							);
-						},
-						completeRun: async (event) => {
-							await completeSalesRequestGenerationRun(
-								ctx.db as unknown as SalesRequestTelemetryDatabase,
-								{ ...event, actorUserId: ctx.userId },
-							);
-						},
-					},
-				},
+				createSalesRequestPreviewDependencies({
+					db: ctx.db,
+					userId: ctx.userId,
+					type: input.type,
+				}),
 			);
 		}),
 	validatePreview: protectedProcedure

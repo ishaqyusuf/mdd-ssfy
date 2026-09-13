@@ -2,16 +2,24 @@ import "./instrument";
 
 import { randomUUID } from "node:crypto";
 import { db } from "@gnd/db";
-import { getReliabilityCursorHealth, getTriggerReconciliationHealth, ingestReliabilityOccurrence } from "@gnd/db/queries";
+import {
+	getReliabilityCursorHealth,
+	getTriggerReconciliationHealth,
+	ingestReliabilityOccurrence,
+} from "@gnd/db/queries";
 import type { DevLogEntry } from "@gnd/dev-logger";
 import { classifyError } from "@gnd/errors";
 import { createEventsRoute } from "@gnd/events/route";
+import {
+	completeMailboxConnection,
+	mailboxProviderSchema,
+} from "@gnd/sales-request-mailbox";
 import { verifySquareWebhookSignature } from "@gnd/square";
 import { trpcServer } from "@hono/trpc-server";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { tasks } from "@trigger.dev/sdk/v3";
-import { cors } from "hono/cors";
 import type { Context as HonoRequestContext } from "hono";
+import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { captureApiError, captureTrpcError } from "./observability/sentry";
 import { getRestErrorResponse } from "./rest/error-response";
@@ -24,6 +32,7 @@ import { handleVercelDeploymentRequest } from "./rest/reliability-vercel-deploym
 import { resolveVercelDeploymentRegistration } from "./rest/reliability-vercel-deployment-registration";
 import { resolveVercelDrainRegistration } from "./rest/reliability-vercel-registration";
 import type { Context } from "./rest/types";
+import { getConfiguredSalesRequestMailbox } from "./services/sales-request-mailbox-composition";
 import { createTRPCContext } from "./trpc/init";
 import { appRouter } from "./trpc/routers/_app";
 import { storefrontAppRouter } from "./trpc/routers/storefront-app";
@@ -40,7 +49,15 @@ app.use("*", async (c, next) => {
 app.get("/api/reliability/health", (c) =>
 	handleReliabilityHealthRequest(c.req.raw, {
 		token: process.env.RELIABILITY_MONITOR_TOKEN ?? null,
-		read: () => readConfiguredReliabilityHealth(process.env.RELIABILITY_MONITOR_SOURCES, new Date(), (source, input, provider, mode) => provider === "trigger" && mode === "incremental" ? getTriggerReconciliationHealth(db, source, input) : getReliabilityCursorHealth(db, input)),
+		read: () =>
+			readConfiguredReliabilityHealth(
+				process.env.RELIABILITY_MONITOR_SOURCES,
+				new Date(),
+				(source, input, provider, mode) =>
+					provider === "trigger" && mode === "incremental"
+						? getTriggerReconciliationHealth(db, source, input)
+						: getReliabilityCursorHealth(db, input),
+			),
 	}),
 );
 app.post("/api/analytics/mobile", async (context) =>
@@ -49,21 +66,34 @@ app.post("/api/analytics/mobile", async (context) =>
 app.post("/api/webhooks/reliability/vercel/:registrationId", async (c) => {
 	try {
 		return await handleVercelDrainRequest(c.req.raw, {
-			registration: resolveVercelDrainRegistration(c.req.param("registrationId"), process.env),
+			registration: resolveVercelDrainRegistration(
+				c.req.param("registrationId"),
+				process.env,
+			),
 			now: () => new Date(),
 			persist: (intake) => ingestReliabilityOccurrence(db, intake),
 		});
-	} catch { return c.json({ error: "CONFIGURATION_UNAVAILABLE" }, 503); }
+	} catch {
+		return c.json({ error: "CONFIGURATION_UNAVAILABLE" }, 503);
+	}
 });
-app.post("/api/webhooks/reliability/vercel-deployments/:registrationId", async (c) => {
-	try {
-		return await handleVercelDeploymentRequest(c.req.raw, {
-			registration: resolveVercelDeploymentRegistration(c.req.param("registrationId"), process.env),
-			now: () => new Date(),
-			persist: (intake) => ingestReliabilityOccurrence(db, intake),
-		});
-	} catch { return c.json({ error: "CONFIGURATION_UNAVAILABLE" }, 503); }
-});
+app.post(
+	"/api/webhooks/reliability/vercel-deployments/:registrationId",
+	async (c) => {
+		try {
+			return await handleVercelDeploymentRequest(c.req.raw, {
+				registration: resolveVercelDeploymentRegistration(
+					c.req.param("registrationId"),
+					process.env,
+				),
+				now: () => new Date(),
+				persist: (intake) => ingestReliabilityOccurrence(db, intake),
+			});
+		} catch {
+			return c.json({ error: "CONFIGURATION_UNAVAILABLE" }, 503);
+		}
+	},
+);
 app.post("/api/webhooks/reliability/sentry/:registrationId", async (c) => {
 	try {
 		const registration = resolveSentryRegistration(
@@ -77,6 +107,42 @@ app.post("/api/webhooks/reliability/sentry/:registrationId", async (c) => {
 		});
 	} catch {
 		return c.json({ error: "CONFIGURATION_UNAVAILABLE" }, 503);
+	}
+});
+app.get("/api/sales-request/mailbox/:provider/callback", async (c) => {
+	const provider = mailboxProviderSchema.safeParse(c.req.param("provider"));
+	if (!provider.success) return c.json({ error: "NOT_FOUND" }, 404);
+	const context = await createTRPCContext(undefined, c);
+	if (!context.userId) return c.json({ error: "UNAUTHORIZED" }, 401);
+	const state = c.req.query("state") ?? "";
+	const code = c.req.query("code");
+	const providerError = c.req.query("error");
+	if (!state || (!code && !providerError)) {
+		return c.json({ error: "INVALID_CALLBACK" }, 400);
+	}
+	try {
+		const result = await completeMailboxConnection(
+			{
+				actorUserId: context.userId,
+				provider: provider.data,
+				redirectKey: "sales-request-inbox",
+				state,
+				result: providerError
+					? { kind: "cancelled" }
+					: { kind: "code", code: code ?? "" },
+				signal: c.req.raw.signal,
+			},
+			getConfiguredSalesRequestMailbox().completeConnection,
+		);
+		const outcome =
+			result.kind === "connected"
+				? "connected"
+				: result.kind === "cancelled"
+					? "cancelled"
+					: "error";
+		return c.redirect(`/sales-form/create-order?mailbox=${outcome}`);
+	} catch {
+		return c.redirect("/sales-form/create-order?mailbox=error");
 	}
 });
 if (process.env.NODE_ENV === "development")
