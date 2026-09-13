@@ -64,6 +64,8 @@ import {
 	createAssistantConversation,
 	getAssistantConversation,
 	listAssistantConversations,
+	listAssistantUsageReconciliationQueue,
+	reconcileAssistantUsageEvent,
 	softDeleteAssistantConversation,
 } from "@gnd/db/queries";
 import { TRPCError } from "@trpc/server";
@@ -146,6 +148,31 @@ export const assistantRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const adminUserId = await featureAdminOrThrow(ctx);
 			return updateAssistantEntitlement(ctx.db, adminUserId, input);
+		}),
+	usageReconciliationQueue: protectedProcedure
+		.input(z.object({ take: z.number().int().min(1).max(100).default(50) }))
+		.query(async ({ ctx, input }) => {
+			await featureAdminOrThrow(ctx);
+			return listAssistantUsageReconciliationQueue(ctx.db, input);
+		}),
+	reconcileUsage: protectedProcedure
+		.input(
+			z.object({
+				usageEventId: z.string().trim().min(1).max(191),
+				inputTokens: z.number().int().nonnegative().nullable(),
+				cachedInputTokens: z.number().int().nonnegative().nullable(),
+				outputTokens: z.number().int().nonnegative().nullable(),
+				reasoningTokens: z.number().int().nonnegative().nullable(),
+				totalTokens: z.number().int().nonnegative().nullable(),
+				note: z.string().trim().min(3).max(500),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const adminUserId = await featureAdminOrThrow(ctx);
+			return reconcileAssistantUsageEvent(ctx.db, {
+				...input,
+				actorUserId: adminUserId,
+			});
 		}),
 	createProposal: protectedProcedure
 		.input(assistantProposalCreateSchema)

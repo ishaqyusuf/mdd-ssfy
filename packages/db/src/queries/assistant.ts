@@ -122,6 +122,133 @@ const ASSISTANT_TOOL_STATUSES = new Set([
 	"cancelled",
 ]);
 
+export function normalizeAssistantUsageReceipt(
+	usageValue: Prisma.InputJsonValue | undefined,
+	modelIdentity: string,
+) {
+	const usage =
+		usageValue && typeof usageValue === "object" && !Array.isArray(usageValue)
+			? (usageValue as Record<string, unknown>)
+			: {};
+	const token = (name: string) => {
+		const value = usage[name];
+		return typeof value === "number" && Number.isFinite(value) && value >= 0
+			? Math.floor(value)
+			: null;
+	};
+	const identity = modelIdentity.split(":", 2);
+	return {
+		provider:
+			typeof usage.provider === "string" && usage.provider.trim()
+				? usage.provider.trim().slice(0, 40)
+				: identity.length === 2
+					? identity[0] || "unknown"
+					: "unknown",
+		model:
+			typeof usage.model === "string" && usage.model.trim()
+				? usage.model.trim().slice(0, 100)
+				: identity.length === 2
+					? identity[1] || modelIdentity
+					: modelIdentity,
+		inputTokens: token("inputTokens"),
+		cachedInputTokens: token("cachedInputTokens"),
+		outputTokens: token("outputTokens"),
+		reasoningTokens: token("reasoningTokens"),
+		totalTokens: token("totalTokens"),
+	};
+}
+
+export function normalizeAssistantProviderUsageCalls(
+	usageValue: Prisma.InputJsonValue | undefined,
+	modelIdentity: string,
+	runId: string,
+) {
+	const usage =
+		usageValue && typeof usageValue === "object" && !Array.isArray(usageValue)
+			? (usageValue as Record<string, unknown>)
+			: {};
+	const rawCalls = Array.isArray(usage.calls) ? usage.calls.slice(0, 50) : [];
+	if (rawCalls.length === 0) {
+		return [
+			{
+				...normalizeAssistantUsageReceipt(usageValue, modelIdentity),
+				providerRequestId: runId,
+				toolCallCount: null,
+			},
+		];
+	}
+	return rawCalls.map((rawCall, index) => {
+		const call =
+			rawCall && typeof rawCall === "object" && !Array.isArray(rawCall)
+				? (rawCall as Record<string, unknown>)
+				: {};
+		const normalized = normalizeAssistantUsageReceipt(
+			call as Prisma.InputJsonObject,
+			modelIdentity,
+		);
+		const rawToolCallCount = call.toolCallCount;
+		return {
+			...normalized,
+			providerRequestId:
+				typeof call.providerRequestId === "string" &&
+				call.providerRequestId.trim()
+					? call.providerRequestId.trim().slice(0, 191)
+					: `${runId}:${index + 1}`.slice(0, 191),
+			toolCallCount:
+				typeof rawToolCallCount === "number" &&
+				Number.isFinite(rawToolCallCount) &&
+				rawToolCallCount >= 0
+					? Math.floor(rawToolCallCount)
+					: 0,
+		};
+	});
+}
+
+type AssistantUsageAmounts = ReturnType<typeof normalizeAssistantUsageReceipt>;
+
+type AssistantUsagePrice = {
+	version: string;
+	inputPerMillionMicros: bigint;
+	cachedPerMillionMicros: bigint;
+	outputPerMillionMicros: bigint;
+	reasoningPerMillionMicros: bigint;
+};
+
+export function estimateAssistantUsageCostMicros(
+	usage: AssistantUsageAmounts,
+	price: AssistantUsagePrice | null,
+) {
+	if (!price) return null;
+	const categories = [
+		[usage.inputTokens, price.inputPerMillionMicros],
+		[usage.cachedInputTokens, price.cachedPerMillionMicros],
+		[usage.outputTokens, price.outputPerMillionMicros],
+		[usage.reasoningTokens, price.reasoningPerMillionMicros],
+	] as const;
+	if (!categories.some(([tokens]) => tokens !== null)) return null;
+	const numerator = categories.reduce(
+		(total, [tokens, rate]) => total + BigInt(tokens ?? 0) * rate,
+		0n,
+	);
+	return (numerator + 500_000n) / 1_000_000n;
+}
+
+async function findAssistantUsagePrice(
+	tx: TransactionClient,
+	usage: Pick<AssistantUsageAmounts, "provider" | "model">,
+	at: Date,
+) {
+	return tx.assistantModelPrice.findFirst({
+		where: {
+			provider: usage.provider,
+			model: usage.model,
+			effectiveFrom: { lte: at },
+			OR: [{ effectiveTo: null }, { effectiveTo: { gt: at } }],
+		},
+		orderBy: { effectiveFrom: "desc" },
+	});
+}
+
 function normalizeSearch(value?: string | null) {
 	const normalized = value?.trim();
 	return normalized ? normalized.slice(0, 500) : undefined;
@@ -1090,6 +1217,63 @@ export async function completeAssistantRun(
 	},
 ) {
 	const scope = resolveActorScope(input);
+	const completedAt = new Date();
+	const ensureUsageEvent = async (
+		tx: TransactionClient,
+		current: {
+			id: string;
+			actorUserId: number;
+			model: string;
+			startedAt: Date | null;
+		},
+	) => {
+		const normalizedCalls = normalizeAssistantProviderUsageCalls(
+			input.usage,
+			current.model,
+			current.id,
+		);
+		const runToolCallCount = await tx.assistantToolExecution.count({
+			where: { runId: current.id },
+		});
+		for (const [index, normalized] of normalizedCalls.entries()) {
+			const price = await findAssistantUsagePrice(tx, normalized, completedAt);
+			const estimatedCostMicros = estimateAssistantUsageCostMicros(
+				normalized,
+				price,
+			);
+			await tx.assistantUsageEvent.upsert({
+				where: { providerRequestId: normalized.providerRequestId },
+				create: {
+					runId: current.id,
+					providerRequestId: normalized.providerRequestId,
+					actorUserId: current.actorUserId,
+					scopeType: scope.scopeType,
+					scopeId: scope.scopeId,
+					provider: normalized.provider,
+					model: normalized.model,
+					requestClass: "chat",
+					inputTokens: normalized.inputTokens,
+					cachedInputTokens: normalized.cachedInputTokens,
+					outputTokens: normalized.outputTokens,
+					reasoningTokens: normalized.reasoningTokens,
+					totalTokens: normalized.totalTokens,
+					toolCallCount:
+						normalized.toolCallCount ?? (index === 0 ? runToolCallCount : 0),
+					durationMs: current.startedAt
+						? Math.max(0, completedAt.getTime() - current.startedAt.getTime())
+						: null,
+					outcome: input.status,
+					estimatedCostMicros,
+					priceVersion: price?.version ?? null,
+					accountingStatus:
+						normalized.totalTokens === null ? "unknown" : "reported",
+					startedAt: current.startedAt,
+					completedAt,
+				},
+				update: {},
+			});
+		}
+	};
 	const matchesTerminalInput = (current: {
 		status: string;
 		terminalResult: Prisma.JsonValue | null;
@@ -1126,6 +1310,7 @@ export async function completeAssistantRun(
 			if (!matchesTerminalInput(current)) {
 				throw new AssistantIdempotencyConflictError();
 			}
+			await ensureUsageEvent(tx, current);
 			return;
 		}
 
@@ -1137,18 +1322,111 @@ export async function completeAssistantRun(
 				usage: input.usage,
 				errorCode: input.errorCode ?? null,
 				errorMessage: input.errorMessage ?? null,
-				completedAt: new Date(),
+				completedAt,
 			},
 		});
-		if (result.count === 1) return;
+		if (result.count === 1) {
+			await ensureUsageEvent(tx, current);
+			return;
+		}
 
 		const terminal = await tx.assistantRun.findFirst({ where });
 		if (!terminal) throw new AssistantConversationAccessError();
 		if (!matchesTerminalInput(terminal)) {
 			throw new AssistantIdempotencyConflictError();
 		}
+		await ensureUsageEvent(tx, terminal);
 	});
 	return getAssistantRunForReconnect(db, input);
+}
+
+export async function reconcileAssistantUsageEvent(
+	db: Database,
+	input: {
+		usageEventId: string;
+		actorUserId: number;
+		inputTokens: number | null;
+		cachedInputTokens: number | null;
+		outputTokens: number | null;
+		reasoningTokens: number | null;
+		totalTokens: number | null;
+		note: string;
+	},
+) {
+	return runAssistantTransaction(db, async (tx) => {
+		const current = await tx.assistantUsageEvent.findUnique({
+			where: { id: input.usageEventId },
+		});
+		if (!current) throw new AssistantConversationAccessError();
+		const usage = normalizeAssistantUsageReceipt(
+			{
+				provider: current.provider,
+				model: current.model,
+				inputTokens: input.inputTokens,
+				cachedInputTokens: input.cachedInputTokens,
+				outputTokens: input.outputTokens,
+				reasoningTokens: input.reasoningTokens,
+				totalTokens: input.totalTokens,
+			},
+			`${current.provider}:${current.model}`,
+		);
+		const price = await findAssistantUsagePrice(tx, usage, current.completedAt);
+		const estimatedCostMicros = estimateAssistantUsageCostMicros(usage, price);
+		const nextUsage = {
+			inputTokens: usage.inputTokens,
+			cachedInputTokens: usage.cachedInputTokens,
+			outputTokens: usage.outputTokens,
+			reasoningTokens: usage.reasoningTokens,
+			totalTokens: usage.totalTokens,
+		};
+		await tx.assistantUsageReconciliation.create({
+			data: {
+				usageEventId: current.id,
+				actorUserId: input.actorUserId,
+				previousUsage: {
+					inputTokens: current.inputTokens,
+					cachedInputTokens: current.cachedInputTokens,
+					outputTokens: current.outputTokens,
+					reasoningTokens: current.reasoningTokens,
+					totalTokens: current.totalTokens,
+				},
+				nextUsage,
+				note: input.note,
+			},
+		});
+		return tx.assistantUsageEvent.update({
+			where: { id: current.id },
+			data: {
+				...nextUsage,
+				estimatedCostMicros,
+				priceVersion: price?.version ?? null,
+				accountingStatus: usage.totalTokens === null ? "unknown" : "reconciled",
+				reconciledAt: new Date(),
+			},
+		});
+	});
+}
+
+export async function listAssistantUsageReconciliationQueue(
+	db: Database,
+	input: { take: number },
+) {
+	return db.assistantUsageEvent.findMany({
+		where: { accountingStatus: "unknown" },
+		orderBy: [{ completedAt: "asc" }, { id: "asc" }],
+		take: input.take,
+		select: {
+			id: true,
+			runId: true,
+			providerRequestId: true,
+			actorUserId: true,
+			provider: true,
+			model: true,
+			requestClass: true,
+			outcome: true,
+			completedAt: true,
+		},
+	});
 }
 
 export async function recordAssistantToolExecution(

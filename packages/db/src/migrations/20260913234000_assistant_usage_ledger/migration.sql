@@ -1,0 +1,63 @@
+CREATE TABLE `AssistantUsageEvent` (
+    `id` VARCHAR(191) NOT NULL,
+    `runId` VARCHAR(191) NOT NULL,
+    `providerRequestId` VARCHAR(191) NOT NULL,
+    `actorUserId` INTEGER NOT NULL,
+    `scopeType` VARCHAR(50) NOT NULL,
+    `scopeId` VARCHAR(191) NOT NULL,
+    `provider` VARCHAR(40) NOT NULL,
+    `model` VARCHAR(100) NOT NULL,
+    `requestClass` VARCHAR(40) NOT NULL DEFAULT 'chat',
+    `inputTokens` INTEGER NULL,
+    `cachedInputTokens` INTEGER NULL,
+    `outputTokens` INTEGER NULL,
+    `reasoningTokens` INTEGER NULL,
+    `totalTokens` INTEGER NULL,
+    `toolCallCount` INTEGER NOT NULL DEFAULT 0,
+    `durationMs` INTEGER NULL,
+    `outcome` VARCHAR(32) NOT NULL,
+    `estimatedCostMicros` BIGINT NULL,
+    `priceVersion` VARCHAR(64) NULL,
+    `accountingStatus` VARCHAR(32) NOT NULL DEFAULT 'unknown',
+    `reconciledAt` TIMESTAMP(0) NULL,
+    `startedAt` TIMESTAMP(0) NULL,
+    `completedAt` TIMESTAMP(0) NOT NULL,
+    `createdAt` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    UNIQUE INDEX `asst_usage_provider_request_uq`(`providerRequestId`),
+    INDEX `asst_usage_actor_time_idx`(`actorUserId`, `completedAt`),
+    INDEX `asst_usage_run_time_idx`(`runId`, `completedAt`),
+    INDEX `asst_usage_scope_time_idx`(`scopeType`, `scopeId`, `completedAt`),
+    INDEX `asst_usage_model_time_idx`(`provider`, `model`, `completedAt`),
+    INDEX `asst_usage_outcome_time_idx`(`outcome`, `completedAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE `AssistantModelPrice` (
+    `id` VARCHAR(191) NOT NULL,
+    `provider` VARCHAR(40) NOT NULL,
+    `model` VARCHAR(100) NOT NULL,
+    `version` VARCHAR(64) NOT NULL,
+    `inputPerMillionMicros` BIGINT NOT NULL,
+    `cachedPerMillionMicros` BIGINT NOT NULL,
+    `outputPerMillionMicros` BIGINT NOT NULL,
+    `reasoningPerMillionMicros` BIGINT NOT NULL,
+    `effectiveFrom` TIMESTAMP(0) NOT NULL,
+    `effectiveTo` TIMESTAMP(0) NULL,
+    `createdByUserId` INTEGER NOT NULL,
+    `createdAt` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    UNIQUE INDEX `asst_price_model_version_uq`(`provider`, `model`, `version`),
+    INDEX `asst_price_effective_idx`(`provider`, `model`, `effectiveFrom`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE `AssistantUsageReconciliation` (
+    `id` VARCHAR(191) NOT NULL,
+    `usageEventId` VARCHAR(191) NOT NULL,
+    `actorUserId` INTEGER NULL,
+    `previousUsage` JSON NOT NULL,
+    `nextUsage` JSON NOT NULL,
+    `note` TEXT NOT NULL,
+    `createdAt` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    INDEX `asst_usage_reconcile_event_idx`(`usageEventId`, `createdAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

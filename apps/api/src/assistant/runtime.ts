@@ -94,9 +94,24 @@ type AssistantAgent = {
 		fullStream?: AsyncIterable<Record<string, unknown>>;
 		totalUsage: PromiseLike<{
 			inputTokens?: number;
+			cachedInputTokens?: number;
 			outputTokens?: number;
+			reasoningTokens?: number;
 			totalTokens?: number;
 		}>;
+		steps?: PromiseLike<
+			Array<{
+				usage?: {
+					inputTokens?: number;
+					cachedInputTokens?: number;
+					outputTokens?: number;
+					reasoningTokens?: number;
+					totalTokens?: number;
+				};
+				response?: { id?: string; modelId?: string };
+				toolCalls?: unknown[];
+			}>
+		>;
 	}>;
 };
 
@@ -866,10 +881,10 @@ export function selectAssistantRuntimeTools(
 	);
 }
 
-function finiteNonnegativeInteger(value: unknown) {
+function optionalFiniteNonnegativeInteger(value: unknown) {
 	return typeof value === "number" && Number.isFinite(value) && value >= 0
 		? Math.floor(value)
-		: 0;
+		: undefined;
 }
 
 export function createAssistantRuntime(options?: {
@@ -1028,16 +1043,53 @@ export function createAssistantRuntime(options?: {
 						errorMessage: "Assistant runtime failed",
 					};
 				}
-				const usage = await result.totalUsage;
+				const [usage, steps] = await Promise.all([
+					result.totalUsage,
+					result.steps ?? Promise.resolve([]),
+				]);
+				const cachedInputTokens = optionalFiniteNonnegativeInteger(
+					usage.cachedInputTokens,
+				);
+				const reasoningTokens = optionalFiniteNonnegativeInteger(
+					usage.reasoningTokens,
+				);
+				const calls = steps.map((step, index) => ({
+					providerRequestId: step.response?.id
+						? `${selection.provider}:${step.response.id}`.slice(0, 191)
+						: input.runId
+							? `${input.runId}:${index + 1}`.slice(0, 191)
+							: undefined,
+					provider: selection.provider,
+					model: step.response?.modelId || selection.model,
+					inputTokens: optionalFiniteNonnegativeInteger(
+						step.usage?.inputTokens,
+					),
+					cachedInputTokens: optionalFiniteNonnegativeInteger(
+						step.usage?.cachedInputTokens,
+					),
+					outputTokens: optionalFiniteNonnegativeInteger(
+						step.usage?.outputTokens,
+					),
+					reasoningTokens: optionalFiniteNonnegativeInteger(
+						step.usage?.reasoningTokens,
+					),
+					totalTokens: optionalFiniteNonnegativeInteger(
+						step.usage?.totalTokens,
+					),
+					toolCallCount: step.toolCalls?.length ?? 0,
+				}));
 				return {
 					status: "succeeded" as const,
 					assistantText,
 					usage: {
-						inputTokens: finiteNonnegativeInteger(usage.inputTokens),
-						outputTokens: finiteNonnegativeInteger(usage.outputTokens),
-						totalTokens: finiteNonnegativeInteger(usage.totalTokens),
+						inputTokens: optionalFiniteNonnegativeInteger(usage.inputTokens),
+						...(cachedInputTokens === undefined ? {} : { cachedInputTokens }),
+						outputTokens: optionalFiniteNonnegativeInteger(usage.outputTokens),
+						...(reasoningTokens === undefined ? {} : { reasoningTokens }),
+						totalTokens: optionalFiniteNonnegativeInteger(usage.totalTokens),
 						provider: selection.provider,
 						model: selection.model,
+						...(calls.length === 0 ? {} : { calls }),
 					},
 				};
 			} catch {

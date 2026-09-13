@@ -265,11 +265,78 @@ model AssistantRun {
     triggerMessage   AssistantMessage?        @relation("assistantRunTrigger", fields: [triggerMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     toolExecutions   AssistantToolExecution[]
     actionProposals  AssistantActionProposal[]
+    usageEvents      AssistantUsageEvent[]
 
     @@unique([actorUserId, requestId], map: "asst_run_request_uq")
     @@index([conversationId, status, createdAt], map: "asst_run_status_idx")
     @@index([conversationId, updatedAt], map: "asst_run_updated_idx")
     @@index([triggerMessageId], map: "asst_run_trigger_idx")
+}
+
+model AssistantUsageEvent {
+    id                  String       @id @default(cuid()) @db.VarChar(191)
+    runId               String       @db.VarChar(191)
+    providerRequestId   String       @unique(map: "asst_usage_provider_request_uq") @db.VarChar(191)
+    actorUserId         Int
+    scopeType           String       @db.VarChar(50)
+    scopeId             String       @db.VarChar(191)
+    provider            String       @db.VarChar(40)
+    model               String       @db.VarChar(100)
+    requestClass        String       @default("chat") @db.VarChar(40)
+    inputTokens         Int?
+    cachedInputTokens   Int?
+    outputTokens        Int?
+    reasoningTokens     Int?
+    totalTokens         Int?
+    toolCallCount       Int          @default(0)
+    durationMs          Int?
+    outcome             String       @db.VarChar(32)
+    estimatedCostMicros BigInt?
+    priceVersion        String?      @db.VarChar(64)
+    accountingStatus    String       @default("unknown") @db.VarChar(32)
+    reconciledAt        DateTime?    @db.Timestamp(0)
+    startedAt           DateTime?    @db.Timestamp(0)
+    completedAt         DateTime     @db.Timestamp(0)
+    createdAt           DateTime     @default(now()) @db.Timestamp(0)
+    run                 AssistantRun @relation(fields: [runId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    reconciliations     AssistantUsageReconciliation[]
+
+    @@index([actorUserId, completedAt], map: "asst_usage_actor_time_idx")
+    @@index([runId, completedAt], map: "asst_usage_run_time_idx")
+    @@index([scopeType, scopeId, completedAt], map: "asst_usage_scope_time_idx")
+    @@index([provider, model, completedAt], map: "asst_usage_model_time_idx")
+    @@index([outcome, completedAt], map: "asst_usage_outcome_time_idx")
+}
+
+model AssistantModelPrice {
+    id                        String    @id @default(cuid()) @db.VarChar(191)
+    provider                  String    @db.VarChar(40)
+    model                     String    @db.VarChar(100)
+    version                   String    @db.VarChar(64)
+    inputPerMillionMicros     BigInt
+    cachedPerMillionMicros    BigInt
+    outputPerMillionMicros    BigInt
+    reasoningPerMillionMicros BigInt
+    effectiveFrom             DateTime  @db.Timestamp(0)
+    effectiveTo               DateTime? @db.Timestamp(0)
+    createdByUserId           Int
+    createdAt                 DateTime  @default(now()) @db.Timestamp(0)
+
+    @@unique([provider, model, version], map: "asst_price_model_version_uq")
+    @@index([provider, model, effectiveFrom], map: "asst_price_effective_idx")
+}
+
+model AssistantUsageReconciliation {
+    id             String              @id @default(cuid()) @db.VarChar(191)
+    usageEventId   String              @db.VarChar(191)
+    actorUserId    Int?
+    previousUsage  Json
+    nextUsage      Json
+    note           String              @db.Text
+    createdAt      DateTime            @default(now()) @db.Timestamp(0)
+    usageEvent     AssistantUsageEvent @relation(fields: [usageEventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([usageEventId, createdAt], map: "asst_usage_reconcile_event_idx")
 }
 
 model AssistantToolExecution {
