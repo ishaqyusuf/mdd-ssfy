@@ -25,7 +25,7 @@ T19A foundation and single-account administrator presentation implemented on 202
 - `/settings/assistant` is a normal dashboard settings page available only to Super Admin.
 - The access table shows the employee, enabled/disabled/revoked state, scheduled expiry, last reason, and last change.
 - Changing access opens a review dialog that requires an audit reason and supports an optional future expiry.
-- `/assistant-admin-preview` demonstrates the screen with synthetic records and cannot mutate account access.
+- `/assistant-admin-preview` demonstrates the screen with synthetic records inside the standard dashboard header/sidebar layout and cannot mutate account access.
 
 ## Validation
 
