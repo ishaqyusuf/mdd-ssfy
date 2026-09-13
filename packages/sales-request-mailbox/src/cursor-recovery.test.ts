@@ -156,7 +156,11 @@ describe("bounded mailbox cursor recovery", () => {
 				}),
 			},
 		});
-		expect(retry).toEqual({ kind: "retry", state, retryAfterMs: 12_000 });
+		expect(retry).toEqual({
+			kind: "retry",
+			state: { ...state, retryAttempts: 1 },
+			retryAfterMs: 12_000,
+		});
 		expect(
 			advanceMailboxSync({
 				state,
@@ -169,5 +173,32 @@ describe("bounded mailbox cursor recovery", () => {
 				},
 			}),
 		).toEqual({ kind: "reauthorize", state });
+	});
+
+	test("requires a recovery window and carries retry exhaustion in state", () => {
+		const withoutWindow = beginMailboxSync({ cursor: "expired", since: null });
+		expect(
+			advanceMailboxSync({
+				state: withoutWindow,
+				outcome: { kind: "page", page: { messages: [], cursorInvalid: true } },
+			}),
+		).toEqual({ kind: "fail", reason: "recovery-window-required" });
+
+		const exhausted = {
+			...beginMailboxSync({ cursor: "c1", since: null }),
+			retryAttempts: DEFAULT_MAILBOX_SYNC_BUDGET.maxRetryAttempts,
+		};
+		expect(
+			advanceMailboxSync({
+				state: exhausted,
+				outcome: {
+					kind: "error",
+					error: new MailboxProviderError({
+						provider: "gmail",
+						code: "network",
+					}),
+				},
+			}),
+		).toEqual({ kind: "fail", reason: "provider-error" });
 	});
 });

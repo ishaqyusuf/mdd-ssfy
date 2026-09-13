@@ -56,5 +56,8 @@ describe("mailbox content sanitization", () => {
 		expect(
 			prepareMailboxModelInput({ text: `door ${"x".repeat(60_000)}` }).length,
 		).toBeLessThanOrEqual(50_000);
+		const escaped = prepareMailboxModelInput({ text: '"'.repeat(60_000) });
+		expect(escaped.length).toBeLessThanOrEqual(50_000);
+		expect(JSON.parse(escaped.split("\n")[1] ?? "").length).toBeGreaterThan(0);
 	});
 });

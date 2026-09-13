@@ -7,6 +7,7 @@ export const DEFAULT_MAILBOX_SYNC_BUDGET = {
 	maxMessages: 500,
 	maxCursorResets: 1,
 	maxEmptyContinuationPages: 2,
+	maxRetryAttempts: 5,
 } as const;
 
 export type MailboxSyncBudget = {
@@ -15,6 +16,7 @@ export type MailboxSyncBudget = {
 	maxMessages: number;
 	maxCursorResets: number;
 	maxEmptyContinuationPages: number;
+	maxRetryAttempts: number;
 };
 
 export type MailboxSyncState = {
@@ -25,6 +27,7 @@ export type MailboxSyncState = {
 	messagesFetched: number;
 	cursorResets: number;
 	emptyContinuationPages: number;
+	retryAttempts: number;
 	since: Date | null;
 	seenContinuations: readonly string[];
 };
@@ -41,6 +44,7 @@ export function beginMailboxSync(input: {
 		messagesFetched: 0,
 		cursorResets: 0,
 		emptyContinuationPages: 0,
+		retryAttempts: 0,
 		since: input.since,
 		seenContinuations: [],
 	};
@@ -96,8 +100,11 @@ function validBudget(budget: MailboxSyncBudget) {
 		budget.maxCursorResets >= 0 &&
 		budget.maxCursorResets <= 1 &&
 		Number.isSafeInteger(budget.maxEmptyContinuationPages) &&
-		budget.maxEmptyContinuationPages >= 0 &&
-		budget.maxEmptyContinuationPages <= 10
+		budget.maxEmptyContinuationPages > 0 &&
+		budget.maxEmptyContinuationPages <= 10 &&
+		Number.isSafeInteger(budget.maxRetryAttempts) &&
+		budget.maxRetryAttempts > 0 &&
+		budget.maxRetryAttempts <= 10
 	);
 }
 
@@ -113,8 +120,6 @@ export function advanceMailboxSync(input: {
 		  }
 		| { kind: "error"; error: MailboxProviderError };
 	budget?: MailboxSyncBudget;
-	retryAttempt?: number;
-	maxRetryAttempts?: number;
 }): MailboxSyncResult {
 	const budget = input.budget ?? DEFAULT_MAILBOX_SYNC_BUDGET;
 	if (!validBudget(budget))
@@ -122,19 +127,25 @@ export function advanceMailboxSync(input: {
 
 	if (input.outcome.kind === "error") {
 		const recovery = resolveMailboxRetry(input.outcome.error, {
-			attempt: input.retryAttempt ?? 0,
-			maxAttempts: input.maxRetryAttempts ?? 5,
+			attempt: input.state.retryAttempts,
+			maxAttempts: budget.maxRetryAttempts,
 		});
 		if (recovery.action === "reauthorize")
 			return { kind: "reauthorize", state: input.state };
 		if (recovery.action === "retry") {
 			return {
 				kind: "retry",
-				state: input.state,
+				state: {
+					...input.state,
+					retryAttempts: input.state.retryAttempts + 1,
+				},
 				retryAfterMs: recovery.retryAfterMs,
 			};
 		}
 		if (recovery.action === "bounded-recovery") {
+			if (!input.state.since) {
+				return { kind: "fail", reason: "recovery-window-required" };
+			}
 			if (input.state.cursorResets >= budget.maxCursorResets) {
 				return { kind: "fail", reason: "cursor-recovery-exhausted" };
 			}
@@ -162,6 +173,9 @@ export function advanceMailboxSync(input: {
 		}
 		if (input.state.cursorResets >= budget.maxCursorResets) {
 			return { kind: "fail", reason: "cursor-recovery-exhausted" };
+		}
+		if (!input.state.since) {
+			return { kind: "fail", reason: "recovery-window-required" };
 		}
 		const state: MailboxSyncState = {
 			...input.state,
@@ -212,6 +226,7 @@ export function advanceMailboxSync(input: {
 		pagesFetched,
 		messagesFetched,
 		emptyContinuationPages,
+		retryAttempts: 0,
 		seenContinuations: continuation
 			? [...input.state.seenContinuations, continuation]
 			: input.state.seenContinuations,
