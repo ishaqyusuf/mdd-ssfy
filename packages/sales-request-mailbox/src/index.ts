@@ -7,6 +7,25 @@ export type {
 	SalesRequestMailboxAdapter,
 } from "./adapter.js";
 export {
+	buildMailboxScopeFingerprint,
+	completeMailboxConnection,
+	startMailboxConnection,
+} from "./connection-lifecycle.js";
+export type {
+	CompleteMailboxConnectionResult,
+	MailboxConnectionAttemptRecord,
+	MailboxConnectionAttemptTerminalReason,
+	MailboxConnectionAuthoritySnapshot,
+	MailboxConnectionCommitRecord,
+	MailboxConnectionConsumedAttempt,
+	MailboxConnectionKeyRing,
+	MailboxConnectionLifecycleDependencies,
+	MailboxConnectionLifecycleStore,
+	MailboxConnectionStartAuthorityRejection,
+	MailboxConnectionTarget,
+	StartMailboxConnectionResult,
+} from "./connection-lifecycle.js";
+export {
 	DEFAULT_SALES_REQUEST_MAILBOX_POLICY,
 	MAILBOX_AUTOMATION_MODES,
 	MAILBOX_PROVIDERS,

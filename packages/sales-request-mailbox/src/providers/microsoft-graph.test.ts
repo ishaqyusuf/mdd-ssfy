@@ -30,6 +30,7 @@ describe("Microsoft Graph mailbox adapter", () => {
 		);
 		expect(url.origin).toBe("https://login.microsoftonline.com");
 		expect(url.searchParams.get("scope")).toContain("Mail.Read");
+		expect(url.searchParams.get("scope")).toContain("offline_access");
 		expect(url.searchParams.get("scope")).not.toMatch(
 			/Mail\.Send|Mail\.ReadWrite/,
 		);
@@ -56,6 +57,7 @@ describe("Microsoft Graph mailbox adapter", () => {
 						access_token: "new-access",
 						refresh_token: "new-refresh",
 						expires_in: 3600,
+						scope: "Mail.Read User.Read",
 					})
 				: Response.json({
 						id: "account-1",
@@ -78,11 +80,7 @@ describe("Microsoft Graph mailbox adapter", () => {
 		expect(String(calls[0]?.init?.body)).toContain(
 			"grant_type=authorization_code",
 		);
-		expect(result.tokens.grantedScopes).toEqual([
-			"offline_access",
-			"User.Read",
-			"Mail.Read",
-		]);
+		expect(result.tokens.grantedScopes).toEqual(["Mail.Read", "User.Read"]);
 	});
 
 	test("rejects an explicitly reduced token scope", async () => {
