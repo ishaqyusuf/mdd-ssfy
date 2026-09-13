@@ -196,32 +196,38 @@ export function AssistantAccessDataTable() {
 								/>
 							</label>
 						) : null}
-						<label
-							className="grid gap-2 text-sm"
-							htmlFor="assistant-access-reason"
-						>
-							<span className="font-medium">Reason</span>
-							<Input
-								id="assistant-access-reason"
-								placeholder="Required for the audit history"
-								value={reason}
-								onChange={(event) => setReason(event.target.value)}
-							/>
-						</label>
+						{nextEnabled ? null : (
+							<label
+								className="grid gap-2 text-sm"
+								htmlFor="assistant-access-reason"
+							>
+								<span className="font-medium">Reason</span>
+								<Input
+									id="assistant-access-reason"
+									placeholder="Required for the audit history"
+									value={reason}
+									onChange={(event) => setReason(event.target.value)}
+								/>
+							</label>
+						)}
 					</div>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setSelected(null)}>
 							Cancel
 						</Button>
 						<Button
-							disabled={reason.trim().length < 3 || update.isPending}
+							disabled={
+								(!nextEnabled && reason.trim().length < 3) || update.isPending
+							}
 							onClick={() =>
 								selected &&
 								update.mutate({
 									userId: selected.id,
 									enabled: nextEnabled,
 									expiresAt: expiresAt ? new Date(expiresAt) : null,
-									reason: reason.trim(),
+									reason: nextEnabled
+										? "Enabled by Super Admin"
+										: reason.trim(),
 									expectedVersion: selected.assistantEntitlement?.version ?? 0,
 								})
 							}

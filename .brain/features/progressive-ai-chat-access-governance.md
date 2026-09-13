@@ -25,7 +25,7 @@ T19A foundation and single-account administrator presentation implemented on 202
 - `/settings/assistant` is a normal dashboard settings page available only to Super Admin.
 - The route follows the Midday dashboard pattern: server-side query prefetch, hydration, suspense/error boundaries, a compositional page header, and a dedicated `tables-2/assistant-access` feature folder.
 - The access table reads real employee accounts through `assistant.adminEntitlements` and shows the employee, enabled/disabled/revoked state, scheduled expiry, last reason, and last change.
-- Changing access opens a review dialog that requires an audit reason and supports an optional future expiry.
+- Enabling access opens a review dialog with optional future expiry and records the standard audit reason `Enabled by Super Admin`. Disabling access requires an explicit administrator reason.
 - `/assistant-admin-preview` redirects to the canonical live settings route; synthetic employee fixtures are no longer part of the product UI.
 
 ## Validation
