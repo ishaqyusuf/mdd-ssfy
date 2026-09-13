@@ -65,14 +65,19 @@ export function createAssistantMcpServer(
 					"gnd/domain": definition.domain,
 				},
 			} as never,
-			(async (input: unknown) => {
+			(async (input: unknown, extra: { signal: AbortSignal }) => {
 				const currentActor = await resolveCurrentActor();
 				assertSameAssistantScope(actor, currentActor);
-				const result = await executeRegisteredAssistantTool(currentActor, {
-					toolId: definition.toolId,
-					version: definition.version,
-					input,
-				});
+				const result = await executeRegisteredAssistantTool(
+					currentActor,
+					{
+						toolId: definition.toolId,
+						version: definition.version,
+						input,
+					},
+					{},
+					{ signal: extra.signal },
+				);
 				return {
 					content: [{ type: "text", text: JSON.stringify(result) }],
 					structuredContent: result,

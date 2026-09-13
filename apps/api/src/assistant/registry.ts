@@ -29,6 +29,7 @@ import {
 	assistantToolIdentitySchema,
 	createAssistantResultEnvelopeSchema,
 } from "./contracts";
+import { createAssistantSalesRequestDraft } from "./order-drafts";
 import {
 	assistantSalesPdfModes,
 	cancelAssistantSalesPdfJob,
@@ -71,7 +72,12 @@ type AssistantToolHandler = (
 	context: AssistantToolActor,
 	input: unknown,
 	services: AssistantToolServices,
+	execution?: AssistantToolExecution,
 ) => Promise<unknown> | unknown;
+
+export type AssistantToolExecution = {
+	signal: AbortSignal;
+};
 
 export type AssistantToolDefinition = {
 	toolId: string;
@@ -726,6 +732,7 @@ export type AssistantToolServices = {
 	draftSalesOrderFromRequest: (
 		actor: AssistantToolActor,
 		input: SalesRequestDraftInput,
+		signal?: AbortSignal,
 	) => Promise<Omit<SalesRequestDraftPreview, "type" | "unresolvedCount">>;
 };
 
@@ -873,11 +880,7 @@ const defaultAssistantToolServices: AssistantToolServices = {
 			salesOrderId: order.id,
 			mode,
 		}),
-	draftSalesOrderFromRequest: async () => {
-		throw new Error(
-			"Assistant Sales request drafting awaits the T17 execution boundary",
-		);
-	},
+	draftSalesOrderFromRequest: createAssistantSalesRequestDraft,
 };
 
 function definition(
@@ -1454,9 +1457,13 @@ const placeholders: AssistantToolDefinition[] = [
 		inputSchema: salesRequestDraftInputSchema,
 		outputSchema: salesRequestDraftPreviewSchema,
 		relatedTools: ["sales_create_order"],
-		async handler(actor, rawInput, services) {
+		async handler(actor, rawInput, services, execution) {
 			const input = salesRequestDraftInputSchema.parse(rawInput);
-			const generated = await services.draftSalesOrderFromRequest(actor, input);
+			const generated = await services.draftSalesOrderFromRequest(
+				actor,
+				input,
+				execution?.signal,
+			);
 			const preview = salesRequestDraftPreviewSchema.parse({
 				...generated,
 				type: input.type,
@@ -2302,6 +2309,9 @@ export async function executeRegisteredAssistantTool(
 	actor: AssistantToolActor,
 	input: { toolId: string; version: number; input: unknown },
 	serviceOverrides: Partial<AssistantToolServices> = {},
+	execution: AssistantToolExecution = {
+		signal: new AbortController().signal,
+	},
 ) {
 	const definition = assistantToolRegistry.find(
 		(tool) => tool.toolId === input.toolId && tool.version === input.version,
@@ -2315,10 +2325,15 @@ export async function executeRegisteredAssistantTool(
 		throw new Error("Assistant tool is not available");
 	}
 	const parsedInput = definition.inputSchema.parse(input.input);
-	const result = await definition.handler(actor, parsedInput, {
-		...defaultAssistantToolServices,
-		...serviceOverrides,
-	});
+	const result = await definition.handler(
+		actor,
+		parsedInput,
+		{
+			...defaultAssistantToolServices,
+			...serviceOverrides,
+		},
+		execution,
+	);
 	return createAssistantResultEnvelopeSchema(definition.outputSchema).parse(
 		result,
 	);

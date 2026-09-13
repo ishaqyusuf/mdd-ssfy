@@ -10,7 +10,7 @@ High
 2026-09-13
 
 ## Last Updated
-2026-09-12
+2026-09-13
 
 ## Global Ticket
 - Ticket Position: 13/20
@@ -22,9 +22,9 @@ High
 GND-specific text and image request workflow using the existing Sales Request generator and native form initializer. Depends on T09, T10, and T17.
 
 ## Implementation Progress
-- Completion: 8%
-- Current Checklist: 0/8 — typed native preview contract is complete; live
-  Sales Request orchestration and canvas hydration remain
+- Completion: 13%
+- Current Checklist: 1/8 — typed native preview and guarded live Sales Request
+  orchestration are complete; native form hydration and canvas editing remain
 - Blockers: T09 and T10 are complete. T17 remains the activation and nested-usage
   accounting gate for paid draft generation and reviewed order creation.
 
@@ -38,9 +38,17 @@ GND-specific text and image request workflow using the existing Sales Request ge
   version, generation ID, and bounded provider token usage in the typed preview.
 - Keep the first surface text-only. Unknown image fields fail strict schema
   validation until the evaluated image phase begins.
+- Reuse the production Sales Request preview orchestrator, pilot authority,
+  benchmark approval, usage reservation, repeatable-read configuration snapshot,
+  actor-bound telemetry, and zero-retry live provider policy.
+- Require a `published` catalog authority record whose `publishedRevision`
+  exactly matches the generated configuration context before reserving usage or
+  invoking a provider.
+- Thread the request cancellation signal from MCP through the registry into Sales
+  Request generation so abandoned chat turns do not continue paid work.
 
 ## Implementation Checklist
-- [ ] Expose existing text request generation as a typed preview tool using published configuration.
+- [x] Expose existing text request generation as a typed preview tool using published configuration.
 - [ ] Hydrate the native `NewSalesFormSeed` through the existing generic initializer.
 - [ ] Show source evidence, unresolved fields, catalog revision, services/delivery, and authoritative pricing.
 - [ ] Open the existing Sales form in the artifact canvas for edit/apply/discard without duplicating pricing logic.
@@ -55,9 +63,16 @@ GND-specific text and image request workflow using the existing Sales Request ge
   catalog source evidence, unresolved warnings, and an `order-draft` component key.
 - Normal registry execution keeps it `coming_soon` until T17; the durable handler
   contract can be tested without making a paid provider call.
-- The complete Assistant suite passes 90 tests / 402 assertions. Targeted Biome
-  and both independent spec/standards reviews are clean.
-- Next implementation slice will connect the existing Sales Request preview
-  orchestration, current pilot/benchmark/usage gates, native seed initializer, and
-  editable Sales form artifact canvas. No checklist item is marked complete until
-  that real default-service path is connected.
+- The default service now reuses `createSalesRequestPreview` with existing pilot,
+  quote-creation permission, usage, current benchmark approval, repeatable-read
+  catalog snapshot and publication authority, provider, and durable actor-bound
+  telemetry services.
+- The orchestration has an injectable boundary with focused guarded-denial,
+  success lifecycle, terminal provider failure, and cancellation propagation
+  coverage.
+- The complete Assistant suite passes 95 tests / 415 assertions. Targeted Biome,
+  `git diff --check`, and the independent standards review are clean. API
+  typechecking reaches only the pre-existing nullable value error in
+  `packages/sales/src/copy-sales.ts:521`.
+- Next implementation slice will connect the native seed initializer and editable
+  Sales form artifact canvas.

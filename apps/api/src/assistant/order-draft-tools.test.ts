@@ -22,24 +22,30 @@ describe("Assistant Sales request draft tool", () => {
 			presentation: { resultComponent: "order-draft" },
 		});
 		if (!definition?.handler) throw new Error("Draft preview handler missing");
+		const signal = new AbortController().signal;
+		let receivedSignal: AbortSignal | undefined;
 
 		const raw = await definition.handler(
 			actor,
 			{ type: "order", text: "Two configured doors for delivery." },
 			{
-				draftSalesOrderFromRequest: async () => ({
-					type: "quote" as const,
-					generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
-					seed: NEW_SALES_FORM_SEED_EXAMPLE,
-					configurationScope: "sales-settings:1",
-					configurationRevision: "catalog-revision-4",
-					promptVersion: "sales-request-v4",
-					provider: "deepseek",
-					model: "deepseek-chat",
-					usage: { inputTokens: 420, outputTokens: 180 },
-					unresolvedCount: 0,
-				}),
+				draftSalesOrderFromRequest: async (_actor, _input, serviceSignal) => {
+					receivedSignal = serviceSignal;
+					return {
+						type: "quote" as const,
+						generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
+						seed: NEW_SALES_FORM_SEED_EXAMPLE,
+						configurationScope: "sales-settings:1",
+						configurationRevision: "catalog-revision-4",
+						promptVersion: "sales-request-v4",
+						provider: "deepseek",
+						model: "deepseek-chat",
+						usage: { inputTokens: 420, outputTokens: 180 },
+						unresolvedCount: 0,
+					};
+				},
 			} as never,
+			{ signal },
 		);
 		const result = createAssistantResultEnvelopeSchema(
 			definition.outputSchema,
@@ -58,6 +64,7 @@ describe("Assistant Sales request draft tool", () => {
 			revision: "catalog-revision-4",
 			sources: [{ kind: "record", label: "Published Sales configuration" }],
 		});
+		expect(receivedSignal).toBe(signal);
 	});
 
 	test("rejects empty or image-shaped input at the typed boundary", () => {
