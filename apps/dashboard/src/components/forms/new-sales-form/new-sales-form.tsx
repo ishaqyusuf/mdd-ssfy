@@ -855,6 +855,7 @@ export function NewSalesForm(props: Props) {
 			!!record &&
 			editor.autosaveEnabled &&
 			!requestGeneration.autosaveSuspended &&
+			!requestGeneration.manualSaveRequired &&
 			!hasSalesRepApprovalChange &&
 			!hasQuantityBearingUnpricedHptRows(record),
         dirty,
@@ -1251,16 +1252,25 @@ export function NewSalesForm(props: Props) {
     useEffect(() => {
         if (!dirty || !payload) return;
         const timer = setTimeout(() => {
-            writeRecoverySnapshot(recoveryKey, payload);
+			writeRecoverySnapshot(recoveryKey, payload, {
+				manualSaveRequired: requestGeneration.manualSaveRequired,
+			});
         }, 750);
         return () => clearTimeout(timer);
-    }, [dirty, payload, recoveryKey]);
+	}, [
+		dirty,
+		payload,
+		recoveryKey,
+		requestGeneration.manualSaveRequired,
+	]);
 
     useEffect(() => {
         if (!dirty || !payload) return;
 
         const persistSnapshot = () => {
-            writeRecoverySnapshot(recoveryKey, payload);
+			writeRecoverySnapshot(recoveryKey, payload, {
+				manualSaveRequired: requestGeneration.manualSaveRequired,
+			});
         };
 
         window.addEventListener("pagehide", persistSnapshot);
@@ -1269,20 +1279,28 @@ export function NewSalesForm(props: Props) {
             window.removeEventListener("pagehide", persistSnapshot);
             window.removeEventListener("beforeunload", persistSnapshot);
         };
-    }, [dirty, payload, recoveryKey]);
+	}, [
+		dirty,
+		payload,
+		recoveryKey,
+		requestGeneration.manualSaveRequired,
+	]);
 
     const applyRecoverySnapshot = useCallback(() => {
         if (!loadData || !recoverySnapshot) return;
-        restoreLocalDraft({
-            ...loadData,
-            salesId: recoverySnapshot.payload.salesId ?? loadData.salesId,
-            slug: recoverySnapshot.payload.slug ?? loadData.slug,
-            version: loadData.version,
-            form: recoverySnapshot.payload.meta,
-            lineItems: recoverySnapshot.payload.lineItems,
-            extraCosts: recoverySnapshot.payload.extraCosts,
-            summary: recoverySnapshot.payload.summary,
-        } as NewSalesFormRecord);
+		restoreLocalDraft(
+			{
+				...loadData,
+				salesId: recoverySnapshot.payload.salesId ?? loadData.salesId,
+				slug: recoverySnapshot.payload.slug ?? loadData.slug,
+				version: loadData.version,
+				form: recoverySnapshot.payload.meta,
+				lineItems: recoverySnapshot.payload.lineItems,
+				extraCosts: recoverySnapshot.payload.extraCosts,
+				summary: recoverySnapshot.payload.summary,
+			} as NewSalesFormRecord,
+			{ manualSaveRequired: recoverySnapshot.manualSaveRequired },
+		);
         setRecoverySnapshot(null);
         toast({
             title: "Local recovery restored",
@@ -1783,6 +1801,14 @@ export function NewSalesForm(props: Props) {
 		const openInNewTab = event?.shiftKey ?? false;
         await runWithManualSaveLock(async () => {
 			if (!record || !validateBeforeSave()) return;
+			if (requestGeneration.manualSaveRequired) {
+				toast({
+					title: "Generated draft is not saved",
+					description:
+						"Review the invoice summary, then use Save Draft or Finalize before printing.",
+				});
+				return;
+			}
 			const unpricedDecision = resolveUnpricedHptPersistence(record, {
 				kind: "print" as const,
 				openInNewTab,
@@ -1845,6 +1871,14 @@ export function NewSalesForm(props: Props) {
     async function handleDownloadPdf() {
         await runWithManualSaveLock(async () => {
 			if (!record || !validateBeforeSave()) return;
+			if (requestGeneration.manualSaveRequired) {
+				toast({
+					title: "Generated draft is not saved",
+					description:
+						"Review the invoice summary, then use Save Draft or Finalize before downloading.",
+				});
+				return;
+			}
 			const unpricedDecision = resolveUnpricedHptPersistence(record, {
 				kind: "download-pdf" as const,
 			});
@@ -1906,6 +1940,14 @@ export function NewSalesForm(props: Props) {
         if (isPreviewing) return;
         await runWithManualSaveLock(async () => {
 			if (!record || !validateBeforeSave()) return;
+			if (requestGeneration.manualSaveRequired) {
+				toast({
+					title: "Generated draft is not saved",
+					description:
+						"Review the in-form invoice summary, then use Save Draft or Finalize before opening the persisted preview.",
+				});
+				return;
+			}
 			const unpricedDecision = resolveUnpricedHptPersistence(record, {
 				kind: "preview" as const,
 			});

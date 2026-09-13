@@ -50,7 +50,7 @@ test("preview accepts only typed pasted text during the text pilot", () => {
 	).toBe(false);
 });
 
-test("rejects unsupported formats and malformed base64 before decoding", () => {
+test("does not expose a dormant image payload contract during the text pilot", () => {
 	expect(
 		generateSalesRequestPreviewSchema.safeParse({
 			type: "order",

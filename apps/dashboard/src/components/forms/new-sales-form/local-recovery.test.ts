@@ -4,6 +4,8 @@ import {
 	createRecoverySnapshot,
 	getRecoveryStorageKey,
 	parseRecoverySnapshot,
+	readRecoverySnapshot,
+	writeRecoverySnapshot,
 } from "./local-recovery";
 import type { NewSalesFormSaveDraftInput } from "./schema";
 
@@ -63,6 +65,46 @@ describe("new sales form local recovery", () => {
 		expect(parsed?.version).toBe(1);
 		expect(parsed?.savedAt).toBe("2026-05-20T10:00:00.000Z");
 		expect(parsed?.payload.lineItems[0]?.lineTotal).toBe(30);
+	});
+
+	it("preserves the explicit-save hold for a recovered generated draft", () => {
+		const snapshot = createRecoverySnapshot(
+			createPayload(),
+			"2026-09-13T12:00:00.000Z",
+			{ manualSaveRequired: true },
+		);
+		const parsed = parseRecoverySnapshot(JSON.stringify(snapshot));
+
+		expect(parsed?.manualSaveRequired).toBe(true);
+		expect(parsed?.payload.lineItems[0]?.uid).toBe("line-1");
+	});
+
+	it("round-trips the generated-draft hold through browser storage", () => {
+		const values = new Map<string, string>();
+		Object.defineProperty(globalThis, "window", {
+			configurable: true,
+			value: {
+				localStorage: {
+					getItem: (key: string) => values.get(key) ?? null,
+					setItem: (key: string, value: string) => values.set(key, value),
+					removeItem: (key: string) => values.delete(key),
+				},
+			},
+		});
+
+		try {
+			const key = getRecoveryStorageKey({ type: "order" });
+			writeRecoverySnapshot(key, createPayload(), {
+				manualSaveRequired: true,
+			});
+
+			expect(readRecoverySnapshot(key)?.manualSaveRequired).toBe(true);
+			expect(readRecoverySnapshot(key)?.payload.lineItems[0]?.uid).toBe(
+				"line-1",
+			);
+		} finally {
+			Reflect.deleteProperty(globalThis, "window");
+		}
 	});
 
 	it("rejects invalid, stale-version, or incomplete snapshots", () => {

@@ -20,6 +20,11 @@ export type RequestGenerationPhase =
 export type RequestGenerationState = {
 	phase: RequestGenerationPhase;
 	autosaveSuspended: boolean;
+	/**
+	 * An applied generated proposal must remain an in-memory native form until
+	 * the representative uses an explicit Save Draft or Finalize command.
+	 */
+	manualSaveRequired: boolean;
 	appliedProposalIds: string[];
 	undo: RequestGenerationUndoTransaction | null;
 };
@@ -132,6 +137,7 @@ export function createInitialRequestGenerationState(): RequestGenerationState {
 	return {
 		phase: "idle",
 		autosaveSuspended: false,
+		manualSaveRequired: false,
 		appliedProposalIds: [],
 		undo: null,
 	};

@@ -286,10 +286,7 @@ export const salesRequestRouter = createTRPCRouter({
 			return createSalesRequestPreview(
 				{
 					text: input.text,
-					images: input.images.map((image) => ({
-						mediaType: image.mediaType,
-						bytes: Buffer.from(image.base64, "base64"),
-					})),
+					images: [],
 					signal: signal ?? new AbortController().signal,
 				},
 				{

@@ -329,10 +329,38 @@ describe("Sales Request Generation native save/reopen proof", () => {
 			"utf8",
 		);
 		expect(source).toContain("!requestGeneration.autosaveSuspended");
+		expect(source).toContain("!requestGeneration.manualSaveRequired");
 		expect(source).toContain("autosave.cancelPending()");
 		expect(source).toContain(
 			'setRequestGenerationPhase(open ? "reviewing" : "idle")',
 		);
 		expect(source).toContain('commitIntent: "final"');
+	});
+
+	test("blocks generated-draft document actions before their persistence flush", () => {
+		const source = readFileSync(
+			new URL("./new-sales-form.tsx", import.meta.url),
+			"utf8",
+		);
+		const handlers = [
+			["async function handlePrint(", "async function handleDownloadPdf("],
+			["async function handleDownloadPdf(", "async function handlePreview("],
+			["async function handlePreview(", "function handleOpenOverview("],
+		] as const;
+
+		for (const [startToken, endToken] of handlers) {
+			const start = source.indexOf(startToken);
+			const end = source.indexOf(endToken, start + 1);
+			const handler = source.slice(start, end);
+			const holdGuard = handler.indexOf(
+				"if (requestGeneration.manualSaveRequired)",
+			);
+			const persistenceFlush = handler.indexOf("autosave.flush");
+
+			expect(start).toBeGreaterThanOrEqual(0);
+			expect(end).toBeGreaterThan(start);
+			expect(holdGuard).toBeGreaterThanOrEqual(0);
+			expect(persistenceFlush).toBeGreaterThan(holdGuard);
+		}
 	});
 });

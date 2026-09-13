@@ -198,6 +198,7 @@ describe("sales request generation transaction", () => {
 		expect(appliedState.dirty).toBe(true);
 		expect(appliedState.requestGeneration.phase).toBe("idle");
 		expect(appliedState.requestGeneration.autosaveSuspended).toBe(false);
+		expect(appliedState.requestGeneration.manualSaveRequired).toBe(true);
 		expect(appliedState.requestGeneration.appliedProposalIds).toEqual([
 			"proposal-door-1",
 		]);
@@ -215,7 +216,87 @@ describe("sales request generation transaction", () => {
 		expect(useNewSalesFormStore.getState().record?.lineItems).toEqual(
 			baseRecord.lineItems,
 		);
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(false);
 		unsubscribe();
+	});
+
+	it("clears the generated-draft hold only after the native save succeeds", async () => {
+		const baseRecord = createRecord();
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+		const prepared = await prepareRequestGenerationProposal({
+			proposalId: "proposal-manual-save-1",
+			configurationRevision: "config-1",
+			seed: doorSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+		if (prepared.status !== "ready") throw new Error("Expected ready proposal");
+
+		useNewSalesFormStore
+			.getState()
+			.applyRequestGenerationProposal(prepared.proposal, "config-1");
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(true);
+
+		useNewSalesFormStore.getState().markError("Save failed");
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(true);
+
+		useNewSalesFormStore.getState().markSaved({
+			version: "saved-version-1",
+			updatedAt: "2026-09-13T12:00:00.000Z",
+		});
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(false);
+	});
+
+	it("restores the explicit-save hold after local crash recovery", () => {
+		const recovered = createRecord();
+		useNewSalesFormStore.getState().hydrate(createRecord());
+
+		useNewSalesFormStore.getState().restoreLocalDraft(recovered, {
+			manualSaveRequired: true,
+		});
+
+		expect(useNewSalesFormStore.getState().record).toEqual(recovered);
+		expect(useNewSalesFormStore.getState().dirty).toBe(true);
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(true);
+	});
+
+	it("preserves the explicit-save hold when a local draft transform omits options", async () => {
+		const baseRecord = createRecord();
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+		const prepared = await prepareRequestGenerationProposal({
+			proposalId: "proposal-preserve-hold-1",
+			configurationRevision: "config-1",
+			seed: doorSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+		});
+		if (prepared.status !== "ready") throw new Error("Expected ready proposal");
+
+		useNewSalesFormStore
+			.getState()
+			.applyRequestGenerationProposal(prepared.proposal, "config-1");
+		const transformed = structuredClone(
+			useNewSalesFormStore.getState().record as NewSalesFormRecord,
+		);
+		useNewSalesFormStore.getState().restoreLocalDraft(transformed);
+
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(true);
 	});
 
 	it("keeps invalid component identities isolated from the store", async () => {
@@ -321,6 +402,9 @@ describe("sales request generation transaction", () => {
 		expect(remainingLines[0]?.uid).toBe("manual-line");
 		expect(remainingLines[0]?.qty).toBe(3);
 		expect(remainingLines[0]?.lineTotal).toBe(75);
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(false);
 	});
 
 	it("rejects a prepared proposal when the form revision changes before apply", async () => {
@@ -546,6 +630,9 @@ describe("sales request generation transaction", () => {
 		const retained = useNewSalesFormStore.getState().record?.lineItems[0];
 		expect(retained?.id).toBe(151);
 		expect(retained?.description).toBe("User-authored commercial note");
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(true);
 	});
 
 	it("keeps request-generation metadata out of the canonical save payload", async () => {

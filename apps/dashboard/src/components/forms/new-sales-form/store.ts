@@ -62,7 +62,10 @@ export type NewSalesFormState = Omit<SalesFormState, "record"> & {
 type NewSalesFormActions = {
 	reset: () => void;
 	hydrate: (record: NewSalesFormRecord) => void;
-	restoreLocalDraft: (record: NewSalesFormRecord) => void;
+	restoreLocalDraft: (
+		record: NewSalesFormRecord,
+		options?: { manualSaveRequired?: boolean },
+	) => void;
 	setMeta: (patch: Partial<NewSalesFormMeta>) => void;
 	setDeliveryOption: (
 		deliveryOption: SalesFormDeliveryOption,
@@ -140,15 +143,21 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 			)(state),
 			requestGeneration: createInitialRequestGenerationState(),
 		})),
-	restoreLocalDraft: (record) =>
-		set(
-			applySalesFormState((state) =>
+	restoreLocalDraft: (record, options) =>
+		set((state) => ({
+			...applySalesFormState((current) =>
 				restoreSalesFormLocalDraft(
-					state,
+					current,
 					record as unknown as SalesFormStateRecord,
 				),
-			),
-		),
+			)(state),
+			requestGeneration: {
+				...state.requestGeneration,
+				manualSaveRequired:
+					options?.manualSaveRequired ??
+					state.requestGeneration.manualSaveRequired,
+			},
+		})),
 	setMeta: (patch) =>
 		set(applySalesFormState((state) => setSalesFormMeta(state, patch))),
 	setDeliveryOption: (deliveryOption, options) =>
@@ -229,7 +238,15 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	markSaving: () =>
 		set(applySalesFormState((state) => markSalesFormSaving(state))),
 	markSaved: (payload) =>
-		set(applySalesFormState((state) => markSalesFormSaved(state, payload))),
+		set((state) => ({
+			...applySalesFormState((current) => markSalesFormSaved(current, payload))(
+				state,
+			),
+			requestGeneration: {
+				...state.requestGeneration,
+				manualSaveRequired: false,
+			},
+		})),
 	markError: (message) =>
 		set(applySalesFormState((state) => markSalesFormError(state, message))),
 	markStale: (message) =>
@@ -300,6 +317,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 				requestGeneration: {
 					phase: "idle",
 					autosaveSuspended: false,
+					manualSaveRequired: true,
 					appliedProposalIds: [
 						...state.requestGeneration.appliedProposalIds,
 						proposal.proposalId,
@@ -331,6 +349,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 					requestGeneration: {
 						phase: "idle",
 						autosaveSuspended: false,
+						manualSaveRequired: false,
 						appliedProposalIds,
 						undo: null,
 					},
@@ -356,6 +375,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 				requestGeneration: {
 					phase: "idle",
 					autosaveSuspended: false,
+					manualSaveRequired: selective.retainedLineUids.length > 0,
 					appliedProposalIds,
 					undo: null,
 				},

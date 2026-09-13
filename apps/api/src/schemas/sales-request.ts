@@ -35,39 +35,19 @@ export const generateSalesRequestPreviewSchema = z
 	.object({
 		type: z.enum(["order", "quote"]),
 		text: z.string().max(50_000).default(""),
+		// Preserve the client request shell while the text pilot is active, but do
+		// not expose a dormant image payload contract until Ticket 11 is resumed.
 		images: z
-			.array(
-				z
-					.object({
-						mediaType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-						base64: z
-							.string()
-							.min(4)
-							.max(6_990_508)
-							.regex(
-								/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/,
-							),
-					})
-					.strict(),
-			)
+			.array(z.never())
 			.max(0, "Image input is deferred; provide pasted text only")
 			.default([]),
 	})
 	.strict()
 	.superRefine((input, ctx) => {
-		if (!input.text.trim() && !input.images.length) {
+		if (!input.text.trim()) {
 			ctx.addIssue({
 				code: "custom",
-				message: "Provide request text or images",
-			});
-		}
-		if (
-			input.images.reduce((sum, image) => sum + image.base64.length, 0) >
-			13_981_016
-		) {
-			ctx.addIssue({
-				code: "custom",
-				message: "Request images exceed the combined limit",
+				message: "Provide request text",
 			});
 		}
 	});
