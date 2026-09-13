@@ -10,6 +10,7 @@ export {
 	buildMailboxScopeFingerprint,
 	completeMailboxConnection,
 	startMailboxConnection,
+	validateMailboxGrantedScopes,
 } from "./connection-lifecycle.js";
 export type {
 	CompleteMailboxConnectionResult,
@@ -126,6 +127,21 @@ export {
 	resolveMailboxSyncSources,
 	runMailboxSyncStream,
 } from "./sync-orchestrator.js";
+export {
+	MAILBOX_TOKEN_HEALTH_LEASE_MS,
+	MAILBOX_TOKEN_HEALTH_MAX_RETRY_ATTEMPTS,
+	MAILBOX_TOKEN_REFRESH_BEFORE_EXPIRY_MS,
+	MAILBOX_TOKEN_REFRESH_COMMIT_BEHAVIOR,
+	runMailboxTokenHealthLifecycle,
+} from "./token-health-lifecycle.js";
+export type {
+	MailboxTokenHealthClaim,
+	MailboxTokenHealthDependencies,
+	MailboxTokenHealthErrorCode,
+	MailboxTokenHealthReason,
+	MailboxTokenHealthResult,
+	MailboxTokenHealthStore,
+} from "./token-health-lifecycle.js";
 export {
 	MAILBOX_MESSAGE_DETAIL_MAX_RETRY_ATTEMPTS,
 	buildMailboxMessageContentHash,

@@ -448,7 +448,7 @@ function normalizeScope(provider: MailboxProvider, value: string) {
 	return normalized;
 }
 
-function validateGrantedScopes(
+export function validateMailboxGrantedScopes(
 	provider: MailboxProvider,
 	grantedScopes: readonly string[],
 ) {
@@ -504,7 +504,7 @@ function validateExchange(input: {
 	) {
 		return null;
 	}
-	const scopes = validateGrantedScopes(
+	const scopes = validateMailboxGrantedScopes(
 		input.provider,
 		input.tokens.grantedScopes,
 	);
