@@ -29,6 +29,7 @@ import {
 	setSalesRequestAISettingsSchema,
 	setSalesRequestCatalogPolicySchema,
 	setSalesRequestDefaultSchema,
+	setSalesRequestMailboxPolicySchema,
 	setSalesRequestPilotReviewPolicySchema,
 	setSalesRequestPilotSettingsSchema,
 	setSalesRequestProviderBenchmarkApprovalSchema,
@@ -41,6 +42,7 @@ import {
 	createSalesRequestProvider,
 	getSalesRequestProviderApiKey,
 } from "@api/services/sales-request-generation";
+import { requireActiveSalesRequestMailboxEmployees } from "@api/services/sales-request-mailbox-employees";
 import { requireSalesRequestSettingsAdmin } from "@api/services/sales-request-permissions";
 import {
 	getSalesRequestPilotAccess,
@@ -78,6 +80,7 @@ import {
 	failSalesRequestCatalogRegeneration,
 	getSalesRequestAISettings,
 	getSalesRequestCatalogSettings,
+	getSalesRequestMailboxPolicy,
 	getSalesRequestPilotReviewPolicy,
 	getSalesRequestPilotSettings,
 	getSalesRequestProviderBenchmarkApproval,
@@ -86,6 +89,7 @@ import {
 	updateSalesRequestAISettings,
 	updateSalesRequestCatalogPolicy,
 	updateSalesRequestGenerationDefault,
+	updateSalesRequestMailboxPolicy,
 	updateSalesRequestPilotReviewPolicy,
 	updateSalesRequestPilotSettings,
 	updateSalesRequestProviderBenchmarkApproval,
@@ -183,6 +187,7 @@ async function readAISettingsSurface(
 		pilot,
 		providerBenchmark,
 		pilotReviewPolicy,
+		mailboxPolicy,
 	] = await Promise.all([
 		getSalesRequestAISettings(db, settingId),
 		getSalesRequestCatalogSettings(db, settingId),
@@ -190,6 +195,7 @@ async function readAISettingsSurface(
 		getSalesRequestPilotSettings(db, settingId),
 		getSalesRequestProviderBenchmarkApproval(db, settingId),
 		getSalesRequestPilotReviewPolicy(db, settingId),
+		getSalesRequestMailboxPolicy(db, settingId),
 	]);
 	return {
 		settingId: result.settingId,
@@ -209,6 +215,8 @@ async function readAISettingsSurface(
 			pilotSource: pilot.source,
 			pilotReviewPolicy: pilotReviewPolicy.policy,
 			pilotReviewPolicySource: pilotReviewPolicy.source,
+			mailbox: mailboxPolicy.policy,
+			mailboxSource: mailboxPolicy.source,
 		},
 	};
 }
@@ -223,6 +231,7 @@ async function readAISettingsSurfaceWithSelection(
 		pilot,
 		providerBenchmark,
 		pilotReviewPolicy,
+		mailboxPolicy,
 	] = await Promise.all([
 		getSalesRequestCatalogSettings(db, result.settingId),
 		getSalesRequestGenerationAdminSettings(db, {
@@ -231,6 +240,7 @@ async function readAISettingsSurfaceWithSelection(
 		getSalesRequestPilotSettings(db, result.settingId),
 		getSalesRequestProviderBenchmarkApproval(db, result.settingId),
 		getSalesRequestPilotReviewPolicy(db, result.settingId),
+		getSalesRequestMailboxPolicy(db, result.settingId),
 	]);
 	return {
 		changed: result.changed,
@@ -251,6 +261,8 @@ async function readAISettingsSurfaceWithSelection(
 			pilotSource: pilot.source,
 			pilotReviewPolicy: pilotReviewPolicy.policy,
 			pilotReviewPolicySource: pilotReviewPolicy.source,
+			mailbox: mailboxPolicy.policy,
+			mailboxSource: mailboxPolicy.source,
 		},
 	};
 }
@@ -385,6 +397,26 @@ export const salesRequestRouter = createTRPCRouter({
 			});
 			const settingId = selectSalesRequestSettingId(rows.map((row) => row.id));
 			return updateSalesRequestPilotSettings(ctx.db, {
+				settingId,
+				...input,
+			});
+		}),
+	updateMailboxPolicy: protectedProcedure
+		.input(setSalesRequestMailboxPolicySchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSalesRequestSettingsAdmin(ctx);
+			if (input.enabled) {
+				await requireActiveSalesRequestMailboxEmployees({
+					db: ctx.db,
+					userIds: input.eligibleUserIds,
+				});
+			}
+			const rows = await ctx.db.settings.findMany({
+				where: { type: "sales-settings", deletedAt: null },
+				select: { id: true },
+			});
+			const settingId = selectSalesRequestSettingId(rows.map((row) => row.id));
+			return updateSalesRequestMailboxPolicy(ctx.db, {
 				settingId,
 				...input,
 			});

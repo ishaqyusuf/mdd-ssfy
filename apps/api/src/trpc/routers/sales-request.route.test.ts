@@ -52,7 +52,11 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 				roles: userRecord.roles,
 			}),
 			findMany: async ({ where }: { where: { id: { in: number[] } } }) =>
-				where.id.in.map((id) => ({ id })),
+				where.id.in.map((id) => ({
+					id,
+					type: "EMPLOYEE" as const,
+					employeeProfileId: id + 100,
+				})),
 		},
 		roles: {
 			findFirstOrThrow: async () => {
@@ -936,6 +940,62 @@ test("pilot settings mutation is Super Admin-only and preserves existing sales m
 			},
 		},
 	});
+});
+
+test("mailbox policy is Super Admin-managed, normalized, and disabled by default", async () => {
+	const fixture = requestContext({ unrelated: { preserve: true } });
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+
+	await expect(caller.getAISettings()).resolves.toMatchObject({
+		requestGeneration: {
+			mailbox: {
+				enabled: false,
+				supportedProviders: [],
+				maximumAutomationMode: "manual",
+				emergencyDisabled: true,
+			},
+			mailboxSource: "default",
+		},
+	});
+
+	const result = await caller.updateMailboxPolicy({
+		enabled: true,
+		supportedProviders: ["microsoft-graph", "gmail"],
+		eligibleUserIds: [19, 7, 19],
+		retentionDays: 30,
+		maximumAutomationMode: "classify",
+		emergencyDisabled: false,
+		allowAttachments: false,
+		maxAttachmentBytes: 0,
+	});
+	expect(result).toMatchObject({
+		changed: true,
+		policy: {
+			supportedProviders: ["gmail", "microsoft-graph"],
+			eligibleUserIds: [7, 19],
+			revision: 1,
+		},
+	});
+	expect(fixture.getSavedMeta()).toMatchObject({
+		unrelated: { preserve: true },
+		requestGeneration: { mailbox: result.policy },
+	});
+
+	const denied = requestContext(undefined, {
+		roles: [{ role: { id: 2, name: "Sales", RoleHasPermissions: [] } }],
+	});
+	await expect(
+		salesRequestRouter.createCaller(denied.ctx).updateMailboxPolicy({
+			enabled: false,
+			supportedProviders: [],
+			eligibleUserIds: [],
+			retentionDays: 30,
+			maximumAutomationMode: "manual",
+			emergencyDisabled: true,
+			allowAttachments: false,
+			maxAttachmentBytes: 0,
+		}),
+	).rejects.toMatchObject({ code: "FORBIDDEN" });
 });
 
 test("pilot settings reject deleted, revoked, or unknown named users", async () => {

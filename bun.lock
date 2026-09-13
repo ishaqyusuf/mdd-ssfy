@@ -59,6 +59,7 @@
         "@gnd/observability": "workspace:*",
         "@gnd/pdf": "workspace:*",
         "@gnd/sales": "workspace:*",
+        "@gnd/sales-request-mailbox": "workspace:*",
         "@gnd/settings": "workspace:*",
         "@gnd/square": "workspace:*",
         "@gnd/utils": "workspace:*",
@@ -848,10 +849,24 @@
         "react-dom": "catalog:",
       },
     },
+    "packages/sales-request-mailbox": {
+      "name": "@gnd/sales-request-mailbox",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
+        "@types/bun": "^1.2.17",
+        "@types/node": "^25.2.3",
+        "typescript": "catalog:",
+      },
+    },
     "packages/settings": {
       "name": "@gnd/settings",
       "dependencies": {
         "@gnd/db": "workspace:*",
+        "@gnd/sales-request-mailbox": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@react-pdf/renderer": "^4.3.1",
         "date-fns": "^4.1.0",
@@ -1660,6 +1675,8 @@
     "@gnd/pdf": ["@gnd/pdf@workspace:packages/pdf"],
 
     "@gnd/sales": ["@gnd/sales@workspace:packages/sales"],
+
+    "@gnd/sales-request-mailbox": ["@gnd/sales-request-mailbox@workspace:packages/sales-request-mailbox"],
 
     "@gnd/settings": ["@gnd/settings@workspace:packages/settings"],
 

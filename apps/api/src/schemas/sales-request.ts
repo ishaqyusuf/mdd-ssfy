@@ -3,6 +3,7 @@ import {
 	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
 } from "@api/services/sales-request-feedback";
 import { salesRequestPilotReviewDecisionInputSchema } from "@api/services/sales-request-pilot-review";
+import { salesRequestMailboxPolicyInputSchema } from "@gnd/sales-request-mailbox";
 import {
 	salesRequestAISelectionSchema,
 	salesRequestCatalogPolicySchema,
@@ -22,6 +23,9 @@ export const setSalesRequestCatalogPolicySchema =
 
 export const setSalesRequestPilotSettingsSchema =
 	salesRequestPilotSettingsInputSchema;
+
+export const setSalesRequestMailboxPolicySchema =
+	salesRequestMailboxPolicyInputSchema;
 
 export const setSalesRequestPilotReviewPolicySchema =
 	salesRequestPilotReviewPolicyInputSchema;

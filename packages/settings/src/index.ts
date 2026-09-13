@@ -105,6 +105,16 @@ export type {
 	UpdateSalesRequestPilotSettingsInput,
 } from "./sales-request-pilot-settings";
 export {
+	getSalesRequestMailboxPolicy,
+	updateSalesRequestMailboxPolicy,
+} from "./sales-request-mailbox-policy";
+export type {
+	SalesRequestMailboxPolicyResult,
+	SalesRequestMailboxPolicySource,
+	SalesRequestMailboxPolicyUpdate,
+	UpdateSalesRequestMailboxPolicyInput,
+} from "./sales-request-mailbox-policy";
+export {
 	DEFAULT_GUARDED_PACKING_POLICY,
 	DEFAULT_SALES_HANDOFF_TRIGGER_POLICY,
 	DEFAULT_SPECIAL_ORDER_SETTINGS,
