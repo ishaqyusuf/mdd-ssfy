@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
 	anonymizeSalesRequestGenerationRunsForUser,
 	completeSalesRequestGenerationRun,
+	consumeSalesRequestGenerationRun,
 	createSalesRequestGenerationRun,
 	getSalesRequestGenerationPilotSummary,
 	purgeExpiredSalesRequestGenerationRuns,
@@ -20,6 +21,8 @@ function row(overrides: Record<string, unknown> = {}) {
 		provider: "openai",
 		model: "gpt-5-mini",
 		status: "succeeded",
+		seedDigest: `h1:${"c".repeat(64)}`,
+		consumedSalesId: null,
 		hasText: true,
 		latencyMs: 800,
 		inputTokens: 100,
@@ -68,6 +71,49 @@ function dbFixture(initial = row()) {
 					data?: Record<string, unknown>;
 				};
 				const where = payload.where ?? {};
+				if (
+					where.generationId !== undefined &&
+					current.generationId !== where.generationId
+				)
+					return { count: 0 };
+				if (
+					where.actorUserId !== undefined &&
+					current.actorUserId !== where.actorUserId
+				)
+					return { count: 0 };
+				if (where.status !== undefined && current.status !== where.status)
+					return { count: 0 };
+				if (where.hasText !== undefined && current.hasText !== where.hasText)
+					return { count: 0 };
+				if (where.deletedAt === null && current.deletedAt !== null)
+					return { count: 0 };
+				if (
+					where.completedAt &&
+					(where.completedAt as { not?: unknown }).not === null &&
+					current.completedAt == null
+				)
+					return { count: 0 };
+				if (
+					where.seedDigest &&
+					(where.seedDigest as { not?: unknown }).not === null &&
+					current.seedDigest == null
+				)
+					return { count: 0 };
+				if (
+					where.retentionUntil &&
+					current.retentionUntil.getTime() <=
+						(where.retentionUntil as { gt: Date }).gt.getTime()
+				)
+					return { count: 0 };
+				if (
+					Array.isArray(where.OR) &&
+					!where.OR.some(
+						(condition) =>
+							current.consumedSalesId ===
+							(condition as { consumedSalesId: number | null }).consumedSalesId,
+					)
+				)
+					return { count: 0 };
 				const field = Object.keys(where).find((key) =>
 					[
 						"applyOutcome",
@@ -299,8 +345,112 @@ describe("sales request generation telemetry persistence", () => {
 		});
 		expect(fixture.calls[1]?.args).toMatchObject({
 			where: { actorUserId: 7, deletedAt: null },
-			data: { actorUserId: null, seedDigest: null },
+			data: {
+				actorUserId: null,
+				seedDigest: null,
+				consumedSalesId: null,
+			},
 		});
+	});
+
+	test("consumes a retained successful generation once and binds it to the Sales ID", async () => {
+		const fixture = dbFixture();
+
+		await expect(
+			consumeSalesRequestGenerationRun(fixture.db, {
+				actorUserId: 7,
+				generationId: row().generationId,
+				salesId: 41,
+				now,
+			}),
+		).resolves.toEqual({ generationId: row().generationId, salesId: 41 });
+
+		expect(fixture.getRow()).toMatchObject({ consumedSalesId: 41 });
+		expect(fixture.calls.at(-1)).toMatchObject({
+			method: "updateMany",
+			args: {
+				where: {
+					generationId: row().generationId,
+					actorUserId: 7,
+					status: "succeeded",
+					hasText: true,
+					completedAt: { not: null },
+					seedDigest: { not: null },
+					deletedAt: null,
+					retentionUntil: { gt: now },
+					OR: [{ consumedSalesId: null }, { consumedSalesId: 41 }],
+				},
+				data: { consumedSalesId: 41 },
+			},
+		});
+	});
+
+	test("makes repeated consumption by the same Sales ID idempotent", async () => {
+		const fixture = dbFixture(row({ consumedSalesId: 41 }));
+		const input = {
+			actorUserId: 7,
+			generationId: row().generationId,
+			salesId: 41,
+			now,
+		};
+
+		await expect(
+			consumeSalesRequestGenerationRun(fixture.db, input),
+		).resolves.toEqual({ generationId: row().generationId, salesId: 41 });
+		expect(fixture.getRow()).toMatchObject({ consumedSalesId: 41 });
+	});
+
+	test("rejects a competing Sales ID after the atomic consumption wins", async () => {
+		const fixture = dbFixture();
+		const input = {
+			actorUserId: 7,
+			generationId: row().generationId,
+			now,
+		};
+
+		await consumeSalesRequestGenerationRun(fixture.db, {
+			...input,
+			salesId: 41,
+		});
+		await expect(
+			consumeSalesRequestGenerationRun(fixture.db, {
+				...input,
+				salesId: 42,
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		expect(fixture.getRow()).toMatchObject({ consumedSalesId: 41 });
+	});
+
+	test("fails closed for cross-actor, expired, deleted, non-success, and unbound runs", async () => {
+		const cases = [
+			{ actorUserId: 8 },
+			{ retentionUntil: new Date("2026-09-12T12:00:00.000Z") },
+			{ deletedAt: new Date("2026-09-12T11:00:00.000Z") },
+			{ status: "failed" },
+			{ hasText: false },
+			{ completedAt: null },
+			{ seedDigest: null },
+		];
+
+		for (const overrides of cases) {
+			const inputActorUserId =
+				typeof overrides.actorUserId === "number" ? overrides.actorUserId : 7;
+			const fixture = dbFixture(
+				row({
+					...overrides,
+					actorUserId: 7,
+				}),
+			);
+			await expect(
+				consumeSalesRequestGenerationRun(fixture.db, {
+					actorUserId: inputActorUserId,
+					generationId: row().generationId,
+					salesId: 41,
+					now,
+				}),
+			).rejects.toMatchObject({ code: "NOT_FOUND" });
+			expect(fixture.getRow()).toMatchObject({ consumedSalesId: null });
+		}
 	});
 
 	test("returns aggregate-only Super Admin report inputs", async () => {

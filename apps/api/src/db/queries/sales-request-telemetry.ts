@@ -26,6 +26,7 @@ export {
 type TelemetryRow = SalesRequestGenerationRunForReport & {
 	generationId: string;
 	actorUserId: number | null;
+	consumedSalesId: number | null;
 	retentionUntil: Date;
 	deletedAt: Date | null;
 	completedAt?: Date | null;
@@ -196,6 +197,44 @@ export async function completeSalesRequestGenerationRun(
 	});
 	if (result.count !== 1) unavailableGenerationRun();
 	return result;
+}
+
+export type ConsumeSalesRequestGenerationRunInput = {
+	actorUserId: number;
+	generationId: string;
+	salesId: number;
+	now?: Date;
+};
+
+/**
+ * Atomically binds a retained successful generation to one native Sales row.
+ * The caller supplies the transaction client so this compare-and-set can commit
+ * or roll back with the Sales write that owns the resulting ID.
+ */
+export async function consumeSalesRequestGenerationRun(
+	db: SalesRequestTelemetryDatabase,
+	input: ConsumeSalesRequestGenerationRunInput,
+) {
+	if (!Number.isInteger(input.salesId) || input.salesId <= 0) {
+		return unavailableGenerationRun();
+	}
+	const now = input.now ?? new Date();
+	const consumed = await db.salesRequestGenerationRun.updateMany({
+		where: {
+			generationId: input.generationId,
+			actorUserId: input.actorUserId,
+			status: "succeeded",
+			hasText: true,
+			completedAt: { not: null },
+			seedDigest: { not: null },
+			deletedAt: null,
+			retentionUntil: { gt: now },
+			OR: [{ consumedSalesId: null }, { consumedSalesId: input.salesId }],
+		},
+		data: { consumedSalesId: input.salesId },
+	});
+	if (consumed.count !== 1) unavailableGenerationRun();
+	return { generationId: input.generationId, salesId: input.salesId };
 }
 
 export type SalesRequestGenerationOutcome =

@@ -1,5 +1,7 @@
-/// Metadata-only pilot run telemetry. Never add source text, images, contacts,
-/// provider bodies/errors, credentials, or generated seed payloads to this model.
+/// Metadata-only pilot run telemetry. A retained successful run may reference the
+/// native Sales row it created solely for atomic idempotency; anonymization clears
+/// that binding. Never add source text, images, contacts, provider bodies/errors,
+/// credentials, or generated seed payloads to this model.
 model SalesRequestGenerationRun {
     generationId                    String    @id @db.VarChar(36)
     actorUserId                     Int?
@@ -10,6 +12,7 @@ model SalesRequestGenerationRun {
     promptVersion                   String?   @db.VarChar(64)
     schemaVersion                   Int?
     seedDigest                     String?   @db.VarChar(67)
+    consumedSalesId                Int?
     status                          String    @db.VarChar(32)
     failureStage                    String?   @db.VarChar(32)
     hasText                         Boolean   @default(false)
@@ -34,9 +37,11 @@ model SalesRequestGenerationRun {
     createdAt                       DateTime  @default(now()) @db.Timestamp(0)
     updatedAt                       DateTime  @updatedAt
     deletedAt                       DateTime? @db.Timestamp(0)
+    consumedSales                  SalesOrders? @relation(name: "SalesRequestGenerationConsumedSales", fields: [consumedSalesId], references: [id], onDelete: SetNull)
 
     @@index([status, createdAt], map: "sales_req_gen_status_created_idx")
     @@index([actorUserId, createdAt], map: "sales_req_gen_actor_created_idx")
     @@index([scope, createdAt], map: "sales_req_gen_scope_created_idx")
     @@index([retentionUntil, deletedAt], map: "sales_req_gen_retention_idx")
+    @@index([consumedSalesId], map: "sales_req_gen_consumed_sales_idx")
 }

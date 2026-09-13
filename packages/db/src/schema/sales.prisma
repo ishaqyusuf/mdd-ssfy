@@ -115,6 +115,7 @@ model SalesOrders {
     specialOrderEvidence SpecialOrderApprovalEvidence[] @relation(name: "SpecialOrderEvidence")
     handoffActionEpochs SalesHandoffActionEpoch[]
     salesTaxLedgerEntries SalesTaxLedgerEntry[]
+    salesRequestGenerationRuns SalesRequestGenerationRun[] @relation(name: "SalesRequestGenerationConsumedSales")
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
