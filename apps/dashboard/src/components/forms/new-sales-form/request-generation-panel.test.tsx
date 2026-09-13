@@ -206,3 +206,37 @@ test("keeps seed JSON behind the Super Admin/developer disclosure", () => {
 	expect(visibleHtml).toContain("Developer seed JSON");
 	expect(visibleHtml).toContain("&quot;schemaVersion&quot;: 2");
 });
+
+test("offers bounded category-only feedback after Apply", () => {
+	const html = renderToStaticMarkup(
+		<SalesRequestGenerationPanelView
+			{...baseProps}
+			model={{ ...baseProps.model, unresolved: [] }}
+			applyDisabled={false}
+			onApply={() => {}}
+			applyResult={{ status: "applied", proposal: {} as never }}
+			onSubmitFeedback={async () => true}
+		/>,
+	);
+
+	expect(html).toContain("How accurate was this proposal?");
+	expect(html).toContain("Accepted with edits");
+	expect(html).toContain("Rejected");
+	expect(html).toContain('role="radio"');
+	expect(html).not.toContain("Additional feedback");
+	expect(html).not.toContain("free text");
+
+	const undoneHtml = renderToStaticMarkup(
+		<SalesRequestGenerationPanelView
+			{...baseProps}
+			model={{ ...baseProps.model, unresolved: [] }}
+			applyResult={{ status: "applied", proposal: {} as never }}
+			undoResult={{
+				status: "restored",
+				proposalId: "proposal-1",
+			}}
+			onSubmitFeedback={async () => true}
+		/>,
+	);
+	expect(undoneHtml).not.toContain("How accurate was this proposal?");
+});

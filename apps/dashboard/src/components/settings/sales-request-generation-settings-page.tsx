@@ -19,6 +19,10 @@ import { Spinner } from "@gnd/ui/spinner";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useState } from "react";
+import {
+	type SalesRequestPilotDraft,
+	SalesRequestPilotSettingsSection,
+} from "./sales-request-pilot-settings-section";
 import { SalesSettingsRouteSkeleton } from "./sales-settings-route-skeleton";
 import { SettingsCard } from "./settings-card";
 import { SettingsQueryError } from "./settings-query-error";
@@ -71,8 +75,12 @@ export function SalesRequestGenerationSettingsPage() {
 		trpc.salesRequest.getAISettings.queryOptions(),
 	);
 	const [draft, setDraft] = useState<SalesRequestAISelection | null>(null);
+	const [pilotDraft, setPilotDraft] = useState<SalesRequestPilotDraft | null>(
+		null,
+	);
 	const persisted = settingsQuery.data?.settings ?? null;
 	const settings = draft ?? persisted;
+	const persistedPilot = settingsQuery.data?.requestGeneration.pilot ?? null;
 
 	const updateSettings = useMutation(
 		trpc.salesRequest.updateAISettings.mutationOptions({
@@ -145,6 +153,36 @@ export function SalesRequestGenerationSettingsPage() {
 			},
 		}),
 	);
+	const updatePilotSettings = useMutation(
+		trpc.salesRequest.updatePilotSettings.mutationOptions({
+			async onSuccess(data) {
+				setPilotDraft(null);
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.salesRequest.getAISettings.queryKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.salesRequest.getPilotAccess.queryKey(),
+					}),
+				]);
+				toast({
+					variant: "success",
+					title: data.changed
+						? "Sales request pilot settings saved"
+						: "Sales request pilot settings unchanged",
+					description:
+						"The named cohort and reviewer list are revisioned and now apply to the text pilot.",
+				});
+			},
+			onError(error) {
+				toast({
+					variant: "destructive",
+					title: "Unable to save sales request pilot settings",
+					description: error.message,
+				});
+			},
+		}),
+	);
 
 	if (settingsQuery.isError) {
 		return (
@@ -156,8 +194,8 @@ export function SalesRequestGenerationSettingsPage() {
 		);
 	}
 
-	if (settingsQuery.isPending || !persisted || !settings) {
-		return <SalesSettingsRouteSkeleton cardCount={3} />;
+	if (settingsQuery.isPending || !persisted || !settings || !persistedPilot) {
+		return <SalesSettingsRouteSkeleton cardCount={4} />;
 	}
 
 	const providers = settingsQuery.data.providers;
@@ -197,6 +235,16 @@ export function SalesRequestGenerationSettingsPage() {
 
 	return (
 		<div className="flex flex-col gap-8">
+			<SalesRequestPilotSettingsSection
+				pilot={persistedPilot}
+				pilotSource={settingsQuery.data.requestGeneration.pilotSource}
+				featureEnabled={settingsQuery.data.requestGeneration.featureEnabled}
+				draft={pilotDraft}
+				isSaving={updatePilotSettings.isPending}
+				onDraftChange={setPilotDraft}
+				onSave={(nextPilot) => updatePilotSettings.mutate(nextPilot)}
+				onDiscard={() => setPilotDraft(null)}
+			/>
 			<SettingsCard
 				title="Request generation provider"
 				description="Choose the AI service and model used to turn customer requests into a New Sales Form seed."

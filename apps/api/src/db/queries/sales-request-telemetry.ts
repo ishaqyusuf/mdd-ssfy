@@ -255,6 +255,42 @@ function outcomeMatchesExisting(
 	);
 }
 
+function canPromoteOutcome(
+	existing: string,
+	input: SalesRequestGenerationOutcome,
+) {
+	if (input.kind === "apply") {
+		return existing !== "applied" && input.outcome === "applied";
+	}
+	if (input.kind === "save") {
+		return existing === "failed" && input.outcome === "saved";
+	}
+	return false;
+}
+
+function terminalOutcomeAlreadyWon(
+	existing: string,
+	input: SalesRequestGenerationOutcome,
+) {
+	if (input.kind === "apply") {
+		return existing === "applied" && input.outcome !== "applied";
+	}
+	if (input.kind === "save") {
+		return existing === "saved" && input.outcome === "failed";
+	}
+	return false;
+}
+
+function ignoredOutcome(input: RecordSalesRequestGenerationOutcomeInput) {
+	return {
+		generationId: input.generationId,
+		kind: input.kind,
+		recorded: false,
+		duplicate: false,
+		ignored: true,
+	};
+}
+
 function outcomeData(
 	input: SalesRequestGenerationOutcome,
 	now: Date,
@@ -311,6 +347,7 @@ export async function recordSalesRequestGenerationOutcome(
 	}
 
 	const state = getOutcomeState(run, input);
+	let expectedValue: string | null = null;
 	if (state.value !== null) {
 		if (outcomeMatchesExisting(run, input)) {
 			return {
@@ -320,7 +357,13 @@ export async function recordSalesRequestGenerationOutcome(
 				duplicate: true,
 			};
 		}
-		return conflictGenerationOutcome();
+		if (terminalOutcomeAlreadyWon(state.value, input)) {
+			return ignoredOutcome(input);
+		}
+		if (!canPromoteOutcome(state.value, input)) {
+			return conflictGenerationOutcome();
+		}
+		expectedValue = state.value;
 	}
 
 	const data = outcomeData(input, now, run);
@@ -330,7 +373,7 @@ export async function recordSalesRequestGenerationOutcome(
 			actorUserId: input.actorUserId,
 			deletedAt: null,
 			retentionUntil: { gt: now },
-			[state.field]: null,
+			[state.field]: expectedValue,
 		},
 		data,
 	});
@@ -361,6 +404,47 @@ export async function recordSalesRequestGenerationOutcome(
 			recorded: false,
 			duplicate: true,
 		};
+	}
+	const latestState = getOutcomeState(latest, input);
+	if (
+		latestState.value !== null &&
+		terminalOutcomeAlreadyWon(latestState.value, input)
+	) {
+		return ignoredOutcome(input);
+	}
+	if (
+		latestState.value !== null &&
+		canPromoteOutcome(latestState.value, input)
+	) {
+		const promoted = await db.salesRequestGenerationRun.updateMany({
+			where: {
+				generationId: input.generationId,
+				actorUserId: input.actorUserId,
+				deletedAt: null,
+				retentionUntil: { gt: now },
+				[latestState.field]: latestState.value,
+			},
+			data: outcomeData(input, now, latest),
+		});
+		if (promoted.count) {
+			return {
+				generationId: input.generationId,
+				kind: input.kind,
+				recorded: true,
+				duplicate: false,
+			};
+		}
+		const final = await db.salesRequestGenerationRun.findUnique({
+			where: { generationId: input.generationId },
+		});
+		if (final && outcomeMatchesExisting(final, input)) {
+			return {
+				generationId: input.generationId,
+				kind: input.kind,
+				recorded: false,
+				duplicate: true,
+			};
+		}
 	}
 	return conflictGenerationOutcome();
 }

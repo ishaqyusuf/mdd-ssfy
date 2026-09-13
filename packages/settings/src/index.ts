@@ -54,6 +54,22 @@ export type {
 	UpdateSalesRequestAISettingsInput,
 } from "./sales-request-ai-settings";
 export {
+	DEFAULT_SALES_REQUEST_PILOT_SETTINGS,
+	getSalesRequestPilotSettings,
+	normalizeSalesRequestPilotSettingsInput,
+	salesRequestPilotSettingsInputSchema,
+	salesRequestPilotSettingsSchema,
+	updateSalesRequestPilotSettings,
+} from "./sales-request-pilot-settings";
+export type {
+	SalesRequestPilotSettings,
+	SalesRequestPilotSettingsInput,
+	SalesRequestPilotSettingsResult,
+	SalesRequestPilotSettingsSource,
+	SalesRequestPilotSettingsUpdate,
+	UpdateSalesRequestPilotSettingsInput,
+} from "./sales-request-pilot-settings";
+export {
 	DEFAULT_GUARDED_PACKING_POLICY,
 	DEFAULT_SALES_HANDOFF_TRIGGER_POLICY,
 	DEFAULT_SPECIAL_ORDER_SETTINGS,

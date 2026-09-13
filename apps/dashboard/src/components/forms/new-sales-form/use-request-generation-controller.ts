@@ -7,19 +7,24 @@ import {
 	useRef,
 	useSyncExternalStore,
 } from "react";
-import { useSalesRequestGeneratePreviewMutation } from "./api";
+import {
+	type NewSalesRequestPilotSurface,
+	useSalesRequestGeneratePreviewMutation,
+} from "./api";
 import {
 	type SalesRequestGenerationRevisionInput,
 	createSalesRequestGenerationController,
 } from "./request-generation-controller";
 
 export type UseSalesRequestGenerationControllerOptions =
-	SalesRequestGenerationRevisionInput;
+	SalesRequestGenerationRevisionInput & {
+		type: NewSalesRequestPilotSurface;
+	};
 
 export function useSalesRequestGenerationController(
 	options: UseSalesRequestGenerationControllerOptions,
 ) {
-	const previewMutation = useSalesRequestGeneratePreviewMutation();
+	const previewMutation = useSalesRequestGeneratePreviewMutation(options.type);
 	const mutationRef = useRef(previewMutation.mutateAsync);
 	mutationRef.current = previewMutation.mutateAsync;
 	const revision = useMemo(

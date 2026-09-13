@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -10,8 +11,9 @@ import {
 	DialogTitle,
 } from "@gnd/ui/dialog";
 import { Icons } from "@gnd/ui/icons";
+import { RadioGroup, RadioGroupItem } from "@gnd/ui/radio-group";
 import { Textarea } from "@gnd/ui/textarea";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useNewSalesFormStepRoutingQuery } from "./api";
 import type {
 	SalesRequestGenerationApplyResult,
@@ -21,6 +23,15 @@ import type {
 	SalesRequestGenerationFailure,
 	SalesRequestGenerationSnapshot,
 } from "./request-generation-controller";
+import {
+	SALES_REQUEST_CHANGED_FIELD_CATEGORY_OPTIONS,
+	SALES_REQUEST_FEEDBACK_OUTCOMES,
+	SALES_REQUEST_ISSUE_CATEGORY_OPTIONS,
+	type SalesRequestChangedFieldCategory,
+	type SalesRequestFeedbackOutcome,
+	type SalesRequestGenerationFeedbackSelection,
+	type SalesRequestIssueCategory,
+} from "./request-generation-outcome";
 import {
 	type SalesRequestReviewDefault,
 	type SalesRequestReviewHptRow,
@@ -32,7 +43,10 @@ import {
 	type SalesRequestReviewWarning,
 	buildSalesRequestReviewModel,
 } from "./request-generation-presentation";
-import { useSalesRequestGenerationApply } from "./use-request-generation-apply";
+import {
+	type UseSalesRequestGenerationApplyOptions,
+	useSalesRequestGenerationApply,
+} from "./use-request-generation-apply";
 import { useSalesRequestGenerationController } from "./use-request-generation-controller";
 
 const MAX_SOURCE_LENGTH = 20_000;
@@ -63,9 +77,13 @@ export type SalesRequestGenerationPanelViewProps = GenerationSnapshotProps & {
 	isUndoing?: boolean;
 	onUndo?: () => void;
 	generateDisabled?: boolean;
+	onSubmitFeedback?: (
+		input: SalesRequestGenerationFeedbackSelection,
+	) => Promise<boolean>;
 };
 
 export type SalesRequestGenerationPanelProps = {
+	type: "order" | "quote";
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	formRevision?: string | number | null;
@@ -73,6 +91,11 @@ export type SalesRequestGenerationPanelProps = {
 	canInspectJson?: boolean;
 	validateConfigurationRevision?: SalesRequestGenerationConfigurationValidator;
 	onBeforeApply?: () => void;
+	onApplyResult?: UseSalesRequestGenerationApplyOptions["onApplyResult"];
+	onUndoResult?: UseSalesRequestGenerationApplyOptions["onUndoResult"];
+	onSubmitFeedback?: (
+		input: SalesRequestGenerationFeedbackSelection,
+	) => Promise<boolean>;
 	generateDisabled?: boolean;
 };
 
@@ -427,6 +450,176 @@ function FailureMessage({
 	);
 }
 
+function toggleCategory<T extends string>(
+	values: readonly T[],
+	value: T,
+	checked: boolean,
+) {
+	return checked
+		? [...new Set([...values, value])]
+		: values.filter((candidate) => candidate !== value);
+}
+
+function SalesRequestGenerationFeedback({
+	onSubmit,
+}: {
+	onSubmit: (
+		input: SalesRequestGenerationFeedbackSelection,
+	) => Promise<boolean>;
+}) {
+	const [outcome, setOutcome] = useState<SalesRequestFeedbackOutcome | null>(
+		null,
+	);
+	const [issueCategories, setIssueCategories] = useState<
+		SalesRequestIssueCategory[]
+	>([]);
+	const [changedFieldCategories, setChangedFieldCategories] = useState<
+		SalesRequestChangedFieldCategory[]
+	>([]);
+	const [status, setStatus] = useState<
+		"idle" | "submitting" | "saved" | "error"
+	>("idle");
+	const needsIssueCategory = outcome === "rejected";
+	const needsChangedCategory = outcome === "accepted-with-edits";
+	const canSubmit =
+		outcome != null &&
+		(!needsIssueCategory || issueCategories.length > 0) &&
+		(!needsChangedCategory || changedFieldCategories.length > 0);
+
+	async function submit() {
+		if (!outcome || !canSubmit || status === "submitting") return;
+		setStatus("submitting");
+		try {
+			const recorded = await onSubmit({
+				outcome,
+				issueCategories,
+				changedFieldCategories,
+			});
+			setStatus(recorded ? "saved" : "error");
+		} catch {
+			setStatus("error");
+		}
+	}
+
+	return (
+		<section
+			className="rounded-lg border bg-muted/20 p-4"
+			aria-labelledby="sales-request-generation-feedback-title"
+		>
+			<h3
+				id="sales-request-generation-feedback-title"
+				className="font-semibold"
+			>
+				How accurate was this proposal?
+			</h3>
+			<p className="mt-1 text-xs text-muted-foreground">
+				Share a category-only result. Customer request content is never
+				included.
+			</p>
+			<RadioGroup
+				className="mt-3 grid gap-2 sm:grid-cols-3"
+				value={outcome ?? undefined}
+				onValueChange={(value) => {
+					setOutcome(value as SalesRequestFeedbackOutcome);
+					setIssueCategories([]);
+					setChangedFieldCategories([]);
+					setStatus("idle");
+				}}
+				disabled={status === "saved" || status === "submitting"}
+			>
+				{SALES_REQUEST_FEEDBACK_OUTCOMES.map((option) => (
+					<label
+						key={option.value}
+						htmlFor={`sales-request-feedback-${option.value}`}
+						className="flex cursor-pointer items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+					>
+						<RadioGroupItem
+							id={`sales-request-feedback-${option.value}`}
+							value={option.value}
+						/>
+						<span>{option.label}</span>
+					</label>
+				))}
+			</RadioGroup>
+
+			{needsIssueCategory ? (
+				<fieldset className="mt-4">
+					<legend className="text-sm font-medium">
+						What needs improvement?
+					</legend>
+					<div className="mt-2 grid gap-2 sm:grid-cols-2">
+						{SALES_REQUEST_ISSUE_CATEGORY_OPTIONS.map((option) => (
+							<label
+								key={option.value}
+								htmlFor={`sales-request-feedback-issue-${option.value}`}
+								className="flex cursor-pointer items-center gap-2 text-sm"
+							>
+								<Checkbox
+									id={`sales-request-feedback-issue-${option.value}`}
+									checked={issueCategories.includes(option.value)}
+									onCheckedChange={(checked) =>
+										setIssueCategories((current) =>
+											toggleCategory(current, option.value, checked === true),
+										)
+									}
+								/>
+								<span>{option.label}</span>
+							</label>
+						))}
+					</div>
+				</fieldset>
+			) : null}
+
+			{needsChangedCategory ? (
+				<fieldset className="mt-4">
+					<legend className="text-sm font-medium">What did you change?</legend>
+					<div className="mt-2 grid gap-2 sm:grid-cols-2">
+						{SALES_REQUEST_CHANGED_FIELD_CATEGORY_OPTIONS.map((option) => (
+							<label
+								key={option.value}
+								htmlFor={`sales-request-feedback-change-${option.value}`}
+								className="flex cursor-pointer items-center gap-2 text-sm"
+							>
+								<Checkbox
+									id={`sales-request-feedback-change-${option.value}`}
+									checked={changedFieldCategories.includes(option.value)}
+									onCheckedChange={(checked) =>
+										setChangedFieldCategories((current) =>
+											toggleCategory(current, option.value, checked === true),
+										)
+									}
+								/>
+								<span>{option.label}</span>
+							</label>
+						))}
+					</div>
+				</fieldset>
+			) : null}
+
+			<div className="mt-4 flex flex-wrap items-center gap-3">
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={!canSubmit || status === "submitting" || status === "saved"}
+					onClick={() => void submit()}
+				>
+					{status === "submitting" ? "Sending…" : "Send feedback"}
+				</Button>
+				{status === "saved" ? (
+					<output className="text-xs text-emerald-700" aria-live="polite">
+						Feedback recorded.
+					</output>
+				) : status === "error" ? (
+					<output className="text-xs text-amber-700" aria-live="polite">
+						Feedback could not be recorded. Try again.
+					</output>
+				) : null}
+			</div>
+		</section>
+	);
+}
+
 export function SalesRequestGenerationPanelView(
 	props: SalesRequestGenerationPanelViewProps,
 ) {
@@ -589,6 +782,13 @@ export function SalesRequestGenerationPanelView(
 					{props.applyMessage}
 				</output>
 			) : null}
+			{props.onSubmitFeedback &&
+			(props.applyResult?.status === "applied" ||
+				props.applyResult?.status === "already-applied") &&
+			props.undoResult?.status !== "restored" &&
+			props.undoResult?.status !== "selective-removed" ? (
+				<SalesRequestGenerationFeedback onSubmit={props.onSubmitFeedback} />
+			) : null}
 			{props.isStale ? (
 				<output
 					aria-live="polite"
@@ -657,6 +857,7 @@ export function SalesRequestGenerationPanel(
 	props: SalesRequestGenerationPanelProps,
 ) {
 	const controller = useSalesRequestGenerationController({
+		type: props.type,
 		formRevision: props.formRevision,
 		configurationRevision: props.configurationRevision,
 	});
@@ -669,6 +870,7 @@ export function SalesRequestGenerationPanel(
 		[controller.result, routing.data],
 	);
 	const apply = useSalesRequestGenerationApply({
+		type: props.type,
 		open: props.open,
 		preview: controller.result,
 		routeData: routing.data,
@@ -678,6 +880,8 @@ export function SalesRequestGenerationPanel(
 		hasUnresolved: Boolean(model?.unresolved.length),
 		validateConfigurationRevision: props.validateConfigurationRevision,
 		onBeforeApply: props.onBeforeApply,
+		onApplyResult: props.onApplyResult,
+		onUndoResult: props.onUndoResult,
 	});
 	const handleOpenChange = (open: boolean) => {
 		if (!open && controller.status === "pending") controller.cancel();
@@ -719,6 +923,7 @@ export function SalesRequestGenerationPanel(
 					undoMessage={apply.undoMessage}
 					isUndoing={apply.isUndoing}
 					onUndo={() => void apply.undo()}
+					onSubmitFeedback={props.onSubmitFeedback}
 					generateDisabled={props.generateDisabled}
 				/>
 				<DialogFooter>

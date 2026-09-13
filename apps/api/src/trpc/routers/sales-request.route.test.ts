@@ -14,8 +14,8 @@ function superAdmin() {
 	};
 }
 
-function requestContext() {
-	let savedMeta: unknown = {
+function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
+	let savedMeta: unknown = initialMeta ?? {
 		unrelated: { preserve: true },
 		route: {
 			root: {
@@ -39,7 +39,11 @@ function requestContext() {
 		},
 	};
 	const db = {
-		users: { findFirst: async () => superAdmin() },
+		users: {
+			findFirst: async () => userRecord,
+			findMany: async ({ where }: { where: { id: { in: number[] } } }) =>
+				where.id.in.map((id) => ({ id })),
+		},
 		modelHasPermissions: { findMany: async () => [] },
 		settings,
 		dykeSteps: {
@@ -186,6 +190,7 @@ test("preview validation rejects a disabled feature before reading permissions o
 
 	await expect(
 		caller.validatePreview({
+			type: "order",
 			configurationScope: "sales-settings:7",
 			configurationRevision: "a".repeat(64),
 			provider: "openai",
@@ -199,7 +204,24 @@ test("preview validation rejects a disabled feature before reading permissions o
 });
 
 test("preview validation accepts only the current server-derived identity", async () => {
-	const fixture = requestContext();
+	const fixture = requestContext({
+		unrelated: { preserve: true },
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
+			},
+		},
+		requestGeneration: {
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [42],
+				revision: 1,
+				changedAt: "2026-09-13T12:00:00.000Z",
+			},
+		},
+	});
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
 	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
 	process.env.SALES_REQUEST_AI_ENABLED = "true";
@@ -211,6 +233,7 @@ test("preview validation accepts only the current server-derived identity", asyn
 		getSalesRequestAISettings(transaction, 7),
 	]);
 	const current = {
+		type: "order" as const,
 		configurationScope: snapshot.scope,
 		configurationRevision: snapshot.revision,
 		provider: aiSettings.selection.provider,
@@ -230,6 +253,20 @@ test("preview validation accepts only the current server-derived identity", asyn
 			process.env.SALES_REQUEST_AI_ENABLED = undefined;
 		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
 	}
+});
+
+test("text pilot rejects image payloads before database or provider work", async () => {
+	const fixture = requestContext();
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+
+	await expect(
+		caller.generatePreview({
+			type: "order",
+			text: "Customer needs one door.",
+			images: [{ mediaType: "image/png", base64: "AAAA" }],
+		}),
+	).rejects.toMatchObject({ code: "BAD_REQUEST" });
+	expect(fixture.getActiveSettingsReads()).toBe(0);
 });
 
 test("AI settings mutation derives the lowest active row and preserves metadata", async () => {
@@ -339,6 +376,167 @@ test("AI settings reject ordinary callers before selecting settings", async () =
 		caller.updateAISettings({ provider: "openai", model: "gpt-5-mini" }),
 	).rejects.toMatchObject({ code: "FORBIDDEN" });
 	expect(settingsRead).toBe(false);
+});
+
+test("pilot access exposes only safe eligibility state for a configured create form", async () => {
+	const fixture = requestContext({
+		requestGeneration: {
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [42],
+				revision: 2,
+				changedAt: "2026-09-13T12:00:00.000Z",
+			},
+		},
+	});
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+
+	try {
+		await expect(
+			caller.getPilotAccess({ type: "order" }),
+		).resolves.toMatchObject({
+			featureEnabled: true,
+			pilotEnabled: true,
+			eligible: true,
+			cohortMember: true,
+			reviewer: false,
+			settingsRevision: 2,
+			reason: "eligible",
+		});
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
+});
+
+test("pilot access hides generation from enrolled users without native sales authority", async () => {
+	const fixture = requestContext(
+		{
+			requestGeneration: {
+				pilot: {
+					enabled: true,
+					cohortUserIds: [19],
+					reviewerUserIds: [42],
+					revision: 2,
+					changedAt: "2026-09-13T12:00:00.000Z",
+				},
+			},
+		},
+		{ roles: [] },
+	);
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+
+	try {
+		await expect(
+			caller.getPilotAccess({ type: "quote" }),
+		).resolves.toMatchObject({
+			eligible: false,
+			cohortMember: true,
+			reason: "permission",
+		});
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
+});
+
+test("pilot settings mutation is Super Admin-only and preserves existing sales metadata", async () => {
+	const fixture = requestContext();
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+
+	const result = await caller.updatePilotSettings({
+		enabled: true,
+		cohortUserIds: [19, 7, 19],
+		reviewerUserIds: [42],
+	});
+
+	expect(result).toMatchObject({
+		changed: true,
+		settingId: 7,
+		settings: {
+			enabled: true,
+			cohortUserIds: [7, 19],
+			reviewerUserIds: [42],
+			revision: 1,
+		},
+		source: "persisted",
+	});
+	expect(fixture.getSavedMeta()).toMatchObject({
+		unrelated: { preserve: true },
+		requestGeneration: {
+			pilot: {
+				enabled: true,
+				cohortUserIds: [7, 19],
+				reviewerUserIds: [42],
+			},
+		},
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+			},
+		},
+	});
+});
+
+test("pilot settings reject deleted, revoked, or unknown named users", async () => {
+	const fixture = requestContext();
+	fixture.transaction.users.findMany = async () => [{ id: 19 }];
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+
+	await expect(
+		caller.updatePilotSettings({
+			enabled: true,
+			cohortUserIds: [19, 77],
+			reviewerUserIds: [42],
+		}),
+	).rejects.toThrow("Review the information provided and try again.");
+	expect(fixture.getSettingsUpdates()).toBe(0);
+});
+
+test("pilot rollback can disable even when prior named users are no longer active", async () => {
+	const fixture = requestContext();
+	fixture.transaction.users.findMany = async () => [];
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+
+	await expect(
+		caller.updatePilotSettings({
+			enabled: false,
+			cohortUserIds: [77],
+			reviewerUserIds: [42],
+		}),
+	).resolves.toMatchObject({
+		changed: true,
+		settings: { enabled: false },
+	});
+	expect(fixture.getSettingsUpdates()).toBe(1);
+});
+
+test("preview refuses an unconfigured pilot before any provider work", async () => {
+	const fixture = requestContext();
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+
+	try {
+		await expect(
+			caller.generatePreview({ type: "quote", text: "request text" }),
+		).rejects.toMatchObject({
+			code: "CONFLICT",
+			message:
+				"This record changed before your request completed. Refresh and try again.",
+		});
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
 });
 
 test("defaults mutation is Super Admin-only and derives the active settings row", async () => {

@@ -76,7 +76,7 @@ function dbFixture(initial = row()) {
 						"feedbackOutcome",
 					].includes(key),
 				);
-				if (field && current[field] != null) return { count: 0 };
+				if (field && current[field] !== where[field]) return { count: 0 };
 				current = { ...current, ...(payload.data ?? {}) };
 				return { count: 1 };
 			},
@@ -183,6 +183,47 @@ describe("sales request generation telemetry persistence", () => {
 				now,
 			}),
 		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+
+	test("promotes retryable failures to terminal apply and save success", async () => {
+		const fixture = dbFixture();
+		const base = {
+			actorUserId: 7,
+			generationId: row().generationId,
+			now,
+		};
+
+		await recordSalesRequestGenerationOutcome(fixture.db, {
+			...base,
+			kind: "apply",
+			outcome: "blocked",
+		});
+		await expect(
+			recordSalesRequestGenerationOutcome(fixture.db, {
+				...base,
+				kind: "apply",
+				outcome: "applied",
+			}),
+		).resolves.toMatchObject({ recorded: true, duplicate: false });
+		await recordSalesRequestGenerationOutcome(fixture.db, {
+			...base,
+			kind: "save",
+			stage: "draft",
+			outcome: "failed",
+		});
+		await expect(
+			recordSalesRequestGenerationOutcome(fixture.db, {
+				...base,
+				kind: "save",
+				stage: "draft",
+				outcome: "saved",
+			}),
+		).resolves.toMatchObject({ recorded: true, duplicate: false });
+
+		expect(fixture.getRow()).toMatchObject({
+			applyOutcome: "applied",
+			saveDraftOutcome: "saved",
+		});
 	});
 
 	test("rejects expired runs without revealing whether another actor owns them", async () => {

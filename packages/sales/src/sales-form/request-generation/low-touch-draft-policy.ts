@@ -31,6 +31,8 @@ export type SalesRequestLowTouchCommercialCurrency = {
 
 export type SalesRequestLowTouchIneligibilityCode =
 	| "source-not-supported"
+	| "surface-not-supported"
+	| "existing-record"
 	| "unresolved-facts"
 	| "custom-value"
 	| "initializer-issue"
@@ -174,6 +176,13 @@ export function evaluateSalesRequestLowTouchDraftEligibility(
 		if (!reasonCodes.includes(code)) reasonCodes.push(code);
 	};
 	const issues = input.initialized.issues;
+	if (
+		input.initialized.record.type !== "order" &&
+		input.initialized.record.type !== "quote"
+	) {
+		add("surface-not-supported");
+	}
+	if (input.initialized.record.salesId != null) add("existing-record");
 
 	if (input.seed.unresolved.length || input.initialized.unresolved.length) {
 		add("unresolved-facts");

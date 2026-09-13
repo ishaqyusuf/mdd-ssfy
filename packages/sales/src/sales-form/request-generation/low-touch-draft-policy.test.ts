@@ -142,6 +142,18 @@ describe("Sales Request Generation low-touch draft policy", () => {
 		]);
 	});
 
+	test("accepts only a new order or quote record", () => {
+		const existing = eligibleInput();
+		existing.initialized.record.type = "invoice";
+		existing.initialized.record.salesId = 501;
+
+		expect(
+			evaluateSalesRequestLowTouchDraftEligibility(existing).reasons.map(
+				(reason) => reason.code,
+			),
+		).toEqual(["surface-not-supported", "existing-record"]);
+	});
+
 	test("does not accept an image or mailbox source even through an untyped caller", () => {
 		for (const source of ["image", "mailbox"]) {
 			const input = { ...eligibleInput(), source };

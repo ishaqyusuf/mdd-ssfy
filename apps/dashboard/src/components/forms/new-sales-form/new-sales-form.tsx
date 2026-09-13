@@ -63,6 +63,7 @@ import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import {
     useNewSalesFormBootstrapQuery,
     useNewSalesFormGetQuery,
+	useSalesRequestPilotAccessQuery,
     useSaveFinalNewSalesFormMutation,
 } from "./api";
 import { createSalesHistoryRestoreRecord } from "./history-restore";
@@ -76,6 +77,10 @@ import {
 } from "./local-recovery";
 import { toSaveDraftInput } from "./mappers";
 import { getRequestGenerationRecordRevision } from "./request-generation-transaction";
+import {
+	canOpenSalesRequestGeneration,
+	canShowSalesRequestGenerationEntry,
+} from "./request-generation-entry-policy";
 import {
 	type SaveIntent,
 	continueSaveAfterCommittedChangeReview,
@@ -99,6 +104,7 @@ import {
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
+import { useSalesRequestGenerationOutcome } from "./use-request-generation-outcome";
 
 interface Props {
     mode: "create" | "edit";
@@ -506,6 +512,33 @@ export function NewSalesForm(props: Props) {
         useState<NewSalesFormRecoverySnapshot | null>(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
 	const [requestGenerationOpen, setRequestGenerationOpen] = useState(false);
+	const requestGenerationPilot = useSalesRequestPilotAccessQuery(
+		props.type,
+		props.mode === "create",
+	);
+	const requestGenerationPilotAccess = useMemo(
+		() =>
+			requestGenerationPilot.isError
+				? ({ status: "error" } as const)
+				: requestGenerationPilot.isPending || !requestGenerationPilot.data
+					? ({ status: "pending" } as const)
+					: ({
+							status: "ready",
+							eligible: requestGenerationPilot.data.eligible,
+						} as const),
+		[
+			requestGenerationPilot.data,
+			requestGenerationPilot.isError,
+			requestGenerationPilot.isPending,
+		],
+	);
+	const canUseRequestGeneration =
+		requestGenerationPilotAccess.status === "ready" &&
+		requestGenerationPilotAccess.eligible;
+	const requestGenerationOutcome = useSalesRequestGenerationOutcome();
+	const requestGenerationSaveAttributionRef = useRef<
+		ReturnType<typeof requestGenerationOutcome.captureSave>
+	>(null);
 	const [customerPromptDismissed, setCustomerPromptDismissed] = useState(false);
     const [bootstrapCustomerId] = useState<number | null>(() =>
         normalizeSalesFormInitialCustomerId(draftParams.selectedCustomerId),
@@ -826,11 +859,20 @@ export function NewSalesForm(props: Props) {
 			!hasQuantityBearingUnpricedHptRows(record),
         dirty,
         payload,
-        onSaving: () => {
+        onSaving: (savingPayload) => {
+			requestGenerationSaveAttributionRef.current =
+				requestGenerationOutcome.captureSave(
+					savingPayload.commitIntent || "autosave",
+				);
             setSaveFailure(null);
             markSaving();
         },
         onSaved: (resp, _savedPayload, hasPendingChanges) => {
+			void requestGenerationOutcome.recordSave(
+				requestGenerationSaveAttributionRef.current,
+				"saved",
+			);
+			requestGenerationSaveAttributionRef.current = null;
             patchRecord({
                 salesId: resp?.salesId,
                 slug: resp?.slug,
@@ -858,7 +900,12 @@ export function NewSalesForm(props: Props) {
                 salesId: resp?.salesId,
             });
         },
-        onStale: (error) => {
+		onStale: (error, _failedPayload) => {
+			void requestGenerationOutcome.recordSave(
+				requestGenerationSaveAttributionRef.current,
+				"failed",
+			);
+			requestGenerationSaveAttributionRef.current = null;
             const failure = createSaveFailure(error, "Save draft", record?.orderId);
             setSaveFailure(failure);
             markStale(failure.message);
@@ -868,7 +915,12 @@ export function NewSalesForm(props: Props) {
                 variant: "destructive",
             });
         },
-        onError: (error) => {
+		onError: (error, _failedPayload) => {
+			void requestGenerationOutcome.recordSave(
+				requestGenerationSaveAttributionRef.current,
+				"failed",
+			);
+			requestGenerationSaveAttributionRef.current = null;
             const failure = createSaveFailure(error, "Save draft", record?.orderId);
             setSaveFailure(failure);
             markError(failure.message);
@@ -876,12 +928,27 @@ export function NewSalesForm(props: Props) {
 	});
 	const handleRequestGenerationOpenChange = useCallback(
 		(open: boolean) => {
-			if (open && autosave.isSaving) return;
+			if (
+				open &&
+				!canOpenSalesRequestGeneration({
+					mode: props.mode,
+					pilotAccess: requestGenerationPilotAccess,
+					isSaving: autosave.isSaving,
+				})
+			) {
+				return;
+			}
 			autosave.cancelPending();
 			setRequestGenerationPhase(open ? "reviewing" : "idle");
 			setRequestGenerationOpen(open);
 		},
-		[autosave.cancelPending, autosave.isSaving, setRequestGenerationPhase],
+		[
+			autosave.cancelPending,
+			autosave.isSaving,
+			props.mode,
+			requestGenerationPilotAccess,
+			setRequestGenerationPhase,
+		],
 	);
 	useEffect(() => {
 		return () => setRequestGenerationPhase("idle");
@@ -1530,6 +1597,7 @@ export function NewSalesForm(props: Props) {
         const currentRecord = recordOverride || record;
         if (!currentRecord) return;
         if (intent === "final") {
+			const saveAttribution = requestGenerationOutcome.captureSave("final");
             let committed = false;
             setSaveFailure(null);
             markSaving();
@@ -1540,6 +1608,7 @@ export function NewSalesForm(props: Props) {
                     autosave: false,
                 });
                 committed = true;
+				void requestGenerationOutcome.recordSave(saveAttribution, "saved");
                 await handlePostSaveSuccess(resp);
 				const inventoryOverviewOpened =
 					await continueToInventoryAfterSave(resp, true);
@@ -1555,6 +1624,9 @@ export function NewSalesForm(props: Props) {
                     if (editHref) router.push(editHref);
                 }
             } catch (error) {
+				if (!committed) {
+					void requestGenerationOutcome.recordSave(saveAttribution, "failed");
+				}
                 const failure = createSaveFailure(error, committed ? "Refresh after save" : "Save order", currentRecord.orderId, committed);
                 setSaveFailure(failure);
                 const message = failure.message;
@@ -2058,14 +2130,33 @@ export function NewSalesForm(props: Props) {
                 type={props.type}
                 mode={props.mode}
             />
-			{requestGenerationOpen && props.mode === "create" && record ? (
+			{requestGenerationOpen &&
+			props.mode === "create" &&
+			canUseRequestGeneration &&
+			record ? (
 				<SalesRequestGenerationPanel
+					type={props.type}
 					open
 					onOpenChange={handleRequestGenerationOpenChange}
 					formRevision={getRequestGenerationRecordRevision(record)}
 					configurationRevision={null}
 					canInspectJson={canInspectRequestJson}
 					onBeforeApply={autosave.cancelPending}
+					onApplyResult={(generationId, result) => {
+						void requestGenerationOutcome.recordApplyResult(
+							generationId,
+							result,
+						);
+					}}
+					onUndoResult={(generationId, result) => {
+						if (
+							result.status === "restored" ||
+							result.status === "selective-removed"
+						) {
+							requestGenerationOutcome.clearAppliedGeneration(generationId);
+						}
+					}}
+					onSubmitFeedback={requestGenerationOutcome.recordFeedback}
 					generateDisabled={autosave.isSaving}
 				/>
 			) : null}
@@ -2412,7 +2503,11 @@ export function NewSalesForm(props: Props) {
                         ) : null,
                     MainPanel: (
 						<div className="space-y-4">
-							{props.mode === "create" && !historyPreview ? (
+							{canShowSalesRequestGenerationEntry({
+								mode: props.mode,
+								hasHistoryPreview: Boolean(historyPreview),
+								pilotAccess: requestGenerationPilotAccess,
+							}) ? (
 								<div className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
 									<div className="min-w-0">
 										<p className="font-medium">Start from a customer request</p>

@@ -35,12 +35,21 @@ describe("Sales Request AI settings", () => {
 			new URL("./sales-request-generation-settings-page.tsx", import.meta.url),
 			"utf8",
 		);
+		const pilotSource = readFileSync(
+			new URL("./sales-request-pilot-settings-section.tsx", import.meta.url),
+			"utf8",
+		);
 		expect(source).toContain("salesRequest.getAISettings.queryOptions()");
 		expect(source).toContain("salesRequest.updateAISettings.mutationOptions");
 		expect(source).toContain(
 			"salesRequest.regenerateConfiguration.mutationOptions",
 		);
 		expect(source).toContain("salesRequest.setDefault.mutationOptions");
+		expect(source).toContain(
+			"salesRequest.updatePilotSettings.mutationOptions",
+		);
+		expect(source).toContain("<SalesRequestPilotSettingsSection");
+		expect(source).toContain("salesRequest.getPilotAccess.queryKey()");
 		expect(source).toContain("requestGeneration.routes");
 		expect(source).toContain("No default");
 		expect(source).toContain("dependency-ineligible");
@@ -49,5 +58,12 @@ describe("Sales Request AI settings", () => {
 		expect(source).toContain("queryClient.setQueryData");
 		expect(source).toContain("Provider credential is configured on the server");
 		expect(source).toContain("!providerConfigured");
+		expect(pilotSource).toContain('accessStatus: "active"');
+		expect(pilotSource).toContain("Unavailable");
+		expect(pilotSource).toContain("maxSelected={100}");
+		expect(pilotSource).toContain("maxSelected={25}");
+		expect(pilotSource).toContain("Disabling remains available");
+		expect(pilotSource).toContain('pilotSource !== "persisted"');
+		expect(pilotSource).toContain("cohortUserIds: [...selected.cohortUserIds]");
 	});
 });

@@ -13,9 +13,11 @@ import {
 	generateSalesRequestPreviewSchema,
 	recordSalesRequestGenerationOutcomeSchema,
 	salesRequestGenerationPilotSummarySchema,
+	salesRequestPilotAccessSchema,
 	setSalesRequestAISettingsSchema,
 	setSalesRequestCatalogPolicySchema,
 	setSalesRequestDefaultSchema,
+	setSalesRequestPilotSettingsSchema,
 	validateSalesRequestPreviewSchema,
 } from "@api/schemas/sales-request";
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
@@ -25,6 +27,11 @@ import {
 	getSalesRequestProviderApiKey,
 } from "@api/services/sales-request-generation";
 import { requireSalesRequestSettingsAdmin } from "@api/services/sales-request-permissions";
+import {
+	getSalesRequestPilotAccess,
+	requireActiveSalesRequestPilotActors,
+	requireSalesRequestPilotAccess,
+} from "@api/services/sales-request-pilot";
 import {
 	createSalesRequestPreview,
 	selectSalesRequestSettingId,
@@ -40,9 +47,11 @@ import {
 	failSalesRequestCatalogRegeneration,
 	getSalesRequestAISettings,
 	getSalesRequestCatalogSettings,
+	getSalesRequestPilotSettings,
 	updateSalesRequestAISettings,
 	updateSalesRequestCatalogPolicy,
 	updateSalesRequestGenerationDefault,
+	updateSalesRequestPilotSettings,
 } from "@gnd/settings";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../init";
@@ -65,10 +74,11 @@ async function readAISettingsSurface(
 	db: SalesRequestSettingsDb,
 	settingId: number,
 ) {
-	const [result, catalog, requestGeneration] = await Promise.all([
+	const [result, catalog, requestGeneration, pilot] = await Promise.all([
 		getSalesRequestAISettings(db, settingId),
 		getSalesRequestCatalogSettings(db, settingId),
 		getSalesRequestGenerationAdminSettings(db, { settingId }),
+		getSalesRequestPilotSettings(db, settingId),
 	]);
 	return {
 		settingId: result.settingId,
@@ -79,6 +89,8 @@ async function readAISettingsSurface(
 		requestGeneration: {
 			...requestGeneration,
 			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
+			pilot: pilot.settings,
+			pilotSource: pilot.source,
 		},
 	};
 }
@@ -87,9 +99,10 @@ async function readAISettingsSurfaceWithSelection(
 	db: SalesRequestSettingsDb,
 	result: Awaited<ReturnType<typeof updateSalesRequestAISettings>>,
 ) {
-	const [catalog, requestGeneration] = await Promise.all([
+	const [catalog, requestGeneration, pilot] = await Promise.all([
 		getSalesRequestCatalogSettings(db, result.settingId),
 		getSalesRequestGenerationAdminSettings(db, { settingId: result.settingId }),
+		getSalesRequestPilotSettings(db, result.settingId),
 	]);
 	return {
 		changed: result.changed,
@@ -101,6 +114,8 @@ async function readAISettingsSurfaceWithSelection(
 		requestGeneration: {
 			...requestGeneration,
 			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
+			pilot: pilot.settings,
+			pilotSource: pilot.source,
 		},
 	};
 }
@@ -152,6 +167,52 @@ export const salesRequestRouter = createTRPCRouter({
 			return updateSalesRequestCatalogPolicy(ctx.db, {
 				settingId,
 				policy: input,
+			});
+		}),
+	getPilotAccess: protectedProcedure
+		.input(salesRequestPilotAccessSchema)
+		.query(async ({ ctx, input }) => {
+			const access = await getSalesRequestPilotAccess({
+				db: ctx.db,
+				userId: ctx.userId,
+				surface: input.type,
+			});
+			if (!access.eligible) return access;
+			try {
+				await requireStorefrontQuoteCreationPermission({
+					db: ctx.db,
+					userId: ctx.userId,
+				});
+				return access;
+			} catch (error) {
+				if (
+					error instanceof TRPCError &&
+					(error.code === "FORBIDDEN" || error.code === "UNAUTHORIZED")
+				) {
+					return { ...access, eligible: false, reason: "permission" as const };
+				}
+				throw error;
+			}
+		}),
+	updatePilotSettings: protectedProcedure
+		.input(setSalesRequestPilotSettingsSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSalesRequestSettingsAdmin(ctx);
+			if (input.enabled) {
+				await requireActiveSalesRequestPilotActors({
+					db: ctx.db,
+					cohortUserIds: input.cohortUserIds,
+					reviewerUserIds: input.reviewerUserIds,
+				});
+			}
+			const rows = await ctx.db.settings.findMany({
+				where: { type: "sales-settings", deletedAt: null },
+				select: { id: true },
+			});
+			const settingId = selectSalesRequestSettingId(rows.map((row) => row.id));
+			return updateSalesRequestPilotSettings(ctx.db, {
+				settingId,
+				...input,
 			});
 		}),
 	regenerateConfiguration: protectedProcedure.mutation(async ({ ctx }) => {
@@ -232,11 +293,17 @@ export const salesRequestRouter = createTRPCRouter({
 					signal: signal ?? new AbortController().signal,
 				},
 				{
-					authorize: () =>
-						requireStorefrontQuoteCreationPermission({
+					authorize: async () => {
+						await requireSalesRequestPilotAccess({
 							db: ctx.db,
 							userId: ctx.userId,
-						}),
+							surface: input.type,
+						});
+						await requireStorefrontQuoteCreationPermission({
+							db: ctx.db,
+							userId: ctx.userId,
+						});
+					},
 					reserveUsage: () => requireSalesRequestUsage(ctx.userId),
 					readSnapshot: () =>
 						ctx.db.$transaction(
@@ -298,6 +365,11 @@ export const salesRequestRouter = createTRPCRouter({
 					message: "Sales request generation is not enabled.",
 				});
 			}
+			await requireSalesRequestPilotAccess({
+				db: ctx.db,
+				userId: ctx.userId,
+				surface: input.type,
+			});
 			await requireStorefrontQuoteCreationPermission({
 				db: ctx.db,
 				userId: ctx.userId,
@@ -336,7 +408,7 @@ export const salesRequestRouter = createTRPCRouter({
 						"Sales configuration changed after generation. Generate the preview again.",
 				});
 			}
-			return current;
+			return { type: input.type, ...current };
 		}),
 	setDefault: protectedProcedure
 		.input(setSalesRequestDefaultSchema)

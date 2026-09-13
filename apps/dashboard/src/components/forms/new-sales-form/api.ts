@@ -29,31 +29,63 @@ export type NewSalesRequestValidatePreviewInput = Exclude<
 	RouterInputs["salesRequest"]["validatePreview"],
 	void
 >;
+export type NewSalesRequestRecordOutcomeInput = Exclude<
+	RouterInputs["salesRequest"]["recordOutcome"],
+	void
+>;
+export type NewSalesRequestPilotSurface = "order" | "quote";
 
 export function createSalesRequestGeneratePreviewInput(
-	input: Pick<SalesRequestGeneratePreviewVariables, "text">,
+	input: Pick<SalesRequestGeneratePreviewVariables, "text"> & {
+		type: NewSalesRequestPilotSurface;
+	},
 ): NewSalesRequestGeneratePreviewInput {
 	return {
+		type: input.type,
 		text: input.text,
 		images: [],
 	};
 }
 
-export function useSalesRequestGeneratePreviewMutation() {
+export function useSalesRequestGeneratePreviewMutation(
+	type: NewSalesRequestPilotSurface,
+) {
 	const trpcClient = useTRPCClient();
 	return useMutation({
-		mutationKey: [["salesRequest", "generatePreview"]],
+		mutationKey: [["salesRequest", "generatePreview", type]],
 		mutationFn: ({ text, signal }: SalesRequestGeneratePreviewVariables) =>
 			trpcClient.salesRequest.generatePreview.mutate(
-				createSalesRequestGeneratePreviewInput({ text }),
+				createSalesRequestGeneratePreviewInput({ type, text }),
 				signal ? { signal } : undefined,
 			),
 	});
 }
 
+export function useSalesRequestPilotAccessQuery(
+	type: NewSalesRequestPilotSurface,
+	enabled = true,
+) {
+	const trpc = useTRPC();
+	return useQuery(
+		trpc.salesRequest.getPilotAccess.queryOptions(
+			{ type },
+			{
+				enabled,
+				refetchOnWindowFocus: false,
+				staleTime: 60_000,
+			},
+		),
+	);
+}
+
 export function useSalesRequestValidatePreviewMutation() {
 	const trpc = useTRPC();
 	return useMutation(trpc.salesRequest.validatePreview.mutationOptions());
+}
+
+export function useSalesRequestRecordOutcomeMutation() {
+	const trpc = useTRPC();
+	return useMutation(trpc.salesRequest.recordOutcome.mutationOptions());
 }
 
 export function useNewSalesFormBootstrapQuery(

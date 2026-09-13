@@ -28,6 +28,7 @@ import type { NewSalesFormStepRouting } from "./schema";
 import { useNewSalesFormStore } from "./store";
 
 export type UseSalesRequestGenerationApplyOptions = {
+	type: "order" | "quote";
 	open: boolean;
 	preview: SalesRequestGeneratePreviewOutput | null;
 	routeData: NewSalesFormStepRouting | null | undefined;
@@ -37,6 +38,14 @@ export type UseSalesRequestGenerationApplyOptions = {
 	hasUnresolved?: boolean;
 	validateConfigurationRevision?: SalesRequestGenerationConfigurationValidator;
 	onBeforeApply?: () => void;
+	onApplyResult?: (
+		generationId: string,
+		result: SalesRequestGenerationApplyResult,
+	) => void;
+	onUndoResult?: (
+		generationId: string,
+		result: UndoRequestGenerationProposalResult,
+	) => void;
 };
 
 export type SalesRequestGenerationApplyDisabledReason =
@@ -77,6 +86,12 @@ export function getSalesRequestGenerationApplyMessage(
 	}
 	if (result.status === "error") {
 		return "The proposal could not be applied. Review the request and try again.";
+	}
+	if (result.status === "ready") {
+		return "The proposal is ready to apply.";
+	}
+	if (result.status !== "blocked") {
+		return "The proposal could not be applied.";
 	}
 	switch (result.reason) {
 		case "unresolved":
@@ -151,13 +166,14 @@ export function useSalesRequestGenerationApply(
 		const preview = options.preview;
 		if (!preview) return null;
 		const current = await validatePreviewMutation.mutateAsync({
+			type: options.type,
 			configurationScope: preview.configurationScope,
 			configurationRevision: preview.configurationRevision,
 			provider: preview.provider,
 			model: preview.model,
 		});
 		return current.configurationRevision;
-	}, [options.preview, validatePreviewMutation.mutateAsync]);
+	}, [options.preview, options.type, validatePreviewMutation.mutateAsync]);
 	const validateConfigurationRevision =
 		options.validateConfigurationRevision || apiConfigurationValidator;
 	const proposalId = getSalesRequestGenerationProposalId(options.preview);
@@ -245,6 +261,7 @@ export function useSalesRequestGenerationApply(
 				applyProposal,
 			});
 			setApplyResult(result);
+			options.onApplyResult?.(activeProposalId, result);
 			setRequestGenerationPhase(
 				result.status === "applied" || result.status === "already-applied"
 					? "idle"
@@ -257,6 +274,7 @@ export function useSalesRequestGenerationApply(
 				error,
 			};
 			setApplyResult(result);
+			options.onApplyResult?.(activeProposalId, result);
 			setRequestGenerationPhase("reviewing");
 			return result;
 		} finally {
@@ -287,6 +305,7 @@ export function useSalesRequestGenerationApply(
 		try {
 			const result = undoProposal(activeUndo.proposalId);
 			setUndoResult(result);
+			options.onUndoResult?.(activeUndo.proposalId, result);
 			setRequestGenerationPhase("idle");
 			return result;
 		} finally {

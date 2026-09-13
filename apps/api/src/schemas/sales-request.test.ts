@@ -7,45 +7,59 @@ import {
 	validateSalesRequestPreviewSchema,
 } from "./sales-request";
 
-test("preview accepts text or request-scoped bytes, not client configuration or URLs", () => {
+test("preview accepts only typed pasted text during the text pilot", () => {
 	expect(
-		generateSalesRequestPreviewSchema.parse({ text: "one door" }).images,
+		generateSalesRequestPreviewSchema.parse({
+			type: "order",
+			text: "one door",
+		}).images,
 	).toEqual([]);
 	expect(
-		generateSalesRequestPreviewSchema.safeParse({ text: " " }).success,
+		generateSalesRequestPreviewSchema.safeParse({ text: "one door" }).success,
+	).toBe(false);
+	expect(
+		generateSalesRequestPreviewSchema.safeParse({ type: "order", text: " " })
+			.success,
 	).toBe(false);
 	expect(
 		generateSalesRequestPreviewSchema.safeParse({
+			type: "order",
 			text: "one door",
 			settingId: 3,
 		}).success,
 	).toBe(false);
 	expect(
 		generateSalesRequestPreviewSchema.safeParse({
+			type: "order",
 			text: "one door",
 			customerProfileId: 17,
 		}).success,
 	).toBe(false);
 	expect(
 		generateSalesRequestPreviewSchema.safeParse({
+			type: "order",
 			images: [{ url: "https://example.com/image.png" }],
 		}).success,
 	).toBe(false);
 	expect(
 		generateSalesRequestPreviewSchema.safeParse({
+			type: "order",
+			text: "one door",
 			images: [{ mediaType: "image/png", base64: "YWJjZA==" }],
 		}).success,
-	).toBe(true);
+	).toBe(false);
 });
 
 test("rejects unsupported formats and malformed base64 before decoding", () => {
 	expect(
 		generateSalesRequestPreviewSchema.safeParse({
+			type: "order",
 			images: [{ mediaType: "image/svg+xml", base64: "YWJjZA==" }],
 		}).success,
 	).toBe(false);
 	expect(
 		generateSalesRequestPreviewSchema.safeParse({
+			type: "order",
 			images: [
 				{ mediaType: "image/png", base64: "data:image/png;base64,YWJjZA==" },
 			],
@@ -56,12 +70,14 @@ test("rejects unsupported formats and malformed base64 before decoding", () => {
 test("preview validation accepts only the server-issued configuration identity", () => {
 	expect(
 		validateSalesRequestPreviewSchema.parse({
+			type: "quote",
 			configurationScope: "sales-settings:7",
 			configurationRevision: "a".repeat(64),
 			provider: "deepseek",
 			model: "deepseek-chat",
 		}),
 	).toEqual({
+		type: "quote",
 		configurationScope: "sales-settings:7",
 		configurationRevision: "a".repeat(64),
 		provider: "deepseek",
@@ -69,6 +85,7 @@ test("preview validation accepts only the server-issued configuration identity",
 	});
 	expect(
 		validateSalesRequestPreviewSchema.safeParse({
+			type: "quote",
 			configurationScope: "sales-settings:7",
 			configurationRevision: "a".repeat(64),
 			provider: "deepseek",

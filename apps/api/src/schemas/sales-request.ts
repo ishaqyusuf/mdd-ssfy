@@ -5,6 +5,7 @@ import {
 import {
 	salesRequestAISelectionSchema,
 	salesRequestCatalogPolicySchema,
+	salesRequestPilotSettingsInputSchema,
 } from "@gnd/settings";
 import { z } from "zod";
 
@@ -12,6 +13,15 @@ export const setSalesRequestAISettingsSchema = salesRequestAISelectionSchema;
 
 export const setSalesRequestCatalogPolicySchema =
 	salesRequestCatalogPolicySchema;
+
+export const setSalesRequestPilotSettingsSchema =
+	salesRequestPilotSettingsInputSchema;
+
+export const salesRequestPilotAccessSchema = z
+	.object({
+		type: z.enum(["order", "quote"]),
+	})
+	.strict();
 
 export const setSalesRequestDefaultSchema = z
 	.object({
@@ -23,6 +33,7 @@ export const setSalesRequestDefaultSchema = z
 
 export const generateSalesRequestPreviewSchema = z
 	.object({
+		type: z.enum(["order", "quote"]),
 		text: z.string().max(50_000).default(""),
 		images: z
 			.array(
@@ -39,7 +50,7 @@ export const generateSalesRequestPreviewSchema = z
 					})
 					.strict(),
 			)
-			.max(3)
+			.max(0, "Image input is deferred; provide pasted text only")
 			.default([]),
 	})
 	.strict()
@@ -63,6 +74,7 @@ export const generateSalesRequestPreviewSchema = z
 
 export const validateSalesRequestPreviewSchema = z
 	.object({
+		type: z.enum(["order", "quote"]),
 		configurationScope: z.string().trim().min(1).max(191),
 		configurationRevision: z.string().trim().min(1).max(128),
 		provider: z.string().trim().min(1).max(32),
