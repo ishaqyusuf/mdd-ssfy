@@ -19,6 +19,31 @@ const cases = [
 	},
 	{ query: "find a discussion template", expected: "community_search" },
 	{ query: "turn the result into a PDF", expected: "documents_generate_pdf" },
+	{
+		query: "Which orders belong to Ada Millwork?",
+		expected: "sales_find_orders",
+	},
+	{
+		query: "Can you tell me what's happening with 09502PC right now?",
+		expected: "sales_get_order_status",
+	},
+	{
+		query: "What is stopping 09502PC from moving forward?",
+		expected: "sales_explain_blockers",
+	},
+	{
+		query: "Show me every recent change made to 09502PC",
+		expected: "sales_get_timeline",
+	},
+	{ query: "find the customer named Jordan", expected: "customers_find" },
+	{
+		query: "I need Ada Millwork's account overview",
+		expected: "customers_get_summary",
+	},
+	{
+		query: "What has Ada Millwork purchased before?",
+		expected: "customers_get_order_history",
+	},
 ] as const;
 
 function tokens(value: string) {

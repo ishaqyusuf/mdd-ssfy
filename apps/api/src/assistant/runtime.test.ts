@@ -31,7 +31,7 @@ describe("assistant runtime", () => {
 			provider: "openai",
 			model: "gpt-5-mini",
 			modelIdentity: "openai:gpt-5-mini",
-			catalogVersion: "assistant-catalog-v1",
+			catalogVersion: "assistant-catalog-v2",
 			promptVersion: "gnd-assistant-prompt-v1",
 		});
 	});
@@ -187,7 +187,7 @@ describe("assistant runtime", () => {
 							output: {
 								content: [{ type: "text", text: "private MCP content" }],
 								structuredContent: {
-									status: "partial",
+									status: "requires_input",
 									data: [{ private: "record" }],
 									observedAt: "2026-09-13T10:00:00.000Z",
 									sources: [
@@ -212,6 +212,29 @@ describe("assistant runtime", () => {
 										},
 									],
 									invalidationTags: ["sales.orders", "database.all"],
+								},
+							},
+						};
+						yield {
+							type: "tool-call",
+							toolCallId: "c4",
+							toolName: "orders_search",
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "c4",
+							toolName: "orders_search",
+							output: {
+								structuredContent: {
+									status: "conflict",
+									entities: [
+										{
+											kind: "order",
+											id: "09504PC",
+											label: "Quote 09504PC",
+											salesType: "quote",
+										},
+									],
 								},
 							},
 						};
@@ -324,9 +347,9 @@ describe("assistant runtime", () => {
 				type: "data-assistant-card",
 				id: "card-c1",
 				data: {
-					kind: "partial",
-					title: "Some results are unavailable",
-					description: "The assistant completed part of the request.",
+					kind: "ambiguity",
+					title: "More information is needed",
+					description: "Add the missing detail and send your request again.",
 				},
 			},
 			{
@@ -348,6 +371,35 @@ describe("assistant runtime", () => {
 					kind: "order",
 					id: "09502PC",
 					label: "Order 09502PC",
+				},
+			},
+			{
+				type: "data-assistant-tool",
+				id: "tool-c4",
+				data: { id: "c4", name: "orders_search", status: "running" },
+			},
+			{
+				type: "data-assistant-tool",
+				id: "tool-c4",
+				data: { id: "c4", name: "orders_search", status: "failed" },
+			},
+			{
+				type: "data-assistant-card",
+				id: "card-c4",
+				data: {
+					kind: "partial",
+					title: "The record changed",
+					description: "Review the latest information before continuing.",
+				},
+			},
+			{
+				type: "data-assistant-entity",
+				id: "entity-c4-1",
+				data: {
+					kind: "order",
+					id: "09504PC",
+					label: "Quote 09504PC",
+					salesType: "quote",
 				},
 			},
 			{

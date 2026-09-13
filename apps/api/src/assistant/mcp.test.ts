@@ -11,14 +11,26 @@ describe("assistant in-memory MCP", () => {
 		});
 
 		expect(session.definitions.tools.map((tool) => tool.name).sort()).toEqual([
+			"sales_explain_blockers",
+			"sales_find_orders",
+			"sales_get_order_status",
+			"sales_get_timeline",
 			"system_explain_capability",
 			"system_search_tools",
 		]);
 		expect(Object.keys(session.tools).sort()).toEqual([
+			"sales_explain_blockers",
+			"sales_find_orders",
+			"sales_get_order_status",
+			"sales_get_timeline",
 			"system_explain_capability",
 			"system_search_tools",
 		]);
 		expect(session.toolEffects).toEqual({
+			sales_explain_blockers: "read",
+			sales_find_orders: "read",
+			sales_get_order_status: "read",
+			sales_get_timeline: "read",
 			system_explain_capability: "read",
 			system_search_tools: "read",
 		});

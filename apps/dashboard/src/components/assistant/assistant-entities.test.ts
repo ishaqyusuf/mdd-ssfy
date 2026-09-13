@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	assistantAppRoutes,
+	assistantSalesEntityMode,
 	buildAssistantDocumentUrl,
 	findAssistantDocumentEntity,
 	parseAssistantEntity,
@@ -16,6 +17,19 @@ describe("assistant entity navigation", () => {
 			}),
 		).toEqual({ kind: "customer", id: "CUST-0042", label: "Acme Builders" });
 		expect(assistantAppRoutes["sales-orders"]).toBe("/sales-book/orders");
+		expect(
+			assistantSalesEntityMode(
+				parseAssistantEntity({
+					kind: "order",
+					id: "09502PC",
+					label: "Quote 09502PC",
+					salesType: "quote",
+				}) as Extract<
+					NonNullable<ReturnType<typeof parseAssistantEntity>>,
+					{ kind: "order" }
+				>,
+			),
+		).toBe("quote");
 	});
 
 	test("builds the authenticated document endpoint from the opaque ID", () => {

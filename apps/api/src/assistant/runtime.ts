@@ -24,8 +24,9 @@ import {
 	type AssistantPromptContext,
 	buildAssistantSystemPrompt,
 } from "./prompt";
+import { ASSISTANT_TOOL_CATALOG_VERSION } from "./registry";
 
-export const ASSISTANT_CATALOG_VERSION = "assistant-catalog-v1";
+export const ASSISTANT_CATALOG_VERSION = ASSISTANT_TOOL_CATALOG_VERSION;
 export const ASSISTANT_MAX_STEPS = 10;
 export const ASSISTANT_MAX_SELECTED_TOOLS = 12;
 export const ASSISTANT_MAX_OUTPUT_TOKENS = 4_000;
@@ -156,6 +157,11 @@ function assistantCardForOutput(output: unknown) {
 			kind: "degraded",
 			title: "A service is temporarily unavailable",
 			description: "Try a new request after the service recovers.",
+		},
+		conflict: {
+			kind: "partial",
+			title: "The record changed",
+			description: "Review the latest information before continuing.",
 		},
 		failed: {
 			kind: "degraded",
@@ -335,7 +341,12 @@ async function writeSafeAssistantStream(input: {
 				if (type === "tool-result" && trustedResult) {
 					const envelope = assistantEnvelopeFromOutput(part.output);
 					const status = boundedRuntimeString(envelope?.status, 40);
-					if (status === "success" || status === "partial") {
+					if (
+						status === "success" ||
+						status === "partial" ||
+						status === "requires_input" ||
+						status === "conflict"
+					) {
 						const entities = Array.isArray(envelope?.entities)
 							? envelope.entities
 							: [];
@@ -351,6 +362,7 @@ async function writeSafeAssistantStream(input: {
 						}
 						if (
 							id &&
+							(status === "success" || status === "partial") &&
 							["write", "artifact", "external_send", "destructive"].includes(
 								input.trustedResultToolEffects.get(knownName) ?? "",
 							)

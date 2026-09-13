@@ -21,7 +21,7 @@ describe("assistant tool registry", () => {
 		);
 
 		expect(new Set(identities).size).toBe(identities.length);
-		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v1");
+		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v2");
 		for (const tool of assistantToolRegistry) {
 			expect(tool.toolId).toMatch(/^[a-z][a-z0-9]*_[a-z][a-z0-9_]*$/);
 			expect(tool.version).toBeGreaterThan(0);
@@ -35,6 +35,10 @@ describe("assistant tool registry", () => {
 		const discovered = discoverAssistantTools(actor);
 
 		expect(discovered.map((tool) => tool.toolId)).toEqual([
+			"sales_explain_blockers",
+			"sales_find_orders",
+			"sales_get_order_status",
+			"sales_get_timeline",
 			"system_explain_capability",
 			"system_search_tools",
 		]);
@@ -53,7 +57,7 @@ describe("assistant tool registry", () => {
 			(tool) => tool.toolId === "sales_create_order",
 		);
 
-		expect(findOrders?.capability).toBe("coming_soon");
+		expect(findOrders?.capability).toBe("implemented");
 		expect(createOrder).toBeUndefined();
 		expect(catalog.every((tool) => !("handler" in tool))).toBe(true);
 	});
@@ -69,7 +73,7 @@ describe("assistant tool registry", () => {
 			status: "success",
 			data: {
 				toolId: "sales_find_orders",
-				capability: "coming_soon",
+				capability: "implemented",
 			},
 		});
 		await expect(

@@ -126,7 +126,12 @@ const assistantEntityBaseSchema = z.object({
 });
 
 export const assistantEntityReferenceSchema = z.discriminatedUnion("kind", [
-	assistantEntityBaseSchema.extend({ kind: z.literal("order") }).strict(),
+	assistantEntityBaseSchema
+		.extend({
+			kind: z.literal("order"),
+			salesType: z.enum(["order", "quote"]).optional(),
+		})
+		.strict(),
 	assistantEntityBaseSchema.extend({ kind: z.literal("customer") }).strict(),
 	assistantEntityBaseSchema
 		.extend({

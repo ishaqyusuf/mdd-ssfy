@@ -23,6 +23,12 @@ export function buildAssistantDocumentUrl(documentId: string) {
 	return `/api/assistant/documents/${encodeURIComponent(documentId)}`;
 }
 
+export function assistantSalesEntityMode(
+	entity: Extract<AssistantEntityReference, { kind: "order" }>,
+) {
+	return entity.salesType === "quote" ? ("quote" as const) : ("sales" as const);
+}
+
 export function findAssistantDocumentEntity(
 	messages: readonly unknown[],
 	documentId: string | null,

@@ -7,7 +7,10 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import type { AssistantEntityReference } from "@api/assistant/contracts";
 import { useRouter } from "next/navigation";
 import { useCallback, useLayoutEffect, useRef } from "react";
-import { assistantAppRoutes } from "./assistant-entities";
+import {
+	assistantAppRoutes,
+	assistantSalesEntityMode,
+} from "./assistant-entities";
 
 export function useAssistantEntityNavigation(
 	onOpenDocument: (
@@ -42,7 +45,7 @@ export function useAssistantEntityNavigation(
 		const current = navigation.current;
 		switch (entity.kind) {
 			case "order":
-				current.sales.open(entity.id, "sales");
+				current.sales.open(entity.id, assistantSalesEntityMode(entity));
 				return;
 			case "customer":
 				current.customer.open(entity.id);
