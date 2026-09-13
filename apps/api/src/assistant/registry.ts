@@ -82,6 +82,17 @@ type AssistantToolHandler = (
 	execution?: AssistantToolExecution,
 ) => Promise<unknown> | unknown;
 
+type AssistantProposalPreflight = (
+	context: AssistantToolActor,
+	input: unknown,
+	services: AssistantToolServices,
+) =>
+	| Promise<{ ok: true; targetRevision?: string }>
+	| {
+			ok: true;
+			targetRevision?: string;
+	  };
+
 export type AssistantToolExecution = {
 	signal: AbortSignal;
 };
@@ -102,6 +113,7 @@ export type AssistantToolDefinition = {
 	relatedTools: string[];
 	alwaysActive?: boolean;
 	handler?: AssistantToolHandler;
+	proposalPreflight?: AssistantProposalPreflight;
 };
 
 const searchToolsInputSchema = z
@@ -2362,4 +2374,34 @@ export async function executeRegisteredAssistantTool(
 	return createAssistantResultEnvelopeSchema(definition.outputSchema).parse(
 		result,
 	);
+}
+
+export async function preflightRegisteredAssistantProposal(
+	actor: AssistantToolActor,
+	input: { toolId: string; version: number; input: unknown },
+	serviceOverrides: Partial<AssistantToolServices> = {},
+) {
+	const definition = assistantToolRegistry.find(
+		(tool) => tool.toolId === input.toolId && tool.version === input.version,
+	);
+	if (
+		!definition ||
+		definition.capability !== "implemented" ||
+		!isAuthorized(actor, definition) ||
+		!definition.proposalPreflight
+	) {
+		throw new Error("Assistant tool is not available");
+	}
+	const parsedInput = definition.inputSchema.parse(input.input);
+	const result = await definition.proposalPreflight(actor, parsedInput, {
+		...defaultAssistantToolServices,
+		...serviceOverrides,
+	});
+	return z
+		.object({
+			ok: z.literal(true),
+			targetRevision: z.string().trim().min(1).max(191).optional(),
+		})
+		.strict()
+		.parse(result);
 }

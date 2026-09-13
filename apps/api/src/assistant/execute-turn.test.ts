@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { NEW_SALES_FORM_SEED_EXAMPLE } from "@gnd/sales/sales-form-core";
-import { executeAssistantConversationTurn } from "./execute-turn";
+import {
+	executeAssistantConversationTurn,
+	summarizeAssistantToolExecutionResult,
+} from "./execute-turn";
 
 const onePixelPng = new Uint8Array(
 	Buffer.from(
@@ -25,6 +28,22 @@ const actor = {
 };
 
 describe("executeAssistantConversationTurn", () => {
+	test("projects failed tool callbacks without dereferencing a missing result", () => {
+		expect(summarizeAssistantToolExecutionResult(undefined)).toBeUndefined();
+		expect(
+			summarizeAssistantToolExecutionResult({
+				status: "success",
+				sources: [{ id: "source-1" }, null],
+				entities: [{ id: "order:1" }, { id: 2 }],
+				warnings: ["One warning", 2],
+			}),
+		).toEqual({
+			status: "success",
+			sourceRefs: ["source-1"],
+			recordRefs: ["order:1"],
+			warnings: ["One warning"],
+		});
+	});
 	test("passes authorized uploaded bytes through the model boundary", async () => {
 		let receivedMessages: unknown;
 		await executeAssistantConversationTurn(

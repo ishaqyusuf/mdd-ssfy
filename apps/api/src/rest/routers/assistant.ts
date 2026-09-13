@@ -4,6 +4,10 @@ import { executeAssistantConversationTurn } from "@api/assistant/execute-turn";
 import { resolveAssistantIntegrationIds } from "@api/assistant/integrations";
 import { getAssistantRuntimeIdentity } from "@api/assistant/runtime";
 import {
+	getAssistantPreferences,
+	listAssistantPersonalMemories,
+} from "@api/assistant/saved-actions";
+import {
 	type AssistantChatRequest,
 	assistantChatRequestSchema,
 	assistantReconnectParamsSchema,
@@ -556,6 +560,10 @@ const defaultDependencies: AssistantRouterDependencies = {
 		});
 	},
 	async executeRun({ actor, reauthorizeActor, request, run, writer, signal }) {
+		const [preferences, memories] = await Promise.all([
+			getAssistantPreferences(db, actor),
+			listAssistantPersonalMemories(db, actor),
+		]);
 		return executeAssistantConversationTurn({
 			actor: {
 				userId: actor.userId,
@@ -569,6 +577,10 @@ const defaultDependencies: AssistantRouterDependencies = {
 				dateFormat: actor.dateFormat ?? null,
 				timeFormat: actor.timeFormat ?? 12,
 				countryCode: actor.countryCode ?? null,
+				responseStyle: preferences.responseStyle,
+				responseDetail: preferences.responseDetail,
+				chartPresentation: preferences.chartPresentation,
+				personalMemory: memories.map(({ content }) => content),
 				grants: actor.grants,
 			},
 			request,

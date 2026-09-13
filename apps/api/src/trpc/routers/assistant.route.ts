@@ -4,6 +4,27 @@ import {
 	getAssistantConnectorManagementUrl,
 } from "@api/assistant/integrations";
 import {
+	assistantPreferenceSchema,
+	assistantRecipeParametersSchema,
+	assistantSavedActionCreateSchema,
+	assistantSavedActionFromRunSchema,
+	assistantSavedActionUpdateSchema,
+	createAssistantPersonalMemory,
+	createAssistantSavedAction,
+	duplicateAssistantSavedAction,
+	executeAssistantSavedAction,
+	getAssistantPreferences,
+	getAssistantSaveActionEligibility,
+	listAssistantPersonalMemories,
+	listAssistantSavedActions,
+	removeAssistantPersonalMemory,
+	removeAssistantSavedAction,
+	reorderAssistantSavedActions,
+	saveAssistantActionFromRun,
+	updateAssistantPreferences,
+	updateAssistantSavedAction,
+} from "@api/assistant/saved-actions";
+import {
 	assistantSuggestionCatalog,
 	getAssistantSuggestions,
 } from "@api/assistant/suggestions";
@@ -47,6 +68,120 @@ function notFound(error: unknown): never {
 }
 
 export const assistantRouter = createTRPCRouter({
+	savedActions: protectedProcedure.query(async ({ ctx }) => {
+		const actor = await actorOrThrow(ctx);
+		return listAssistantSavedActions(ctx.db, actor);
+	}),
+	createSavedAction: protectedProcedure
+		.input(assistantSavedActionCreateSchema)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return createAssistantSavedAction(ctx.db, actor, input);
+		}),
+	updateSavedAction: protectedProcedure
+		.input(assistantSavedActionUpdateSchema)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return updateAssistantSavedAction(ctx.db, actor, input);
+		}),
+	removeSavedAction: protectedProcedure
+		.input(
+			z.object({
+				id: z.string().min(1).max(191),
+				expectedVersion: z.number().int().positive(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return removeAssistantSavedAction(ctx.db, actor, input);
+		}),
+	duplicateSavedAction: protectedProcedure
+		.input(
+			z.object({
+				id: z.string().min(1).max(191),
+				name: z.string().trim().min(1).max(120),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return duplicateAssistantSavedAction(ctx.db, actor, input);
+		}),
+	reorderSavedActions: protectedProcedure
+		.input(
+			z.object({
+				items: z
+					.array(
+						z.object({
+							id: z.string().min(1).max(191),
+							expectedVersion: z.number().int().positive(),
+						}),
+					)
+					.max(100),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return reorderAssistantSavedActions(ctx.db, actor, input.items);
+		}),
+	executeSavedAction: protectedProcedure
+		.input(
+			z.object({
+				id: z.string().min(1).max(191),
+				parameters: assistantRecipeParametersSchema,
+				conversationId: z.string().min(1).max(191).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return executeAssistantSavedAction(ctx.db, actor, input);
+		}),
+	saveActionFromRun: protectedProcedure
+		.input(assistantSavedActionFromRunSchema)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return saveAssistantActionFromRun(ctx.db, actor, input);
+		}),
+	savedActionEligibility: protectedProcedure
+		.input(z.object({ runId: z.string().min(1).max(191) }))
+		.query(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return getAssistantSaveActionEligibility(ctx.db, actor, input.runId);
+		}),
+	preferences: protectedProcedure.query(async ({ ctx }) => {
+		const actor = await actorOrThrow(ctx);
+		return getAssistantPreferences(ctx.db, actor);
+	}),
+	updatePreferences: protectedProcedure
+		.input(
+			assistantPreferenceSchema.omit({ version: true }).extend({
+				expectedVersion: z.number().int().positive(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return updateAssistantPreferences(ctx.db, actor, input);
+		}),
+	memories: protectedProcedure.query(async ({ ctx }) => {
+		const actor = await actorOrThrow(ctx);
+		return listAssistantPersonalMemories(ctx.db, actor);
+	}),
+	createMemory: protectedProcedure
+		.input(z.object({ content: z.string().trim().min(1).max(500) }))
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return createAssistantPersonalMemory(ctx.db, actor, input.content);
+		}),
+	removeMemory: protectedProcedure
+		.input(
+			z.object({
+				id: z.string().min(1).max(191),
+				expectedVersion: z.number().int().positive(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return removeAssistantPersonalMemory(ctx.db, actor, input);
+		}),
 	suggestions: protectedProcedure.query(async ({ ctx }) => {
 		const actor = await actorOrThrow(ctx);
 		return getAssistantSuggestions(actor.grants);

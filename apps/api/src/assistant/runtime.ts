@@ -64,6 +64,7 @@ type AssistantRuntimeWriter = {
 };
 
 export type AssistantRuntimeInput = {
+	runId?: string;
 	actor: Omit<
 		AssistantPromptContext,
 		"recentUploads" | "mentionedIntegrations"

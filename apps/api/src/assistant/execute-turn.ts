@@ -3,6 +3,7 @@ import { type Prisma, db } from "@gnd/db";
 import {
 	appendAssistantGeneratedMessage,
 	getAssistantModelHistory,
+	recordAssistantToolExecution,
 } from "@gnd/db/queries";
 import { get } from "@vercel/blob";
 import type { ModelMessage } from "ai";
@@ -62,6 +63,40 @@ type AssistantTurnOutcome =
 			errorCode: string;
 			errorMessage: string;
 	  };
+
+export function summarizeAssistantToolExecutionResult(result: unknown) {
+	if (!result || typeof result !== "object") return undefined;
+	const envelope = result as Record<string, unknown>;
+	if (typeof envelope.status !== "string") return undefined;
+	const sources = Array.isArray(envelope.sources) ? envelope.sources : [];
+	const entities = Array.isArray(envelope.entities) ? envelope.entities : [];
+	return {
+		status: envelope.status,
+		sourceRefs: sources
+			.flatMap((source) =>
+				source &&
+				typeof source === "object" &&
+				typeof (source as { id?: unknown }).id === "string"
+					? [(source as { id: string }).id]
+					: [],
+			)
+			.slice(0, 20),
+		recordRefs: entities
+			.flatMap((entity) =>
+				entity &&
+				typeof entity === "object" &&
+				typeof (entity as { id?: unknown }).id === "string"
+					? [(entity as { id: string }).id]
+					: [],
+			)
+			.slice(0, 20),
+		warnings: Array.isArray(envelope.warnings)
+			? envelope.warnings.filter(
+					(warning): warning is string => typeof warning === "string",
+				)
+			: undefined,
+	};
+}
 
 type ExecuteAssistantTurnDependencies = {
 	preprocessingDeadlineMs: number;
@@ -204,8 +239,35 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 		return bytes;
 	},
 	async executeRuntime(input) {
+		const runId = input.runId;
 		const [session, composioTools] = await Promise.all([
-			createAssistantMcpExecutionClient(input.actor, input.reauthorizeActor),
+			createAssistantMcpExecutionClient(
+				input.actor,
+				input.reauthorizeActor,
+				runId
+					? async (execution) => {
+							const result = summarizeAssistantToolExecutionResult(
+								execution.result,
+							);
+							await recordAssistantToolExecution(db, {
+								runId,
+								ownerUserId: input.actor.userId,
+								scopeType: input.actor.scopeType,
+								scopeId: input.actor.scopeId,
+								toolCallId: execution.toolCallId,
+								step: execution.step,
+								toolId: execution.toolId,
+								toolVersion: execution.toolVersion,
+								effect: execution.effect,
+								status: execution.status,
+								toolInput: execution.toolInput as Prisma.InputJsonValue,
+								result,
+								durationMs: execution.durationMs,
+								completedAt: new Date(),
+							});
+						}
+					: undefined,
+			),
 			getAssistantComposioTools(
 				input.actor,
 				input.mentionedIntegrations.map(({ id }) => id),
@@ -465,6 +527,7 @@ export async function executeAssistantConversationTurn(
 			];
 	const assistantParts: Prisma.InputJsonValue[] = [];
 	const outcome = await dependencies.executeRuntime({
+		runId: input.run.runId,
 		actor: input.actor,
 		modelMessages,
 		recentUploads: documents.map((document) => ({

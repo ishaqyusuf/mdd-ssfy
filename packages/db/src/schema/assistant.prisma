@@ -135,3 +135,62 @@ model AssistantActionProposal {
     @@index([actorUserId, status, expiresAt], map: "asst_proposal_actor_idx")
     @@index([toolId, toolVersion, createdAt], map: "asst_proposal_tool_idx")
 }
+
+model AssistantPreference {
+    id               String   @id @default(cuid()) @db.VarChar(191)
+    ownerUserId      Int
+    scopeType        String   @default("user") @db.VarChar(50)
+    scopeId          String   @db.VarChar(191)
+    responseStyle    String   @default("balanced") @db.VarChar(32)
+    responseDetail   String   @default("standard") @db.VarChar(32)
+    chartPresentation String  @default("auto") @db.VarChar(32)
+    version          Int      @default(1)
+    createdAt        DateTime @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime @updatedAt
+
+    @@unique([ownerUserId, scopeType, scopeId], map: "asst_pref_owner_scope_uq")
+    @@index([ownerUserId, updatedAt], map: "asst_pref_owner_idx")
+}
+
+model AssistantPersonalMemory {
+    id          String    @id @default(cuid()) @db.VarChar(191)
+    ownerUserId Int
+    scopeType   String    @default("user") @db.VarChar(50)
+    scopeId     String    @db.VarChar(191)
+    content     String    @db.VarChar(500)
+    version     Int       @default(1)
+    deletedAt   DateTime? @db.Timestamp(0)
+    createdAt   DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime  @updatedAt
+
+    @@index([ownerUserId, scopeType, scopeId, deletedAt, updatedAt], map: "asst_memory_scope_idx")
+}
+
+model AssistantSavedAction {
+    id                    String    @id @default(cuid()) @db.VarChar(191)
+    ownerUserId           Int
+    scopeType             String    @default("user") @db.VarChar(50)
+    scopeId               String    @db.VarChar(191)
+    name                  String    @db.VarChar(120)
+    kind                  String    @db.VarChar(24)
+    promptTemplate        String?   @db.Text
+    toolId                String?   @db.VarChar(191)
+    toolVersion           Int?
+    effect                String?   @db.VarChar(32)
+    inputTemplate         Json?     @db.Json
+    parameterDefinitions  Json?     @db.Json
+    outputBindings        Json?     @db.Json
+    compatibilityRevision String    @db.VarChar(191)
+    activeKey             String    @default("active") @db.VarChar(191)
+    displayOrder          Int       @default(0)
+    version               Int       @default(1)
+    lastRunStatus         String?   @db.VarChar(32)
+    lastRunAt             DateTime? @db.Timestamp(0)
+    deletedAt             DateTime? @db.Timestamp(0)
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+
+    @@unique([ownerUserId, scopeType, scopeId, name, activeKey], map: "asst_saved_action_name_uq")
+    @@index([ownerUserId, scopeType, scopeId, deletedAt, displayOrder], map: "asst_saved_action_scope_idx")
+    @@index([toolId, toolVersion, deletedAt], map: "asst_saved_action_tool_idx")
+}

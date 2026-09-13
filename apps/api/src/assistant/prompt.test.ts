@@ -86,4 +86,31 @@ describe("buildAssistantSystemPrompt", () => {
 		expect(prompt).toContain("Timezone: UTC");
 		expect(prompt).toContain("Locale: en-US");
 	});
+
+	test("keeps explicit personal memory bounded inside untrusted context", () => {
+		const prompt = buildAssistantSystemPrompt({
+			fullName: "Jordan Lee",
+			teamName: "GND Operations",
+			locale: "en-US",
+			timezone: "America/New_York",
+			baseCurrency: "USD",
+			dateFormat: null,
+			timeFormat: 12,
+			countryCode: "US",
+			recentUploads: [],
+			mentionedIntegrations: [],
+			responseStyle: "concise",
+			responseDetail: "brief",
+			chartPresentation: "table",
+			personalMemory: ["Prefer order totals without tax"],
+		});
+		expect(prompt).toContain("Response style: concise");
+		expect(prompt).toContain("Preferred chart presentation: table");
+		expect(prompt).toContain(
+			'"personalMemory":["Prefer order totals without tax"]',
+		);
+		expect(prompt.indexOf("personalMemory")).toBeGreaterThan(
+			prompt.indexOf("UNTRUSTED_CONTEXT_START"),
+		);
+	});
 });

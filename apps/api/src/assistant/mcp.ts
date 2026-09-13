@@ -34,6 +34,17 @@ function assertSameAssistantScope(
 export function createAssistantMcpServer(
 	actor: AssistantToolActor,
 	resolveCurrentActor: () => Promise<AssistantToolActor> = async () => actor,
+	recordExecution?: (input: {
+		toolCallId: string;
+		step: number;
+		toolId: string;
+		toolVersion: number;
+		effect: string;
+		status: "succeeded" | "failed";
+		toolInput: unknown;
+		result?: unknown;
+		durationMs: number;
+	}) => Promise<void>,
 ) {
 	const server = new McpServer(
 		{
@@ -48,6 +59,7 @@ export function createAssistantMcpServer(
 		},
 	);
 
+	let executionStep = 0;
 	for (const definition of getExecutableAssistantDefinitions(actor)) {
 		server.registerTool(
 			definition.toolId,
@@ -66,18 +78,60 @@ export function createAssistantMcpServer(
 				},
 			} as never,
 			(async (input: unknown, extra: { signal: AbortSignal }) => {
-				const currentActor = await resolveCurrentActor();
-				assertSameAssistantScope(actor, currentActor);
-				const result = await executeRegisteredAssistantTool(
-					currentActor,
-					{
-						toolId: definition.toolId,
-						version: definition.version,
-						input,
-					},
-					{},
-					{ signal: extra.signal },
-				);
+				const startedAt = Date.now();
+				const toolCallId = randomUUID();
+				const step = ++executionStep;
+				let result: unknown;
+				try {
+					const currentActor = await resolveCurrentActor();
+					assertSameAssistantScope(actor, currentActor);
+					result = await executeRegisteredAssistantTool(
+						currentActor,
+						{
+							toolId: definition.toolId,
+							version: definition.version,
+							input,
+						},
+						{},
+						{ signal: extra.signal },
+					);
+				} catch (error) {
+					try {
+						await recordExecution?.({
+							toolCallId,
+							step,
+							toolId: definition.toolId,
+							toolVersion: definition.version,
+							effect: definition.effect,
+							status: "failed",
+							toolInput: input,
+							durationMs: Date.now() - startedAt,
+						});
+					} catch {
+						console.error("Unable to record failed Assistant tool execution", {
+							code: "assistant_tool_execution_record_failed",
+							toolId: definition.toolId,
+							toolVersion: definition.version,
+							step,
+						});
+					}
+					throw error;
+				}
+				const status = (result as { status?: unknown }).status;
+				await recordExecution?.({
+					toolCallId,
+					step,
+					toolId: definition.toolId,
+					toolVersion: definition.version,
+					effect: definition.effect,
+					status:
+						status === "success" || status === "partial"
+							? "succeeded"
+							: "failed",
+					toolInput: input,
+					result,
+					durationMs: Date.now() - startedAt,
+				});
 				return {
 					content: [{ type: "text", text: JSON.stringify(result) }],
 					structuredContent: result,
@@ -92,9 +146,14 @@ export function createAssistantMcpServer(
 export async function createAssistantMcpExecutionClient(
 	actor: AssistantToolActor,
 	resolveCurrentActor?: () => Promise<AssistantToolActor>,
+	recordExecution?: Parameters<typeof createAssistantMcpServer>[2],
 ) {
 	const executableDefinitions = getExecutableAssistantDefinitions(actor);
-	const server = createAssistantMcpServer(actor, resolveCurrentActor);
+	const server = createAssistantMcpServer(
+		actor,
+		resolveCurrentActor,
+		recordExecution,
+	);
 	const [clientTransport, serverTransport] =
 		InMemoryTransport.createLinkedPair();
 	let client: Awaited<ReturnType<typeof createMCPClient>> | undefined;
@@ -128,3 +187,4 @@ export async function createAssistantMcpExecutionClient(
 		throw error;
 	}
 }
+import { randomUUID } from "node:crypto";

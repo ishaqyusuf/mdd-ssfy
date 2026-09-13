@@ -16,6 +16,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import {
 	Archive,
 	ArrowUp,
+	BookmarkPlus,
 	Globe2,
 	History,
 	LoaderCircle,
@@ -23,8 +24,10 @@ import {
 	Plus,
 	RefreshCw,
 	Search,
+	Settings2,
 	Sparkles,
 	Square,
+	Star,
 	Trash2,
 	WifiOff,
 } from "lucide-react";
@@ -60,6 +63,7 @@ import {
 	type AssistantOrderDraft,
 	AssistantOrderDraftCanvas,
 } from "./assistant-order-draft-canvas";
+import { AssistantSavedActionsDialog } from "./assistant-saved-actions-dialog";
 import styles from "./assistant.module.css";
 import { useAssistantEntityNavigation } from "./use-assistant-entity-navigation";
 import { useAssistantToolInvalidation } from "./use-assistant-tool-invalidation";
@@ -121,6 +125,7 @@ function AssistantConversation(props: {
 	onOpenProviders: () => void;
 	mentionedIntegrationIds: string[];
 	onIntegrationsSent: () => void;
+	onSuccessfulRun: (runId: string | null) => void;
 }) {
 	const client = useTRPCClient();
 	const [input, setInput] = useState("");
@@ -257,6 +262,24 @@ function AssistantConversation(props: {
 			runSequence: latestRun.lastSequence,
 		}));
 	}, [props.conversation.latestRun]);
+	useEffect(() => {
+		if (streamState.status === "succeeded" && streamState.runId) {
+			const runId = streamState.runId;
+			let current = true;
+			client.assistant.savedActionEligibility
+				.query({ runId })
+				.then(({ eligible }) => {
+					if (current) props.onSuccessfulRun(eligible ? runId : null);
+				})
+				.catch(() => {
+					if (current) props.onSuccessfulRun(null);
+				});
+			return () => {
+				current = false;
+			};
+		}
+		props.onSuccessfulRun(null);
+	}, [client, props.onSuccessfulRun, streamState.runId, streamState.status]);
 
 	const latestMessageId = chat.messages.at(-1)?.id;
 	useEffect(() => {
@@ -645,6 +668,11 @@ export function LiveAssistantWorkspace() {
 	const [historyError, setHistoryError] = useState<string | null>(null);
 	const [historyOpen, setHistoryOpen] = useState(false);
 	const [providersOpen, setProvidersOpen] = useState(false);
+	const [favoritesOpen, setFavoritesOpen] = useState(false);
+	const [preferencesOpen, setPreferencesOpen] = useState(false);
+	const [suggestedRunId, setSuggestedRunId] = useState<string | null>(null);
+	const [conversationRenderRevision, setConversationRenderRevision] =
+		useState(0);
 	const [providers, setProviders] = useState<{
 		webSearch: {
 			id: string;
@@ -745,7 +773,7 @@ export function LiveAssistantWorkspace() {
 			setError(null);
 			try {
 				const row = await client.assistant.get.query({ conversationId: id });
-				if (request !== conversationRequestRef.current) return;
+				if (request !== conversationRequestRef.current) return false;
 				if (!row.id) throw new Error("Conversation was not found");
 				setConversation({
 					id: row.id,
@@ -761,8 +789,9 @@ export function LiveAssistantWorkspace() {
 							}
 						: null,
 				});
+				return true;
 			} catch {
-				if (request !== conversationRequestRef.current) return;
+				if (request !== conversationRequestRef.current) return false;
 				setPendingPrompt((pending) =>
 					pending?.conversationId === id ? null : pending,
 				);
@@ -770,6 +799,7 @@ export function LiveAssistantWorkspace() {
 				setError(
 					"This conversation is unavailable or you no longer have access.",
 				);
+				return false;
 			} finally {
 				if (request === conversationRequestRef.current) setLoading(false);
 			}
@@ -814,6 +844,7 @@ export function LiveAssistantWorkspace() {
 
 	const selectConversation = (id: string) => {
 		startRequestRef.current += 1;
+		conversationRequestRef.current += 1;
 		setPendingPrompt(null);
 		setMentionedIntegrationIds([]);
 		attachmentState.discard();
@@ -835,29 +866,22 @@ export function LiveAssistantWorkspace() {
 		setActionError(null);
 		updateUrl(null);
 	};
-	const start = async () => {
-		const prompt = draft.trim();
-		if (
-			(!prompt && !attachmentState.attachments.length) ||
-			attachmentState.uploading
-		)
-			return;
+	const start = async (promptOverride?: string) => {
+		const prompt = (promptOverride ?? draft).trim();
+		const attachments = promptOverride ? [] : attachmentState.attachments;
+		if ((!prompt && !attachments.length) || attachmentState.uploading) return;
 		const request = ++startRequestRef.current;
 		setLoading(true);
 		try {
 			const created = await client.assistant.create.mutate({
-				title: (
-					prompt ||
-					attachmentState.attachments[0]?.name ||
-					"New chat"
-				).slice(0, 80),
+				title: (prompt || attachments[0]?.name || "New chat").slice(0, 80),
 			});
 			if (request !== startRequestRef.current) return;
 			setDraft("");
 			setPendingPrompt({
 				conversationId: created.id,
 				text: prompt,
-				attachments: attachmentState.attachments,
+				attachments,
 			});
 			attachmentState.clear();
 			setConversationId(created.id);
@@ -868,6 +892,13 @@ export function LiveAssistantWorkspace() {
 			setError("A new conversation could not be created.");
 			setLoading(false);
 		}
+	};
+	const useSavedPrompt = (prompt: string) => {
+		if (conversationId) {
+			setPendingPrompt({ conversationId, text: prompt, attachments: [] });
+			return;
+		}
+		void start(prompt);
 	};
 	const remove = async (kind: "archive" | "delete") => {
 		if (!conversationId) return;
@@ -896,6 +927,13 @@ export function LiveAssistantWorkspace() {
 				<Button
 					variant="ghost"
 					size="sm"
+					onClick={() => setFavoritesOpen(true)}
+				>
+					<Star size={16} /> Favorites
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
 					onClick={() => {
 						setHistoryOpen(true);
 						void loadHistory(search);
@@ -910,6 +948,23 @@ export function LiveAssistantWorkspace() {
 				>
 					<Globe2 size={16} /> Sources
 				</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					aria-label="Assistant preferences"
+					onClick={() => setPreferencesOpen(true)}
+				>
+					<Settings2 size={16} />
+				</Button>
+				{suggestedRunId ? (
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => setFavoritesOpen(true)}
+					>
+						<BookmarkPlus size={16} /> Save action
+					</Button>
+				) : null}
 				<Button variant="outline" size="sm" onClick={newChat}>
 					<Plus size={16} /> New chat
 				</Button>
@@ -946,7 +1001,7 @@ export function LiveAssistantWorkspace() {
 				</output>
 			) : conversation ? (
 				<AssistantConversation
-					key={conversation.id}
+					key={`${conversation.id}:${conversationRenderRevision}`}
 					conversation={conversation}
 					pendingPrompt={
 						pendingPrompt?.conversationId === conversation.id
@@ -968,6 +1023,7 @@ export function LiveAssistantWorkspace() {
 					onOpenProviders={() => setProvidersOpen(true)}
 					mentionedIntegrationIds={mentionedIntegrationIds}
 					onIntegrationsSent={() => setMentionedIntegrationIds([])}
+					onSuccessfulRun={setSuggestedRunId}
 				/>
 			) : (
 				<>
@@ -1084,6 +1140,34 @@ export function LiveAssistantWorkspace() {
 					</footer>
 				</>
 			)}
+			<AssistantSavedActionsDialog
+				open={favoritesOpen}
+				mode="favorites"
+				conversationId={conversationId}
+				suggestedRunId={suggestedRunId}
+				onOpenChange={setFavoritesOpen}
+				onUsePrompt={useSavedPrompt}
+				onConversationChanged={() => {
+					if (conversationId) {
+						void loadConversation(conversationId).then((committed) => {
+							if (committed)
+								setConversationRenderRevision((value) => value + 1);
+						});
+					}
+					void loadHistory("");
+				}}
+				onSuggestionSaved={() => setSuggestedRunId(null)}
+			/>
+			<AssistantSavedActionsDialog
+				open={preferencesOpen}
+				mode="preferences"
+				conversationId={conversationId}
+				suggestedRunId={null}
+				onOpenChange={setPreferencesOpen}
+				onUsePrompt={useSavedPrompt}
+				onConversationChanged={() => undefined}
+				onSuggestionSaved={() => undefined}
+			/>
 			<Dialog open={providersOpen} onOpenChange={setProvidersOpen}>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>

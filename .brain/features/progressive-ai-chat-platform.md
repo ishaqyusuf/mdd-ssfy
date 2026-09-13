@@ -169,3 +169,27 @@ indexes with bounded row estimates, so no speculative index or migration was
 added. The full Assistant API suite passes 134 tests and 727 assertions; targeted
 formatting, diff integrity, and changed-path type checks pass. Both independent
 reviews are clean.
+
+## Saved actions, preferences, and explicit memory — 2026-09-13
+
+T15 adds actor-and-scope-owned display preferences, removable personal memory,
+prompt shortcuts, and versioned deterministic recipes. A recipe stores its exact
+registry identity, effect, compatibility revision, typed parameter definitions,
+reviewed JSON input template, output bindings, display order, optimistic version,
+and last-run state. Saving from chat requires a durable successful execution; the
+server derives the tool identity rather than trusting browser input.
+
+The normal Assistant toolbar now opens favorites and preferences without adding a
+separate page header. Prompt shortcuts append to chat. Read and draft recipes
+reauthorize current actor scope and grants before executing. Write, artifact,
+external-send, and destructive recipes always create a new expiring proposal and
+one-time approval token. Incompatible or retired recipes stop with a bounded
+catalog repair preview and never execute generated code or SQL.
+
+Response style, detail, and chart presentation are trusted server formatting
+settings. Explicit personal memory is bounded, removable, and serialized within
+the prompt's untrusted context. Ordinary MCP tool calls now record durable,
+redacted execution evidence so eligible chat outcomes can become favorites. The
+full Assistant API suite passes 151 tests and 772 assertions. Saved-result refreshes
+cannot remount a different active conversation, unresolved drafts remain completed
+but non-reusable, and failed MCP recording cannot replace the original tool error.
