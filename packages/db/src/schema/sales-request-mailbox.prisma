@@ -1,0 +1,282 @@
+model SalesRequestMailboxOAuthAttempt {
+  stateDigest           String    @id @db.VarChar(80)
+  organizationId        Int
+  ownerUserId           Int
+  employeeProfileId     Int
+  officeAuthorityKey    String    @db.VarChar(191)
+  provider              String    @db.VarChar(32)
+  redirectKey           String    @db.VarChar(64)
+  issuedAt              DateTime  @db.DateTime(3)
+  expiresAt             DateTime  @db.DateTime(3)
+  salesSettingsId       Int
+  salesSettingsRevision Int
+  policyRevision        Int
+  authorityRevision     String    @db.VarChar(191)
+  consumedAt            DateTime? @db.DateTime(3)
+  terminalAt            DateTime? @db.DateTime(3)
+  terminalReason        String?   @db.VarChar(64)
+  createdAt             DateTime  @default(now()) @db.DateTime(3)
+  updatedAt             DateTime  @updatedAt @db.DateTime(3)
+
+  @@index([ownerUserId, provider, issuedAt], name: "sales_req_mailbox_oauth_owner_idx")
+  @@index([expiresAt, consumedAt], name: "sales_req_mailbox_oauth_expiry_idx")
+  @@index([terminalAt], name: "sales_req_mailbox_oauth_terminal_idx")
+}
+
+model SalesRequestMailboxConnection {
+  id                         String    @id @default(cuid()) @db.VarChar(191)
+  organizationId             Int
+  ownerUserId                Int
+  employeeProfileId          Int
+  officeAuthorityKey         String    @db.VarChar(191)
+  authorityRevision          String    @db.VarChar(191)
+  salesSettingsId            Int
+  salesSettingsRevision      Int
+  policyRevision             Int
+  provider                   String    @db.VarChar(32)
+  providerAccountId          String?   @db.VarChar(255)
+  providerAccountIdentityHash String?  @db.Char(64)
+  accountEmail               String?   @db.VarChar(320)
+  displayName                String?   @db.VarChar(255)
+  grantedScopes              Json?
+  scopeFingerprint           String?   @db.VarChar(69)
+  accessTokenEnvelope        Json?
+  refreshTokenEnvelope       Json?
+  tokenExpiresAt             DateTime? @db.DateTime(3)
+  revision                   Int       @default(1)
+  state                      String    @default("active") @db.VarChar(32)
+  automationMode             String    @default("manual") @db.VarChar(32)
+  notifyOnNeedsReview        Boolean   @default(false)
+  excludedSenders            Json
+  excludedDomains            Json
+  syncBlocked                Boolean   @default(false)
+  lastSyncAt                 DateTime? @db.DateTime(3)
+  healthOperationId          String?   @unique(map: "sales_req_mailbox_health_work_uq") @db.VarChar(255)
+  healthOperationReason      String?   @db.VarChar(32)
+  healthOperationConnectionRevision Int?
+  healthStatus               String    @default("healthy") @db.VarChar(40)
+  healthLeaseId              String?   @db.VarChar(255)
+  healthLeaseEpoch           Int       @default(0)
+  healthLeaseExpiresAt       DateTime? @db.DateTime(3)
+  healthRetryAttempt         Int       @default(0)
+  healthNextAttemptAt        DateTime? @db.DateTime(3)
+  healthCheckedAt            DateTime? @db.DateTime(3)
+  healthRefreshedAt          DateTime? @db.DateTime(3)
+  healthErrorCode            String?   @db.VarChar(80)
+  disconnectId               String?   @unique(map: "sales_req_mailbox_disconnect_work_uq") @db.VarChar(255)
+  disconnectPhase            String?   @db.VarChar(40)
+  disconnectPreviousRevision Int?
+  disconnectStartedAt        DateTime? @db.DateTime(3)
+  disconnectCompletedAt      DateTime? @db.DateTime(3)
+  disconnectFailurePhase     String?   @db.VarChar(40)
+  disconnectFailureReason    String?   @db.VarChar(80)
+  disconnectFailureAt        DateTime? @db.DateTime(3)
+  providerRevokedAt          DateTime? @db.DateTime(3)
+  disconnectedAt             DateTime? @db.DateTime(3)
+  createdAt                  DateTime  @default(now()) @db.DateTime(3)
+  updatedAt                  DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([provider, providerAccountIdentityHash], name: "sales_req_mailbox_provider_account_uq")
+  @@index([ownerUserId, organizationId, state, updatedAt], name: "sales_req_mailbox_owner_state_idx")
+  @@index([organizationId, state, healthStatus, updatedAt], name: "sales_req_mailbox_admin_health_idx")
+  @@index([state, syncBlocked, healthNextAttemptAt], name: "sales_req_mailbox_health_due_idx")
+  @@index([disconnectPhase, disconnectStartedAt], name: "sales_req_mailbox_disconnect_idx")
+}
+
+model SalesRequestMailboxSource {
+  id               String   @id @default(cuid()) @db.VarChar(191)
+  connectionId     String   @db.VarChar(191)
+  kind             String   @db.VarChar(32)
+  providerSourceId           String   @db.VarChar(255)
+  providerSourceIdentityHash String   @db.Char(64)
+  sourceKey                  String   @db.VarChar(255)
+  sourceKeyIdentityHash      String   @db.Char(64)
+  selected         Boolean  @default(true)
+  revision         Int      @default(1)
+  createdAt        DateTime @default(now()) @db.DateTime(3)
+  updatedAt        DateTime @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, sourceKeyIdentityHash], name: "sales_req_mailbox_source_uq")
+  @@unique([connectionId, kind, providerSourceIdentityHash], name: "sales_req_mailbox_provider_source_uq")
+  @@index([connectionId, selected, revision], name: "sales_req_mailbox_source_selected_idx")
+}
+
+model SalesRequestMailboxSyncStream {
+  id                       String    @id @default(cuid()) @db.VarChar(191)
+  connectionId             String    @db.VarChar(191)
+  sourceId                 String    @db.VarChar(191)
+  status                   String    @default("queued") @db.VarChar(32)
+  checkpointMode           String?   @db.VarChar(32)
+  checkpointCursor         String?   @db.Text
+  checkpointPageToken      String?   @db.Text
+  checkpointSince          DateTime? @db.DateTime(3)
+  checkpointRetryAttempts  Int       @default(0)
+  checkpointCursorResets   Int       @default(0)
+  continuationFingerprints Json?
+  checkpointHash           String?   @db.VarChar(80)
+  runId                    String?   @db.VarChar(255)
+  leaseId                  String?   @db.VarChar(255)
+  leaseEpoch               Int       @default(0)
+  leaseExpiresAt           DateTime? @db.DateTime(3)
+  leasedConnectionRevision Int?
+  leasedPolicyRevision     Int?
+  nextAttemptAt            DateTime  @default(now()) @db.DateTime(3)
+  failureCode              String?   @db.VarChar(80)
+  failureEvidence          Json?
+  lastPagesFetched         Int       @default(0)
+  lastMessagesProjected    Int       @default(0)
+  lastMessagesSuppressed   Int       @default(0)
+  lastTombstonesProjected  Int       @default(0)
+  completedAt              DateTime? @db.DateTime(3)
+  createdAt                DateTime  @default(now()) @db.DateTime(3)
+  updatedAt                DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, sourceId], name: "sales_req_mailbox_stream_uq")
+  @@index([status, nextAttemptAt, leaseExpiresAt], name: "sales_req_mailbox_stream_due_idx")
+  @@index([leaseId, leaseEpoch], name: "sales_req_mailbox_stream_lease_idx")
+}
+
+model SalesRequestMailboxMessageSummary {
+  id                String    @id @default(cuid()) @db.VarChar(191)
+  connectionId      String    @db.VarChar(191)
+  sourceId          String    @db.VarChar(191)
+  provider          String    @db.VarChar(32)
+  providerMessageId           String    @db.VarChar(255)
+  providerMessageIdentityHash String    @db.Char(64)
+  providerThreadId  String?   @db.VarChar(255)
+  providerFolderId  String?   @db.VarChar(255)
+  providerLabelIds  Json
+  fromEmail         String    @db.VarChar(320)
+  fromName          String?   @db.VarChar(255)
+  subject           String?   @db.VarChar(998)
+  receivedAt        DateTime  @db.DateTime(3)
+  hasAttachments    Boolean   @default(false)
+  automationHeaders Json
+  projectionHash    String    @db.VarChar(80)
+  summaryRevision   Int       @default(1)
+  disposition       String    @default("accepted") @db.VarChar(32)
+  exclusionReason   String?   @db.VarChar(64)
+  active            Boolean   @default(true)
+  detailStatus      String    @default("queued") @db.VarChar(32)
+  tombstonedAt      DateTime? @db.DateTime(3)
+  projectedAt       DateTime  @default(now()) @db.DateTime(3)
+  createdAt         DateTime  @default(now()) @db.DateTime(3)
+  updatedAt         DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, sourceId, providerMessageIdentityHash], name: "sales_req_mailbox_summary_uq")
+  @@index([detailStatus, active, projectedAt], name: "sales_req_mailbox_summary_detail_idx")
+  @@index([connectionId, providerMessageIdentityHash], name: "sales_req_mailbox_summary_message_idx")
+}
+
+model SalesRequestMailboxMessageLease {
+  id                       String    @id @default(cuid()) @db.VarChar(191)
+  connectionId             String    @db.VarChar(191)
+  providerMessageId        String    @db.VarChar(255)
+  providerMessageIdentityHash String @db.Char(64)
+  sourceId                 String    @db.VarChar(191)
+  claimedSummaryId         String?   @db.VarChar(191)
+  claimedSummaryRevision   Int?
+  sourceMembershipIdentity String?   @db.VarChar(69)
+  status                   String    @default("queued") @db.VarChar(32)
+  runId                    String?   @db.VarChar(255)
+  leaseId                  String?   @db.VarChar(255)
+  leaseEpoch               Int       @default(0)
+  leaseExpiresAt           DateTime? @db.DateTime(3)
+  leasedConnectionRevision Int?
+  leasedPolicyRevision     Int?
+  retryAttempts            Int       @default(0)
+  nextAttemptAt            DateTime  @default(now()) @db.DateTime(3)
+  failureCode              String?   @db.VarChar(80)
+  failureEvidence          Json?
+  completedAt              DateTime? @db.DateTime(3)
+  createdAt                DateTime  @default(now()) @db.DateTime(3)
+  updatedAt                DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, providerMessageIdentityHash], name: "sales_req_mailbox_lease_uq")
+  @@index([status, nextAttemptAt, leaseExpiresAt], name: "sales_req_mailbox_lease_due_idx")
+  @@index([leaseId, leaseEpoch], name: "sales_req_mailbox_lease_fence_idx")
+}
+
+model SalesRequestMailboxSourceMembership {
+  id                String    @id @db.VarChar(69)
+  connectionId      String    @db.VarChar(191)
+  sourceId          String    @db.VarChar(191)
+  messageSummaryId  String    @db.VarChar(191)
+  snapshotId                  String    @db.VarChar(191)
+  providerMessageId           String    @db.VarChar(255)
+  providerMessageIdentityHash String    @db.Char(64)
+  summaryRevision   Int
+  state             String    @default("active") @db.VarChar(32)
+  activeKey         String?   @unique(map: "sales_req_mailbox_membership_active_uq") @db.VarChar(512)
+  activatedAt       DateTime  @default(now()) @db.DateTime(3)
+  deactivatedAt     DateTime? @db.DateTime(3)
+  withdrawalReason  String?   @db.VarChar(80)
+  createdAt         DateTime  @default(now()) @db.DateTime(3)
+  updatedAt         DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([sourceId, providerMessageIdentityHash, summaryRevision], name: "sales_req_mailbox_membership_revision_uq")
+  @@index([connectionId, providerMessageIdentityHash, state], name: "sales_req_mailbox_membership_active_idx")
+  @@index([snapshotId, state], name: "sales_req_mailbox_membership_snapshot_idx")
+}
+
+model SalesRequestMailboxMessageSnapshot {
+  id                String   @id @default(cuid()) @db.VarChar(191)
+  connectionId      String   @db.VarChar(191)
+  provider          String   @db.VarChar(32)
+  providerMessageId           String   @db.VarChar(255)
+  providerMessageIdentityHash String   @db.Char(64)
+  providerThreadId  String?  @db.VarChar(255)
+  schemaVersion     Int      @default(1)
+  contentHash       String   @db.VarChar(69)
+  capturedAt        DateTime @db.DateTime(3)
+  receivedAt        DateTime @db.DateTime(3)
+  expiresAt         DateTime @db.DateTime(3)
+  fromEmail         String   @db.VarChar(320)
+  fromName          String?  @db.VarChar(255)
+  subject           String?  @db.VarChar(998)
+  toEmails          Json
+  ccEmails          Json
+  hasAttachments    Boolean  @default(false)
+  displayText       String   @db.LongText
+  modelInput        String   @db.LongText
+  createdAt         DateTime @default(now()) @db.DateTime(3)
+
+  @@unique([connectionId, providerMessageIdentityHash, schemaVersion, contentHash], name: "sales_req_mailbox_snapshot_uq")
+  @@index([expiresAt], name: "sales_req_mailbox_snapshot_expiry_idx")
+  @@index([connectionId, providerMessageIdentityHash, receivedAt], name: "sales_req_mailbox_snapshot_message_idx")
+}
+
+model SalesRequestMailboxQueueProjection {
+  id                    String    @id @default(cuid()) @db.VarChar(191)
+  queueIdentity         String    @unique(map: "sales_req_mailbox_queue_identity_uq") @db.VarChar(80)
+  connectionId          String    @db.VarChar(191)
+  organizationId        Int
+  ownerUserId           Int
+  provider              String    @db.VarChar(32)
+  providerMessageId     String    @db.VarChar(255)
+  providerMessageIdentityHash String @db.Char(64)
+  snapshotId            String    @db.VarChar(191)
+  sourceMembershipId    String    @db.VarChar(69)
+  sourceKey             String    @db.VarChar(255)
+  sourceSummaryRevision Int
+  snapshotSchemaVersion Int       @default(1)
+  contentHash           String    @db.VarChar(69)
+  status                String    @default("new") @db.VarChar(32)
+  statusRevision        Int       @default(1)
+  statusUpdatedAt       DateTime  @default(now()) @db.DateTime(3)
+  failureCode           String?   @db.VarChar(80)
+  receivedAt            DateTime  @db.DateTime(3)
+  fromEmail             String    @db.VarChar(320)
+  fromName              String?   @db.VarChar(255)
+  subject               String?   @db.VarChar(998)
+  hasAttachments        Boolean   @default(false)
+  withdrawnAt           DateTime? @db.DateTime(3)
+  createdAt             DateTime  @default(now()) @db.DateTime(3)
+  updatedAt             DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, providerMessageIdentityHash], name: "sales_req_mailbox_current_queue_uq")
+  @@index([ownerUserId, organizationId, connectionId, status, receivedAt, queueIdentity], name: "sales_req_mailbox_inbox_idx")
+  @@index([ownerUserId, organizationId, connectionId, receivedAt, queueIdentity], name: "sales_req_mailbox_inbox_all_idx")
+  @@index([snapshotId], name: "sales_req_mailbox_queue_snapshot_idx")
+  @@index([sourceMembershipId], name: "sales_req_mailbox_queue_membership_idx")
+}
