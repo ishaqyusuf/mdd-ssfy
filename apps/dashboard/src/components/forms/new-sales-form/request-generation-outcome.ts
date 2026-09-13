@@ -16,6 +16,8 @@ export const SALES_REQUEST_ISSUE_CATEGORY_OPTIONS = [
 	{ value: "unpriced", label: "Missing price" },
 	{ value: "wrong-quantity", label: "Wrong quantity" },
 	{ value: "wrong-delivery", label: "Wrong delivery" },
+	{ value: "wrong-component", label: "Wrong component" },
+	{ value: "unsafe-selection", label: "Unsafe or invented selection" },
 	{ value: "other", label: "Other issue" },
 ] as const;
 

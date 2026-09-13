@@ -107,7 +107,7 @@ export const recordSalesRequestGenerationOutcomeSchema = z.discriminatedUnion(
 
 export const salesRequestGenerationPilotSummarySchema = z
 	.object({
-		days: z.number().int().min(1).max(90).default(30),
+		// A UTC calendar date identifies one immutable, closed seven-day slice.
+		periodStart: z.string().date(),
 	})
-	.strict()
-	.default({ days: 30 });
+	.strict();

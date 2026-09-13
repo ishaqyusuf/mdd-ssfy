@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
+import {
+	SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+	SALES_REQUEST_PROMPT_VERSION,
+} from "@gnd/sales/sales-form/request-generation";
 import type { SalesRequestAISelection } from "@gnd/settings";
 import type { getSalesRequestConfigurationSnapshot } from "../db/queries/sales-request-configuration";
 import {
 	type SalesRequestProvider,
+	type SalesRequestProviderFailureDiagnostic,
 	generateNewSalesFormSeed,
 } from "./sales-request-generation";
 import type { SalesRequestImage } from "./sales-request-images";
@@ -16,7 +21,11 @@ import {
 type Snapshot = Awaited<
 	ReturnType<typeof getSalesRequestConfigurationSnapshot>
 >;
-type PreviewContext = Snapshot & { aiSelection: SalesRequestAISelection };
+type PreviewContext = Snapshot & {
+	aiSelection: SalesRequestAISelection;
+	pilotSettingsRevision: number;
+	providerBenchmarkApprovalRevision: number;
+};
 
 type PreviewPhase =
 	| "authorization"
@@ -75,7 +84,10 @@ function assertCurrentSnapshot(
 		current.scope !== expected.scope ||
 		current.revision !== expected.revision ||
 		current.aiSelection.provider !== expected.aiSelection.provider ||
-		current.aiSelection.model !== expected.aiSelection.model
+		current.aiSelection.model !== expected.aiSelection.model ||
+		current.pilotSettingsRevision !== expected.pilotSettingsRevision ||
+		current.providerBenchmarkApprovalRevision !==
+			expected.providerBenchmarkApprovalRevision
 	) {
 		throw new Error(
 			"Sales configuration changed during generation. Generate the preview again.",
@@ -104,7 +116,7 @@ export async function createSalesRequestPreview(
 	const startedAtMs = Date.now();
 	let phase: PreviewPhase = "authorization";
 	let snapshot: PreviewContext | undefined;
-	let providerFailureStage: SalesRequestGenerationCompleteEvent["failureStage"];
+	let providerFailure: SalesRequestProviderFailureDiagnostic | undefined;
 	let lifecycleStarted = false;
 	let lifecycleCompleted = false;
 
@@ -136,6 +148,11 @@ export async function createSalesRequestPreview(
 			configurationRevision: snapshot.revision,
 			provider: snapshot.aiSelection.provider,
 			model: snapshot.aiSelection.model,
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
+			schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+			pilotSettingsRevision: snapshot.pilotSettingsRevision,
+			providerBenchmarkApprovalRevision:
+				snapshot.providerBenchmarkApprovalRevision,
 			hasText: Boolean(input.text.trim()),
 			startedAt: new Date(startedAtMs),
 		});
@@ -154,7 +171,7 @@ export async function createSalesRequestPreview(
 			provider,
 			{
 				onProviderFailure: (diagnostic) => {
-					providerFailureStage = diagnostic.stage;
+					providerFailure = diagnostic;
 				},
 			},
 		);
@@ -193,7 +210,7 @@ export async function createSalesRequestPreview(
 			status: statusForPreviewFailure(
 				phase,
 				input.signal,
-				providerFailureStage,
+				providerFailure?.stage,
 			),
 			...(snapshot
 				? {
@@ -201,7 +218,17 @@ export async function createSalesRequestPreview(
 						model: snapshot.aiSelection.model,
 					}
 				: {}),
-			...(providerFailureStage ? { failureStage: providerFailureStage } : {}),
+			...(providerFailure
+				? {
+						failureStage: providerFailure.stage,
+						...(providerFailure.inputTokens !== undefined
+							? { inputTokens: providerFailure.inputTokens }
+							: {}),
+						...(providerFailure.outputTokens !== undefined
+							? { outputTokens: providerFailure.outputTokens }
+							: {}),
+					}
+				: {}),
 		});
 		throw error;
 	}

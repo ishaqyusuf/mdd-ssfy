@@ -20,6 +20,10 @@ function row(overrides: Record<string, unknown> = {}) {
 		configurationRevision: "a".repeat(64),
 		provider: "openai",
 		model: "gpt-5-mini",
+		promptVersion: "new-sales-form-seed-v6",
+		schemaVersion: 2,
+		pilotSettingsRevision: 1,
+		providerBenchmarkApprovalRevision: 1,
 		status: "succeeded",
 		seedDigest: `h1:${"c".repeat(64)}`,
 		consumedSalesId: null,
@@ -39,6 +43,7 @@ function row(overrides: Record<string, unknown> = {}) {
 		feedbackChangedFieldCategories: null,
 		feedbackAt: null,
 		correctionMs: null,
+		startedAt: new Date("2026-09-12T11:58:00.000Z"),
 		completedAt: new Date("2026-09-12T11:59:00.000Z"),
 		retentionUntil: new Date("2026-12-11T12:00:00.000Z"),
 		deletedAt: null,
@@ -154,6 +159,10 @@ describe("sales request generation telemetry persistence", () => {
 			configurationRevision: "b".repeat(64),
 			provider: "openai",
 			model: "gpt-5-mini",
+			promptVersion: "new-sales-form-seed-v6",
+			schemaVersion: 2,
+			pilotSettingsRevision: 1,
+			providerBenchmarkApprovalRevision: 1,
 			hasText: true,
 			startedAt: now,
 		});
@@ -164,6 +173,10 @@ describe("sales request generation telemetry persistence", () => {
 		expect(createArgs.data).toMatchObject({
 			generationId: "22222222-2222-4222-8222-222222222222",
 			actorUserId: 7,
+			promptVersion: "new-sales-form-seed-v6",
+			schemaVersion: 2,
+			pilotSettingsRevision: 1,
+			providerBenchmarkApprovalRevision: 1,
 			hasText: true,
 			status: "started",
 		});
@@ -518,18 +531,132 @@ describe("sales request generation telemetry persistence", () => {
 
 	test("returns aggregate-only Super Admin report inputs", async () => {
 		const fixture = dbFixture();
+		const reviewNow = new Date("2026-09-13T00:00:00.000Z");
 		const result = await getSalesRequestGenerationPilotSummary(fixture.db, {
-			days: 30,
-			now,
+			periodStart: "2026-09-06",
+			now: reviewNow,
+			authority: {
+				scope: "sales-settings:7",
+				configurationRevision: "a".repeat(64),
+				provider: "openai",
+				model: "gpt-5-mini",
+				promptVersion: "new-sales-form-seed-v6",
+				schemaVersion: 2,
+				pilotSettingsRevision: 1,
+				providerBenchmarkApprovalRevision: 1,
+			},
 		});
 		expect(fixture.calls.at(-1)).toMatchObject({
 			method: "findMany",
-			args: { where: { retentionUntil: { gt: now }, deletedAt: null } },
+			args: {
+				where: {
+					startedAt: {
+						gte: new Date("2026-09-06T00:00:00.000Z"),
+						lt: new Date("2026-09-13T00:00:00.000Z"),
+					},
+					retentionUntil: { gt: reviewNow },
+					deletedAt: null,
+				},
+				take: 10_001,
+				select: { latencyMs: true },
+			},
 		});
-		expect(result).toHaveProperty("generationCount", 1);
+		expect(result).toHaveProperty("metrics.generationCount", 1);
+		expect(result).toHaveProperty("eligibleForAdvancement", true);
+		expect(result).toHaveProperty("authority.status", "matched");
+		expect(result).toHaveProperty("authority.identity.provider", "openai");
 		expect(result).not.toHaveProperty("runs");
 		expect(JSON.stringify(result)).not.toMatch(
-			/generationId|actorUserId|configurationRevision/,
+			/generationId|actorUserId|sourceText|providerBody|seedDigest/,
 		);
+	});
+
+	test("does not query or aggregate an open review period", async () => {
+		const fixture = dbFixture();
+		const result = await getSalesRequestGenerationPilotSummary(fixture.db, {
+			periodStart: "2026-09-12",
+			now,
+		});
+
+		expect(fixture.calls).toHaveLength(0);
+		expect(result).toMatchObject({
+			coverage: { complete: false, truncated: false, returnedRowCount: 0 },
+			authority: { status: "blocked", blockers: ["period-open"] },
+			metrics: null,
+		});
+	});
+
+	test("keeps mixed-authority metrics reviewable but blocks advancement", async () => {
+		const fixture = dbFixture(row({ pilotSettingsRevision: 2 }));
+		const result = await getSalesRequestGenerationPilotSummary(fixture.db, {
+			periodStart: "2026-09-06",
+			now: new Date("2026-09-13T00:00:00.000Z"),
+			authority: {
+				scope: "sales-settings:7",
+				configurationRevision: "a".repeat(64),
+				provider: "openai",
+				model: "gpt-5-mini",
+				promptVersion: "new-sales-form-seed-v6",
+				schemaVersion: 2,
+				pilotSettingsRevision: 1,
+				providerBenchmarkApprovalRevision: 1,
+			},
+		});
+
+		expect(result).toMatchObject({
+			coverage: { complete: true, truncated: false, returnedRowCount: 1 },
+			eligibleForAdvancement: false,
+			authority: {
+				status: "blocked",
+				blockers: ["pilot-settings-revision-mismatch"],
+			},
+			metrics: { generationCount: 1 },
+		});
+	});
+
+	test("keeps a closed period reviewable after the pilot is disabled", async () => {
+		const fixture = dbFixture();
+		const result = await getSalesRequestGenerationPilotSummary(fixture.db, {
+			periodStart: "2026-09-06",
+			now: new Date("2026-09-13T00:00:00.000Z"),
+			authority: null,
+			authorityBlockers: ["pilot-disabled"],
+		});
+
+		expect(result).toMatchObject({
+			coverage: { complete: true, truncated: false, returnedRowCount: 1 },
+			eligibleForAdvancement: false,
+			authority: {
+				status: "blocked",
+				blockers: ["pilot-disabled"],
+				identity: { pilotSettingsRevision: 1 },
+			},
+			metrics: { generationCount: 1 },
+		});
+	});
+
+	test("fails closed instead of aggregating beyond the report row limit", async () => {
+		const overflowDb = {
+			salesRequestGenerationRun: {
+				findMany: async () => Array.from({ length: 10_001 }, () => row()),
+			},
+		} as unknown as Parameters<typeof getSalesRequestGenerationPilotSummary>[0];
+		const result = await getSalesRequestGenerationPilotSummary(overflowDb, {
+			periodStart: "2026-09-06",
+			now: new Date("2026-09-13T00:00:00.000Z"),
+		});
+
+		expect(result).toMatchObject({
+			coverage: {
+				complete: false,
+				truncated: true,
+				returnedRowCount: 10_001,
+			},
+			authority: {
+				status: "blocked",
+				blockers: ["row-limit-exceeded"],
+			},
+			metrics: null,
+		});
 	});
 });

@@ -176,6 +176,9 @@ function finiteToken(value: unknown) {
 export function classifySalesRequestProviderFailure(
 	error: unknown,
 ): SalesRequestProviderFailureDiagnostic {
+	if (error instanceof SalesRequestProviderExecutionError) {
+		return error.diagnostic;
+	}
 	if (RetryError.isInstance(error)) {
 		return classifySalesRequestProviderFailure(error.lastError);
 	}

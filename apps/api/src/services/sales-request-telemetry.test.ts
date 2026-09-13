@@ -5,6 +5,7 @@ import {
 	aggregateSalesRequestGenerationRuns,
 	countSalesRequestGenerationIssues,
 	createSalesRequestSeedDigest,
+	getSalesRequestGenerationPilotAuthorityBlockers,
 } from "./sales-request-telemetry";
 
 describe("sales request telemetry boundaries", () => {
@@ -103,6 +104,7 @@ describe("sales request telemetry boundaries", () => {
 				provider: "openai",
 				model: "gpt-5-mini",
 				status: "succeeded",
+				latencyMs: 950,
 				inputTokens: 100,
 				outputTokens: 20,
 				issueCounts: { ambiguous: 1, unreadable: 0, unsupported: 0 },
@@ -128,6 +130,7 @@ describe("sales request telemetry boundaries", () => {
 			},
 			issueCounts: { ambiguous: 1 },
 			changedFieldCounts: { "line-items": 1 },
+			latency: { sampleCount: 1, p50Ms: 950, p95Ms: 950 },
 			correction: { sampleCount: 1, p50Ms: 1_200, p95Ms: 1_200 },
 		});
 		expect(JSON.stringify(report)).not.toMatch(
@@ -135,9 +138,74 @@ describe("sales request telemetry boundaries", () => {
 		);
 	});
 
+	test("reports blocked and failed pilot outcomes without run-level details", () => {
+		const report = aggregateSalesRequestGenerationRuns([
+			{ status: "cancelled", latencyMs: null, applyOutcome: "blocked" },
+			{
+				status: "succeeded",
+				latencyMs: 301_000,
+				applyOutcome: "stale",
+				saveDraftOutcome: "failed",
+				saveFinalOutcome: "failed",
+			},
+			{ status: "invalid-output", latencyMs: -1, applyOutcome: "unavailable" },
+		]);
+
+		expect(report.statusCounts).toEqual({
+			cancelled: 1,
+			succeeded: 1,
+			"invalid-output": 1,
+		});
+		expect(report.outcomeCounts).toMatchObject({
+			applyBlocked: 1,
+			applyStale: 1,
+			applyUnavailable: 1,
+			saveDraftFailed: 1,
+			saveFinalFailed: 1,
+		});
+		expect(report.latency).toEqual({
+			sampleCount: 1,
+			p50Ms: 300_000,
+			p95Ms: 300_000,
+		});
+	});
+
+	test("fails closed when immutable pilot authority is legacy or mixed", () => {
+		const authority = {
+			scope: "sales-settings:7",
+			configurationRevision: "a".repeat(64),
+			provider: "openai",
+			model: "gpt-5-mini",
+			promptVersion: "new-sales-form-seed-v6",
+			schemaVersion: 2,
+			pilotSettingsRevision: 3,
+			providerBenchmarkApprovalRevision: 4,
+		};
+		expect(
+			getSalesRequestGenerationPilotAuthorityBlockers(
+				{
+					...authority,
+					pilotSettingsRevision: 0,
+					providerBenchmarkApprovalRevision: 5,
+					status: "started",
+				},
+				authority,
+			),
+		).toEqual(
+			expect.arrayContaining([
+				"legacy-run-authority",
+				"provider-benchmark-revision-mismatch",
+				"incomplete-run",
+			]),
+		);
+	});
+
 	test("keeps telemetry vocabularies bounded and explicit", () => {
 		expect(SALES_REQUEST_GENERATION_STATUSES).toContain("provider-error");
 		expect(SALES_REQUEST_GENERATION_ISSUE_CATEGORIES).toContain("ambiguous");
+		expect(SALES_REQUEST_GENERATION_ISSUE_CATEGORIES).toContain(
+			"unsafe-selection",
+		);
 		expect(
 			SALES_REQUEST_GENERATION_ISSUE_CATEGORIES.length,
 		).toBeLessThanOrEqual(12);

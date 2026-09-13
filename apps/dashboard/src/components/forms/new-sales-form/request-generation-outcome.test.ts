@@ -184,5 +184,15 @@ describe("Sales Request Generation client outcome boundary", () => {
 		]) {
 			expect(JSON.stringify(accepted).toLowerCase()).not.toContain(forbidden);
 		}
+		expect(
+			buildSalesRequestGenerationFeedbackInput({
+				generationId,
+				outcome: "rejected",
+				issueCategories: ["wrong-component", "unsafe-selection"],
+				changedFieldCategories: [],
+			}),
+		).toMatchObject({
+			issueCategories: ["unsafe-selection", "wrong-component"],
+		});
 	});
 });

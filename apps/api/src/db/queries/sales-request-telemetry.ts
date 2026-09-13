@@ -1,8 +1,11 @@
 import {
 	type SalesRequestGenerationCompleteEvent,
+	type SalesRequestGenerationPilotAuthority,
 	type SalesRequestGenerationRunForReport,
 	type SalesRequestGenerationStartEvent,
 	aggregateSalesRequestGenerationRuns,
+	deriveSalesRequestGenerationPilotAuthority,
+	getSalesRequestGenerationPilotAuthorityBlockers,
 	normalizeSalesRequestGenerationChangedFieldCategories,
 	normalizeSalesRequestGenerationIssueCategories,
 	normalizeSalesRequestGenerationIssueCounts,
@@ -121,6 +124,10 @@ export type CreateSalesRequestGenerationRunInput = {
 	configurationRevision: string;
 	provider: string;
 	model: string;
+	promptVersion: string;
+	schemaVersion: number;
+	pilotSettingsRevision: number;
+	providerBenchmarkApprovalRevision: number;
 	hasText: boolean;
 	startedAt: Date;
 };
@@ -142,6 +149,13 @@ export async function createSalesRequestGenerationRun(
 			),
 			provider: boundedToken(input.provider, 32, "unknown"),
 			model: boundedToken(input.model, 100, "unknown"),
+			promptVersion: boundedToken(input.promptVersion, 64, "unknown"),
+			schemaVersion: boundedCount(input.schemaVersion, 100),
+			pilotSettingsRevision:
+				boundedCount(input.pilotSettingsRevision, 2_147_483_647) ?? 0,
+			providerBenchmarkApprovalRevision:
+				boundedCount(input.providerBenchmarkApprovalRevision, 2_147_483_647) ??
+				0,
 			status: "started",
 			hasText: input.hasText === true,
 			startedAt,
@@ -503,29 +517,111 @@ export async function recordSalesRequestGenerationOutcome(
 }
 
 export type SalesRequestGenerationPilotSummaryInput = {
-	days?: number;
+	periodStart: string;
 	now?: Date;
+	authority?: SalesRequestGenerationPilotAuthority | null;
+	authorityBlockers?: readonly string[];
 };
+
+function parseUtcDate(value: string) {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+	const year = Number(value.slice(0, 4));
+	const month = Number(value.slice(5, 7));
+	const day = Number(value.slice(8, 10));
+	const parsed = new Date(Date.UTC(year, month - 1, day));
+	if (
+		parsed.getUTCFullYear() !== year ||
+		parsed.getUTCMonth() !== month - 1 ||
+		parsed.getUTCDate() !== day
+	) {
+		return null;
+	}
+	return parsed;
+}
+
+function reportPeriod(
+	input: SalesRequestGenerationPilotSummaryInput,
+	now: Date,
+) {
+	const from = parseUtcDate(input.periodStart);
+	if (!from) {
+		return {
+			period: {
+				days: 7,
+				from: null,
+				toExclusive: null,
+			},
+			blockers: ["period-open" as const],
+		};
+	}
+	const toExclusive = new Date(from.getTime() + 7 * DAY_MS);
+	const blockers: string[] = [];
+	if (toExclusive.getTime() > now.getTime()) blockers.push("period-open");
+	if (
+		from.getTime() <=
+		now.getTime() - SALES_REQUEST_GENERATION_RETENTION_DAYS * DAY_MS
+	) {
+		blockers.push("retention-window-expired");
+	}
+	return { period: { days: 7, from, toExclusive }, blockers };
+}
 
 export async function getSalesRequestGenerationPilotSummary(
 	db: SalesRequestTelemetryDatabase,
-	input: SalesRequestGenerationPilotSummaryInput = {},
+	input: SalesRequestGenerationPilotSummaryInput,
 ) {
 	const now = input.now ?? new Date();
-	const days = Math.max(1, Math.min(Math.trunc(input.days ?? 30), 90));
-	const from = new Date(now.getTime() - days * DAY_MS);
+	const resolved = reportPeriod(input, now);
+	const period = resolved.period;
+	const authorityBlockers = new Set<string>([
+		...resolved.blockers,
+		...(input.authorityBlockers ?? []),
+	]);
+	if (period.from === null || period.toExclusive === null) {
+		return {
+			period,
+			coverage: { complete: false, truncated: false, returnedRowCount: 0 },
+			eligibleForAdvancement: false,
+			authority: {
+				status: "blocked" as const,
+				blockers: [...authorityBlockers],
+				identity: input.authority ?? null,
+			},
+			metrics: null,
+		};
+	}
+	if (resolved.blockers.length) {
+		return {
+			period,
+			coverage: { complete: false, truncated: false, returnedRowCount: 0 },
+			eligibleForAdvancement: false,
+			authority: {
+				status: "blocked" as const,
+				blockers: [...authorityBlockers],
+				identity: input.authority ?? null,
+			},
+			metrics: null,
+		};
+	}
 	const rows = await db.salesRequestGenerationRun.findMany({
 		where: {
-			createdAt: { gte: from, lte: now },
+			startedAt: { gte: period.from, lt: period.toExclusive },
 			retentionUntil: { gt: now },
 			deletedAt: null,
 		},
-		orderBy: { createdAt: "desc" },
-		take: SALES_REQUEST_GENERATION_REPORT_MAX_ROWS,
+		orderBy: { startedAt: "asc" },
+		take: SALES_REQUEST_GENERATION_REPORT_MAX_ROWS + 1,
 		select: {
+			scope: true,
+			configurationRevision: true,
 			provider: true,
 			model: true,
+			promptVersion: true,
+			schemaVersion: true,
+			pilotSettingsRevision: true,
+			providerBenchmarkApprovalRevision: true,
 			status: true,
+			latencyMs: true,
 			inputTokens: true,
 			outputTokens: true,
 			issueCounts: true,
@@ -536,12 +632,53 @@ export async function getSalesRequestGenerationPilotSummary(
 			feedbackIssueCategories: true,
 			feedbackChangedFieldCategories: true,
 			correctionMs: true,
-			createdAt: true,
 		},
 	});
+	if (rows.length > SALES_REQUEST_GENERATION_REPORT_MAX_ROWS) {
+		authorityBlockers.add("row-limit-exceeded");
+		return {
+			period,
+			coverage: {
+				complete: false,
+				truncated: true,
+				returnedRowCount: rows.length,
+			},
+			eligibleForAdvancement: false,
+			authority: {
+				status: "blocked" as const,
+				blockers: [...authorityBlockers],
+				identity: input.authority ?? null,
+			},
+			metrics: null,
+		};
+	}
+	if (!rows.length) authorityBlockers.add("no-runs");
+	const periodAuthority =
+		input.authority ?? deriveSalesRequestGenerationPilotAuthority(rows[0]);
+	for (const row of rows) {
+		for (const blocker of getSalesRequestGenerationPilotAuthorityBlockers(
+			row,
+			periodAuthority,
+		)) {
+			authorityBlockers.add(blocker);
+		}
+	}
 	return {
-		period: { days, from, to: now },
-		...aggregateSalesRequestGenerationRuns(rows),
+		period,
+		coverage: {
+			complete: true,
+			truncated: false,
+			returnedRowCount: rows.length,
+		},
+		eligibleForAdvancement: authorityBlockers.size === 0,
+		authority: {
+			status: authorityBlockers.size
+				? ("blocked" as const)
+				: ("matched" as const),
+			blockers: [...authorityBlockers],
+			identity: periodAuthority,
+		},
+		metrics: aggregateSalesRequestGenerationRuns(rows),
 	};
 }
 

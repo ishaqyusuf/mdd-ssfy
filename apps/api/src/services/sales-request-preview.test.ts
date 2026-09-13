@@ -3,6 +3,7 @@ import {
 	createSalesRequestPreview,
 	selectSalesRequestSettingId,
 } from "./sales-request-preview";
+import { SalesRequestProviderExecutionError } from "./sales-request-provider";
 
 const source = {
 	text: "one door",
@@ -22,6 +23,8 @@ const snapshot = {
 	configurationJson: JSON.stringify(configuration),
 	configuration,
 	aiSelection: { provider: "openai" as const, model: "gpt-5-mini" },
+	pilotSettingsRevision: 1,
+	providerBenchmarkApprovalRevision: 1,
 };
 const output = {
 	schemaVersion: 1,
@@ -89,6 +92,41 @@ test("provider failure returns no partial response", async () => {
 	).rejects.toThrow("provider could not generate");
 });
 
+test("provider failures retain bounded usage metadata without retaining output", async () => {
+	const events: Array<{ kind: string; value: unknown }> = [];
+	await expect(
+		createSalesRequestPreview(source, {
+			authorize: async () => {},
+			reserveUsage: async () => {},
+			readSnapshot: async () => snapshot,
+			createProvider: () => async () => {
+				throw new SalesRequestProviderExecutionError({
+					stage: "structured-output",
+					finishReason: "stop",
+					inputTokens: 321,
+					outputTokens: 45,
+				});
+			},
+			telemetry: {
+				onStart: (event) => events.push({ kind: "start", value: event }),
+				onComplete: (event) => events.push({ kind: "complete", value: event }),
+			},
+		}),
+	).rejects.toThrow("provider could not generate");
+
+	expect(events).toHaveLength(2);
+	expect(events[1]).toMatchObject({
+		kind: "complete",
+		value: {
+			status: "provider-error",
+			failureStage: "structured-output",
+			inputTokens: 321,
+			outputTokens: 45,
+		},
+	});
+	expect(JSON.stringify(events)).not.toMatch(/private provider output/i);
+});
+
 test("configuration changes while the model runs prevent a stale seed response", async () => {
 	let reads = 0;
 	await expect(
@@ -131,6 +169,8 @@ test("successful preview returns only the validated seed and configuration ident
 			generationId: result.generationId,
 			scope: "sales-settings:3",
 			configurationRevision: "one",
+			pilotSettingsRevision: 1,
+			providerBenchmarkApprovalRevision: 1,
 			hasText: true,
 		},
 	});
@@ -185,6 +225,21 @@ test("provider settings changes while the model runs prevent a stale seed respon
 					++reads === 1
 						? snapshot.aiSelection
 						: { provider: "google" as const, model: "gemini-3.8-flash" },
+			}),
+			createProvider: () => async () => ({ output }),
+		}),
+	).rejects.toThrow("configuration changed");
+});
+
+test("pilot authority changes while the model runs prevent a stale seed response", async () => {
+	let reads = 0;
+	await expect(
+		createSalesRequestPreview(source, {
+			authorize: async () => {},
+			reserveUsage: async () => {},
+			readSnapshot: async () => ({
+				...snapshot,
+				pilotSettingsRevision: ++reads === 1 ? 1 : 2,
 			}),
 			createProvider: () => async () => ({ output }),
 		}),

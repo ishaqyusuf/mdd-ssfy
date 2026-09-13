@@ -24,6 +24,7 @@ import {
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
 import {
 	SALES_REQUEST_AI_CREDENTIAL_ENV_BY_PROVIDER,
+	SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
 	createSalesRequestProvider,
 	getSalesRequestProviderApiKey,
 } from "@api/services/sales-request-generation";
@@ -101,6 +102,39 @@ function providerBenchmarkSurface(
 		},
 	);
 	return { ...providerBenchmark, approved: current, current };
+}
+
+function requireCurrentProviderBenchmark(input: {
+	aiSettings: Awaited<ReturnType<typeof getSalesRequestAISettings>>;
+	configurationRevision: string;
+	providerBenchmark: Awaited<
+		ReturnType<typeof getSalesRequestProviderBenchmarkApproval>
+	>;
+}) {
+	const current = isSalesRequestProviderBenchmarkApprovalCurrent(
+		input.providerBenchmark.approval,
+		{
+			...input.aiSettings.selection,
+			configurationRevision: input.configurationRevision,
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
+			schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+			corpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+			policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+		},
+	);
+	if (
+		input.aiSettings.source !== "persisted" ||
+		input.providerBenchmark.source !== "persisted" ||
+		!current
+	) {
+		throw new AppError({
+			code: "VALIDATION_FAILED",
+			publicMessage:
+				"The selected Sales Request provider and model need a current benchmark approval before generation.",
+			transportCode: "PRECONDITION_FAILED",
+			reportable: false,
+		});
+	}
 }
 
 async function readAISettingsSurface(
@@ -405,10 +439,12 @@ export const salesRequestRouter = createTRPCRouter({
 									{ settingId },
 									{ cache: salesRequestConfigurationCache },
 								);
-								const aiSettings = await getSalesRequestAISettings(
-									tx,
-									settingId,
-								);
+								const [aiSettings, pilot, providerBenchmark] =
+									await Promise.all([
+										getSalesRequestAISettings(tx, settingId),
+										getSalesRequestPilotSettings(tx, settingId),
+										getSalesRequestProviderBenchmarkApproval(tx, settingId),
+									]);
 								if (aiSettings.source === "invalid") {
 									throw new TRPCError({
 										code: "PRECONDITION_FAILED",
@@ -416,12 +452,40 @@ export const salesRequestRouter = createTRPCRouter({
 											"Sales request AI settings need administrator review.",
 									});
 								}
-								return { ...snapshot, aiSelection: aiSettings.selection };
+								requireCurrentProviderBenchmark({
+									aiSettings,
+									configurationRevision: snapshot.revision,
+									providerBenchmark,
+								});
+								if (
+									pilot.source !== "persisted" ||
+									!pilot.settings.enabled ||
+									pilot.settings.revision <= 0 ||
+									!providerBenchmark.approval
+								) {
+									throw new AppError({
+										code: "VALIDATION_FAILED",
+										publicMessage:
+											"Sales Request pilot authority needs administrator review before generation.",
+										transportCode: "PRECONDITION_FAILED",
+										reportable: false,
+									});
+								}
+								return {
+									...snapshot,
+									aiSelection: aiSettings.selection,
+									pilotSettingsRevision: pilot.settings.revision,
+									providerBenchmarkApprovalRevision:
+										providerBenchmark.approval.revision,
+								};
 							},
 							{ isolationLevel: "RepeatableRead" },
 						),
 					createProvider: (selection) =>
-						createSalesRequestProvider({ selection }),
+						createSalesRequestProvider({
+							selection,
+							maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+						}),
 					telemetry: {
 						onStart: async (event) => {
 							telemetryStart = createSalesRequestGenerationRun(
@@ -468,10 +532,16 @@ export const salesRequestRouter = createTRPCRouter({
 					const settingId = selectSalesRequestSettingId(
 						rows.map((row) => row.id),
 					);
-					const [snapshot, aiSettings] = await Promise.all([
+					const [snapshot, aiSettings, providerBenchmark] = await Promise.all([
 						getSalesRequestConfigurationContext(tx, { settingId }),
 						getSalesRequestAISettings(tx, settingId),
+						getSalesRequestProviderBenchmarkApproval(tx, settingId),
 					]);
+					requireCurrentProviderBenchmark({
+						aiSettings,
+						configurationRevision: snapshot.revision,
+						providerBenchmark,
+					});
 					return {
 						configurationScope: snapshot.scope,
 						configurationRevision: snapshot.revision,
@@ -523,9 +593,73 @@ export const salesRequestRouter = createTRPCRouter({
 		.input(salesRequestGenerationPilotSummarySchema)
 		.query(async ({ ctx, input }) => {
 			await requireSalesRequestSettingsAdmin(ctx);
-			return getSalesRequestGenerationPilotSummary(
-				ctx.db as unknown as SalesRequestTelemetryDatabase,
-				input,
+			return ctx.db.$transaction(
+				async (tx) => {
+					const rows = await tx.settings.findMany({
+						where: { type: "sales-settings", deletedAt: null },
+						select: { id: true },
+					});
+					const settingId = selectSalesRequestSettingId(
+						rows.map((row) => row.id),
+					);
+					const snapshot = await getSalesRequestConfigurationContext(tx, {
+						settingId,
+					});
+					const [aiSettings, pilot, providerBenchmark] = await Promise.all([
+						getSalesRequestAISettings(tx, settingId),
+						getSalesRequestPilotSettings(tx, settingId),
+						getSalesRequestProviderBenchmarkApproval(tx, settingId),
+					]);
+					const authorityBlockers: string[] = [];
+					if (
+						process.env.SALES_REQUEST_AI_ENABLED !== "true" ||
+						!pilot.settings.enabled
+					) {
+						authorityBlockers.push("pilot-disabled");
+					}
+					if (pilot.source !== "persisted" || pilot.settings.revision <= 0) {
+						authorityBlockers.push("pilot-settings-unavailable");
+					}
+					const benchmarkCurrent =
+						isSalesRequestProviderBenchmarkApprovalCurrent(
+							providerBenchmark.approval,
+							{
+								...aiSettings.selection,
+								configurationRevision: snapshot.revision,
+								promptVersion: SALES_REQUEST_PROMPT_VERSION,
+								schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+								corpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+								policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+							},
+						);
+					if (
+						aiSettings.source !== "persisted" ||
+						providerBenchmark.source !== "persisted" ||
+						!providerBenchmark.approval ||
+						!benchmarkCurrent
+					) {
+						authorityBlockers.push("provider-benchmark-unavailable");
+					}
+					const authority =
+						authorityBlockers.length === 0 && providerBenchmark.approval
+							? {
+									scope: snapshot.scope,
+									configurationRevision: snapshot.revision,
+									provider: aiSettings.selection.provider,
+									model: aiSettings.selection.model,
+									promptVersion: SALES_REQUEST_PROMPT_VERSION,
+									schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+									pilotSettingsRevision: pilot.settings.revision,
+									providerBenchmarkApprovalRevision:
+										providerBenchmark.approval.revision,
+								}
+							: null;
+					return getSalesRequestGenerationPilotSummary(
+						tx as unknown as SalesRequestTelemetryDatabase,
+						{ ...input, authority, authorityBlockers },
+					);
+				},
+				{ isolationLevel: "RepeatableRead" },
 			);
 		}),
 });

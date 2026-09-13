@@ -27,6 +27,8 @@ export const SALES_REQUEST_GENERATION_ISSUE_CATEGORIES = [
 	"unpriced",
 	"wrong-quantity",
 	"wrong-delivery",
+	"wrong-component",
+	"unsafe-selection",
 	"other",
 ] as const;
 
@@ -69,6 +71,10 @@ export type SalesRequestGenerationStartEvent = {
 	configurationRevision: string;
 	provider: string;
 	model: string;
+	promptVersion: string;
+	schemaVersion: number;
+	pilotSettingsRevision: number;
+	providerBenchmarkApprovalRevision: number;
 	hasText: boolean;
 	startedAt: Date;
 };
@@ -161,7 +167,12 @@ export type SalesRequestGenerationRunForReport = {
 	configurationRevision?: string | null;
 	provider?: string | null;
 	model?: string | null;
+	promptVersion?: string | null;
+	schemaVersion?: number | null;
+	pilotSettingsRevision?: number | null;
+	providerBenchmarkApprovalRevision?: number | null;
 	status?: string | null;
+	latencyMs?: number | null;
 	inputTokens?: number | null;
 	outputTokens?: number | null;
 	issueCounts?: unknown;
@@ -174,6 +185,134 @@ export type SalesRequestGenerationRunForReport = {
 	correctionMs?: number | null;
 	createdAt?: Date | null;
 };
+
+export const SALES_REQUEST_GENERATION_PILOT_REVIEW_PERIOD_DAYS = 7;
+
+export type SalesRequestGenerationPilotAuthority = {
+	scope: string;
+	configurationRevision: string;
+	provider: string;
+	model: string;
+	promptVersion: string;
+	schemaVersion: number;
+	pilotSettingsRevision: number;
+	providerBenchmarkApprovalRevision: number;
+};
+
+export const SALES_REQUEST_GENERATION_PILOT_AUTHORITY_BLOCKERS = [
+	"authority-unavailable",
+	"legacy-run-authority",
+	"scope-mismatch",
+	"configuration-mismatch",
+	"provider-mismatch",
+	"model-mismatch",
+	"prompt-version-mismatch",
+	"schema-version-mismatch",
+	"pilot-settings-revision-mismatch",
+	"provider-benchmark-revision-mismatch",
+	"pilot-disabled",
+	"pilot-settings-unavailable",
+	"provider-benchmark-unavailable",
+	"incomplete-run",
+	"no-runs",
+	"row-limit-exceeded",
+	"period-open",
+	"retention-window-expired",
+] as const;
+
+export type SalesRequestGenerationPilotAuthorityBlocker =
+	(typeof SALES_REQUEST_GENERATION_PILOT_AUTHORITY_BLOCKERS)[number];
+
+function isPositiveRevision(value: unknown): value is number {
+	return Number.isInteger(value) && (value as number) > 0;
+}
+
+function isValidPilotAuthority(
+	authority: SalesRequestGenerationPilotAuthority | null | undefined,
+): authority is SalesRequestGenerationPilotAuthority {
+	return Boolean(
+		authority &&
+			typeof authority.scope === "string" &&
+			authority.scope.length > 0 &&
+			typeof authority.configurationRevision === "string" &&
+			authority.configurationRevision.length > 0 &&
+			typeof authority.provider === "string" &&
+			authority.provider.length > 0 &&
+			typeof authority.model === "string" &&
+			authority.model.length > 0 &&
+			typeof authority.promptVersion === "string" &&
+			authority.promptVersion.length > 0 &&
+			Number.isInteger(authority.schemaVersion) &&
+			authority.schemaVersion > 0 &&
+			isPositiveRevision(authority.pilotSettingsRevision) &&
+			isPositiveRevision(authority.providerBenchmarkApprovalRevision),
+	);
+}
+
+export function deriveSalesRequestGenerationPilotAuthority(
+	row: SalesRequestGenerationRunForReport | undefined,
+) {
+	if (!row) return null;
+	const authority: SalesRequestGenerationPilotAuthority = {
+		scope: row.scope ?? "",
+		configurationRevision: row.configurationRevision ?? "",
+		provider: row.provider ?? "",
+		model: row.model ?? "",
+		promptVersion: row.promptVersion ?? "",
+		schemaVersion: row.schemaVersion ?? 0,
+		pilotSettingsRevision: row.pilotSettingsRevision ?? 0,
+		providerBenchmarkApprovalRevision:
+			row.providerBenchmarkApprovalRevision ?? 0,
+	};
+	return isValidPilotAuthority(authority) ? authority : null;
+}
+
+/**
+ * Compare a report row with the one authority tuple captured for the period.
+ * Missing immutable fields are treated as legacy rather than being coerced.
+ */
+export function getSalesRequestGenerationPilotAuthorityBlockers(
+	row: SalesRequestGenerationRunForReport,
+	authority: SalesRequestGenerationPilotAuthority | null | undefined,
+) {
+	const blockers = new Set<SalesRequestGenerationPilotAuthorityBlocker>();
+	if (!isValidPilotAuthority(authority)) {
+		blockers.add("authority-unavailable");
+		return [...blockers];
+	}
+
+	if (row.scope !== authority.scope) blockers.add("scope-mismatch");
+	if (row.configurationRevision !== authority.configurationRevision) {
+		blockers.add("configuration-mismatch");
+	}
+	if (row.provider !== authority.provider) blockers.add("provider-mismatch");
+	if (row.model !== authority.model) blockers.add("model-mismatch");
+	if (row.promptVersion == null || row.schemaVersion == null) {
+		blockers.add("legacy-run-authority");
+	} else {
+		if (row.promptVersion !== authority.promptVersion) {
+			blockers.add("prompt-version-mismatch");
+		}
+		if (row.schemaVersion !== authority.schemaVersion) {
+			blockers.add("schema-version-mismatch");
+		}
+	}
+	if (!isPositiveRevision(row.pilotSettingsRevision)) {
+		blockers.add("legacy-run-authority");
+	} else if (row.pilotSettingsRevision !== authority.pilotSettingsRevision) {
+		blockers.add("pilot-settings-revision-mismatch");
+	}
+	if (!isPositiveRevision(row.providerBenchmarkApprovalRevision)) {
+		blockers.add("legacy-run-authority");
+	} else if (
+		row.providerBenchmarkApprovalRevision !==
+		authority.providerBenchmarkApprovalRevision
+	) {
+		blockers.add("provider-benchmark-revision-mismatch");
+	}
+	if (row.status === "started") blockers.add("incomplete-run");
+	return [...blockers];
+}
 
 const issueStatuses = new Set(["ambiguous", "unreadable", "unsupported"]);
 
@@ -301,6 +440,7 @@ export function aggregateSalesRequestGenerationRuns(
 		unsupported: 0,
 	};
 	const correctionValues: number[] = [];
+	const latencyValues: number[] = [];
 	let inputTokens = 0;
 	let outputTokens = 0;
 	let succeededCount = 0;
@@ -337,6 +477,9 @@ export function aggregateSalesRequestGenerationRuns(
 		issueCounts.unsupported += rowIssues.unsupported;
 		inputTokens += finiteInteger(row.inputTokens);
 		outputTokens += finiteInteger(row.outputTokens);
+		if (Number.isInteger(row.latencyMs) && (row.latencyMs as number) >= 0) {
+			latencyValues.push(Math.min(row.latencyMs as number, 300_000));
+		}
 		if (
 			Number.isInteger(row.correctionMs) &&
 			(row.correctionMs as number) >= 0
@@ -368,9 +511,17 @@ export function aggregateSalesRequestGenerationRuns(
 		tokenTotals: { input: inputTokens, output: outputTokens },
 		outcomeCounts: {
 			applied,
+			applyBlocked: rows.filter((row) => row.applyOutcome === "blocked").length,
+			applyStale: rows.filter((row) => row.applyOutcome === "stale").length,
+			applyUnavailable: rows.filter((row) => row.applyOutcome === "unavailable")
+				.length,
 			saveDrafted: rows.filter((row) => row.saveDraftOutcome === "saved")
 				.length,
+			saveDraftFailed: rows.filter((row) => row.saveDraftOutcome === "failed")
+				.length,
 			saveFinal: rows.filter((row) => row.saveFinalOutcome === "saved").length,
+			saveFinalFailed: rows.filter((row) => row.saveFinalOutcome === "failed")
+				.length,
 			feedbackAccepted,
 			feedbackAcceptedWithEdits,
 			feedbackRejected,
@@ -386,6 +537,11 @@ export function aggregateSalesRequestGenerationRuns(
 			"feedbackChangedFieldCategories",
 			changedFieldCategorySet,
 		),
+		latency: {
+			sampleCount: latencyValues.length,
+			p50Ms: percentile(latencyValues, 0.5),
+			p95Ms: percentile(latencyValues, 0.95),
+		},
 		correction: {
 			sampleCount: correctionValues.length,
 			p50Ms: percentile(correctionValues, 0.5),

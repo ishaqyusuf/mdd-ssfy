@@ -183,17 +183,24 @@ test("generation outcomes are strict, bounded, and contain no content fields", (
 	}
 });
 
-test("pilot summary input is server-bounded", () => {
-	expect(salesRequestGenerationPilotSummarySchema.parse({})).toEqual({
-		days: 30,
-	});
+test("pilot summary input requires one exact UTC calendar date", () => {
+	expect(salesRequestGenerationPilotSummarySchema.safeParse({}).success).toBe(
+		false,
+	);
 	expect(
-		salesRequestGenerationPilotSummarySchema.safeParse({ days: 91 }).success,
+		salesRequestGenerationPilotSummarySchema.safeParse({
+			periodStart: "2026-09-06T00:00:00.000Z",
+		}).success,
 	).toBe(false);
 	expect(
 		salesRequestGenerationPilotSummarySchema.safeParse({
-			days: 30,
+			periodStart: "2026-09-06",
 			actorUserId: 7,
 		}).success,
 	).toBe(false);
+	expect(
+		salesRequestGenerationPilotSummarySchema.parse({
+			periodStart: "2026-09-06",
+		}),
+	).toEqual({ periodStart: "2026-09-06" });
 });

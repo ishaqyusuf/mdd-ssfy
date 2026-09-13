@@ -7,6 +7,10 @@ model SalesRequestGenerationRun {
     actorUserId                     Int?
     scope                           String    @db.VarChar(191)
     configurationRevision           String    @db.VarChar(128)
+    // Zero is the legacy sentinel. New pilot runs persist the exact revisions
+    // captured before provider work; zero cannot authorize rollout advancement.
+    pilotSettingsRevision             Int       @default(0)
+    providerBenchmarkApprovalRevision Int      @default(0)
     provider                        String    @db.VarChar(32)
     model                           String    @db.VarChar(100)
     promptVersion                   String?   @db.VarChar(64)
@@ -41,6 +45,7 @@ model SalesRequestGenerationRun {
     @@index([status, createdAt], map: "sales_req_gen_status_created_idx")
     @@index([actorUserId, createdAt], map: "sales_req_gen_actor_created_idx")
     @@index([scope, createdAt], map: "sales_req_gen_scope_created_idx")
+    @@index([startedAt, deletedAt], map: "sales_req_gen_started_deleted_idx")
     @@index([retentionUntil, deletedAt], map: "sales_req_gen_retention_idx")
     @@index([consumedSalesId], map: "sales_req_gen_consumed_sales_idx")
 }

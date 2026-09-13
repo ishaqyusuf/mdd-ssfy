@@ -102,6 +102,7 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 						],
 		},
 		salesOrders: { findMany: async () => [] },
+		salesRequestGenerationRun: { findMany: async () => [] },
 		$queryRaw: async () => [{ id: 7 }],
 		$transaction: async (callback: (tx: unknown) => Promise<unknown>) =>
 			callback(db),
@@ -114,6 +115,36 @@ function requestContext(initialMeta?: unknown, userRecord = superAdmin()) {
 		getSettingsUpdates: () => settingsUpdates,
 		transaction: db,
 	};
+}
+
+async function installCurrentBenchmarkApproval(
+	fixture: ReturnType<typeof requestContext>,
+	meta: {
+		requestGeneration: Record<string, unknown>;
+	},
+) {
+	const snapshot = await getSalesRequestConfigurationContext(
+		fixture.transaction as Parameters<
+			typeof getSalesRequestConfigurationContext
+		>[0],
+		{ settingId: 7 },
+	);
+	meta.requestGeneration.providerBenchmarkApproval = {
+		approved: true,
+		provider: "openai",
+		model: "gpt-5-mini",
+		evaluationRunId: "approved-pilot-run-1",
+		corpusVersion: "sales-request-text-v1",
+		policyVersion: "pilot-gates-v1",
+		configurationRevision: snapshot.revision,
+		promptVersion: "new-sales-form-seed-v6",
+		schemaVersion: 2,
+		evidenceDigest: `sha256:${"a".repeat(64)}`,
+		approvedByUserId: 7,
+		approvedAt: "2026-09-13T12:00:00.000Z",
+		revision: 1,
+	};
+	return snapshot;
 }
 
 test("AI settings query is Super Admin-only and defaults an unconfigured install", async () => {
@@ -210,7 +241,7 @@ test("preview validation rejects a disabled feature before reading permissions o
 });
 
 test("preview validation accepts only the current server-derived identity", async () => {
-	const fixture = requestContext({
+	const meta = {
 		unrelated: { preserve: true },
 		route: {
 			root: {
@@ -219,6 +250,7 @@ test("preview validation accepts only the current server-derived identity", asyn
 			},
 		},
 		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
 			pilot: {
 				enabled: true,
 				cohortUserIds: [19],
@@ -227,13 +259,15 @@ test("preview validation accepts only the current server-derived identity", asyn
 				changedAt: "2026-09-13T12:00:00.000Z",
 			},
 		},
-	});
+	};
+	const fixture = requestContext(meta);
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
 	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
 	process.env.SALES_REQUEST_AI_ENABLED = "true";
 	const transaction = fixture.transaction as Parameters<
 		typeof getSalesRequestConfigurationContext
 	>[0];
+	await installCurrentBenchmarkApproval(fixture, meta);
 	const [snapshot, aiSettings] = await Promise.all([
 		getSalesRequestConfigurationContext(transaction, { settingId: 7 }),
 		getSalesRequestAISettings(transaction, 7),
@@ -254,6 +288,64 @@ test("preview validation accepts only the current server-derived identity", asyn
 				configurationRevision: "0".repeat(64),
 			}),
 		).rejects.toMatchObject({ code: "CONFLICT" });
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
+});
+
+test("preview and Apply validation fail closed without a current provider benchmark", async () => {
+	const meta = {
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
+			},
+		},
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [42],
+				revision: 1,
+				changedAt: "2026-09-13T12:00:00.000Z",
+			},
+		},
+	};
+	const fixture = requestContext(meta);
+	const caller = salesRequestRouter.createCaller(fixture.ctx);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+	const snapshot = await getSalesRequestConfigurationContext(
+		fixture.transaction as Parameters<
+			typeof getSalesRequestConfigurationContext
+		>[0],
+		{ settingId: 7 },
+	);
+
+	try {
+		await expect(
+			caller.generatePreview({ type: "order", text: "Customer request" }),
+		).rejects.toMatchObject({
+			code: "PRECONDITION_FAILED",
+			message:
+				"The selected Sales Request provider and model need a current benchmark approval before generation.",
+		});
+		await expect(
+			caller.validatePreview({
+				type: "order",
+				configurationScope: snapshot.scope,
+				configurationRevision: snapshot.revision,
+				provider: "openai",
+				model: "gpt-5-mini",
+			}),
+		).rejects.toMatchObject({
+			code: "PRECONDITION_FAILED",
+			message:
+				"The selected Sales Request provider and model need a current benchmark approval before generation.",
+		});
 	} finally {
 		if (previousFlag === undefined)
 			process.env.SALES_REQUEST_AI_ENABLED = undefined;
@@ -831,6 +923,9 @@ test("generation outcome writes are actor-bound and expose no source payload", a
 });
 
 test("pilot summary remains Super Admin-only and aggregate-only", async () => {
+	const closedPeriodStart = new Date(Date.now() - 8 * 24 * 60 * 60 * 1_000)
+		.toISOString()
+		.slice(0, 10);
 	let readCount = 0;
 	const ordinary = salesRequestRouter.createCaller({
 		userId: 19,
@@ -847,21 +942,49 @@ test("pilot summary remains Super Admin-only and aggregate-only", async () => {
 		},
 	} as unknown as SalesRequestCallerContext);
 
-	await expect(ordinary.pilotSummary({ days: 30 })).rejects.toMatchObject({
+	await expect(
+		ordinary.pilotSummary({ periodStart: closedPeriodStart }),
+	).rejects.toMatchObject({
 		code: "FORBIDDEN",
 	});
 	expect(readCount).toBe(0);
 
-	const admin = salesRequestRouter.createCaller({
-		userId: 7,
-		db: {
-			users: { findFirst: async () => superAdmin() },
-			salesRequestGenerationRun: {
-				findMany: async () => [],
+	const meta = {
+		route: {
+			root: {
+				routeSequence: [{ uid: "step" }],
+				requestGeneration: { defaults: {} },
 			},
 		},
-	} as unknown as SalesRequestCallerContext);
-	const result = await admin.pilotSummary({ days: 30 });
-	expect(result).toHaveProperty("generationCount", 0);
+		requestGeneration: {
+			ai: { provider: "openai", model: "gpt-5-mini" },
+			pilot: {
+				enabled: true,
+				cohortUserIds: [19],
+				reviewerUserIds: [42],
+				revision: 1,
+				changedAt: "2026-09-01T00:00:00.000Z",
+			},
+		},
+	};
+	const fixture = requestContext(meta);
+	await installCurrentBenchmarkApproval(fixture, meta);
+	const admin = salesRequestRouter.createCaller(fixture.ctx);
+	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
+	process.env.SALES_REQUEST_AI_ENABLED = "true";
+	let result: Awaited<ReturnType<typeof admin.pilotSummary>>;
+	try {
+		result = await admin.pilotSummary({ periodStart: closedPeriodStart });
+	} finally {
+		if (previousFlag === undefined)
+			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
+	}
+	expect(result).toMatchObject({
+		coverage: { complete: true, truncated: false, returnedRowCount: 0 },
+		eligibleForAdvancement: false,
+		authority: { status: "blocked", blockers: ["no-runs"] },
+		metrics: { generationCount: 0 },
+	});
 	expect(result).not.toHaveProperty("runs");
 });

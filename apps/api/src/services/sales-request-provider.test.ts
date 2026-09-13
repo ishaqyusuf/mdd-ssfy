@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { SALES_REQUEST_AI_PROVIDER_CATALOG } from "@gnd/settings/sales-request-ai-catalog";
-import { APICallError, RetryError, type generateText } from "ai";
+import {
+	APICallError,
+	NoObjectGeneratedError,
+	RetryError,
+	type generateText,
+} from "ai";
 import {
 	SALES_REQUEST_AI_CREDENTIAL_ENV_BY_PROVIDER,
 	SALES_REQUEST_DEFAULT_MAX_RETRIES,
@@ -217,9 +222,57 @@ describe("sales request provider factory", () => {
 	});
 
 	test("provider execution errors expose only the safe diagnostic", () => {
-		const error = new SalesRequestProviderExecutionError({ stage: "unknown" });
+		const error = new SalesRequestProviderExecutionError({
+			stage: "structured-output",
+			finishReason: "stop",
+			inputTokens: 321,
+			outputTokens: 45,
+		});
 		expect(error.message).toBe("The AI provider operation failed.");
-		expect(error.diagnostic).toEqual({ stage: "unknown" });
+		expect(classifySalesRequestProviderFailure(error)).toEqual({
+			stage: "structured-output",
+			finishReason: "stop",
+			inputTokens: 321,
+			outputTokens: 45,
+		});
+	});
+
+	test("preserves safe token usage when structured output fails inside the adapter", async () => {
+		const provider = createSalesRequestProvider({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			environment: credentials,
+			maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+			generateTextImpl: (async () => {
+				throw new NoObjectGeneratedError({
+					message: "private structured-output failure",
+					text: "private provider output",
+					response: {},
+					usage: { inputTokens: 321, outputTokens: 45 },
+					finishReason: "stop",
+				} as never);
+			}) as typeof generateText,
+		});
+
+		let error: unknown;
+		try {
+			await provider({
+				configurationJson: "{}",
+				text: "one door",
+				images: [],
+				signal: new AbortController().signal,
+			});
+		} catch (cause) {
+			error = cause;
+		}
+
+		expect(error).toBeInstanceOf(SalesRequestProviderExecutionError);
+		expect(classifySalesRequestProviderFailure(error)).toEqual({
+			stage: "structured-output",
+			finishReason: "stop",
+			inputTokens: 321,
+			outputTokens: 45,
+		});
+		expect(JSON.stringify(error)).not.toMatch(/private/i);
 	});
 
 	test.each(
