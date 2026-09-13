@@ -1,5 +1,29 @@
 import { expect, test } from "bun:test";
-import { serializeSalesRequestConfiguration } from "./configuration-serializer";
+import {
+	getSalesRequestConfigurationDefaults,
+	serializeSalesRequestConfiguration,
+} from "./configuration-serializer";
+
+test("extracts only normalized string defaults from projected routes", () => {
+	expect(
+		getSalesRequestConfigurationDefaults({
+			schemaVersion: 1,
+			routes: [
+				{
+					itemTypeUid: " exterior ",
+					defaults: {
+						" finish ": " white ",
+						empty: " ",
+						invalid: 9,
+					},
+				},
+				{ itemTypeUid: "interior" },
+			],
+			steps: [],
+			visibilityByComponentUid: {},
+		}),
+	).toEqual({ exterior: { finish: "white" } });
+});
 
 test("round-trips punctuation and Unicode while projecting components to tuples", () => {
 	const configuration = {

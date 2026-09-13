@@ -1,6 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import type { SalesRequestLowTouchFinalSaveClaim } from "@api/schemas/new-sales-form";
-import type { SalesRequestFinalSaveCandidate } from "@gnd/sales/sales-form/request-generation";
+import {
+	SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+	SALES_REQUEST_PROMPT_VERSION,
+	buildSalesRequestCommercialFingerprint,
+	type SalesRequestFinalSaveCandidate,
+} from "@gnd/sales/sales-form/request-generation";
+import {
+	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+	SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+} from "@gnd/settings";
 import {
 	type SalesRequestFinalSaveAuthorityDependencies,
 	resolveSalesRequestFinalSaveAuthority,
@@ -205,9 +214,10 @@ function dependencies(input?: {
 	return { values, seenDb };
 }
 
-function database(ids = [7]) {
+function database(ids = [7], audits: Array<{ data: unknown }> = []) {
 	return {
 		settings: { findMany: async () => ids.map((id) => ({ id })) },
+		salesHistory: { findMany: async () => audits },
 	} as Parameters<typeof resolveSalesRequestFinalSaveAuthority>[0]["db"];
 }
 
@@ -239,8 +249,10 @@ describe("resolveSalesRequestFinalSaveAuthority", () => {
 		expect(result.ok).toBe(true);
 		if (!result.ok) throw new Error("Expected authority");
 		expect(result.authority).toMatchObject({
+			kind: "finalize",
 			settingId: 7,
 			generationId: claim.generationId,
+			configurationScope: claim.configurationScope,
 			configurationRevision: revision,
 			provider: "openai",
 			model: "gpt-5-mini",
@@ -250,6 +262,133 @@ describe("resolveSalesRequestFinalSaveAuthority", () => {
 		});
 		expect(fixture.seenDb.length).toBe(8);
 		expect(fixture.seenDb.every((value) => value === tx)).toBe(true);
+	});
+
+	test("returns an exact audit-matched same-Sales retry as a read-only replay", async () => {
+		const retryCandidate = candidate({ salesId: 99, slug: "order-99" });
+		const fixture = dependencies({ consumedSalesId: 99 });
+		const db = database(
+			[7],
+			[
+				{
+					data: {
+						event: "sales_request_low_touch_finalized",
+						schemaVersion: 1,
+						actorUserId: 42,
+						settingId: 7,
+						generationId: claim.generationId,
+						configurationScope: claim.configurationScope,
+						configurationRevision: claim.configurationRevision,
+						promptVersion: SALES_REQUEST_PROMPT_VERSION,
+						outputSchemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+						benchmarkCorpusVersion:
+							SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+						benchmarkPolicyVersion:
+							SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+						provider: claim.provider,
+						model: claim.model,
+						commercialFingerprint:
+							buildSalesRequestCommercialFingerprint(retryCandidate),
+					},
+				},
+			],
+		);
+
+		const result = await resolveSalesRequestFinalSaveAuthority({
+			db,
+			actorUserId: 42,
+			claim,
+			candidate: retryCandidate,
+			commercial: commercial(),
+			replaySeed: async () => {
+				throw new Error("A committed retry must not replay or reprice");
+			},
+			dependencies: fixture.values,
+		});
+
+		expect(result).toMatchObject({
+			ok: true,
+			authority: {
+				kind: "idempotent-replay",
+				consumedSalesId: 99,
+				permissionRevision: "pa1:permission",
+			},
+		});
+		expect(fixture.seenDb.every((value) => value === db)).toBe(true);
+	});
+
+	test("rejects retry when the durable audit is missing, duplicated, or fingerprint-mismatched", async () => {
+		const retryCandidate = candidate({ salesId: 99, slug: "order-99" });
+		const exactAudit = {
+			data: {
+				event: "sales_request_low_touch_finalized",
+				schemaVersion: 1,
+				actorUserId: 42,
+				settingId: 7,
+				generationId: claim.generationId,
+				configurationScope: claim.configurationScope,
+				configurationRevision: claim.configurationRevision,
+				promptVersion: SALES_REQUEST_PROMPT_VERSION,
+				outputSchemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+				benchmarkCorpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+				benchmarkPolicyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
+				provider: claim.provider,
+				model: claim.model,
+				commercialFingerprint:
+					buildSalesRequestCommercialFingerprint(retryCandidate),
+			},
+		};
+		for (const audits of [
+			[],
+			[exactAudit, exactAudit],
+			[{ data: { ...exactAudit.data, commercialFingerprint: "changed" } }],
+		]) {
+			const fixture = dependencies({ consumedSalesId: 99 });
+			const result = await resolveSalesRequestFinalSaveAuthority({
+				db: database([7], audits),
+				actorUserId: 42,
+				claim,
+				candidate: retryCandidate,
+				commercial: commercial(),
+				replaySeed: async () => ({ candidate: candidate(), issues: [] }),
+				dependencies: fixture.values,
+			});
+			expect(result).toMatchObject({
+				ok: false,
+				issues: [
+					{
+						code: "generation-authority-failed",
+						details: ["already-consumed"],
+					},
+				],
+			});
+		}
+	});
+
+	test("compares replay against the caller's server-normalized candidate", async () => {
+		const fixture = dependencies();
+		const raw = candidate({
+			form: { customerId: 10, customerProfileId: 20 },
+		});
+		const normalized = candidate();
+		const result = await resolveSalesRequestFinalSaveAuthority({
+			db: database(),
+			actorUserId: 42,
+			claim,
+			candidate: raw,
+			commercial: commercial(),
+			replaySeed: async () => ({
+				candidate: normalized,
+				submittedCandidate: normalized,
+				issues: [],
+			}),
+			dependencies: fixture.values,
+		});
+
+		expect(result).toMatchObject({
+			ok: true,
+			authority: { kind: "finalize" },
+		});
 	});
 
 	test("fails before authority reads when the claim does not use the active settings row", async () => {

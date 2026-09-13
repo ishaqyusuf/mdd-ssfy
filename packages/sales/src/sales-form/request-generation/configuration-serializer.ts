@@ -37,6 +37,31 @@ export const SALES_REQUEST_COMPONENT_COLUMNS = Object.freeze([
 	"title",
 ] as const);
 
+/** Extract the initializer defaults from the already validated model projection. */
+export function getSalesRequestConfigurationDefaults(
+	configuration: SalesRequestConfiguration,
+) {
+	const defaults: Record<string, Record<string, string>> = {};
+	for (const value of configuration.routes) {
+		if (!isRecord(value)) continue;
+		const itemTypeUid =
+			typeof value.itemTypeUid === "string" ? value.itemTypeUid.trim() : "";
+		if (!itemTypeUid || !isRecord(value.defaults)) continue;
+		const routeDefaults = Object.fromEntries(
+			Object.entries(value.defaults).flatMap(([stepUid, componentUid]) =>
+				typeof componentUid === "string" &&
+				stepUid.trim() &&
+				componentUid.trim()
+					? [[stepUid.trim(), componentUid.trim()]]
+					: [],
+			),
+		);
+		if (Object.keys(routeDefaults).length)
+			defaults[itemTypeUid] = routeDefaults;
+	}
+	return defaults;
+}
+
 type ProjectedStep = {
 	id: number;
 	uid: string;

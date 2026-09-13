@@ -1,6 +1,5 @@
-import { hasUnprojectedApprovedCommercialSnapshot } from "./sales-commercial-consistency";
-import { AppError } from "@gnd/errors";
 import { getSalesCustomer } from "@api/db/queries/customer";
+import { consumeSalesRequestGenerationRun } from "@api/db/queries/sales-request-telemetry";
 import {
 	type BootstrapNewSalesFormSchema,
 	type DeleteNewSalesFormLineItemSchema,
@@ -18,6 +17,7 @@ import {
 	type NewSalesFormSummary,
 	type RecalculateNewSalesFormSchema,
 	type ResolveNewSalesCustomerSchema,
+	type SalesRequestLowTouchFinalSaveClaim,
 	type SaveDraftNewSalesFormSchema,
 	type SaveFinalNewSalesFormSchema,
 	type SearchNewSalesCustomersSchema,
@@ -38,18 +38,26 @@ import {
 	resolveNewSalesCustomerSchema,
 	saveDraftNewSalesFormSchema,
 	saveFinalNewSalesFormSchema,
-	splitSalesRequestLowTouchFinalSaveClaim,
 	searchNewSalesCustomersSchema,
 	searchNewSalesFormServiceSuggestionsSchema,
 	searchNewSalesFormShelfProductsSchema,
+	splitSalesRequestLowTouchFinalSaveClaim,
 	updateNewSalesFormShelfProductSchema,
 } from "@api/schemas/new-sales-form";
+import { resolveSalesRequestFinalSaveAuthority } from "@api/services/sales-request-final-save-authority";
+import {
+	type GetSalesRequestServiceVocabularyInput,
+	getSalesRequestServiceVocabulary as loadSalesRequestServiceVocabulary,
+	getSalesRequestServiceVocabularyNames as loadSalesRequestServiceVocabularyNames,
+} from "@api/services/sales-request-service-vocabulary";
 import type { TRPCContext } from "@api/trpc/init";
 import { salesAddressLines } from "@api/utils/sales";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
+import type { TransactionClient } from "@gnd/db";
 import { assertDealerSaleOfficeAccess } from "@gnd/db/queries";
+import { AppError } from "@gnd/errors";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
 import { prepareSalesDocumentReadiness } from "@gnd/sales/document-readiness";
@@ -63,6 +71,8 @@ import {
 	collapseDuplicateSalesDoorRows,
 	findDuplicateSalesDoorIdentities,
 	getSalesDoorActiveIdentity,
+	hydrateSalesFormRecord,
+	initializeNewSalesFormSeed,
 	normalizeSalesDoorDimension,
 	normalizeShelfProductSearchQuery,
 	searchShelfProductIndex,
@@ -83,6 +93,7 @@ import {
 	hydrateHptLineFromLegacy,
 	normalizeHptLineForLegacy,
 } from "@gnd/sales/sales-form/domain/hpt-compatibility";
+import { getSalesRequestConfigurationDefaults } from "@gnd/sales/sales-form/request-generation";
 import { normalizeSalesInventoryLegacyStatus } from "@gnd/sales/sales-inventory-legacy-compatibility";
 import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
 import {
@@ -96,17 +107,14 @@ import {
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { generateRandomString } from "@gnd/utils";
 import { TRPCError } from "@trpc/server";
-import {
-	getSalesRequestServiceVocabulary as loadSalesRequestServiceVocabulary,
-	getSalesRequestServiceVocabularyNames as loadSalesRequestServiceVocabularyNames,
-	type GetSalesRequestServiceVocabularyInput,
-} from "@api/services/sales-request-service-vocabulary";
 import { getNewSalesFormCommitmentSnapshot } from "./new-sales-form-adjustments";
 import {
 	captureNewSalesFormSaveFailure,
 	captureNewSalesFormSavePayload,
 	logNewSalesFormSaveDiagnostic,
 } from "./new-sales-form-debug";
+import { hasUnprojectedApprovedCommercialSnapshot } from "./sales-commercial-consistency";
+import { getStepComponents } from "./sales-form";
 import {
 	buildSalesFormUpdateActivity,
 	buildSpecialOrderEnrollmentActivity,
@@ -230,6 +238,47 @@ function sameComparableValue(left: unknown, right: unknown) {
 		JSON.stringify(stableComparableValue(left)) ===
 		JSON.stringify(stableComparableValue(right))
 	);
+}
+
+function prismaErrorCode(error: unknown) {
+	return error && typeof error === "object" && "code" in error
+		? String((error as { code?: unknown }).code || "")
+		: "";
+}
+
+/** Retry only the new low-touch transaction when a serializable create loses a race. */
+export async function runLowTouchSerializableTransaction<T>(
+	operation: () => Promise<T>,
+	maximumAttempts = 3,
+) {
+	for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+		try {
+			return await operation();
+		} catch (error) {
+			const code = prismaErrorCode(error);
+			if (
+				attempt >= maximumAttempts ||
+				(code !== "P2002" && code !== "P2034")
+			) {
+				throw error;
+			}
+		}
+	}
+	throw new Error("Low-touch transaction retry invariant failed");
+}
+
+async function runNewSalesFormTransaction<T>(
+	db: Pick<TRPCContext["db"], "$transaction">,
+	lowTouch: boolean,
+	callback: (tx: TransactionClient) => Promise<T>,
+) {
+	const operation = () =>
+		db.$transaction(callback, {
+			isolationLevel: "Serializable",
+			maxWait: 5_000,
+			timeout: 30_000,
+		});
+	return lowTouch ? runLowTouchSerializableTransaction(operation) : operation();
 }
 
 function withoutPo(meta: NewSalesFormMeta) {
@@ -386,7 +435,6 @@ function roundCurrency(value: number) {
 	return roundMoney(value);
 }
 
-
 function uniquePositiveNumbers(values: Array<unknown>) {
 	return values
 		.map((value) => Number(value || 0))
@@ -438,9 +486,7 @@ function salesFormStepIdentity(step: any) {
 
 export function collapseDuplicateRelationalFormSteps<
 	T extends { id?: number | null },
->(
-	steps: T[],
-) {
+>(steps: T[]) {
 	const rows = new Map<string, T>();
 	for (const step of steps) {
 		const identity = salesFormStepIdentity(step);
@@ -778,22 +824,19 @@ function assertUniqueDurableSalesFormIds(
 }
 
 async function generateSalesIdentity(
-	ctx: TRPCContext,
+	db: Pick<TRPCContext["db"], "users" | "salesOrders">,
+	userId: number | null | undefined,
 	type: "order" | "quote",
 ): Promise<{ orderId: string; slug: string }> {
 	const salesRep =
-		ctx.userId != null
-			? await ctx.db.users.findFirst({
-					where: { id: ctx.userId },
+		userId != null
+			? await db.users.findFirst({
+					where: { id: userId },
 					select: { name: true },
 				})
 			: null;
 	const orderId = String(
-		await generateSalesSlug(
-			type as any,
-			ctx.db.salesOrders,
-			salesRep?.name || "",
-		),
+		await generateSalesSlug(type as any, db.salesOrders, salesRep?.name || ""),
 	);
 	return {
 		orderId,
@@ -1196,7 +1239,8 @@ function toBootstrapPayload(
 			recalculatedFinancialSummary.taxTotal - savedFinancialSummary.taxTotal,
 		),
 		grandTotal: roundMoney(
-			recalculatedFinancialSummary.grandTotal - savedFinancialSummary.grandTotal,
+			recalculatedFinancialSummary.grandTotal -
+				savedFinancialSummary.grandTotal,
 		),
 		amountDue: roundMoney(
 			recalculatedFinancialSummary.amountDue - savedFinancialSummary.amountDue,
@@ -1801,11 +1845,12 @@ export async function getNewSalesFormStepRouting(
 ) {
 	getNewSalesFormStepRoutingSchema.parse(input);
 	return salesWorkflowCache.getOrSetStepRouting(() =>
-		fetchNewSalesFormStepRoutingFromDb(ctx),
+		getFreshNewSalesFormStepRouting(ctx),
 	);
 }
 
-async function fetchNewSalesFormStepRoutingFromDb(ctx: TRPCContext) {
+/** Bypass workflow caches for correctness-critical transactional replay. */
+export async function getFreshNewSalesFormStepRouting(ctx: TRPCContext) {
 	const [setting, steps] = await Promise.all([
 		ctx.db.settings.findFirst({
 			where: {
@@ -3119,6 +3164,7 @@ async function saveNewSalesFormInternal(
 		storefrontInquiryReference?: string;
 		preserveExistingStatus?: boolean;
 	},
+	lowTouchClaim?: SalesRequestLowTouchFinalSaveClaim | null,
 ) {
 	const newDraftKey =
 		!payload.salesId &&
@@ -3309,9 +3355,226 @@ async function saveNewSalesFormInternal(
 		paymentMethod: payload.meta.paymentMethod || null,
 		cccPercentage: settings.cccPercentage,
 	});
-	const transactionResult = await ctx.db.$transaction(
+	const transactionResult = await runNewSalesFormTransaction(
+		ctx.db,
+		Boolean(lowTouchClaim),
 		async (tx) => {
+			if (lowTouchClaim && newDraftKey && !payload.salesId && !payload.slug) {
+				const concurrentDraft = await tx.salesOrders.findFirst({
+					where: {
+						type: payload.type,
+						deletedAt: null,
+						dealerAuthId: null,
+						meta: {
+							path: "$.newSalesForm.draftKey",
+							equals: newDraftKey,
+						},
+					},
+					select: { id: true, slug: true, meta: true },
+				});
+				if (concurrentDraft) {
+					payload = {
+						...payload,
+						salesId: concurrentDraft.id,
+						slug: concurrentDraft.slug,
+						version:
+							safeMeta(concurrentDraft.meta).newSalesForm?.version ??
+							payload.version,
+					};
+				}
+			}
 			const isNew = !(payload.salesId || payload.slug);
+			let lowTouchAuthority: Extract<
+				Extract<
+					Awaited<ReturnType<typeof resolveSalesRequestFinalSaveAuthority>>,
+					{ ok: true }
+				>["authority"],
+				{ kind: "finalize" }
+			> | null = null;
+			if (lowTouchClaim) {
+				if (!ctx.userId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+				if (
+					payload.type === "order" &&
+					payload.specialOrderDeclaration !== "NO"
+				) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message:
+							"SALES_REQUEST_LOW_TOUCH_BLOCKED: special-order-not-supported",
+					});
+				}
+				const txContext = {
+					...ctx,
+					db: tx as unknown as TRPCContext["db"],
+				};
+				const normalizedCandidate = hydrateSalesFormRecord({
+					type: payload.type,
+					salesId: payload.salesId,
+					slug: payload.slug,
+					form: payload.meta,
+					lineItems: normalizedLines,
+					extraCosts: payload.extraCosts,
+					summary: persistedSummary,
+					settings,
+				});
+				const candidate = {
+					type: normalizedCandidate.type,
+					salesId: normalizedCandidate.salesId,
+					slug: normalizedCandidate.slug,
+					form: normalizedCandidate.form,
+					lineItems: normalizedCandidate.lineItems,
+					extraCosts: normalizedCandidate.extraCosts,
+					summary: normalizedCandidate.summary,
+				};
+				const authority = await resolveSalesRequestFinalSaveAuthority({
+					db: tx as unknown as Parameters<
+						typeof resolveSalesRequestFinalSaveAuthority
+					>[0]["db"],
+					actorUserId: ctx.userId,
+					claim: lowTouchClaim,
+					candidate,
+					commercial: {
+						customerId: payload.meta.customerId,
+						customerProfileId: payload.meta.customerProfileId,
+						billingAddressId: payload.meta.billingAddressId,
+						shippingAddressId: payload.meta.shippingAddressId,
+						taxCode: payload.meta.taxCode,
+					},
+					replaySeed: async ({
+						configuration,
+						profileCoefficient,
+						taxPercentage,
+					}) => {
+						const routeData = await getFreshNewSalesFormStepRouting(txContext);
+						if (routeData.settingId !== configuration.settingId) {
+							return {
+								candidate: null,
+								issues: ["settings-identity-mismatch"],
+							};
+						}
+						const currentSettings = deriveNewSalesFormSettings(
+							routeData.settingsMeta,
+						);
+						const normalizedSubmitted = hydrateSalesFormRecord({
+							type: payload.type,
+							salesId: payload.salesId,
+							slug: payload.slug,
+							form: payload.meta,
+							lineItems: normalizedLines,
+							extraCosts: payload.extraCosts,
+							summary: persistedSummary,
+							settings: currentSettings,
+						});
+						const initialized = await initializeNewSalesFormSeed({
+							seed: lowTouchClaim.seed,
+							baseRecord: {
+								type: payload.type,
+								salesId: null,
+								slug: null,
+								form: payload.meta,
+								lineItems: [],
+								extraCosts: [],
+								summary: { taxRate: taxPercentage },
+								settings: currentSettings,
+							},
+							routeData,
+							defaultsByItemTypeUid: getSalesRequestConfigurationDefaults(
+								configuration.configuration,
+							),
+							pricing: { profileCoefficient },
+							resolveComponents: async ({ step }) =>
+								(
+									await getStepComponents(txContext, {
+										stepId:
+											Number.isSafeInteger(Number(step.id)) &&
+											Number(step.id) > 0
+												? Number(step.id)
+												: undefined,
+										stepTitle: step.title,
+										fresh: true,
+									})
+								).map((component) => {
+									const { custom, ...metadata } = component._metaData;
+									return {
+										...component,
+										_metaData: {
+											...metadata,
+											...(custom == null ? {} : { custom }),
+										},
+									};
+								}),
+						});
+						const replayIssues = [
+							...initialized.unresolved.map(
+								(entry) => `unresolved:${entry.reason}`,
+							),
+							...initialized.issues.map((entry) => entry.reason),
+						];
+						return {
+							submittedCandidate: {
+								type: normalizedSubmitted.type,
+								salesId: normalizedSubmitted.salesId,
+								slug: normalizedSubmitted.slug,
+								form: normalizedSubmitted.form,
+								lineItems: normalizedSubmitted.lineItems,
+								extraCosts: normalizedSubmitted.extraCosts,
+								summary: normalizedSubmitted.summary,
+							},
+							candidate: replayIssues.length
+								? null
+								: {
+										type: initialized.record.type,
+										salesId: initialized.record.salesId,
+										slug: initialized.record.slug,
+										form: initialized.record.form || {},
+										lineItems: initialized.record.lineItems,
+										extraCosts: initialized.record.extraCosts,
+										summary: initialized.record.summary,
+									},
+							issues: replayIssues,
+						};
+					},
+				});
+				if (!authority.ok) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: `SALES_REQUEST_LOW_TOUCH_BLOCKED: ${authority.issues
+							.map(({ code }) => code)
+							.join(",")}`,
+					});
+				}
+				if (authority.authority.kind === "idempotent-replay") {
+					const existing = await tx.salesOrders.findFirst({
+						where: {
+							id: authority.authority.consumedSalesId,
+							type: payload.type,
+							slug: payload.slug || undefined,
+							dealerAuthId: null,
+							deletedAt: null,
+						},
+						select: { id: true, slug: true, orderId: true },
+					});
+					if (!existing) {
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message:
+								"SALES_REQUEST_LOW_TOUCH_BLOCKED: retry-record-unavailable",
+						});
+					}
+					return {
+						salesId: existing.id,
+						slug: existing.slug,
+						orderId: existing.orderId,
+						type: payload.type,
+						isNew: false,
+						_saveScope: "full" as const,
+						_idempotentReplay: true as const,
+					};
+				}
+				lowTouchAuthority = authority.authority;
+			}
 			let currentId = payload.salesId || null;
 			const persistedLineItemIds = new Map<string, number>();
 			const retainedSalesItemIds = new Set<number>();
@@ -3461,7 +3724,8 @@ async function saveNewSalesFormInternal(
 				}
 			}
 
-			const isInternalDashboardOrder = !hasExternalOrigin && !order?.dealerAuthId;
+			const isInternalDashboardOrder =
+				!hasExternalOrigin && !order?.dealerAuthId;
 			const enrollmentAccess = isInternalDashboardOrder
 				? await getSpecialOrderEnrollmentAccess(
 						tx as unknown as TRPCContext["db"],
@@ -3824,7 +4088,11 @@ async function saveNewSalesFormInternal(
 					: persistedSummary.grandTotal;
 
 			if (!order) {
-				const identity = await generateSalesIdentity(ctx, payload.type);
+				const identity = await generateSalesIdentity(
+					tx as unknown as Pick<TRPCContext["db"], "users" | "salesOrders">,
+					ctx.userId,
+					payload.type,
+				);
 				const created = await tx.salesOrders.create({
 					data: {
 						orderId: identity.orderId,
@@ -4550,6 +4818,43 @@ async function saveNewSalesFormInternal(
 				forceEvaluate: true,
 				stageProposal: true,
 			});
+			if (lowTouchAuthority && ctx.userId) {
+				await consumeSalesRequestGenerationRun(
+					tx as unknown as Parameters<
+						typeof consumeSalesRequestGenerationRun
+					>[0],
+					{
+						actorUserId: ctx.userId,
+						generationId: lowTouchAuthority.generationId,
+						salesId: currentId,
+					},
+				);
+				await tx.salesHistory.create({
+					data: {
+						salesId: currentId,
+						name: "Sales request low-touch finalization",
+						data: {
+							event: "sales_request_low_touch_finalized",
+							schemaVersion: 1,
+							actorUserId: ctx.userId,
+							settingId: lowTouchAuthority.settingId,
+							generationId: lowTouchAuthority.generationId,
+							configurationScope: lowTouchAuthority.configurationScope,
+							configurationRevision: lowTouchAuthority.configurationRevision,
+							promptVersion: lowTouchAuthority.promptVersion,
+							outputSchemaVersion: lowTouchAuthority.outputSchemaVersion,
+							benchmarkCorpusVersion: lowTouchAuthority.benchmarkCorpusVersion,
+							benchmarkPolicyVersion: lowTouchAuthority.benchmarkPolicyVersion,
+							provider: lowTouchAuthority.provider,
+							model: lowTouchAuthority.model,
+							commercialRevision: lowTouchAuthority.commercialRevision,
+							commercialFingerprint: lowTouchAuthority.commercialFingerprint,
+							permissionRevision: lowTouchAuthority.permissionRevision,
+							stockRevision: lowTouchAuthority.stockRevision,
+						},
+					},
+				});
+			}
 
 			return {
 				salesId: currentId,
@@ -4570,6 +4875,7 @@ async function saveNewSalesFormInternal(
 				settings,
 				status: nextOrderStatus,
 				_saveScope: "full" as const,
+				_idempotentReplay: false as const,
 				specialOrder: {
 					declaration: nextSpecialOrderDeclaration,
 					status: nextSpecialOrderStatus,
@@ -4585,11 +4891,6 @@ async function saveNewSalesFormInternal(
 				},
 			};
 		},
-		{
-			isolationLevel: "Serializable",
-			maxWait: 5_000,
-			timeout: 30_000,
-		},
 	);
 	const canonical = await getNewSalesForm(ctx, {
 		slug: transactionResult.slug,
@@ -4599,6 +4900,7 @@ async function saveNewSalesFormInternal(
 		...canonical,
 		isNew: transactionResult.isNew,
 		_saveScope: transactionResult._saveScope,
+		_idempotentReplay: transactionResult._idempotentReplay,
 	};
 }
 
@@ -4695,7 +4997,11 @@ async function runNewSalesFormPostSaveTasks(
 function publicNewSalesFormSaveResult(
 	result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>,
 ) {
-	const { _saveScope: saveScope, ...publicResult } = result;
+	const {
+		_saveScope: saveScope,
+		_idempotentReplay: _idempotentReplay,
+		...publicResult
+	} = result;
 	return { ...publicResult, saveScope };
 }
 
@@ -4777,13 +5083,6 @@ export async function saveFinalNewSalesForm(
 	const parsed = saveFinalNewSalesFormSchema.parse(input);
 	const { claim: lowTouchClaim, payload } =
 		splitSalesRequestLowTouchFinalSaveClaim(parsed);
-	if (lowTouchClaim) {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message:
-				"Low-touch finalization is not enabled until its commercial preflight passes.",
-		});
-	}
 	const startedAt = performance.now();
 	logNewSalesFormSaveDiagnostic({
 		action: "save-final",
@@ -4809,7 +5108,13 @@ export async function saveFinalNewSalesForm(
 	});
 	let result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>;
 	try {
-		result = await saveNewSalesFormInternal(ctx, payload, "Active");
+		result = await saveNewSalesFormInternal(
+			ctx,
+			payload,
+			"Active",
+			undefined,
+			lowTouchClaim,
+		);
 	} catch (error) {
 		logNewSalesFormSaveDiagnostic({
 			action: "save-final",
@@ -4836,7 +5141,9 @@ export async function saveFinalNewSalesForm(
 		salesId: result.salesId,
 		payload,
 	});
-	await runNewSalesFormPostSaveTasks(ctx, result);
+	if (!result._idempotentReplay) {
+		await runNewSalesFormPostSaveTasks(ctx, result);
+	}
 	logNewSalesFormSaveDiagnostic({
 		action: "save-final",
 		stage: "post-save-complete",

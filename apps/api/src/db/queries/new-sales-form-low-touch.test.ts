@@ -1,63 +1,97 @@
 import { describe, expect, test } from "bun:test";
-import { saveFinalNewSalesForm } from "./new-sales-form";
+import { runLowTouchSerializableTransaction } from "./new-sales-form";
+
+async function querySource() {
+	return Bun.file(new URL("./new-sales-form.ts", import.meta.url)).text();
+}
 
 describe("New Sales Form low-touch final-save boundary", () => {
-	test("fails closed before database, diagnostics, or persistence while preflight is unavailable", async () => {
-		let databaseRead = false;
-		const ctx = {
-			userId: 77,
-			requestId: "test-low-touch-final-save",
-			get db() {
-				databaseRead = true;
-				throw new Error("Database must not be reached");
-			},
-		};
+	test("resolves authority before writes and consumes the run in the same serializable transaction", async () => {
+		const source = await querySource();
+		const transactionStart = source.indexOf(
+			"const transactionResult = await runNewSalesFormTransaction(",
+		);
+		const authority = source.indexOf(
+			"resolveSalesRequestFinalSaveAuthority({",
+			transactionStart,
+		);
+		const draftRecheck = source.indexOf(
+			"const concurrentDraft = await",
+			transactionStart,
+		);
+		const firstSalesWrite = source.indexOf(
+			"tx.salesOrders.create({",
+			authority,
+		);
+		const consumption = source.indexOf(
+			"consumeSalesRequestGenerationRun(",
+			firstSalesWrite,
+		);
+		const audit = source.indexOf("tx.salesHistory.create({", consumption);
+		const transactionEnd = source.indexOf(
+			"const canonical = await getNewSalesForm",
+			transactionStart,
+		);
 
-		await expect(
-			saveFinalNewSalesForm(
-				ctx as Parameters<typeof saveFinalNewSalesForm>[0],
-				{
-					type: "order",
-					salesId: null,
-					slug: null,
-					version: "new-low-touch-boundary",
-					autosave: false,
-					commitIntent: "final",
-					meta: { customerId: 10, customerProfileId: 2 },
-					lineItems: [],
-					extraCosts: [],
-					summary: {
-						taxRate: 0,
-						subTotal: 0,
-						taxTotal: 0,
-						grandTotal: 0,
-					},
-					lowTouchClaim: {
-						source: "pasted-text",
-						generationId: "11111111-1111-4111-8111-111111111111",
-						configurationScope: "sales-settings:7",
-						configurationRevision: "configuration-revision-1",
-						provider: "openai",
-						model: "gpt-5-mini",
-						seed: {
-							schemaVersion: 2,
-							lineItems: [
-								{
-									uid: "generated-line-1",
-									qty: 1,
-									formSteps: [{ stepId: 1, prodUid: "exterior" }],
-								},
-							],
-							unresolved: [],
-						},
-					},
-				},
-			),
-		).rejects.toMatchObject({
-			code: "PRECONDITION_FAILED",
-			message:
-				"Low-touch finalization is not enabled until its commercial preflight passes.",
+		expect(transactionStart).toBeGreaterThan(-1);
+		expect(authority).toBeGreaterThan(transactionStart);
+		expect(draftRecheck).toBeGreaterThan(transactionStart);
+		expect(draftRecheck).toBeLessThan(authority);
+		expect(firstSalesWrite).toBeGreaterThan(authority);
+		expect(consumption).toBeGreaterThan(firstSalesWrite);
+		expect(audit).toBeGreaterThan(consumption);
+		expect(transactionEnd).toBeGreaterThan(audit);
+		expect(source).toContain('isolationLevel: "Serializable"');
+		expect(source.slice(authority, consumption)).toContain(
+			'authority.authority.kind === "idempotent-replay"',
+		);
+	});
+
+	test("retries only bounded serializable and unique-create conflicts", async () => {
+		let attempts = 0;
+		const result = await runLowTouchSerializableTransaction(async () => {
+			attempts += 1;
+			if (attempts < 3) throw { code: "P2034" };
+			return "saved";
 		});
-		expect(databaseRead).toBe(false);
+		expect(result).toBe("saved");
+		expect(attempts).toBe(3);
+
+		let ordinaryAttempts = 0;
+		await expect(
+			runLowTouchSerializableTransaction(async () => {
+				ordinaryAttempts += 1;
+				throw new Error("not retryable");
+			}),
+		).rejects.toThrow("not retryable");
+		expect(ordinaryAttempts).toBe(1);
+	});
+
+	test("passes the detached claim only to final-save internals", async () => {
+		const source = await querySource();
+		const finalSaveStart = source.indexOf(
+			"export async function saveFinalNewSalesForm(",
+		);
+		const finalSaveEnd = source.indexOf(
+			"export async function saveStorefrontSalesOrder(",
+			finalSaveStart,
+		);
+		const finalSave = source.slice(finalSaveStart, finalSaveEnd);
+
+		expect(finalSave).toContain(
+			"splitSalesRequestLowTouchFinalSaveClaim(parsed)",
+		);
+		expect(finalSave).toContain(
+			'saveNewSalesFormInternal(\n\t\t\tctx,\n\t\t\tpayload,\n\t\t\t"Active"',
+		);
+		expect(finalSave).not.toContain("payload: parsed");
+		expect(finalSave).not.toContain("payload: lowTouchClaim");
+		expect(source).toContain(
+			"configurationScope: lowTouchAuthority.configurationScope",
+		);
+		expect(source).toContain("_idempotentReplay: _idempotentReplay");
+		expect(source).toContain(
+			"return lowTouch ? runLowTouchSerializableTransaction(operation) : operation()",
+		);
 	});
 });

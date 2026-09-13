@@ -42,10 +42,19 @@ type AuthorityDatabase = Parameters<
 				select: { id: true };
 			}) => Promise<Array<{ id: number }>>;
 		};
+		salesHistory: {
+			findMany: (args: {
+				where: { salesId: number; name: string };
+				select: { data: true };
+				orderBy: { id: "desc" };
+				take: number;
+			}) => Promise<Array<{ data: unknown }>>;
+		};
 	};
 
 export type SalesRequestFinalSaveReplayResult = {
 	candidate: SalesRequestFinalSaveCandidate | null;
+	submittedCandidate?: SalesRequestFinalSaveCandidate | null;
 	issues: string[];
 };
 
@@ -74,15 +83,36 @@ export type SalesRequestFinalSaveAuthorityResult =
 			ok: true;
 			issues: [];
 			authority: {
+				kind: "finalize";
 				settingId: number;
 				generationId: string;
+				configurationScope: string;
 				configurationRevision: string;
+				promptVersion: string;
+				outputSchemaVersion: number;
+				benchmarkCorpusVersion: string;
+				benchmarkPolicyVersion: string;
 				provider: string;
 				model: string;
 				commercialRevision: string;
 				permissionRevision: string;
 				stockRevision: string;
 				commercialFingerprint: string;
+			};
+	  }
+	| {
+			ok: true;
+			issues: [];
+			authority: {
+				kind: "idempotent-replay";
+				settingId: number;
+				generationId: string;
+				configurationScope: string;
+				configurationRevision: string;
+				provider: string;
+				model: string;
+				consumedSalesId: number;
+				permissionRevision: string;
 			};
 	  }
 	| {
@@ -132,6 +162,57 @@ function safeCodes(values: readonly { code: string }[]) {
 
 function preflightCodes(values: readonly SalesRequestFinalSaveBlocker[]) {
 	return [...new Set(values.map(({ code }) => code))].sort();
+}
+
+function record(value: unknown): Record<string, unknown> {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+async function hasExactFinalizationAudit(input: {
+	db: AuthorityDatabase;
+	actorUserId: number;
+	settingId: number;
+	generationId: string;
+	configurationScope: string;
+	configurationRevision: string;
+	provider: string;
+	model: string;
+	salesId: number;
+	commercialFingerprint: string;
+}) {
+	const rows = await input.db.salesHistory.findMany({
+		where: {
+			salesId: input.salesId,
+			name: "Sales request low-touch finalization",
+		},
+		select: { data: true },
+		orderBy: { id: "desc" },
+		take: 2,
+	});
+	const matches = rows.filter(({ data }) => {
+		const audit = record(data);
+		return (
+			audit.event === "sales_request_low_touch_finalized" &&
+			audit.schemaVersion === 1 &&
+			audit.actorUserId === input.actorUserId &&
+			audit.settingId === input.settingId &&
+			audit.generationId === input.generationId &&
+			audit.configurationScope === input.configurationScope &&
+			audit.configurationRevision === input.configurationRevision &&
+			audit.promptVersion === SALES_REQUEST_PROMPT_VERSION &&
+			audit.outputSchemaVersion === SALES_REQUEST_OUTPUT_SCHEMA_VERSION &&
+			audit.benchmarkCorpusVersion ===
+				SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION &&
+			audit.benchmarkPolicyVersion ===
+				SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION &&
+			audit.provider === input.provider &&
+			audit.model === input.model &&
+			audit.commercialFingerprint === input.commercialFingerprint
+		);
+	});
+	return matches.length === 1;
 }
 
 /**
@@ -264,11 +345,62 @@ export async function resolveSalesRequestFinalSaveAuthority(input: {
 			authority: null,
 		};
 	}
-	if (run.authority.consumedSalesId != null) {
+	const permission = await dependencies.resolvePermission({
+		db: input.db,
+		actorUserId: input.actorUserId,
+		surface: input.candidate.type,
+	});
+	if (!permission.ok) {
 		return {
 			ok: false,
-			issues: [issue("generation-authority-failed", ["already-consumed"])],
+			issues: [
+				issue("permission-authority-failed", safeCodes(permission.issues)),
+			],
 			authority: null,
+		};
+	}
+	if (run.authority.consumedSalesId != null) {
+		const consumedSalesId = run.authority.consumedSalesId;
+		const candidateFingerprint = buildSalesRequestCommercialFingerprint(
+			input.candidate,
+		);
+		if (
+			input.candidate.salesId !== consumedSalesId ||
+			typeof input.candidate.slug !== "string" ||
+			!input.candidate.slug.trim() ||
+			!(await hasExactFinalizationAudit({
+				db: input.db,
+				actorUserId: input.actorUserId,
+				settingId,
+				generationId: run.authority.generationId,
+				configurationScope: configuration.scope,
+				configurationRevision: configuration.revision,
+				provider: aiSettings.selection.provider,
+				model: aiSettings.selection.model,
+				salesId: consumedSalesId,
+				commercialFingerprint: candidateFingerprint,
+			}))
+		) {
+			return {
+				ok: false,
+				issues: [issue("generation-authority-failed", ["already-consumed"])],
+				authority: null,
+			};
+		}
+		return {
+			ok: true,
+			issues: [],
+			authority: {
+				kind: "idempotent-replay",
+				settingId,
+				generationId: run.authority.generationId,
+				configurationScope: configuration.scope,
+				configurationRevision: configuration.revision,
+				provider: aiSettings.selection.provider,
+				model: aiSettings.selection.model,
+				consumedSalesId,
+				permissionRevision: permission.authority.revision,
+			},
 		};
 	}
 
@@ -281,20 +413,6 @@ export async function resolveSalesRequestFinalSaveAuthority(input: {
 			ok: false,
 			issues: [
 				issue("commercial-authority-failed", safeCodes(commercial.issues)),
-			],
-			authority: null,
-		};
-	}
-	const permission = await dependencies.resolvePermission({
-		db: input.db,
-		actorUserId: input.actorUserId,
-		surface: input.candidate.type,
-	});
-	if (!permission.ok) {
-		return {
-			ok: false,
-			issues: [
-				issue("permission-authority-failed", safeCodes(permission.issues)),
 			],
 			authority: null,
 		};
@@ -321,10 +439,18 @@ export async function resolveSalesRequestFinalSaveAuthority(input: {
 			authority: null,
 		};
 	}
+	const submittedCandidate = replay.submittedCandidate ?? input.candidate;
+	if (!submittedCandidate) {
+		return {
+			ok: false,
+			issues: [issue("seed-replay-failed")],
+			authority: null,
+		};
+	}
 
 	const stock = await dependencies.resolveStock({
 		db: input.db,
-		candidate: { lineItems: input.candidate.lineItems },
+		candidate: { lineItems: submittedCandidate.lineItems },
 	});
 	if (!stock.ok) {
 		return {
@@ -338,7 +464,7 @@ export async function resolveSalesRequestFinalSaveAuthority(input: {
 		replay.candidate,
 	);
 	const preflight = evaluateSalesRequestFinalSavePreflight({
-		candidate: input.candidate,
+		candidate: submittedCandidate,
 		authoritative: {
 			configurationScope: configuration.scope,
 			configurationRevision: configuration.revision,
@@ -393,9 +519,15 @@ export async function resolveSalesRequestFinalSaveAuthority(input: {
 		ok: true,
 		issues: [],
 		authority: {
+			kind: "finalize",
 			settingId,
 			generationId: run.authority.generationId,
+			configurationScope: configuration.scope,
 			configurationRevision: configuration.revision,
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
+			outputSchemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
+			benchmarkCorpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
+			benchmarkPolicyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
 			provider: aiSettings.selection.provider,
 			model: aiSettings.selection.model,
 			commercialRevision: commercial.authority.revision,
