@@ -57,6 +57,8 @@ export interface SalesRequestMailboxAdapter {
 		tokens: MailboxTokenSet;
 		cursor?: string;
 		pageToken?: string;
+		since: Date | null;
+		fullSync: boolean;
 		limit: number;
 	}): Promise<MailboxSyncPage>;
 	getMessage(input: {

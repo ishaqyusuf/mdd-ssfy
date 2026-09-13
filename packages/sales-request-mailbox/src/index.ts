@@ -46,3 +46,33 @@ export {
 	mailboxEncryptedSecretSchema,
 } from "./crypto.js";
 export type { MailboxEncryptedSecret } from "./crypto.js";
+export {
+	MailboxProviderError,
+	mailboxProviderErrorEvidence,
+	resolveMailboxRetry,
+} from "./errors.js";
+export type { MailboxProviderErrorCode } from "./errors.js";
+export {
+	MAILBOX_OAUTH_REDIRECT_KEYS,
+	MAILBOX_OAUTH_STATE_TTL_MS,
+	createMailboxOAuthAttempt,
+	digestMailboxOAuthState,
+	validateMailboxOAuthAttempt,
+} from "./oauth-state.js";
+export type {
+	MailboxOAuthAttempt,
+	MailboxOAuthRedirectKey,
+} from "./oauth-state.js";
+export {
+	prepareMailboxDisplayText,
+	prepareMailboxModelInput,
+} from "./sanitization.js";
+export {
+	advanceMailboxSync,
+	beginMailboxSync,
+	DEFAULT_MAILBOX_SYNC_BUDGET,
+} from "./cursor-recovery.js";
+export type {
+	MailboxSyncBudget,
+	MailboxSyncState,
+} from "./cursor-recovery.js";
