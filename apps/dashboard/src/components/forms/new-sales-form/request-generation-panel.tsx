@@ -355,7 +355,9 @@ function DefaultItem({ item }: { item: SalesRequestReviewDefault }) {
 	);
 }
 
-function ReviewContent({ model }: { model: SalesRequestReviewModel }) {
+export function SalesRequestReviewContent({
+	model,
+}: { model: SalesRequestReviewModel }) {
 	return (
 		<div className="space-y-4" aria-label="Generated request preview">
 			<section aria-labelledby="proposed-changes-title">
@@ -868,7 +870,9 @@ export function SalesRequestGenerationPanelView(
 					read-only.
 				</div>
 			) : hasResult ? (
-				<ReviewContent model={props.model as SalesRequestReviewModel} />
+				<SalesRequestReviewContent
+					model={props.model as SalesRequestReviewModel}
+				/>
 			) : props.status === "idle" || props.status === "cancelled" ? (
 				<div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
 					Paste a request above to generate a reviewable, read-only proposal.

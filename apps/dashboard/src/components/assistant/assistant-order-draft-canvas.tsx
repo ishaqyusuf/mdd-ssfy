@@ -8,7 +8,7 @@ import type {
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
 import { AlertCircle, FilePlus2, X } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
 	useCustomerProfilesQuery,
 	useNewSalesFormBootstrapQuery,
@@ -21,6 +21,8 @@ import {
 	applySalesRequestGenerationProposal,
 	createFreshStepComponentsResolver,
 } from "../forms/new-sales-form/request-generation-apply";
+import { SalesRequestReviewContent } from "../forms/new-sales-form/request-generation-panel";
+import { buildSalesRequestReviewModel } from "../forms/new-sales-form/request-generation-presentation";
 import type { NewSalesFormRecord } from "../forms/new-sales-form/schema";
 import {
 	assistantArtifactDialogAttributes,
@@ -80,6 +82,129 @@ function formatMoney(value: number) {
 		style: "currency",
 		currency: "USD",
 	}).format(value);
+}
+
+function money(value: unknown) {
+	const amount = Number(value);
+	return Number.isFinite(amount) ? amount : 0;
+}
+
+export function AssistantOrderDraftPricing({
+	preparation,
+}: {
+	preparation: SalesRequestGenerationApplyResult | null;
+}) {
+	if (preparation?.status !== "ready") return null;
+	const record = preparation.proposal.record;
+	return (
+		<section
+			className="rounded-lg border bg-card p-4"
+			aria-labelledby="draft-pricing-title"
+		>
+			<div className="flex items-baseline justify-between gap-3">
+				<div>
+					<h2 id="draft-pricing-title" className="font-semibold">
+						Authoritative pricing
+					</h2>
+					<p className="mt-1 text-xs text-muted-foreground">
+						Calculated by the current native Sales form and customer profile.
+					</p>
+				</div>
+				<strong className="text-lg">
+					{formatMoney(money(record.summary.grandTotal))}
+				</strong>
+			</div>
+			<ul className="mt-4 divide-y rounded-md border text-sm">
+				{record.lineItems.map((line, index) => (
+					<li
+						key={String(line.uid || index)}
+						className="grid grid-cols-[1fr_auto] gap-3 px-3 py-2"
+					>
+						<span>
+							<strong>{String(line.title || `Line ${index + 1}`)}</strong>
+							<small className="block text-muted-foreground">
+								{money(line.qty)} × {formatMoney(money(line.unitPrice))}
+							</small>
+						</span>
+						<span className="font-medium">
+							{formatMoney(money(line.lineTotal))}
+						</span>
+					</li>
+				))}
+				{record.extraCosts.map((cost, index) => (
+					<li
+						key={`${String(cost.type || "cost")}:${index}`}
+						className="flex justify-between gap-3 px-3 py-2"
+					>
+						<span>{String(cost.label || cost.type || "Adjustment")}</span>
+						<span className="font-medium">
+							{formatMoney(money(cost.amount))}
+						</span>
+					</li>
+				))}
+			</ul>
+			<dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+				<dt className="text-muted-foreground">Subtotal</dt>
+				<dd className="text-right font-medium">
+					{formatMoney(money(record.summary.subTotal))}
+				</dd>
+				<dt className="text-muted-foreground">Tax</dt>
+				<dd className="text-right font-medium">
+					{formatMoney(money(record.summary.taxTotal))}
+				</dd>
+				<dt className="font-semibold">Grand total</dt>
+				<dd className="text-right font-semibold">
+					{formatMoney(money(record.summary.grandTotal))}
+				</dd>
+			</dl>
+		</section>
+	);
+}
+
+export function AssistantOrderDraftProvenance({
+	draft,
+}: {
+	draft: AssistantOrderDraft;
+}) {
+	return (
+		<section
+			className="rounded-lg border bg-muted/20 p-4"
+			aria-labelledby="draft-evidence-title"
+		>
+			<h2 id="draft-evidence-title" className="font-semibold">
+				Source evidence
+			</h2>
+			<p className="mt-1 text-sm text-muted-foreground">
+				The selections below were extracted from the chat request and mapped to
+				the published Sales catalog.
+			</p>
+			<dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+				<div>
+					<dt className="text-muted-foreground">Catalog scope</dt>
+					<dd className="break-all font-medium">
+						{draft.data.configurationScope}
+					</dd>
+				</div>
+				<div>
+					<dt className="text-muted-foreground">Catalog revision</dt>
+					<dd className="break-all font-medium">
+						{draft.data.configurationRevision}
+					</dd>
+				</div>
+				<div>
+					<dt className="text-muted-foreground">Generation</dt>
+					<dd className="break-all font-medium">{draft.data.generationId}</dd>
+				</div>
+				<div>
+					<dt className="text-muted-foreground">Model evidence</dt>
+					<dd className="font-medium">
+						{draft.data.provider} · {draft.data.model} ·{" "}
+						{draft.data.promptVersion}
+					</dd>
+				</div>
+			</dl>
+		</section>
+	);
 }
 
 export function AssistantOrderDraftPreparationStatus({
@@ -245,6 +370,13 @@ export function AssistantOrderDraftCanvas({
 			previousFocus?.focus();
 		};
 	}, [draft]);
+	const reviewModel = useMemo(
+		() =>
+			draft && routing.data
+				? buildSalesRequestReviewModel(draft.data.seed, routing.data)
+				: null,
+		[draft, routing.data],
+	);
 	if (!draft) return null;
 	const preparation = selectAssistantOrderDraftPreparation(
 		draft.id,
@@ -283,6 +415,7 @@ export function AssistantOrderDraftCanvas({
 			</header>
 			<div className="flex-1 space-y-5 overflow-y-auto p-5">
 				<AssistantOrderDraftPreparationStatus preparation={preparation} />
+				<AssistantOrderDraftProvenance draft={draft} />
 				<div className="grid grid-cols-2 gap-3">
 					<div className="rounded-lg border p-3">
 						<small className="text-muted-foreground">Line items</small>
@@ -297,38 +430,24 @@ export function AssistantOrderDraftCanvas({
 						</div>
 					</div>
 				</div>
-				{draft.data.seed.lineItems.map((line, index) => (
-					<section className="rounded-lg border p-4" key={line.uid}>
-						<div className="flex items-center justify-between gap-3">
-							<strong>Line {index + 1}</strong>
-							<span className="text-sm text-muted-foreground">
-								Quantity {line.qty}
-							</span>
-						</div>
-						<p className="mt-2 text-sm text-muted-foreground">
-							{line.formSteps.length} configured selection
-							{line.formSteps.length === 1 ? "" : "s"}
-						</p>
+				{reviewModel ? (
+					<SalesRequestReviewContent model={reviewModel} />
+				) : routing.isPending ? (
+					<div
+						role="status"
+						className="h-24 animate-pulse rounded-lg bg-muted"
+						aria-label="Loading Sales catalog evidence"
+					/>
+				) : (
+					<section
+						role="alert"
+						className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
+					>
+						<AlertCircle className="mr-2 inline" size={16} /> Catalog evidence
+						could not be loaded.
 					</section>
-				))}
-				{draft.data.seed.unresolved.length ? (
-					<section className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950">
-						<div className="flex items-center gap-2 font-medium">
-							<AlertCircle size={16} /> Details needed before this can be
-							applied
-						</div>
-						<ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-							{draft.data.seed.unresolved.map((item, index) => (
-								<li key={`${item.lineUid ?? "draft"}:${item.field}:${index}`}>
-									{item.reason}
-								</li>
-							))}
-						</ul>
-					</section>
-				) : null}
-				<p className="text-xs text-muted-foreground">
-					Catalog revision {draft.data.configurationRevision}
-				</p>
+				)}
+				<AssistantOrderDraftPricing preparation={preparation} />
 			</div>
 		</dialog>
 	);
