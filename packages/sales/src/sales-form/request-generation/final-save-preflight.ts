@@ -557,9 +557,12 @@ export function evaluateSalesRequestFinalSavePreflight(
 		});
 	}
 	if (
-		!sameIdentity(candidate.form.customerId, authoritative.customerId) ||
 		!sameIdentity(
-			candidate.form.customerProfileId,
+			numberValue(candidate.form.customerId),
+			authoritative.customerId,
+		) ||
+		!sameIdentity(
+			numberValue(candidate.form.customerProfileId),
 			authoritative.customerProfileId,
 		) ||
 		!sameIdentity(run.applied.customerId, authoritative.customerId) ||
