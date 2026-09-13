@@ -10,10 +10,7 @@ import {
 import type { DevLogEntry } from "@gnd/dev-logger";
 import { classifyError } from "@gnd/errors";
 import { createEventsRoute } from "@gnd/events/route";
-import {
-	completeMailboxConnection,
-	mailboxProviderSchema,
-} from "@gnd/sales-request-mailbox";
+import { mailboxProviderSchema } from "@gnd/sales-request-mailbox";
 import { verifySquareWebhookSignature } from "@gnd/square";
 import { trpcServer } from "@hono/trpc-server";
 import { OpenAPIHono } from "@hono/zod-openapi";
@@ -32,7 +29,7 @@ import { handleVercelDeploymentRequest } from "./rest/reliability-vercel-deploym
 import { resolveVercelDeploymentRegistration } from "./rest/reliability-vercel-deployment-registration";
 import { resolveVercelDrainRegistration } from "./rest/reliability-vercel-registration";
 import type { Context } from "./rest/types";
-import { getConfiguredSalesRequestMailbox } from "./services/sales-request-mailbox-composition";
+import { completeConfiguredSalesRequestMailboxCallback } from "./services/sales-request-mailbox-callback";
 import { createTRPCContext } from "./trpc/init";
 import { appRouter } from "./trpc/routers/_app";
 import { storefrontAppRouter } from "./trpc/routers/storefront-app";
@@ -121,25 +118,14 @@ app.get("/api/sales-request/mailbox/:provider/callback", async (c) => {
 		return c.json({ error: "INVALID_CALLBACK" }, 400);
 	}
 	try {
-		const result = await completeMailboxConnection(
-			{
-				actorUserId: context.userId,
-				provider: provider.data,
-				redirectKey: "sales-request-inbox",
-				state,
-				result: providerError
-					? { kind: "cancelled" }
-					: { kind: "code", code: code ?? "" },
-				signal: c.req.raw.signal,
-			},
-			getConfiguredSalesRequestMailbox().completeConnection,
-		);
-		const outcome =
-			result.kind === "connected"
-				? "connected"
-				: result.kind === "cancelled"
-					? "cancelled"
-					: "error";
+		const outcome = await completeConfiguredSalesRequestMailboxCallback({
+			actorUserId: context.userId,
+			provider: provider.data,
+			state,
+			code,
+			cancelled: Boolean(providerError),
+			signal: c.req.raw.signal,
+		});
 		return c.redirect(`/sales-form/create-order?mailbox=${outcome}`);
 	} catch {
 		return c.redirect("/sales-form/create-order?mailbox=error");
