@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	assistantScrollBehavior,
 	buildAssistantChatRequest,
 	getAssistantIntegrationIdsForMessage,
 	getAssistantRequestId,
@@ -8,10 +9,31 @@ import {
 	persistedMessagesToUi,
 	reduceAssistantData,
 	rotateAssistantRequestId,
+	shouldStickToAssistantBottom,
 	shouldSubmitAssistantComposerKey,
 } from "./assistant-chat-state";
 
 describe("assistant chat state", () => {
+	test("uses instant scrolling when reduced motion is requested", () => {
+		expect(assistantScrollBehavior(true)).toBe("auto");
+		expect(assistantScrollBehavior(false)).toBe("smooth");
+	});
+	test("sticks near the bottom without pulling back a user reading history", () => {
+		expect(
+			shouldStickToAssistantBottom({
+				scrollHeight: 1_000,
+				scrollTop: 420,
+				clientHeight: 500,
+			}),
+		).toBe(true);
+		expect(
+			shouldStickToAssistantBottom({
+				scrollHeight: 1_000,
+				scrollTop: 100,
+				clientHeight: 500,
+			}),
+		).toBe(false);
+	});
 	test("maps only the latest user message to the protected contract", () => {
 		const request = buildAssistantChatRequest("chat-1", [
 			{ id: "old", role: "user", parts: [{ type: "text", text: "old" }] },

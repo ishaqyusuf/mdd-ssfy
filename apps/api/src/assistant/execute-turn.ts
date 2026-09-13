@@ -159,6 +159,9 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 			await warmAssistantToolIndex(input.actor);
 			return await createAssistantRuntime({
 				modelTools: { ...session.tools, ...composioTools },
+				trustedResultTools: Object.keys(session.tools).filter(
+					(toolName) => !(toolName in composioTools),
+				),
 				alwaysActiveTools: Object.keys(composioTools),
 				prepareStep: createAssistantPrepareStep(input.actor),
 				cleanup: session.close,

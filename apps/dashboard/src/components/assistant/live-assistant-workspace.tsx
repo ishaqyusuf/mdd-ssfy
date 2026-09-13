@@ -16,7 +16,6 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import {
 	Archive,
 	ArrowUp,
-	ExternalLink,
 	Globe2,
 	History,
 	LoaderCircle,
@@ -40,6 +39,7 @@ import {
 	assistantAttachmentParts,
 } from "./assistant-attachments";
 import {
+	assistantScrollBehavior,
 	buildAssistantChatRequest,
 	getAssistantIntegrationIdsForMessage,
 	getAssistantRequestId,
@@ -48,8 +48,11 @@ import {
 	persistedMessagesToUi,
 	reduceAssistantData,
 	rotateAssistantRequestId,
+	shouldStickToAssistantBottom,
 	shouldSubmitAssistantComposerKey,
 } from "./assistant-chat-state";
+import { AssistantMessageRenderer } from "./assistant-message-renderer";
+import type { AssistantResponseCardKind } from "./assistant-message-view-model";
 import styles from "./assistant.module.css";
 
 type ConversationSummary = {
@@ -98,16 +101,6 @@ const defaultSuggestions = [
 	},
 ];
 
-function textFromMessage(message: UIMessage) {
-	return message.parts
-		.filter(
-			(part): part is Extract<UIMessage["parts"][number], { type: "text" }> =>
-				part.type === "text",
-		)
-		.map((part) => part.text)
-		.join("\n");
-}
-
 function AssistantConversation(props: {
 	conversation: LoadedConversation;
 	pendingPrompt: {
@@ -134,7 +127,9 @@ function AssistantConversation(props: {
 		resetAt: string;
 	} | null>(null);
 	const mountedRef = useRef(true);
+	const bodyRef = useRef<HTMLDivElement>(null);
 	const bottomRef = useRef<HTMLDivElement>(null);
+	const shouldStickRef = useRef(true);
 	const requestIdsRef = useRef(new Map<string, string>());
 	const integrationIdsRef = useRef(new Map<string, string[]>());
 
@@ -229,16 +224,38 @@ function AssistantConversation(props: {
 
 	const latestMessageId = chat.messages.at(-1)?.id;
 	useEffect(() => {
-		if (latestMessageId || chat.status) {
+		if ((latestMessageId || chat.status) && shouldStickRef.current) {
 			bottomRef.current?.scrollIntoView({
-				behavior: "smooth",
+				behavior: assistantScrollBehavior(
+					window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+				),
 				block: "nearest",
 			});
 		}
 	}, [latestMessageId, chat.status]);
 
 	useEffect(() => {
+		if (!latestMessageId) return;
+		const body = bodyRef.current;
+		const messageContent = bottomRef.current?.parentElement;
+		if (!body || !messageContent || typeof ResizeObserver === "undefined")
+			return;
+		const observer = new ResizeObserver(() => {
+			if (!shouldStickRef.current) return;
+			bottomRef.current?.scrollIntoView({
+				behavior: assistantScrollBehavior(
+					window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+				),
+				block: "nearest",
+			});
+		});
+		observer.observe(messageContent);
+		return () => observer.disconnect();
+	}, [latestMessageId]);
+
+	useEffect(() => {
 		if (!props.pendingPrompt) return;
+		shouldStickRef.current = true;
 		void chat.sendMessage({
 			parts: [
 				...(props.pendingPrompt.text
@@ -266,6 +283,7 @@ function AssistantConversation(props: {
 			chat.status === "submitted"
 		)
 			return;
+		shouldStickRef.current = true;
 		setInput("");
 		setRequestLimitError(null);
 		chat.clearError();
@@ -344,56 +362,63 @@ function AssistantConversation(props: {
 	};
 
 	const busy = chat.status === "streaming" || chat.status === "submitted";
+	const retryLatest = useCallback(
+		(_kind?: AssistantResponseCardKind) => {
+			shouldStickRef.current = true;
+			const latestUser = [...chat.messages]
+				.reverse()
+				.find((message) => message.role === "user");
+			if (latestUser) {
+				rotateAssistantRequestId(requestIdsRef.current, latestUser.id);
+			}
+			chat.clearError();
+			void chat.regenerate();
+		},
+		[chat],
+	);
 	const activeRun =
 		props.conversation.latestRun &&
 		activeStatuses.has(props.conversation.latestRun.status);
 	return (
 		<>
 			<div
+				ref={bodyRef}
 				className={`${styles.body} ${chat.messages.length ? styles.withMessages : ""}`}
+				onScroll={(event) => {
+					shouldStickRef.current = shouldStickToAssistantBottom({
+						scrollHeight: event.currentTarget.scrollHeight,
+						scrollTop: event.currentTarget.scrollTop,
+						clientHeight: event.currentTarget.clientHeight,
+					});
+				}}
 			>
 				{chat.messages.length ? (
-					<div
-						className={styles.messages}
-						role="log"
-						aria-live="polite"
-						aria-label="Assistant conversation"
-					>
-						{chat.messages.map((message) => (
-							<section
-								key={message.id}
-								className={
-									message.role === "user"
-										? styles.liveUserTurn
-										: styles.liveAssistantTurn
-								}
-							>
-								{message.role === "assistant" ? (
-									<div className={styles.answerHeading}>
-										<Sparkles size={16} />
-										<strong>GND Assistant</strong>
-									</div>
-								) : null}
-								<div
-									className={
-										message.role === "user"
-											? styles.userMessage
-											: styles.liveAnswer
+					<>
+						<div
+							className={styles.messages}
+							role="log"
+							aria-label="Assistant conversation"
+						>
+							{chat.messages.map((message) => (
+								<AssistantMessageRenderer
+									key={message.id}
+									message={message}
+									isStreaming={busy}
+									isLastMessage={message.id === latestMessageId}
+									onCardAction={
+										message.id === latestMessageId ? retryLatest : undefined
 									}
-								>
-									{textFromMessage(message) ||
-										(message.role === "assistant" && busy ? "Thinking…" : "")}
-								</div>
-							</section>
-						))}
+								/>
+							))}
+							<div ref={bottomRef} />
+						</div>
 						{busy ? (
 							<output className={styles.liveStatus}>
 								<LoaderCircle className={styles.spin} size={14} />{" "}
 								{chat.status === "submitted" ? "Connecting…" : "Working…"}
 							</output>
 						) : null}
-						<div ref={bottomRef} />
-					</div>
+					</>
 				) : (
 					<section className={styles.welcome}>
 						<div className={styles.welcomeLabel}>
@@ -436,23 +461,7 @@ function AssistantConversation(props: {
 				) : chat.error ? (
 					<div className={styles.liveWarning} role="alert">
 						<span>The response stopped before it finished.</span>
-						<Button
-							size="sm"
-							variant="outline"
-							onClick={() => {
-								const latestUser = [...chat.messages]
-									.reverse()
-									.find((message) => message.role === "user");
-								if (latestUser) {
-									rotateAssistantRequestId(
-										requestIdsRef.current,
-										latestUser.id,
-									);
-								}
-								chat.clearError();
-								void chat.regenerate();
-							}}
-						>
+						<Button size="sm" variant="outline" onClick={() => retryLatest()}>
 							<RefreshCw size={13} /> Retry
 						</Button>
 					</div>
@@ -559,25 +568,6 @@ function AssistantConversation(props: {
 						)}
 					</div>
 				</form>
-				{streamState.sources.length ? (
-					<section className={styles.liveSources} aria-label="Response sources">
-						<strong>Sources</strong>
-						{streamState.sources.map((source) =>
-							source.url ? (
-								<a
-									key={source.id}
-									href={source.url}
-									target="_blank"
-									rel="noreferrer"
-								>
-									{source.label} <ExternalLink size={11} />
-								</a>
-							) : (
-								<span key={source.id}>{source.label}</span>
-							),
-						)}
-					</section>
-				) : null}
 				<div className={styles.footerNote}>
 					<button type="button" onClick={props.onOpenProviders}>
 						<Globe2 size={11} /> Sources and connected apps

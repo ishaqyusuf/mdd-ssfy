@@ -12,7 +12,11 @@ import {
 	tool,
 } from "ai";
 import { z } from "zod";
-import type { AssistantEffect } from "./contracts";
+import {
+	type AssistantEffect,
+	assistantResultStatuses,
+	assistantSourceKinds,
+} from "./contracts";
 import {
 	ASSISTANT_PROMPT_VERSION,
 	type AssistantPromptContext,
@@ -80,6 +84,7 @@ type AssistantAgent = {
 		experimental_transform?: unknown;
 	}): PromiseLike<{
 		textStream: AsyncIterable<string>;
+		fullStream?: AsyncIterable<Record<string, unknown>>;
 		totalUsage: PromiseLike<{
 			inputTokens?: number;
 			outputTokens?: number;
@@ -87,6 +92,335 @@ type AssistantAgent = {
 		}>;
 	}>;
 };
+
+function boundedRuntimeString(value: unknown, max: number) {
+	return typeof value === "string" && value.trim()
+		? value.trim().slice(0, max)
+		: null;
+}
+
+function assistantEnvelopeFromOutput(output: unknown) {
+	const wrapper =
+		output && typeof output === "object"
+			? (output as Record<string, unknown>)
+			: null;
+	const envelope =
+		wrapper?.structuredContent && typeof wrapper.structuredContent === "object"
+			? (wrapper.structuredContent as Record<string, unknown>)
+			: wrapper;
+	const status = boundedRuntimeString(envelope?.status, 40);
+	return status &&
+		(assistantResultStatuses as readonly string[]).includes(status)
+		? envelope
+		: null;
+}
+
+function assistantCardForOutput(output: unknown) {
+	const envelope = assistantEnvelopeFromOutput(output);
+	const status = boundedRuntimeString(envelope?.status, 40);
+	if (
+		status === "success" &&
+		Array.isArray(envelope?.data) &&
+		envelope.data.length === 0
+	) {
+		return {
+			kind: "empty",
+			title: "No matching results",
+			description: "Try a different name, number, or date range.",
+		};
+	}
+	const cards = {
+		requires_input: {
+			kind: "ambiguity",
+			title: "More information is needed",
+			description: "Add the missing detail and send your request again.",
+		},
+		requires_approval: {
+			kind: "permission",
+			title: "Approval required",
+			description: "Review and approve this action before it can continue.",
+		},
+		partial: {
+			kind: "partial",
+			title: "Some results are unavailable",
+			description: "The assistant completed part of the request.",
+		},
+		denied: {
+			kind: "permission",
+			title: "Access required",
+			description: "Your account cannot access this information.",
+		},
+		unavailable: {
+			kind: "degraded",
+			title: "A service is temporarily unavailable",
+			description: "Try a new request after the service recovers.",
+		},
+		failed: {
+			kind: "degraded",
+			title: "The action outcome is unknown",
+			description: "Review the related records before trying another action.",
+		},
+	} as const;
+	return status && status in cards ? cards[status as keyof typeof cards] : null;
+}
+
+function assistantToolStatusForOutput(output: unknown) {
+	const envelope = assistantEnvelopeFromOutput(output);
+	const status = boundedRuntimeString(envelope?.status, 40);
+	if (status === "requires_approval") return "approval-required" as const;
+	if (["failed", "denied", "unavailable", "conflict"].includes(status ?? ""))
+		return "failed" as const;
+	return "complete" as const;
+}
+
+async function writeSafeAssistantStream(input: {
+	stream: AsyncIterable<Record<string, unknown>>;
+	writer: AssistantRuntimeWriter;
+	allowedTools: ReadonlySet<string>;
+	trustedResultTools: ReadonlySet<string>;
+}) {
+	const toolNames = new Map<string, string>();
+	const runningTools = new Map<string, string>();
+	const openTextIds = new Set<string>();
+	let assistantText = "";
+	let sourceCount = 0;
+	let completed = false;
+	try {
+		for await (const part of input.stream) {
+			const type = boundedRuntimeString(part.type, 80);
+			if (!type) continue;
+			if (type === "error" || type === "abort") {
+				throw new Error("Assistant stream ended before completion");
+			}
+			if (type === "text-start") {
+				const id = boundedRuntimeString(part.id, 160);
+				if (id) {
+					openTextIds.add(id);
+					input.writer.write({ type: "text-start", id });
+				}
+				continue;
+			}
+			if (type === "text-delta") {
+				const id = boundedRuntimeString(part.id, 160);
+				const text = typeof part.text === "string" ? part.text : null;
+				if (id && text) {
+					if (!openTextIds.has(id)) {
+						openTextIds.add(id);
+						input.writer.write({ type: "text-start", id });
+					}
+					assistantText += text;
+					input.writer.write({ type: "text-delta", id, delta: text });
+				}
+				continue;
+			}
+			if (type === "text-end") {
+				const id = boundedRuntimeString(part.id, 160);
+				if (id && openTextIds.delete(id))
+					input.writer.write({ type: "text-end", id });
+				continue;
+			}
+			if (type === "tool-input-start" || type === "tool-call") {
+				const id = boundedRuntimeString(
+					type === "tool-input-start" ? part.id : part.toolCallId,
+					160,
+				);
+				const name = boundedRuntimeString(part.toolName, 100);
+				if (id && name && input.allowedTools.has(name)) {
+					toolNames.set(id, name);
+					runningTools.set(id, name);
+					input.writer.write({
+						type: "data-assistant-tool",
+						id: `tool-${id}`,
+						data: { id, name, status: "running" },
+					});
+				}
+				continue;
+			}
+			if (type === "tool-result" || type === "tool-error") {
+				const id = boundedRuntimeString(part.toolCallId, 160);
+				const declaredName = boundedRuntimeString(part.toolName, 100);
+				const recordedName = id ? toolNames.get(id) : undefined;
+				const knownName =
+					recordedName && (!declaredName || declaredName === recordedName)
+						? recordedName
+						: null;
+				if (id && knownName) {
+					runningTools.delete(id);
+					const status =
+						type === "tool-error"
+							? ("failed" as const)
+							: input.trustedResultTools.has(knownName)
+								? assistantToolStatusForOutput(part.output)
+								: ("complete" as const);
+					input.writer.write({
+						type: "data-assistant-tool",
+						id: `tool-${id}`,
+						data: {
+							id,
+							name: knownName,
+							status,
+						},
+					});
+				}
+				const trustedResult =
+					knownName && input.trustedResultTools.has(knownName);
+				const card = trustedResult
+					? type === "tool-error"
+						? assistantCardForOutput({ status: "failed" })
+						: assistantCardForOutput(part.output)
+					: null;
+				if (card) {
+					input.writer.write({
+						type: "data-assistant-card",
+						id: `card-${id ?? randomUUID()}`,
+						data: card,
+					});
+				}
+				if (type === "tool-result" && trustedResult && sourceCount < 8) {
+					const envelope = assistantEnvelopeFromOutput(part.output);
+					const observedAtCandidate = boundedRuntimeString(
+						envelope?.observedAt,
+						80,
+					);
+					const observedAt =
+						observedAtCandidate &&
+						!Number.isNaN(Date.parse(observedAtCandidate))
+							? observedAtCandidate
+							: null;
+					const sources = Array.isArray(envelope?.sources)
+						? envelope.sources
+						: [];
+					for (const rawSource of sources) {
+						if (sourceCount >= 8) break;
+						if (!rawSource || typeof rawSource !== "object") continue;
+						const source = rawSource as Record<string, unknown>;
+						const sourceId = boundedRuntimeString(source.id, 300);
+						const label = boundedRuntimeString(source.label, 200);
+						const kind = boundedRuntimeString(source.kind, 40);
+						if (
+							!sourceId ||
+							!label ||
+							!kind ||
+							!(assistantSourceKinds as readonly string[]).includes(kind)
+						)
+							continue;
+						const href = boundedRuntimeString(source.href, 2_000);
+						let url: string | undefined;
+						if (href?.startsWith("https://")) {
+							try {
+								new URL(href);
+								url = href;
+							} catch {
+								url = undefined;
+							}
+						}
+						input.writer.write({
+							type: "data-source",
+							id: `tool-source-${sourceCount + 1}`,
+							data: {
+								kind,
+								id: sourceId,
+								label,
+								...(url ? { url } : {}),
+								...(observedAt ? { observedAt } : {}),
+								freshness: "tool result",
+							},
+						});
+						sourceCount += 1;
+					}
+				}
+				continue;
+			}
+			if (type === "tool-output-denied") {
+				const id = boundedRuntimeString(part.toolCallId, 160);
+				const declaredName = boundedRuntimeString(part.toolName, 100);
+				const recordedName = id ? toolNames.get(id) : undefined;
+				const name =
+					recordedName && (!declaredName || declaredName === recordedName)
+						? recordedName
+						: null;
+				if (id && name) {
+					runningTools.delete(id);
+					input.writer.write({
+						type: "data-assistant-tool",
+						id: `tool-${id}`,
+						data: { id, name, status: "failed" },
+					});
+					input.writer.write({
+						type: "data-assistant-card",
+						id: `card-${id}`,
+						data: {
+							kind: "permission",
+							title: "Action not approved",
+							description: "The action was not run.",
+						},
+					});
+				}
+				continue;
+			}
+			if (type === "tool-approval-request") {
+				const toolCall =
+					part.toolCall && typeof part.toolCall === "object"
+						? (part.toolCall as Record<string, unknown>)
+						: null;
+				const id = boundedRuntimeString(toolCall?.toolCallId, 160);
+				const declaredName = boundedRuntimeString(toolCall?.toolName, 100);
+				const recordedName = id ? toolNames.get(id) : undefined;
+				const name =
+					recordedName && (!declaredName || declaredName === recordedName)
+						? recordedName
+						: null;
+				if (id && name) runningTools.delete(id);
+				if (id && name)
+					input.writer.write({
+						type: "data-assistant-tool",
+						id: `tool-${id}`,
+						data: { id, name, status: "approval-required" },
+					});
+				continue;
+			}
+			if (type === "source" && sourceCount < 8) {
+				const url = boundedRuntimeString(part.url, 2_000);
+				if (!url?.startsWith("https://")) continue;
+				let hostname: string;
+				try {
+					hostname = new URL(url).hostname;
+				} catch {
+					continue;
+				}
+				const id = boundedRuntimeString(part.id, 300) ?? url;
+				const label = boundedRuntimeString(part.title, 200) ?? hostname;
+				input.writer.write({
+					type: "data-source",
+					id: `provider-source-${sourceCount + 1}`,
+					data: {
+						kind: "url",
+						id,
+						label,
+						url,
+						observedAt:
+							boundedRuntimeString(part.observedAt, 80) ??
+							new Date().toISOString(),
+						freshness: "provider citation",
+					},
+				});
+				sourceCount += 1;
+			}
+		}
+		completed = true;
+	} finally {
+		for (const id of openTextIds) input.writer.write({ type: "text-end", id });
+		if (!completed) {
+			for (const [id, name] of runningTools)
+				input.writer.write({
+					type: "data-assistant-tool",
+					id: `tool-${id}`,
+					data: { id, name, status: "failed" },
+				});
+		}
+	}
+	return assistantText;
+}
 
 type AssistantAgentSettings = {
 	model: LanguageModel;
@@ -168,6 +502,7 @@ function createAssistantWebSearchTool(input: {
 							]
 						: [],
 				);
+			const observedAt = new Date().toISOString();
 			for (const [index, result] of results.entries()) {
 				input.writer.write({
 					type: "data-source",
@@ -177,6 +512,8 @@ function createAssistantWebSearchTool(input: {
 						id: result.url,
 						label: result.title,
 						url: result.url,
+						observedAt,
+						freshness: "current web result",
 					},
 				});
 			}
@@ -351,6 +688,7 @@ export function createAssistantRuntime(options?: {
 	environment?: Readonly<Record<string, string | undefined>>;
 	tools?: AssistantRuntimeToolEntry[];
 	modelTools?: Record<string, unknown>;
+	trustedResultTools?: string[];
 	prepareStep?: unknown;
 	deadlineMs?: number;
 	createModel?: (selection: AssistantRuntimeSelection) => LanguageModel;
@@ -367,6 +705,10 @@ export function createAssistantRuntime(options?: {
 		createAssistantModel(selection, options?.environment);
 	const tools =
 		options?.modelTools ?? selectAssistantRuntimeTools(options?.tools ?? []);
+	const trustedResultTools = new Set(
+		options?.trustedResultTools ??
+			(options?.tools ?? []).map(({ name }) => name),
+	);
 	const deadlineMs = Math.max(
 		1,
 		Math.min(
@@ -466,15 +808,25 @@ export function createAssistantRuntime(options?: {
 					timeout: { totalMs: deadlineMs },
 					experimental_transform: smoothStream(),
 				});
-				for await (const delta of result.textStream) {
-					if (!startedText) {
-						input.writer.write({ type: "text-start", id: textId });
-						startedText = true;
+				if (result.fullStream) {
+					assistantText = await writeSafeAssistantStream({
+						stream: result.fullStream,
+						writer: input.writer,
+						allowedTools: new Set(Object.keys(runtimeTools)),
+						trustedResultTools,
+					});
+				} else {
+					for await (const delta of result.textStream) {
+						if (!startedText) {
+							input.writer.write({ type: "text-start", id: textId });
+							startedText = true;
+						}
+						input.writer.write({ type: "text-delta", id: textId, delta });
+						assistantText += delta;
 					}
-					input.writer.write({ type: "text-delta", id: textId, delta });
-					assistantText += delta;
+					if (startedText) input.writer.write({ type: "text-end", id: textId });
+					startedText = false;
 				}
-				if (startedText) input.writer.write({ type: "text-end", id: textId });
 				if (!assistantText) {
 					return {
 						status: "failed" as const,

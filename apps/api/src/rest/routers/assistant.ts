@@ -58,7 +58,31 @@ type AssistantStreamData = UIDataTypes & {
 	title: { conversationId: string; title: string };
 	run: { runId: string; status: string };
 	sequence: { messageSequence: number; runSequence: number };
-	source: { kind: string; id: string; label: string; href?: string };
+	source: {
+		kind: string;
+		id: string;
+		label: string;
+		url?: string;
+		observedAt?: string;
+		freshness?: string;
+	};
+	"assistant-card": {
+		kind:
+			| "empty"
+			| "ambiguity"
+			| "partial"
+			| "permission"
+			| "degraded"
+			| "recoverable-error";
+		title: string;
+		description?: string;
+		actionLabel?: string;
+	};
+	"assistant-tool": {
+		id: string;
+		name: string;
+		status: "queued" | "running" | "complete" | "failed" | "approval-required";
+	};
 	warning: { code: string; message: string };
 	"terminal-status": { runId: string; status: string; errorCode?: string };
 };

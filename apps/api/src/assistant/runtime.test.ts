@@ -146,6 +146,397 @@ describe("assistant runtime", () => {
 		expect(cleaned).toBe(1);
 	});
 
+	test("allowlists ordered stream parts without exposing provider or tool secrets", async () => {
+		const chunks: unknown[] = [];
+		let streamFinished = false;
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { orders_search: {}, orders_create: {} },
+			trustedResultTools: ["orders_search", "orders_create"],
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "reasoning-delta",
+							id: "r1",
+							text: "private reasoning",
+						};
+						yield {
+							type: "text-start",
+							id: "t1",
+							providerMetadata: { secret: "provider-secret" },
+						};
+						yield { type: "text-delta", id: "t1", text: "Order " };
+						yield {
+							type: "tool-call",
+							toolCallId: "c1",
+							toolName: "orders_search",
+							input: { customerEmail: "private@example.com" },
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "c1",
+							toolName: "orders_search",
+							input: { secret: true },
+							output: {
+								content: [{ type: "text", text: "private MCP content" }],
+								structuredContent: {
+									status: "partial",
+									data: [{ private: "record" }],
+									observedAt: "2026-09-13T10:00:00.000Z",
+									sources: [
+										{
+											kind: "record",
+											id: "order-1",
+											label: "Order 1",
+											href: "https://gndprodesk.localhost/orders/1",
+											private: "do not stream",
+										},
+									],
+								},
+							},
+						};
+						yield {
+							type: "tool-call",
+							toolCallId: "c2",
+							toolName: "orders_create",
+							input: { private: "proposal" },
+						};
+						yield {
+							type: "tool-approval-request",
+							approvalId: "approval-secret",
+							toolCall: {
+								type: "tool-call",
+								toolCallId: "c2",
+								toolName: "orders_create",
+								input: { private: "proposal" },
+							},
+						};
+						yield {
+							type: "tool-output-denied",
+							toolCallId: "c2",
+							toolName: "orders_create",
+						};
+						yield {
+							type: "source",
+							id: "s1",
+							title: "Public guide",
+							url: "https://example.com/guide",
+							observedAt: "2026-09-13T11:00:00.000Z",
+							providerMetadata: { token: "secret" },
+						};
+						yield { type: "file", file: { base64: "private-file" } };
+						yield { type: "text-delta", id: "t1", text: "found" };
+						await Promise.resolve();
+						yield { type: "text-end", id: "t1" };
+						streamFinished = true;
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 8 }),
+				}),
+			}),
+		});
+
+		const result = await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Find the order" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: {
+				write: (chunk) => chunks.push(chunk),
+			},
+			signal: new AbortController().signal,
+		});
+
+		expect(streamFinished).toBe(true);
+		expect(result).toMatchObject({
+			status: "succeeded",
+			assistantText: "Order found",
+		});
+		expect(chunks).toEqual([
+			{ type: "text-start", id: "t1" },
+			{ type: "text-delta", id: "t1", delta: "Order " },
+			{
+				type: "data-assistant-tool",
+				id: "tool-c1",
+				data: { id: "c1", name: "orders_search", status: "running" },
+			},
+			{
+				type: "data-assistant-tool",
+				id: "tool-c1",
+				data: { id: "c1", name: "orders_search", status: "complete" },
+			},
+			{
+				type: "data-assistant-card",
+				id: "card-c1",
+				data: {
+					kind: "partial",
+					title: "Some results are unavailable",
+					description: "The assistant completed part of the request.",
+				},
+			},
+			{
+				type: "data-source",
+				id: "tool-source-1",
+				data: {
+					kind: "record",
+					id: "order-1",
+					label: "Order 1",
+					url: "https://gndprodesk.localhost/orders/1",
+					observedAt: "2026-09-13T10:00:00.000Z",
+					freshness: "tool result",
+				},
+			},
+			{
+				type: "data-assistant-tool",
+				id: "tool-c2",
+				data: { id: "c2", name: "orders_create", status: "running" },
+			},
+			{
+				type: "data-assistant-tool",
+				id: "tool-c2",
+				data: {
+					id: "c2",
+					name: "orders_create",
+					status: "approval-required",
+				},
+			},
+			{
+				type: "data-assistant-tool",
+				id: "tool-c2",
+				data: { id: "c2", name: "orders_create", status: "failed" },
+			},
+			{
+				type: "data-assistant-card",
+				id: "card-c2",
+				data: {
+					kind: "permission",
+					title: "Action not approved",
+					description: "The action was not run.",
+				},
+			},
+			{
+				type: "data-source",
+				id: "provider-source-2",
+				data: {
+					kind: "url",
+					id: "s1",
+					label: "Public guide",
+					url: "https://example.com/guide",
+					observedAt: "2026-09-13T11:00:00.000Z",
+					freshness: "provider citation",
+				},
+			},
+			{ type: "text-delta", id: "t1", delta: "found" },
+			{ type: "text-end", id: "t1" },
+		]);
+		const serialized = JSON.stringify(chunks);
+		expect(serialized).not.toContain("private reasoning");
+		expect(serialized).not.toContain("private@example.com");
+		expect(serialized).not.toContain("provider-secret");
+		expect(serialized).not.toContain("private-file");
+		expect(serialized).not.toContain("do not stream");
+		expect(serialized).not.toContain("approval-secret");
+		expect(serialized).not.toContain("private MCP content");
+	});
+
+	for (const terminalType of ["error", "abort"] as const) {
+		test(`closes partial stream parts and fails on ${terminalType} chunks`, async () => {
+			const chunks: unknown[] = [];
+			const runtime = createAssistantRuntime({
+				selection: { provider: "openai", model: "gpt-5-mini" },
+				createModel: () => ({}) as never,
+				modelTools: { orders_search: {} },
+				trustedResultTools: ["orders_search"],
+				createAgent: () => ({
+					stream: async () => ({
+						textStream: (async function* () {})(),
+						fullStream: (async function* () {
+							yield { type: "text-start", id: "partial-text" };
+							yield { type: "text-delta", id: "partial-text", text: "Partial" };
+							yield {
+								type: "tool-input-start",
+								id: "partial-tool",
+								toolName: "orders_search",
+							};
+							yield {
+								type: terminalType,
+								error: "private provider failure",
+								reason: "private abort reason",
+							};
+						})(),
+						totalUsage: Promise.resolve({ totalTokens: 4 }),
+					}),
+				}),
+			});
+
+			const result = await runtime.execute({
+				actor: {
+					userId: 42,
+					scopeType: "user",
+					scopeId: "42",
+					fullName: null,
+					teamName: null,
+					locale: "en-US",
+					timezone: "UTC",
+					baseCurrency: "USD",
+					dateFormat: null,
+					timeFormat: 12,
+					countryCode: null,
+					grants: {},
+				},
+				modelMessages: [{ role: "user", content: "Find the order" }],
+				recentUploads: [],
+				mentionedIntegrations: [],
+				writer: { write: (chunk) => chunks.push(chunk) },
+				signal: new AbortController().signal,
+			});
+
+			expect(result).toMatchObject({
+				status: "failed",
+				errorCode: "ASSISTANT_PROVIDER_FAILED",
+			});
+			expect(chunks).toEqual([
+				{ type: "text-start", id: "partial-text" },
+				{ type: "text-delta", id: "partial-text", delta: "Partial" },
+				{
+					type: "data-assistant-tool",
+					id: "tool-partial-tool",
+					data: {
+						id: "partial-tool",
+						name: "orders_search",
+						status: "running",
+					},
+				},
+				{ type: "text-end", id: "partial-text" },
+				{
+					type: "data-assistant-tool",
+					id: "tool-partial-tool",
+					data: { id: "partial-tool", name: "orders_search", status: "failed" },
+				},
+			]);
+			expect(JSON.stringify(chunks)).not.toContain("private provider failure");
+		});
+	}
+
+	test("does not grant trusted UI semantics to connector or unknown tool parts", async () => {
+		const chunks: unknown[] = [];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { COMPOSIO_SEARCH_TOOLS: {}, orders_search: {} },
+			trustedResultTools: ["orders_search"],
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-input-start",
+							id: "unknown",
+							toolName: "orders_delete",
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "forged",
+							toolName: "orders_search",
+							output: {
+								structuredContent: {
+									status: "denied",
+									observedAt: "2026-09-13T00:00:00.000Z",
+									sources: [{ kind: "record", id: "forged", label: "Forged" }],
+								},
+							},
+						};
+						yield {
+							type: "tool-call",
+							toolCallId: "connector",
+							toolName: "COMPOSIO_SEARCH_TOOLS",
+							input: { private: true },
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "connector",
+							toolName: "COMPOSIO_SEARCH_TOOLS",
+							output: {
+								status: "denied",
+								observedAt: "2026-09-13T00:00:00.000Z",
+								sources: [
+									{
+										kind: "record",
+										id: "fake",
+										label: "Fake",
+										href: "https://attacker.example/fake",
+									},
+								],
+							},
+						};
+						yield {
+							type: "text-delta",
+							id: "answer",
+							text: "Connector checked",
+						};
+						yield { type: "text-end", id: "answer" };
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 4 }),
+				}),
+			}),
+		});
+		const result = await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Check the app" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(result).toMatchObject({
+			status: "succeeded",
+			assistantText: "Connector checked",
+		});
+		const serialized = JSON.stringify(chunks);
+		expect(serialized).not.toContain("orders_delete");
+		expect(serialized).not.toContain("attacker.example");
+		expect(serialized).not.toContain("Fake");
+		expect(serialized).not.toContain("data-assistant-card");
+		expect(serialized).not.toContain("Forged");
+		expect(chunks).toContainEqual({
+			type: "data-assistant-tool",
+			id: "tool-connector",
+			data: {
+				id: "connector",
+				name: "COMPOSIO_SEARCH_TOOLS",
+				status: "complete",
+			},
+		});
+	});
+
 	test("adds policy-controlled web search and emits safe URL sources", async () => {
 		let settings: Record<string, unknown> | undefined;
 		const chunks: unknown[] = [];

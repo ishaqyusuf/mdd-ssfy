@@ -110,6 +110,24 @@ export function shouldSubmitAssistantComposerKey(input: {
 	return input.key === "Enter" && !input.shiftKey && !input.isComposing;
 }
 
+export function assistantScrollBehavior(
+	prefersReducedMotion: boolean,
+): ScrollBehavior {
+	return prefersReducedMotion ? "auto" : "smooth";
+}
+
+export function shouldStickToAssistantBottom(input: {
+	scrollHeight: number;
+	scrollTop: number;
+	clientHeight: number;
+	threshold?: number;
+}) {
+	return (
+		input.scrollHeight - input.scrollTop - input.clientHeight <=
+		(input.threshold ?? 120)
+	);
+}
+
 export function getAssistantIntegrationIdsForMessage(
 	integrationIdsByMessage: Map<string, string[]>,
 	messageId: string,
