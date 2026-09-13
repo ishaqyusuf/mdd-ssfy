@@ -269,6 +269,9 @@ const profileSection = _section("settings", null, [
 	_link("Sales Settings", "Printer", "/settings/sales").access(
 		_role.is("Super Admin"),
 	).data,
+	_link("Assistant Administration", "ChatBubble", "/settings/assistant").access(
+		_role.is("Super Admin"),
+	).data,
 	_link(
 		"Sales Form Adoption",
 		"Activity",

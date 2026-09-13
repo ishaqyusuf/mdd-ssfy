@@ -77,7 +77,7 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - AI analysis: `queued`, `running`, `ready_for_review`, `approved`, `needs_revision`, `failed`. AI analysis never accepts, prioritizes, or releases a request without an authorized human action.
 
 ## Implementation Progress
-- Completion: 15%
+- Completion: 20%
 - Current Checklist: 2/15 — individual entitlement enforcement foundation
 - Blockers: None for T19A; administrator UI, bulk operations, usage accounting, quotas, and request governance remain.
 
@@ -127,5 +127,6 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 ## Validation Evidence
 - 2026-09-13 T19A foundation adds explicit fail-closed per-user entitlement state, audited enable/disable/expiry transitions, optimistic administrator updates, bootstrap/navigation/direct-route gating, and enforcement through the existing Assistant actor boundary. Enabling access continues to derive all business grants and scope from current role and individual domain permissions.
 - Focused access and sidebar validation passes 21 tests / 73 assertions; Prisma client generation and focused Biome checks pass. API typecheck reaches only the unrelated existing `packages/sales/src/copy-sales.ts:521` nullable-string diagnostic.
+- The normal-dashboard Super Admin access screen now supports search, state/expiry/reason visibility, and reviewed single-account changes. In-app browser proof used four synthetic employees, found and fixed one timezone hydration mismatch, and finished without a visible runtime issue. Bulk changes remain open in the T19A checklist.
 - 2026-09-13 planning review expanded the ticket into four delivery slices with explicit data, API, dashboard, lifecycle, privacy, accounting, and acceptance contracts.
 - Planning only; no entitlement, quota, usage ledger, admin screen, request-board behavior, schema, or application code is implemented by this ticket update.

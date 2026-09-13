@@ -2,7 +2,7 @@
 
 ## Status
 
-T19A foundation implemented on 2026-09-13. Administrator presentation and bulk operations remain in progress.
+T19A foundation and single-account administrator presentation implemented on 2026-09-13. Bulk operations remain in progress.
 
 ## Current behavior
 
@@ -20,8 +20,16 @@ T19A foundation implemented on 2026-09-13. Administrator presentation and bulk o
 - `assistant.adminEntitlements` lists bounded employee access state and audit history for Super Admin.
 - `assistant.updateEntitlement` changes one employee entitlement and appends its event atomically.
 
+## Dashboard
+
+- `/settings/assistant` is a normal dashboard settings page available only to Super Admin.
+- The access table shows the employee, enabled/disabled/revoked state, scheduled expiry, last reason, and last change.
+- Changing access opens a review dialog that requires an audit reason and supports an optional future expiry.
+- `/assistant-admin-preview` demonstrates the screen with synthetic records and cannot mutate account access.
+
 ## Validation
 
 - Focused entitlement and sidebar checks: 21 tests / 73 assertions.
 - Prisma client generation and focused Biome checks pass.
 - API typecheck reports only the existing unrelated Sales nullability diagnostic.
+- In-app browser validation confirmed the synthetic access screen at desktop width. An explicit UTC formatter removed the server/client hydration mismatch found during the first pass.
