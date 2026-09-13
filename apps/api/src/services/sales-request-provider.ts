@@ -51,6 +51,29 @@ export type SalesRequestProvider = (
 	input: SalesRequestProviderInput,
 ) => Promise<SalesRequestProviderResult>;
 
+export type SalesRequestEvaluationProviderCapture = {
+	status: "returned" | "invalid-structured-output";
+	text: string | null;
+	inputTokens: number | null;
+	outputTokens: number | null;
+	finishReason: string | null;
+};
+
+type SalesRequestEvaluationCaptureSink = (
+	capture: SalesRequestEvaluationProviderCapture,
+) => Promise<void>;
+
+async function captureSalesRequestEvaluationResponse(
+	sink: SalesRequestEvaluationCaptureSink,
+	capture: SalesRequestEvaluationProviderCapture,
+) {
+	try {
+		await sink(capture);
+	} catch {
+		throw new SalesRequestProviderExecutionError({ stage: "unknown" });
+	}
+}
+
 export const SALES_REQUEST_MAX_OUTPUT_TOKENS = 4_000;
 export const SALES_REQUEST_DEFAULT_MAX_RETRIES = 1;
 export const SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES = 0;
@@ -265,6 +288,8 @@ export function createSalesRequestProvider(options: {
 	maxRetries?: 0 | 1;
 	/** Test seam for proving bounded SDK execution without a network request. */
 	generateTextImpl?: typeof generateText;
+	/** Evaluation-only sink that must durably archive a billed response before return/throw. */
+	onEvaluationCapture?: SalesRequestEvaluationCaptureSink;
 }): SalesRequestProvider {
 	const selection = salesRequestAISelectionSchema.parse(options.selection);
 	const providerOption = getSalesRequestAIProviderOption(selection.provider);
@@ -316,9 +341,33 @@ export function createSalesRequestProvider(options: {
 				maxOutputTokens: SALES_REQUEST_MAX_OUTPUT_TOKENS,
 			});
 		} catch (error) {
+			if (
+				options.onEvaluationCapture &&
+				NoObjectGeneratedError.isInstance(error)
+			) {
+				await captureSalesRequestEvaluationResponse(
+					options.onEvaluationCapture,
+					{
+						status: "invalid-structured-output",
+						text: error.text ?? null,
+						inputTokens: error.usage?.inputTokens ?? null,
+						outputTokens: error.usage?.outputTokens ?? null,
+						finishReason: error.finishReason ?? null,
+					},
+				);
+			}
 			throw new SalesRequestProviderExecutionError(
 				classifySalesRequestProviderFailure(error),
 			);
+		}
+		if (options.onEvaluationCapture) {
+			await captureSalesRequestEvaluationResponse(options.onEvaluationCapture, {
+				status: "returned",
+				text: result.text || null,
+				inputTokens: result.usage.inputTokens ?? null,
+				outputTokens: result.usage.outputTokens ?? null,
+				finishReason: result.finishReason ?? null,
+			});
 		}
 
 		return {

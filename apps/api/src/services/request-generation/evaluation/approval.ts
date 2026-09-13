@@ -158,6 +158,24 @@ export function assertSalesRequestEvaluationApproval(input: {
 	return archived;
 }
 
+export function verifySalesRequestEvaluationApprovalPacket(input: {
+	packet: unknown;
+	approvedDigest: string;
+}) {
+	const packet = salesRequestEvaluationApprovalPacketSchema.parse(input.packet);
+	const { approvalDigest, ...unsigned } = packet;
+	const recomputed = `sha256:${sha256(stableStringify(unsigned))}`;
+	if (
+		input.approvedDigest !== approvalDigest ||
+		recomputed !== approvalDigest
+	) {
+		throw new Error(
+			"Benchmark evidence does not match the independently approved digest",
+		);
+	}
+	return packet;
+}
+
 export async function consumeSalesRequestEvaluationApproval(input: {
 	path: string;
 	packet: SalesRequestEvaluationApprovalPacket;

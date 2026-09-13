@@ -30,12 +30,12 @@ function fixture() {
 			shelfItemsExcluded: true,
 			facts: [
 				{
-					id: "door-width",
+					id: "schema-version",
 					family: "door-hpt",
 					classification: "supported",
-					description: "Explicit door width",
-					provider: { path: "lineItems[0].qty", value: 1 },
-					seed: { path: "lineItems[0].qty", value: 1 },
+					description: "Expected output contract version",
+					provider: { path: "schemaVersion", value: 2 },
+					seed: { path: "schemaVersion", value: 2 },
 				},
 			],
 		}),
@@ -112,7 +112,22 @@ function fixture() {
 		[`${caseId}/oracle-provider-output.json`]: approvalArtifacts.providerOracle,
 		[`${caseId}/oracle-seed.json`]: approvalArtifacts.seedOracle,
 		[`${caseId}/request.json`]: approvalArtifacts.request,
-		[`${caseId}/provider-output.json`]: json({ schemaVersion: 2 }),
+		[`${caseId}/provider-output.json`]: json({
+			schemaVersion: 2,
+			lineItems: [],
+			unresolved: [],
+		}),
+		[`${caseId}/provider-response.json`]: json({
+			schemaVersion: 1,
+			receivedAt: "2026-09-13T12:00:01.000Z",
+			provider: "deepseek",
+			model: "deepseek-v4-flash",
+			status: "returned",
+			text: '{"schemaVersion":2,"lineItems":[],"unresolved":[]}',
+			inputTokens: 100,
+			outputTokens: 20,
+			finishReason: "stop",
+		}),
 		[`${caseId}/provider-return.json`]: json({
 			schemaVersion: 1,
 			receivedAt: "2026-09-13T12:00:01.000Z",
@@ -120,9 +135,13 @@ function fixture() {
 			model: "deepseek-v4-flash",
 			inputTokens: 100,
 			outputTokens: 20,
-			output: { schemaVersion: 2 },
+			output: { schemaVersion: 2, lineItems: [], unresolved: [] },
 		}),
-		[`${caseId}/seed.json`]: json({ schemaVersion: 2 }),
+		[`${caseId}/seed.json`]: json({
+			schemaVersion: 2,
+			lineItems: [],
+			unresolved: [],
+		}),
 		[`${caseId}/validation.json`]: json({
 			status: "passed",
 			facts: "passed",
@@ -144,8 +163,19 @@ function fixture() {
 						matched: 0,
 						matchRate: null,
 					},
-					byClassification: {},
-					byFamily: {},
+					byClassification: {
+						supported: bucket,
+						ambiguous: { expected: 0, matched: 0, matchRate: null },
+						custom: { expected: 0, matched: 0, matchRate: null },
+						unsupported: { expected: 0, matched: 0, matchRate: null },
+					},
+					byFamily: {
+						"door-hpt": bucket,
+						mouldings: { expected: 0, matched: 0, matchRate: null },
+						services: { expected: 0, matched: 0, matchRate: null },
+						delivery: { expected: 0, matched: 0, matchRate: null },
+						"custom-value": { expected: 0, matched: 0, matchRate: null },
+					},
 				},
 				seed: {
 					all: bucket,
@@ -155,8 +185,19 @@ function fixture() {
 						matched: 0,
 						matchRate: null,
 					},
-					byClassification: {},
-					byFamily: {},
+					byClassification: {
+						supported: bucket,
+						ambiguous: { expected: 0, matched: 0, matchRate: null },
+						custom: { expected: 0, matched: 0, matchRate: null },
+						unsupported: { expected: 0, matched: 0, matchRate: null },
+					},
+					byFamily: {
+						"door-hpt": bucket,
+						mouldings: { expected: 0, matched: 0, matchRate: null },
+						services: { expected: 0, matched: 0, matchRate: null },
+						delivery: { expected: 0, matched: 0, matchRate: null },
+						"custom-value": { expected: 0, matched: 0, matchRate: null },
+					},
 				},
 			},
 			providerOracle: { wholeOrderMatch: true, unsafeGuesses: 0 },
@@ -165,7 +206,7 @@ function fixture() {
 		[`${caseId}/cost-estimate.json`]: json({
 			status: "within-ceiling",
 			evaluable: true,
-			minimumCostMicros: 71,
+			minimumCostMicros: 28,
 			maximumCostMicros: 71,
 			withinCeiling: true,
 		}),
@@ -181,7 +222,7 @@ function fixture() {
 			decision: "continue",
 			factReviews: [
 				{
-					factId: "door-width",
+					factId: "schema-version",
 					provider: "correct",
 					normalized: "correct",
 					safety: "safe",
@@ -196,7 +237,7 @@ function fixture() {
 			stopReasons: [],
 		}),
 	};
-	return { artifacts, caseId };
+	return { artifacts, caseId, approvedDigest: approval.approvalDigest };
 }
 
 describe("final Sales Request benchmark evidence", () => {
@@ -239,6 +280,12 @@ describe("final Sales Request benchmark evidence", () => {
 			factReviews: [],
 		});
 		expect(() => finalizeSalesRequestBenchmarkEvidence(incomplete)).toThrow();
+
+		const unapproved = fixture();
+		unapproved.approvedDigest = `sha256:${"b".repeat(64)}`;
+		expect(() => finalizeSalesRequestBenchmarkEvidence(unapproved)).toThrow(
+			"independently approved digest",
+		);
 	});
 
 	test("requires the durable provider return to match output and token metrics", () => {
@@ -267,7 +314,7 @@ describe("final Sales Request benchmark evidence", () => {
 		tokenReturn.inputTokens = 99;
 		tokenMismatch.artifacts[tokenReturnPath] = json(tokenReturn);
 		expect(() => finalizeSalesRequestBenchmarkEvidence(tokenMismatch)).toThrow(
-			"token metrics do not match",
+			"provider response and return usage do not match",
 		);
 	});
 
@@ -290,8 +337,52 @@ describe("final Sales Request benchmark evidence", () => {
 			withinCeiling: null,
 		});
 		expect(() => finalizeSalesRequestBenchmarkEvidence(unknownCost)).toThrow(
-			"cost and token evidence must be complete",
+			"cost does not match approved pricing and durable usage",
 		);
+
+		const reviewRequired = fixture();
+		reviewRequired.artifacts[`${reviewRequired.caseId}/validation.json`] = json(
+			{
+				status: "review-required",
+				facts: "passed",
+				normalization: "passed",
+				initializer: "passed",
+				saveReopen: "passed",
+				issues: [],
+			},
+		);
+		expect(() => finalizeSalesRequestBenchmarkEvidence(reviewRequired)).toThrow(
+			"quality, compatibility, token, and cost evidence must pass",
+		);
+	});
+
+	test("rejects edited fact metrics and raw provider output", () => {
+		const editedMetrics = fixture();
+		const metricsPath = `${editedMetrics.caseId}/metrics.json`;
+		const metrics = JSON.parse(
+			requiredArtifact(editedMetrics.artifacts, metricsPath),
+		);
+		metrics.factExpectations.seed.supportedAccuracy = {
+			expected: 1,
+			matched: 0,
+			matchRate: 0,
+		};
+		editedMetrics.artifacts[metricsPath] = json(metrics);
+		expect(() => finalizeSalesRequestBenchmarkEvidence(editedMetrics)).toThrow(
+			"fact metrics are not reproducible",
+		);
+
+		const editedRawResponse = fixture();
+		const responsePath = `${editedRawResponse.caseId}/provider-response.json`;
+		const response = JSON.parse(
+			requiredArtifact(editedRawResponse.artifacts, responsePath),
+		);
+		response.text =
+			'{"schemaVersion":2,"lineItems":[],"unresolved":[{"field":"request"}]}';
+		editedRawResponse.artifacts[responsePath] = json(response);
+		expect(() =>
+			finalizeSalesRequestBenchmarkEvidence(editedRawResponse),
+		).toThrow("raw response does not match parsed output");
 	});
 
 	test("finalizes a reviewed stopped provider failure without inventing metrics", () => {
@@ -319,6 +410,9 @@ describe("final Sales Request benchmark evidence", () => {
 			maximumCostMicros: null,
 			withinCeiling: null,
 		});
+		delete stopped.artifacts[`${stopped.caseId}/provider-response.json`];
+		delete stopped.artifacts[`${stopped.caseId}/provider-return.json`];
+		delete stopped.artifacts[`${stopped.caseId}/seed.json`];
 
 		expect(finalizeSalesRequestBenchmarkEvidence(stopped)).toMatchObject({
 			review: { decision: "stop" },
@@ -327,6 +421,50 @@ describe("final Sales Request benchmark evidence", () => {
 				inputTokens: null,
 				minimumCostMicros: null,
 				withinCostCeiling: null,
+			},
+		});
+	});
+
+	test("binds malformed structured output to its raw response, usage, and cost", () => {
+		const stopped = fixture();
+		const reviewPath = `${stopped.caseId}/review.json`;
+		const review = JSON.parse(requiredArtifact(stopped.artifacts, reviewPath));
+		review.decision = "stop";
+		review.stopReasons = ["structured-output"];
+		review.factReviews[0].provider = "not-produced";
+		review.factReviews[0].normalized = "not-produced";
+		stopped.artifacts[reviewPath] = json(review);
+		stopped.artifacts[`${stopped.caseId}/metrics.json`] = json({
+			latencyMs: 900,
+			providerFailure: {
+				stage: "structured-output",
+				inputTokens: 100,
+				outputTokens: 20,
+			},
+		});
+		stopped.artifacts[`${stopped.caseId}/validation.json`] = json({
+			status: "failed",
+			error: "The AI provider operation failed.",
+			hydration: "not-run",
+		});
+		const responsePath = `${stopped.caseId}/provider-response.json`;
+		const response = JSON.parse(
+			requiredArtifact(stopped.artifacts, responsePath),
+		);
+		response.status = "invalid-structured-output";
+		response.text = "not valid JSON";
+		stopped.artifacts[responsePath] = json(response);
+		delete stopped.artifacts[`${stopped.caseId}/provider-return.json`];
+		delete stopped.artifacts[`${stopped.caseId}/seed.json`];
+
+		expect(finalizeSalesRequestBenchmarkEvidence(stopped)).toMatchObject({
+			review: { decision: "stop" },
+			metrics: {
+				inputTokens: 100,
+				outputTokens: 20,
+				minimumCostMicros: 28,
+				maximumCostMicros: 71,
+				withinCostCeiling: true,
 			},
 		});
 	});

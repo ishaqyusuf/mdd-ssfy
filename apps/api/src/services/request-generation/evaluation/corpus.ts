@@ -307,7 +307,7 @@ function scoreFactStage(
 }
 
 export function evaluateSalesRequestFactExpectations(input: {
-	caseData: SalesRequestCorpusCase;
+	caseData: Pick<SalesRequestCorpusCase, "factExpectations">;
 	providerOutput: unknown;
 	seed: NewSalesFormSeed;
 }) {

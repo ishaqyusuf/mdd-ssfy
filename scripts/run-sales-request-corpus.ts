@@ -24,6 +24,7 @@ import {
 	calculateSalesRequestEvaluationCost,
 	salesRequestEvaluationPricingSnapshotSchema,
 } from "../apps/api/src/services/request-generation/evaluation/pricing";
+import { buildSalesRequestEvaluationRuntimeLock } from "../apps/api/src/services/request-generation/evaluation/runtime-lock";
 import { getSalesRequestConfigurationContext } from "../apps/api/src/services/sales-request-configuration-context";
 import {
 	SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
@@ -40,20 +41,6 @@ const corpusRoot = join(
 	".brain/evaluations/sales-request-generation",
 );
 const pricingRoot = join(corpusRoot, "pricing");
-const evaluationRuntimeFiles = [
-	"apps/api/src/services/request-generation/evaluation/approval.ts",
-	"apps/api/src/services/request-generation/evaluation/benchmark-evidence.ts",
-	"apps/api/src/services/request-generation/evaluation/corpus.ts",
-	"apps/api/src/services/request-generation/evaluation/harness.ts",
-	"apps/api/src/services/request-generation/evaluation/pricing.ts",
-	"apps/api/src/services/sales-request-generation.ts",
-	"apps/api/src/services/sales-request-provider.ts",
-	"packages/sales/src/sales-form/request-generation/index.ts",
-	"packages/sales/src/sales-form/request-generation/prompt.ts",
-	"scripts/finalize-sales-request-benchmark.ts",
-	"scripts/run-sales-request-corpus.ts",
-	"bun.lock",
-] as const;
 
 function argument(name: string) {
 	const prefix = `--${name}=`;
@@ -151,16 +138,6 @@ async function assertArchivedArtifact(path: string, expected: string) {
 			`Prepared evaluation artifact changed after review: ${path}`,
 		);
 	}
-}
-
-async function buildEvaluationRuntimeLock() {
-	const files = await Promise.all(
-		evaluationRuntimeFiles.map(async (path) => ({
-			path,
-			sha256: sha256(await readFile(join(repositoryRoot, path), "utf8")),
-		})),
-	);
-	return serializeJson({ schemaVersion: 1, files });
 }
 
 async function readPricingSnapshot(input: {
@@ -275,7 +252,8 @@ async function main() {
 					pricingDate: argument("pricing-date"),
 				})
 			: null;
-	const evaluationRuntimeLock = await buildEvaluationRuntimeLock();
+	const evaluationRuntimeLock =
+		await buildSalesRequestEvaluationRuntimeLock(repositoryRoot);
 	const cases = await loadSalesRequestCorpus(
 		join(corpusRoot, "cases"),
 		selectedCaseId,
@@ -527,6 +505,22 @@ async function main() {
 				join(runDirectory, "configuration.json"),
 				configurationJson,
 			);
+			const archivedManifest = (await readJson(
+				join(runDirectory, "manifest.json"),
+			)) as Record<string, unknown>;
+			if (
+				archivedManifest.mode !== "prepare-only" ||
+				archivedManifest.runId !== runId ||
+				archivedManifest.provider !== selection.provider ||
+				archivedManifest.model !== selection.model ||
+				archivedManifest.settingId !== settingId ||
+				archivedManifest.configurationRevision !== snapshot.revision ||
+				archivedManifest.approvalDigest !== approvalPacket.approvalDigest
+			) {
+				throw new Error(
+					"Archived prepare-only manifest does not match the approved live run",
+				);
+			}
 			await assertArchivedArtifact(
 				join(runDirectory, "evaluation-runtime-lock.json"),
 				evaluationRuntimeLock,
@@ -561,6 +555,15 @@ async function main() {
 			const rawProvider = createSalesRequestProvider({
 				selection,
 				maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+				onEvaluationCapture: async (capture) => {
+					await writeJson(join(caseDirectory, "provider-response.json"), {
+						schemaVersion: 1,
+						receivedAt: new Date().toISOString(),
+						provider: selection.provider,
+						model: selection.model,
+						...capture,
+					});
+				},
 			});
 			await consumeSalesRequestEvaluationApproval({
 				path: join(runDirectory, "approval-consumed.json"),

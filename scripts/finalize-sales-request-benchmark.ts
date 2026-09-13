@@ -1,11 +1,14 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { newSalesFormSeedV2Schema } from "@gnd/sales/sales-form-core";
 import { salesRequestEvaluationApprovalPacketSchema } from "../apps/api/src/services/request-generation/evaluation/approval";
 import {
 	finalizeSalesRequestBenchmarkEvidence,
 	salesRequestBenchmarkHumanReviewSchema,
 	verifySalesRequestBenchmarkFinalEvidence,
 } from "../apps/api/src/services/request-generation/evaluation/benchmark-evidence";
+import { verifySalesRequestCorpusSeedCompatibility } from "../apps/api/src/services/request-generation/evaluation/corpus";
+import { assertSalesRequestEvaluationRuntimeLock } from "../apps/api/src/services/request-generation/evaluation/runtime-lock";
 
 const repositoryRoot = resolve(import.meta.dir, "..");
 const runsRoot = join(
@@ -134,6 +137,12 @@ async function collectArtifacts(input: {
 	if (providerReturn !== null) {
 		artifacts[`${input.caseId}/provider-return.json`] = providerReturn;
 	}
+	const providerResponse = await readOptional(
+		join(input.runDirectory, input.caseId, "provider-response.json"),
+	);
+	if (providerResponse !== null) {
+		artifacts[`${input.caseId}/provider-response.json`] = providerResponse;
+	}
 	const reviewFinal =
 		input.reviewFinal ??
 		(await readOptional(
@@ -145,10 +154,51 @@ async function collectArtifacts(input: {
 	return artifacts;
 }
 
+async function verifyNativeCompatibilityIfSuccessful(input: {
+	runDirectory: string;
+	caseId: string;
+}) {
+	const validation = JSON.parse(
+		await readRequired(
+			join(input.runDirectory, input.caseId, "validation.json"),
+		),
+	) as Record<string, unknown>;
+	if (validation.status === "failed") return;
+	if (
+		validation.status !== "passed" &&
+		validation.status !== "review-required"
+	) {
+		throw new Error("Archived benchmark validation status is invalid");
+	}
+	const seed = newSalesFormSeedV2Schema.parse(
+		JSON.parse(
+			await readRequired(join(input.runDirectory, input.caseId, "seed.json")),
+		),
+	);
+	const compatibility = await verifySalesRequestCorpusSeedCompatibility(
+		seed,
+		await readRequired(join(input.runDirectory, "configuration.json")),
+	);
+	if (
+		validation.initializer !== compatibility.initializer ||
+		validation.saveReopen !== compatibility.saveReopen
+	) {
+		throw new Error(
+			"Archived native initializer/save-reopen validation is not reproducible",
+		);
+	}
+}
+
 async function main() {
 	const runId = safeSegment(argument("run-id"), "run-id");
 	const provider = safeSegment(argument("provider"), "provider");
 	const model = safeSegment(argument("model"), "model");
+	const approvedDigest = argument("approved-digest");
+	if (!approvedDigest) {
+		throw new Error(
+			"Provide --approved-digest from the independently reviewed prepare-only packet",
+		);
+	}
 	const runDirectory = join(runsRoot, runId, provider, model);
 	const approval = salesRequestEvaluationApprovalPacketSchema.parse(
 		JSON.parse(await readRequired(join(runDirectory, "approval.json"))),
@@ -162,12 +212,20 @@ async function main() {
 	}
 	const caseId = approval.scope.caseId;
 	const finalEvidencePath = join(runDirectory, "final-evidence.json");
+	await assertSalesRequestEvaluationRuntimeLock({
+		repositoryRoot,
+		archived: await readRequired(
+			join(runDirectory, "evaluation-runtime-lock.json"),
+		),
+	});
 
 	if (process.argv.includes("--verify")) {
 		const artifacts = await collectArtifacts({ runDirectory, caseId });
+		await verifyNativeCompatibilityIfSuccessful({ runDirectory, caseId });
 		const evidence = verifySalesRequestBenchmarkFinalEvidence({
 			artifacts,
 			finalEvidence: JSON.parse(await readRequired(finalEvidencePath)),
+			approvedDigest,
 		});
 		console.log(`verified=${evidence.evidenceDigest}`);
 		return;
@@ -182,7 +240,11 @@ async function main() {
 		caseId,
 		reviewFinal,
 	});
-	const evidence = finalizeSalesRequestBenchmarkEvidence({ artifacts });
+	await verifyNativeCompatibilityIfSuccessful({ runDirectory, caseId });
+	const evidence = finalizeSalesRequestBenchmarkEvidence({
+		artifacts,
+		approvedDigest,
+	});
 	await writeFile(join(runDirectory, caseId, "review-final.md"), reviewFinal, {
 		flag: "wx",
 	});

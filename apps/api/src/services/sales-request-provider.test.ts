@@ -88,6 +88,7 @@ describe("sales request provider factory", () => {
 
 	test("forwards the live-evaluation zero-retry policy to the AI SDK call", async () => {
 		let receivedMaxRetries: number | undefined;
+		const captures: unknown[] = [];
 		const provider = createSalesRequestProvider({
 			selection: { provider: "deepseek", model: "deepseek-v4-flash" },
 			environment: credentials,
@@ -96,12 +97,17 @@ describe("sales request provider factory", () => {
 				receivedMaxRetries = options.maxRetries;
 				return {
 					output: { schemaVersion: 2, lineItems: [], unresolved: [] },
+					text: '{"schemaVersion":2,"lineItems":[],"unresolved":[]}',
 					usage: { inputTokens: 1, outputTokens: 1 },
+					finishReason: "stop",
 				};
 			}) as typeof generateText,
+			onEvaluationCapture: async (capture) => {
+				captures.push(capture);
+			},
 		});
 
-		await provider({
+		const result = await provider({
 			configurationJson: JSON.stringify({
 				schemaVersion: 1,
 				routes: [],
@@ -114,6 +120,22 @@ describe("sales request provider factory", () => {
 		});
 
 		expect(receivedMaxRetries).toBe(0);
+		expect(captures).toEqual([
+			{
+				status: "returned",
+				text: '{"schemaVersion":2,"lineItems":[],"unresolved":[]}',
+				inputTokens: 1,
+				outputTokens: 1,
+				finishReason: "stop",
+			},
+		]);
+		expect(result).toEqual({
+			output: { schemaVersion: 2, lineItems: [], unresolved: [] },
+			inputTokens: 1,
+			outputTokens: 1,
+			provider: "deepseek",
+			model: "deepseek-v4-flash",
+		});
 	});
 
 	test("classifies API failures without retaining request or response bodies", () => {
@@ -238,6 +260,7 @@ describe("sales request provider factory", () => {
 	});
 
 	test("preserves safe token usage when structured output fails inside the adapter", async () => {
+		const captures: unknown[] = [];
 		const provider = createSalesRequestProvider({
 			selection: { provider: "openai", model: "gpt-5-mini" },
 			environment: credentials,
@@ -251,6 +274,9 @@ describe("sales request provider factory", () => {
 					finishReason: "stop",
 				} as never);
 			}) as typeof generateText,
+			onEvaluationCapture: async (capture) => {
+				captures.push(capture);
+			},
 		});
 
 		let error: unknown;
@@ -272,6 +298,15 @@ describe("sales request provider factory", () => {
 			inputTokens: 321,
 			outputTokens: 45,
 		});
+		expect(captures).toEqual([
+			{
+				status: "invalid-structured-output",
+				text: "private provider output",
+				inputTokens: 321,
+				outputTokens: 45,
+				finishReason: "stop",
+			},
+		]);
 		expect(JSON.stringify(error)).not.toMatch(/private/i);
 	});
 

@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
+import { newSalesFormSeedV2Schema } from "@gnd/sales/sales-form-core";
 import { z } from "zod";
-import { salesRequestEvaluationApprovalPacketSchema } from "./approval";
-import { salesRequestCorpusFactExpectationsSchema } from "./corpus";
+import { verifySalesRequestEvaluationApprovalPacket } from "./approval";
+import {
+	evaluateSalesRequestFactExpectations,
+	salesRequestCorpusFactExpectationsSchema,
+} from "./corpus";
+import { scoreNewSalesFormSeed } from "./harness";
+import { calculateSalesRequestEvaluationCost } from "./pricing";
 
 export const SALES_REQUEST_BENCHMARK_EVIDENCE_VERSION = 1 as const;
 
@@ -150,7 +156,14 @@ const successfulMetricsSchema = z
 const failedMetricsSchema = z
 	.object({
 		latencyMs: z.number().nonnegative(),
-		providerFailure: z.unknown().optional(),
+		providerFailure: z
+			.object({
+				stage: z.string().optional(),
+				inputTokens: z.number().int().nonnegative().optional(),
+				outputTokens: z.number().int().nonnegative().optional(),
+			})
+			.passthrough()
+			.optional(),
 	})
 	.passthrough();
 
@@ -281,10 +294,12 @@ function assertIdentity(
 
 export function finalizeSalesRequestBenchmarkEvidence(input: {
 	artifacts: Record<string, string>;
+	approvedDigest: string;
 }) {
-	const approval = salesRequestEvaluationApprovalPacketSchema.parse(
-		parseArtifact(input.artifacts, "approval.json"),
-	);
+	const approval = verifySalesRequestEvaluationApprovalPacket({
+		packet: parseArtifact(input.artifacts, "approval.json"),
+		approvedDigest: input.approvedDigest,
+	});
 	const scope = approval.scope;
 	const identity = {
 		runId: scope.runId,
@@ -346,7 +361,140 @@ export function finalizeSalesRequestBenchmarkEvidence(input: {
 	const cost = costSchema.parse(
 		parseArtifact(input.artifacts, `${identity.caseId}/cost-estimate.json`),
 	);
+	if (successfulMetricsValue) {
+		const providerOutput = newSalesFormSeedV2Schema.parse(
+			parseArtifact(input.artifacts, `${identity.caseId}/provider-output.json`),
+		);
+		const seed = newSalesFormSeedV2Schema.parse(
+			parseArtifact(input.artifacts, `${identity.caseId}/seed.json`),
+		);
+		const factEvaluation = evaluateSalesRequestFactExpectations({
+			caseData: { factExpectations: expectations },
+			providerOutput,
+			seed,
+		});
+		if (
+			stableStringify(factEvaluation.metrics) !==
+			stableStringify(successfulMetricsValue.factExpectations)
+		) {
+			throw new Error("Archived benchmark fact metrics are not reproducible");
+		}
+		if (
+			(validation.status === "failed" ? null : validation.facts) !==
+			(factEvaluation.issues.length ? "failed" : "passed")
+		) {
+			throw new Error("Archived benchmark fact validation is not reproducible");
+		}
+		for (const [artifactName, claimed] of [
+			["oracle-provider-output.json", successfulMetricsValue.providerOracle],
+			["oracle-seed.json", successfulMetricsValue.seedOracle],
+		] as const) {
+			if (!claimed) continue;
+			const expected = newSalesFormSeedV2Schema.parse(
+				parseArtifact(input.artifacts, `${identity.caseId}/${artifactName}`),
+			);
+			const actual = artifactName.startsWith("oracle-provider")
+				? providerOutput
+				: seed;
+			const reproduced = scoreNewSalesFormSeed(expected, actual, {
+				latencyMs: successfulMetricsValue.latencyMs,
+				inputTokens: successfulMetricsValue.inputTokens ?? undefined,
+				outputTokens: successfulMetricsValue.outputTokens ?? undefined,
+			});
+			if (
+				reproduced.wholeOrderMatch !== claimed.wholeOrderMatch ||
+				reproduced.unsafeGuesses !== claimed.unsafeGuesses
+			) {
+				throw new Error(
+					"Archived benchmark oracle metrics are not reproducible",
+				);
+			}
+		}
+	}
 	const providerReturnPath = `${identity.caseId}/provider-return.json`;
+	const providerResponsePath = `${identity.caseId}/provider-response.json`;
+	const failedMetrics = failedMetricsSchema.safeParse(metrics);
+	let durableUsage: {
+		inputTokens: number | null;
+		outputTokens: number | null;
+	} | null = null;
+	if (
+		(successfulMetricsValue ||
+			(failedMetrics.success &&
+				failedMetrics.data.providerFailure?.stage === "structured-output")) &&
+		input.artifacts[providerResponsePath] === undefined
+	) {
+		throw new Error(
+			"A billed provider response must be durably archived before finalization",
+		);
+	}
+	if (input.artifacts[providerResponsePath] !== undefined) {
+		const response = z
+			.object({
+				schemaVersion: z.literal(1),
+				receivedAt: isoUtcSchema,
+				provider: z.literal(identity.provider),
+				model: z.literal(identity.model),
+				status: z.enum(["returned", "invalid-structured-output"]),
+				text: z.string().nullable(),
+				inputTokens: z.number().int().nonnegative().nullable(),
+				outputTokens: z.number().int().nonnegative().nullable(),
+				finishReason: z.string().nullable(),
+			})
+			.strict()
+			.parse(parseArtifact(input.artifacts, providerResponsePath));
+		durableUsage = {
+			inputTokens: response.inputTokens,
+			outputTokens: response.outputTokens,
+		};
+		if (
+			successfulMetricsValue &&
+			(response.status !== "returned" ||
+				response.inputTokens !== successfulMetricsValue.inputTokens ||
+				response.outputTokens !== successfulMetricsValue.outputTokens)
+		) {
+			throw new Error(
+				"Durable provider response does not match successful benchmark metrics",
+			);
+		}
+		if (successfulMetricsValue && response.text === null) {
+			throw new Error("Successful benchmark response must retain raw text");
+		}
+		if (successfulMetricsValue && response.text !== null) {
+			let rawOutput: unknown;
+			try {
+				rawOutput = JSON.parse(response.text);
+			} catch {
+				throw new Error("Successful benchmark raw response is not valid JSON");
+			}
+			if (
+				stableStringify(rawOutput) !==
+				stableStringify(
+					parseArtifact(
+						input.artifacts,
+						`${identity.caseId}/provider-output.json`,
+					),
+				)
+			) {
+				throw new Error(
+					"Successful benchmark raw response does not match parsed output",
+				);
+			}
+		}
+		if (
+			failedMetrics.success &&
+			failedMetrics.data.providerFailure?.stage === "structured-output" &&
+			(response.status !== "invalid-structured-output" ||
+				response.inputTokens !==
+					(failedMetrics.data.providerFailure.inputTokens ?? null) ||
+				response.outputTokens !==
+					(failedMetrics.data.providerFailure.outputTokens ?? null))
+		) {
+			throw new Error(
+				"Durable invalid response does not match structured-output failure metrics",
+			);
+		}
+	}
 	if (
 		successfulMetricsValue &&
 		input.artifacts[providerReturnPath] === undefined
@@ -368,6 +516,19 @@ export function finalizeSalesRequestBenchmarkEvidence(input: {
 			})
 			.strict()
 			.parse(parseArtifact(input.artifacts, providerReturnPath));
+		const providerReturnUsage = {
+			inputTokens: providerReturn.inputTokens,
+			outputTokens: providerReturn.outputTokens,
+		};
+		if (
+			durableUsage &&
+			stableStringify(durableUsage) !== stableStringify(providerReturnUsage)
+		) {
+			throw new Error(
+				"Durable provider response and return usage do not match",
+			);
+		}
+		durableUsage = providerReturnUsage;
 		const archivedOutput = parseArtifact(
 			input.artifacts,
 			`${identity.caseId}/provider-output.json`,
@@ -389,12 +550,37 @@ export function finalizeSalesRequestBenchmarkEvidence(input: {
 			);
 		}
 	}
+	if (durableUsage) {
+		const recalculatedCost = calculateSalesRequestEvaluationCost({
+			pricingSnapshot: parseArtifact(input.artifacts, "pricing-snapshot.json"),
+			usage: durableUsage,
+		});
+		if (
+			recalculatedCost.status !== cost.status ||
+			recalculatedCost.evaluable !== cost.evaluable ||
+			recalculatedCost.minimumCostMicros !== cost.minimumCostMicros ||
+			recalculatedCost.maximumCostMicros !== cost.maximumCostMicros ||
+			recalculatedCost.withinCeiling !== cost.withinCeiling
+		) {
+			throw new Error(
+				"Archived benchmark cost does not match approved pricing and durable usage",
+			);
+		}
+	}
 	const successfulValidation =
 		validation.status === "failed" ? null : validation;
 	if (
 		review.decision === "continue" &&
 		(!successfulMetricsValue ||
 			!successfulValidation ||
+			successfulValidation.status !== "passed" ||
+			successfulValidation.facts !== "passed" ||
+			(successfulMetricsValue.factExpectations.seed.supportedAccuracy
+				.matchRate ?? 0) < 0.9 ||
+			(successfulMetricsValue.factExpectations.seed
+				.ambiguousUnsupportedContainment.expected > 0 &&
+				successfulMetricsValue.factExpectations.seed
+					.ambiguousUnsupportedContainment.matchRate !== 1) ||
 			successfulMetricsValue.inputTokens === null ||
 			successfulMetricsValue.outputTokens === null ||
 			!cost.evaluable ||
@@ -402,7 +588,9 @@ export function finalizeSalesRequestBenchmarkEvidence(input: {
 			cost.minimumCostMicros === null ||
 			cost.maximumCostMicros === null)
 	) {
-		throw new Error("Benchmark cost and token evidence must be complete");
+		throw new Error(
+			"Benchmark quality, compatibility, token, and cost evidence must pass",
+		);
 	}
 	if (
 		successfulValidation !== null &&
@@ -499,8 +687,8 @@ export function finalizeSalesRequestBenchmarkEvidence(input: {
 			normalizedUnsafeGuesses:
 				successfulMetricsValue?.seedOracle?.unsafeGuesses ?? null,
 			latencyMs: metrics.latencyMs,
-			inputTokens: successfulMetricsValue?.inputTokens ?? null,
-			outputTokens: successfulMetricsValue?.outputTokens ?? null,
+			inputTokens: durableUsage?.inputTokens ?? null,
+			outputTokens: durableUsage?.outputTokens ?? null,
 			minimumCostMicros: cost.minimumCostMicros,
 			maximumCostMicros: cost.maximumCostMicros,
 			withinCostCeiling: cost.withinCeiling,
@@ -516,12 +704,14 @@ export function finalizeSalesRequestBenchmarkEvidence(input: {
 export function verifySalesRequestBenchmarkFinalEvidence(input: {
 	artifacts: Record<string, string>;
 	finalEvidence: unknown;
+	approvedDigest: string;
 }) {
 	const parsed = salesRequestBenchmarkFinalEvidenceSchema.parse(
 		input.finalEvidence,
 	);
 	const recreated = finalizeSalesRequestBenchmarkEvidence({
 		artifacts: input.artifacts,
+		approvedDigest: input.approvedDigest,
 	});
 	if (stableStringify(parsed) !== stableStringify(recreated)) {
 		throw new Error(
