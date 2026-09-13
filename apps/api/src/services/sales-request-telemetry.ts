@@ -370,6 +370,21 @@ export function normalizeSalesRequestGenerationIssueCounts(
 	};
 }
 
+function hasCompleteSalesRequestGenerationIssueCounts(
+	value: unknown,
+): value is SalesRequestGenerationIssueCounts {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+	const counts = value as Record<string, unknown>;
+	return (
+		Number.isInteger(counts.ambiguous) &&
+		(counts.ambiguous as number) >= 0 &&
+		Number.isInteger(counts.unreadable) &&
+		(counts.unreadable as number) >= 0 &&
+		Number.isInteger(counts.unsupported) &&
+		(counts.unsupported as number) >= 0
+	);
+}
+
 export function normalizeSalesRequestGenerationStatus(value: unknown) {
 	return typeof value === "string" && statusSet.has(value)
 		? (value as SalesRequestGenerationStatus)
@@ -457,6 +472,7 @@ export function aggregateSalesRequestGenerationRuns(
 	let outputTokens = 0;
 	let inputTokensComplete = true;
 	let outputTokensComplete = true;
+	let issueCountsComplete = true;
 	let succeededCount = 0;
 
 	for (const row of rows) {
@@ -483,12 +499,18 @@ export function aggregateSalesRequestGenerationRuns(
 		if (status === "succeeded") providerModel.succeededCount += 1;
 		providerModelCounts[providerModelKey] = providerModel;
 
-		const rowIssues = normalizeSalesRequestGenerationIssueCounts(
-			row.issueCounts,
-		);
-		issueCounts.ambiguous += rowIssues.ambiguous;
-		issueCounts.unreadable += rowIssues.unreadable;
-		issueCounts.unsupported += rowIssues.unsupported;
+		if (status === "succeeded") {
+			if (hasCompleteSalesRequestGenerationIssueCounts(row.issueCounts)) {
+				const rowIssues = normalizeSalesRequestGenerationIssueCounts(
+					row.issueCounts,
+				);
+				issueCounts.ambiguous += rowIssues.ambiguous;
+				issueCounts.unreadable += rowIssues.unreadable;
+				issueCounts.unsupported += rowIssues.unsupported;
+			} else {
+				issueCountsComplete = false;
+			}
+		}
 		if (Number.isInteger(row.inputTokens) && (row.inputTokens as number) >= 0) {
 			inputTokens += Math.min(row.inputTokens as number, 100_000_000);
 		} else if (row.providerAttemptedAt) {
@@ -562,7 +584,7 @@ export function aggregateSalesRequestGenerationRuns(
 			feedbackAcceptedWithEdits,
 			feedbackRejected,
 		},
-		issueCounts,
+		issueCounts: issueCountsComplete ? issueCounts : null,
 		feedbackIssueCounts: countCategories(
 			[...rows],
 			"feedbackIssueCategories",

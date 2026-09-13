@@ -154,6 +154,25 @@ describe("sales request telemetry boundaries", () => {
 		expect(report.tokenTotals).toEqual({ input: null, output: 0 });
 	});
 
+	test("keeps missing successful-run issue evidence distinct from zero issues", () => {
+		const incomplete = aggregateSalesRequestGenerationRuns([
+			{ status: "succeeded", issueCounts: null },
+		]);
+		const explicitZero = aggregateSalesRequestGenerationRuns([
+			{
+				status: "succeeded",
+				issueCounts: { ambiguous: 0, unreadable: 0, unsupported: 0 },
+			},
+		]);
+
+		expect(incomplete.issueCounts).toBeNull();
+		expect(explicitZero.issueCounts).toEqual({
+			ambiguous: 0,
+			unreadable: 0,
+			unsupported: 0,
+		});
+	});
+
 	test("reports blocked and failed pilot outcomes without run-level details", () => {
 		const report = aggregateSalesRequestGenerationRuns([
 			{ status: "cancelled", latencyMs: null, applyOutcome: "blocked" },
