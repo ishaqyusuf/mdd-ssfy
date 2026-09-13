@@ -36,18 +36,18 @@ import {
 	createNewSalesFormAdjustmentSchema,
 	deleteNewSalesFormLineItemSchema,
 	deleteNewSalesFormShelfProductSchema,
-	getNewSalesFormHistorySnapshotSchema,
 	getNewSalesFormAdjustmentApprovalSchema,
+	getNewSalesFormHistorySnapshotSchema,
 	getNewSalesFormSchema,
 	getNewSalesFormShelfCategoriesSchema,
 	getNewSalesFormShelfProductDetailsSchema,
 	getNewSalesFormShelfProductIndexSchema,
 	getNewSalesFormShelfProductsSchema,
 	getNewSalesFormStepRoutingSchema,
-	recalculateNewSalesFormSchema,
 	previewNewSalesFormAdjustmentSchema,
-	respondNewSalesFormAdjustmentApprovalSchema,
+	recalculateNewSalesFormSchema,
 	resolveNewSalesCustomerSchema,
+	respondNewSalesFormAdjustmentApprovalSchema,
 	saveDraftNewSalesFormSchema,
 	saveFinalNewSalesFormSchema,
 	searchNewSalesCustomersSchema,
@@ -59,6 +59,7 @@ import {
 	salesFormAdoptionSchema,
 	salesFormUsageSchema,
 } from "@api/schemas/sales-form-adoption";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
 export const newSalesFormRouter = createTRPCRouter({
@@ -179,11 +180,21 @@ export const newSalesFormRouter = createTRPCRouter({
 	saveDraft: protectedProcedure
 		.input(saveDraftNewSalesFormSchema)
 		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editOrders"],
+				"You do not have permission to save sales orders or quotes.",
+			);
 			return saveDraftNewSalesForm(props.ctx, props.input);
 		}),
 	saveFinal: protectedProcedure
 		.input(saveFinalNewSalesFormSchema)
 		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editOrders"],
+				"You do not have permission to finalize sales orders or quotes.",
+			);
 			return saveFinalNewSalesForm(props.ctx, props.input);
 		}),
 	deleteLineItem: protectedProcedure

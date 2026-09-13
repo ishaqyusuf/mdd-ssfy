@@ -501,4 +501,15 @@ describe("Sales Request Generation commercial fingerprint", () => {
 			);
 		}
 	});
+
+	test("returns an opaque versioned digest instead of persisted commercial JSON", () => {
+		const fingerprint = buildSalesRequestCommercialFingerprint(candidate());
+
+		expect(fingerprint).toMatch(
+			/^sales-request-commercial-v2:sha256:[a-f0-9]{64}$/,
+		);
+		expect(fingerprint).not.toContain("customerId");
+		expect(fingerprint).not.toContain("unitPrice");
+		expect(fingerprint).not.toContain("grandTotal");
+	});
 });

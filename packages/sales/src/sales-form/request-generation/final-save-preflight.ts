@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
 	SalesFormExtraCostRecord,
 	SalesFormLineItemRecord,
@@ -336,16 +337,16 @@ function canonicalCommercialValue(candidate: SalesRequestFinalSaveCandidate) {
 }
 
 /**
- * Builds the exact, portable canonical value used to bind Apply evidence to a
- * final-save candidate. The prefix versions the projection; the JSON itself is
- * retained instead of using a collision-prone browser-side digest.
+ * Builds a versioned one-way digest over the exact canonical commercial value.
+ * The canonical JSON must never escape this function or enter telemetry/audit.
  */
 export function buildSalesRequestCommercialFingerprint(
 	candidate: SalesRequestFinalSaveCandidate,
 ) {
-	return `sales-request-commercial-v1:${stableJson(
-		canonicalCommercialValue(candidate),
-	)}`;
+	const canonical = stableJson(canonicalCommercialValue(candidate));
+	return `sales-request-commercial-v2:sha256:${createHash("sha256")
+		.update(canonical)
+		.digest("hex")}`;
 }
 
 function hasCustomValue(candidate: SalesRequestFinalSaveCandidate) {
