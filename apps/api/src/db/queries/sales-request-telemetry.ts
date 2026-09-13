@@ -190,6 +190,7 @@ export async function completeSalesRequestGenerationRun(
 		where: {
 			generationId: input.generationId,
 			actorUserId: input.actorUserId,
+			consumedSalesId: null,
 			deletedAt: null,
 			retentionUntil: { gt: input.completedAt },
 		},

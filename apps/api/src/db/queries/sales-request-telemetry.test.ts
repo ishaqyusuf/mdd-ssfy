@@ -85,6 +85,11 @@ function dbFixture(initial = row()) {
 					return { count: 0 };
 				if (where.hasText !== undefined && current.hasText !== where.hasText)
 					return { count: 0 };
+				if (
+					where.consumedSalesId !== undefined &&
+					current.consumedSalesId !== where.consumedSalesId
+				)
+					return { count: 0 };
 				if (where.deletedAt === null && current.deletedAt !== null)
 					return { count: 0 };
 				if (
@@ -419,6 +424,64 @@ describe("sales request generation telemetry persistence", () => {
 			}),
 		).rejects.toMatchObject({ code: "NOT_FOUND" });
 		expect(fixture.getRow()).toMatchObject({ consumedSalesId: 41 });
+	});
+
+	test("allows one concurrent Sales binding winner and keeps same-ID retries idempotent", async () => {
+		const fixture = dbFixture();
+		const base = {
+			actorUserId: 7,
+			generationId: row().generationId,
+			now,
+		};
+		const competing = await Promise.allSettled([
+			consumeSalesRequestGenerationRun(fixture.db, { ...base, salesId: 41 }),
+			consumeSalesRequestGenerationRun(fixture.db, { ...base, salesId: 42 }),
+		]);
+
+		expect(
+			competing.filter((result) => result.status === "fulfilled"),
+		).toHaveLength(1);
+		expect(
+			competing.filter((result) => result.status === "rejected"),
+		).toHaveLength(1);
+		const winner = fixture.getRow().consumedSalesId as number;
+		await expect(
+			Promise.all([
+				consumeSalesRequestGenerationRun(fixture.db, {
+					...base,
+					salesId: winner,
+				}),
+				consumeSalesRequestGenerationRun(fixture.db, {
+					...base,
+					salesId: winner,
+				}),
+			]),
+		).resolves.toEqual([
+			{ generationId: row().generationId, salesId: winner },
+			{ generationId: row().generationId, salesId: winner },
+		]);
+	});
+
+	test("rejects late completion after consumption without mutating the run", async () => {
+		const fixture = dbFixture();
+		await consumeSalesRequestGenerationRun(fixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			salesId: 41,
+			now,
+		});
+		const consumed = fixture.getRow();
+
+		await expect(
+			completeSalesRequestGenerationRun(fixture.db, {
+				actorUserId: 7,
+				generationId: row().generationId,
+				status: "provider-error",
+				completedAt: new Date("2026-09-12T12:01:00.000Z"),
+				latencyMs: 99,
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		expect(fixture.getRow()).toEqual(consumed);
 	});
 
 	test("fails closed for cross-actor, expired, deleted, non-success, and unbound runs", async () => {

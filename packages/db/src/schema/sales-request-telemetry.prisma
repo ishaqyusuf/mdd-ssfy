@@ -37,7 +37,6 @@ model SalesRequestGenerationRun {
     createdAt                       DateTime  @default(now()) @db.Timestamp(0)
     updatedAt                       DateTime  @updatedAt
     deletedAt                       DateTime? @db.Timestamp(0)
-    consumedSales                  SalesOrders? @relation(name: "SalesRequestGenerationConsumedSales", fields: [consumedSalesId], references: [id], onDelete: SetNull)
 
     @@index([status, createdAt], map: "sales_req_gen_status_created_idx")
     @@index([actorUserId, createdAt], map: "sales_req_gen_actor_created_idx")
