@@ -1,3 +1,18 @@
+### 2026-09-14 — iOS signing fallback prepared after upstream Apple-auth failure
+
+The explicitly approved production EAS build initialized remote iOS build number
+`1` and created the `production` update channel/branch, but no build was queued.
+Apple password authentication failed before credential creation with
+`iTunes service key is empty`; Expo's open `eas-cli#4392` shows the same defect on
+newer EAS CLI and Node combinations. Generated a Keychain-backed CSR for
+`GND Millwork Distribution`; the private key remains in the login keychain and
+the Apple Distribution certificate page is prepared at the CSR upload step. No
+certificate/profile, private-key transmission to EAS, build upload/submission,
+API access/key, permission change, or tester invitation has completed. The next
+gate is completing the manual Apple certificate/profile workflow, followed by
+action-time confirmation before sending the encrypted `.p12` and provisioning
+profile to Expo/EAS.
+
 ### 2026-09-12 — App Store Connect app record created
 
 After explicit action-time approval, created the `GND Millwork` iOS app record
