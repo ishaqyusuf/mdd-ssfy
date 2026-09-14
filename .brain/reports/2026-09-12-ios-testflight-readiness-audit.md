@@ -142,6 +142,11 @@
   Because the source workspace contained unrelated uncommitted work, build `5`
   is release-path validation only and must not be submitted to Apple. Clean build
   `6` is the prepared candidate at the explicit App Store Connect upload gate.
+- After explicit approval to upload build `6`, `bun run eas:submit:ios` resolved
+  the correct bundle/app configuration and stopped at EAS's prompt to generate a
+  new App Store Connect API key. The command was cancelled before confirmation;
+  no key, EAS submission job, or Apple upload was created. API-key creation is the
+  current separately confirmed external gate.
 
 ## Local evidence
 

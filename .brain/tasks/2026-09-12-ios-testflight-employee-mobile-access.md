@@ -30,8 +30,10 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
   workspace state was present. Clean detached build `6`, EAS ID
   `f3985128-844d-432c-bbc3-e0e4c93e37ac`, then completed from reviewed commit
   `40a62218e` and passed independent IPA metadata/profile inspection. Explicit
-  action-time confirmation is now required before its App Store Connect upload;
-  processing, tester-group assignment, and invitations remain separately gated.
+  upload approval was given, but EAS requires creation of a new App Store Connect
+  API key. The submit command was cancelled before key creation or Apple upload;
+  separate action-time confirmation for that key is now required. Processing,
+  tester-group assignment, and invitations remain separately gated.
 
 ## Implementation Checklist
 - [x] Audit Expo/EAS, authentication, permissions, updates, signing assumptions, dependencies, and release docs
@@ -116,3 +118,7 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
   `6`). Its IPA independently confirmed the expected bundle/team, App Store beta
   profile, production entitlements, and export declaration. The temporary IPA,
   inspection directory, and detached worktree were removed after verification.
+- After explicit upload approval, ran `bun run eas:submit:ios`. It resolved the
+  app credentials and stopped at **Generate a new App Store Connect API Key?**.
+  Cancelled before accepting the default; no API key, submission job, or Apple
+  upload was created.

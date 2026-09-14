@@ -26,7 +26,10 @@ reviewed commit `40a62218e` passed 19/19 checks and produced clean `STORE` build
 IPA inspection confirmed the bundle, team, App Store beta profile, production
 entitlements, and export declaration; the temporary snapshot/artifacts were then
 removed. Build `6` is prepared at the explicit App Store Connect upload gate.
-API access/key, permission changes, and tester invitations remain gated.
+The user approved that upload, but EAS then required a new App Store Connect API
+key. The command was cancelled at the generation prompt; no key, EAS submission
+job, or Apple upload was created. API-key creation is the current separate
+action-time gate; permission changes and tester invitations remain gated.
 
 ### 2026-09-12 — App Store Connect app record created
 

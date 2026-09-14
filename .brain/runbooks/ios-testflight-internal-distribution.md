@@ -128,6 +128,11 @@ credentials. Obtain explicit action-time confirmation before performing it.
    version, build, team, entitlements, export declaration, and embedded profile
    were independently verified. This is the candidate for the separately
    confirmed `bun run eas:submit:ios` upload gate.
+8. The first confirmed submit attempt for build `6` reached **Generate a new App
+   Store Connect API Key?** and was cancelled before creation or upload. **GATE:**
+   obtain separate action-time confirmation before allowing EAS to create the
+   key. Record its least-privilege ownership and EAS storage result without
+   exposing issuer IDs, key IDs, or private-key material in documentation.
 
 ## 5. Processing and compliance
 
