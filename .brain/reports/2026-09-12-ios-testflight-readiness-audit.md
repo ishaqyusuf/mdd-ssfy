@@ -89,19 +89,31 @@
 
 ## Signing assumptions and remaining verification
 
-- EAS-managed signing is the expected first-build path. Certificates and
-  provisioning profiles may be created/reused only during the confirmed build
-  credential flow.
+- The confirmed first production-build attempt initialized remote iOS build
+  number `1` and created the EAS Update `production` channel/branch, but no build
+  was queued. Apple password authentication then failed before credential
+  creation with `Authentication with Apple Developer Portal failed!` and
+  `iTunes service key is empty`.
+- This is not evidence of a bad Apple ID. Expo issue `expo/eas-cli#4392` records
+  the same current Apple authentication failure on EAS CLI 23.2.0 and 24.3.0;
+  changing this machine's EAS 20.2.0 or Node 25 alone is therefore not a
+  supported fix.
+- The supported fallback is manual Apple signing: Keychain Access generated
+  `gnd-millwork-distribution.certSigningRequest` for
+  `GND Millwork Distribution`; its private key remains in the local login
+  keychain. Create an Apple Distribution certificate from that CSR and an App
+  Store provisioning profile for `com.gnd.prodesk`, then import them into EAS
+  only after the private-key transmission gate is confirmed.
 - Before upload, resolve any agreement/tax/banking warning that blocks TestFlight.
   The App Store Connect record, EAS account, and retained project link are verified.
-- The production App ID now exists. Apple Distribution certificates and App Store
-  provisioning profiles do not yet exist; prefer EAS management during the
-  separately confirmed first-build credential flow rather than creating competing
-  manual signing assets.
-- No signing credential, build, upload, submission, API key, permission, or tester
-  invitation was created or changed. Authorized external changes were accepting
+- The production App ID now exists. No Apple Distribution certificate or App
+  Store provisioning profile has been completed yet; the Apple certificate page
+  is prepared at the CSR upload step.
+- No signing certificate/profile, build, upload, submission, API key, permission,
+  or tester invitation was completed. Authorized external changes were accepting
   Terms V100, switching the local EAS session, registering the explicit production
-  App ID, and creating the App Store Connect app record.
+  App ID, creating the App Store Connect app record, initializing build number
+  `1`/the production update channel, and generating the local CSR/private key.
 
 ## Local evidence
 

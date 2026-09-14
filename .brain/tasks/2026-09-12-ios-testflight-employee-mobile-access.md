@@ -10,7 +10,7 @@ High
 2026-09-12
 
 ## Last Updated
-2026-09-12
+2026-09-14
 
 ## Global Ticket
 - Ticket Position: 1/1
@@ -22,10 +22,12 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 - Completion: 100% of safe local preparation
 - Current Checklist: 11/11 — Safe local work is complete; Terms V100 is accepted,
   EAS is authenticated as `pcruz321`, and the retained project link is verified
-- Blocker: the App ID and App Store Connect record are complete. Creating or
-  selecting Apple signing credentials and starting the first production build is
-  the next explicit action-time gate; upload and tester operations remain
-  separately gated afterward.
+- Blocker: the first production-build attempt reached the Apple signing stage but
+  failed before queuing a build with the upstream `iTunes service key is empty`
+  authentication defect. A Keychain-backed CSR is ready and Apple is open at the
+  CSR upload step. Complete the manual Apple Distribution certificate/profile,
+  then obtain explicit confirmation before transmitting the exported private key
+  to Expo/EAS. Build upload and tester operations remain separately gated.
 
 ## Implementation Checklist
 - [x] Audit Expo/EAS, authentication, permissions, updates, signing assumptions, dependencies, and release docs
@@ -79,3 +81,11 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 - After separate explicit approval, created the `GND Millwork` iOS app record with
   public Company Name `GND MILLWORK`, English (U.S.), SKU `gnd-prodesk-ios`, Full
   Access, and numeric Apple app ID `6811442922`.
+- The explicitly approved production build initialized remote iOS build number
+  `1` and the production update channel/branch, then stopped before build queueing
+  or credential creation because Apple authentication returned
+  `iTunes service key is empty`. Expo's open `eas-cli#4392` reproduces the same
+  failure on newer EAS/Node combinations, so version churn is not the remedy.
+- Generated a CSR named `gnd-millwork-distribution.certSigningRequest` with a
+  private key retained in Keychain Access. Apple is prepared at the CSR upload
+  screen; no certificate/profile or EAS private-key upload has completed.

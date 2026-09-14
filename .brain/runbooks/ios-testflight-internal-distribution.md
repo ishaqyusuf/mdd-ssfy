@@ -75,13 +75,27 @@ credentials. Obtain explicit action-time confirmation before performing it.
 2. Verify certificates and profiles separately; neither existed during the
    activation-day inspection.
 3. Prefer EAS-managed Apple Distribution certificate and App Store provisioning
-   profile for the first release.
+   profile when Apple authentication succeeds. If EAS fails with
+   `iTunes service key is empty`, do not keep retrying passwords or OTPs. This is
+   tracked upstream as `expo/eas-cli#4392` on current EAS releases.
 4. **GATE:** authenticate Apple/EAS, create/reuse certificates, or repair a
    profile only after explicit confirmation. Do not export credentials into the
    repository.
 5. If credentials already exist, confirm their team, bundle ID, expiry, and
    revocation state before selecting them. Never revoke a shared certificate as
    a troubleshooting shortcut.
+6. Manual fallback:
+   - In Keychain Access, request a certificate from a certificate authority,
+     use the Apple Account email and a descriptive common name, leave the CA
+     email blank, and save the CSR to disk. The private key must remain in the
+     login keychain.
+   - In Certificates, Identifiers & Profiles, create **Apple Distribution** from
+     that CSR, download/install the certificate, and create an **App Store
+     Connect** provisioning profile for `GND Millwork` / `com.gnd.prodesk`.
+   - Export the certificate/private-key pair as an encrypted `.p12` outside the
+     repository. **GATE:** obtain action-time confirmation before uploading the
+     `.p12` and `.mobileprovision` to Expo/EAS. Remove temporary exported private
+     material after EAS confirms storage; retain the keychain identity.
 
 ## 4. Build and upload
 
@@ -147,6 +161,10 @@ Beta App Review.
 - Failed local readiness: do not build; fix the named invariant.
 - EAS unauthorized: run `bun run eas:auth` at the credential gate, then re-check
   project info. Do not relink.
+- `iTunes service key is empty`: treat this as the current upstream EAS/Apple
+  password-authentication defect (`expo/eas-cli#4392`), not as proof that the
+  Apple ID is wrong. Use the manual Apple Distribution certificate/profile path
+  above; do not request an App Store Connect API key as a shortcut.
 - Bundle ID/team mismatch: stop; verify the App Store Connect record and signing
   profile. Do not create a second app record to bypass it.
 - Processing failure: retain logs/build ID, fix the reported native/config issue,
