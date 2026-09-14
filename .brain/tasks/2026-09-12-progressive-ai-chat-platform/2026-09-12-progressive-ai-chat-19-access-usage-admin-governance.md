@@ -23,6 +23,7 @@ User requested account-by-account assistant enablement instead of role permissio
 
 ## Product Contract
 
+- The first MVP audience is Super Admin only. Employee enablement remains implemented foundation but is not an MVP release gate until a later pilot is approved.
 - Assistant access is an explicit per-user entitlement. Enabling a role does not automatically enable its members.
 - The individual entitlement opens the assistant product; it does not widen business-data access. Every tool continues to enforce the user's current domain grants, organization/user scope, row filters, and field redaction at execution time.
 - Dashboard navigation, conversation APIs, streaming/reconnect, tool discovery/execution, artifact jobs, and notifications all check the current entitlement server-side. Disabling access takes effect immediately while retaining history under its retention policy.
@@ -81,7 +82,8 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 ## Implementation Progress
 - Completion: 38%
 - Current Checklist: 6/16 — individual access, usage accounting, quota feedback, and global runtime selection foundations
-- Blockers: None for T19A/T19B foundations; quota templates, full reporting UI/export, bulk access operations, and request governance remain.
+- MVP Gate: Super Admin-only access, safe provider/model control, self-usage accounting, and emergency disable. Employee rollout, bulk access, per-employee quota administration, full reporting/export, and request governance remain post-MVP.
+- Blockers: None for the Super Admin-only access foundation. Runtime-path enforcement, basic self-usage visibility, and focused MVP acceptance remain.
 
 ## Implementation Checklist
 - [x] T19A: Add individual entitlement storage and immutable audit events with enabled/disabled state, optional expiry, actor, reason, and timestamps.
@@ -128,6 +130,7 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - Keep organization-wide safety caps and chargeback/showback reporting as a later extension; the first implementation remains per-user as requested.
 
 ## Validation Evidence
+- 2026-09-14 product scope sets the first MVP audience to Super Admin only. Employee access operations, bulk rollout, employee quotas, organization-wide reports, and the complete feature-delivery center no longer block the first MVP. Existing tool-level permissions, row scope, redaction, approvals, idempotency, usage accounting, and provider controls continue to apply to Super Admin sessions.
 - 2026-09-13 T19A foundation adds explicit fail-closed per-user entitlement state, audited enable/disable/expiry transitions, optimistic administrator updates, bootstrap/navigation/direct-route gating, and enforcement through the existing Assistant actor boundary. Enabling access continues to derive all business grants and scope from current role and individual domain permissions.
 - Focused access and sidebar validation passes 21 tests / 73 assertions; Prisma client generation and focused Biome checks pass. API typecheck reaches only the unrelated existing `packages/sales/src/copy-sales.ts:521` nullable-string diagnostic.
 - The normal-dashboard Super Admin access screen now supports search, state/expiry/reason visibility, and reviewed single-account changes. In-app browser proof used four synthetic employees, found and fixed one timezone hydration mismatch, and finished without a visible runtime issue. Bulk changes remain open in the T19A checklist.

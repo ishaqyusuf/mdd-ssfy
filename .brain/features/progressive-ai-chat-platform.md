@@ -241,3 +241,16 @@ catalog entries fail safely to the environment selection. ADR-096 records this
 boundary. Focused validation passes 43 tests / 133 assertions, local `db:push` and
 Prisma generation pass, and browser verification confirms the standard dashboard
 shell and all four provider options.
+
+## First MVP audience — 2026-09-14
+
+The first Assistant MVP is restricted to authenticated Super Admin accounts. Its
+release gate covers the standard desktop dashboard, safe provider/model selection,
+Super Admin usage visibility, core Sales and Community reads, schema-aware charts,
+supported PDF generation, reviewed text order creation, feature-request submission,
+and essential recovery/disable evidence. Existing domain permissions, row scope,
+redaction, approvals, and idempotency remain mandatory.
+
+Employee enablement, bulk access, employee quota administration, full reporting and
+CSV export, image/OCR order input, statement/report PDF expansion, mobile acceptance,
+and the complete T20 feature-delivery center are post-MVP unless separately promoted.
