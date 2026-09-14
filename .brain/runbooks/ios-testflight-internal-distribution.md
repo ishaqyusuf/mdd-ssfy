@@ -96,6 +96,11 @@ credentials. Obtain explicit action-time confirmation before performing it.
      repository. **GATE:** obtain action-time confirmation before uploading the
      `.p12` and `.mobileprovision` to Expo/EAS. Remove temporary exported private
      material after EAS confirms storage; retain the keychain identity.
+   - For the current release, certificate `ZDC9NMPYX8`, profile `6VT956987X`
+     (UUID `be302ee0-1e9c-4df4-b39d-248ad085c5a4`), and exactly one valid local
+     signing identity have been verified. The encrypted `.p12` and its password
+     are temporary `0600` files outside the repository and have not been sent to
+     EAS.
 
 ## 4. Build and upload
 

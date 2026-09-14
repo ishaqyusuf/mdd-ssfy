@@ -103,13 +103,18 @@
   `GND Millwork Distribution`; its private key remains in the local login
   keychain. Apple then created Distribution certificate `ZDC9NMPYX8` and App
   Store profile `GND Millwork App Store` / `6VT956987X` for `com.gnd.prodesk`.
-  Both expire September 14, 2027. Download/install/export them locally, then
-  import them into EAS only after the private-key transmission gate is confirmed.
+  Both expire September 14, 2027. The downloaded certificate and profile were
+  validated, the Apple WWDR G3 intermediate was installed, and Keychain reports
+  exactly one valid matching signing identity. An encrypted temporary `.p12`
+  containing exactly one private key was exported outside the repository with
+  mode `0600`; import it and the profile into EAS only after the separate
+  private-key transmission gate is confirmed.
 - Before upload, resolve any agreement/tax/banking warning that blocks TestFlight.
   The App Store Connect record, EAS account, and retained project link are verified.
-- The production App ID, Apple Distribution certificate, and App Store profile
-  now exist. Chrome blocked the controlled download endpoint, so the authenticated
-  certificate/profile download pages remain prepared for manual **Save Link As**.
+- The production App ID, Apple Distribution certificate, App Store profile, and
+  local signing identity are now ready. The profile resolves to
+  `ZXC78SPCV4.com.gnd.prodesk` with UUID
+  `be302ee0-1e9c-4df4-b39d-248ad085c5a4`.
 - No signing private key was transmitted to EAS, and no build, upload, submission,
   API key, permission, or tester invitation was completed. Authorized external
   changes were accepting

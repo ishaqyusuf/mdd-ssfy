@@ -25,10 +25,11 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 - Blocker: the first production-build attempt reached the Apple signing stage but
   failed before queuing a build with the upstream `iTunes service key is empty`
   authentication defect. Apple Distribution certificate `ZDC9NMPYX8` and App
-  Store profile `6VT956987X` now exist and their authenticated download pages are
-  prepared. Download/install/export them, then obtain explicit confirmation
-  before transmitting the exported private key to Expo/EAS. Build upload and
-  tester operations remain separately gated.
+  Store profile `6VT956987X` now exist, were downloaded and validated, and form
+  exactly one valid Keychain signing identity. An encrypted temporary `.p12`
+  containing one private key is ready outside the repository. Obtain explicit
+  confirmation before transmitting it and the profile to Expo/EAS. Build upload
+  and tester operations remain separately gated.
 
 ## Implementation Checklist
 - [x] Audit Expo/EAS, authentication, permissions, updates, signing assumptions, dependencies, and release docs
@@ -90,6 +91,9 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 - Generated a CSR named `gnd-millwork-distribution.certSigningRequest` with a
   private key retained in Keychain Access. Apple created Distribution certificate
   `ZDC9NMPYX8` and App Store profile `GND Millwork App Store` / `6VT956987X`, both
-  expiring September 14, 2027. Chrome blocked the controlled download endpoint;
-  the authenticated download pages are prepared for manual save. No EAS
-  private-key upload has completed.
+  expiring September 14, 2027. The downloaded certificate and profile validate
+  for team `ZXC78SPCV4`, bundle `com.gnd.prodesk`, and profile UUID
+  `be302ee0-1e9c-4df4-b39d-248ad085c5a4`. The WWDR G3 intermediate is installed,
+  Keychain reports one valid signing identity, and an encrypted `0600` temporary
+  `.p12` containing exactly one private key is ready outside the repository. No
+  EAS private-key upload has completed.

@@ -8,12 +8,14 @@ newer EAS CLI and Node combinations. Generated a Keychain-backed CSR for
 `GND Millwork Distribution`; the private key remains in the login keychain.
 Apple created Distribution certificate `ZDC9NMPYX8` and App Store profile
 `GND Millwork App Store` / `6VT956987X` for `com.gnd.prodesk`; both expire
-September 14, 2027. Chrome blocked its controlled direct-download endpoint, so
-both authenticated download pages remain prepared for a manual **Save Link As**.
-No private key has been transmitted to EAS, and no build upload/submission, API
-access/key, permission change, or tester invitation has completed. After local
-download/install/export, the next action-time gate is sending the encrypted
-`.p12` and provisioning profile to Expo/EAS.
+September 14, 2027. The downloaded certificate and profile were validated, the
+Apple WWDR G3 intermediate was installed, and Keychain reports exactly one valid
+matching signing identity. After explicit approval for local export, an encrypted
+`0600` temporary `.p12` containing exactly one private key was created outside the
+repository. No private key has been transmitted to EAS, and no build
+upload/submission, API access/key, permission change, or tester invitation has
+completed. The next action-time gate is sending the encrypted `.p12` and profile
+to Expo/EAS project `@pcruz321/gnd-prodesk`.
 
 ### 2026-09-12 — App Store Connect app record created
 
