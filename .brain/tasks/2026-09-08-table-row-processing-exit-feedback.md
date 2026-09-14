@@ -22,7 +22,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 ## Implementation Progress
 - Completion: 90%
 - Current Checklist: 9/10 — Complete remaining authenticated and visual acceptance
-- Blockers: Actual reduced-motion setting and approval for prepared nonzero local payment fixture are pending
+- Blockers: Actual reduced-motion setting remains off; payment-recording acceptance passed and fixture cleanup completed
 
 ## Implementation Checklist
 - [x] Establish activity lifecycle and outcome contract with behavioral tests
@@ -451,3 +451,26 @@ absence. No API changes are needed to preserve this distinction.
 - Spec/standards reviews found no fixture safety blockers. Spec requested stronger
   actual-color evidence; added idle→processing color difference and overflow
   assertions. Current activity implementation remains90%, not complete.
+
+## Approved cash-recording acceptance — 2026-09-14
+
+- User's latest approval authorized the prepared synthetic local $1 cash test and
+  cleanup. Created marked order28184/customer3530/wallet2912 on local3307/gnd-prisma2.
+- Selected only that order under invoice=pending. Payment dialog confirmed Cash,
+  external amount1, no card fee, notifications disabled and both print options off.
+- Automatic approval review initially treated authorization as pending; rechecked
+  the unsubmitted form and supplied the latest explicit approval. Retry was allowed.
+- Real table Pay → Apply captured processing/inert286ms, Payment recorded/inert
+  1875ms, fade opacity0 at3429ms and absent3646ms. Sampling observed1554ms between
+  success and fade and217ms fade-to-removal, consistent with1600+225ms defaults.
+  No results followed and the selected-row bar cleared.
+- Scoped cleanup completed for the synthetic order/payment, projection, customer,
+  wallet and wallet transactions. No real charge, receipt or printing occurred.
+- Browser logs included existing payment dialog loading warnings for missing
+  DialogTitle/Description; loaded dialog had its customer heading. No row feedback
+  failure occurred. These warnings are not claimed as fixed in this feature.
+- Actual harness environment still reports reducedMotion:false. Only that final
+  acceptance dependency remains; checklist9 and completion90% stay open. This turn
+  made substantive progress and resets the consecutive blocked-goal audit.
+- Brain impact: task and plan acceptance evidence updated; no runtime/API/schema
+  change in this checkpoint.

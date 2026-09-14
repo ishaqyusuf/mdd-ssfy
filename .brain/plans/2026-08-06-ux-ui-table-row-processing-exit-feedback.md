@@ -510,8 +510,10 @@ those unperformed checks.
 Successful authenticated full-workflow fulfillment, direct deletion, archive,
 status-only declaration/cancellation, and inline inventory verification are now
 recorded in the canonical task. Payment review passed desktop/mobile and hidden-
-Status keyboard/toast acceptance. The remaining gates are actual reduced-motion
-validation and the prepared nonzero local payment-recording fixture approval/QA.
+Status keyboard/toast acceptance. Approved local $1 cash-recording QA passed
+processing, confirmed success, delayed unpaid-filter exit and selection cleanup;
+synthetic records were cleaned up. The remaining gate is actual reduced-motion
+validation; the browser still reports that preference off.
 Do not infer completion from the earlier visual approval alone.
 
 One additive API exception was necessary: batch deletion now returns confirmed
