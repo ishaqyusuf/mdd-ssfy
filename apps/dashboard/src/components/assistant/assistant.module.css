@@ -716,6 +716,21 @@
 	padding: 10px 24px;
 	border-bottom: 1px solid var(--border);
 }
+.quotaMeter {
+	margin-right: auto;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	padding: 5px 10px;
+	color: var(--muted-foreground);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+.quotaMeterWarning {
+	border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+	color: var(--foreground);
+	background: color-mix(in srgb, var(--warning) 8%, transparent);
+}
 .liveToolbar button:nth-child(2) {
 	margin-right: 4px;
 }

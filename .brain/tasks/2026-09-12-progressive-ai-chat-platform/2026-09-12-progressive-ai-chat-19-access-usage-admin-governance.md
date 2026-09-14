@@ -10,7 +10,7 @@ High
 2026-09-12
 
 ## Last Updated
-2026-09-13
+2026-09-14
 
 ## Global Ticket
 - Ticket Position: 19/20
@@ -77,9 +77,9 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - AI analysis: `queued`, `running`, `ready_for_review`, `approved`, `needs_revision`, `failed`. AI analysis never accepts, prioritizes, or releases a request without an authorized human action.
 
 ## Implementation Progress
-- Completion: 27%
-- Current Checklist: 4/15 — individual access and usage-accounting foundations
-- Blockers: None for T19A/T19B foundations; bulk access operations, quota enforcement, reporting UI, and request governance remain.
+- Completion: 33%
+- Current Checklist: 5/15 — individual access, usage accounting, and user quota feedback foundations
+- Blockers: None for T19A/T19B foundations; quota templates, full reporting UI/export, bulk access operations, and request governance remain.
 
 ## Implementation Checklist
 - [x] T19A: Add individual entitlement storage and immutable audit events with enabled/disabled state, optional expiry, actor, reason, and timestamps.
@@ -90,7 +90,7 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - [x] T19B: Normalize provider usage receipts and versioned price snapshots; add unknown-usage reconciliation without exposing prompt or tool payloads in routine reports.
 - [ ] T19C: Add daily/monthly per-user policies for tokens, requests, concurrent runs, and optional cost, with warning thresholds, timezone/reset rules, effective dates, templates, temporary overrides, and unlimited/null semantics.
 - [ ] T19C: Implement atomic reserve/settle/release accounting for streams, retries, disconnects, provider errors, tool subcalls, and jobs without double charging.
-- [ ] T19C: Return typed `access_disabled`, `quota_warning`, and `quota_exceeded` states with remaining allowance/reset time and render the personal usage meter.
+- [x] T19C: Return typed `access_disabled`, `quota_warning`, and `quota_exceeded` states with remaining allowance/reset time and render the personal usage meter.
 - [ ] T19C: Build bounded super-admin reports for totals, trends, top users, model/tool mix, success/failure, latency, estimated spend, allowance, anomalies, drill-down, and CSV export.
 - [ ] T19D: Build the T16-backed feature-request board with deduplicated demand, subscribers, domain, status, priority, owner, AI-analysis review, clarification, linked capability, target release, and blockers.
 - [ ] T19D: Add the immutable implementation timeline connecting triage decisions, Brain/task ticket, code references, rollout verification, release version, subscriber delivery, and rollback/disable events.
@@ -132,3 +132,4 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - 2026-09-13 enablement UX no longer asks for a free-form reason. It records `Enabled by Super Admin` automatically; disabling an account still requires an explicit reason for the audit trail.
 - 2026-09-13 T19B stores one idempotent ledger row per provider response, preserves aggregate fallback runs, captures provider/model/token categories/tool count/latency/outcome, and applies effective versioned model pricing with integer-micro rounding. Unknown receipts enter a bounded Super Admin reconciliation queue; corrections update the ledger and append a before/after reconciliation record without storing prompts or tool payloads. Focused normalization, price-rounding, runtime, and navigation checks pass, Prisma generation passes, and the local schema was applied with `db:push` as requested.
 - 2026-09-13 planning review expanded the ticket into four delivery slices with explicit data, API, dashboard, lifecycle, privacy, accounting, and acceptance contracts.
+- 2026-09-14 T19C foundation adds effective-dated per-user request, token, concurrency, and optional cost policies; timezone-aware daily/monthly windows; serializable run reservations; idempotent settlement against the provider ledger; typed quota admission failures; authenticated bootstrap allowance state; Super Admin policy procedures; and a compact user meter in the standard Assistant toolbar. Local `db:push`, Prisma generation, 56 focused quota/runtime/REST/chat-state tests, DB typecheck, touched-file Biome, and API typecheck through the unrelated Sales nullable-string baseline all completed. Dashboard-wide typecheck exhausted its 4 GB heap, so touched UI validation remains focused.

@@ -339,6 +339,62 @@ model AssistantUsageReconciliation {
     @@index([usageEventId, createdAt], map: "asst_usage_reconcile_event_idx")
 }
 
+model AssistantQuotaPolicy {
+    id                     String    @id @default(cuid()) @db.VarChar(191)
+    userId                 Int?
+    name                   String    @db.VarChar(120)
+    kind                   String    @default("user") @db.VarChar(32)
+    sourceTemplateId       String?   @db.VarChar(191)
+    dailyRequestLimit      Int?
+    monthlyRequestLimit    Int?
+    dailyTokenLimit        BigInt?
+    monthlyTokenLimit      BigInt?
+    concurrentRunLimit     Int?
+    dailyCostLimitMicros   BigInt?
+    monthlyCostLimitMicros BigInt?
+    warningPercent         Int       @default(80)
+    timezone               String    @default("UTC") @db.VarChar(64)
+    enforcementMode        String    @default("hard") @db.VarChar(24)
+    effectiveFrom          DateTime  @db.Timestamp(0)
+    effectiveTo            DateTime? @db.Timestamp(0)
+    createdByUserId        Int
+    updatedByUserId        Int
+    version                Int       @default(1)
+    createdAt              DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt              DateTime  @updatedAt
+
+    @@index([userId, effectiveFrom, effectiveTo], map: "asst_quota_user_effective_idx")
+    @@index([kind, effectiveFrom, effectiveTo], map: "asst_quota_kind_effective_idx")
+    @@index([sourceTemplateId], map: "asst_quota_template_idx")
+}
+
+model AssistantQuotaReservation {
+    id                 String    @id @default(cuid()) @db.VarChar(191)
+    runId              String    @unique(map: "asst_quota_reservation_run_uq") @db.VarChar(191)
+    actorUserId        Int
+    scopeType          String    @db.VarChar(50)
+    scopeId            String    @db.VarChar(191)
+    policyId           String?   @db.VarChar(191)
+    policySnapshot     Json      @db.Json
+    status             String    @default("reserved") @db.VarChar(24)
+    requestUnits       Int       @default(1)
+    reservedTokens     BigInt    @default(0)
+    reservedCostMicros BigInt    @default(0)
+    actualTokens       BigInt?
+    actualCostMicros   BigInt?
+    dayWindowStart     DateTime  @db.Timestamp(0)
+    monthWindowStart   DateTime  @db.Timestamp(0)
+    expiresAt          DateTime  @db.Timestamp(0)
+    settledAt          DateTime? @db.Timestamp(0)
+    createdAt          DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime  @updatedAt
+
+    @@index([actorUserId, dayWindowStart, status], map: "asst_quota_actor_day_idx")
+    @@index([actorUserId, monthWindowStart, status], map: "asst_quota_actor_month_idx")
+    @@index([actorUserId, status, expiresAt], map: "asst_quota_actor_active_idx")
+    @@index([policyId, createdAt], map: "asst_quota_policy_usage_idx")
+}
+
 model AssistantToolExecution {
     id               String       @id @default(cuid()) @db.VarChar(191)
     runId            String       @db.VarChar(191)

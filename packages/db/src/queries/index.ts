@@ -1,5 +1,6 @@
 // export * from "./activities";
 export * from "./assistant";
+export * from "./assistant-quota";
 export * from "./assistant-sales";
 export * from "./assistant-operations";
 export * from "./contractor-accounting";

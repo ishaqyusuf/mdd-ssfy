@@ -209,3 +209,19 @@ deduplicated notification outbox. Super Admins manage triage and publication.
 Release delivery repeats consent and current access checks and covers subscribers
 from canonical requests plus merged duplicates. Users can review request status and
 unsubscribe from the Assistant menu.
+
+## Per-user Assistant quotas — 2026-09-14
+
+Assistant bootstrap now returns the current account entitlement plus a bounded
+personal allowance projection. Effective-dated policies support daily/monthly
+requests and tokens, concurrent runs, optional integer-micro cost ceilings,
+warning thresholds, timezone resets, hard enforcement, warning-only observation,
+and dry-run observation. Null limits remain unlimited.
+
+Every provider run reserves capacity under a serializable transaction before it is
+claimed for execution. The run ID makes admission idempotent across UI retries.
+Terminal completion settles actual provider-ledger tokens and estimated cost in the
+same transaction; recovery settles conservatively when exact usage is unavailable.
+Quota failures are typed separately from Redis infrastructure rate limits. The
+standard Assistant toolbar shows only the current user's remaining requests and
+tokens plus reset time; organization spend and other users remain Super Admin data.

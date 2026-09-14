@@ -27,10 +27,14 @@ import {
 	AssistantConversationAccessError,
 	AssistantIdempotencyConflictError,
 	AssistantMessageValidationError,
+	AssistantQuotaExceededError,
+	AssistantQuotaUnavailableError,
 	claimAssistantRunForExecution,
 	completeAssistantRun,
 	createOrReuseAssistantRequestRun,
 	getAssistantRunForReconnect,
+	reserveAssistantQuota,
+	settleAssistantQuotaReservationFallback,
 } from "@gnd/db/queries";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import {
@@ -407,6 +411,26 @@ function publicRequestError(error: unknown) {
 	if (error instanceof AssistantConversationAccessError) {
 		return jsonError(error.code, error.message, 404);
 	}
+	if (error instanceof AssistantQuotaExceededError) {
+		return new Response(
+			JSON.stringify({
+				error: { code: error.code, message: error.message },
+				quota: {
+					dimension: error.dimension,
+					limit: error.limit,
+					remaining: error.remaining,
+					resetAt: error.resetAt.toISOString(),
+				},
+			}),
+			{
+				status: 429,
+				headers: { "content-type": "application/json; charset=UTF-8" },
+			},
+		);
+	}
+	if (error instanceof AssistantQuotaUnavailableError) {
+		return jsonError(error.code, error.message, 503);
+	}
 	if (error instanceof AssistantLimitError) {
 		return new Response(
 			JSON.stringify({
@@ -498,6 +522,13 @@ const defaultDependencies: AssistantRouterDependencies = {
 			model: runtimeIdentity.modelIdentity,
 			promptVersion: runtimeIdentity.promptVersion,
 		});
+		await reserveAssistantQuota(db, {
+			runId: requestRun.run.id,
+			actorUserId: input.actor.userId,
+			scopeType: input.actor.scopeType,
+			scopeId: input.actor.scopeId,
+			modelIdentity: runtimeIdentity.modelIdentity,
+		});
 		const claim = await claimAssistantRunForExecution(db, {
 			runId: requestRun.run.id,
 			ownerUserId: input.actor.userId,
@@ -558,6 +589,7 @@ const defaultDependencies: AssistantRouterDependencies = {
 				completedAt: new Date(),
 			},
 		});
+		await settleAssistantQuotaReservationFallback(db, { runId: input.runId });
 	},
 	async executeRun({ actor, reauthorizeActor, request, run, writer, signal }) {
 		const [preferences, memories] = await Promise.all([

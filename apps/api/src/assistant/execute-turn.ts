@@ -56,7 +56,7 @@ type AssistantTurnHistory = Array<{
 type AssistantTurnOutcome =
 	| {
 			status: "succeeded";
-			usage: Record<string, string | number>;
+			usage: Prisma.InputJsonValue;
 			assistantText: string;
 	  }
 	| {

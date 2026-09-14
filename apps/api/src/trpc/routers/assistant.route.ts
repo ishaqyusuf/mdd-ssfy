@@ -63,9 +63,12 @@ import {
 	archiveAssistantConversation,
 	createAssistantConversation,
 	getAssistantConversation,
+	getAssistantQuotaStatus,
 	listAssistantConversations,
+	listAssistantQuotaPolicies,
 	listAssistantUsageReconciliationQueue,
 	reconcileAssistantUsageEvent,
+	setAssistantUserQuotaPolicy,
 	softDeleteAssistantConversation,
 } from "@gnd/db/queries";
 import { TRPCError } from "@trpc/server";
@@ -128,10 +131,40 @@ function notFound(error: unknown): never {
 	throw error;
 }
 
+const nullableQuotaInteger = z
+	.number()
+	.int()
+	.nonnegative()
+	.nullable()
+	.optional();
+const assistantQuotaPolicyUpdateSchema = z
+	.object({
+		userId: z.number().int().positive(),
+		name: z.string().trim().min(1).max(120),
+		sourceTemplateId: z.string().trim().min(1).max(191).nullable().optional(),
+		dailyRequestLimit: nullableQuotaInteger,
+		monthlyRequestLimit: nullableQuotaInteger,
+		dailyTokenLimit: nullableQuotaInteger,
+		monthlyTokenLimit: nullableQuotaInteger,
+		concurrentRunLimit: nullableQuotaInteger,
+		dailyCostLimitMicros: nullableQuotaInteger,
+		monthlyCostLimitMicros: nullableQuotaInteger,
+		warningPercent: z.number().int().min(1).max(100).default(80),
+		timezone: z.string().trim().min(1).max(64).default("UTC"),
+		enforcementMode: z.enum(["hard", "warning", "dry_run"]).default("hard"),
+		effectiveFrom: z.coerce.date().optional(),
+		effectiveTo: z.coerce.date().nullable().optional(),
+	})
+	.strict();
+
 export const assistantRouter = createTRPCRouter({
-	bootstrap: protectedProcedure.query(async ({ ctx }) =>
-		getAssistantAccessState(ctx.db, ctx.userId),
-	),
+	bootstrap: protectedProcedure.query(async ({ ctx }) => {
+		const [access, quota] = await Promise.all([
+			getAssistantAccessState(ctx.db, ctx.userId),
+			getAssistantQuotaStatus(ctx.db, { actorUserId: ctx.userId }),
+		]);
+		return { ...access, quota };
+	}),
 	adminEntitlements: protectedProcedure
 		.input(
 			z.object({
@@ -172,6 +205,26 @@ export const assistantRouter = createTRPCRouter({
 			return reconcileAssistantUsageEvent(ctx.db, {
 				...input,
 				actorUserId: adminUserId,
+			});
+		}),
+	quotaPolicies: protectedProcedure
+		.input(
+			z.object({
+				userId: z.number().int().positive().optional(),
+				take: z.number().int().min(1).max(100).default(50),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await featureAdminOrThrow(ctx);
+			return listAssistantQuotaPolicies(ctx.db, input);
+		}),
+	setQuotaPolicy: protectedProcedure
+		.input(assistantQuotaPolicyUpdateSchema)
+		.mutation(async ({ ctx, input }) => {
+			const adminUserId = await featureAdminOrThrow(ctx);
+			return setAssistantUserQuotaPolicy(ctx.db, adminUserId, {
+				...input,
+				effectiveFrom: input.effectiveFrom ?? new Date(),
 			});
 		}),
 	createProposal: protectedProcedure

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { AssistantQuotaExceededError } from "@gnd/db/queries";
 import { readUIMessageStream } from "ai";
 import {
 	AssistantStreamGuard,
@@ -196,6 +197,34 @@ describe("assistant chat REST router", () => {
 
 		expect(response.status).toBe(400);
 		expect(calls).toHaveLength(0);
+	});
+
+	test("returns a typed quota response before runtime execution", async () => {
+		const resetAt = new Date("2026-09-15T00:00:00.000Z");
+		const { router } = createHarness({
+			startRun: async () => {
+				throw new AssistantQuotaExceededError("daily_requests", 10, 0, resetAt);
+			},
+		});
+		const response = await router.request("/", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(requestBody()),
+		});
+
+		expect(response.status).toBe(429);
+		expect(await response.json()).toEqual({
+			error: {
+				code: "ASSISTANT_QUOTA_EXCEEDED",
+				message: "Assistant quota reached",
+			},
+			quota: {
+				dimension: "daily_requests",
+				limit: 10,
+				remaining: 0,
+				resetAt: resetAt.toISOString(),
+			},
+		});
 	});
 
 	test("persists trusted input and emits a Midday-style UI message stream", async () => {

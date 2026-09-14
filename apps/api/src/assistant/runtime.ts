@@ -1053,40 +1053,57 @@ export function createAssistantRuntime(options?: {
 				const reasoningTokens = optionalFiniteNonnegativeInteger(
 					usage.reasoningTokens,
 				);
-				const calls = steps.map((step, index) => ({
-					providerRequestId: step.response?.id
+				const calls = steps.map((step, index) => {
+					const providerRequestId = step.response?.id
 						? `${selection.provider}:${step.response.id}`.slice(0, 191)
 						: input.runId
 							? `${input.runId}:${index + 1}`.slice(0, 191)
-							: undefined,
-					provider: selection.provider,
-					model: step.response?.modelId || selection.model,
-					inputTokens: optionalFiniteNonnegativeInteger(
+							: undefined;
+					const inputTokens = optionalFiniteNonnegativeInteger(
 						step.usage?.inputTokens,
-					),
-					cachedInputTokens: optionalFiniteNonnegativeInteger(
+					);
+					const stepCachedInputTokens = optionalFiniteNonnegativeInteger(
 						step.usage?.cachedInputTokens,
-					),
-					outputTokens: optionalFiniteNonnegativeInteger(
+					);
+					const outputTokens = optionalFiniteNonnegativeInteger(
 						step.usage?.outputTokens,
-					),
-					reasoningTokens: optionalFiniteNonnegativeInteger(
+					);
+					const stepReasoningTokens = optionalFiniteNonnegativeInteger(
 						step.usage?.reasoningTokens,
-					),
-					totalTokens: optionalFiniteNonnegativeInteger(
+					);
+					const totalTokens = optionalFiniteNonnegativeInteger(
 						step.usage?.totalTokens,
-					),
-					toolCallCount: step.toolCalls?.length ?? 0,
-				}));
+					);
+					return {
+						...(providerRequestId ? { providerRequestId } : {}),
+						provider: selection.provider,
+						model: step.response?.modelId || selection.model,
+						...(inputTokens === undefined ? {} : { inputTokens }),
+						...(stepCachedInputTokens === undefined
+							? {}
+							: { cachedInputTokens: stepCachedInputTokens }),
+						...(outputTokens === undefined ? {} : { outputTokens }),
+						...(stepReasoningTokens === undefined
+							? {}
+							: { reasoningTokens: stepReasoningTokens }),
+						...(totalTokens === undefined ? {} : { totalTokens }),
+						toolCallCount: step.toolCalls?.length ?? 0,
+					};
+				});
+				const inputTokens = optionalFiniteNonnegativeInteger(usage.inputTokens);
+				const outputTokens = optionalFiniteNonnegativeInteger(
+					usage.outputTokens,
+				);
+				const totalTokens = optionalFiniteNonnegativeInteger(usage.totalTokens);
 				return {
 					status: "succeeded" as const,
 					assistantText,
 					usage: {
-						inputTokens: optionalFiniteNonnegativeInteger(usage.inputTokens),
+						...(inputTokens === undefined ? {} : { inputTokens }),
 						...(cachedInputTokens === undefined ? {} : { cachedInputTokens }),
-						outputTokens: optionalFiniteNonnegativeInteger(usage.outputTokens),
+						...(outputTokens === undefined ? {} : { outputTokens }),
 						...(reasoningTokens === undefined ? {} : { reasoningTokens }),
-						totalTokens: optionalFiniteNonnegativeInteger(usage.totalTokens),
+						...(totalTokens === undefined ? {} : { totalTokens }),
 						provider: selection.provider,
 						model: selection.model,
 						...(calls.length === 0 ? {} : { calls }),

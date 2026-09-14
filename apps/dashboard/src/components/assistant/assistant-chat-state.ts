@@ -32,6 +32,33 @@ export type AssistantRequestLimit = {
 	resetAt: string;
 };
 
+export type AssistantQuotaLimit = AssistantRequestLimit & {
+	dimension: string;
+};
+
+export function parseAssistantQuotaLimit(
+	value: unknown,
+): AssistantQuotaLimit | null {
+	if (!value || typeof value !== "object") return null;
+	const record = value as Record<string, unknown>;
+	const error = record.error as Record<string, unknown> | undefined;
+	const quota = record.quota as Record<string, unknown> | undefined;
+	if (
+		error?.code !== "ASSISTANT_QUOTA_EXCEEDED" ||
+		typeof quota?.dimension !== "string" ||
+		typeof quota.limit !== "number" ||
+		typeof quota.remaining !== "number" ||
+		typeof quota.resetAt !== "string"
+	)
+		return null;
+	return {
+		dimension: quota.dimension,
+		limit: quota.limit,
+		remaining: quota.remaining,
+		resetAt: quota.resetAt,
+	};
+}
+
 export function parseAssistantRequestLimit(
 	value: unknown,
 ): AssistantRequestLimit | null {

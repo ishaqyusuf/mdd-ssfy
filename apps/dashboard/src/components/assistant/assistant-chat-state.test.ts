@@ -5,6 +5,7 @@ import {
 	getAssistantIntegrationIdsForMessage,
 	getAssistantRequestId,
 	initialAssistantStreamState,
+	parseAssistantQuotaLimit,
 	parseAssistantRequestLimit,
 	persistedMessagesToUi,
 	reduceAssistantData,
@@ -189,5 +190,29 @@ describe("assistant chat state", () => {
 			resetAt: "2026-09-13T12:00:00.000Z",
 		});
 		expect(parseAssistantRequestLimit({ limit: 100 })).toBe(null);
+	});
+
+	test("keeps quota failures separate from infrastructure request limits", () => {
+		expect(
+			parseAssistantQuotaLimit({
+				error: { code: "ASSISTANT_QUOTA_EXCEEDED" },
+				quota: {
+					dimension: "daily_tokens",
+					limit: 100_000,
+					remaining: 0,
+					resetAt: "2026-09-15T00:00:00.000Z",
+				},
+			}),
+		).toEqual({
+			dimension: "daily_tokens",
+			limit: 100_000,
+			remaining: 0,
+			resetAt: "2026-09-15T00:00:00.000Z",
+		});
+		expect(
+			parseAssistantQuotaLimit({
+				error: { code: "RATE_LIMIT_EXCEEDED" },
+			}),
+		).toBe(null);
 	});
 });

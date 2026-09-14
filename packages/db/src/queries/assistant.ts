@@ -1274,6 +1274,40 @@ export async function completeAssistantRun(
 			});
 		}
 	};
+	const settleQuotaReservation = async (
+		tx: TransactionClient,
+		runId: string,
+	) => {
+		const usageEvents = await tx.assistantUsageEvent.findMany({
+			where: { runId },
+			select: { totalTokens: true, estimatedCostMicros: true },
+		});
+		const actualTokens =
+			usageEvents.length > 0 &&
+			usageEvents.every((event) => event.totalTokens != null)
+				? usageEvents.reduce(
+						(total, event) => total + BigInt(event.totalTokens ?? 0),
+						0n,
+					)
+				: null;
+		const actualCostMicros =
+			usageEvents.length > 0 &&
+			usageEvents.every((event) => event.estimatedCostMicros != null)
+				? usageEvents.reduce(
+						(total, event) => total + (event.estimatedCostMicros ?? 0n),
+						0n,
+					)
+				: null;
+		await tx.assistantQuotaReservation.updateMany({
+			where: { runId, status: "reserved" },
+			data: {
+				status: "settled",
+				actualTokens,
+				actualCostMicros,
+				settledAt: completedAt,
+			},
+		});
+	};
 	const matchesTerminalInput = (current: {
 		status: string;
 		terminalResult: Prisma.JsonValue | null;
@@ -1311,6 +1345,7 @@ export async function completeAssistantRun(
 				throw new AssistantIdempotencyConflictError();
 			}
 			await ensureUsageEvent(tx, current);
+			await settleQuotaReservation(tx, current.id);
 			return;
 		}
 
@@ -1327,6 +1362,7 @@ export async function completeAssistantRun(
 		});
 		if (result.count === 1) {
 			await ensureUsageEvent(tx, current);
+			await settleQuotaReservation(tx, current.id);
 			return;
 		}
 
@@ -1336,6 +1372,7 @@ export async function completeAssistantRun(
 			throw new AssistantIdempotencyConflictError();
 		}
 		await ensureUsageEvent(tx, terminal);
+		await settleQuotaReservation(tx, terminal.id);
 	});
 	return getAssistantRunForReconnect(db, input);
 }

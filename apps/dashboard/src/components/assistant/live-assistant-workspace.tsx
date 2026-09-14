@@ -1,6 +1,6 @@
 "use client";
 
-import { useTRPCClient } from "@/trpc/client";
+import { useTRPC, useTRPCClient } from "@/trpc/client";
 import { useChat } from "@ai-sdk/react";
 import { Button } from "@gnd/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
 	DialogTitle,
 } from "@gnd/ui/dialog";
 import { Input } from "@gnd/ui/input";
+import { useQuery } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
@@ -50,6 +51,7 @@ import {
 	getAssistantIntegrationIdsForMessage,
 	getAssistantRequestId,
 	initialAssistantStreamState,
+	parseAssistantQuotaLimit,
 	parseAssistantRequestLimit,
 	persistedMessagesToUi,
 	reduceAssistantData,
@@ -164,6 +166,12 @@ function AssistantConversation(props: {
 		remaining: number;
 		resetAt: string;
 	} | null>(null);
+	const [quotaLimitError, setQuotaLimitError] = useState<{
+		dimension: string;
+		limit: number;
+		remaining: number;
+		resetAt: string;
+	} | null>(null);
 	const [orderDraft, setOrderDraft] = useState<AssistantOrderDraft | null>(
 		null,
 	);
@@ -185,13 +193,16 @@ function AssistantConversation(props: {
 				fetch: async (input, init) => {
 					const response = await fetch(input, init);
 					if (response.status === 429) {
-						const limit = parseAssistantRequestLimit(
-							await response
-								.clone()
-								.json()
-								.catch(() => null),
-						);
-						if (limit) setRequestLimitError(limit);
+						const body = await response
+							.clone()
+							.json()
+							.catch(() => null);
+						const quota = parseAssistantQuotaLimit(body);
+						if (quota) setQuotaLimitError(quota);
+						else {
+							const limit = parseAssistantRequestLimit(body);
+							if (limit) setRequestLimitError(limit);
+						}
 					}
 					return response;
 				},
@@ -224,7 +235,10 @@ function AssistantConversation(props: {
 		transport,
 		onData: (part) => {
 			setStreamState((state) => reduceAssistantData(state, part));
-			if (part.type === "data-rate-limit") setRequestLimitError(null);
+			if (part.type === "data-rate-limit") {
+				setRequestLimitError(null);
+				setQuotaLimitError(null);
+			}
 			if (
 				part.type === "data-title" &&
 				part.data &&
@@ -624,7 +638,14 @@ function AssistantConversation(props: {
 						to send.
 					</div>
 				) : null}
-				{chat.error && requestLimitError ? (
+				{chat.error && quotaLimitError ? (
+					<div className={styles.liveWarning} role="alert">
+						<span>
+							Your Assistant allowance has been reached. It resets{" "}
+							{new Date(quotaLimitError.resetAt).toLocaleString()}.
+						</span>
+					</div>
+				) : chat.error && requestLimitError ? (
 					<div className={styles.liveWarning} role="alert">
 						<span>
 							Request limit reached. You have {requestLimitError.remaining} of{" "}
@@ -831,7 +852,12 @@ function AssistantConversation(props: {
 }
 
 export function LiveAssistantWorkspace() {
+	const trpc = useTRPC();
 	const client = useTRPCClient();
+	const assistantBootstrap = useQuery({
+		...trpc.assistant.bootstrap.queryOptions(),
+		staleTime: 30_000,
+	});
 	const searchParams = useSearchParams();
 	const [conversationId, setConversationId] = useState(() =>
 		searchParams.get("chat"),
@@ -1109,6 +1135,25 @@ export function LiveAssistantWorkspace() {
 	return (
 		<main className={styles.workspace}>
 			<nav className={styles.liveToolbar} aria-label="Conversation actions">
+				{assistantBootstrap.data?.quota.configured ? (
+					<div
+						className={`${styles.quotaMeter} ${
+							assistantBootstrap.data.quota.warning
+								? styles.quotaMeterWarning
+								: ""
+						}`}
+						title={`Resets ${new Date(
+							String(assistantBootstrap.data.quota.resetAt),
+						).toLocaleString()}`}
+					>
+						{assistantBootstrap.data.quota.remaining.requests == null
+							? "Unlimited requests"
+							: `${assistantBootstrap.data.quota.remaining.requests.toLocaleString()} requests left`}
+						{assistantBootstrap.data.quota.remaining.tokens == null
+							? null
+							: ` · ${assistantBootstrap.data.quota.remaining.tokens.toLocaleString()} tokens`}
+					</div>
+				) : null}
 				<Button
 					variant="ghost"
 					size="sm"
@@ -1214,6 +1259,7 @@ export function LiveAssistantWorkspace() {
 					onChanged={() => {
 						void loadConversation(conversation.id);
 						void loadHistory("");
+						void assistantBootstrap.refetch();
 					}}
 					onOpenProviders={() => setProvidersOpen(true)}
 					mentionedIntegrationIds={mentionedIntegrationIds}
