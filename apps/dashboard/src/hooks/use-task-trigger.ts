@@ -281,12 +281,37 @@ export function useTaskTrigger(props?: Props) {
 				});
 			}
 		},
-		onSuccess({ data }) {
-			const pending = pendingTriggersRef.current.shift();
+	});
+	const trigger = (input: TriggerTaskInput, options?: TriggerTaskOptions) => {
+		if (
+			pendingTriggersRef.current.length &&
+			(options?.intent ||
+				pendingTriggersRef.current.some(
+					(pending) => pending.rowActivities.length,
+				))
+		) {
+			return Promise.reject(new Error("Wait for the current action to start."));
+		}
+		const pending: PendingTrigger = {
+			input,
+			options,
+			rowActivities: beginTaskRowActivity(
+				String(auth.id ?? ""),
+				options?.intent,
+			),
+		};
+		pendingTriggersRef.current.push(pending);
+		// Promise settlement survives a virtualized row or menu unmounting.
+		return _action.executeAsync(input).then((result) => {
+			if (!pendingTriggersRef.current.includes(pending)) return result;
+			pendingTriggersRef.current = pendingTriggersRef.current.filter(
+				(item) => item !== pending,
+			);
+			const data = result?.data;
 			if (!data?.id || !data?.publicAccessToken) {
 				failTaskRowActivity(pending?.rowActivities ?? []);
 				const errorMessage = (data as { errorMessage?: string } | undefined)
-					?.errorMessage;
+					?.errorMessage || result?.serverError;
 				activeTriggerRef.current = pending || null;
 				trustedStartFailureRef.current = Boolean(errorMessage?.trim());
 				setRunId(undefined);
@@ -298,7 +323,7 @@ export function useTaskTrigger(props?: Props) {
 					}),
 				);
 				setStatus("FAILED");
-				return;
+				return result;
 			}
 			activeTriggerRef.current = pending || null;
 			bindTaskRowActivity(data.id, pending?.rowActivities ?? []);
@@ -323,42 +348,18 @@ export function useTaskTrigger(props?: Props) {
 				});
 			}
 			onStarted?.();
-		},
-		onError(e) {
-			const pending = pendingTriggersRef.current.shift();
-			failTaskRowActivity(pending?.rowActivities ?? []);
-			activeTriggerRef.current = pending || null;
-			trustedStartFailureRef.current = false;
-			setRunId(undefined);
-			setAccessToken(undefined);
-			setCompletionError(e?.error?.serverError || null);
-			setStatus("FAILED");
-		},
-	});
-	const trigger = (input: TriggerTaskInput, options?: TriggerTaskOptions) => {
-		if (
-			pendingTriggersRef.current.length &&
-			(options?.intent ||
-				pendingTriggersRef.current.some(
-					(pending) => pending.rowActivities.length,
-				))
-		) {
-			return Promise.reject(new Error("Wait for the current action to start."));
-		}
-		const pending: PendingTrigger = {
-			input,
-			options,
-			rowActivities: beginTaskRowActivity(
-				String(auth.id ?? ""),
-				options?.intent,
-			),
-		};
-		pendingTriggersRef.current.push(pending);
-		return _action.executeAsync(input).catch((error) => {
+			return result;
+		}, (error) => {
 			pendingTriggersRef.current = pendingTriggersRef.current.filter(
 				(item) => item !== pending,
 			);
 			failTaskRowActivity(pending.rowActivities);
+			activeTriggerRef.current = pending;
+			trustedStartFailureRef.current = false;
+			setRunId(undefined);
+			setAccessToken(undefined);
+			setCompletionError(error instanceof Error ? error.message : null);
+			setStatus("FAILED");
 			throw error;
 		});
 	};

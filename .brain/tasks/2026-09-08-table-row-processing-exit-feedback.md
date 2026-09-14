@@ -1,7 +1,7 @@
 # Task: Table Row Processing And Exit Feedback
 
 ## Status
-Blocked
+In Progress
 
 ## Priority
 Medium
@@ -10,7 +10,7 @@ Medium
 2026-09-08
 
 ## Last Updated
-2026-09-08
+2026-09-14
 
 ## Global Ticket
 - Ticket Position: 1/1
@@ -22,7 +22,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 ## Implementation Progress
 - Completion: 80%
 - Current Checklist: 7/10 — Validate production/cancellation and remaining pilot action adapters
-- Blockers: Disposable local fulfillment fixture identity/setup is still needed
+- Blockers: No approval pending; successful fulfillment fixture acceptance remains unresolved
 
 ## Implementation Checklist
 - [x] Establish activity lifecycle and outcome contract with behavioral tests
@@ -37,6 +37,11 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 - [x] Update feature/architecture documentation and commit scoped work
 
 ## Validation Evidence
+- 2026-09-14: User approved disposable local fulfillment fixture preparation,
+  UI QA and cleanup. Created INV-FIX-ALLOC (order28087) on local3307/gnd-prisma2.
+  Normal updateSalesItemControlAction generated its shipping controls; canonical
+  snapshot now reports ready_to_fulfill with requiredQty3 and markFulfilled allowed.
+  No fulfillment mutation has been triggered yet. Completion remains80%.
 - Worktree is master; unrelated existing changes will be preserved.
 - Public test seams are the lifecycle, composer, outcome adapters, VirtualRow and
   query/task integration already specified in the reviewed plan. Implementation
@@ -277,3 +282,40 @@ absence. No API changes are needed to preserve this distinction.
 - Timing/colors remain approved. Successful full-workflow fulfillment QA still
   requires a disposable local order with suitable operational data. No such
   order identity or authorization to fulfill an existing real order was supplied.
+
+## Fulfillment QA And Lifecycle Fix — 2026-09-14
+
+- Approved local fixture28087 was prepared through normal item controls, aggregate
+  stats and canonical list projection. The pending fulfillment filter displayed
+  only INV-FIX-ALLOC. Local Trigger development worker used127.0.0.1:3307/gnd-prisma2.
+- Live full-workflow action showed Fulfilling and disabled row controls. The worker
+  rejected completion because no approved items were available to pack. This exposed
+  a presentation defect: replacing the Status cell unmounted its task hook before
+  start registration, leaving feedback busy even after the job finished.
+- Fixed VirtualRow to preserve the original cell subtree under hidden presentation.
+  Moved trigger result/error handling into the captured invocation promise, preserving
+  monitor registration across unmount and preventing a late error from failing a
+  retry. Callback errors after registration no longer masquerade as failed starts.
+- Fresh-page retry registered the monitor and delivered the existing full-workflow
+  failure/fallback dialog. A later normal fixture assignment produced the canonical
+  review-required conflict PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE;
+  selection stayed checked and no green departure was claimed. Declined status-only
+  fallback; successful full-workflow fulfillment remains unproven.
+- Synthetic browser suite passed16 checks, including original status-control DOM
+  identity during processing, portal guards, scope changes, retry, expiry and
+  selection cleanup. Observed synthetic dwell/exit1915ms. Focused runtime suite:
+  20 tests48 assertions passed; invocation lifecycle suite3 tests10 assertions passed.
+  The latter models absent component callbacks through SSR and deferred transport;
+  it does not claim a mounted/unmounted React-effects test.
+- Spec review found and resolved the late-callback retry race; standards review
+  found and resolved callback-error misclassification. No unrelated files changed.
+- Scoped cleanup soft-deleted order28087 at2026-09-14T19:54:44Z; read-only verification
+  found zero active controls, assignments and dispatches for it. Fixture rollback
+  cleaned its seeded inventory records. Removed generated public harness files.
+- Completion remains80%. Remaining work includes a coherent successful fulfillment
+  fixture, remaining action adapters after acceptance, and final browser coverage.
+  Existing approval to prepare/run/clean disposable local QA fixtures remains valid.
+- Final Dashboard typecheck exits2 with repository diagnostics, but no diagnostics
+  in VirtualRow, task-trigger lifecycle, its new test or browser harness. Corrected
+  the new test's incompatible promise-matcher typing before this final verification.
+  Scoped staged diff check passes. No schema/API/permission changes in this fix.

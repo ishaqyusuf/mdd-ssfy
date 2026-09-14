@@ -23,6 +23,7 @@ function Harness({ activity }: { activity?: RowPresentation }) {
 					getStickyStyle={() => ({ position: "sticky", left: 0 })}
 					getStickyClassName={() => "bg-background"}
 					activity={activity}
+					activityLabelColumnId="id"
 				/>
 			</tbody>
 		</table>
@@ -45,5 +46,6 @@ it("renders retained success as inert while preserving virtual positioning", () 
 	expect(html).toContain("translateY(112px)");
 	expect(html).toContain("opacity:0");
 	expect(html).toContain("!bg-emerald-100");
+	expect(html).toContain('<div hidden="" class="hidden"><button type="button">Open</button></div>');
 	expect(renderToStaticMarkup(<Harness />)).not.toContain('inert=""');
 });

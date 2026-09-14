@@ -186,6 +186,13 @@ function VirtualRowInner<TData>({
 								meta?.contentClassName,
 							)}
 						>
+							{/* Preserve action hooks while their task feedback is shown. */}
+							<div
+								hidden={Boolean(activity && columnId === activityLabelColumnId)}
+								className={activity && columnId === activityLabelColumnId ? "hidden" : "contents"}
+							>
+								{flexRender(cell.column.columnDef.cell, cell.getContext())}
+							</div>
 							{activity && columnId === activityLabelColumnId ? (
 								<span className="inline-flex items-center gap-1.5">
 									<ActivityIcon
@@ -198,9 +205,7 @@ function VirtualRowInner<TData>({
 									/>
 									<span>{activity.label}</span>
 								</span>
-							) : (
-								flexRender(cell.column.columnDef.cell, cell.getContext())
-							)}
+							) : null}
 						</div>
 					</TableCell>
 				);

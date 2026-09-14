@@ -384,6 +384,13 @@ other tables remain subject to the reviewed plan's operator gates. The canonical
 records validation evidence and outstanding work; this section does not claim
 completed browser acceptance or deployment.
 
+Activity labels hide the original cell content without unmounting it, preserving
+action hooks and task subscriptions. Trigger start results are bound and added to
+the task monitor from the invocation promise, so scrolling a virtualized row out
+of view cannot discard the returned run. Start failures use the same invocation
+identity; a delayed error cannot fail a newer retry. Post-start callback errors
+do not reclassify an already registered job as a failed start.
+
 ### Authenticated review correction
 
 The legacy loader's shared include omits payment history. Populate the existing

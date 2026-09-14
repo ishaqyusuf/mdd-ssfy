@@ -106,6 +106,7 @@ function Harness() {
 				"portaled control is actionable before processing",
 			);
 			row()?.querySelector<HTMLButtonElement>("button")?.focus();
+			const statusControl = row()?.querySelector<HTMLButtonElement>("button");
 			let token = begin();
 			check(
 				document.activeElement === parent.current,
@@ -114,6 +115,10 @@ function Harness() {
 			await pause(20);
 			check(row()?.dataset.rowActivity === "processing", "processing renders");
 			check(row()?.inert, "processing controls are inert");
+			check(
+				statusControl && row()?.contains(statusControl),
+				"status action stays mounted while feedback is displayed",
+			);
 			portal()?.click();
 			portal()?.dispatchEvent(
 				new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
