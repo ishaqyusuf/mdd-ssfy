@@ -378,8 +378,11 @@ fallback confirmation. Operation correlation ignores stale completions and task
 restoration cannot replay an observed run after feedback expires. Owner changes
 clear activity and observed-run identity; navigation clears only local snapshots.
 
-Payment review and fulfillment are the acceptance pilot. Additional actions and
-other tables remain subject to the reviewed plan's operator gates. The canonical
+Payment review and fulfillment passed the local mutation pilot. Single-row delete
+and archive/restore now also opt into feedback: delete requires the endpoint's
+literal commit confirmation, while archive/restore resolves each changed id and
+keeps skipped or contradictory results neutral. Other actions and tables remain
+subject to the reviewed plan's acceptance gates. The canonical
 [implementation task](../tasks/2026-09-08-table-row-processing-exit-feedback.md)
 records validation evidence and outstanding work; this section does not claim
 completed browser acceptance or deployment.

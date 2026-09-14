@@ -1,7 +1,7 @@
 import type { SalesMenuPipeline } from "./sales-batch-status-selection";
 import { SalesArchiveMenu, type SalesArchiveCandidate } from "./sales-archive-menu";
 import { isRowActivityBusy } from "@/store/table-row-activity";
-import { salesPaymentReviewActivity } from "@/lib/table-row-activity/sales-outcomes";
+import { salesDeleteActivity, salesPaymentReviewActivity } from "@/lib/table-row-activity/sales-outcomes";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { generateToken } from "@/actions/token-action";
 import { invalidateDispatchWorkspace } from "@/components/dispatch-admin/dispatch-query-invalidation";
@@ -992,6 +992,7 @@ type DeleteProps = {
 
 function SalesMenuDelete({ onDeleted }: DeleteProps) {
 	const { state, actions } = useSalesMenuContext();
+	const auth = useAuth();
 	const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [confirm, setConfirm] = useState(false);
 	const mutation = useMutation(
@@ -1001,6 +1002,7 @@ function SalesMenuDelete({ onDeleted }: DeleteProps) {
 				actions.closeMenu();
 			},
 			meta: {
+				rowActivity: salesDeleteActivity(String(auth.id ?? "")),
 				queryEventScope: {
 					sales: state.salesRefs,
 				},

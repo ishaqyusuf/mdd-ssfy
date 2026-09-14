@@ -22,7 +22,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 ## Implementation Progress
 - Completion: 80%
 - Current Checklist: 7/10 — Validate production/cancellation and remaining pilot action adapters
-- Blockers: No approval pending; successful fulfillment fixture acceptance remains unresolved
+- Blockers: None external; remaining action adapters and final browser coverage are in progress
 
 ## Implementation Checklist
 - [x] Establish activity lifecycle and outcome contract with behavioral tests
@@ -319,3 +319,44 @@ absence. No API changes are needed to preserve this distinction.
   in VirtualRow, task-trigger lifecycle, its new test or browser harness. Corrected
   the new test's incompatible promise-matcher typing before this final verification.
   Scoped staged diff check passes. No schema/API/permission changes in this fix.
+
+## Successful Fulfillment Pilot And Direct Adapters — 2026-09-14
+
+- Previous turn classified as progress: committed lifecycle fixes16f0bc638.
+- Added scripts/qa/table-row-fulfillment-fixture.ts. Dry-run by default, strict
+  local3307/gnd-prisma2 guard, collision marker, isolated desktop/mobile/timing
+  fixture names, and scoped soft-delete cleanup. Normal control/assignment/submission
+  helpers prepare a zero-value legacy-production order with genuine persisted
+  completed-production evidence; canonical snapshots/projections are not fabricated.
+- Desktop order28180 and mobile390×844 order28181 completed through the real
+  Fulfilled → Continue full workflow UI. Pending filter became No results and the
+  selected-row bar disappeared. Database evidence for28180 showed operationally
+  fulfilled deliveredQty1 and ACTIVE FULL_WORKFLOW fulfillment provenance.
+- Continuous desktop timing capture on order28182 observed processing/inert at14ms,
+  success/inert at11298ms, fade opacity0 at12935ms, and no row at13153ms. Observed
+  success dwell1637ms and fade-to-removal218ms match approved1600+225ms defaults
+  within100ms observation sampling. This closes the successful live fulfillment
+  gap; cancellation was disabled by existing completed-order policy and not bypassed.
+- Added opt-in single deletion and archive/restore descriptors. Single deletion
+  succeeds only on literal true. Archive/restore maps unique changed ids per row;
+  skipped, missing, duplicate or contradictory outcomes remain neutral.
+- Live archive27347 showed Archived/inert then departed; archive-filter restore
+  showed Restored/inert then No results. Single-row Delete → Sure? showed
+  Deleted/inert, then No results with selection cleared. No extra invalidation
+  ownership was added. Existing callbacks remain unchanged.
+- Focused suite22 tests54 assertions passed before the additional contradictory
+  archive case; final adapter test2 tests7 assertions passed. Dashboard typecheck
+  exited2 on repository diagnostics with no diagnostics in changed adapter/menu
+  files. Spec review found no blocking issues; standards review requested.
+- Read-only cleanup verification:27347,28180,28181,28182 all soft-deleted; no active
+  assignments, submissions, dispatches or packing rows remain for fulfillment
+  fixtures.27347 archivedAt is null and its zero-value payment cleanup also ran.
+  Mobile viewport restored; no generated browser bundle created this turn.
+- Remaining checklist7 scope: batch deletion result contract, payment recording,
+  inline inventory/status actions and production/cancellation acceptance. Remaining
+  checklist9 scope includes reduced-motion and remaining visual/accessibility
+  matrix. Completion remains80%; no further fixture approval is needed.
+- Brain impact: feature contract and canonical task updated; no database schema,
+  API response, permission or query-invalidation contract changes in this checkpoint.
+- Final standards review found no blocking issues and confirmed the existing
+  invalidation ownership and local fixture guards. Scoped diff check passes.

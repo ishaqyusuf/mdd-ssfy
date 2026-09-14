@@ -90,3 +90,47 @@ export function salesPaymentReviewActivity(
 		},
 	};
 }
+
+export function salesDeleteActivity(ownerId: string): import("./mutation").RowActivityDescriptor {
+  return {
+    ownerId,
+    tableId: "sales-orders",
+    describe(variables) {
+      const id = variables && typeof variables === "object" && "salesId" in variables ? variables.salesId : undefined;
+      const entityIds = typeof id === "number" && Number.isSafeInteger(id) ? [id] : [];
+      return {
+        entityIds,
+        label: "Deleting",
+        resolve: data => entityIds.map(entityId => ({
+          entityId,
+          phase: data === true ? "success" : "unknown",
+          label: data === true ? "Deleted" : "Check deletion result",
+        })),
+      };
+    },
+  };
+}
+
+export function salesArchiveActivity(ownerId: string): import("./mutation").RowActivityDescriptor {
+  return {
+    ownerId,
+    tableId: "sales-orders",
+    describe(variables) {
+      const input = variables && typeof variables === "object" ? variables as { salesIds?: unknown; archived?: unknown } : {};
+      const entityIds = Array.isArray(input.salesIds) ? input.salesIds.filter((id): id is number => typeof id === "number" && Number.isSafeInteger(id)) : [];
+      const archived = input.archived === true;
+      return {
+        entityIds,
+        label: archived ? "Archiving" : "Restoring",
+        resolve(data) {
+          const changed = data && typeof data === "object" && "changed" in data && Array.isArray(data.changed) ? data.changed : [];
+          const skipped = data && typeof data === "object" && "skipped" in data && Array.isArray(data.skipped) ? data.skipped : [];
+          return entityIds.map(entityId => {
+            const committed = changed.filter(id => id === entityId).length === 1 && !skipped.some(row => row?.salesId === entityId);
+            return { entityId, phase: committed ? "success" : "unknown", label: committed ? archived ? "Archived" : "Restored" : "Check archive result" };
+          });
+        },
+      };
+    },
+  };
+}

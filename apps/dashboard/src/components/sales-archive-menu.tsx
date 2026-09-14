@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { salesArchiveActivity } from "@/lib/table-row-activity/sales-outcomes";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import {
@@ -58,6 +59,7 @@ export function SalesArchiveMenu({
 				});
 			},
 			meta: {
+				rowActivity: salesArchiveActivity(String(auth.id ?? "")),
 				queryEventScope: {
 					sales: orders.map((order) => ({
 						salesId: order.salesId,
