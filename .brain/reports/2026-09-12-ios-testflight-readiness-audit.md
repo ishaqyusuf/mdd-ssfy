@@ -107,25 +107,36 @@
   validated, the Apple WWDR G3 intermediate was installed, and Keychain reports
   exactly one valid matching signing identity. An encrypted temporary `.p12`
   containing exactly one private key was exported outside the repository with
-  mode `0600`; import it and the profile into EAS only after the separate
-  private-key transmission gate is confirmed.
+  mode `0600`. After separate action-time approval, EAS stored that certificate
+  and the profile for `@pcruz321/gnd-prodesk`; all temporary password/private-key
+  export files were then removed while the Keychain identity was retained.
 - Before upload, resolve any agreement/tax/banking warning that blocks TestFlight.
   The App Store Connect record, EAS account, and retained project link are verified.
 - The production App ID, Apple Distribution certificate, App Store profile, and
   local signing identity are now ready. The profile resolves to
   `ZXC78SPCV4.com.gnd.prodesk` with UUID
   `be302ee0-1e9c-4df4-b39d-248ad085c5a4`.
-- No signing private key was transmitted to EAS, and no build, upload, submission,
-  API key, permission, or tester invitation was completed. Authorized external
-  changes were accepting
+- Production build `3f3a6acf-ac06-42b8-ab72-1837480f49cc` completed on EAS as a
+  `STORE` artifact: version `1.0.305`, build `5`, runtime/channel `1.0.305` /
+  `production`. The IPA contains the expected bundle, team, active App Store
+  profile, `beta-reports-active=true`, `get-task-allow=false`, and
+  `ITSAppUsesNonExemptEncryption=false`. Its embedded profile CMS verifies.
+- The local macOS `codesign --verify` trust evaluation reported
+  `CSSMERR_TP_NOT_TRUSTED` even though `security verify-cert` accepted the
+  distribution certificate and EAS signed successfully. Treat this as a local
+  Keychain trust-state warning; Apple upload validation remains authoritative.
+- No build was uploaded/submitted to Apple, and no API key, permission, or tester
+  invitation was completed. Authorized external changes were accepting
   Terms V100, switching the local EAS session, registering the explicit production
   App ID, creating the App Store Connect app record, initializing build number
   `1`/the production update channel, generating the local CSR/private key, and
-  creating the Apple Distribution certificate/profile.
+  creating and uploading the Apple Distribution certificate/profile to EAS.
+  Because the source workspace contained unrelated uncommitted work, build `5`
+  is release-path validation only and must not be submitted to Apple.
 
 ## Local evidence
 
-- `bun run ios:release:check`: 18/18 checks passed.
+- `bun run ios:release:check`: 19/19 checks passed.
 - `bunx expo install --check`: dependencies are up to date (with the intentional
   React/React DOM/type exclusions above).
 - `bunx expo-doctor`: 17/18 checks passed; the isolated-install duplicate warning

@@ -12,10 +12,17 @@ September 14, 2027. The downloaded certificate and profile were validated, the
 Apple WWDR G3 intermediate was installed, and Keychain reports exactly one valid
 matching signing identity. After explicit approval for local export, an encrypted
 `0600` temporary `.p12` containing exactly one private key was created outside the
-repository. No private key has been transmitted to EAS, and no build
-upload/submission, API access/key, permission change, or tester invitation has
-completed. The next action-time gate is sending the encrypted `.p12` and profile
-to Expo/EAS project `@pcruz321/gnd-prodesk`.
+repository. After separate approval, EAS stored it and the active profile for
+`@pcruz321/gnd-prodesk`, confirmed matching serial/team/bundle data, and reported
+all credentials ready; the temporary `.p12`, password, and secret-bearing JSON
+were immediately removed. Production `STORE` build
+`3f3a6acf-ac06-42b8-ab72-1837480f49cc` then completed as version `1.0.305`, build
+`5`, without Apple upload. IPA inspection confirmed the production bundle/team,
+active App Store beta profile, `get-task-allow=false`, and export-compliance flag.
+Because unrelated uncommitted workspace changes were included in the archive,
+build `5` is validation-only and must not be submitted. The next gates are a clean
+reviewed release build followed by explicit confirmation before App Store Connect
+upload; API access/key, permission changes, and tester invitations remain gated.
 
 ### 2026-09-12 — App Store Connect app record created
 

@@ -98,9 +98,11 @@ credentials. Obtain explicit action-time confirmation before performing it.
      material after EAS confirms storage; retain the keychain identity.
    - For the current release, certificate `ZDC9NMPYX8`, profile `6VT956987X`
      (UUID `be302ee0-1e9c-4df4-b39d-248ad085c5a4`), and exactly one valid local
-     signing identity have been verified. The encrypted `.p12` and its password
-     are temporary `0600` files outside the repository and have not been sent to
-     EAS.
+     signing identity have been verified. After action-time approval they were
+     stored by EAS for `@pcruz321/gnd-prodesk`; the temporary encrypted `.p12`,
+     password file, and secret-bearing `credentials.json` were removed. Retain
+     the Keychain identity and do not recreate/export it unless rotation or EAS
+     recovery requires it.
 
 ## 4. Build and upload
 
@@ -119,6 +121,10 @@ credentials. Obtain explicit action-time confirmation before performing it.
 6. The submit command uploads to App Store Connect/TestFlight; it does not
    submit the app for App Store review. Capture the EAS build URL, Apple build
    number, upload outcome, and processing status in the release record.
+7. Build `3f3a6acf-ac06-42b8-ab72-1837480f49cc` proved the remote store build and
+   signing path for version `1.0.305` / build `5`. It includes unrelated dirty
+   workspace state and is validation-only. Before the upload gate, produce a
+   fresh build from the reviewed clean release commit; never submit build `5`.
 
 ## 5. Processing and compliance
 

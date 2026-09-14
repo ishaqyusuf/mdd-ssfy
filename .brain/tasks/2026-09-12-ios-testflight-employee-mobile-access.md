@@ -21,15 +21,15 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 ## Implementation Progress
 - Completion: 100% of safe local preparation
 - Current Checklist: 11/11 — Safe local work is complete; Terms V100 is accepted,
-  EAS is authenticated as `pcruz321`, and the retained project link is verified
-- Blocker: the first production-build attempt reached the Apple signing stage but
-  failed before queuing a build with the upstream `iTunes service key is empty`
-  authentication defect. Apple Distribution certificate `ZDC9NMPYX8` and App
-  Store profile `6VT956987X` now exist, were downloaded and validated, and form
-  exactly one valid Keychain signing identity. An encrypted temporary `.p12`
-  containing one private key is ready outside the repository. Obtain explicit
-  confirmation before transmitting it and the profile to Expo/EAS. Build upload
-  and tester operations remain separately gated.
+  EAS is authenticated as `pcruz321`, the retained project link is verified, and
+  the build-only store release path completed successfully
+- Blocker: EAS now securely stores Apple Distribution certificate `ZDC9NMPYX8`
+  and App Store profile `6VT956987X`; all temporary exported private material was
+  removed. Store build `3f3a6acf-ac06-42b8-ab72-1837480f49cc` completed for
+  version `1.0.305` / build `5`. It is validation-only because unrelated dirty
+  workspace state was present. A clean reviewed release build and explicit
+  action-time confirmation are required before any App Store Connect upload;
+  processing, tester-group assignment, and invitations remain separately gated.
 
 ## Implementation Checklist
 - [x] Audit Expo/EAS, authentication, permissions, updates, signing assumptions, dependencies, and release docs
@@ -95,5 +95,16 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
   for team `ZXC78SPCV4`, bundle `com.gnd.prodesk`, and profile UUID
   `be302ee0-1e9c-4df4-b39d-248ad085c5a4`. The WWDR G3 intermediate is installed,
   Keychain reports one valid signing identity, and an encrypted `0600` temporary
-  `.p12` containing exactly one private key is ready outside the repository. No
-  EAS private-key upload has completed.
+  `.p12` containing exactly one private key was prepared outside the repository.
+- After separate action-time approval, uploaded the certificate and profile to
+  EAS via its official `credentials.json` sync flow. EAS matched certificate
+  serial `3E31B198C1691F7D0BBDCB5D068D6154`, active profile, team, and bundle, then
+  reported all credentials ready. Removed the temporary `.p12`, password, and
+  secret-bearing JSON immediately afterward.
+- The build-only production command completed EAS build
+  `3f3a6acf-ac06-42b8-ab72-1837480f49cc` as a signed `STORE` IPA, version
+  `1.0.305`, build `5`, without uploading to Apple. Artifact inspection confirmed
+  bundle `com.gnd.prodesk`, team `ZXC78SPCV4`, App Store beta entitlement,
+  production `get-task-allow=false`, the verified embedded profile, and export
+  compliance `false`. The artifact must not be submitted because the archived
+  workspace contained unrelated uncommitted work.
