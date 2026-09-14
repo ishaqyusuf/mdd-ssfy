@@ -1,6 +1,7 @@
 "use client";
 
 import { getSalesArchiveCandidates } from "@/components/sales-archive-menu";
+import { salesInventoryVerificationActivity } from "@/lib/table-row-activity/sales-inventory";
 import { salesPaymentReviewActivity } from "@/lib/table-row-activity/sales-outcomes";
 
 import {
@@ -300,6 +301,7 @@ const inboundColumn: Column = {
 };
 
 function InboundStatusCell({ item }: { item: SalesOrder }) {
+	const auth = useAuth();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const overviewQuery = useSalesOverviewQuery();
@@ -319,6 +321,7 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 		"h-7 max-w-full cursor-pointer justify-start gap-1.5 whitespace-nowrap px-2 font-medium shadow-none";
 	const verifyInventoryApplicability = useMutation(
 		trpc.inventories.verifySalesInventoryApplicability.mutationOptions({
+			meta: { rowActivity: salesInventoryVerificationActivity(String(auth.id ?? "")) },
 			onSuccess: async (result) => {
 				await Promise.all([
 					queryClient.invalidateQueries({

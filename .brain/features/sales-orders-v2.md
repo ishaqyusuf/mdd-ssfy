@@ -407,3 +407,16 @@ per invocation and confirms success only for unique `deletedSalesIds` in the API
 response. Count-only, missing or duplicate confirmations stay neutral. Successful
 rows clear their captured selections; unresolved and unrelated selections remain.
 Existing list/summary invalidation ownership is unchanged.
+
+Status-only production/fulfillment declarations and cancellations opt into feedback.
+Single operations require a new matching STATUS_ONLY record with the expected
+milestone/state; replays stay neutral. Bulk declarations resolve unique per-sale
+items, with skipped/replayed/missing results neutral and failed results shown as
+errors. Business cancellation success is distinct from task transport cancellation.
+
+Payment application uses confirmed appliedSalesIds only after status success.
+Terminal checkout creation shows Awaiting terminal payment; it cannot clear
+selection or animate a committed departure. Final terminal application follows
+the same confirmed-ID rule. Inline inventory verification accepts only a ready
+projection; resolved sync warnings show Inventory needs review. Existing query
+event and mutation callback ownership stays unchanged.

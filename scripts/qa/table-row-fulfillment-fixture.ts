@@ -1,7 +1,7 @@
 /** Disposable local legacy-production fixture for real fulfillment row QA. */
 const args = new Set(process.argv.slice(2));
-const fixtureId = `QA-ROW-FULFILLMENT-20260914${args.has("--mobile") ? "-MOBILE" : args.has("--timing") ? "-TIMING" : ""}`;
-for (const arg of args) if (!["--apply", "--cleanup", "--mobile", "--timing"].includes(arg)) throw new Error(`Unknown argument: ${arg}`);
+const fixtureId = `QA-ROW-FULFILLMENT-20260914${args.has("--status") ? "-STATUS" : args.has("--mobile") ? "-MOBILE" : args.has("--timing") ? "-TIMING" : ""}`;
+for (const arg of args) if (!["--apply", "--cleanup", "--mobile", "--timing", "--status"].includes(arg)) throw new Error(`Unknown argument: ${arg}`);
 const url = new URL(process.env.DATABASE_URL ?? "mysql://root@127.0.0.1:3307/gnd-prisma2");
 if (!["localhost", "127.0.0.1"].includes(url.hostname) || url.port !== "3307" || url.pathname !== "/gnd-prisma2") throw new Error("Local fixture requires gnd-prisma2 on port3307.");
 process.env.DATABASE_URL = url.toString();
@@ -42,7 +42,7 @@ try {
       }, select: { id: true } });
       await resetSalesAction(tx as typeof db, order.id);
       const info = await getSaleInformation(tx as typeof db, { salesId: order.id });
-      await createSalesAssignmentAction(tx as typeof db, {
+      if (!args.has("--status")) await createSalesAssignmentAction(tx as typeof db, {
         salesId: order.id, authorId: actor.id, assignedToId: actor.id, submit: true, updateStats: true,
         submissionMeta: { validationFixtureId: fixtureId, source: "synthetic_legacy_production_fixture" },
         items: info.items.map(item => ({ itemInfo: item, qty: item.analytics!.assignment.pending })),

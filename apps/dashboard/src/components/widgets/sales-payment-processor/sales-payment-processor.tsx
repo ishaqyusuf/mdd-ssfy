@@ -1,4 +1,5 @@
 import { Env } from "@/components/env";
+import { salesPaymentActivity } from "@/lib/table-row-activity/sales-payment";
 import { useAuth } from "@/hooks/use-auth";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
@@ -723,6 +724,7 @@ function Content(
 	]);
 	const makePayment = useMutation(
 		trpc.salesPaymentProcessor.applyPayment.mutationOptions({
+			meta: { rowActivity: salesPaymentActivity(String(auth.id ?? "")) },
 			onSuccess: (data) => {
 				if (data?.terminalPaymentSession) {
 					form.setValue("terminalPaymentSession", data.terminalPaymentSession);

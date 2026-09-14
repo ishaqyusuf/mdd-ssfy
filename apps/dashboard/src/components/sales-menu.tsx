@@ -1,6 +1,7 @@
 import type { SalesMenuPipeline } from "./sales-batch-status-selection";
 import { SalesArchiveMenu, type SalesArchiveCandidate } from "./sales-archive-menu";
 import { isRowActivityBusy } from "@/store/table-row-activity";
+import { salesCompletionActivity } from "@/lib/table-row-activity/sales-completion";
 import { salesDeleteActivity, salesPaymentReviewActivity } from "@/lib/table-row-activity/sales-outcomes";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { generateToken } from "@/actions/token-action";
@@ -1173,22 +1174,34 @@ function SalesMenuMarkAs({
 		}),
 	);
 	const markProductionStatusOnlyMutation = useMutation(
-		trpc.sales.markProductionCompletionStatusOnly.mutationOptions(),
+		trpc.sales.markProductionCompletionStatusOnly.mutationOptions({
+			meta: { rowActivity: salesCompletionActivity(String(auth.id ?? ""), "PRODUCTION_COMPLETED", {}) },
+		}),
 	);
 	const markProductionStatusOnlyBulkMutation = useMutation(
-		trpc.sales.markProductionCompletionStatusOnlyBulk.mutationOptions(),
+		trpc.sales.markProductionCompletionStatusOnlyBulk.mutationOptions({
+			meta: { rowActivity: salesCompletionActivity(String(auth.id ?? ""), "PRODUCTION_COMPLETED", { batch: true }) },
+		}),
 	);
 	const cancelProductionStatusOnlyMutation = useMutation(
-		trpc.sales.cancelProductionCompletionStatusOnly.mutationOptions(),
+		trpc.sales.cancelProductionCompletionStatusOnly.mutationOptions({
+			meta: { rowActivity: salesCompletionActivity(String(auth.id ?? ""), "PRODUCTION_COMPLETED", { cancel: true }) },
+		}),
 	);
 	const markFulfillmentStatusOnlyMutation = useMutation(
-		trpc.sales.markFulfillmentCompletionStatusOnly.mutationOptions(),
+		trpc.sales.markFulfillmentCompletionStatusOnly.mutationOptions({
+			meta: { rowActivity: salesCompletionActivity(String(auth.id ?? ""), "FULFILLMENT_COMPLETED", {}) },
+		}),
 	);
 	const markFulfillmentStatusOnlyBulkMutation = useMutation(
-		trpc.sales.markFulfillmentCompletionStatusOnlyBulk.mutationOptions(),
+		trpc.sales.markFulfillmentCompletionStatusOnlyBulk.mutationOptions({
+			meta: { rowActivity: salesCompletionActivity(String(auth.id ?? ""), "FULFILLMENT_COMPLETED", { batch: true }) },
+		}),
 	);
 	const cancelFulfillmentStatusOnlyMutation = useMutation(
-		trpc.sales.cancelFulfillmentCompletionStatusOnly.mutationOptions(),
+		trpc.sales.cancelFulfillmentCompletionStatusOnly.mutationOptions({
+			meta: { rowActivity: salesCompletionActivity(String(auth.id ?? ""), "FULFILLMENT_COMPLETED", { cancel: true }) },
+		}),
 	);
 	const invalidateOrders = async () => {
 		await Promise.all([

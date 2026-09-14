@@ -20,8 +20,8 @@ Implement the [reviewed plan](../plans/2026-08-06-ux-ui-table-row-processing-exi
 Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 
 ## Implementation Progress
-- Completion: 80%
-- Current Checklist: 7/10 — Validate production/cancellation and remaining pilot action adapters
+- Completion: 90%
+- Current Checklist: 9/10 — Complete remaining authenticated and visual acceptance
 - Blockers: None external; remaining action adapters and final browser coverage are in progress
 
 ## Implementation Checklist
@@ -31,7 +31,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 - [x] Bridge direct mutation lifecycle and single/batch payment review
 - [x] Bridge monitored fulfillment with per-sale outcomes and fallback behavior
 - [x] Integrate Sales Orders display rows, selection and request controls
-- [ ] Validate production/cancellation and remaining pilot action adapters
+- [x] Validate production/cancellation and remaining pilot action adapters
 - [x] Run focused/full relevant tests, typecheck and code review
 - [ ] Complete authenticated browser acceptance and timing/rollout decision
 - [x] Update feature/architecture documentation and commit scoped work
@@ -377,3 +377,34 @@ absence. No API changes are needed to preserve this distinction.
 - API contract and feature docs updated. No schema or permission changes.
   Completion remains80%; payment recording, inline/status-only adapters and final
   production/cancellation/accessibility acceptance remain.
+
+## Remaining action adapters implemented — 2026-09-14
+
+- Status-only production/fulfillment mark, bulk mark and cancellation now carry
+  invocation-scoped metadata. New matching records confirm single success; replay,
+  skipped, missing and conflicting outcomes stay neutral. Bulk failed items show
+  errors. Business cancellation success is separate from task cancellation.
+- Payment application confirms only unique appliedSalesIds after status success;
+  terminal checkout creation remains Awaiting terminal payment. Inline inventory
+  verification accepts ready projection and labels resolved warnings review-required.
+- Adapter suite22 tests57 assertions passes. Both spec/standards reviewers found
+  no blockers. Dashboard typecheck exits2 on existing repository diagnostics; no
+  diagnostics in the changed adapters, SalesMenu, Sales Orders bottom bar or
+  payment processor. Columns628 retains its existing invoice presentation mismatch
+  (optional latestPaymentReview); the three inventory metadata additions do not
+  touch that call site. API baseline is recorded in the prior checkpoint.
+- Local marked order28183 passed production status mark/cancel and fulfillment
+  status mark/cancel through real UI. Each showed processing/inert, correctly
+  labeled success, and restored interaction while remaining in the unfiltered view.
+- Full production first returned PRODUCTION_ASSIGNMENT_REQUIRED and showed error.
+  A normal unsubmitted assignment prepared the required evidence. Retry submitted
+  work and returned review-required: processing35ms, Review required9022ms, normal
+  row14902ms. No false green exit. Declined status-only fallback; did not bypass
+  review or claim successful full production completion. Fixture cleanup completed.
+- Added --status to the existing local-only fixture script, skipping completed
+  assignment preparation; marker guard and cleanup scope remain unchanged.
+- Checklist7 implementation/contract verification complete. Checklist9 remains:
+  live payment/inventory acceptance, actual reduced-motion and remaining visual/
+  accessibility coverage. Completion90%; no full feature completion claimed.
+- Brain impact: task and feature contracts updated. No further API/schema/permission
+  changes beyond the already documented batch deletion response.
