@@ -134,3 +134,28 @@ export function salesArchiveActivity(ownerId: string): import("./mutation").RowA
     },
   };
 }
+
+export function salesBatchDeleteActivity(
+  ownerId: string,
+  sales: readonly { orderNo: string; salesId: number }[],
+): import("./mutation").RowActivityDescriptor {
+  return {
+    ownerId,
+    tableId: "sales-orders",
+    describe(variables) {
+      const orderIds = variables && typeof variables === "object" && "orderIds" in variables && Array.isArray(variables.orderIds) ? variables.orderIds : [];
+      const entityIds = [...new Set(sales.filter(sale => orderIds.includes(sale.orderNo)).map(sale => sale.salesId))];
+      return {
+        entityIds,
+        label: "Deleting",
+        resolve(data) {
+          const deleted = data && typeof data === "object" && "deletedSalesIds" in data && Array.isArray(data.deletedSalesIds) ? data.deletedSalesIds : [];
+          return entityIds.map(entityId => {
+            const committed = deleted.filter(id => id === entityId).length === 1;
+            return { entityId, phase: committed ? "success" : "unknown", label: committed ? "Deleted" : "Check deletion result" };
+          });
+        },
+      };
+    },
+  };
+}

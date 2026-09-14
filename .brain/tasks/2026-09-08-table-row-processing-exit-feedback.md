@@ -360,3 +360,20 @@ absence. No API changes are needed to preserve this distinction.
   API response, permission or query-invalidation contract changes in this checkpoint.
 - Final standards review found no blocking issues and confirmed the existing
   invalidation ownership and local fixture guards. Scoped diff check passes.
+
+## Batch deletion — 2026-09-14
+
+- Added a bounded batch soft-delete helper and additive confirmed-ID API result.
+  Wired the Sales Orders bottom bar; removed blanket selection clearing.
+- Five focused tests / 17 assertions pass, covering full/partial/no-match API writes,
+  frozen invocation IDs, missing/duplicate confirmations and per-row outcomes.
+  Spec and standards reviews report no code blockers.
+- Live batch endpoint QA with one selected marked local order27347 showed Deleted
+  and inert at82ms, opacity0 at1601ms, and removal at1818ms. No results and no
+  selection bar followed. This is a single-selection batch endpoint check; mixed
+  outcomes are covered by tests. Fixture/payment cleanup completed.
+- API typecheck exits2 solely on existing packages/sales/src/copy-sales.ts:521
+  nullable-string mismatch; no batch deletion diagnostics.
+- API contract and feature docs updated. No schema or permission changes.
+  Completion remains80%; payment recording, inline/status-only adapters and final
+  production/cancellation/accessibility acceptance remain.

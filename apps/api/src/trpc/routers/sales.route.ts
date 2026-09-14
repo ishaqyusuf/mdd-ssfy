@@ -1,3 +1,4 @@
+import { deleteSalesOrdersByOrderIds } from "@api/db/queries/delete-sales-orders";
 import { getProductionInboundOverview } from "@gnd/sales";
 import { getInboundActivityQuery } from "@api/db/queries/inbound-receiving";
 import { getSenderId } from "@api/db/queries/note";
@@ -2129,28 +2130,18 @@ export const salesRouter = createTRPCRouter({
 	deleteSalesByOrderIds: protectedProcedure
 		.input(deleteSalesByOrderIdsSchema)
 		.mutation(async (props) => {
-			const affected = await props.ctx.db.salesOrders.findMany({
-				where: { orderId: { in: props.input.orderIds } },
-				select: { id: true },
-			});
-			const result = await props.ctx.db.salesOrders.updateMany({
-				where: {
-					orderId: {
-						in: props.input.orderIds,
-					},
-				},
-				data: {
-					deletedAt: new Date(),
-				},
-			});
+			const result = await deleteSalesOrdersByOrderIds(
+				props.ctx.db, props.input.orderIds,
+			);
 			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
-				salesOrderIds: affected.map((order) => order.id),
+				salesOrderIds: result.affectedSalesIds,
 				actorUserId: props.ctx.userId,
 				source: "api.sales.delete-many",
 			});
 
 			return {
 				count: result.count,
+				deletedSalesIds: result.deletedSalesIds,
 			};
 		}),
 	deleteSale: protectedProcedure

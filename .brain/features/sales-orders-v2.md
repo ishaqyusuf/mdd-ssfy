@@ -401,3 +401,9 @@ latestPaymentReview field with a separate bounded loaded-order lookup, taking
 only the newest eligible payment per order. Keep that metadata out of invoice
 calculations. Approved local single-row QA verified success feedback followed by
 queue removal after this correction; the synthetic order/payment were cleaned up.
+
+Batch deletion also opts into row feedback. It captures requested loaded order IDs
+per invocation and confirms success only for unique `deletedSalesIds` in the API
+response. Count-only, missing or duplicate confirmations stay neutral. Successful
+rows clear their captured selections; unresolved and unrelated selections remain.
+Existing list/summary invalidation ownership is unchanged.

@@ -2973,3 +2973,11 @@ provider or reserves usage.
 - Employee output contains lifecycle timestamps and event history but excludes
   internal notes, invitation provider/reference, and reviewer details.
 - Admin output includes audit/admin fields plus legal next statuses. Concurrent
+
+### Batch sale deletion confirmation
+
+`sales.deleteSalesByOrderIds` preserves `count` and additionally returns
+`deletedSalesIds: number[]`. The soft-delete write is bounded to the numeric IDs
+captured before it runs. IDs are confirmed only when the entire bounded set was
+updated; a partial count returns an empty confirmed list. Consumers must not infer
+individual success from a count. Handoff reconciliation keeps its existing scope.

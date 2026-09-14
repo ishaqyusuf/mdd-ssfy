@@ -1,6 +1,7 @@
 "use client";
 
 import { getSalesArchiveCandidates } from "@/components/sales-archive-menu";
+import { salesBatchDeleteActivity } from "@/lib/table-row-activity/sales-outcomes";
 import { isRowActivityBusy } from "@/store/table-row-activity";
 
 import { SalesMenu } from "@/components/sales-menu";
@@ -60,7 +61,6 @@ export function BottomBar({ data, busy }: Props) {
 	const deleteMutation = useMutation(
 		trpc.sales.deleteSalesByOrderIds.mutationOptions({
 			async onSuccess() {
-				setRowSelection({});
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.getOrders.infiniteQueryKey(),
@@ -71,6 +71,7 @@ export function BottomBar({ data, busy }: Props) {
 				]);
 			},
 			meta: {
+				rowActivity: salesBatchDeleteActivity(String(auth.id ?? ""), salesRefs),
 				queryEventScope: {
 					sales: salesRefs,
 				},
