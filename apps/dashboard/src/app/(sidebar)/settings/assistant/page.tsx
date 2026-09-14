@@ -1,4 +1,5 @@
 import { getLoggedInProfile } from "@/actions/cache/get-loggedin-profile";
+import { AssistantRuntimeSettings } from "@/components/assistant/assistant-runtime-settings";
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
@@ -21,6 +22,7 @@ export default async function AssistantAdministrationPage() {
 	if (profile.role?.toLowerCase() !== "super admin") redirect("/");
 	await batchPrefetch([
 		trpc.assistant.adminEntitlements.queryOptions({ take: 100 }),
+		trpc.assistant.runtimeSettings.queryOptions(),
 	]);
 	return (
 		<PageShell>
@@ -34,6 +36,11 @@ export default async function AssistantAdministrationPage() {
 								status.
 							</p>
 						</div>
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense fallback={null}>
+								<AssistantRuntimeSettings />
+							</Suspense>
+						</ErrorBoundary>
 						<ErrorBoundary errorComponent={ErrorFallback}>
 							<Suspense fallback={<AssistantAccessSkeleton />}>
 								<AssistantAccessDataTable />

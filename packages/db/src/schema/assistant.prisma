@@ -38,6 +38,29 @@ model AssistantUserEntitlement {
     @@index([updatedByUserId, updatedAt], map: "asst_entitlement_admin_idx")
 }
 
+model AssistantRuntimeSetting {
+    key             String                         @id @db.VarChar(50)
+    provider        String                         @db.VarChar(40)
+    model           String                         @db.VarChar(100)
+    version         Int                            @default(1)
+    updatedByUserId Int
+    createdAt       DateTime                       @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime                       @updatedAt
+}
+
+model AssistantRuntimeSettingEvent {
+    id          String                  @id @default(cuid()) @db.VarChar(191)
+    settingKey  String                  @db.VarChar(50)
+    provider    String                  @db.VarChar(40)
+    model       String                  @db.VarChar(100)
+    version     Int
+    actorUserId Int
+    createdAt   DateTime                @default(now()) @db.Timestamp(0)
+
+    @@unique([settingKey, version], map: "asst_runtime_setting_event_version_uq")
+    @@index([actorUserId, createdAt], map: "asst_runtime_setting_event_actor_idx")
+}
+
 model AssistantEntitlementEvent {
     id              String                   @id @default(cuid()) @db.VarChar(191)
     entitlementId   String                   @db.VarChar(191)

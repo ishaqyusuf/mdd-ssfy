@@ -27,6 +27,8 @@ User requested account-by-account assistant enablement instead of role permissio
 - The individual entitlement opens the assistant product; it does not widen business-data access. Every tool continues to enforce the user's current domain grants, organization/user scope, row filters, and field redaction at execution time.
 - Dashboard navigation, conversation APIs, streaming/reconnect, tool discovery/execution, artifact jobs, and notifications all check the current entitlement server-side. Disabling access takes effect immediately while retaining history under its retention policy.
 - Existing super-admin authorization protects governance screens and mutations. Assistant entitlement does not grant admin access.
+- Super Admins select the global Assistant provider and allowlisted model from the standard Assistant settings page. Credentials remain server environment variables, and a provider without a configured credential cannot be saved.
+- A new run snapshots the selected provider/model into its durable run identity. Later setting changes affect only new runs.
 - Usage reporting stores operational metadata, token counts, outcomes, latency, model/provider, and estimated cost. Raw prompts and tool payloads are excluded from routine usage views.
 - Quotas reserve capacity before provider work and settle actual usage so concurrent requests cannot silently exceed a user's limit.
 - T16 remains the feature-request source of truth. T19 supplies its super-admin board and implementation/release history without creating a second lifecycle.
@@ -77,8 +79,8 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - AI analysis: `queued`, `running`, `ready_for_review`, `approved`, `needs_revision`, `failed`. AI analysis never accepts, prioritizes, or releases a request without an authorized human action.
 
 ## Implementation Progress
-- Completion: 33%
-- Current Checklist: 5/15 — individual access, usage accounting, and user quota feedback foundations
+- Completion: 38%
+- Current Checklist: 6/16 — individual access, usage accounting, quota feedback, and global runtime selection foundations
 - Blockers: None for T19A/T19B foundations; quota templates, full reporting UI/export, bulk access operations, and request governance remain.
 
 ## Implementation Checklist
@@ -91,6 +93,7 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - [ ] T19C: Add daily/monthly per-user policies for tokens, requests, concurrent runs, and optional cost, with warning thresholds, timezone/reset rules, effective dates, templates, temporary overrides, and unlimited/null semantics.
 - [ ] T19C: Implement atomic reserve/settle/release accounting for streams, retries, disconnects, provider errors, tool subcalls, and jobs without double charging.
 - [x] T19C: Return typed `access_disabled`, `quota_warning`, and `quota_exceeded` states with remaining allowance/reset time and render the personal usage meter.
+- [x] T19C: Add an audited Super Admin provider/model selector in the standard dashboard, require an environment credential, and pin each started run to its original selection.
 - [ ] T19C: Build bounded super-admin reports for totals, trends, top users, model/tool mix, success/failure, latency, estimated spend, allowance, anomalies, drill-down, and CSV export.
 - [ ] T19D: Build the T16-backed feature-request board with deduplicated demand, subscribers, domain, status, priority, owner, AI-analysis review, clarification, linked capability, target release, and blockers.
 - [ ] T19D: Add the immutable implementation timeline connecting triage decisions, Brain/task ticket, code references, rollout verification, release version, subscriber delivery, and rollback/disable events.
@@ -133,3 +136,4 @@ The slices are implementation checkpoints inside this ticket. T20 productizes th
 - 2026-09-13 T19B stores one idempotent ledger row per provider response, preserves aggregate fallback runs, captures provider/model/token categories/tool count/latency/outcome, and applies effective versioned model pricing with integer-micro rounding. Unknown receipts enter a bounded Super Admin reconciliation queue; corrections update the ledger and append a before/after reconciliation record without storing prompts or tool payloads. Focused normalization, price-rounding, runtime, and navigation checks pass, Prisma generation passes, and the local schema was applied with `db:push` as requested.
 - 2026-09-13 planning review expanded the ticket into four delivery slices with explicit data, API, dashboard, lifecycle, privacy, accounting, and acceptance contracts.
 - 2026-09-14 T19C foundation adds effective-dated per-user request, token, concurrency, and optional cost policies; timezone-aware daily/monthly windows; serializable run reservations; idempotent settlement against the provider ledger; typed quota admission failures; authenticated bootstrap allowance state; Super Admin policy procedures; and a compact user meter in the standard Assistant toolbar. Local `db:push`, Prisma generation, 56 focused quota/runtime/REST/chat-state tests, DB typecheck, touched-file Biome, and API typecheck through the unrelated Sales nullable-string baseline all completed. Dashboard-wide typecheck exhausted its 4 GB heap, so touched UI validation remains focused.
+- 2026-09-14 the standard `/settings/assistant` dashboard now exposes the allowlisted OpenAI, Anthropic, DeepSeek, and Google provider/model catalog to Super Admins. Selection is optimistic-versioned and audited; credentials never leave environment variables, unconfigured providers cannot be saved, and existing runs retain their persisted provider/model identity. Local `db:push`, Prisma generation, focused Biome, and 43 runtime/settings/REST tests pass. Browser verification confirmed the standard dashboard shell, configured OpenAI state, model selector, and missing-key labels for all other providers.

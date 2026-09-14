@@ -225,3 +225,19 @@ same transaction; recovery settles conservatively when exact usage is unavailabl
 Quota failures are typed separately from Redis infrastructure rate limits. The
 standard Assistant toolbar shows only the current user's remaining requests and
 tokens plus reset time; organization spend and other users remain Super Admin data.
+
+## Dashboard provider selection — 2026-09-14
+
+The standard `/settings/assistant` page now lets Super Admins select the global
+Assistant provider and one allowlisted model. OpenAI, Anthropic, DeepSeek, and
+Google appear in the same dashboard surface as individual access. Credential
+presence is shown only as configured or missing; key values remain in server
+environment variables and an unconfigured provider cannot be saved.
+
+The database stores one optimistic-versioned global selection plus immutable audit
+events. New runs snapshot that selection into the existing durable model identity,
+so a later administrator switch affects only newly started runs. Invalid persisted
+catalog entries fail safely to the environment selection. ADR-096 records this
+boundary. Focused validation passes 43 tests / 133 assertions, local `db:push` and
+Prisma generation pass, and browser verification confirms the standard dashboard
+shell and all four provider options.

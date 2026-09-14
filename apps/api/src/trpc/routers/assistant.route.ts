@@ -34,6 +34,11 @@ import {
 	getAssistantConnectorManagementUrl,
 } from "@api/assistant/integrations";
 import {
+	AssistantRuntimeSettingConflictError,
+	getAssistantRuntimeSettingsSurface,
+	updateAssistantRuntimeSettings,
+} from "@api/assistant/runtime-settings";
+import {
 	assistantPreferenceUpdateSchema,
 	assistantRecipeParametersSchema,
 	assistantSavedActionCreateSchema,
@@ -181,6 +186,31 @@ export const assistantRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const adminUserId = await featureAdminOrThrow(ctx);
 			return updateAssistantEntitlement(ctx.db, adminUserId, input);
+		}),
+	runtimeSettings: protectedProcedure.query(async ({ ctx }) => {
+		await featureAdminOrThrow(ctx);
+		return getAssistantRuntimeSettingsSurface(ctx.db);
+	}),
+	updateRuntimeSettings: protectedProcedure
+		.input(
+			z
+				.object({
+					provider: z.enum(["openai", "anthropic", "deepseek", "google"]),
+					model: z.string().trim().min(1).max(100),
+					expectedVersion: z.number().int().nonnegative(),
+				})
+				.strict(),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const adminUserId = await featureAdminOrThrow(ctx);
+			try {
+				return await updateAssistantRuntimeSettings(ctx.db, adminUserId, input);
+			} catch (error) {
+				if (error instanceof AssistantRuntimeSettingConflictError) {
+					throw new TRPCError({ code: "CONFLICT", message: error.message });
+				}
+				throw error;
+			}
 		}),
 	usageReconciliationQueue: protectedProcedure
 		.input(z.object({ take: z.number().int().min(1).max(100).default(50) }))

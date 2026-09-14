@@ -22,6 +22,7 @@ import {
 	type AssistantRuntimeInput,
 	createAssistantRuntime,
 	getAssistantRuntimeIdentity,
+	resolveAssistantRuntimeSelection,
 } from "./runtime";
 import {
 	createAssistantPrepareStep,
@@ -284,6 +285,7 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 		try {
 			await warmAssistantToolIndex(input.actor);
 			return await createAssistantRuntime({
+				selection: input.runtimeSelection,
 				modelTools: { ...session.tools, ...composioTools },
 				trustedResultTools: Object.keys(session.tools).filter(
 					(toolName) => !(toolName in composioTools),
@@ -399,7 +401,7 @@ export async function executeAssistantConversationTurn(
 	input: {
 		actor: AssistantTurnActor;
 		request: AssistantChatRequest;
-		run: { runId: string; triggerMessageId?: string };
+		run: { runId: string; triggerMessageId?: string; modelIdentity?: string };
 		writer: AssistantRuntimeInput["writer"];
 		signal: AbortSignal;
 		reauthorizeActor?: AssistantRuntimeInput["reauthorizeActor"];
@@ -407,6 +409,14 @@ export async function executeAssistantConversationTurn(
 	overrides: Partial<ExecuteAssistantTurnDependencies> = {},
 ) {
 	const dependencies = { ...defaultDependencies, ...overrides };
+	const [runProvider, runModel] = input.run.modelIdentity?.split(":", 2) ?? [];
+	const runtimeSelection =
+		runProvider && runModel
+			? resolveAssistantRuntimeSelection({
+					ASSISTANT_AI_PROVIDER: runProvider,
+					ASSISTANT_AI_MODEL: runModel,
+				})
+			: getAssistantRuntimeIdentity();
 	const documentIds = input.request.message.parts.flatMap((part) =>
 		part.type === "file" ? [part.documentId] : [],
 	);
@@ -467,7 +477,7 @@ export async function executeAssistantConversationTurn(
 			}
 			documentContent.push({ document, bytes });
 		}
-		const provider = getAssistantRuntimeIdentity().provider;
+		const provider = runtimeSelection.provider;
 		attachmentParts = await Promise.all(
 			documentContent.map(async ({ document, bytes }) => {
 				if (document.mimeType === "application/pdf") {
@@ -554,6 +564,7 @@ export async function executeAssistantConversationTurn(
 		},
 		signal: input.signal,
 		reauthorizeActor: input.reauthorizeActor,
+		runtimeSelection,
 	});
 	if (outcome.status !== "succeeded") return outcome;
 	if (input.signal.aborted) {

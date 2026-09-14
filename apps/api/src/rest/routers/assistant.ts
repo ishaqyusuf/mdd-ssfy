@@ -3,6 +3,7 @@ import { resolveAssistantActor } from "@api/assistant/actor";
 import { executeAssistantConversationTurn } from "@api/assistant/execute-turn";
 import { resolveAssistantIntegrationIds } from "@api/assistant/integrations";
 import { getAssistantRuntimeIdentity } from "@api/assistant/runtime";
+import { getAssistantRuntimeConfiguration } from "@api/assistant/runtime-settings";
 import {
 	getAssistantPreferences,
 	listAssistantPersonalMemories,
@@ -100,6 +101,7 @@ type AssistantWriter = UIMessageStreamWriter<AssistantStreamMessage>;
 
 type StartedRun = {
 	runId: string;
+	modelIdentity?: string;
 	triggerMessageId?: string;
 	messageSequence: number;
 	runSequence: number;
@@ -509,7 +511,11 @@ const defaultDependencies: AssistantRouterDependencies = {
 		return resolveAssistantActor(context.db, context.userId);
 	},
 	async startRun(input) {
-		const runtimeIdentity = getAssistantRuntimeIdentity();
+		const configuration = await getAssistantRuntimeConfiguration(db);
+		const runtimeIdentity = getAssistantRuntimeIdentity({
+			ASSISTANT_AI_PROVIDER: configuration.selection.provider,
+			ASSISTANT_AI_MODEL: configuration.selection.model,
+		});
 		const requestRun = await createOrReuseAssistantRequestRun(db, {
 			conversationId: input.conversationId,
 			ownerUserId: input.actor.userId,
@@ -537,6 +543,7 @@ const defaultDependencies: AssistantRouterDependencies = {
 		});
 		return {
 			runId: claim.run.id,
+			modelIdentity: claim.run.model,
 			triggerMessageId: requestRun.message.id,
 			messageSequence: requestRun.message.sequence,
 			runSequence: claim.run.lastSequence,

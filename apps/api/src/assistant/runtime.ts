@@ -36,7 +36,7 @@ export const ASSISTANT_MAX_OUTPUT_TOKENS = 4_000;
 export const ASSISTANT_MAX_RETRIES = 1;
 export const ASSISTANT_FOREGROUND_DEADLINE_MS = 45_000;
 
-const ASSISTANT_PROVIDER_CATALOG = {
+export const ASSISTANT_PROVIDER_CATALOG = {
 	openai: ["gpt-5-mini", "gpt-5", "gpt-4.1-mini"],
 	anthropic: [
 		"claude-sonnet-5",
@@ -66,6 +66,7 @@ type AssistantRuntimeWriter = {
 
 export type AssistantRuntimeInput = {
 	runId?: string;
+	runtimeSelection?: AssistantRuntimeSelection;
 	actor: Omit<
 		AssistantPromptContext,
 		"recentUploads" | "mentionedIntegrations"
