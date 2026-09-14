@@ -1,7 +1,7 @@
 # Task: Table Row Processing And Exit Feedback
 
 ## Status
-In Progress
+Blocked
 
 ## Priority
 Medium
@@ -22,7 +22,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 ## Implementation Progress
 - Completion: 90%
 - Current Checklist: 9/10 — Complete remaining authenticated and visual acceptance
-- Blockers: None external; remaining action adapters and final browser coverage are in progress
+- Blockers: Actual reduced-motion setting and approval for prepared nonzero local payment fixture are pending
 
 ## Implementation Checklist
 - [x] Establish activity lifecycle and outcome contract with behavioral tests
@@ -408,3 +408,46 @@ absence. No API changes are needed to preserve this distinction.
   accessibility coverage. Completion90%; no full feature completion claimed.
 - Brain impact: task and feature contracts updated. No further API/schema/permission
   changes beyond the already documented batch deletion response.
+
+## Final acceptance follow-up — 2026-09-14
+
+- Previous turn made progress: adapters committed9f4bdce15/e3213183d. Continued
+  against the original plan, leaving checklist9 open rather than reducing scope.
+- Fixed QA reset to recreate a missing marked zero-value payment inside its
+  transaction. The prior payment had been physically removed; raw scoped lookup
+  confirmed absence. No unmarked records are recreated or modified.
+- Authenticated hidden-Status keyboard review passed on27347. Continuous capture:
+  processing announcement63ms, success announcement263ms, existing toast1152ms,
+  empty result2081ms with toast still present, toast gone3498ms. Screenshot showed
+  green sticky/ordinary cells, saved Payment Review count changed151→150. Original
+  Status visibility restored; browser warnings/errors list was empty.
+- Normal inventory synchronization prepared zero requirements for27347. The real
+  inline Verify inbound status action passed processing → Inventory verified →
+  interactive row. Marked order/payment cleanup completed afterward.
+- Harness now loads the actual served app stylesheet and checks computed color
+  changes, parity across sticky/ordinary cells, preserved sticky position, real
+  reduced-motion spinner/fade suppression when enabled, and document overflow.
+  Twenty standard-mode checks pass at desktop and mobile dark390×844. No harness
+  warnings/errors. Viewport restored. Reduced motion still reports false, so no
+  reduced-motion pass is claimed.
+- Final relevant suite129 passed/2 failed,531 assertions. Failures are unrelated
+  hardcoded table-directory counts (84 vs83,25 vs24); no new table directory was
+  added by this work. Separate request-control/task lifecycle5 tests15 assertions
+  pass. Adapter suite22 tests57 assertions passes. Ten scoped files pass Biome;
+  formatting fixes affect only owned adapter/test/QA files.
+- Dashboard typecheck exits2 on existing repository diagnostics, with no matches
+  for modified harness/adapters/tests. Previous invoice presentation mismatch in
+  Sales Orders columns remains separately recorded.
+- Prepared scripts/qa/table-row-payment-fixture.ts. Strict local target, explicit
+  --apply, marker collision guards and scoped soft-delete cleanup; dry-run passes
+  with no existing records. It creates a synthetic $1 due order/customer/wallet,
+  without customer contact details, for cash-recording QA. It has NOT been applied.
+  Explicit approval requested because prior authorization covered zero-value
+  payments. Phase0 payment-data gate remains respected.
+- Asked user to enable macOS Reduce motion because the connected browser exposes
+  viewport/visibility but no motion emulation. These two user inputs are now the
+  remaining acceptance dependencies. This is the first pending-input goal turn;
+  do not mark the persistent goal blocked before its required three-turn audit.
+- Spec/standards reviews found no fixture safety blockers. Spec requested stronger
+  actual-color evidence; added idle→processing color difference and overflow
+  assertions. Current activity implementation remains90%, not complete.

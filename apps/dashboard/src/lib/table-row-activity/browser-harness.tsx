@@ -1,13 +1,13 @@
-import { useState, useRef } from "react";
-import { createRoot } from "react-dom/client";
-import { flushSync, createPortal } from "react-dom";
-import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { useTableRowsWithActivity } from "@/hooks/use-table-rows-with-activity";
 import { VirtualRow } from "@/components/tables-2/core/virtual-row";
+import { useTableRowsWithActivity } from "@/hooks/use-table-rows-with-activity";
 import { tableRowActivity } from "@/store/table-row-activity";
+import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { useRef, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
 
 type Row = { id: number; uuid: string; title: string };
-const initial: Row[] = [
+const initial: [Row, Row] = [
 	{ id: 1, uuid: "fixture-one", title: "Fixture One" },
 	{ id: 2, uuid: "fixture-two", title: "Fixture Two" },
 ];
@@ -42,7 +42,7 @@ const columns = [
 	{ id: "status", cell: () => <button type="button">Open fixture</button> },
 ];
 function Harness() {
-	const [rows, setRows] = useState(initial);
+	const [rows, setRows] = useState<Row[]>(initial);
 	const [scope, setScope] = useState("A");
 	const [refresh, setRefresh] = useState<{
 		completedAt: number;
@@ -107,6 +107,13 @@ function Harness() {
 			);
 			row()?.querySelector<HTMLButtonElement>("button")?.focus();
 			const statusControl = row()?.querySelector<HTMLButtonElement>("button");
+			const idleCell = row()?.querySelector("td");
+			const idleBackground =
+				idleCell && getComputedStyle(idleCell).backgroundColor;
+			check(
+				document.documentElement.scrollWidth <= innerWidth,
+				"fixture has no document-level overflow",
+			);
 			let token = begin();
 			check(
 				document.activeElement === parent.current,
@@ -115,6 +122,31 @@ function Harness() {
 			await pause(20);
 			check(row()?.dataset.rowActivity === "processing", "processing renders");
 			check(row()?.inert, "processing controls are inert");
+			const cells = [...(row()?.querySelectorAll("td") ?? [])];
+			check(
+				cells[0] &&
+					getComputedStyle(cells[0]).backgroundColor !== idleBackground,
+				"processing changes the actual rendered cell color",
+			);
+			check(
+				cells.length > 1 &&
+					cells[0] &&
+					getComputedStyle(cells[0]).backgroundColor !== "rgba(0, 0, 0, 0)" &&
+					new Set(cells.map((cell) => getComputedStyle(cell).backgroundColor))
+						.size === 1,
+				"sticky and ordinary cells share the activity tone",
+			);
+			check(
+				cells[0] && getComputedStyle(cells[0]).position === "sticky",
+				"activity preserves sticky positioning",
+			);
+			if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+				const spinner = row()?.querySelector("svg");
+				check(
+					spinner && getComputedStyle(spinner).animationName === "none",
+					"reduced motion disables spinner animation",
+				);
+			}
 			check(
 				statusControl && row()?.contains(statusControl),
 				"status action stays mounted while feedback is displayed",
@@ -135,9 +167,15 @@ function Harness() {
 					phase: "success",
 					label: "Completed fixture",
 				});
-				setRows([initial[1]!]);
+				setRows([initial[1]]);
 				setRefresh({ completedAt: Date.now(), entityIds: new Set([2]) });
 			});
+			const retained = row();
+			if (matchMedia("(prefers-reduced-motion: reduce)").matches)
+				check(
+					retained && getComputedStyle(retained).transitionProperty === "none",
+					"reduced motion disables row fade",
+				);
 			check(
 				row()?.dataset.rowActivity === "success",
 				"departing row survives same-frame success and refresh",
@@ -235,6 +273,27 @@ function Harness() {
 			>
 				Toggle fixture dark mode
 			</button>
+			<button
+				type="button"
+				onClick={() =>
+					setResult(
+						JSON.stringify(
+							{
+								reducedMotion: matchMedia("(prefers-reduced-motion: reduce)")
+									.matches,
+								dark: document.body.classList.contains("dark"),
+								viewportWidth: innerWidth,
+								documentWidth: document.documentElement.scrollWidth,
+								overflow: document.documentElement.scrollWidth > innerWidth,
+							},
+							null,
+							2,
+						),
+					)
+				}
+			>
+				Inspect environment
+			</button>
 			<div
 				ref={parent}
 				tabIndex={-1}
@@ -250,7 +309,9 @@ function Harness() {
 									row={entry}
 									virtualStart={index * 56}
 									rowHeight={56}
-									getStickyStyle={() => ({})}
+									getStickyStyle={(id) =>
+										id === "title" ? { position: "sticky", left: 0 } : {}
+									}
 									getStickyClassName={() => "bg-background"}
 									activity={view.presentationById.get(entry.original.id)}
 									activityLabelColumnId="status"
@@ -262,8 +323,12 @@ function Harness() {
 					<p>No fixture rows</p>
 				)}
 			</div>
-			<pre role="status">{result}</pre>
+			<output style={{ display: "block", whiteSpace: "pre-wrap" }}>
+				{result}
+			</output>
 		</main>
 	);
 }
-createRoot(document.getElementById("root")!).render(<Harness />);
+const root = document.getElementById("root");
+if (!root) throw new Error("Missing fixture root");
+createRoot(root).render(<Harness />);

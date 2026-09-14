@@ -504,3 +504,18 @@ Authenticated single and batch payment review, including mobile, have passed;
 full-workflow fulfillment acceptance and gated additional action validation remain
 open in the linked implementation task. This approval does not substitute for
 those unperformed checks.
+
+## Implementation acceptance update — 2026-09-14
+
+Successful authenticated full-workflow fulfillment, direct deletion, archive,
+status-only declaration/cancellation, and inline inventory verification are now
+recorded in the canonical task. Payment review passed desktop/mobile and hidden-
+Status keyboard/toast acceptance. The remaining gates are actual reduced-motion
+validation and the prepared nonzero local payment-recording fixture approval/QA.
+Do not infer completion from the earlier visual approval alone.
+
+One additive API exception was necessary: batch deletion now returns confirmed
+`deletedSalesIds` alongside its existing count. The bounded captured-ID write can
+confirm the whole set; partial counts provide no per-row success identities.
+No database schema or permission change was introduced. See API contracts and
+canonical task for evidence. Other tables remain opt-in; no global default rollout.

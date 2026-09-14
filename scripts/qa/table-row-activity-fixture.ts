@@ -81,6 +81,27 @@ try {
 						origin: "office",
 					},
 				});
+				for (const orderId of orderIds) {
+					const payment = await tx.salesPayments.findFirst({
+						where: {
+							orderId,
+							deletedAt: {},
+							meta: { path: "$.validationFixtureId", equals: fixtureId },
+						},
+						select: { id: true },
+					});
+					if (!payment)
+						await tx.salesPayments.create({
+							data: {
+								orderId,
+								amount: 0,
+								status: "success",
+								reviewStatus: "needs_review",
+								origin: "office",
+								meta: { validationFixtureId: fixtureId },
+							},
+						});
+				}
 			});
 		} else if (!existing.length) {
 			const created = await db.salesOrders.create({
