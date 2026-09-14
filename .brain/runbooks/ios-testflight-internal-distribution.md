@@ -122,9 +122,12 @@ credentials. Obtain explicit action-time confirmation before performing it.
    submit the app for App Store review. Capture the EAS build URL, Apple build
    number, upload outcome, and processing status in the release record.
 7. Build `3f3a6acf-ac06-42b8-ab72-1837480f49cc` proved the remote store build and
-   signing path for version `1.0.305` / build `5`. It includes unrelated dirty
-   workspace state and is validation-only. Before the upload gate, produce a
-   fresh build from the reviewed clean release commit; never submit build `5`.
+   signing path but includes unrelated dirty workspace state; never submit build
+   `5`. A detached snapshot of reviewed commit `40a62218e` produced clean build
+   `6`, EAS ID `f3985128-844d-432c-bbc3-e0e4c93e37ac`. Its packaged bundle,
+   version, build, team, entitlements, export declaration, and embedded profile
+   were independently verified. This is the candidate for the separately
+   confirmed `bun run eas:submit:ios` upload gate.
 
 ## 5. Processing and compliance
 

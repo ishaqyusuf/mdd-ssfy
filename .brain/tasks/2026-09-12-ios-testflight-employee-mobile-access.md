@@ -27,8 +27,10 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
   and App Store profile `6VT956987X`; all temporary exported private material was
   removed. Store build `3f3a6acf-ac06-42b8-ab72-1837480f49cc` completed for
   version `1.0.305` / build `5`. It is validation-only because unrelated dirty
-  workspace state was present. A clean reviewed release build and explicit
-  action-time confirmation are required before any App Store Connect upload;
+  workspace state was present. Clean detached build `6`, EAS ID
+  `f3985128-844d-432c-bbc3-e0e4c93e37ac`, then completed from reviewed commit
+  `40a62218e` and passed independent IPA metadata/profile inspection. Explicit
+  action-time confirmation is now required before its App Store Connect upload;
   processing, tester-group assignment, and invitations remain separately gated.
 
 ## Implementation Checklist
@@ -108,3 +110,9 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
   production `get-task-allow=false`, the verified embedded profile, and export
   compliance `false`. The artifact must not be submitted because the archived
   workspace contained unrelated uncommitted work.
+- Created a detached clean worktree at commit `40a62218e`, confirmed it had no
+  release-source changes and passed 19/19 readiness checks, then produced clean
+  `STORE` build `f3985128-844d-432c-bbc3-e0e4c93e37ac` (version `1.0.305`, build
+  `6`). Its IPA independently confirmed the expected bundle/team, App Store beta
+  profile, production entitlements, and export declaration. The temporary IPA,
+  inspection directory, and detached worktree were removed after verification.

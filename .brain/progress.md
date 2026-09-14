@@ -20,9 +20,13 @@ were immediately removed. Production `STORE` build
 `5`, without Apple upload. IPA inspection confirmed the production bundle/team,
 active App Store beta profile, `get-task-allow=false`, and export-compliance flag.
 Because unrelated uncommitted workspace changes were included in the archive,
-build `5` is validation-only and must not be submitted. The next gates are a clean
-reviewed release build followed by explicit confirmation before App Store Connect
-upload; API access/key, permission changes, and tester invitations remain gated.
+build `5` is validation-only and must not be submitted. A detached snapshot of
+reviewed commit `40a62218e` passed 19/19 checks and produced clean `STORE` build
+`f3985128-844d-432c-bbc3-e0e4c93e37ac`, version `1.0.305`, build `6`. Independent
+IPA inspection confirmed the bundle, team, App Store beta profile, production
+entitlements, and export declaration; the temporary snapshot/artifacts were then
+removed. Build `6` is prepared at the explicit App Store Connect upload gate.
+API access/key, permission changes, and tester invitations remain gated.
 
 ### 2026-09-12 — App Store Connect app record created
 

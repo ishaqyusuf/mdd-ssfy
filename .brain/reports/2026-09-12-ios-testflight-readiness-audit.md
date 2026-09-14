@@ -125,6 +125,14 @@
   `CSSMERR_TP_NOT_TRUSTED` even though `security verify-cert` accepted the
   distribution certificate and EAS signed successfully. Treat this as a local
   Keychain trust-state warning; Apple upload validation remains authoritative.
+- A clean detached snapshot of commit `40a62218e` passed 19/19 readiness checks
+  and produced submission candidate build `6`, EAS ID
+  `f3985128-844d-432c-bbc3-e0e4c93e37ac`, fingerprint
+  `02156f5963798fb3909946aa791d2fe5b56bea49`. Its downloaded IPA independently
+  confirmed bundle `com.gnd.prodesk`, version `1.0.305`, build `6`, team
+  `ZXC78SPCV4`, App Store beta entitlement, `get-task-allow=false`, export
+  compliance `false`, and the verified embedded profile. The inspected IPA SHA-256
+  was `02a79e923e03f415e8f4db2a867ccd510bedb3b4746e10db0fbc14f98f7990a4`.
 - No build was uploaded/submitted to Apple, and no API key, permission, or tester
   invitation was completed. Authorized external changes were accepting
   Terms V100, switching the local EAS session, registering the explicit production
@@ -132,7 +140,8 @@
   `1`/the production update channel, generating the local CSR/private key, and
   creating and uploading the Apple Distribution certificate/profile to EAS.
   Because the source workspace contained unrelated uncommitted work, build `5`
-  is release-path validation only and must not be submitted to Apple.
+  is release-path validation only and must not be submitted to Apple. Clean build
+  `6` is the prepared candidate at the explicit App Store Connect upload gate.
 
 ## Local evidence
 
