@@ -101,19 +101,22 @@
 - The supported fallback is manual Apple signing: Keychain Access generated
   `gnd-millwork-distribution.certSigningRequest` for
   `GND Millwork Distribution`; its private key remains in the local login
-  keychain. Create an Apple Distribution certificate from that CSR and an App
-  Store provisioning profile for `com.gnd.prodesk`, then import them into EAS
-  only after the private-key transmission gate is confirmed.
+  keychain. Apple then created Distribution certificate `ZDC9NMPYX8` and App
+  Store profile `GND Millwork App Store` / `6VT956987X` for `com.gnd.prodesk`.
+  Both expire September 14, 2027. Download/install/export them locally, then
+  import them into EAS only after the private-key transmission gate is confirmed.
 - Before upload, resolve any agreement/tax/banking warning that blocks TestFlight.
   The App Store Connect record, EAS account, and retained project link are verified.
-- The production App ID now exists. No Apple Distribution certificate or App
-  Store provisioning profile has been completed yet; the Apple certificate page
-  is prepared at the CSR upload step.
-- No signing certificate/profile, build, upload, submission, API key, permission,
-  or tester invitation was completed. Authorized external changes were accepting
+- The production App ID, Apple Distribution certificate, and App Store profile
+  now exist. Chrome blocked the controlled download endpoint, so the authenticated
+  certificate/profile download pages remain prepared for manual **Save Link As**.
+- No signing private key was transmitted to EAS, and no build, upload, submission,
+  API key, permission, or tester invitation was completed. Authorized external
+  changes were accepting
   Terms V100, switching the local EAS session, registering the explicit production
   App ID, creating the App Store Connect app record, initializing build number
-  `1`/the production update channel, and generating the local CSR/private key.
+  `1`/the production update channel, generating the local CSR/private key, and
+  creating the Apple Distribution certificate/profile.
 
 ## Local evidence
 
