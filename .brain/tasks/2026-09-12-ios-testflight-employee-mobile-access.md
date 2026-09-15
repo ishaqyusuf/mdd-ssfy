@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 accessibility/review inventory: live App Accessibility shows
+  Get Started, confirming no accessibility support answers are published, and
+  App Review contains no submitted items. A narrow source inventory found
+  theme plumbing and some labels/roles/hints but not app-wide proof for
+  VoiceOver, Voice Control, 200% Larger Text, contrast, color independence or
+  reduced motion. A release-candidate QA matrix now defines the evidence needed
+  for every Apple accessibility feature without claiming support prematurely.
+  No accessibility answer, review item, portal field or build changed.
 - September 15 metadata preparation: a source-backed English (U.S.) App Store
   metadata draft now covers bounded description/keywords, optional promotional
   text, URL candidates, category/pricing decisions, copyright, synthetic-data

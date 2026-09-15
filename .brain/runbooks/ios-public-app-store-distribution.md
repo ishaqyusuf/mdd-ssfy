@@ -77,9 +77,13 @@ authorization to save listing data or transmit review credentials.
   and the iPad **13-inch** panel accepts `2064 × 2752` or `2048 × 2732`
   portrait pixels (landscape equivalents). Both panels show zero screenshots;
   use authentic release UI without customer/employee data.
-- App Accessibility support labels are not started. Do not claim VoiceOver,
-  larger-text, contrast, or other support without QA evidence; this is separate
-  from the app's actual accessibility obligations.
+- App Accessibility shows **Get Started**, and App Review lists no submitted
+  items. Do not claim VoiceOver, larger-text, contrast, or other support
+  without exact-candidate QA evidence. Use the
+  [accessibility readiness matrix](../reports/2026-09-15-ios-app-accessibility-readiness.md);
+  scattered accessibility props and dark-theme plumbing do not prove an
+  app-wide nutrition-label claim. This optional listing is separate from the
+  app's actual accessibility and App Review usability obligations.
 - Version release currently selects **Automatically release after approval**.
   This would publish without a later action-time release confirmation. **GATE:**
   do not submit the version for App Review while this remains selected. With
