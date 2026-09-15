@@ -120,6 +120,14 @@ approved public registration design exists.
   disabled. The live tab is preserved at this exact legal-declaration gate. No
   trader status, contact information, document, payment detail or verification
   code was selected, entered or submitted.
+- September 15 DSA contact handoff: after the owner authorized proceeding as a
+  trader, the live Apple workflow advanced to **Contact Information
+  Verification**. Apple presents its D-U-N-S-linked address as read-only and
+  requires a country calling code, public contact phone and public contact
+  email. Phone/email remain blank and **Next** is disabled. No login autofill,
+  contact value, verification code, payment detail or document was entered or
+  transmitted. The Account Holder must confirm the public address and supply or
+  directly enter monitored business contact details.
 - September 15 accessibility/review inventory: live App Accessibility shows
   Get Started, confirming no accessibility support answers are published, and
   App Review contains no submitted items. A narrow source inventory found

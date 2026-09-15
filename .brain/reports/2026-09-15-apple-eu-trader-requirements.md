@@ -70,3 +70,13 @@ is disabled. The tab is intentionally left at this screen. Selecting a status
 is a legal/business-owner decision; proceeding will ultimately disclose or
 withhold trader contact information and affect EU availability. No selection,
 form submission, verification or account change occurred.
+
+After the owner authorized proceeding, the live workflow advanced to
+**Contact Information Verification**. Apple shows the D-U-N-S-linked address
+as disabled/read-only and asks for a country calling code, **Contact Phone
+Number**, and **Contact Email Address**. The phone and email fields are blank
+and **Next** is disabled. Because these values will be sent to Apple, verified,
+and displayed publicly on EU App Store product pages, no value was inferred,
+autofilled, typed or submitted. The Account Holder must supply or directly
+enter a monitored public business phone and email after confirming that the
+displayed D-U-N-S address is suitable for publication.

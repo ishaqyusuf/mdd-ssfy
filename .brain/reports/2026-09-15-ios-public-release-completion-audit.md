@@ -66,8 +66,13 @@ longer release requirements. Public acquisition does not create public accounts.
   [the DSA requirements report](2026-09-15-apple-eu-trader-requirements.md);
   it identifies the authorized role, public contact/address display, evidence,
   payment-details-if-absent, certification and verification-state gates.
-  The Account Holder tab is now open at the first DSA modal with neither legal
-  status selected and **Next** disabled, ready for an explicit owner decision.
+  At the initial handoff the Account Holder tab was open at the first DSA modal
+  with neither legal status selected and **Next** disabled, ready for an
+  explicit owner decision.
+  Following owner authorization to proceed as a trader, the live workflow is
+  now at Contact Information Verification. The D-U-N-S address is read-only;
+  public phone/email are blank and Next is disabled. No contact value or
+  verification code was entered or transmitted.
 - The configured apex backend redirects to `www`; generic auth is reachable,
   but the named mobile-access tRPC procedure returns JSON `NOT_FOUND`.
 - The authoritative dashboard project was previously verified as `GND SERVER /
