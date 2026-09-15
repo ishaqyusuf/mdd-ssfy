@@ -34,6 +34,17 @@ The effective EAS cloud build environment is not proven by this local profile.
   `/api/auth` handler. This source inventory does not show which public host
   currently routes to the dashboard deployment or whether either host
   redirects requests.
+- The dashboard's `vercel.json` declares no rewrite or redirect for the
+  production Base host; `next.config.mjs` also has no release route mapping.
+  The standalone API app's `vercel.json` rewrites its own requests to `/api`
+  and redirects `/` to `/api/trpc`, but this does not create a dashboard
+  Better Auth handler or establish which custom domain fronts either app.
+- `apps/dashboard/src/envs.ts` returns `https://www.gndprodesk.com` for
+  non-development calls to its general `getBaseUrl()` helper. This is a third
+  source-level hostname beside the selected local mobile Base and web-auth
+  origins. The helper does not set Better Auth's `baseURL`; `www.ts` still uses
+  `NEXT_PUBLIC_APP_URL` when present. No deployed host or redirect can be
+  inferred from this helper alone.
 
 ## Release decision gate
 

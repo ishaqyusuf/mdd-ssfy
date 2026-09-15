@@ -118,6 +118,13 @@ approved public registration design exists.
   been approved/performed. The public runbook now gates a new candidate on
   deployed route evidence or an explicitly approved auth origin, in addition
   to the privacy-policy gate. No URL was guessed into code/EAS.
+  A subsequent scoped deployment-source audit found no dashboard
+  `vercel.json` or `next.config.mjs` rewrite tying the Base host to Better
+  Auth, while the standalone API app's own rewrite supplies no inspected
+  auth handler. A general dashboard helper also hard-codes a `www` host for
+  non-development use, distinct from the two selected local origins. These
+  facts strengthen the need for deployed-route verification but do not prove
+  which Vercel custom domain currently serves either app.
 - September 15 read-only policy recheck: the indexed candidate page still
   includes a cross-brand Home Depot advertising example; the crawler marked
   the capture as from the prior week, so exact current HTML is not yet proven.
