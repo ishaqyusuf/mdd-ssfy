@@ -70,6 +70,32 @@ Logly/Sentry variable names are present at project scope but their effective
 booleans were not safely verified. See the
 [value-suppressed inventory](2026-09-15-ios-eas-production-env-inventory.md).
 
+### Installed-package privacy-manifest inventory — September 15
+
+A symlink-aware, no-ignore search of the installed `apps/mobile/node_modules`
+found `PrivacyInfo.xcprivacy` files in React Native core/third-party podspecs,
+`expo-file-system`, `expo-constants`, `expo-application`, `expo-system-ui`,
+`@react-native-async-storage/async-storage`, and `lottie-react-native`.
+Their inspected required-reason entries cover file timestamps, UserDefaults,
+disk space, and system boot time. The listed package manifests have empty
+`NSPrivacyCollectedDataTypes` arrays; this does **not** imply that the GND app,
+its API, or conditional telemetry collects no data. No app-owned
+`ios.privacyManifests` configuration or checked-in iOS
+`PrivacyInfo.xcprivacy` was found. This is a local installed-dependency
+snapshot, not proof that every manifest is embedded or accepted in the final
+IPA. It also does not cover native artifacts generated only during EAS build.
+
+[Expo's privacy-manifest guide](https://docs.expo.dev/guides/apple-privacy/)
+notes that static CocoaPods manifest parsing may require app-level required
+reason declarations despite SDK-provided files. [Apple's data-use guide](https://developer.apple.com/documentation/bundleresources/describing-data-use-in-privacy-manifests)
+distinguishes the app's collected data from third-party SDK manifests and
+describes Xcode's aggregate privacy report. Do not copy reasons or add a
+tracking/data-collection declaration merely from this inventory. At the final
+artifact gate, inspect embedded manifests and any Apple validation feedback;
+if an Xcode archive is available, generate and review its aggregate privacy
+report before finalizing App Privacy. Resolve any missing required reasons
+from the exact native API and Apple's permitted reason definitions, not guesswork.
+
 ### Server-side employee-document deletion evidence
 
 The authenticated mobile employee-document upload uses Vercel Blob and

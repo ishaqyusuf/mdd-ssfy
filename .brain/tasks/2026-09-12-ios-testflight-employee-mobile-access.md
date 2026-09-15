@@ -175,6 +175,15 @@ approved public registration design exists.
   operational uploads, retention, or Blob tombstone/purge semantics. The
   source-cited `.brain/reports/2026-09-15-ios-live-policy-gap-review.md` is a
   legal/product review input, not approval to use that URL or fill App Privacy.
+- Installed-dependency manifest audit: a symlink-aware scan found
+  `PrivacyInfo.xcprivacy` files in the installed Expo, React Native, Async
+  Storage, and Lottie packages, with required-reason declarations for file
+  timestamps, UserDefaults, disk space, and system boot time. No app-owned
+  privacy manifest was found. This proves only local package inventory, not
+  final IPA embedding, server/telemetry collection, or Apple acceptance; the
+  public runbook now requires exact-artifact manifest review and an aggregate
+  Xcode privacy report when a matching archive is available. No reason or App
+  Privacy answer was guessed or saved.
 - Live App Store Connect follow-up: `GND Millwork` iOS 1.0 is Prepare for
   Submission. Public distribution is selected by default, but its free price
   schedule and App Availability are not set up. The Free Apps Agreement is

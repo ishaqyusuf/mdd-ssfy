@@ -242,6 +242,16 @@ approved metadata and must not be pasted into App Store Connect unchanged.
    configured locally and in the EAS production environment, obtain separate
    build confirmation, run the guarded store build, and inspect the resulting
    IPA/embedded Expo configuration before selecting an upload ID.
+   Inspect that IPA for bundled `PrivacyInfo.xcprivacy` resources from the app
+   and native dependencies. If a matching Xcode archive is available, use
+   Organizer > Generate Privacy Report and reconcile the aggregate report
+   with the code-flow audit and exact production telemetry settings before
+   finalizing App Privacy. Installed-package manifests alone do not prove the
+   final IPA contents or the app's data practices; see the
+   [bounded manifest inventory](../reports/2026-09-15-ios-public-app-privacy-readiness.md).
+   Expo warns that static CocoaPods manifests may not all be parsed by Apple;
+   add an app-level required reason only when exact API use and an allowed
+   reason are evidenced, or address Apple's specific validation feedback.
    **GATE API-key/credential if EAS asks:** EAS previously reached **Generate a
    new App Store Connect API Key?** and was cancelled before key creation or
    upload. API permission/key creation and server-side storage require their
