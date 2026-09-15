@@ -93,6 +93,13 @@ longer release requirements. Public acquisition does not create public accounts.
   `apps/dashboard/.vercel/project.json` is absent; once authorized access is
   restored, it accepts only the known dashboard project name and ID. It cannot
   deploy or change any external state.
+- Because local `master` is 187 commits ahead of tracked remote master, a clean
+  local `codex/ios-public-backend-release` candidate was created from
+  `18ccd42bd705ed44b7646f0ecd42454a56321b9d`. Its immutable head is
+  `31b97374d75eb2caad7d2ccbc75fe5c0372d3433`, exactly two commits ahead, with
+  the employee-access implementation plus consolidated public-guidance and
+  security hardening. Forty focused tests pass and the worktree is clean. The
+  branch is local only; no push, migration, deployment or alias change occurred.
 
 ## Exact remaining gates
 
@@ -120,8 +127,10 @@ longer release requirements. Public acquisition does not create public accounts.
 2. **Deployment authority:** regain access to the known `gndprodesk` Vercel
    project, link only `apps/dashboard`, pass
    `bun run ios:backend:deployment-target:check`, identify the deployed SHA/full
-   proposed delta/rollback target, confirm required limiter variable presence
-   without exposing values, and approve the exact deployment action.
+   proposed delta/rollback target, compare it with isolated candidate
+   `31b97374d75eb2caad7d2ccbc75fe5c0372d3433`, confirm required limiter variable
+   presence without exposing values, and approve the exact migration/deployment
+   actions.
 3. **Runtime acceptance:** after deployment, verify the exact approved origin,
    redirect-safe custom mobile auth, employee/admin/customer/offboarding cases,
    login limiter behaviors, and installed release-build login using a synthetic

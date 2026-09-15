@@ -199,6 +199,13 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    identifies `gnd-storefront` and must never satisfy this check. Linking the
    dashboard still requires authorized Vercel authentication and is not itself
    permission to deploy.
+   Do not deploy the shared local `master`: it is 187 commits ahead of tracked
+   remote master and the working tree contains unrelated changes. The prepared
+   local review candidate is `codex/ios-public-backend-release` at immutable
+   ref `31b97374d75eb2caad7d2ccbc75fe5c0372d3433`, based on tracked remote master
+   and exactly two commits ahead. Recheck this ref and its clean status, compare
+   it against the actual live deployment SHA, review the migration, and obtain
+   separate push/migration/deployment approval before any external action.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

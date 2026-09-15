@@ -89,6 +89,17 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 isolated backend candidate: local `master` is 187 commits ahead
+  of tracked `gnd-prodesk/master`, so it was not accepted as a deployment
+  source. Clean local branch `codex/ios-public-backend-release` now points to
+  `31b97374d75eb2caad7d2ccbc75fe5c0372d3433`, exactly two commits above remote
+  base `18ccd42bd705ed44b7646f0ecd42454a56321b9d`. It contains the foundational
+  employee-access implementation and one consolidated public-guidance,
+  membership/session and login-abuse hardening commit. Forty focused tests pass;
+  `git diff --check` passes; the worktree is clean. Auth typecheck reports only
+  the known `packages/errors` NodeNext extension baseline, while broad Biome on
+  the old remote baseline exposes pre-existing formatting/lint debt. The branch
+  is local only: no push, migration, Vercel link, deployment or alias change.
 - September 15 backend deployment-target guard: the repository root remains
   linked to `gnd-storefront`, `apps/dashboard` has no local Vercel project link,
   the browser is at Vercel login, and the CLI produced no authenticated project

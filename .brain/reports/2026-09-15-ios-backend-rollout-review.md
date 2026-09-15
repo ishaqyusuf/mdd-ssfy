@@ -5,10 +5,23 @@ Status: Prepared locally; no deployment or account setting changed
 
 ## Source and observed production boundary
 
-- Immutable local source checkpoint: `98fed14defdc35381ef198113dad208f03c41294`.
-  This is a review input, not automatically the deployable production diff or
-  an approved public IPA source. The shared worktree has extensive unrelated
-  Sales/Assistant edits; do not deploy its current uncommitted contents.
+- The shared `master` worktree is 187 commits ahead of tracked
+  `gnd-prodesk/master` (`18ccd42bd705ed44b7646f0ecd42454a56321b9d`) and has
+  extensive unrelated Sales/Assistant edits. It is not an acceptable Vercel
+  CLI deployment source.
+- A clean local candidate now exists at branch
+  `codex/ios-public-backend-release`, worktree
+  `/private/tmp/gnd-ios-backend-release.XpTC6S`, immutable ref
+  `31b97374d75eb2caad7d2ccbc75fe5c0372d3433`. It is exactly two commits ahead
+  of tracked remote master: the foundational employee-access implementation
+  (`3fabfd74d`, replayed from `4d85c67fc`) and one consolidated public-guidance,
+  membership, session-revocation and login-abuse hardening commit
+  (`31b97374d`). The worktree is clean and has not been pushed or deployed.
+- This isolated branch is a backend rollout review candidate, not the public
+  IPA source. It intentionally excludes the broad 187-commit local-master
+  delta. Its dashboard-root build still includes the mobile-access migration,
+  API/router, dashboard UI, Better Auth membership/session hardening, public
+  iOS guidance and Android manual-distribution behavior.
 - The employee workflow was registered in `apps/api/src/trpc/routers/_app.ts`
   by `4d85c67fc`. Subsequent committed hardening includes `514601201`
   (session role grants), `0d16310bc` (public-login attempt guard),
@@ -32,10 +45,12 @@ Status: Prepared locally; no deployment or account setting changed
    September 5 and is preserved in `.brain/progress.md`; the repository-root
    `.vercel/project.json` is instead linked to `gnd-storefront` and must not be
    used for a dashboard deployment. The observed HTTP responses do not provide
-   the current deployment Git SHA. A September 15 Chrome inventory exposed only
-   the unrelated `ishaqyusufs-projects` Hobby team, and no Google identity or
-   Vercel login was selected. **TODO:** regain current read-only access to the
-   known project and record the deployment ID/SHA without printing credentials.
+   the current deployment Git SHA. The current browser remains at Vercel login,
+   and the CLI produced no authenticated project result. Public GitHub deployment
+   records exist only through November 2025 and therefore cannot prove the
+   current Vercel production deployment. **TODO:** regain current read-only
+   access to the known project and record the deployment ID/SHA without printing
+   credentials.
 2. Compare that deployment against the proposed immutable source ref, including
    every committed change that would ship, not only mobile-access files.
    The full delta is presently unknown; recent router history also includes
@@ -52,6 +67,23 @@ Status: Prepared locally; no deployment or account setting changed
    action-time approval for the exact deployment target and source diff before
    changing production. Preview or production promotion is also an external
    deployment action; none is performed by this packet.
+
+## Isolated candidate validation
+
+- `40` focused tests pass across workflow transitions, manual/public
+  distribution guidance, Super Admin authority, router/handler wiring, Android
+  download authorization, active-company membership, web/mobile session
+  revocation, distributed login throttling and Better Auth behavior.
+- `git diff --check` passes and the isolated worktree is clean.
+- `@gnd/auth` typecheck reaches only the already documented
+  `packages/errors` NodeNext extension diagnostics; it reports no diagnostic in
+  the changed auth files.
+- Broad Biome against the tracked remote baseline reports pre-existing
+  formatting and shared-file lint debt. No bulk formatting was applied because
+  that would expand the release delta.
+- Production database migration execution, Vercel project linking, pushing the
+  branch, preview/production deployment, alias changes and runtime tests remain
+  separate action-time gates. None occurred while preparing this candidate.
 
 ## Post-deployment acceptance, before a fresh public iOS candidate
 
