@@ -22,6 +22,9 @@ see the [live-page gap review](2026-09-15-ios-live-policy-gap-review.md).
    and stand behind the policy. State how Apple seller **ZEROES AND ONE TECH
    HUB NIG LIMITED** relates to the Miami-branded GND Millwork service. Do
    not infer an affiliate relationship from a brand or Apple team name.
+   The [entity evidence matrix](2026-09-15-ios-controller-identity-evidence.md)
+   shows the source-backed identities, inconsistent legacy legal copy, and the
+   three relationship structures that require owner evidence.
 2. **First-release account model.** Confirm whether the publicly downloadable
    binary remains company-issued-login-only, which is the implemented path,
    or whether public self-registration must be built and reviewed before

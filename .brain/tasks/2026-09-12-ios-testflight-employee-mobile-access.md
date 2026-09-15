@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 controller-identity trace: first-party source consistently ties
+  the operational system and Miami contacts to GND Millwork, while Apple ties
+  the app seller to ZEROES AND ONE TECH HUB NIG LIMITED. Storefront terms are
+  internally inconsistent (`Corp`, `Corp, Inc.`, `Inc.` and an unexplained
+  `HDPA` reference), and no repository agreement proves the relationship
+  between the entities. A three-option owner decision matrix now prevents that
+  relationship from being guessed into the privacy policy. No legal copy,
+  public page or external account changed.
 - September 15 app-specific privacy draft: a local, source-backed policy draft
   now covers company-issued authentication, role access, job/dispatch data,
   employee documents, proof photos/signatures, conditional analytics and crash

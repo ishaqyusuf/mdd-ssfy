@@ -12,6 +12,9 @@ evidence. Do not publish this draft with placeholders.
 1. **Controller and seller relationship:** legal name and contact of the entity
    controlling employee/app data; explain its relationship to Apple seller
    **ZEROES AND ONE TECH HUB NIG LIMITED** and the GND Millwork brand.
+   Use the [controller identity evidence matrix](2026-09-15-ios-controller-identity-evidence.md);
+   source supports the brand/operator and Apple seller identities separately,
+   but does not prove their legal or data-processing relationship.
 2. **Privacy contact:** monitored public email and, if applicable, postal
    channel for privacy/data-rights requests.
 3. **Production telemetry:** whether Logly analytics and Sentry diagnostics are

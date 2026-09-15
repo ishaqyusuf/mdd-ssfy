@@ -90,6 +90,10 @@ longer release requirements. Public acquisition does not create public accounts.
    [app-specific policy draft](2026-09-15-ios-app-specific-privacy-policy-draft.md)
    now reduces this gate to explicit controller/seller, vendor, telemetry,
    retention, deletion, regional-rights and public-contact decisions.
+   The [controller identity matrix](2026-09-15-ios-controller-identity-evidence.md)
+   confirms that source identifies GND Millwork Corp as the operational
+   business and Zeroes and One as Apple seller, but cannot establish their
+   legal/data-controller relationship.
 2. **Deployment authority:** regain access to the known `gndprodesk` Vercel
    project, identify the deployed SHA/full proposed delta/rollback target, confirm
    required limiter variable presence without exposing values, and approve the
