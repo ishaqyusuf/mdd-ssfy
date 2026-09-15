@@ -89,6 +89,13 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 retention/purge evidence: legacy session and JWT limits,
+  Better Auth session lifetimes, Upstash counter TTLs, and the bounded mobile
+  analytics queue are now distinguished from physical deletion. Employee
+  document deletion is confirmed as database/registry tombstoning without Blob
+  removal; dispatch proofs and mobile-access audit events have no source-proven
+  age-based purge; provider logs/backups and conditional telemetry retention
+  remain owner/vendor gates. No production data or external setting changed.
 - September 15 App Privacy mapping: official Apple taxonomy is now mapped to
   the source-backed GND flows. **Yes, data is collected** is the provisional
   direction; Name, Email, Phone, User ID, Photos/Videos, Other User Content and

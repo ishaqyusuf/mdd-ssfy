@@ -52,7 +52,10 @@ see the [live-page gap review](2026-09-15-ios-live-policy-gap-review.md).
    diagnostics. The inspected `user.deleteDocument` operation tombstones
    database rows but does not immediately delete Vercel Blob bytes; the
    policy and Apple answers must not promise immediate physical erasure
-   without a separately verified purge process.
+   without a separately verified purge process. The
+   [retention and purge evidence matrix](2026-09-15-ios-retention-and-purge-evidence.md)
+   records the exact source-enforced session/counter/analytics-queue lifetimes,
+   durable audit records, storage gaps, and owner-selectable policy decisions.
 6. **Apple answers.** Have the accountable owner reconcile exact data types,
    collection purposes, linkage, and tracking against the final build and
    third-party practices. Do not answer “no data collected” or infer tracking

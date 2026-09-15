@@ -101,6 +101,10 @@ longer release requirements. Public acquisition does not create public accounts.
    now maps source-proven core types, purposes and linkage to Apple's taxonomy,
    rules out **Data Not Collected**, and leaves telemetry, tracking and
    ambiguous content categories at explicit evidence gates.
+   A [retention and purge evidence matrix](2026-09-15-ios-retention-and-purge-evidence.md)
+   now separates enforced session/counter/queue expiry from durable records,
+   tombstones, storage-byte deletion and provider backup unknowns; exact legal
+   schedules and any required purge implementation remain owner gates.
 2. **Deployment authority:** regain access to the known `gndprodesk` Vercel
    project, identify the deployed SHA/full proposed delta/rollback target, confirm
    required limiter variable presence without exposing values, and approve the

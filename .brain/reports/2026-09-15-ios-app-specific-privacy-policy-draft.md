@@ -29,6 +29,9 @@ evidence. Do not publish this draft with placeholders.
 5. **Retention:** approved schedules or decision rules for account/profile and
    session records; employment documents; job/dispatch records; proof photos
    and signatures; audit/security logs; analytics; and crash diagnostics.
+   Use the [retention and purge evidence matrix](2026-09-15-ios-retention-and-purge-evidence.md)
+   to distinguish source-enforced expiry, tombstoning, physical deletion and
+   provider/backup unknowns before selecting any public duration.
 6. **Deletion:** the request channel and verified purge process. Current source
    proves database tombstoning for an employee-document deletion, not immediate
    removal of the corresponding Blob bytes.

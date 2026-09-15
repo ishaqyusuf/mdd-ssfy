@@ -124,7 +124,10 @@ implementation and consent flow before release. See Apple's
 2. **GND/server owner:** exact mobile request and retained-field inventory,
    including password/session logging; data purposes; role/access handling;
    document and dispatch content rules; access, backup, retention, tombstone,
-   physical purge, and request-handling behavior.
+   physical purge, and request-handling behavior. Use the
+   [retention and purge evidence matrix](2026-09-15-ios-retention-and-purge-evidence.md)
+   to avoid treating credential expiry or database tombstoning as full
+   physical deletion.
 3. **Provider/vendor:** contracting entity and account owner for Vercel/Blob,
    the production database, Upstash, Logly, Sentry, and relevant Expo/EAS
    processing; payloads, regions, retention/deletion, subprocessors, access,
