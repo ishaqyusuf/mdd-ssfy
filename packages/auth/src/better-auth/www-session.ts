@@ -1,9 +1,13 @@
 import { type Roles, type Users, db } from "@gnd/db";
 import { generatePermissions } from "@gnd/utils/constants";
 import {
-  type ICan,
-  getUserSpecificPermissions,
-  mergePermissionRecords,
+	activeCompanyRoleAssignmentWhere,
+	getActiveCompanyMemberWhere,
+} from "../company-member";
+import {
+	type ICan,
+	getUserSpecificPermissions,
+	mergePermissionRecords,
 } from "../utils";
 
 export const STANDARD_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
@@ -60,10 +64,13 @@ export function toMobileAuthSession(
   };
 }
 
-async function buildPermissions(user: Users & { roles: Array<any> }) {
+async function buildPermissions(
+  user: NonNullable<Awaited<ReturnType<typeof getLegacyUserByAuthUserId>>>,
+) {
   const _role = user.roles[0]?.role;
   const rolePermissions = await db.permissions.findMany({
     where: {
+      deletedAt: null,
       id: {
         in: (_role?.RoleHasPermissions ?? []).map((item) => item.permissionId),
       },
@@ -88,44 +95,46 @@ async function buildPermissions(user: Users & { roles: Array<any> }) {
   };
 }
 
-export async function getLegacyUserByAuthUserId(authUserId: string) {
-  const authUser = await db.webAuthUser.findUnique({
+export async function getLegacyUserByAuthUserId(
+  authUserId: string,
+  sourceDb: Pick<typeof db, "webAuthUser" | "users"> = db,
+) {
+  const authUser = await sourceDb.webAuthUser.findUnique({
     where: { id: authUserId },
     select: { legacyUserId: true },
   });
 
   if (!authUser) return null;
 
-  return db.users.findFirst({
-    where: {
-      id: authUser.legacyUserId,
-      accessRevokedAt: null,
-      deletedAt: null,
-    },
-    include: {
-      roles: {
+	const user = await sourceDb.users.findFirst({
+		where: getActiveCompanyMemberWhere({ id: authUser.legacyUserId }),
+		include: {
+			roles: {
+				where: activeCompanyRoleAssignmentWhere,
         include: {
           role: {
             include: {
-              RoleHasPermissions: true,
+              RoleHasPermissions: { where: { deletedAt: null } },
             },
           },
         },
       },
-    },
-  });
+		},
+	});
+	return user?.roles.length ? user : null;
 }
 
 export async function buildWebAppSession(
   authSession: BetterAuthSessionLike,
+  sourceDb: Pick<typeof db, "webAuthUser" | "users" | "webAuthSession"> = db,
 ): Promise<WebAppSession | null> {
   if (!authSession?.session?.id || !authSession.user?.id) {
     return null;
   }
 
-  const user = await getLegacyUserByAuthUserId(authSession.user.id);
+  const user = await getLegacyUserByAuthUserId(authSession.user.id, sourceDb);
   if (!user) {
-    await db.webAuthSession.deleteMany({
+    await sourceDb.webAuthSession.deleteMany({
       where: { id: authSession.session.id },
     });
     return null;

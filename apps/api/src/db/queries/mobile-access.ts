@@ -10,6 +10,10 @@ import {
 	nextMobileAccessStatuses,
 } from "@api/services/mobile-access-workflow";
 import type { TRPCContext } from "@api/trpc/init";
+import {
+	activeCompanyRoleAssignmentWhere,
+	getActiveCompanyMemberWhere,
+} from "@gnd/auth/company-member";
 import { TRPCError } from "@trpc/server";
 
 import { requireSuperAdmin } from "./hrm";
@@ -24,12 +28,7 @@ async function requireActiveEmployee(ctx: TRPCContext) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	const employee = await ctx.db.users.findFirst({
-		where: {
-			id: ctx.userId,
-			deletedAt: null,
-			accessRevokedAt: null,
-			roles: { some: { deletedAt: null } },
-		},
+		where: getActiveCompanyMemberWhere({ id: ctx.userId }),
 		select: { id: true, name: true, email: true },
 	});
 	if (!employee) {
@@ -143,11 +142,10 @@ export async function requestMobileAccess(
 
 		const administrators = await tx.users.findMany({
 			where: {
-				deletedAt: null,
-				accessRevokedAt: null,
+				...getActiveCompanyMemberWhere(),
 				roles: {
 					some: {
-						deletedAt: null,
+						...activeCompanyRoleAssignmentWhere,
 						role: { name: "Super Admin", deletedAt: null },
 					},
 				},
@@ -176,6 +174,7 @@ export async function requestMobileAccess(
 }
 
 export async function getMobileAccessRequestsForAdmin(ctx: TRPCContext) {
+	await requireActiveEmployee(ctx);
 	await requireSuperAdmin(ctx);
 	const requests = await ctx.db.mobileAccessRequest.findMany({
 		orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
@@ -203,6 +202,7 @@ export async function updateMobileAccessRequest(
 	ctx: TRPCContext,
 	input: UpdateMobileAccessRequestInput,
 ) {
+	await requireActiveEmployee(ctx);
 	const actor = await requireSuperAdmin(ctx);
 	return ctx.db.$transaction(async (tx) => {
 		const current = await tx.mobileAccessRequest.findUnique({

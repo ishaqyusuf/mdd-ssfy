@@ -14,6 +14,13 @@ describe("www Better Auth legacy user lookup", () => {
 			accessRevokedAt: null,
 			deletedAt: null,
 			OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
+			roles: {
+				some: {
+					deletedAt: null,
+					role: { deletedAt: null },
+					organization: { deletedAt: null },
+				},
+			},
 		});
 	});
 });

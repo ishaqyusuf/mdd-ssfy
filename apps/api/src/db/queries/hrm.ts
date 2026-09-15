@@ -6,6 +6,10 @@ import type {
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
 import {
+	activeCompanyRoleAssignmentWhere,
+	getActiveCompanyMemberWhere,
+} from "@gnd/auth/company-member";
+import {
 	USER_PERMISSION_MODEL_TYPE,
 	USER_PERMISSION_MODEL_TYPE_ALIASES,
 	getUserSpecificPermissions,
@@ -85,16 +89,12 @@ export async function requireSuperAdmin(ctx: TRPCContext) {
 	}
 
 	const user = await ctx.db.users.findFirst({
-		where: {
-			id: ctx.userId,
-		},
+		where: getActiveCompanyMemberWhere({ id: ctx.userId }),
 		select: {
 			id: true,
 			name: true,
 			roles: {
-				where: {
-					deletedAt: null,
-				},
+				where: activeCompanyRoleAssignmentWhere,
 				select: {
 					role: {
 						select: {
@@ -113,8 +113,10 @@ export async function requireSuperAdmin(ctx: TRPCContext) {
 		});
 	}
 
-	const role = user?.roles?.[0]?.role?.name;
-	if (role?.toLowerCase() !== "super admin") {
+	const isSuperAdmin = user.roles.some(
+		({ role }) => role.name.toLowerCase() === "super admin",
+	);
+	if (!isSuperAdmin) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
 			message: "Only Super Admin can manage employee access.",

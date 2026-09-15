@@ -15,11 +15,18 @@ describe("mobile app download authorization", () => {
 		expect(source).toContain(
 			'status: { in: ["INVITED", "ACCEPTED", "INSTALLED"] }',
 		);
-		expect(source).toContain("accessRevokedAt: null");
+		expect(source).toContain("getActiveCompanyMemberWhere({ id: userId })");
+		expect(source).toContain(
+			"where: activeCompanyRoleAssignmentWhere",
+		);
 	});
 
 	it("does not accept a caller-controlled download URL or filename", () => {
 		expect(source).not.toContain('searchParams.get("url")');
 		expect(source).not.toContain('searchParams.get("name")');
+	});
+
+	it("does not honor a deleted Super Admin role", () => {
+		expect(source).toContain("where: activeCompanyRoleAssignmentWhere");
 	});
 });

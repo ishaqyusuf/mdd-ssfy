@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { type Prisma, type Users, db } from "@gnd/db";
+import { type Users, db } from "@gnd/db";
 import { compare } from "bcrypt-ts";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -12,6 +12,7 @@ import { setSessionCookie } from "better-auth/cookies";
 import { parseUserOutput } from "better-auth/db";
 import { nextCookies } from "better-auth/next-js";
 import * as z from "zod";
+import { getActiveCompanyMemberWhere } from "../company-member";
 import { recordMasterPasswordUsage } from "../master-password-audit";
 import { isNewLoginDevice, normalizeLoginDevice } from "../new-device-login";
 import { getRequestCountryCode } from "../request-country";
@@ -19,6 +20,7 @@ import {
   isMasterPassword,
   validateAuthToken,
 } from "../utils";
+import { consumeWebLoginAttempt } from "./www-login-limiter";
 import {
   REMEMBER_ME_WEB_SESSION_REFRESH_WINDOW_SECONDS,
   WEB_AUTH_SESSION_MAX_AGE_SECONDS,
@@ -182,12 +184,7 @@ function hashResetToken(token: string) {
 }
 
 export function getActiveWebLegacyUserWhere(email: string) {
-  return {
-    email: email.trim(),
-    accessRevokedAt: null,
-    deletedAt: null,
-    OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
-  } satisfies Prisma.UsersWhereInput;
+	return getActiveCompanyMemberWhere({ email: email.trim() });
 }
 
 async function findLegacyUser(input: {
@@ -520,6 +517,28 @@ export async function recordWebMasterPasswordLoginAudit(input: {
   }
 }
 
+async function requireWebLoginAttemptLimit(input: {
+  headers?: Headers;
+  email?: string;
+  setHeader: (name: string, value: string) => void;
+}) {
+  const decision = await consumeWebLoginAttempt({
+    headers: input.headers ?? new Headers(),
+    email: input.email,
+  });
+  if (decision.status === "limited") {
+    input.setHeader("Retry-After", String(decision.retryAfterSeconds));
+    throw new APIError("TOO_MANY_REQUESTS", {
+      message: "Too many sign-in attempts. Please wait and try again.",
+    });
+  }
+  if (decision.status === "unavailable") {
+    throw new APIError("SERVICE_UNAVAILABLE", {
+      message: "Sign-in temporarily unavailable. Please try again.",
+    });
+  }
+}
+
 function webCredentialsPlugin(): BetterAuthPlugin {
   return {
     id: "web-legacy-credentials",
@@ -537,6 +556,11 @@ function webCredentialsPlugin(): BetterAuthPlugin {
           }),
         },
         async (ctx) => {
+          await requireWebLoginAttemptLimit({
+            headers: ctx.headers,
+            email: ctx.body.email,
+            setHeader: (name, value) => ctx.setHeader(name, value),
+          });
           const legacyLogin = await findLegacyUser(ctx.body);
           if (!legacyLogin) {
             throw new APIError("UNAUTHORIZED", {
@@ -676,6 +700,11 @@ function webCredentialsPlugin(): BetterAuthPlugin {
           }),
         },
         async (ctx) => {
+          await requireWebLoginAttemptLimit({
+            headers: ctx.headers,
+            email: ctx.body.email,
+            setHeader: (name, value) => ctx.setHeader(name, value),
+          });
           const legacyLogin = await findLegacyUser(ctx.body);
           if (!legacyLogin) {
             throw new APIError("UNAUTHORIZED", {
