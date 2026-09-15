@@ -39,6 +39,15 @@ registration flow.
   Metadata, worldwide availability, review submission, API-key
   creation, and credential/payment/legal forms remain separately gated external
   actions.
+- Treat the combined build-and-auto-upload command as a higher-risk operator
+  path: require separate build and automatic-upload acknowledgments before
+  EAS authentication and at the direct mobile-package script boundary. These
+  local guards prevent accidental script execution but do not replace
+  action-time user confirmation. Prefer a clean build, artifact inspection,
+  then upload by reviewed ID for the first public release.
+  The iOS-only submit/combined routes reject an explicit Android platform
+  rather than silently routing that request to Apple; ordinary Android build
+  commands remain separate.
 - Require a legally approved, publicly reachable HTTPS privacy-policy URL in
   the EAS production build environment and expose it through an accessible
   in-app link on sign-in and signed-in Settings. A store-signed IPA without that
@@ -55,8 +64,8 @@ registration flow.
 - Internal or External TestFlight as the destination: rejected for this first
   public release. TestFlight remains possible for future beta testing but is not
   part of the current release path.
-- Public registration inferred from public distribution: rejected. Existing
-  mobile sign-up is a placeholder; opening account creation would require a
+- Public registration inferred from public distribution: rejected. The mobile
+  sign-up placeholder was removed; opening account creation would require a
   separate identity, permissions, abuse, privacy, and tenant-boundary design.
 - Transfer/relink EAS or use ad-hoc preview IPA: rejected because the current
   production signing and project linkage are already verified.
@@ -87,5 +96,7 @@ preflight before queueing an EAS job; Android and preview commands remain as-is.
 The legacy root iOS submit alias and the public upload alias now share the same
 build-ID guard. Direct mobile package submit scripts no longer auto-select the
 latest binary.
+The combined root route and direct package script now require separate build
+and automatic-upload acknowledgments before auto-submit can run.
 ADR-091 and its TestFlight runbook remain historical records but are superseded
 for current iOS release operations.

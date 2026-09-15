@@ -59,6 +59,11 @@ The local boolean snapshot is not proof that the final EAS environment matches
 it, and neither check answers vendor handling, linkage, tracking, retention,
 or the accurate App Store Connect questionnaire. Those owner/vendor/artifact
 checks remain open.
+The [live candidate-policy gap review](2026-09-15-ios-live-policy-gap-review.md)
+compares the current `gndmillwork.com/privacy-policy/` page with these flows.
+Its broad retail/mobile wording does not establish the Apple seller's legal
+relationship, employee operational-data coverage, vendor-specific telemetry,
+retention, or the Blob tombstone/purge semantics. Legal approval remains open.
 Read-only EAS production name checks now prove that
 `EXPO_PUBLIC_PRIVACY_POLICY_URL` is absent at project and account scope;
 Logly/Sentry variable names are present at project scope but their effective

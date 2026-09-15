@@ -204,6 +204,12 @@ approved metadata and must not be pasted into App Store Connect unchanged.
    Use the [source-backed public App Privacy audit](../reports/2026-09-15-ios-public-app-privacy-readiness.md)
    to collect release-specific deployment and vendor facts before completing
    Apple's questionnaire; source-only inference cannot settle the answers.
+   The [live candidate-policy comparison](../reports/2026-09-15-ios-live-policy-gap-review.md)
+   found broad mobile-app/analytics/photo language but no verified Apple
+   seller/controller relationship, employee operational data coverage,
+   retention schedule, or document-deletion/purge explanation. Do not treat
+   the current retail policy as legally approved for this binary based solely
+   on its URL or generic language.
 6. **GATE review access:** Apple requires an active demo account or approved
    fully featured demo mode for account-based features. Arrange a least-
    privilege, non-production-data review account and clear Review Notes that
@@ -224,7 +230,13 @@ approved metadata and must not be pasted into App Store Connect unchanged.
    `bun run eas:appstore:build:ios`. Inspect bundle/team/version/build/profile,
    production entitlements, release endpoint, and export declaration. The
    combined alias `bun run eas:appstore:build-upload:ios` both queues and uploads;
-   use it only when both actions are confirmed together.
+   it now requires `--acknowledge-build --acknowledge-auto-upload` before EAS
+   authentication, and the direct package script has a second guard. Those
+   acknowledgments are not substitutes for explicit action-time permission.
+   Do not use automatic upload for this first release: build, inspect the
+   privacy-complete IPA, and upload by its reviewed UUID at a separate gate.
+   The root submit/combined routes fail before login if an Android platform
+   is requested; use the separate Android build/update workflows for Android.
 3. **Do not upload old build `6`** (`f3985128-844d-432c-bbc3-e0e4c93e37ac`):
    it predates the in-app Privacy Policy link. After the approved URL is
    configured locally and in the EAS production environment, obtain separate

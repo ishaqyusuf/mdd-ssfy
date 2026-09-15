@@ -51,8 +51,23 @@ const action = (
 ) as Action;
 const platform =
 	operation === "auth" ? null : resolvePlatform(operation, actionArgs);
+if (["submit", "build-submit"].includes(operation) && platform !== "ios") {
+	throw new Error("EAS submit and combined build/upload routes support only --platform ios.");
+}
 const env = { ...Bun.env };
 env.EXPO_TOKEN = undefined;
+if (operation === "build-submit" && platform === "ios") {
+	if (
+		!actionArgs.includes("--acknowledge-build") ||
+		!actionArgs.includes("--acknowledge-auto-upload")
+	) {
+		throw new Error(
+			"Combined iOS build/upload requires --acknowledge-build and --acknowledge-auto-upload before EAS authentication.",
+		);
+	}
+	env.GND_IOS_BUILD_ACK = "1";
+	env.GND_IOS_AUTO_UPLOAD_ACK = "1";
+}
 
 const forwardedArgs = getForwardedArgs(actionArgs);
 const buildIdOptions = forwardedArgs.filter(
@@ -327,6 +342,9 @@ function getForwardedArgs(args: string[]): string[] {
 		if (arg === "--require-id") {
 			continue;
 		}
+		if (arg === "--acknowledge-build" || arg === "--acknowledge-auto-upload") {
+			continue;
+		}
 
 		forwardedArgs.push(arg);
 	}
@@ -369,10 +387,10 @@ function getUsage(): string {
 		"  bun run eas:build <--dev|--preview|--prod> [--account <name>]",
 		"  bun run eas:build:ios [--account <name>]",
 		"  bun run eas:submit:ios --id <reviewed-EAS-build-id> [--account <name>]",
-		"  bun run eas:build-submit:ios [--account <name>]",
+		"  bun run eas:build-submit:ios --acknowledge-build --acknowledge-auto-upload [--account <name>]",
 		"  bun run eas:appstore:build:ios [--account <name>]",
 		"  bun run eas:appstore:upload:ios --id <reviewed-EAS-build-id> [--account <name>]",
-		"  bun run eas:appstore:build-upload:ios [--account <name>]",
+		"  bun run eas:appstore:build-upload:ios --acknowledge-build --acknowledge-auto-upload [--account <name>]",
 		"  bun run eas:update <--preview|--prod> [--account <name>]",
 		"",
 		"Default credentials:",

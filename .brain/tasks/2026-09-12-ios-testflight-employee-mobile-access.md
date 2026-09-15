@@ -157,6 +157,24 @@ approved public registration design exists.
   name-presence results. The next EAS variable set is an action-time owner
   gate after exact legal URL approval; no value or credential was printed or
   saved, and no EAS/Apple setting changed.
+- Combined-command safety review: the root build/auto-upload route now rejects
+  missing separate build/upload acknowledgments before EAS authentication;
+  the direct mobile-package command has its own fail-closed guard before
+  preflight. The account runner rejects an explicit Android platform on its
+  iOS-only submit/combined routes before authentication. The 10-test focused
+  runner/readiness set passes, including invalid/missing-ack and platform
+  subprocesses; scoped Biome check passed and synthetic
+  HTTPS config introspection remains 28/28. For the first release, inspect a
+  new IPA
+  and upload by explicit reviewed ID instead of using auto-submit. No build
+  or Apple upload was started; script acknowledgments do not supersede
+  action-time owner confirmation.
+- Live candidate-policy comparison: the current retail-branded page mentions
+  mobile applications, analytics, and photos generally but does not prove the
+  Apple seller/controller relationship or accurately explain employee auth,
+  operational uploads, retention, or Blob tombstone/purge semantics. The
+  source-cited `.brain/reports/2026-09-15-ios-live-policy-gap-review.md` is a
+  legal/product review input, not approval to use that URL or fill App Privacy.
 - Live App Store Connect follow-up: `GND Millwork` iOS 1.0 is Prepare for
   Submission. Public distribution is selected by default, but its free price
   schedule and App Availability are not set up. The Free Apps Agreement is

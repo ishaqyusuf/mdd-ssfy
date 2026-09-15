@@ -69,6 +69,15 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   account authentication; the app package's submit scripts no longer select
   the latest build automatically. The combined build/upload command still
   needs separate confirmation for both external actions.
+- The combined iOS build/automatic-upload root route rejects missing
+  `--acknowledge-build` or `--acknowledge-auto-upload` before EAS login, and
+  the direct mobile-package script rejects missing corresponding guard values
+  before preflight. These are accident guards, not permission to queue or
+  upload without action-time owner approval. The first public release should
+  use build → inspect IPA → upload by reviewed UUID instead.
+  The account runner also rejects `--platform android` on its submit and
+  combined routes instead of silently invoking iOS operations; ordinary
+  Android build/update routing remains unchanged.
 - Support > Mobile App opens a download-only web support page whose only action is the `/api/download-app` APK download button; the former Super Admin Settings > App Download page has been removed while the download endpoint remains live.
 - Android edge-to-edge is disabled in native config because the Expo/RN Android edge-to-edge container was crashing during mobile invoice customer selection with `EdgeToEdgeReactViewGroup contains null child`. This requires a fresh Android EAS/dev build to take effect; OTA updates and Metro reloads cannot change the installed native container.
 - Metro singleton resolution keeps bare imports pinned to the app-owned package,

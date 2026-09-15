@@ -98,4 +98,75 @@ describe("EAS account runner release routing", () => {
 			expect(result.stdout).not.toContain("Authenticated EAS session");
 		}
 	});
+
+	it("gates combined iOS build and automatic upload before account authentication", () => {
+		for (const args of [
+			[],
+			["--acknowledge-build"],
+			["--acknowledge-auto-upload"],
+		]) {
+			const result = spawnSync(
+				process.execPath,
+				[
+					"./scripts/eas-account-runner.ts",
+					"build-submit",
+					"--prod",
+					"--platform",
+					"ios",
+					...args,
+				],
+				{ cwd: repositoryRoot, encoding: "utf8" },
+			);
+			expect(result.status).not.toBe(0);
+			expect(result.stderr).toContain(
+				"Combined iOS build/upload requires --acknowledge-build and --acknowledge-auto-upload before EAS authentication.",
+			);
+			expect(result.stdout).not.toContain("Authenticated EAS session");
+		}
+	});
+
+	it("gates direct mobile-package auto-submit without either acknowledgment", () => {
+		for (const [buildAck, uploadAck, allowed] of [
+			["", "", false],
+			["1", "", false],
+			["", "1", false],
+			["1", "1", true],
+		] as const) {
+			const result = spawnSync(
+				process.execPath,
+				["./apps/mobile/scripts/ios-auto-submit-gate.ts"],
+				{
+					cwd: repositoryRoot,
+					encoding: "utf8",
+					env: {
+						...process.env,
+						GND_IOS_BUILD_ACK: buildAck,
+						GND_IOS_AUTO_UPLOAD_ACK: uploadAck,
+					},
+				},
+			);
+			expect(result.status === 0).toBe(allowed);
+		}
+	});
+
+	it("rejects Android platform on iOS-only submit routes before EAS authentication", () => {
+		for (const operation of ["submit", "build-submit"]) {
+			const result = spawnSync(
+				process.execPath,
+				[
+					"./scripts/eas-account-runner.ts",
+					operation,
+					"--prod",
+					"--platform",
+					"android",
+				],
+				{ cwd: repositoryRoot, encoding: "utf8" },
+			);
+			expect(result.status).not.toBe(0);
+			expect(result.stderr).toContain(
+				"EAS submit and combined build/upload routes support only --platform ios.",
+			);
+			expect(result.stdout).not.toContain("Authenticated EAS session");
+		}
+	});
 });

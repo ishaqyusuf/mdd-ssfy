@@ -192,7 +192,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		check(
 			"iOS combined command",
 			scripts["eas-build-submit:ios:prod"]?.startsWith(
-				"bun run ios:release:preflight &&",
+				"bun ./scripts/ios-auto-submit-gate.ts && bun run ios:release:preflight &&",
 			) && scripts["eas-build-submit:ios:prod"]?.includes(
 				"--auto-submit-with-profile production",
 			),
