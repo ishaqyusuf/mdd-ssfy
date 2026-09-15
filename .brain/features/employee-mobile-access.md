@@ -48,6 +48,10 @@ and `MANUAL_ANDROID_DISTRIBUTION`). The iOS status means access/download
 instructions were manually sent after public release; it does not mean an Apple
 tester or App Store Connect user was invited. Older
 `MANUAL_APP_STORE_CONNECT` records remain historical and must not be rewritten.
+The dashboard renders an iOS `INVITED` status as **Access details sent** for
+both old manual Apple invitation records and new public guidance records;
+it does not relabel historical invitations as public guidance. Android retains
+the ordinary **Invited** label.
 No App Store Connect API-key automation is needed for employee access to a
 publicly distributed binary. Backend access remains subject to the existing
 active-account/session checks; a future explicit mobile-entitlement feature is

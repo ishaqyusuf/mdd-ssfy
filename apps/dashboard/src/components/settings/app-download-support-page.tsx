@@ -32,7 +32,7 @@ const statusLabels = {
 
 function statusLabel(status: keyof typeof statusLabels, platform: Platform) {
 	return platform === "IOS" && status === "INVITED"
-		? "Guidance sent"
+		? "Access details sent"
 		: statusLabels[status];
 }
 

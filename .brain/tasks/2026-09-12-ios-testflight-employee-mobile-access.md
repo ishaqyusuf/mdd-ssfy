@@ -163,6 +163,12 @@ approved public registration design exists.
   16 tests / 41 assertions. API typecheck found only current unrelated
   Assistant/Sales errors, with no changed guard/query diagnostic. Two permanent
   Brain bug records capture the authorization lessons.
+- Final scoped UI review found that iOS `INVITED` was displayed as
+  **Guidance sent** even for historical manual Apple invitations. The shared
+  label is now **Access details sent**, which covers both old invitation
+  records and new public App Store guidance without changing stored provider
+  history or Android's **Invited** label. The focused dashboard UI guard failed
+  before the copy correction and passed afterward.
 - `bun test apps/mobile/scripts/ios-release-readiness.test.ts apps/mobile/src/lib/preview-build-security.test.ts` - 5 passed, 37 assertions.
 - `bun run ios:release:check` - 18/18 readiness checks passed after adding SDK
   dependency and native-resolution invariants.
