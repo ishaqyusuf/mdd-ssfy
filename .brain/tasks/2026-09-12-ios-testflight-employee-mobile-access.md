@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 backend deployment-target guard: the repository root remains
+  linked to `gnd-storefront`, `apps/dashboard` has no local Vercel project link,
+  the browser is at Vercel login, and the CLI produced no authenticated project
+  result. `bun run ios:backend:deployment-target:check` now fails closed until
+  the dashboard directory identifies the known `gndprodesk` project and exact
+  project ID; four focused tests cover the approved link, storefront mismatch,
+  explicit link-file validation, and missing/malformed files. The guard is
+  read-only and neither authenticates nor deploys.
 - September 15 Expo config-loader fix: read-only `eas whoami` confirmed
   `pcruz321`, while `eas project:info` initially failed because Expo's
   Node/CommonJS evaluator could not resolve an extensionless TypeScript helper

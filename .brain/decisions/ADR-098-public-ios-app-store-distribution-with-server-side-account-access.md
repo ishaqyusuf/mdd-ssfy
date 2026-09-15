@@ -98,5 +98,9 @@ build-ID guard. Direct mobile package submit scripts no longer auto-select the
 latest binary.
 The combined root route and direct package script now require separate build
 and automatic-upload acknowledgments before auto-submit can run.
+The root `ios:backend:deployment-target:check` command validates the
+dashboard-local Vercel link against the approved `gndprodesk` project name and
+ID before deployment review. It intentionally rejects the repository-root
+`gnd-storefront` link and does not authenticate, link, or deploy by itself.
 ADR-091 and its TestFlight runbook remain historical records but are superseded
 for current iOS release operations.

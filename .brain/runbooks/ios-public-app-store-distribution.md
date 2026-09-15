@@ -192,6 +192,13 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    worktree contains unrelated edits, so a direct dirty-worktree production
    deploy is not a reviewed mobile-only rollout. Preserve a verified rollback
    target and obtain confirmation for the exact deployment source/alias.
+   Before preparing that approval, run
+   `bun run ios:backend:deployment-target:check`. The guard fails closed unless
+   `apps/dashboard/.vercel/project.json` identifies project `gndprodesk` with
+   ID `prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`. The repository-root link intentionally
+   identifies `gnd-storefront` and must never satisfy this check. Linking the
+   dashboard still requires authorized Vercel authentication and is not itself
+   permission to deploy.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

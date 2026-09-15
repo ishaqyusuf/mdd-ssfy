@@ -86,9 +86,13 @@ longer release requirements. Public acquisition does not create public accounts.
   gndprodesk` (`prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`, root `apps/dashboard`). The
   repository-root `.vercel/project.json` points to the separate
   `gnd-storefront` project and is not a safe dashboard deployment target. The
-  visible September 15 Hobby-team session does not expose the GND project, so
-  the current production deployment ID/SHA, aliases and environment-variable
-  presence remain unknown.
+  current browser is at Vercel login and the local CLI has no usable authenticated
+  project result, so the current production deployment ID/SHA, aliases and
+  environment-variable presence remain unknown. A new read-only
+  `ios:backend:deployment-target:check` command now fails closed because
+  `apps/dashboard/.vercel/project.json` is absent; once authorized access is
+  restored, it accepts only the known dashboard project name and ID. It cannot
+  deploy or change any external state.
 
 ## Exact remaining gates
 
@@ -114,9 +118,10 @@ longer release requirements. Public acquisition does not create public accounts.
    tombstones, storage-byte deletion and provider backup unknowns; exact legal
    schedules and any required purge implementation remain owner gates.
 2. **Deployment authority:** regain access to the known `gndprodesk` Vercel
-   project, identify the deployed SHA/full proposed delta/rollback target, confirm
-   required limiter variable presence without exposing values, and approve the
-   exact deployment action.
+   project, link only `apps/dashboard`, pass
+   `bun run ios:backend:deployment-target:check`, identify the deployed SHA/full
+   proposed delta/rollback target, confirm required limiter variable presence
+   without exposing values, and approve the exact deployment action.
 3. **Runtime acceptance:** after deployment, verify the exact approved origin,
    redirect-safe custom mobile auth, employee/admin/customer/offboarding cases,
    login limiter behaviors, and installed release-build login using a synthetic
