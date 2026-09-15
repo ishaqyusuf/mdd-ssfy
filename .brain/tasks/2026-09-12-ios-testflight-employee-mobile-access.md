@@ -113,6 +113,13 @@ approved public registration design exists.
   says to contact Apple after 14 business days pending. No sensitive evidence,
   verification code, payment detail or account value was collected, and EU
   release remains gated until Apple shows verification complete.
+- September 15 DSA action-time handoff: the Business module subsequently
+  rendered and the signed-in Account Holder opened **Complete Compliance
+  Requirements** read-only. The first modal offers **trader** or **not a trader
+  / no EU distribution**; neither option is selected and **Next** remains
+  disabled. The live tab is preserved at this exact legal-declaration gate. No
+  trader status, contact information, document, payment detail or verification
+  code was selected, entered or submitted.
 - September 15 accessibility/review inventory: live App Accessibility shows
   Get Started, confirming no accessibility support answers are published, and
   App Review contains no submitted items. A narrow source inventory found

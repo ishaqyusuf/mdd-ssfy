@@ -240,6 +240,10 @@ needed before the production policy URL or App Privacy fields are saved.
    them directly in App Store Connect after action-time confirmation. Treat EU
    availability as blocked until Apple shows the trader information verified;
    a submitted declaration alone is not completion.
+   The live Account Holder tab is currently prepared at the first DSA modal
+   with neither **trader** nor **not a trader / no EU distribution** selected
+   and **Next** disabled. Obtain an explicit legal-owner choice at this exact
+   gate before selecting either option.
 4. **GATE listing:** Provide final app name/subtitle, description, keywords,
    primary category, Content Rights, support URL, marketing URL if used,
    copyright, age-rating answers,

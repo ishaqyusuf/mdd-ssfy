@@ -59,3 +59,14 @@ Operationally, EU availability should be planned as blocked until Apple shows th
 5. Have the Account Holder or an Admin complete the declaration and certification, then track verification in **Business**. Escalate to Apple if the compliance case is still pending after 14 business days.
 
 No App Store Connect account, app availability, agreement, payment, or compliance state was changed during this research.
+
+## Live handoff state
+
+The signed-in Account Holder opened **Business → Complete Compliance
+Requirements** on September 15. The modal presents the two documented choices:
+**I'm a trader under the DSA** or **I'm not a trader under the DSA or I don't
+plan to distribute in the EU**. Neither radio option is selected and **Next**
+is disabled. The tab is intentionally left at this screen. Selecting a status
+is a legal/business-owner decision; proceeding will ultimately disclose or
+withhold trader contact information and affect EU availability. No selection,
+form submission, verification or account change occurred.
