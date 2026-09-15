@@ -96,6 +96,12 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    the public config still resolves `com.gnd.prodesk`, Team `ZXC78SPCV4`, App
    Store app `6811442922`, `pcruz321`, the EAS project/update URL, production
    channel, and `distribution: "store"`.
+   Then run the package's production `ios:release:preflight`: it forces the
+   production variant and reports only whether Sentry/Logly are enabled and
+   configured for HTTPS. Do not copy DSNs or collector URLs into review notes.
+   Confirm those booleans again against the exact EAS production build
+   environment/artifact before answering App Privacy; a local pass is not
+   proof of remote vendor/data handling.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

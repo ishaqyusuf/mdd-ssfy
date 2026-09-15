@@ -131,6 +131,16 @@ approved public registration design exists.
   `.brain/reports/2026-09-15-ios-public-login-app-review.md`. A focused iOS
   release regression now guards both removed placeholder routes; no public
   signup, portal save, credential, or Apple upload was introduced.
+- Release-specific privacy hardening: `ios:release:preflight` now forces the
+  production Expo variant and emits only non-secret telemetry enablement/HTTPS
+  booleans. Explicit production config rejects Sentry debug/smoke-test modes
+  and enabled Sentry/Logly without HTTPS configuration; this guard also runs
+  in EAS's production environment. The four-test focused iOS readiness suite
+  passes, including three negative subprocess cases. The local inventory is
+  not an App Privacy answer or proof of the final remote build's vendor
+  behavior. The normal local check remains 26/27 with only the unapproved
+  privacy-policy URL failing; a one-off synthetic HTTPS URL passes 27/27 as
+  wiring proof only. Privacy/legal approval and a fresh binary remain gated.
 - Live App Store Connect follow-up: `GND Millwork` iOS 1.0 is Prepare for
   Submission. Public distribution is selected by default, but its free price
   schedule and App Availability are not set up. The Free Apps Agreement is

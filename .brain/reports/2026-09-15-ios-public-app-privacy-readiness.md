@@ -44,3 +44,15 @@ The following cannot be established from this repository and must be resolved fr
 ## Readiness handoff
 
 Before submission, obtain a release-specific dependency/configuration inventory and vendor data-processing/retention statements, trace server-side storage and deletion controls for the upload paths, verify the in-app privacy-policy access path, and then have the product/legal owner answer App Store Connect from those facts. This report intentionally does not publish policy text or save Apple form responses.
+
+### September 15 local inventory guard
+
+The iOS production preflight now emits only booleans for effective local
+Sentry/Logly enablement and HTTPS configuration, without printing a DSN,
+collector URL, or credential. Explicit production Expo configuration rejects
+Sentry debug/smoke-test modes and enabled telemetry lacking a valid HTTPS
+endpoint; the same guard runs when EAS evaluates its production environment.
+The local boolean snapshot is not proof that the final EAS environment matches
+it, and neither check answers vendor handling, linkage, tracking, retention,
+or the accurate App Store Connect questionnaire. Those owner/vendor/artifact
+checks remain open.

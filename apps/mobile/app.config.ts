@@ -19,6 +19,9 @@ const isExplicitReleaseBuild =
   (["preview", "production"].includes(normalizedAppVariant) &&
     appVariant !== undefined) ||
   ["preview", "production"].includes(normalizedEasBuildProfile);
+const isExplicitProductionBuild =
+  (appVariant !== undefined && normalizedAppVariant === "production") ||
+  normalizedEasBuildProfile === "production";
 const exposedDevCredentialKeys = [
   "EXPO_PUBLIC_EMAIL",
   "EXPO_PUBLIC_TOK",
@@ -42,6 +45,36 @@ if (isExplicitReleaseBuild && exposedDevCredentialKeys.length > 0) {
   throw new Error(
     `${exposedDevCredentialKeys.join(", ")} must not be set for preview or production Expo builds.`,
   );
+}
+
+export function isHttpsEndpoint(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+if (isExplicitProductionBuild) {
+  if (
+    process.env.EXPO_PUBLIC_SENTRY_DEBUG === "true" ||
+    process.env.EXPO_PUBLIC_SENTRY_SMOKE_TEST === "true"
+  ) {
+    throw new Error("Production Expo builds must disable Sentry debug and smoke-test modes.");
+  }
+  if (
+    process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true" &&
+    !isHttpsEndpoint(process.env.EXPO_PUBLIC_SENTRY_DSN)
+  ) {
+    throw new Error("Enabled production Sentry requires a configured HTTPS DSN.");
+  }
+  if (
+    process.env.EXPO_PUBLIC_LOGLY_ENABLED === "true" &&
+    !isHttpsEndpoint(process.env.EXPO_PUBLIC_LOGLY_ENDPOINT)
+  ) {
+    throw new Error("Enabled production Logly requires a configured HTTPS endpoint.");
+  }
 }
 
 const variantConfig = isDevelopmentBuild

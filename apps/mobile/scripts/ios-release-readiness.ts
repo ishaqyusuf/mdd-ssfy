@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import appConfig from "../app.config";
+import appConfig, { isHttpsEndpoint } from "../app.config";
 
 type Check = { label: string; ok: boolean; detail: string };
 
@@ -51,6 +51,12 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		| undefined;
 	const projectId = appConfig.extra?.eas?.projectId;
 	const infoPlist = appConfig.ios?.infoPlist as Record<string, unknown>;
+	const sentryEnabled = process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true";
+	const loglyEnabled = process.env.EXPO_PUBLIC_LOGLY_ENABLED === "true";
+	const sentryDsnIsHttps = isHttpsEndpoint(process.env.EXPO_PUBLIC_SENTRY_DSN);
+	const loglyEndpointIsHttps = isHttpsEndpoint(
+		process.env.EXPO_PUBLIC_LOGLY_ENDPOINT,
+	);
 	return [
 		check(
 			"Expo SDK 54 release dependencies",
@@ -142,6 +148,27 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 				: "Missing EXPO_PUBLIC_PRIVACY_POLICY_URL; owner/legal approval required before a public build",
 		),
 		check(
+			"Production telemetry inventory (non-secret local snapshot)",
+			true,
+			`Sentry enabled=${sentryEnabled}; Logly enabled=${loglyEnabled}; compare with the final EAS artifact/environment before App Privacy answers`,
+		),
+		check(
+			"Production Sentry diagnostic modes disabled",
+			process.env.EXPO_PUBLIC_SENTRY_DEBUG !== "true" &&
+				process.env.EXPO_PUBLIC_SENTRY_SMOKE_TEST !== "true",
+			`debug=${process.env.EXPO_PUBLIC_SENTRY_DEBUG === "true"}; smokeTest=${process.env.EXPO_PUBLIC_SENTRY_SMOKE_TEST === "true"}`,
+		),
+		check(
+			"Enabled production Sentry uses an HTTPS DSN",
+			!sentryEnabled || sentryDsnIsHttps,
+			`enabled=${sentryEnabled}; configuredHttps=${sentryDsnIsHttps}`,
+		),
+		check(
+			"Enabled production Logly uses an HTTPS endpoint",
+			!loglyEnabled || loglyEndpointIsHttps,
+			`enabled=${loglyEnabled}; configuredHttps=${loglyEndpointIsHttps}`,
+		),
+		check(
 			"iOS build command",
 			scripts["eas-build:ios:prod"]?.startsWith(
 				"bun run ios:release:preflight &&",
@@ -202,6 +229,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		check(
 			"iOS store preflight loads production configuration",
 			scripts["ios:release:preflight"]?.includes("with-env:prod") &&
+				scripts["ios:release:preflight"]?.includes("APP_VARIANT=production") &&
 				scripts["ios:release:preflight"]?.includes("EXPO_NO_DOTENV=1") &&
 				scripts["ios:release:preflight"]?.includes(
 					"bun ./scripts/ios-release-readiness.ts",
