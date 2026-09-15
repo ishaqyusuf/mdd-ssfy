@@ -141,6 +141,9 @@ The [local listing preparation packet](../reports/2026-09-15-ios-public-listing-
 records source-backed provisional copy, portal field gaps, screenshot candidates,
 and the unresolved company-login versus public-registration choice. It is not
 approved metadata and must not be pasted into App Store Connect unchanged.
+The [privacy-owner decision packet](../reports/2026-09-15-ios-privacy-owner-decision-packet.md)
+collects the exact entity, data-practice, retention, and account-model choices
+needed before the production policy URL or App Privacy fields are saved.
 
 1. **GATE distribution method:** In Apps > GND Millwork > Pricing and
    Availability > App Distribution Methods, verify/save **Public**, not Private

@@ -184,6 +184,13 @@ approved public registration design exists.
   public runbook now requires exact-artifact manifest review and an aggregate
   Xcode privacy report when a matching archive is available. No reason or App
   Privacy answer was guessed or saved.
+- Privacy owner handoff: a concise local decision packet now asks for the
+  responsible seller/controller relationship, first-release account model,
+  app-specific policy coverage, final telemetry/vendor facts, retention and
+  Blob purge semantics, and exact approved HTTPS URL. A current read-only EAS
+  account/project recheck failed at `api.expo.dev` DNS resolution, not login;
+  normal iOS readiness remains 27/28 with only the policy URL absent. No EAS
+  setting, Apple field, new build, or upload changed.
 - Live App Store Connect follow-up: `GND Millwork` iOS 1.0 is Prepare for
   Submission. Public distribution is selected by default, but its free price
   schedule and App Availability are not set up. The Free Apps Agreement is
