@@ -56,3 +56,25 @@ The local boolean snapshot is not proof that the final EAS environment matches
 it, and neither check answers vendor handling, linkage, tracking, retention,
 or the accurate App Store Connect questionnaire. Those owner/vendor/artifact
 checks remain open.
+
+### Server-side employee-document deletion evidence
+
+The authenticated mobile employee-document upload uses Vercel Blob and
+registers a `StoredDocument` before saving `UserDocuments`
+([user.route.ts](../../apps/api/src/trpc/routers/user.route.ts)). The
+authenticated `user.deleteDocument` path calls `deleteUserDocument`, which
+checks that the record belongs to the current user and transactionally sets
+`deletedAt` on the user document and its owned `StoredDocument`
+([user.ts](../../apps/api/src/db/queries/user.ts)). That path does **not**
+call Vercel Blob `del`; the deletion proved by this code is a database
+tombstone, not immediate removal of stored bytes. The direct Blob `del` path
+inspected in `storage.route.ts` is restricted to staged authenticated-browser
+uploads and does not prove deletion for the mobile employee-document path.
+Upload-finalization cleanup does call Blob `del` for failed registration; that
+is a failed-upload cleanup, not an employee-requested deletion guarantee.
+
+`TODO:` product/legal/data-operations owner decides whether and when employee
+documents and dispatch proofs must be physically purged, what retention is
+required for employment/delivery records, and how requests are handled. Do
+not tell Apple or users that deleting an employee document immediately erases
+the Blob bytes based on the current path.

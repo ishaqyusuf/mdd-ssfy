@@ -102,6 +102,10 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    Confirm those booleans again against the exact EAS production build
    environment/artifact before answering App Privacy; a local pass is not
    proof of remote vendor/data handling.
+   The privacy audit also proves that mobile employee-document deletion
+   tombstones database records but does not itself call Blob `del`; legal/data
+   operations must approve the retention/purge explanation before the policy
+   or App Privacy answers claim physical deletion.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

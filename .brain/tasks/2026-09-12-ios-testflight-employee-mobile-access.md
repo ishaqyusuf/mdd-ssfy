@@ -141,6 +141,12 @@ approved public registration design exists.
   behavior. The normal local check remains 26/27 with only the unapproved
   privacy-policy URL failing; a one-off synthetic HTTPS URL passes 27/27 as
   wiring proof only. Privacy/legal approval and a fresh binary remain gated.
+- Server-side privacy follow-up: the mobile employee-document upload registers
+  a Vercel Blob-backed `StoredDocument`; its authenticated delete operation
+  tombstones the user's document and stored-document database rows but does
+  not call Blob `del`. A staged-browser-upload delete route is separate.
+  The privacy report now records this distinction and a legal/data-operations
+  retention/purge `TODO:`; no user document or Blob was deleted.
 - Live App Store Connect follow-up: `GND Millwork` iOS 1.0 is Prepare for
   Submission. Public distribution is selected by default, but its free price
   schedule and App Availability are not set up. The Free Apps Agreement is
