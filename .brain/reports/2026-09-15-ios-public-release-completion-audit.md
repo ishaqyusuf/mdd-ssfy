@@ -98,8 +98,10 @@ longer release requirements. Public acquisition does not create public accounts.
   `18ccd42bd705ed44b7646f0ecd42454a56321b9d`. Its immutable head is
   `31b97374d75eb2caad7d2ccbc75fe5c0372d3433`, exactly two commits ahead, with
   the employee-access implementation plus consolidated public-guidance and
-  security hardening. Forty focused tests pass and the worktree is clean. The
-  branch is local only; no push, migration, deployment or alias change occurred.
+  security hardening. Its frozen dependency install, offline Prisma schema
+  validation and client generation succeed; forty focused tests pass again
+  against the isolated install, and the worktree is clean. The branch is local
+  only; no push, migration, deployment or alias change occurred.
 
 ## Exact remaining gates
 

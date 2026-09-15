@@ -74,6 +74,12 @@ Status: Prepared locally; no deployment or account setting changed
   distribution guidance, Super Admin authority, router/handler wiring, Android
   download authorization, active-company membership, web/mobile session
   revocation, distributed login throttling and Better Auth behavior.
+- A candidate-owned `bun install --frozen-lockfile` succeeds, replacing the
+  initial shared dependency symlink used for the first test pass. Prisma
+  validates the complete multi-file schema and generates client `6.19.2` using
+  a synthetic non-routable URL solely for offline parsing; it does not connect
+  to or mutate a database. The same 40 focused tests pass again against that
+  isolated install and generated client.
 - `git diff --check` passes and the isolated worktree is clean.
 - `@gnd/auth` typecheck reaches only the already documented
   `packages/errors` NodeNext extension diagnostics; it reports no diagnostic in

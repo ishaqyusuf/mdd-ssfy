@@ -206,6 +206,10 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    and exactly two commits ahead. Recheck this ref and its clean status, compare
    it against the actual live deployment SHA, review the migration, and obtain
    separate push/migration/deployment approval before any external action.
+   The candidate has a successful frozen install, offline Prisma schema
+   validation/client generation, and a clean 40-test focused pass. Repeat these
+   checks if its immutable ref changes; never infer that this authorizes running
+   the production migration.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a
