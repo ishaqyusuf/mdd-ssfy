@@ -28,6 +28,7 @@ async function requireActiveEmployee(ctx: TRPCContext) {
 			id: ctx.userId,
 			deletedAt: null,
 			accessRevokedAt: null,
+			OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
 			roles: { some: { deletedAt: null, role: { deletedAt: null } } },
 		},
 		select: { id: true, name: true, email: true },
@@ -176,6 +177,7 @@ export async function requestMobileAccess(
 }
 
 export async function getMobileAccessRequestsForAdmin(ctx: TRPCContext) {
+	await requireActiveEmployee(ctx);
 	await requireSuperAdmin(ctx);
 	const requests = await ctx.db.mobileAccessRequest.findMany({
 		orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
@@ -203,6 +205,7 @@ export async function updateMobileAccessRequest(
 	ctx: TRPCContext,
 	input: UpdateMobileAccessRequestInput,
 ) {
+	await requireActiveEmployee(ctx);
 	const actor = await requireSuperAdmin(ctx);
 	return ctx.db.$transaction(async (tx) => {
 		const current = await tx.mobileAccessRequest.findUnique({

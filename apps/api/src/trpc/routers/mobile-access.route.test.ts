@@ -46,5 +46,12 @@ describe("mobile access permission boundaries", () => {
 		expect(querySource).toContain(
 			"roles: { some: { deletedAt: null, role: { deletedAt: null } } }",
 		);
+		expect(querySource).toContain(
+			'OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }]',
+		);
+		const adminList = querySource.split("export async function getMobileAccessRequestsForAdmin")[1]?.split("export async function updateMobileAccessRequest")[0];
+		const adminUpdate = querySource.split("export async function updateMobileAccessRequest")[1];
+		expect(adminList).toContain("await requireActiveEmployee(ctx);");
+		expect(adminUpdate).toContain("await requireActiveEmployee(ctx);");
 	});
 });

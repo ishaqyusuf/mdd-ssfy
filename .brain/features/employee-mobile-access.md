@@ -14,12 +14,17 @@ from permission to sign in and use company data.
   and omits internal notes, invitation provider, and external portal reference.
 - A requester must be an active, non-revoked employee with an active role
   assignment to an active referenced role; a deleted role assignment alone
-  cannot authorize requests.
+  cannot authorize requests. Explicit `CUSTOMER` accounts are excluded even
+  if they have a role assignment; legacy null-type staff remain eligible only
+  through the same active-role check used by existing mobile authentication.
 - `mobileAccess.request` creates or reopens the employee/platform record. An
   active non-terminal request is idempotently returned instead of duplicated.
 - Android downloads require either Super Admin or an Android request in
   `INVITED`, `ACCEPTED`, or `INSTALLED`. The endpoint no longer accepts a
-  caller-provided download URL or filename.
+  caller-provided download URL or filename. It also requires an active
+  employee/manager or legacy null-type account with an active role assignment;
+  an explicit customer or deleted-only role cannot use the Super Admin bypass
+  or a historical request status to retrieve the APK.
 - The Android APK endpoint recognizes Super Admin only from an active role
   assignment whose referenced role is also active; a soft-deleted role name
   does not bypass the request-status gate.
@@ -37,7 +42,10 @@ does not grant an unapproved account access. See the
 
 - `mobileAccess.adminList` and `mobileAccess.adminUpdate` require Super Admin.
 - Admin review re-checks current user liveness and at least one active Super
-  Admin role/assignment server-side before listing or changing requests.
+  Admin role/assignment server-side before listing or changing requests. It
+  also requires the reviewing account to satisfy the employee account-type
+  check; an explicitly typed customer cannot review requests merely by having
+  a role named Super Admin.
 - Allowed lifecycle: Requested -> Approved -> Invited -> Accepted -> Installed,
   with Rejected/Cancelled exits where appropriate. Employees may re-request
   after Rejected or Cancelled.

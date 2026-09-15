@@ -16,6 +16,12 @@ describe("mobile app download authorization", () => {
 			'status: { in: ["INVITED", "ACCEPTED", "INSTALLED"] }',
 		);
 		expect(source).toContain("accessRevokedAt: null");
+		expect(source).toContain(
+			'OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }]',
+		);
+		expect(source).toContain(
+			"roles: { some: { deletedAt: null, role: { deletedAt: null } } }",
+		);
 	});
 
 	it("does not accept a caller-controlled download URL or filename", () => {

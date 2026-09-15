@@ -16,6 +16,8 @@ export async function GET(req: Request) {
 			id: userId,
 			deletedAt: null,
 			accessRevokedAt: null,
+			OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
+			roles: { some: { deletedAt: null, role: { deletedAt: null } } },
 		},
 		select: {
 			roles: {

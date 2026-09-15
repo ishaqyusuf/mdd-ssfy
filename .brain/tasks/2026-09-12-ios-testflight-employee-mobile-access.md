@@ -89,6 +89,17 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 employee-type authorization audit: the mobile-access employee
+  predicate now excludes explicitly typed `CUSTOMER` rows even if they carry
+  an active role, while preserving `EMPLOYEE`, `MANAGER`, and legacy null-type
+  staff under the existing active-role requirement. Admin list/update apply
+  that predicate before their Super Admin guard. The Android APK route now
+  requires the same type and active-role predicate before Super Admin/request
+  status checks. Seventeen focused mobile-access/APK/web-auth tests pass (51
+  expectations), and the API package typecheck passes. The broad dashboard
+  package typecheck aborted at Node's default approximately 4 GB heap limit
+  before diagnostics; it is not a green check or a changed-route error report.
+  No schema, migration, production data, UI, or Apple/EAS state changed.
 - September 15 iOS store-build safety follow-up: the root EAS account runner
   now requires `--acknowledge-build` before authentication for an iOS
   production build; the direct mobile-package script checks
