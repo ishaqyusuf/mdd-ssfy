@@ -89,6 +89,15 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 metadata preparation: a source-backed English (U.S.) App Store
+  metadata draft now covers bounded description/keywords, optional promotional
+  text, URL candidates, category/pricing decisions, copyright, synthetic-data
+  screenshot sequence, review-account handling, review notes, contact-data
+  boundary, and age-rating/content-rights evidence. It explicitly describes a
+  publicly downloadable app with existing company-account sign-in and no
+  public registration. Unsupported claims and final product/legal selections
+  remain marked for owner review; no App Store Connect field or credential was
+  saved or transmitted.
 - September 15 signed-in App Store Connect reinspection: GND Millwork iOS
   1.0 remains Prepare for Submission. App Privacy URL/questionnaire, price
   schedule and app-country availability, primary category, age ratings,

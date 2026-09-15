@@ -49,6 +49,11 @@ App Review still needs an active demo account with full representative access.
 The Account Holder signed in and the existing GND Millwork record was inspected
 read-only. The version is **1.0 Prepare for Submission**. The current page shows:
 
+The [source-backed metadata draft](../reports/2026-09-15-ios-app-store-metadata-draft.md)
+provides bounded English (U.S.) description/keywords, review notes, screenshot
+plan, URL candidates and owner-decision fields. It is a review packet, not
+authorization to save listing data or transmit review credentials.
+
 - Pricing > App Distribution Methods: **Public — Discoverable by anyone** is
   selected as the default. No price schedule or App Availability has been set
   up; do not mistake the organization's 175 agreement countries/regions for
