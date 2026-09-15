@@ -31,7 +31,10 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   `EXPO_PUBLIC_TOK` after loading the production environment and set
   `EXPO_NO_DOTENV=1` so Expo cannot reload those development credentials from
   local dotenv files. App config rejects an explicitly preview/production
-  variant if either credential remains set.
+  variant if either credential remains set. App config also exposes the
+  development quick-login password only when the resolved variant is explicitly
+  development; an implicit/default production config cannot surface it even
+  outside the release wrapper.
 - Development builds, preview builds, and preview OTA updates also force Sentry
   telemetry/debug/smoke flags off and set `SENTRY_DISABLE_AUTO_UPLOAD=true`.
   This keeps non-production releases silent and prevents source/debug artifact
@@ -84,6 +87,11 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   existing route. The iOS guard also runs in EAS's production build
   environment, which may differ from the local snapshot; it does not establish
   vendor retention, tracking, or final App Privacy answers.
+  Expo CLI evaluates `app.config.ts` through a Node/CommonJS loader. The shared
+  public-origin implementation therefore lives in
+  `config/release-base-url.cjs`, with a typed TypeScript wrapper for application
+  callers. This keeps one validation implementation while allowing both Expo
+  config introspection and mobile TypeScript/tests to load it.
 - Both root iOS submit aliases require an explicit reviewed EAS build UUID.
   The account runner rejects absent/malformed IDs and `--latest` before EAS
   account authentication. Both direct mobile-package submit aliases now run
@@ -127,6 +135,7 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 ## Key Files
 - `apps/mobile/app.config.ts`
 - `apps/mobile/eas.json`
+- `apps/mobile/config/release-base-url.cjs`
 - `apps/mobile/metro.config.js`
 - `apps/mobile/metro.config.test.js`
 - `apps/mobile/src/hooks/use-launch-auto-update.ts`

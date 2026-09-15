@@ -135,6 +135,11 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    DSNs or collector URLs into review notes. The preflight launches Bun from
    a neutral directory through a Node wrapper because local Bun 1.3.0
    reloads `.env*` credentials after `env -u`; no dotenv file is changed.
+   Expo's Node-based config loader consumes the public-origin predicate from
+   `config/release-base-url.cjs`; the typed application wrapper delegates to
+   that same implementation. If `eas project:info` reports that Expo config
+   failed, run value-suppressed `expo config` first and repair loader
+   compatibility before any build attempt.
    Confirm those booleans again against the exact EAS production build
    environment/artifact before answering App Privacy; a local pass is not
    proof of remote vendor/data handling.

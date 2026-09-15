@@ -40,6 +40,14 @@ longer release requirements. Public acquisition does not create public accounts.
 
 ## Live external-state audit
 
+- A September 15 read-only recheck confirms EAS identity `pcruz321` and linked
+  project `@pcruz321/gnd-prodesk` / `8ea2eecb-4109-453c-827f-9b2de2e3a9aa`.
+  The first `project:info` attempt exposed a Node loader failure in
+  `app.config.ts`; the shared release-origin validator now has a CommonJS
+  config boundary and typed application wrapper. Final Expo config
+  introspection succeeds without an embedded development quick-login password,
+  and `project:info` succeeds. No EAS project or remote setting changed.
+
 - Apple membership is active for ZEROES AND ONE TECH HUB NIG LIMITED; Account
   Holder, Team `ZXC78SPCV4`, renewal September 13, 2027, and accepted agreement
   were verified.

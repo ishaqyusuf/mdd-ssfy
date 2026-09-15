@@ -89,6 +89,19 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 Expo config-loader fix: read-only `eas whoami` confirmed
+  `pcruz321`, while `eas project:info` initially failed because Expo's
+  Node/CommonJS evaluator could not resolve an extensionless TypeScript helper
+  imported by `app.config.ts`. The origin validator now has one CommonJS
+  implementation plus a typed TypeScript wrapper. Expo public config resolves
+  the production bundle, unchanged owner/project/update link, tablet support
+  and export flag with no embedded development quick-login password; final
+  `eas project:info` verifies `@pcruz321/gnd-prodesk` and the retained project
+  ID. Thirteen focused release/origin/security tests pass. Mobile-wide
+  typecheck still reaches the documented repository/API/path-alias backlog,
+  with no diagnostic matching the changed config/origin/security files. The
+  30-item readiness check passes everything except the intentionally missing
+  owner-approved privacy URL. No EAS build or remote mutation occurred.
 - September 15 distribution-controls review: live Pricing and Availability
   confirms no price schedule or country availability is configured; Public is
   selected, while Mac, Vision Pro and the School Manager discount are checked.

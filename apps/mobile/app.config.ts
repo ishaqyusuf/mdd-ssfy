@@ -1,5 +1,8 @@
 import type { ExpoConfig } from "expo/config";
-import { isPublicHttpsOrigin } from "./src/lib/release-base-url";
+
+const { isPublicHttpsOrigin } = require("./config/release-base-url.cjs") as {
+  isPublicHttpsOrigin(value: string | undefined): boolean;
+};
 
 export const UPDATE_VERSION = "2026.08.17";
 const DEFAULT_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS = 5 * 60 * 1000;
@@ -207,9 +210,10 @@ const config: ExpoConfig = {
   extra: {
     appVariant: normalizedAppVariant,
     privacyPolicyUrl,
-    devQuickLoginPassword: isExplicitReleaseBuild
-      ? ""
-      : process.env.EXPO_PUBLIC_TOK ?? "",
+    devQuickLoginPassword:
+      isDevelopmentBuild && !isExplicitReleaseBuild
+        ? process.env.EXPO_PUBLIC_TOK ?? ""
+        : "",
     driverPlatformMode: isDriverPlatformMode,
     autoUpdateForegroundCooldownMs:
       process.env.EXPO_PUBLIC_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS ??

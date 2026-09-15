@@ -55,7 +55,7 @@ describe("mobile preview build security", () => {
 			"onSelectCredentials: (credentials: SignInSchema) => void;",
 		);
 		expect(appConfig).toMatch(
-			/devQuickLoginPassword:\s*isExplicitReleaseBuild\s*\?\s*""\s*:\s*process\.env\.EXPO_PUBLIC_TOK \?\? ""/,
+			/devQuickLoginPassword:\s*isDevelopmentBuild\s*&&\s*!isExplicitReleaseBuild\s*\?\s*process\.env\.EXPO_PUBLIC_TOK \?\? ""\s*:\s*""/,
 		);
 		expect(quickAccess).not.toContain("process.env.EXPO_PUBLIC_TOK");
 		expect(quickAccess).toMatch(
@@ -70,10 +70,14 @@ describe("mobile preview build security", () => {
 	});
 
 	it("removes dev credentials and applies target-specific Sentry policy to releases", () => {
+		const appConfig = readAppFile("app.config.ts");
 		const packageJson = JSON.parse(readAppFile("package.json")) as {
 			scripts: Record<string, string>;
 		};
 		const updateScript = readAppFile("scripts/eas-update.mjs");
+		expect(appConfig).toContain(
+			'require("./config/release-base-url.cjs")',
+		);
 
 		expect(packageJson.scripts["eas-build:dev"]).toContain(
 			"EXPO_PUBLIC_SENTRY_ENABLED=false EXPO_PUBLIC_SENTRY_DEBUG=false EXPO_PUBLIC_SENTRY_SMOKE_TEST=false SENTRY_DISABLE_AUTO_UPLOAD=true eas build",
