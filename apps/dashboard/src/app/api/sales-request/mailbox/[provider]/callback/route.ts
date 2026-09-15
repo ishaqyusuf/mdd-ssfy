@@ -37,7 +37,7 @@ export async function GET(request: Request, context: RouteContext) {
 		// persistence failures in the callback response.
 	}
 	return Response.redirect(
-		new URL(`/sales-form/create-order?mailbox=${outcome}`, request.url),
+		new URL(`/sales-book/requests?mailbox=${outcome}`, request.url),
 		302,
 	);
 }

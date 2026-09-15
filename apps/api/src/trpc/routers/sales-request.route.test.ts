@@ -1,7 +1,9 @@
+import { createSalesRequestPreviewDependencies } from "@api/services/sales-request-preview-dependencies";
 import { expect, test } from "bun:test";
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
 import { createSalesRequestPilotReviewPolicyDigest } from "@api/services/sales-request-pilot-review";
 import { getSalesRequestAISettings } from "@gnd/settings";
+import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
 
 import { salesRequestRouter } from "./sales-request.route";
 
@@ -221,7 +223,7 @@ async function installCurrentBenchmarkApproval(
 		corpusVersion: "sales-request-text-v1",
 		policyVersion: "pilot-gates-v1",
 		configurationRevision: snapshot.revision,
-		promptVersion: "new-sales-form-seed-v6",
+		promptVersion: SALES_REQUEST_PROMPT_VERSION,
 		schemaVersion: 2,
 		evidenceDigest: `sha256:${"a".repeat(64)}`,
 		approvedByUserId: 7,
@@ -308,7 +310,7 @@ function reviewReadyRun(input: {
 		configurationRevision: input.configurationRevision,
 		provider: "openai",
 		model: "gpt-5-mini",
-		promptVersion: "new-sales-form-seed-v6",
+		promptVersion: SALES_REQUEST_PROMPT_VERSION,
 		schemaVersion: 2,
 		pilotSettingsRevision: input.pilotSettingsRevision ?? 1,
 		providerBenchmarkApprovalRevision: 1,
@@ -364,7 +366,7 @@ test("AI settings query is Super Admin-only and defaults an unconfigured install
 	expect(fixture.getActiveSettingsReads()).toBe(1);
 });
 
-test("AI settings query includes price-free route defaults and revision diagnostics", async () => {
+test("AI settings query includes only the structural revision and rollout controls", async () => {
 	const fixture = requestContext();
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
 
@@ -372,19 +374,8 @@ test("AI settings query includes price-free route defaults and revision diagnost
 
 	expect(result.requestGeneration).toMatchObject({
 		featureEnabled: false,
-		routes: [
-			{
-				rootUid: "root",
-				steps: [
-					{
-						uid: "step",
-						defaultComponentUid: null,
-						candidates: [{ uid: "component", title: "Component" }],
-						warnings: [],
-					},
-				],
-			},
-		],
+		pilotSource: "default",
+		mailboxSource: "default",
 	});
 	expect(result.requestGeneration.configurationRevision).toMatch(
 		/^[a-f0-9]{64}$/,
@@ -487,7 +478,7 @@ test("preview validation accepts only the current server-derived identity", asyn
 	}
 });
 
-test("preview and Apply validation fail closed without a current provider benchmark", async () => {
+test("manual preview and Apply work without manufacturing a provider benchmark approval", async () => {
 	const meta = {
 		route: {
 			root: {
@@ -519,13 +510,19 @@ test("preview and Apply validation fail closed without a current provider benchm
 	await setCatalogPublication(fixture, snapshot.revision);
 
 	try {
-		await expect(
-			caller.generatePreview({ type: "order", text: "Customer request" }),
-		).rejects.toMatchObject({
-			code: "PRECONDITION_FAILED",
-			message:
-				"The selected Sales Request provider and model need a current benchmark approval before generation.",
+		const deps = createSalesRequestPreviewDependencies({
+			db: fixture.ctx.db,
+			userId: 19,
+			type: "order",
 		});
+		await expect(deps.readSnapshot()).resolves.toMatchObject({
+			providerBenchmarkApprovalRevision: 0,
+		});
+		await setCatalogPublication(fixture, snapshot.revision, "stale");
+		await expect(deps.readSnapshot()).rejects.toMatchObject({
+			publicMessage: "Regenerate the AI component configuration in Sales Settings before creating a request draft.",
+		});
+		await setCatalogPublication(fixture, snapshot.revision);
 		await expect(
 			caller.validatePreview({
 				type: "order",
@@ -534,11 +531,7 @@ test("preview and Apply validation fail closed without a current provider benchm
 				provider: "openai",
 				model: "gpt-5-mini",
 			}),
-		).rejects.toMatchObject({
-			code: "PRECONDITION_FAILED",
-			message:
-				"The selected Sales Request provider and model need a current benchmark approval before generation.",
-		});
+		).resolves.toMatchObject({ configurationRevision: snapshot.revision });
 	} finally {
 		if (previousFlag === undefined)
 			process.env.SALES_REQUEST_AI_ENABLED = undefined;
@@ -641,7 +634,7 @@ test("benchmark approval is Super Admin-authored and bound to current runtime id
 		corpusVersion: "sales-request-text-v1",
 		policyVersion: "pilot-gates-v1",
 		configurationRevision: benchmarkSnapshot.revision,
-		promptVersion: "new-sales-form-seed-v6",
+		promptVersion: SALES_REQUEST_PROMPT_VERSION,
 		schemaVersion: 2,
 		evidenceDigest: `sha256:${"a".repeat(64)}`,
 	};
@@ -701,7 +694,7 @@ test("benchmark approval rejects stale configuration evidence before writing", a
 			corpusVersion: "sales-request-text-v1",
 			policyVersion: "pilot-gates-v1",
 			configurationRevision: "0".repeat(64),
-			promptVersion: "new-sales-form-seed-v6",
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
 			schemaVersion: 2,
 			evidenceDigest: `sha256:${"a".repeat(64)}`,
 		}),
@@ -729,7 +722,7 @@ test("benchmark approval rejects stale configuration evidence before writing", a
 			corpusVersion: "sales-request-text-v1",
 			policyVersion: "pilot-gates-v1",
 			configurationRevision: benchmarkSnapshot.revision,
-			promptVersion: "new-sales-form-seed-v6",
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
 			schemaVersion: 1,
 			evidenceDigest: `sha256:${"a".repeat(64)}`,
 		}),
@@ -743,7 +736,7 @@ test("benchmark approval rejects stale configuration evidence before writing", a
 			corpusVersion: "sales-request-text-v2",
 			policyVersion: "pilot-gates-v1",
 			configurationRevision: benchmarkSnapshot.revision,
-			promptVersion: "new-sales-form-seed-v6",
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
 			schemaVersion: 2,
 			evidenceDigest: `sha256:${"a".repeat(64)}`,
 		}),
@@ -757,7 +750,7 @@ test("benchmark approval rejects stale configuration evidence before writing", a
 			corpusVersion: "sales-request-text-v1",
 			policyVersion: "pilot-gates-v2",
 			configurationRevision: benchmarkSnapshot.revision,
-			promptVersion: "new-sales-form-seed-v6",
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
 			schemaVersion: 2,
 			evidenceDigest: `sha256:${"a".repeat(64)}`,
 		}),
@@ -774,7 +767,7 @@ test("AI settings reject a provider whose server credential is missing", async (
 	await expect(
 		caller.updateAISettings({
 			provider: "deepseek",
-			model: "deepseek-v4-flash",
+			model: "deepseek-flash",
 		}),
 	).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
 	if (previousKey !== undefined)
@@ -827,7 +820,7 @@ test("AI settings reject ordinary callers before selecting settings", async () =
 			corpusVersion: "sales-request-text-v1",
 			policyVersion: "pilot-gates-v1",
 			configurationRevision: "c".repeat(64),
-			promptVersion: "new-sales-form-seed-v6",
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
 			schemaVersion: 2,
 			evidenceDigest: `sha256:${"a".repeat(64)}`,
 		}),
@@ -1050,89 +1043,6 @@ test("preview refuses an unconfigured pilot before any provider work", async () 
 			process.env.SALES_REQUEST_AI_ENABLED = undefined;
 		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
 	}
-});
-
-test("defaults mutation is Super Admin-only and derives the active settings row", async () => {
-	const fixture = requestContext();
-	const caller = salesRequestRouter.createCaller(fixture.ctx);
-
-	const result = await caller.setDefault({
-		rootUid: "root",
-		stepUid: "step",
-		componentUid: "component",
-	});
-
-	expect(result).toMatchObject({
-		changed: true,
-		settingId: 7,
-		rootUid: "root",
-		stepUid: "step",
-		componentUid: "component",
-		defaults: { root: { step: "component" } },
-	});
-	expect(fixture.getActiveSettingsReads()).toBe(1);
-	expect(fixture.getSettingsUpdates()).toBe(1);
-	expect(fixture.getSavedMeta()).toEqual({
-		unrelated: { preserve: true },
-		route: {
-			root: {
-				routeSequence: [{ uid: "step" }],
-				requestGeneration: { defaults: { step: "component" } },
-			},
-		},
-	});
-});
-
-test("defaults mutation rejects unauthenticated and ordinary callers before settings selection", async () => {
-	const unauthenticated = salesRequestRouter.createCaller({
-		db: {},
-	} as SalesRequestCallerContext);
-	await expect(
-		unauthenticated.setDefault({
-			rootUid: "root",
-			stepUid: "step",
-			componentUid: null,
-		}),
-	).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-
-	let settingsRead = false;
-	const ordinary = salesRequestRouter.createCaller({
-		userId: 19,
-		db: {
-			users: {
-				findFirst: async () => ({ roles: [{ role: { name: "Sales" } }] }),
-			},
-			settings: {
-				findMany: async () => {
-					settingsRead = true;
-					return [{ id: 7 }];
-				},
-			},
-		},
-	} as unknown as SalesRequestCallerContext);
-	await expect(
-		ordinary.setDefault({
-			rootUid: "root",
-			stepUid: "step",
-			componentUid: null,
-		}),
-	).rejects.toMatchObject({ code: "FORBIDDEN" });
-	expect(settingsRead).toBe(false);
-});
-
-test("defaults mutation does not accept a client-selected settings ID", async () => {
-	const fixture = requestContext();
-	const caller = salesRequestRouter.createCaller(fixture.ctx);
-
-	await expect(
-		caller.setDefault({
-			rootUid: "root",
-			stepUid: "step",
-			componentUid: null,
-			settingId: 999,
-		} as never),
-	).rejects.toMatchObject({ code: "BAD_REQUEST" });
-	expect(fixture.getActiveSettingsReads()).toBe(0);
 });
 
 test("generation outcome writes are actor-bound and expose no source payload", async () => {

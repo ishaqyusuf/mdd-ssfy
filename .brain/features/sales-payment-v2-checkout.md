@@ -56,6 +56,12 @@
 
 ## UI Screens
 
+- 2026-09-15: The staff payment widget falls back to `cust-<customerId>` for
+  empty/blank phone values, matching existing customer-account lookup. Previously
+  an empty phone sent an empty account and manual payments failed before writes.
+  Focused utility tests pass 24/24; local generated order 09659PC successfully
+  settled with a $513.91 Cash test payment and zero remaining balance.
+
 - Public checkout v2 page for token-based payment.
 - Legacy payment route shim that converts old link params into a fresh checkout token for v2 while preserving the fallback legacy page when token minting is not possible.
 - Legacy fallback multi-order checkout details render through `components/tables-2/legacy-square-payment-orders/*` instead of inline table markup; the fallback keeps compact 40px rows, sticky Invoice, table-owned scroll, DnD, resize, persisted table settings, and tight Invoice/Billing/Due widths while preserving the existing payment-link action.

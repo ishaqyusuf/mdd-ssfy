@@ -82,6 +82,8 @@ export type SalesRequestGenerationApplyInput = {
 	) => ApplyRequestGenerationProposalResult;
 	/** Used by presentation-only tests and callers that need an isolated candidate. */
 	performApply?: boolean;
+	/** Native quick-create handoff may open a review-only partial draft. */
+	allowUnresolvedDraft?: boolean;
 };
 
 export type SalesRequestGenerationProfileResolution =
@@ -116,33 +118,6 @@ function isConfigurationConflict(error: unknown) {
 	return readTransportCode(error) === "CONFLICT";
 }
 
-export function extractRequestGenerationDefaults(
-	routeData: WorkflowRouteData | null | undefined,
-): Readonly<Record<string, Readonly<Record<string, string>>>> {
-	const settingsMeta = readRecord(routeData?.settingsMeta);
-	const directRoute = readRecord(settingsMeta.route);
-	const nestedData = readRecord(settingsMeta.data);
-	const route = Object.keys(directRoute).length
-		? directRoute
-		: readRecord(nestedData.route);
-	const defaultsByItemTypeUid: Record<
-		string,
-		Readonly<Record<string, string>>
-	> = {};
-
-	for (const [itemTypeUid, rawRouteDefinition] of Object.entries(route)) {
-		const routeDefinition = readRecord(rawRouteDefinition);
-		const requestGeneration = readRecord(routeDefinition.requestGeneration);
-		const defaults = readRecord(requestGeneration.defaults);
-		const entries = Object.entries(defaults).filter(
-			(entry): entry is [string, string] => typeof entry[1] === "string",
-		);
-		if (entries.length)
-			defaultsByItemTypeUid[itemTypeUid] = Object.fromEntries(entries);
-	}
-	return defaultsByItemTypeUid;
-}
-
 export function resolveSalesRequestProfileCoefficient(
 	record: NewSalesFormRecord,
 	profileRecords: readonly CustomerProfileRecord[] | null | undefined,
@@ -158,7 +133,8 @@ export function resolveSalesRequestProfileCoefficient(
 		(candidate) => Number(candidate?.id || 0) === selectedProfileId,
 	);
 	if (!profile) return { status: "blocked", reason: "profile-unavailable" };
-	const coefficient = Number(profile.coefficient || 0);
+	// Match native profile pricing: an unset coefficient uses the neutral value.
+	const coefficient = Number(profile.coefficient ?? 1);
 	if (!Number.isFinite(coefficient) || coefficient <= 0) {
 		return { status: "blocked", reason: "profile-invalid" };
 	}
@@ -260,6 +236,16 @@ function bindLowTouchClaimToPreparedProposal(
 	preview: SalesRequestGeneratePreviewOutput,
 	proposal: PreparedRequestGenerationProposal,
 ) {
+	if (typeof preview.sourceText === "string") {
+		proposal = {
+			...proposal,
+			record: {
+				...proposal.record,
+				form: { ...proposal.record.form, customerRequestText: preview.sourceText },
+			},
+		};
+	}
+	if (preview.userReviewed) return proposal;
 	const eligibility = evaluateSalesRequestLowTouchDraftEligibility({
 		source: "pasted-text",
 		seed: preview.seed,
@@ -299,7 +285,7 @@ export async function applySalesRequestGenerationProposal(
 	}
 	const expectedRevision = String(preview.configurationRevision || "").trim();
 	if (!expectedRevision) return blocked("configuration-unavailable");
-	if (preview.seed.unresolved.length > 0) {
+	if (preview.seed.unresolved.length > 0 && !input.allowUnresolvedDraft) {
 		return blocked("unresolved", unresolvedIssues(preview.seed.unresolved));
 	}
 
@@ -328,9 +314,9 @@ export async function applySalesRequestGenerationProposal(
 			seed: preview.seed,
 			baseRecord: input.baseRecord,
 			routeData: input.routeData,
-			defaultsByItemTypeUid: extractRequestGenerationDefaults(input.routeData),
 			pricing: { profileCoefficient: profile.profileCoefficient },
 			resolveComponents: input.resolveComponents,
+			allowUnresolvedDraft: input.allowUnresolvedDraft,
 		});
 		if (prepared.status === "blocked") {
 			return blocked(

@@ -4,6 +4,7 @@ export type SalesFormWorkflowCapabilities = {
 	canCreateWorkflowComponents: boolean;
 	canEditWorkflowComponentPricing: boolean;
 	canArchiveWorkflowComponents: boolean;
+	canSetWorkflowComponentDefault: boolean;
 	canEditSectionOverrides: boolean;
 	canManageRedirects: boolean;
 	canManageDoorSizeVariants: boolean;
@@ -28,6 +29,7 @@ export function createSalesFormWorkflowCapabilities(
 		canCreateWorkflowComponents: false,
 		canEditWorkflowComponentPricing: false,
 		canArchiveWorkflowComponents: false,
+		canSetWorkflowComponentDefault: false,
 		canEditSectionOverrides: false,
 		canManageRedirects: false,
 		canManageDoorSizeVariants: false,
@@ -64,6 +66,7 @@ export function createInternalSalesFormWorkflowCapabilities(input?: {
 			input?.canEditWorkflowComponentPricing,
 		),
 		canArchiveWorkflowComponents: isWorkflowAdmin,
+		canSetWorkflowComponentDefault: isWorkflowAdmin,
 		canEditSectionOverrides: isWorkflowAdmin,
 		canManageRedirects: isWorkflowAdmin,
 		canManageDoorSizeVariants: isWorkflowAdmin,

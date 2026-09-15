@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { PrismaClient } from "@gnd/db";
 import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
 import {
 	DEFAULT_SALES_REQUEST_AI_SELECTION,
 	getSalesRequestAIProviderOption,
 	salesRequestAISelectionSchema,
 } from "@gnd/settings";
-import { PrismaClient } from "@prisma/client";
 import {
 	type SalesRequestEvaluationApprovalArtifacts,
 	type SalesRequestEvaluationApprovalPacket,
@@ -16,6 +16,7 @@ import {
 	createSalesRequestEvaluationApprovalPacket,
 } from "../apps/api/src/services/request-generation/evaluation/approval";
 import {
+	assertSalesRequestCorpusConfigurationLock,
 	buildSalesRequestModelInput,
 	evaluateSalesRequestCorpusCase,
 	getSalesRequestCorpusOracleCoverage,
@@ -297,6 +298,13 @@ async function main() {
 		const configurationJson = serializeJson(
 			JSON.parse(snapshot.configurationJson),
 		);
+		for (const caseData of cases) {
+			assertSalesRequestCorpusConfigurationLock({
+				caseData,
+				configurationJson: snapshot.configurationJson,
+				configurationRevision: snapshot.revision,
+			});
+		}
 		const oracleCoverage = getSalesRequestCorpusOracleCoverage(cases);
 		const providerRuntimeOptions = getSalesRequestProviderRuntimeOptions(
 			selection.provider,

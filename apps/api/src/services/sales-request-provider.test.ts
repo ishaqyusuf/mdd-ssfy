@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { SALES_REQUEST_AI_PROVIDER_CATALOG } from "@gnd/settings/sales-request-ai-catalog";
 import {
 	APICallError,
+	JSONParseError,
 	NoObjectGeneratedError,
 	RetryError,
 	type generateText,
@@ -25,6 +26,12 @@ const credentials = {
 	SALES_REQUEST_ANTHROPIC_API_KEY: "anthropic-secret",
 	SALES_REQUEST_DEEPSEEK_API_KEY: "deepseek-secret",
 	SALES_REQUEST_GOOGLE_API_KEY: "google-secret",
+};
+
+const validEmptyPreview = {
+	schemaVersion: 2,
+	lineItems: [],
+	unresolved: [{ lineUid: null, stepId: null, field: "request", status: "unsupported", reason: "No order was requested." }],
 };
 
 describe("sales request provider credentials", () => {
@@ -69,6 +76,156 @@ describe("sales request provider credentials", () => {
 });
 
 describe("sales request provider factory", () => {
+	test("native catalog correction shares the two-response limit and retains private validation errors locally", async () => {
+		let calls = 0;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" }, environment: credentials, maxRetries: 0, maxOutputRepairs: 1,
+			validateSeed: () => { throw new Error("Selected height cannot resolve the requested size"); },
+			generateTextImpl: (async () => {
+				calls++;
+				return { output: validEmptyPreview, text: JSON.stringify(validEmptyPreview), usage: { inputTokens: 10, outputTokens: 20 }, finishReason: "stop" };
+			}) as typeof generateText,
+		});
+		let failure: unknown;
+		try { await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }), text: "request", images: [], signal: new AbortController().signal }); } catch (error) { failure = error; }
+		expect(calls).toBe(2);
+		expect(classifySalesRequestProviderFailure(failure)).toMatchObject({ stage: "structured-output", schemaIssues: [{ code: "configuration-validation", path: "seed" }], inputTokens: 20, outputTokens: 40 });
+		expect(String(failure)).not.toContain("Selected height");
+	});
+	test.each(["quantity", "selected-unresolved"] as const)("corrects shared semantic validation failure: %s", async (failure) => {
+		const valid = {
+			schemaVersion: 2,
+			lineItems: [{ uid: "line-1", qty: 1, formSteps: [{ stepId: 1, prodUid: "slab" }], housePackageTool: { doors: [{ dimension: "2-8 x 8-0", totalQty: 1 }] } }],
+			unresolved: [] as Array<{ lineUid: string; stepId: number; field: string; status: string; reason: string }>,
+		};
+		const invalid = structuredClone(valid);
+		if (failure === "quantity") invalid.lineItems[0]!.qty = 2;
+		else invalid.unresolved.push({ lineUid: "line-1", stepId: 1, field: "itemType", status: "ambiguous", reason: "Unresolved route" });
+		let calls = 0;
+		let correction = "";
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" }, environment: credentials, maxRetries: 0, maxOutputRepairs: 1,
+			generateTextImpl: (async (options) => {
+				calls++;
+				if (calls === 2) correction = JSON.stringify(options.messages);
+				const output = calls === 1 ? invalid : valid;
+				return { output, text: JSON.stringify(output), usage: { inputTokens: 10, outputTokens: 20 }, finishReason: "stop" };
+			}) as typeof generateText,
+		});
+		const result = await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }), text: "One slab 2/8 8/0", images: [], signal: new AbortController().signal });
+		expect(calls).toBe(2);
+		expect(result.output).toEqual(valid);
+		expect(result.outputTokens).toBe(40);
+		expect(correction).toContain(failure === "quantity" ? "Line quantity must equal" : "cannot be selected and unresolved");
+	});
+	test("the first DeepSeek call receives the strict output contract", async () => {
+		let system = "";
+		let calls = 0;
+		const output = validEmptyPreview;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials,
+			maxRetries: 0,
+			generateTextImpl: (async (options) => {
+				calls++;
+				system = String(options.system);
+				return { output, text: JSON.stringify(output), usage: {}, finishReason: "stop" };
+			}) as typeof generateText,
+		});
+		await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }), text: "Hello", images: [], signal: new AbortController().signal });
+		const contract = JSON.parse(system.split("\nOUTPUT CONTRACT\n")[1]!);
+		expect(contract.properties.schemaVersion.const).toBe(2);
+		expect(contract.properties.lineItems.items.properties.formSteps).toBeDefined();
+		expect(contract.additionalProperties).toBe(false);
+		expect(calls).toBe(1);
+	});
+	test("captures a billed truncated response when the SDK output getter throws", async () => {
+		const captures: unknown[] = [];
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" }, environment: credentials, maxRetries: 0,
+			generateTextImpl: (async () => ({ get output() { throw new Error("private SDK payload"); }, text: '{"schemaVersion":2,', usage: { inputTokens: 100, outputTokens: 4000 }, finishReason: "length" })) as typeof generateText,
+			onEvaluationCapture: async (capture) => { captures.push(capture); },
+		});
+		let failure: unknown;
+		try { await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }), text: "sample", images: [], signal: new AbortController().signal }); } catch (error) { failure = error; }
+		expect(classifySalesRequestProviderFailure(failure)).toMatchObject({ stage: "structured-output", finishReason: "length", outputTokens: 4000 });
+		expect(captures).toHaveLength(1);
+		expect(String(failure)).not.toContain("private SDK payload");
+	});
+	test("manual schema correction is limited to one attempt and sums billed usage", async () => {
+		let calls = 0;
+		let messages: unknown;
+		const valid = validEmptyPreview;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials,
+			maxRetries: 0,
+			maxOutputRepairs: 1,
+			generateTextImpl: (async (options: { messages: unknown }) => {
+				calls++;
+				messages = options.messages;
+				const output =
+					calls === 1 ? { schemaVersion: 2, lineItems: [] } : valid;
+				return {
+					output,
+					text: JSON.stringify(output),
+					usage: { inputTokens: 10, outputTokens: 5 },
+					finishReason: "stop",
+				};
+			}) as typeof generateText,
+		});
+		const result = await provider({
+			configurationJson: JSON.stringify({
+				routes: [],
+				steps: [],
+				visibilityByComponentUid: {},
+			}),
+			text: "Hello",
+			images: [],
+			signal: new AbortController().signal,
+		});
+		expect(calls).toBe(2);
+		expect(result).toMatchObject({
+			output: valid,
+			inputTokens: 20,
+			outputTokens: 10,
+		});
+		expect(JSON.stringify(messages)).toContain(
+			"Correct the previous JSON once",
+		);
+	});
+
+	test("a second malformed response remains rejected without a third call", async () => {
+		let calls = 0;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials,
+			maxRetries: 0,
+			maxOutputRepairs: 1,
+			generateTextImpl: (async () => {
+				calls++;
+				return {
+					output: { schemaVersion: 2, lineItems: [] },
+					text: '{"schemaVersion":2,"lineItems":[]}',
+					usage: { inputTokens: 10, outputTokens: 5 },
+					finishReason: "stop",
+				};
+			}) as typeof generateText,
+		});
+		await expect(
+			provider({
+				configurationJson: JSON.stringify({
+					routes: [],
+					steps: [],
+					visibilityByComponentUid: {},
+				}),
+				text: "Hello",
+				images: [],
+				signal: new AbortController().signal,
+			}),
+		).rejects.toBeInstanceOf(SalesRequestProviderExecutionError);
+		expect(calls).toBe(2);
+	});
 	test("uses bounded non-thinking extraction for DeepSeek only", () => {
 		expect(SALES_REQUEST_DEFAULT_MAX_RETRIES).toBe(1);
 		expect(SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES).toBe(0);
@@ -90,13 +247,13 @@ describe("sales request provider factory", () => {
 		let receivedMaxRetries: number | undefined;
 		const captures: unknown[] = [];
 		const provider = createSalesRequestProvider({
-			selection: { provider: "deepseek", model: "deepseek-v4-flash" },
+			selection: { provider: "deepseek", model: "deepseek-flash" },
 			environment: credentials,
 			maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
 			generateTextImpl: (async (options: { maxRetries?: number }) => {
 				receivedMaxRetries = options.maxRetries;
 				return {
-					output: { schemaVersion: 2, lineItems: [], unresolved: [] },
+					output: validEmptyPreview,
 					text: '{"schemaVersion":2,"lineItems":[],"unresolved":[]}',
 					usage: { inputTokens: 1, outputTokens: 1 },
 					finishReason: "stop",
@@ -130,11 +287,67 @@ describe("sales request provider factory", () => {
 			},
 		]);
 		expect(result).toEqual({
-			output: { schemaVersion: 2, lineItems: [], unresolved: [] },
+			output: validEmptyPreview,
 			inputTokens: 1,
 			outputTokens: 1,
 			provider: "deepseek",
-			model: "deepseek-v4-flash",
+			model: "deepseek-flash",
+		});
+	});
+
+	test("keeps DeepSeek's response format generic and still validates locally", async () => {
+		let responseFormat = "";
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials,
+			maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+			generateTextImpl: (async (options: {
+				model: Parameters<
+					NonNullable<
+						Parameters<typeof generateText>[0]["output"]
+					>["injectIntoSystemPrompt"]
+				>[0]["model"];
+				output: NonNullable<Parameters<typeof generateText>[0]["output"]>;
+				system?: string;
+			}) => {
+				responseFormat = JSON.stringify(await options.output.responseFormat);
+				return {
+					output: { schemaVersion: 2, lineItems: [] },
+					text: '{"schemaVersion":2,"lineItems":[]}',
+					usage: { inputTokens: 1, outputTokens: 1 },
+					finishReason: "stop",
+				};
+			}) as typeof generateText,
+		});
+
+		let error: unknown;
+		try {
+			await provider({
+				configurationJson: JSON.stringify({
+					schemaVersion: 1,
+					routes: [],
+					steps: [],
+					visibilityByComponentUid: {},
+				}),
+				text: "one door",
+				images: [],
+				signal: new AbortController().signal,
+			});
+		} catch (cause) {
+			error = cause;
+		}
+
+		expect(responseFormat).not.toContain("housePackageTool");
+		expect(error).toBeInstanceOf(SalesRequestProviderExecutionError);
+		expect(classifySalesRequestProviderFailure(error)).toMatchObject({
+			stage: "structured-output",
+			structuredOutputCause: "schema-validation",
+			schemaIssues: [
+				{
+					code: "invalid_type",
+					path: "unresolved",
+				},
+			],
 		});
 	});
 
@@ -308,6 +521,30 @@ describe("sales request provider factory", () => {
 			},
 		]);
 		expect(JSON.stringify(error)).not.toMatch(/private/i);
+	});
+
+	test("classifies malformed provider JSON without retaining its text", () => {
+		const error = new NoObjectGeneratedError({
+			message: "private structured-output failure",
+			cause: new JSONParseError({
+				text: "private malformed provider output",
+				cause: new SyntaxError("private parse detail"),
+			}),
+			text: "private malformed provider output",
+			response: {},
+			usage: { inputTokens: 10, outputTokens: 4 },
+			finishReason: "stop",
+		} as never);
+
+		const diagnostic = classifySalesRequestProviderFailure(error);
+		expect(diagnostic).toEqual({
+			stage: "structured-output",
+			structuredOutputCause: "json-parse",
+			finishReason: "stop",
+			inputTokens: 10,
+			outputTokens: 4,
+		});
+		expect(JSON.stringify(diagnostic)).not.toMatch(/private|malformed/i);
 	});
 
 	test.each(

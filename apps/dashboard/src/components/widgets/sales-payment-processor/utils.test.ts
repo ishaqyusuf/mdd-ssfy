@@ -13,12 +13,19 @@ import {
 	isAvailablePaymentTerminal,
 	orderPaymentTerminals,
 	resolveAvailablePaymentTerminal,
+	resolvePaymentAccountNo,
 	resolveDefaultPaymentMethod,
 	resolveDefaultPaymentTerminal,
 	sanitizePaymentMethodFields,
 } from "./utils";
 
 describe("sales payment processor utils", () => {
+	it("uses the customer account for a blank phone without changing existing phone accounts", () => {
+		for (const phone of [undefined, null, "", "   "]) {
+			expect(resolvePaymentAccountNo(phone, 34)).toBe("cust-34");
+		}
+		expect(resolvePaymentAccountNo("3055550100", 34)).toBe("3055550100");
+	});
 	it("enables customer receipts only when every listed order has an email", () => {
 		expect(
 			canNotifyPaymentCustomer([

@@ -1,0 +1,17 @@
+/// Private customer request content and confirmed answers, separate from telemetry.
+model SalesRequestClarificationSession {
+    id                    String   @id @db.VarChar(36)
+    actorUserId           Int
+    saleType              String   @db.VarChar(16)
+    scope                 String   @db.VarChar(191)
+    configurationRevision String   @db.VarChar(128)
+    sourceText            String   @db.LongText
+    revision              Int      @default(1)
+    status                String   @db.VarChar(24)
+    questions             Json     @db.Json
+    answers               Json     @db.Json
+    createdAt             DateTime @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime @updatedAt
+
+    @@index([actorUserId, scope, updatedAt], map: "sales_req_clarification_owner_idx")
+}

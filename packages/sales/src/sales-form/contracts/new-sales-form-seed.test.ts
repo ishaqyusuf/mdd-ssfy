@@ -464,3 +464,18 @@ test("rejects an HPT line quantity that disagrees with its door rows", () => {
 	line.qty = 2;
 	expect(newSalesFormSeedSchema.safeParse(seed).success).toBe(false);
 });
+
+
+test("keeps identified mouldings selected at zero only with explicit quantity review", () => {
+	const seed = {
+		schemaVersion: 2,
+		lineItems: [{ uid: "pending", qty: 0,
+			formSteps: [{ stepId: 1, prodUid: "mouldings" }, { stepId: 215, meta: { selectedProdUids: ["profile"] } }],
+			meta: { mouldingRows: [{ uid: "profile", qty: 0 }] },
+		}],
+		unresolved: [{ lineUid: "pending", stepId: null, field: "quantity", status: "ambiguous", reason: "Confirm piece count; length unavailable" }],
+	};
+	expect(newSalesFormSeedSchema.safeParse(seed).success).toBe(true);
+	expect(newSalesFormSeedSchema.safeParse({ ...seed, unresolved: [] }).success).toBe(false);
+	expect(newSalesFormSeedSchema.safeParse({ ...seed, lineItems: [{ ...seed.lineItems[0], meta: undefined }] }).success).toBe(false);
+});

@@ -3,6 +3,7 @@ import {
 	ASSISTANT_PROVIDER_CATALOG,
 	type AssistantProvider,
 	type AssistantRuntimeSelection,
+	getAssistantApiKey,
 	resolveAssistantRuntimeSelection,
 } from "./runtime";
 
@@ -41,7 +42,7 @@ export function getAssistantProviderOptions(
 		defaultModel: models[0],
 		models: models.map((model) => ({ id: model, label: model })),
 		configured: Boolean(
-			environment[`ASSISTANT_${id.toUpperCase()}_API_KEY`]?.trim(),
+			getAssistantApiKey(id as AssistantProvider, environment),
 		),
 	}));
 }

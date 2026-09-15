@@ -1,5 +1,6 @@
 import { getLoggedInProfile } from "@/actions/cache/get-loggedin-profile";
 import { AssistantRuntimeSettings } from "@/components/assistant/assistant-runtime-settings";
+import { AssistantDiagnostics } from "@/components/assistant/assistant-diagnostics";
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
@@ -46,6 +47,7 @@ export default async function AssistantAdministrationPage() {
 								<AssistantAccessDataTable />
 							</Suspense>
 						</ErrorBoundary>
+						<AssistantDiagnostics />
 					</div>
 				</ScrollableContent>
 			</HydrateClient>

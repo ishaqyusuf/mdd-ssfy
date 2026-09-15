@@ -81,4 +81,11 @@ describe("decodeValidatedDocumentBase64", () => {
 			),
 		).toContain("cannot exceed 2 pages");
 	});
+
+	test("preserves the actual malformed PDF decoder cause for private diagnostics", async () => {
+		await expect(decodeValidatedDocumentBase64({
+			content: Buffer.from("%PDF-1.7\nSynthetic incomplete PDF.").toString("base64"),
+			contentType: "application/pdf", maxPdfPages: 50,
+		})).rejects.toMatchObject({ code: "BAD_REQUEST", reason: "unreadable", cause: { name: "InvalidPDFException" } });
+	});
 });

@@ -54,6 +54,8 @@ import {
 	saveWorkflowComponentSectionOverrideSchema,
 	saveWorkflowComponentVisibility,
 	saveWorkflowComponentVisibilitySchema,
+	setWorkflowComponentDefault,
+	setWorkflowComponentDefaultSchema,
 	updateStepMeta,
 	updateStepMetaSchema,
 } from "@api/db/queries/sales-form";
@@ -2120,6 +2122,12 @@ export const salesRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			await requireWorkflowComponentAdmin(ctx);
 			return archiveWorkflowComponents(ctx, input);
+		}),
+	setWorkflowComponentDefault: protectedProcedure
+		.input(setWorkflowComponentDefaultSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireWorkflowComponentAdmin(ctx);
+			return setWorkflowComponentDefault(ctx, input);
 		}),
 	copySale: protectedProcedure.input(copySaleSchema).mutation(async (props) => {
 		return copySale(props.ctx, props.input);

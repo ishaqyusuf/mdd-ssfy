@@ -965,7 +965,8 @@ check. Configuration identity comes from server settings, never request input.
 Generation reserves a shared atomic per-user Redis window (five per 60 seconds);
 usage-store errors fail closed. The feature flag defaults off. It grants no sale
 save, invoice-send, inventory or payment mutation authority. Private attachment
-storage access is not implemented; only request-scoped image bytes are accepted.
+storage access is not implemented; the text pilot accepts only the stable empty
+`images: []` placeholder and rejects image bytes.
 The response is a validated read-only form seed; it does not grant save authority.
 `salesRequest.setDefault` is restricted to Super Admin and derives its settings row
 server-side. It grants no general settings-record selection or editing authority.
@@ -974,6 +975,28 @@ Super Admin-only and derive the lowest active Sales Settings row server-side.
 They expose no credential values; API keys are read only by the selected provider
 adapter. Ordinary preview callers can use the configured provider but cannot read
 or change the provider/model setting.
+`salesRequest.updateProviderBenchmarkApproval` uses the same Super Admin boundary.
+The client cannot choose the actor or Settings row, and an approval cannot grant
+Sales save, invoice-send, payment, Inventory, or Production authority. The decision
+is usable only while its exact provider/model/configuration/prompt/schema/corpus/
+policy identity remains current.
+
+Low-touch final-save permission evidence is resolved again from the authenticated
+actor inside the native save transaction. The internal resolver accepts
+only the existing native creation rule—Super Admin or `editOrders`—for both orders
+and quotes. Revoked/deleted users and malformed, deleted, or mismatched role/direct
+permission evidence fail closed. Client claims cannot select the actor, grant, or
+revision, and this resolver creates no new authorization path.
+
+The composed low-touch final-save path additionally requires current named pilot
+membership, current benchmark evidence, and exactly two passing adjacent T10 review
+periods under the same server-built authority before Sales writes. Pilot membership
+or benchmark approval alone cannot grant finalization. Its exact retry path
+rechecks the same actor's native permission and one matching durable audit before
+returning the already-created Sales record. It cannot select another actor, Sales
+ID, grant, configuration, provider/model, or commercial fingerprint. Payment,
+Inventory allocation, Production, document send, and mailbox permissions are not
+granted by this path.
 
 ### Shared worker inbound overview — 2026-09-10
 Shared inbound overview grants no inventory editing authority. Worker reads and note creation require an active assignment and an inbound linked to authorized components. Notes do not depend on receiving policy. Receipt still uses receiveProductionInbound, workerCanReceiveInbound, revision/idempotency checks and transactional scope revalidation. General lifecycle/adjustment mutation permissions are unchanged.
@@ -991,3 +1014,204 @@ Shared inbound overview grants no inventory editing authority. Worker reads and 
   and either Super Admin or an Android record at Invited/Accepted/Installed.
 - No route accepts Apple credentials, OTPs, API keys, role changes, external
   invitation sends, or App Store Connect permissions.
+- Public App Store download does not authorize GND mobile sessions or API data.
+  New iOS `INVITED` records document manually delivered guidance only; they
+  do not create Apple team or TestFlight membership.
+
+## Progressive Assistant Sales/customer read permissions (2026-09-13)
+
+Sales discovery, status, blocker, and timeline tools require the existing
+`viewOrders` grant. Customer discovery requires `viewCustomers`; customer summary
+and order history require both `viewCustomers` and `viewOrders`. Financial values,
+payment rows, payment pipeline state, and payment-dimension blockers additionally
+require the existing `viewOrderPayment` grant.
+
+The runtime derives organization or exact representative scope from the current
+Assistant actor and rejects dealer/customer, malformed, and mismatched user scopes.
+Customer visibility follows the existing office/dealer boundary and requires at
+least one authorized active sale. Tool discovery, execution, record sources, entity
+links, and related-action hints all use the same current grants; a successful read
+does not widen row or field access.
+
+## Sales Request Generation pilot telemetry permissions (2026-09-13)
+
+- Generation lifecycle writes and `salesRequest.recordOutcome` use the verified
+  session actor. The request cannot select another actor, and cross-actor lookup
+  returns the same unavailable result as an absent or expired run.
+- `salesRequest.pilotSummary` reuses the Sales Request settings Super Admin
+  boundary. It exposes aggregate metrics only and grants no access to individual
+  runs, actors, source/customer content, provider bodies, or credentials.
+- The daily retention purge is an internal Trigger task with no browser/API
+  endpoint and no user-selectable cutoff. Its only observable payload is aggregate
+  deletion count plus the fixed policy duration.
+
+## Sales Request Generation pilot cohort permissions (2026-09-13)
+
+- `salesRequest.updatePilotSettings` reuses the Sales Request Super Admin boundary.
+  Cohort and reviewer identities must resolve to active, nondeleted, non-revoked
+  users before the settings row can change.
+- `salesRequest.getPilotAccess` is authenticated and reports only the calling
+  actor's safe eligibility state. Reviewer and cohort membership do not grant any
+  Sales save, invoice-send, payment, Inventory, or Production permission.
+- `salesRequest.generatePreview` requires a named eligible active actor on a new
+  order/quote surface and still requires the existing quote-creation authority.
+  The global `SALES_REQUEST_AI_ENABLED` switch and persisted pilot flag both fail
+  closed before any provider quota can be consumed.
+- The dashboard eligibility read also checks native quote/order creation authority,
+  and `salesRequest.validatePreview` repeats both pilot and native Sales authority
+  before Apply. Client-side visibility never substitutes for either server check.
+
+## Sales Request Generation pilot review permissions (2026-09-13)
+
+- `salesRequest.updatePilotReviewPolicy` and the aggregate `pilotSummary` remain
+  restricted to the existing Sales Request Super Admin boundary.
+- `salesRequest.recordPilotReviewDecision` is available only to an authenticated,
+  active, non-revoked user explicitly named in the current pilot reviewer list.
+  Cohort membership, a Sales role, or client-supplied reviewer ID is insufficient.
+- The server supplies reviewer identity and time, proves the current benchmark and
+  runtime authority, derives pass/fail, and performs the immutable write. Reviewers
+  cannot promote failed evidence by submitting `decision: "pass"`.
+- Returned review history contains period, decision, reviewer, time, and digests
+  only. Raw evidence snapshots, generation runs, request/customer data, provider
+  bodies, credentials, images, and mailbox data are not exposed.
+
+## Progressive Assistant operations/Community read permissions (2026-09-13)
+
+Production workers see only active assigned Sales orders; organization-level
+Production schedules require `editProduction`. Inventory reads require existing
+inventory view authority and expose operational quantities without supplier,
+pricing, or note fields. Fulfillment reads reuse Sales row scope and existing order
+visibility.
+
+Community project and unit discovery allow the existing Community scope, including
+the restricted `CommunityUnit` role. Job/task, invoice, and document counts and rows
+are independently omitted unless their current grants authorize them. Invoice
+amounts stay null without invoice authority, and install-cost fields are excluded
+for every actor and output path in this tool family. Active/nonarchived predicates
+and actor scope are repeated at execution.
+
+## Progressive Assistant PDF permissions (2026-09-13)
+
+All Sales PDF operations require `viewOrders`. Price-bearing invoice, quote, and
+order-packing modes also require `viewOrderPayment`; price-free Production and
+packing-slip modes do not. The API handler, background worker, status lookup, and
+download proxy each repeat authorization from current user, primary organization
+role, specific permissions, actor scope, Sales row scope, and canonical source
+revision. A revoked actor, changed scope, lost grant, or changed source cancels or
+stales the artifact before it can be returned.
+
+## Progressive Assistant saved-action permissions (2026-09-13)
+
+Every preference, memory, and saved-action operation derives the current actor and
+scope on the server. Recipe execution repeats registry compatibility, current user,
+scope, grant, and record authorization. Read/draft recipes may execute directly;
+write, artifact, external-send, and destructive effects create a fresh expiring
+proposal with a new nonce and idempotency key. Duplication and reordering cannot
+cross actor or scope boundaries, and removed memory no longer enters prompts.
+
+## Sales Request final-save exception permissions (2026-09-13)
+
+`salesRequest.listFinalSaveExceptions` requires authentication plus current
+`editOrders`. The actor ID is always taken from the server context; the input schema
+cannot select another employee. Super Admin pilot reporting remains aggregate-only,
+and this actor-owned recovery queue does not create a cross-user inspection path.
+
+## Progressive Assistant feature-request permissions (2026-09-13)
+
+Users see and unsubscribe only requests tied to their own submission in their
+current server-resolved scope. Super Admin is required for shared triage, ownership,
+merge, analysis review, retries, and release publication. Subscriber delivery
+rechecks active consent, exact scope, and the complete grant policy inside the same
+serializable transaction that inserts the deduplicated notification. Malformed
+stored policies fail closed.
+# Assistant approval enforcement — 2026-09-13
+
+- Assistant access never supplies a business grant. Catalog visibility, proposal creation, confirmation, execution, result replay, artifact retrieval, and job continuation all reuse current actor/scope/domain authority.
+- Read and draft effects are direct. Artifact, write, external-send, and destructive effects require explicit confirmation and are excluded from model-direct execution.
+- Revocation hides persisted proposal parameters and results even from the original actor. Cross-user and cross-scope proposal lookups return the same not-found boundary.
+- The approval token is browser/server-only and is never stored in plaintext, sent through model context, or persisted in chat history.
+
+## Sales Request mailbox policy permissions — 2026-09-13
+
+- Mailbox organization policy reuses the Sales Request Super Admin settings boundary.
+- Employee connection settings, credentials, source snapshots, content, and mailbox
+  actions are owner-only. Organization administrators may later read bounded
+  connection health but do not gain message-body or token access.
+- `protectedProcedure` is authentication only and is not accepted as mailbox
+  authorization. Every API read/write and job-side lookup must repeat active actor,
+  organization, owner, and connection scope from server-resolved records.
+- The shared Inbox read contract requires `actorActive`, current authority, an exact
+  actor/connection organization match, the resolved connection ID, and owner
+  identity. Administrators may cross owner only for that connection's bounded health
+  projection; content remains owner-only. Jobs accept one opaque durable work ID and
+  reload all authority evidence server-side.
+- The technical MVP adds owner-only connection/Inbox operations and an authenticated
+  fixed-target OAuth callback. It adds no administrator message-body access,
+  commercial write, provider draft/send, or outbound-send authority.
+- Inbox UI visibility does not grant content access: every connection list, summary,
+  detail, disconnect, and preview operation repeats the server-side owner/current-
+  authority checks. Initial sync tasks carry only opaque stream work IDs.
+- Disconnect ignores mailbox enablement, eligibility, and policy-revision equality
+  so a policy change cannot trap credentials. It still requires the active owner,
+  employee profile, organization, and unchanged canonical office authority.
+- Connection listing uses the same active owner/profile/organization/canonical-office
+  identity boundary but ignores policy drift solely to preserve disconnect access.
+- Mailbox preview generation must resolve the queue for the current actor before AI
+  work and re-resolve the same immutable snapshot/content identity before success.
+  Authorization loss or content drift returns stale and cannot produce successful
+  telemetry or a native draft response.
+
+## Workflow component defaults and global request shortcut — 2026-09-14
+
+- `sales.setWorkflowComponentDefault` repeats the existing workflow-component
+  administrator authorization on the server; UI capability checks are advisory.
+- The global shortcut remains governed by `salesRequest.generatePreview` pilot,
+  native Sales creation, provider benchmark, quota, and credential checks.
+- The shortcut grants no save, finalization, invoice, payment, inventory,
+  production, mailbox, or outbound-send authority.
+
+## Assistant quota permissions — 2026-09-14
+
+Users can read only the quota projection attached to their authenticated bootstrap.
+They cannot select another actor or change limits. Policy list/update procedures
+require the existing Super Admin role check. Quota capacity never adds a business
+grant; tool and record authorization continue to run independently.
+
+## Sales Request provider diagnostics — 2026-09-14
+
+`salesRequest.providerDiagnostics` requires the existing Sales Request Settings Super
+Admin boundary. It returns aggregate and sanitized provider-operation metadata only;
+it grants no access to request content, provider payloads, credentials, actor identity,
+Sales records, or generation/apply/save authority.
+
+## Assistant runtime settings permissions — 2026-09-14
+
+### Shared HTTPS chat origin correction — 2026-09-15
+
+Assistant chat resolves its exact trusted HTTP(S) origins from server-owned
+`ALLOWED_API_ORIGINS`, `NEXT_PUBLIC_APP_URL`, and `PORTLESS_URL`. This permits
+the configured dashboard behind Portless when the internal request URL differs
+from the browser origin. Wildcards, invalid URLs, credential-bearing URLs, and
+client forwarding headers do not establish trust. Authentication and business
+scope checks remain independent. The live unrelated-origin probe still returns
+403; focused origin/router coverage passes 19 tests / 54 assertions.
+
+Only an active user with the existing Super Admin role may read or change the
+global Assistant provider/model selection and its audit history. Individual
+Assistant entitlement does not grant this authority. Provider selection changes no
+business-data grant, actor scope, row filter, field redaction, or approval rule.
+
+## 2026-09-15 — Private Assistant diagnostic access
+
+Diagnostics require an active, nonrevoked user with a nondeleted Super Admin role and organization, checked on the server for every read/review. Diagnostic metadata does not grant transcript access: conversation links are returned only for the same conversation owner and scope, with nondeleted context. Knowing a reference does not authorize fetching it. Unit tests cover denied reads/reviews before record access and owner-scoped conversation resolution; live cross-user route acceptance remains pending.
+
+### Assistant browser report authorization
+
+Client diagnostic mutation is authenticated and actor-scoped. A report cannot attach to another user's conversation or an unrelated run. Only server-owned operation text enters the diagnostic; browser-provided raw exceptions/URLs are not accepted. Shared rate-limit exhaustion or limiter failure prevents insertion.
+
+### Capture-health access
+`assistant.captureHealth` uses the same active Super Admin check as diagnostic review. Employees receive FORBIDDEN, including direct calls. The diagnostic UI rollout gate controls mounting of the health panel but never disables backend capture/health recording.
+
+### Request clarification and rules — 2026-09-15
+
+Clarification followups recheck session ownership, pilot and native Sales permissions. Sessions and remembered guidance are actor-owned and scope/catalog matched for retrieval; guidance edits cannot change another owner’s records. getAIRules/updateAIRules require Super Admin. Existing telemetry remains source-free.

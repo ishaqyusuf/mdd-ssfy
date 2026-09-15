@@ -110,9 +110,6 @@ export type InitializeNewSalesFormSeedInput<
 	baseRecord: TRecord;
 	routeData: WorkflowRouteData;
 	resolveComponents: ResolveNewSalesFormSeedComponents;
-	defaultsByItemTypeUid?: Readonly<
-		Record<string, Readonly<Record<string, string>>>
-	>;
 	pricing: {
 		profileCoefficient: number;
 		pricingView?: "internal" | "dealer";
@@ -490,7 +487,6 @@ async function initializeLine(
 	formSteps = rootMutation.linePatch.formSteps;
 	const resolvedStepUids = new Set([stepUid(root)]);
 	const blockedDefaults = defaultBlocker(seed, seedLine.uid);
-	const defaults = input.defaultsByItemTypeUid?.[requestedRoot.prodUid] || {};
 
 	for (
 		let currentStepIndex = 1;
@@ -510,13 +506,19 @@ async function initializeLine(
 			}
 			continue;
 		}
-		const defaultUid =
+		const isRedirectTarget = formSteps
+			.slice(0, currentStepIndex)
+			.some(
+				(step) =>
+					readSalesFormObjectMetadata(step.meta)?.redirectUid ===
+					stepUid(currentStep),
+			);
+		const canApplyDefault =
 			!requested &&
+			!isRedirectTarget &&
 			!blockedDefaults.blocksEveryDefault &&
-			!blockedDefaults.blockedStepIds.has(currentId)
-				? defaults[stepUid(currentStep)]
-				: undefined;
-		if (!requested && !defaultUid) continue;
+			!blockedDefaults.blockedStepIds.has(currentId);
+		if (!requested && !canApplyDefault) continue;
 		const expectedMulti = isMultiSelectStepTitle(currentStep.title);
 		if (
 			requested &&
@@ -530,13 +532,6 @@ async function initializeLine(
 			issue(issues, seedLine.uid, currentId, "custom-step-not-supported");
 			continue;
 		}
-		const selectedUids = requested
-			? "prodUid" in requested
-				? [requested.prodUid]
-				: "meta" in requested
-					? requested.meta.selectedProdUids
-					: []
-			: [defaultUid as string];
 		const catalog = resolveWorkflowCatalogComponents({
 			components: [
 				...(await input.resolveComponents({
@@ -551,14 +546,19 @@ async function initializeLine(
 			pricingView: input.pricing.pricingView,
 			dealerSalesPercentage: input.pricing.dealerSalesPercentage,
 		});
-		if (!requested && defaultUid) {
+		let fallbackUid: string | null = null;
+		if (!requested) {
+			if (catalog.length === 0) {
+				resolvedStepUids.add(stepUid(currentStep));
+				continue;
+			}
 			const defaultSelection = resolveRequestStepSelection({
 				stepUid: stepUid(currentStep),
 				inputStatus: "omitted",
 				requestedComponentUid: null,
-				defaultComponentUid: defaultUid,
 				candidates: catalog.map((component) => ({
 					uid: String(component.uid || ""),
+					...(component.default === true ? { default: true as const } : {}),
 					variations: Array.isArray(component.variations)
 						? component.variations
 						: [],
@@ -578,11 +578,20 @@ async function initializeLine(
 						: defaultSelection.reason === "default-component-not-visible"
 							? "default-component-not-visible"
 							: "default-component-missing",
-					defaultUid,
 				);
 				continue;
 			}
+			fallbackUid = defaultSelection.componentUid;
 		}
+		const selectedUids = requested
+			? "prodUid" in requested
+				? [requested.prodUid]
+				: "meta" in requested
+					? requested.meta.selectedProdUids
+					: []
+			: fallbackUid
+				? [fallbackUid]
+				: [];
 		let valid = true;
 		const selectedComponents: WorkflowComponentRecord[] = [];
 		if (requested && "value" in requested) {
@@ -777,8 +786,11 @@ async function initializeLine(
 				const contextByUid = new Map(
 					context.rows.map((row) => [String(row.uid || ""), row] as const),
 				);
+				const calculationByUid = new Map(
+					mouldingRows.map((row) => [row.uid, row.calculation] as const),
+				);
 				const invalidCalculatorRow = rawMouldingRows.find((row) => {
-					if (!("calculation" in row)) return false;
+					if (!row.calculation) return false;
 					const selected = contextByUid.get(row.uid);
 					const authoritativeLength = parseMouldingPieceLength(selected?.title);
 					return (
@@ -799,10 +811,17 @@ async function initializeLine(
 						...line,
 						...buildWorkflowMouldingRowsPatch({
 							line,
-							rows: context.rows.map((row) => ({
-								...row,
-								qty: quantityByUid.get(String(row.uid || "")) || 1,
-							})),
+							rows: context.rows.map((row) => {
+								const uid = String(row.uid || "");
+								const calculation = calculationByUid.get(uid);
+								const qty = quantityByUid.get(uid) ?? 1;
+								return {
+									...row,
+									qty,
+									...(calculation ? { calculation: { ...calculation } } : {}),
+									...(qty === 0 ? { quantityReview: true } : {}),
+								};
+							}),
 							sharedComponentPrice: context.sharedComponentPrice,
 						}),
 					};

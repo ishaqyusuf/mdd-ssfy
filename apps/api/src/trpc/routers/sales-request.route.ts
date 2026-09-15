@@ -1,6 +1,25 @@
 import {
+	answerSalesRequestClarificationSchema,
+	salesRequestClarificationSessionSchema,
+	setSalesRequestGuidanceSchema,
+} from "@api/schemas/sales-request";
+import {
+	beginSalesRequestClarification,
+	answerSalesRequestClarification,
+	ownedClarification,
+	cancelSalesRequestClarification,
+	listSalesRequestClarificationGuidance,
+	setSalesRequestClarificationGuidance,
+	type ClarificationDatabase,
+} from "@api/services/sales-request-clarification";
+import {
+	getSalesRequestAIRules,
+	updateSalesRequestAIRules,
+	salesRequestAIRulesInputSchema,
+} from "@gnd/settings";
+import {
 	type ConfigurationDatabase,
-	getSalesRequestGenerationAdminSettings,
+	getSalesRequestConfigurationStructuralRevision,
 } from "@api/db/queries/sales-request-configuration";
 import {
 	type SalesRequestFinalSaveExceptionDatabase,
@@ -14,6 +33,7 @@ import {
 import {
 	type SalesRequestTelemetryDatabase,
 	getSalesRequestGenerationPilotSummary,
+	getSalesRequestProviderDiagnostics,
 	recordSalesRequestGenerationOutcome,
 } from "@api/db/queries/sales-request-telemetry";
 import {
@@ -25,7 +45,6 @@ import {
 	salesRequestPilotAccessSchema,
 	setSalesRequestAISettingsSchema,
 	setSalesRequestCatalogPolicySchema,
-	setSalesRequestDefaultSchema,
 	setSalesRequestMailboxPolicySchema,
 	setSalesRequestPilotReviewPolicySchema,
 	setSalesRequestPilotSettingsSchema,
@@ -53,10 +72,7 @@ import {
 	createSalesRequestPilotReviewPolicyDigest,
 } from "@api/services/sales-request-pilot-review";
 import { resolveSalesRequestPilotReviewAuthority } from "@api/services/sales-request-pilot-review-authority";
-import {
-	createSalesRequestPreview,
-	selectSalesRequestSettingId,
-} from "@api/services/sales-request-preview";
+import { selectSalesRequestSettingId } from "@api/services/sales-request-preview";
 import { createSalesRequestPreviewDependencies } from "@api/services/sales-request-preview-dependencies";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { requireStorefrontQuoteCreationPermission } from "@api/utils/storefront-permissions";
@@ -83,7 +99,6 @@ import {
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 	updateSalesRequestAISettings,
 	updateSalesRequestCatalogPolicy,
-	updateSalesRequestGenerationDefault,
 	updateSalesRequestMailboxPolicy,
 	updateSalesRequestPilotReviewPolicy,
 	updateSalesRequestPilotSettings,
@@ -108,9 +123,7 @@ type SalesRequestSettingsDb = Parameters<typeof getSalesRequestAISettings>[0] &
 
 function providerBenchmarkSurface(
 	result: Awaited<ReturnType<typeof getSalesRequestAISettings>>,
-	requestGeneration: Awaited<
-		ReturnType<typeof getSalesRequestGenerationAdminSettings>
-	>,
+	configurationRevision: string | null,
 	providerBenchmark: Awaited<
 		ReturnType<typeof getSalesRequestProviderBenchmarkApproval>
 	>,
@@ -119,7 +132,7 @@ function providerBenchmarkSurface(
 		providerBenchmark.approval,
 		{
 			...result.selection,
-			configurationRevision: requestGeneration.configurationRevision ?? "",
+			configurationRevision: configurationRevision ?? "",
 			promptVersion: SALES_REQUEST_PROMPT_VERSION,
 			schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
 			corpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
@@ -127,39 +140,6 @@ function providerBenchmarkSurface(
 		},
 	);
 	return { ...providerBenchmark, approved: current, current };
-}
-
-function requireCurrentProviderBenchmark(input: {
-	aiSettings: Awaited<ReturnType<typeof getSalesRequestAISettings>>;
-	configurationRevision: string;
-	providerBenchmark: Awaited<
-		ReturnType<typeof getSalesRequestProviderBenchmarkApproval>
-	>;
-}) {
-	const current = isSalesRequestProviderBenchmarkApprovalCurrent(
-		input.providerBenchmark.approval,
-		{
-			...input.aiSettings.selection,
-			configurationRevision: input.configurationRevision,
-			promptVersion: SALES_REQUEST_PROMPT_VERSION,
-			schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
-			corpusVersion: SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
-			policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
-		},
-	);
-	if (
-		input.aiSettings.source !== "persisted" ||
-		input.providerBenchmark.source !== "persisted" ||
-		!current
-	) {
-		throw new AppError({
-			code: "VALIDATION_FAILED",
-			publicMessage:
-				"The selected Sales Request provider and model need a current benchmark approval before generation.",
-			transportCode: "PRECONDITION_FAILED",
-			reportable: false,
-		});
-	}
 }
 
 function isUniqueConstraintError(error: unknown) {
@@ -186,7 +166,9 @@ async function readAISettingsSurface(
 	] = await Promise.all([
 		getSalesRequestAISettings(db, settingId),
 		getSalesRequestCatalogSettings(db, settingId),
-		getSalesRequestGenerationAdminSettings(db, { settingId }),
+		getSalesRequestConfigurationStructuralRevision(db, { settingId }).catch(
+			() => null,
+		),
 		getSalesRequestPilotSettings(db, settingId),
 		getSalesRequestProviderBenchmarkApproval(db, settingId),
 		getSalesRequestPilotReviewPolicy(db, settingId),
@@ -204,7 +186,7 @@ async function readAISettingsSurface(
 			providerBenchmark,
 		),
 		requestGeneration: {
-			...requestGeneration,
+			configurationRevision: requestGeneration,
 			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
 			pilot: pilot.settings,
 			pilotSource: pilot.source,
@@ -229,9 +211,9 @@ async function readAISettingsSurfaceWithSelection(
 		mailboxPolicy,
 	] = await Promise.all([
 		getSalesRequestCatalogSettings(db, result.settingId),
-		getSalesRequestGenerationAdminSettings(db, {
+		getSalesRequestConfigurationStructuralRevision(db, {
 			settingId: result.settingId,
-		}),
+		}).catch(() => null),
 		getSalesRequestPilotSettings(db, result.settingId),
 		getSalesRequestProviderBenchmarkApproval(db, result.settingId),
 		getSalesRequestPilotReviewPolicy(db, result.settingId),
@@ -250,7 +232,7 @@ async function readAISettingsSurfaceWithSelection(
 			providerBenchmark,
 		),
 		requestGeneration: {
-			...requestGeneration,
+			configurationRevision: requestGeneration,
 			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
 			pilot: pilot.settings,
 			pilotSource: pilot.source,
@@ -263,6 +245,32 @@ async function readAISettingsSurfaceWithSelection(
 }
 
 export const salesRequestRouter = createTRPCRouter({
+	getAIRules: protectedProcedure.query(async ({ ctx }) => {
+		await requireSalesRequestSettingsAdmin(ctx);
+		const rows = await ctx.db.settings.findMany({
+			where: { type: "sales-settings", deletedAt: null },
+			select: { id: true },
+		});
+		return getSalesRequestAIRules(
+			ctx.db,
+			selectSalesRequestSettingId(rows.map((row) => row.id)),
+		);
+	}),
+	updateAIRules: protectedProcedure
+		.input(salesRequestAIRulesInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSalesRequestSettingsAdmin(ctx);
+			const rows = await ctx.db.settings.findMany({
+				where: { type: "sales-settings", deletedAt: null },
+				select: { id: true },
+			});
+			return updateSalesRequestAIRules(ctx.db, {
+				...input,
+				settingId: selectSalesRequestSettingId(rows.map((row) => row.id)),
+				changedBy: ctx.userId,
+			});
+		}),
+
 	getAISettings: protectedProcedure.query(async ({ ctx }) => {
 		await requireSalesRequestSettingsAdmin(ctx);
 		const rows = await ctx.db.settings.findMany({
@@ -512,20 +520,64 @@ export const salesRequestRouter = createTRPCRouter({
 	}),
 	generatePreview: protectedProcedure
 		.input(generateSalesRequestPreviewSchema)
-		.mutation(async ({ ctx, input, signal }) => {
-			return createSalesRequestPreview(
-				{
-					text: input.text,
-					images: [],
-					signal: signal ?? new AbortController().signal,
-				},
-				createSalesRequestPreviewDependencies({
+		.mutation(async ({ ctx, input, signal }) =>
+			beginSalesRequestClarification({
+				db: ctx.db as unknown as ClarificationDatabase,
+				actorUserId: ctx.userId,
+				type: input.type,
+				text: input.text,
+				signal: signal ?? new AbortController().signal,
+				dependencies: createSalesRequestPreviewDependencies({
 					db: ctx.db,
 					userId: ctx.userId,
 					type: input.type,
 				}),
+			}),
+		),
+	answerClarification: protectedProcedure
+		.input(answerSalesRequestClarificationSchema)
+		.mutation(async ({ ctx, input, signal }) => {
+			const session = await ownedClarification(
+				ctx.db as unknown as ClarificationDatabase,
+				input.sessionId,
+				ctx.userId,
 			);
+			return answerSalesRequestClarification({
+				...input,
+				db: ctx.db as unknown as ClarificationDatabase,
+				actorUserId: ctx.userId,
+				signal: signal ?? new AbortController().signal,
+				dependencies: createSalesRequestPreviewDependencies({
+					db: ctx.db,
+					userId: ctx.userId,
+					type: session.saleType as "order" | "quote",
+				}),
+			});
 		}),
+	cancelClarification: protectedProcedure
+		.input(salesRequestClarificationSessionSchema)
+		.mutation(async ({ ctx, input }) =>
+			cancelSalesRequestClarification(
+				ctx.db as unknown as ClarificationDatabase,
+				input.sessionId,
+				ctx.userId,
+			),
+		),
+	listClarificationGuidance: protectedProcedure.query(async ({ ctx }) =>
+		listSalesRequestClarificationGuidance(
+			ctx.db as unknown as ClarificationDatabase,
+			ctx.userId,
+		),
+	),
+	setClarificationGuidance: protectedProcedure
+		.input(setSalesRequestGuidanceSchema)
+		.mutation(async ({ ctx, input }) =>
+			setSalesRequestClarificationGuidance(
+				ctx.db as unknown as ClarificationDatabase,
+				ctx.userId,
+				input,
+			),
+		),
 	validatePreview: protectedProcedure
 		.input(validateSalesRequestPreviewSchema)
 		.mutation(async ({ ctx, input }) => {
@@ -553,13 +605,11 @@ export const salesRequestRouter = createTRPCRouter({
 					const settingId = selectSalesRequestSettingId(
 						rows.map((row) => row.id),
 					);
-					const [snapshot, aiSettings, catalog, providerBenchmark] =
-						await Promise.all([
-							getSalesRequestConfigurationContext(tx, { settingId }),
-							getSalesRequestAISettings(tx, settingId),
-							getSalesRequestCatalogSettings(tx, settingId),
-							getSalesRequestProviderBenchmarkApproval(tx, settingId),
-						]);
+					const [snapshot, aiSettings, catalog] = await Promise.all([
+						getSalesRequestConfigurationContext(tx, { settingId }),
+						getSalesRequestAISettings(tx, settingId),
+						getSalesRequestCatalogSettings(tx, settingId),
+					]);
 					if (
 						!isSalesRequestCatalogPublicationCurrent(
 							catalog.publication,
@@ -571,11 +621,12 @@ export const salesRequestRouter = createTRPCRouter({
 							message: "The published Sales Request catalog changed.",
 						});
 					}
-					requireCurrentProviderBenchmark({
-						aiSettings,
-						configurationRevision: snapshot.revision,
-						providerBenchmark,
-					});
+					if (aiSettings.source !== "persisted") {
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message: "Sales request AI settings need administrator review.",
+						});
+					}
 					return {
 						configurationScope: snapshot.scope,
 						configurationRevision: snapshot.revision,
@@ -598,22 +649,6 @@ export const salesRequestRouter = createTRPCRouter({
 				});
 			}
 			return { type: input.type, ...current };
-		}),
-	setDefault: protectedProcedure
-		.input(setSalesRequestDefaultSchema)
-		.mutation(async ({ ctx, input }) => {
-			await requireSalesRequestSettingsAdmin(ctx);
-			const rows = await ctx.db.settings.findMany({
-				where: { type: "sales-settings", deletedAt: null },
-				select: { id: true },
-			});
-			const settingId = selectSalesRequestSettingId(rows.map((row) => row.id));
-			return updateSalesRequestGenerationDefault(ctx.db, {
-				settingId,
-				rootUid: input.rootUid,
-				stepUid: input.stepUid,
-				componentUid: input.componentUid ?? null,
-			});
 		}),
 	recordOutcome: protectedProcedure
 		.input(recordSalesRequestGenerationOutcomeSchema)
@@ -809,4 +844,10 @@ export const salesRequestRouter = createTRPCRouter({
 				{ isolationLevel: "RepeatableRead" },
 			);
 		}),
+	providerDiagnostics: protectedProcedure.query(async ({ ctx }) => {
+		await requireSalesRequestSettingsAdmin(ctx);
+		return getSalesRequestProviderDiagnostics(
+			ctx.db as unknown as SalesRequestTelemetryDatabase,
+		);
+	}),
 });

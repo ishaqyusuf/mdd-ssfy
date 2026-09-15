@@ -5,6 +5,7 @@ import {
 	type SalesRequestGenerationRunForReport,
 	type SalesRequestGenerationStartEvent,
 	aggregateSalesRequestGenerationRuns,
+	aggregateSalesRequestProviderDiagnostics,
 	deriveSalesRequestGenerationPilotAuthority,
 	getSalesRequestGenerationPilotAuthorityBlockers,
 	normalizeSalesRequestComplexityStratum,
@@ -12,6 +13,7 @@ import {
 	normalizeSalesRequestGenerationChangedFieldCategories,
 	normalizeSalesRequestGenerationIssueCategories,
 	normalizeSalesRequestGenerationIssueCounts,
+	normalizeSalesRequestGenerationIssuePayload,
 	normalizeSalesRequestGenerationStatus,
 } from "@api/services/sales-request-telemetry";
 import {
@@ -23,6 +25,7 @@ import { TRPCError } from "@trpc/server";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 export const SALES_REQUEST_GENERATION_REPORT_MAX_ROWS = 10_000;
+export const SALES_REQUEST_PROVIDER_DIAGNOSTICS_MAX_ROWS = 1_000;
 export {
 	SALES_REQUEST_GENERATION_RETENTION_DAYS,
 	anonymizeSalesRequestGenerationRunsForUser,
@@ -101,7 +104,7 @@ function boundedSeedDigest(value: unknown) {
 }
 
 function boundedIssueCounts(value: unknown) {
-	return normalizeSalesRequestGenerationIssueCounts(value);
+	return normalizeSalesRequestGenerationIssuePayload(value);
 }
 
 function safeJson(value: unknown) {
@@ -805,6 +808,49 @@ export async function getSalesRequestGenerationPilotSummary(
 			identity: periodAuthority,
 		},
 		metrics: aggregateSalesRequestGenerationRuns(rows),
+	};
+}
+
+export async function getSalesRequestProviderDiagnostics(
+	db: SalesRequestTelemetryDatabase,
+	input: { now?: Date; days?: number } = {},
+) {
+	const now = input.now ?? new Date();
+	const days = Math.min(
+		Math.max(
+			Math.trunc(input.days ?? SALES_REQUEST_GENERATION_RETENTION_DAYS),
+			1,
+		),
+		SALES_REQUEST_GENERATION_RETENTION_DAYS,
+	);
+	const from = new Date(now.getTime() - days * DAY_MS);
+	const rows = await db.salesRequestGenerationRun.findMany({
+		where: {
+			providerAttemptedAt: { not: null },
+			startedAt: { gte: from, lte: now },
+			retentionUntil: { gt: now },
+			deletedAt: null,
+		},
+		orderBy: { startedAt: "desc" },
+		take: SALES_REQUEST_PROVIDER_DIAGNOSTICS_MAX_ROWS,
+		select: {
+			generationId: true,
+			provider: true,
+			model: true,
+			status: true,
+			failureStage: true,
+			startedAt: true,
+			providerAttemptedAt: true,
+			latencyMs: true,
+			inputTokens: true,
+			outputTokens: true,
+			issueCounts: true,
+		},
+	});
+	return {
+		period: { from, to: now, days },
+		truncated: rows.length === SALES_REQUEST_PROVIDER_DIAGNOSTICS_MAX_ROWS,
+		...aggregateSalesRequestProviderDiagnostics(rows),
 	};
 }
 

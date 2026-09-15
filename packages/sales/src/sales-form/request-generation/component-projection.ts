@@ -18,6 +18,7 @@ type ComponentSource = {
 	deletedAt?: Date | string | null;
 	redirectUid?: string | null;
 	custom?: boolean | null;
+	isDefault?: boolean | null;
 	sortIndex?: number | null;
 	product?: { title: string | null } | null;
 	door?: { title: string | null } | null;
@@ -45,6 +46,7 @@ export function projectRequestComponent(component: ComponentSource) {
 	return {
 		uid: component.uid,
 		title,
+		...(component.isDefault ? { default: true as const } : {}),
 		redirectUid: component.redirectUid || null,
 		variations: variationsSchema.parse(meta.variations ?? []),
 		...(typeof component.sortIndex === "number" &&

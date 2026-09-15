@@ -113,6 +113,7 @@ import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
 import { useSalesRequestGenerationOutcome } from "./use-request-generation-outcome";
+import { SalesRequestGenerationHandoff } from "./sales-request-generation-handoff";
 
 interface Props {
     mode: "create" | "edit";
@@ -373,15 +374,15 @@ function WorkflowPanelSkeleton() {
     );
 }
 
-function NewSalesFormSkeleton() {
+function NewSalesFormSkeleton({ generated = false }: { generated?: boolean }) {
     return (
-        <div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-background md:left-[84px]">
+        <div role="status" aria-live="polite" aria-busy="true" aria-label={generated ? "Preparing generated sales draft" : "Loading sales form"} className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-background md:left-[84px]">
             <div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-background shadow-sm">
                 <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                     <div className="shrink-0 border-b bg-card px-4 py-3 sm:px-5">
                         <div className="flex flex-wrap items-center gap-3">
                             <div className="space-y-2">
-                                <SkeletonBlock className="h-5 w-44" />
+                                <p className="text-sm font-medium">{generated ? "Preparing your generated draft…" : "Loading sales form…"}</p>
                                 <SkeletonBlock className="h-3 w-64 max-w-[70vw]" />
                             </div>
                             <div className="ml-auto flex items-center gap-2">
@@ -728,12 +729,16 @@ export function NewSalesForm(props: Props) {
 
     useEffect(() => {
         if (!loadData) return;
-        const loadKey = `${props.mode}:${props.type}:${String(loadData.salesId ?? "new")}:${String(loadData.slug ?? "draft")}:${String(loadData.version ?? "v0")}`;
+        // A create bootstrap has a new version on every fetch; it is not a saved-record revision.
+        // Hydrate it once per form so refetches cannot replace an in-progress draft.
+        const loadKey = props.mode === "create"
+            ? `create:${props.type}:${bootstrapCustomerId ?? "none"}`
+            : `${props.mode}:${props.type}:${String(loadData.salesId ?? "new")}:${String(loadData.slug ?? "draft")}:${String(loadData.version ?? "v0")}`;
 		const shouldHydrate = !record || lastHydratedLoadKeyRef.current !== loadKey;
         if (!shouldHydrate) return;
         lastHydratedLoadKeyRef.current = loadKey;
         hydrate(loadData as NewSalesFormRecord);
-    }, [loadData, hydrate, record, props.mode, props.type]);
+    }, [loadData, hydrate, record, props.mode, props.type, bootstrapCustomerId]);
 
     const payload = useMemo(() => {
         if (!record) return null;
@@ -872,6 +877,7 @@ export function NewSalesForm(props: Props) {
 		enabled:
 			!!record &&
 			editor.autosaveEnabled &&
+			!draftParams.salesRequestGeneration &&
 			!requestGeneration.autosaveSuspended &&
 			!requestGeneration.manualSaveRequired &&
 			!hasSalesRepApprovalChange &&
@@ -990,6 +996,7 @@ export function NewSalesForm(props: Props) {
         },
     });
     const isSaveBusy =
+		Boolean(draftParams.salesRequestGeneration) ||
 		manualSaveLock ||
 		autosave.isSaving ||
 		finalSave.isPending ||
@@ -1633,6 +1640,15 @@ export function NewSalesForm(props: Props) {
         const currentRecord = recordOverride || record;
         if (!currentRecord) return;
         if (intent === "final") {
+            const pendingQuantity = currentRecord.lineItems.some((line) => {
+                const rows = line.meta?.mouldingRows;
+                return Array.isArray(rows) && rows.some((row: { quantityReview?: boolean; qty?: number }) =>
+                    row.quantityReview === true && !(Number(row.qty) > 0));
+            });
+            if (pendingQuantity) {
+                toast({ title: "Confirm requested quantities", description: "Enter a quantity for each moulding marked for review before finalizing.", variant: "destructive" });
+                return;
+            }
 			const lowTouchClaim = getFreshRequestGenerationLowTouchClaim(
 				currentRecord,
 				requestGeneration,
@@ -1651,9 +1667,9 @@ export function NewSalesForm(props: Props) {
                 committed = true;
 				void requestGenerationOutcome.recordSave(saveAttribution, "saved");
                 await handlePostSaveSuccess(resp);
+				await clearSelectedCustomerQuery();
 				const inventoryOverviewOpened =
 					await continueToInventoryAfterSave(resp, true);
-                await clearSelectedCustomerQuery();
                 toast({
                     title: "Saved",
                     description: `${props.type} ${resp?.orderId} has been finalized.`,
@@ -1701,8 +1717,8 @@ export function NewSalesForm(props: Props) {
             let inventoryOverviewOpened = false;
             try {
                 await handlePostSaveSuccess(resp);
-                inventoryOverviewOpened = await continueToInventoryAfterSave(resp, true);
                 await clearSelectedCustomerQuery();
+                inventoryOverviewOpened = await continueToInventoryAfterSave(resp, true);
             } catch (error) {
                 const failure = createSaveFailure(error, "Refresh after save", resp.orderId, true);
                 setSaveFailure(failure);
@@ -2120,7 +2136,19 @@ export function NewSalesForm(props: Props) {
     }
 
     if (isLoading || !record) {
-        return <NewSalesFormSkeleton />;
+        return <NewSalesFormSkeleton generated={props.mode === "create" && Boolean(draftParams.salesRequestGeneration)} />;
+    }
+
+    if (props.mode === "create" && draftParams.salesRequestGeneration) {
+        return (
+            <SalesRequestGenerationHandoff
+                key={draftParams.salesRequestGeneration}
+                type={props.type}
+                generationId={draftParams.salesRequestGeneration}
+                onBeforeApply={autosave.cancelPending}
+                loadingFallback={<NewSalesFormSkeleton generated />}
+            />
+        );
     }
 
     const salesId = Number(record.salesId || 0);
@@ -2230,7 +2258,7 @@ export function NewSalesForm(props: Props) {
 	const unpricedHptRows = findQuantityBearingUnpricedHptRows(record);
 
     return (
-        <>
+		<>
             <SalesFormAdoptionTracker
                 surface="new"
                 type={props.type}

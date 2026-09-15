@@ -11,6 +11,9 @@ import { useInventoryInboundParams } from "@/hooks/use-inventory-inbound-params"
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import dynamic from "next/dynamic";
+import { useAssistantDiagnosticParams } from "@/hooks/use-assistant-diagnostic-params";
+
+const AssistantDiagnosticSheet = dynamic(() => import("./assistant-diagnostic-sheet").then(mod => mod.AssistantDiagnosticSheet));
 
 const CommunityInventoryOverviewSheet = dynamic(() =>
     import("./community-inventory-overview").then(
@@ -53,6 +56,7 @@ const InventoryProductSheet = dynamic(() =>
 );
 const SalesOverviewSheet = dynamic(() => import("./sales-overview-sheet"));
 export function GlobalSheets() {
+    const diagnostic = useAssistantDiagnosticParams();
     const { params: inboundViewParams } = useInboundView();
     const legacySalesOverview = useSalesOverviewQuery();
     const { opened: customerOverviewOpen } = useCustomerOverviewQuery();
@@ -65,6 +69,7 @@ export function GlobalSheets() {
     const filePreview = useFilePreviewParams();
     return (
         <>
+            {diagnostic.reference ? <AssistantDiagnosticSheet key={diagnostic.reference} /> : null}
             {inboundViewParams.viewInboundId ? <InboundOverviewSheet /> : null}
             {legacySalesOverview["sales-overview-id"] ? (
                 <SalesOverviewSheet />

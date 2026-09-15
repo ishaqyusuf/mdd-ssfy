@@ -2,14 +2,29 @@ import { describe, expect, it } from "bun:test";
 import { resolveRequestStepSelection } from "./default-policy";
 
 describe("resolveRequestStepSelection", () => {
+	it("falls back to the first sorted candidate when none is marked", () => {
+		expect(
+			resolveRequestStepSelection({
+				stepUid: "material",
+				inputStatus: "omitted",
+				requestedComponentUid: null,
+				candidates: [{ uid: "first" }, { uid: "second" }],
+				resolvedStepUids: [],
+			}),
+		).toEqual({
+			status: "selected",
+			componentUid: "first",
+			source: "default",
+		});
+	});
+
 	it("selects an eligible default when the request omits the step", () => {
 		expect(
 			resolveRequestStepSelection({
 				stepUid: "material",
 				inputStatus: "omitted",
 				requestedComponentUid: null,
-				defaultComponentUid: "fiberglass",
-				candidates: [{ uid: "fiberglass" }, { uid: "wood" }],
+				candidates: [{ uid: "fiberglass", default: true }, { uid: "wood" }],
 				resolvedStepUids: [],
 			}),
 		).toEqual({
@@ -25,8 +40,7 @@ describe("resolveRequestStepSelection", () => {
 				stepUid: "material",
 				inputStatus: "specified",
 				requestedComponentUid: "steel",
-				defaultComponentUid: "fiberglass",
-				candidates: [{ uid: "fiberglass" }, { uid: "wood" }],
+				candidates: [{ uid: "fiberglass", default: true }, { uid: "wood" }],
 				resolvedStepUids: [],
 			}),
 		).toEqual({
@@ -39,8 +53,7 @@ describe("resolveRequestStepSelection", () => {
 		const input = {
 			stepUid: "material",
 			requestedComponentUid: null,
-			defaultComponentUid: "fiberglass",
-			candidates: [{ uid: "fiberglass" }],
+			candidates: [{ uid: "fiberglass", default: true as const }],
 			resolvedStepUids: [],
 		} as const;
 
@@ -58,13 +71,12 @@ describe("resolveRequestStepSelection", () => {
 				stepUid: "material",
 				inputStatus: "omitted",
 				requestedComponentUid: null,
-				defaultComponentUid: "fiberglass",
-				candidates: [{ uid: "fiberglass", isDeleted: true }],
+				candidates: [{ uid: "fiberglass", isDeleted: true, default: true }],
 				resolvedStepUids: [],
 			}),
 		).toEqual({
 			status: "unresolved",
-			reason: "default-component-deleted",
+			reason: "default-component-not-configured",
 		});
 	});
 
@@ -74,10 +86,10 @@ describe("resolveRequestStepSelection", () => {
 				stepUid: "style",
 				inputStatus: "omitted",
 				requestedComponentUid: null,
-				defaultComponentUid: "plain",
 				candidates: [
 					{
 						uid: "plain",
+						default: true,
 						variations: [
 							{
 								rules: [
@@ -96,7 +108,7 @@ describe("resolveRequestStepSelection", () => {
 			}),
 		).toEqual({
 			status: "unresolved",
-			reason: "default-dependency-unresolved:material",
+			reason: "default-component-not-configured",
 		});
 	});
 
@@ -135,8 +147,7 @@ describe("resolveRequestStepSelection", () => {
 			stepUid: "style",
 			inputStatus: "omitted" as const,
 			requestedComponentUid: null,
-			defaultComponentUid: "six-panel",
-			candidates: [{ uid: "six-panel", variations }],
+			candidates: [{ uid: "six-panel", default: true as const, variations }],
 			resolvedStepUids: ["material", "finish"],
 		};
 
@@ -163,7 +174,7 @@ describe("resolveRequestStepSelection", () => {
 			}),
 		).toEqual({
 			status: "unresolved",
-			reason: "default-component-not-visible",
+			reason: "default-component-not-configured",
 		});
 	});
 
@@ -194,7 +205,6 @@ describe("resolveRequestStepSelection", () => {
 				stepUid: "style",
 				inputStatus: "specified",
 				requestedComponentUid: "six-panel",
-				defaultComponentUid: "flush",
 				candidates: [...candidates, { uid: "flush" }],
 				selectedByStepUid,
 				selectedProdUidsByStepUid,

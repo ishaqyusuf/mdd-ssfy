@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	assistantScrollBehavior,
 	buildAssistantChatRequest,
+	claimAssistantPendingPrompt,
 	getAssistantIntegrationIdsForMessage,
 	getAssistantRequestId,
 	initialAssistantStreamState,
@@ -67,6 +68,19 @@ describe("assistant chat state", () => {
 		const first = getAssistantRequestId(requestIds, "message-1");
 		expect(getAssistantRequestId(requestIds, "message-1")).toBe(first);
 		expect(getAssistantRequestId(requestIds, "message-2")).not.toBe(first);
+	});
+
+	test("claims a pending prompt once across Strict Mode effect replay", () => {
+		const claimedPromptIds = new Set<string>();
+		expect(claimAssistantPendingPrompt(claimedPromptIds, "prompt-1")).toBe(
+			true,
+		);
+		expect(claimAssistantPendingPrompt(claimedPromptIds, "prompt-1")).toBe(
+			false,
+		);
+		expect(claimAssistantPendingPrompt(claimedPromptIds, "prompt-2")).toBe(
+			true,
+		);
 	});
 
 	test("submits Enter while preserving Shift+Enter and IME composition", () => {

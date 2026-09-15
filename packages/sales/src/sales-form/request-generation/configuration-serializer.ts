@@ -3,6 +3,7 @@ export type SalesRequestConfigurationComponent = {
 	title: string;
 	/** Stable catalog order; used for sorting but omitted from the model tuple. */
 	sortIndex?: number | null;
+	default?: true;
 };
 
 export type SalesRequestConfigurationStep = {
@@ -37,31 +38,6 @@ export const SALES_REQUEST_COMPONENT_COLUMNS = Object.freeze([
 	"title",
 ] as const);
 
-/** Extract the initializer defaults from the already validated model projection. */
-export function getSalesRequestConfigurationDefaults(
-	configuration: SalesRequestConfiguration,
-) {
-	const defaults: Record<string, Record<string, string>> = {};
-	for (const value of configuration.routes) {
-		if (!isRecord(value)) continue;
-		const itemTypeUid =
-			typeof value.itemTypeUid === "string" ? value.itemTypeUid.trim() : "";
-		if (!itemTypeUid || !isRecord(value.defaults)) continue;
-		const routeDefaults = Object.fromEntries(
-			Object.entries(value.defaults).flatMap(([stepUid, componentUid]) =>
-				typeof componentUid === "string" &&
-				stepUid.trim() &&
-				componentUid.trim()
-					? [[stepUid.trim(), componentUid.trim()]]
-					: [],
-			),
-		);
-		if (Object.keys(routeDefaults).length)
-			defaults[itemTypeUid] = routeDefaults;
-	}
-	return defaults;
-}
-
 type ProjectedStep = {
 	id: number;
 	uid: string;
@@ -86,6 +62,7 @@ export function compareSalesRequestComponents(
 	left: SalesRequestConfigurationComponent,
 	right: SalesRequestConfigurationComponent,
 ): number {
+	if (left.default !== right.default) return left.default ? -1 : 1;
 	const leftIndex = Number.isFinite(left.sortIndex)
 		? (left.sortIndex as number)
 		: Number.MAX_SAFE_INTEGER;

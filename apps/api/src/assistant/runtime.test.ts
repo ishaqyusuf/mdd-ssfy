@@ -4,6 +4,8 @@ import { ASSISTANT_ANALYTICS_RESULT_VERSION } from "./analytics-result-contract"
 import {
 	ASSISTANT_MAX_SELECTED_TOOLS,
 	createAssistantRuntime,
+	getAssistantApiKey,
+	getAssistantProviderRuntimeOptions,
 	getAssistantRuntimeIdentity,
 	resolveAssistantRuntimeSelection,
 	selectAssistantRuntimeTools,
@@ -11,6 +13,178 @@ import {
 } from "./runtime";
 
 describe("assistant runtime", () => {
+	test("an ambiguous lookup retains choices and emits one neutral prompt", async () => {
+		const chunks: Array<{ type?: string; data?: unknown; delta?: string }> = [];
+		const entities = [
+			{
+				kind: "order",
+				id: "QA-SHARED",
+				salesType: "order",
+				label: "Order QA-SHARED",
+			},
+			{
+				kind: "order",
+				id: "QA-SHARED",
+				salesType: "quote",
+				label: "Quote QA-SHARED",
+			},
+		];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { sales_get_order_status: {} },
+			trustedResultTools: ["sales_get_order_status"],
+			trustedResultToolEffects: { sales_get_order_status: "read" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-call",
+							toolCallId: "order",
+							toolName: "sales_get_order_status",
+							input: {},
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "order",
+							toolName: "sales_get_order_status",
+							output: {
+								structuredContent: {
+									status: "requires_input",
+									data: { candidates: entities },
+									entities,
+								},
+							},
+						};
+						yield {
+							type: "text-delta",
+							id: "answer",
+							text: "Technical disambiguation schema",
+						};
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 2 }),
+				}),
+			}),
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 24,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Check my order" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: {
+				write: (chunk) => chunks.push(chunk as (typeof chunks)[number]),
+			},
+			signal: new AbortController().signal,
+		});
+		expect(
+			chunks
+				.filter((part) => part.type === "data-assistant-entity")
+				.map((part) => part.data),
+		).toEqual(entities);
+		expect(
+			chunks
+				.filter((part) => part.type === "data-assistant-outcome")
+				.map((part) => part.data),
+		).toEqual([{ kind: "ambiguous" }]);
+		expect(
+			chunks
+				.filter((part) => part.type === "text-delta")
+				.map((part) => part.delta),
+		).toEqual(["I found more than one match. Which one do you mean?"]);
+	});
+
+	test("replaces pre-tool narration with the final answer without splitting token fragments", async () => {
+		const chunks: Array<{ type?: string; delta?: string }> = [];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { sales_get_order_status: {} },
+			trustedResultTools: ["sales_get_order_status"],
+			trustedResultToolEffects: { sales_get_order_status: "read" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield { type: "text-start", id: "before" };
+						yield {
+							type: "text-delta",
+							id: "before",
+							text: "Checking your order.",
+						};
+						yield { type: "text-end", id: "before" };
+						yield {
+							type: "tool-call",
+							toolCallId: "order",
+							toolName: "sales_get_order_status",
+							input: {},
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "order",
+							toolName: "sales_get_order_status",
+							output: { structuredContent: { status: "success" } },
+						};
+						yield { type: "text-start", id: "answer" };
+						yield { type: "text-delta", id: "answer", text: "Your order is " };
+						yield { type: "text-delta", id: "answer", text: "pending." };
+						yield { type: "text-end", id: "answer" };
+						yield { type: "text-start", id: "next-step" };
+						yield {
+							type: "text-delta",
+							id: "next-step",
+							text: "Ask your team about the next step.",
+						};
+						yield { type: "text-end", id: "next-step" };
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 2 }),
+				}),
+			}),
+		});
+		const result = await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 24,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Check my order" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: {
+				write: (chunk) => chunks.push(chunk as (typeof chunks)[number]),
+			},
+			signal: new AbortController().signal,
+		});
+		expect(result.status).toBe("succeeded");
+		expect(
+			chunks
+				.filter((part) => part.type === "text-delta")
+				.map((part) => part.delta),
+		).toEqual(["Your order is pending.\n\nAsk your team about the next step."]);
+	});
+
 	test("accepts only configured provider and model allowlist pairs", () => {
 		expect(
 			resolveAssistantRuntimeSelection({
@@ -34,7 +208,27 @@ describe("assistant runtime", () => {
 			model: "gpt-5-mini",
 			modelIdentity: "openai:gpt-5-mini",
 			catalogVersion: "assistant-catalog-v7",
-			promptVersion: "gnd-assistant-prompt-v1",
+			promptVersion: "gnd-assistant-prompt-v2",
+		});
+	});
+
+	test("prefers the Assistant DeepSeek credential over the shared Sales Requests fallback", () => {
+		expect(
+			getAssistantApiKey("deepseek", {
+				ASSISTANT_DEEPSEEK_API_KEY: "assistant-key",
+				SALES_REQUEST_DEEPSEEK_API_KEY: "sales-key",
+			}),
+		).toBe("assistant-key");
+		expect(
+			getAssistantApiKey("deepseek", {
+				SALES_REQUEST_DEEPSEEK_API_KEY: "sales-key",
+			}),
+		).toBe("sales-key");
+	});
+
+	test("uses the working Sales Request DeepSeek runtime mode", () => {
+		expect(getAssistantProviderRuntimeOptions("deepseek")).toEqual({
+			deepseek: { thinking: { type: "disabled" } },
 		});
 	});
 
@@ -70,7 +264,11 @@ describe("assistant runtime", () => {
 		const chunks: unknown[] = [];
 		let cleaned = 0;
 		let settings: Record<string, unknown> | undefined;
-		const prepareStep = () => undefined;
+		let prepared = false;
+		const prepareStep = () => {
+			prepared = true;
+			return undefined;
+		};
 		const runtime = createAssistantRuntime({
 			selection: { provider: "openai", model: "gpt-5-mini" },
 			createModel: () => ({}) as never,
@@ -132,14 +330,17 @@ describe("assistant runtime", () => {
 		});
 		expect(chunks).toEqual([
 			{ type: "text-start", id: expect.any(String) },
-			{ type: "text-delta", id: expect.any(String), delta: "Order " },
-			{ type: "text-delta", id: expect.any(String), delta: "found" },
+			{ type: "text-delta", id: expect.any(String), delta: "Order found" },
 			{ type: "text-end", id: expect.any(String) },
 		]);
 		expect(settings?.maxOutputTokens).toBe(4_000);
 		expect(settings?.maxRetries).toBe(1);
 		expect(settings?.tools).toEqual({ system_search_tools: {} });
-		expect(settings?.prepareStep).toBe(prepareStep);
+		const prepare = settings?.prepareStep as (
+			input: unknown,
+		) => Promise<unknown>;
+		expect(await prepare({ messages: [] })).toEqual({ messages: [] });
+		expect(prepared).toBe(true);
 		const stopWhen = settings?.stopWhen as
 			| ((input: { steps: unknown[] }) => boolean)
 			| undefined;
@@ -330,155 +531,74 @@ describe("assistant runtime", () => {
 		expect(streamFinished).toBe(true);
 		expect(result).toMatchObject({
 			status: "succeeded",
-			assistantText: "Order found",
+			assistantText: "The action wasn't approved. No changes were made.",
 		});
-		expect(chunks).toEqual([
-			{ type: "text-start", id: "t1" },
-			{ type: "text-delta", id: "t1", delta: "Order " },
+		const parts = chunks as Array<{
+			type: string;
+			id?: string;
+			data?: unknown;
+			delta?: string;
+		}>;
+		expect(
+			parts.filter((part) => part.type === "data-assistant-outcome"),
+		).toEqual([
 			{
-				type: "data-assistant-tool",
-				id: "tool-c1",
-				data: { id: "c1", name: "orders_search", status: "running" },
+				type: "data-assistant-outcome",
+				id: "assistant-outcome",
+				data: { kind: "not-approved" },
 			},
+		]);
+		expect(
+			parts.filter((part) => part.type === "data-assistant-card"),
+		).toHaveLength(0);
+		expect(
+			parts
+				.filter((part) => part.type === "text-delta")
+				.map((part) => part.delta),
+		).toEqual(["The action wasn't approved. No changes were made."]);
+		expect(parts.slice(-3)).toEqual([
+			{ type: "text-start", id: expect.any(String) },
 			{
-				type: "data-assistant-tool",
-				id: "tool-c1",
-				data: { id: "c1", name: "orders_search", status: "complete" },
+				type: "text-delta",
+				id: expect.any(String),
+				delta: "The action wasn't approved. No changes were made.",
 			},
+			{ type: "text-end", id: expect.any(String) },
+		]);
+		expect(
+			parts
+				.filter((part) => part.type === "data-assistant-entity")
+				.map((part) => part.data),
+		).toEqual([
+			{ kind: "order", id: "09502PC", label: "Order 09502PC" },
 			{
-				type: "data-assistant-card",
-				id: "card-c1",
-				data: {
-					kind: "ambiguity",
-					title: "More information is needed",
-					description: "Add the missing detail and send your request again.",
-				},
+				kind: "order",
+				id: "09504PC",
+				label: "Quote 09504PC",
+				salesType: "quote",
 			},
-			{
-				type: "data-source",
-				id: "tool-source-1",
-				data: {
-					kind: "record",
-					id: "order-1",
-					label: "Order 1",
-					url: "https://gndprodesk.localhost/orders/1",
-					observedAt: "2026-09-13T10:00:00.000Z",
-					freshness: "tool result",
-				},
-			},
-			{
-				type: "data-assistant-entity",
-				id: "entity-c1-1",
-				data: {
-					kind: "order",
-					id: "09502PC",
-					label: "Order 09502PC",
-				},
-			},
-			{
-				type: "data-assistant-tool",
-				id: "tool-c4",
-				data: { id: "c4", name: "orders_search", status: "running" },
-			},
-			{
-				type: "data-assistant-tool",
-				id: "tool-c4",
-				data: { id: "c4", name: "orders_search", status: "failed" },
-			},
-			{
-				type: "data-assistant-card",
-				id: "card-c4",
-				data: {
-					kind: "partial",
-					title: "The record changed",
-					description: "Review the latest information before continuing.",
-				},
-			},
-			{
-				type: "data-assistant-entity",
-				id: "entity-c4-1",
-				data: {
-					kind: "order",
-					id: "09504PC",
-					label: "Quote 09504PC",
-					salesType: "quote",
-				},
-			},
-			{
-				type: "data-assistant-tool",
-				id: "tool-c2",
-				data: { id: "c2", name: "orders_create", status: "running" },
-			},
-			{
-				type: "data-assistant-tool",
-				id: "tool-c2",
-				data: {
-					id: "c2",
-					name: "orders_create",
-					status: "approval-required",
-				},
-			},
-			{
-				type: "data-assistant-tool",
-				id: "tool-c2",
-				data: { id: "c2", name: "orders_create", status: "failed" },
-			},
-			{
-				type: "data-assistant-card",
-				id: "card-c2",
-				data: {
-					kind: "permission",
-					title: "Action not approved",
-					description: "The action was not run.",
-				},
-			},
-			{
-				type: "data-assistant-tool",
-				id: "tool-c3",
-				data: { id: "c3", name: "orders_create", status: "running" },
-			},
-			{
-				type: "data-assistant-tool",
-				id: "tool-c3",
-				data: { id: "c3", name: "orders_create", status: "complete" },
-			},
-			{
-				type: "data-assistant-card",
-				id: "card-c3",
-				data: {
-					kind: "partial",
-					title: "Some results are unavailable",
-					description: "The assistant completed part of the request.",
-				},
-			},
-			{
-				type: "data-assistant-entity",
-				id: "entity-c3-1",
-				data: {
-					kind: "order",
-					id: "09503PC",
-					label: "Order 09503PC",
-				},
-			},
-			{
-				type: "data-assistant-invalidation",
-				id: "invalidation-c3",
-				data: { toolCallId: "c3", tags: ["sales.orders"] },
-			},
-			{
-				type: "data-source",
-				id: "provider-source-2",
-				data: {
-					kind: "url",
-					id: "s1",
-					label: "Public guide",
-					url: "https://example.com/guide",
-					observedAt: "2026-09-13T11:00:00.000Z",
-					freshness: "provider citation",
-				},
-			},
-			{ type: "text-delta", id: "t1", delta: "found" },
-			{ type: "text-end", id: "t1" },
+			{ kind: "order", id: "09503PC", label: "Order 09503PC" },
+		]);
+		expect(parts.filter((part) => part.type === "data-source")).toHaveLength(2);
+		expect(parts).toContainEqual({
+			type: "data-assistant-invalidation",
+			id: "invalidation-c3",
+			data: { toolCallId: "c3", tags: ["sales.orders"] },
+		});
+		expect(
+			parts
+				.filter((part) => part.type === "data-assistant-tool")
+				.map((part) => part.data),
+		).toEqual([
+			{ id: "c1", name: "orders_search", status: "running" },
+			{ id: "c1", name: "orders_search", status: "complete" },
+			{ id: "c4", name: "orders_search", status: "running" },
+			{ id: "c4", name: "orders_search", status: "failed" },
+			{ id: "c2", name: "orders_create", status: "running" },
+			{ id: "c2", name: "orders_create", status: "approval-required" },
+			{ id: "c2", name: "orders_create", status: "failed" },
+			{ id: "c3", name: "orders_create", status: "running" },
+			{ id: "c3", name: "orders_create", status: "complete" },
 		]);
 		const serialized = JSON.stringify(chunks);
 		expect(serialized).not.toContain("private reasoning");
@@ -617,8 +737,6 @@ describe("assistant runtime", () => {
 				errorCode: "ASSISTANT_PROVIDER_FAILED",
 			});
 			expect(chunks).toEqual([
-				{ type: "text-start", id: "partial-text" },
-				{ type: "text-delta", id: "partial-text", delta: "Partial" },
 				{
 					type: "data-assistant-tool",
 					id: "tool-partial-tool",
@@ -628,7 +746,6 @@ describe("assistant runtime", () => {
 						status: "running",
 					},
 				},
-				{ type: "text-end", id: "partial-text" },
 				{
 					type: "data-assistant-tool",
 					id: "tool-partial-tool",
@@ -1169,6 +1286,191 @@ describe("assistant runtime", () => {
 		});
 		expect(JSON.stringify(result)).not.toContain("customer secret");
 		expect(cleaned).toBe(1);
+	});
+
+	for (const effect of [
+		"read",
+		"draft",
+		"artifact",
+		"external_send",
+		"write",
+		"destructive",
+	] as const) {
+		test(`mixed ${effect} failures preserve the successful order and keep the correct recovery outcome`, async () => {
+			const chunks: Array<{ type?: string; data?: unknown; delta?: string }> =
+				[];
+			const entity = {
+				kind: "order",
+				id: "QA-123",
+				label: "Order QA-123",
+				salesType: "order",
+			};
+			const runtime = createAssistantRuntime({
+				selection: { provider: "openai", model: "gpt-5-mini" },
+				createModel: () => ({}) as never,
+				modelTools: { sales_get_order_status: {}, sales_get_timeline: {} },
+				trustedResultTools: ["sales_get_order_status", "sales_get_timeline"],
+				trustedResultToolEffects: {
+					sales_get_order_status: "read",
+					sales_get_timeline: effect,
+				},
+				createAgent: () => ({
+					stream: async () => ({
+						textStream: (async function* () {})(),
+						fullStream: (async function* () {
+							yield {
+								type: "tool-call",
+								toolCallId: "order",
+								toolName: "sales_get_order_status",
+								input: { orderNo: "QA-123" },
+							};
+							yield {
+								type: "tool-result",
+								toolCallId: "order",
+								toolName: "sales_get_order_status",
+								output: {
+									structuredContent: {
+										status: "success",
+										observedAt: "2026-09-15T10:00:00.000Z",
+										data: {
+											order: {
+												orderNo: "QA-123",
+												type: "order",
+												status: "pending",
+											},
+										},
+										entities: [entity],
+									},
+								},
+							};
+							yield {
+								type: "tool-call",
+								toolCallId: "timeline",
+								toolName: "sales_get_timeline",
+								input: { orderNo: "QA-123" },
+							};
+							yield {
+								type: "tool-error",
+								toolCallId: "timeline",
+								toolName: "sales_get_timeline",
+								error: new Error("private SQL secret"),
+							};
+							yield {
+								type: "text-delta",
+								id: "text",
+								text: "The SQL schema broke: private SQL secret",
+							};
+						})(),
+						totalUsage: Promise.resolve({ totalTokens: 2 }),
+					}),
+				}),
+			});
+			const result = await runtime.execute({
+				actor: {
+					userId: 42,
+					scopeType: "user",
+					scopeId: "42",
+					fullName: null,
+					teamName: null,
+					locale: "en-US",
+					timezone: "UTC",
+					baseCurrency: "USD",
+					dateFormat: null,
+					timeFormat: 24,
+					countryCode: null,
+					grants: {},
+				},
+				modelMessages: [
+					{ role: "user", content: "Check my order and timeline" },
+				],
+				recentUploads: [],
+				mentionedIntegrations: [],
+				writer: {
+					write: (chunk) => chunks.push(chunk as (typeof chunks)[number]),
+				},
+				signal: new AbortController().signal,
+			});
+			expect(result.status).toBe("succeeded");
+			expect(
+				chunks
+					.filter((part) => part.type === "data-assistant-entity")
+					.map((part) => part.data),
+			).toEqual([entity]);
+			expect(
+				chunks
+					.filter((part) => part.type === "data-assistant-finding")
+					.map((part) => part.data),
+			).toEqual([
+				{
+					kind: "order-status",
+					orderNo: "QA-123",
+					salesType: "order",
+					status: "pending",
+					observedAt: "2026-09-15T10:00:00.000Z",
+				},
+			]);
+			expect(
+				chunks
+					.filter((part) => part.type === "data-assistant-outcome")
+					.map((part) => part.data),
+			).toEqual([
+				{
+					kind:
+						effect === "read" || effect === "draft" ? "partial" : "uncertain",
+				},
+			]);
+			expect(
+				chunks
+					.filter((part) => part.type === "text-delta")
+					.map((part) => part.delta),
+			).toEqual([
+				effect === "read" || effect === "draft"
+					? "Here's what I found. I couldn't check everything yet."
+					: "I couldn't confirm whether that was saved. Check its status before trying again.",
+			]);
+			expect(JSON.stringify(chunks)).not.toContain("private SQL");
+		});
+	}
+
+	test("text-only compatibility failures never expose unfinished narration", async () => {
+		const chunks: unknown[] = [];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {
+						yield "Private SQL diagnostic password=secret";
+						throw new Error("provider interrupted");
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 2 }),
+				}),
+			}),
+		});
+		const result = await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 24,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Check my order" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(result.status).toBe("failed");
+		expect(chunks).toEqual([]);
+		expect(JSON.stringify(result)).not.toContain("password");
 	});
 
 	test("cleanup rejection cannot replace a successful result", async () => {

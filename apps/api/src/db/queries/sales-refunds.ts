@@ -18,6 +18,15 @@ import type {
 const toCents = (amount: number | null | undefined) =>
 	Math.round(Number(amount || 0) * 100);
 
+function readCheckNo(...values: unknown[]) {
+	for (const value of values) {
+		if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+		const checkNo = (value as { checkNo?: unknown }).checkNo;
+		if (typeof checkNo === "string" && checkNo.trim()) return checkNo.trim();
+	}
+	return null;
+}
+
 export async function getSalesRefundOverview(
 	ctx: TRPCContext,
 	input: z.infer<typeof salesRefundOverviewSchema>,
@@ -48,6 +57,7 @@ export async function getSalesRefundOverview(
 						select: {
 							id: true,
 							paymentMethod: true,
+							meta: true,
 							status: true,
 							description: true,
 							createdAt: true,
@@ -157,6 +167,10 @@ export async function getSalesRefundOverview(
 				payment.transaction?.paymentMethod ||
 				payment.squarePayments?.paymentMethod ||
 				"other",
+			checkNo: readCheckNo(
+				payment.meta,
+				payment.transaction?.meta,
+			),
 			status: tender?.status || payment.transaction?.status || payment.status,
 			authorName: payment.transaction?.author?.name || null,
 			receivedCents,

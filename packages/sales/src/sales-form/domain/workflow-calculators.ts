@@ -826,7 +826,7 @@ export function summarizeMouldingPersistRows(
 		uid: row.uid,
 		title: row.title,
 		description: row.description,
-		qty: Math.max(1, Number(row.qty || 0) || 0),
+		qty: Math.max(row.quantityReview === true ? 0 : 1, Number(row.qty || 0) || 0),
 		addon: Number(row.addon || 0),
 		customPrice:
 			row.customPrice == null || row.customPrice === ""

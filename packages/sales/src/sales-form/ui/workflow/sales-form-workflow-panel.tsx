@@ -1286,9 +1286,11 @@ export function SalesFormWorkflowPanel<
 						title: String(component?.title || ""),
 						unitPrice: Number(component?.salesPrice || 0),
 						qty: Number(mouldingSelectionPopover.qty || 0),
-						onCalculate: (qty) =>
+						calculation: mouldingSelectionPopover.calculation,
+						onCalculate: (qty, calculation) =>
 							setMouldingSelectionQty(
 								String(Math.max(1, Number(qty || 0) || 1)),
+								calculation,
 							),
 					})
 				}
@@ -1423,6 +1425,15 @@ export function SalesFormWorkflowPanel<
 								})
 						: undefined
 				}
+				onSetDefault={
+					props.slots?.componentActions?.onSetDefault
+						? (component, value) =>
+								props.slots?.componentActions?.onSetDefault?.({
+									...componentActionContext(component),
+									default: value,
+								})
+						: undefined
+				}
 				onOpenDoorSizes={(component) => openDoorSizeModal(line, component)}
 				onOpenMouldingQty={(component) =>
 					openMouldingSelectionQtyPopover(line, activeIndex, component)
@@ -1516,6 +1527,7 @@ export function SalesFormWorkflowPanel<
 												title: String(row.title || ""),
 												unitPrice: Number(row.estimateUnit || 0),
 												qty: Number(row.qty || 0),
+												calculation: row.calculation,
 												onCalculate,
 											})
 									: undefined

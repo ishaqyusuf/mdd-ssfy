@@ -4,6 +4,14 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { SearchModal } from "../search/search-modal";
 
+const SalesRequestQuickCreateModal = dynamic(
+	() =>
+		import("../sales-request/sales-request-quick-create-modal").then(
+			(mod) => mod.SalesRequestQuickCreateModal,
+		),
+	{ ssr: false },
+);
+
 const GlobalSheets = dynamic(
 	() => import("./global-sheets").then((mod) => mod.GlobalSheets),
 	{
@@ -11,6 +19,7 @@ const GlobalSheets = dynamic(
 	},
 );
 const SHEET_QUERY_KEYS = [
+	"assistantDiagnostic",
 	"viewInboundId",
 	"sales-overview-id",
 	"viewCustomer",
@@ -33,6 +42,7 @@ export function GlobalSheetsProvider() {
 	return (
 		<>
 			<SearchModal />
+			<SalesRequestQuickCreateModal />
 			{hasOpenSheet ? <GlobalSheets /> : null}
 		</>
 	);

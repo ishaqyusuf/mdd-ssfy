@@ -18,6 +18,9 @@ import { memo, useState } from "react";
 import type { ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import { AssistantAnalyticsResultCard } from "./assistant-analytics-result";
+import { AssistantOutcomeHelp } from "./assistant-outcome-help";
+import { presentAssistantOutcome } from "@api/assistant/outcomes";
+import { assistantFindingText } from "@api/assistant/finding-contract";
 import {
 	type AssistantMessageViewModel,
 	normalizeAssistantMessage,
@@ -35,84 +38,24 @@ function AssistantThinkingIndicator() {
 	);
 }
 
-const toolStatusLabels: Record<
-	AssistantMessageViewModel["tools"][number]["status"],
-	string
-> = {
-	queued: "Queued",
-	running: "Running",
-	complete: "Complete",
-	failed: "Failed",
-	"approval-required": "Approval required",
-};
-
 function AssistantToolProgress({
-	tools,
+ tools,
 }: {
-	tools: AssistantMessageViewModel["tools"];
+ tools: AssistantMessageViewModel["tools"];
 }) {
-	if (!tools.length) return null;
-	const active = [...tools]
-		.reverse()
-		.find(({ status }) => status === "queued" || status === "running");
-	if (active) {
-		return (
-			<div className={styles.toolProgress} data-status={active.status}>
-				<LoaderCircle className={styles.spin} size={13} /> {active.label} —{" "}
-				{toolStatusLabels[active.status]}
-			</div>
-		);
-	}
-	if (tools.length === 1) {
-		const tool = tools[0];
-		return (
-			<div className={styles.toolProgress} data-status={tool?.status}>
-				{tool?.status === "failed" ? (
-					<AlertCircle size={13} />
-				) : tool?.status === "approval-required" ? (
-					<LockKeyhole size={13} />
-				) : (
-					<Check size={13} />
-				)}
-				{tool?.label} — {tool ? toolStatusLabels[tool.status] : ""}
-			</div>
-		);
-	}
-	const approvalCount = tools.filter(
-		(tool) => tool.status === "approval-required",
-	).length;
-	const failedCount = tools.filter((tool) => tool.status === "failed").length;
-	const SummaryIcon = approvalCount
-		? LockKeyhole
-		: failedCount
-			? AlertCircle
-			: Check;
-	const summary = approvalCount
-		? `${tools.length} tools · ${approvalCount} approval required`
-		: failedCount
-			? `${tools.length} tools · ${failedCount} failed`
-			: `Used ${tools.length} tools`;
-	return (
-		<details className={styles.toolGroup}>
-			<summary>
-				<SummaryIcon size={13} /> {summary} <ChevronRight size={13} />
-			</summary>
-			<div>
-				{tools.map((tool) => (
-					<span key={tool.id} data-status={tool.status}>
-						{tool.status === "failed" ? (
-							<AlertCircle size={13} />
-						) : tool.status === "approval-required" ? (
-							<LockKeyhole size={13} />
-						) : (
-							<Check size={13} />
-						)}
-						{tool.label} — {toolStatusLabels[tool.status]}
-					</span>
-				))}
-			</div>
-		</details>
-	);
+ const active = [...tools].reverse().find(({ status }) => status === "queued" || status === "running");
+ if (active) return (
+  <div className={styles.toolProgress} role="status">
+   <LoaderCircle className={styles.spin} size={13} aria-hidden="true" />
+   {active.label}…
+  </div>
+ );
+ if (tools.some(tool => tool.status === "approval-required")) return (
+  <div className={styles.toolProgress}>
+   <LockKeyhole size={13} aria-hidden="true" /> Please review before continuing.
+  </div>
+ );
+ return null;
 }
 
 function AssistantSources({
@@ -169,7 +112,7 @@ function AssistantEntityLinks({
 			{entities.map((entity) => (
 				<button
 					type="button"
-					key={`${entity.kind}:${entity.id}`}
+					key={`${entity.kind}:${entity.kind === "order" ? entity.salesType ?? "order" : entity.kind === "community" ? entity.communityType : ""}:${entity.id}`}
 					onClick={() => onOpen(entity)}
 				>
 					<span>{entity.label}</span>
@@ -341,9 +284,6 @@ function AssistantMessage({
 			<div className={styles.answerHeading}>
 				<Sparkles size={16} />
 				<strong>GND Assistant</strong>
-				{view.reasoningStatus === "streaming" ? (
-					<small>Reasoning…</small>
-				) : null}
 			</div>
 			<div className={styles.liveAnswer}>
 				{view.showThinking ? <AssistantThinkingIndicator /> : null}
@@ -362,7 +302,7 @@ function AssistantMessage({
 							type="button"
 							className={styles.copyAnswer}
 							onClick={() => {
-								void navigator.clipboard.writeText(view.text).then(() => {
+								void navigator.clipboard.writeText([view.text, ...view.findings.map(assistantFindingText)].join("\n\n")).then(() => {
 									setCopied(true);
 									setTimeout(() => setCopied(false), 1_500);
 								});
@@ -374,7 +314,25 @@ function AssistantMessage({
 						</button>
 					</div>
 				) : null}
-				<AssistantToolProgress tools={view.tools} />
+				{isStreaming ? <AssistantToolProgress tools={view.tools} /> : null}
+				{view.outcome?.reference ? <AssistantOutcomeHelp reference={view.outcome.reference} /> : null}
+				{view.findings.length ? (
+					<section className="mt-3 space-y-2 rounded-md border p-3 text-sm" aria-label="Completed checks">
+						<p className="font-medium">What I found</p>
+						<ul className="space-y-2">
+							{view.findings.map(finding => <li key={`${finding.salesType}:${finding.orderNo}`}>
+								<p>{assistantFindingText(finding)}</p>
+								<p className="text-xs text-muted-foreground">Checked {new Date(finding.observedAt).toLocaleString()}</p>
+							</li>)}
+						</ul>
+					</section>
+				) : null}
+				{view.historyNotice ? (
+					<aside className="mt-3 text-sm text-muted-foreground" role="status">
+						{presentAssistantOutcome(view.historyNotice).message}
+						{view.historyNotice.reference ? <AssistantOutcomeHelp reference={view.historyNotice.reference} /> : null}
+					</aside>
+				) : null}
 				{view.analytics.map((analytics) => (
 					<AssistantAnalyticsResultCard
 						key={analytics.id}

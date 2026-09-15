@@ -64,11 +64,11 @@ export const SALES_REQUEST_AI_PROVIDER_CATALOG = [
 	{
 		id: "deepseek",
 		label: "DeepSeek",
-		defaultModel: "deepseek-v4-flash",
+		defaultModel: "deepseek-flash",
 		models: [
 			{
-				id: "deepseek-v4-flash",
-				label: "DeepSeek V4 Flash",
+				id: "deepseek-flash",
+				label: "DeepSeek Flash",
 				supportsImages: false,
 			},
 			{

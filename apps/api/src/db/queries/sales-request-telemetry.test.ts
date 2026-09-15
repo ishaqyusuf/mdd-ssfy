@@ -233,6 +233,41 @@ describe("sales request generation telemetry persistence", () => {
 		);
 	});
 
+	test("persists only allowlisted provider failure diagnostics", async () => {
+		const fixture = dbFixture();
+		await completeSalesRequestGenerationRun(fixture.db, {
+			actorUserId: 7,
+			generationId: row().generationId,
+			status: "provider-error",
+			completedAt: now,
+			latencyMs: 1_500,
+			failureStage: "structured-output",
+			issueCounts: {
+				providerFailure: {
+					structuredOutputCause: "schema-validation",
+					schemaIssues: [
+						{ code: "invalid_type", path: "lineItems.[].formSteps" },
+						{ code: "private_code", path: "customer.secret" },
+					],
+					providerStatus: "private provider message",
+				},
+			},
+		});
+
+		const data = (
+			fixture.calls.at(-1)?.args as { data: Record<string, unknown> }
+		).data;
+		expect(data.issueCounts).toEqual({
+			providerFailure: {
+				structuredOutputCause: "schema-validation",
+				schemaIssues: [
+					{ code: "invalid_type", path: "lineItems.[].formSteps" },
+				],
+			},
+		});
+		expect(JSON.stringify(data)).not.toMatch(/private|customer|secret/i);
+	});
+
 	test("omits request-shape metadata outside the strict allowlists", async () => {
 		const fixture = dbFixture();
 		await completeSalesRequestGenerationRun(fixture.db, {

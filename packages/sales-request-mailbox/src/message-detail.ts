@@ -723,7 +723,7 @@ export async function runMailboxMessageDetail(
 		normalizedSummary,
 		connection,
 	);
-	if (!summaryDisposition.accepted) {
+	if ("reason" in summaryDisposition) {
 		return withdraw(summaryDisposition.reason);
 	}
 	const adapter = dependencies.adapters[connection.provider];
@@ -873,7 +873,7 @@ export async function runMailboxMessageDetail(
 	}
 
 	const disposition = applyMailboxExclusions(normalizedDetail, connection);
-	if (!disposition.accepted) return withdraw(disposition.reason);
+	if ("reason" in disposition) return withdraw(disposition.reason);
 	if (
 		!detailStillInClaimedSource(
 			normalizedDetail,

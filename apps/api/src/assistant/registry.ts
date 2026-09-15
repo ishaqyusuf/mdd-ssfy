@@ -1976,7 +1976,7 @@ const placeholders: AssistantToolDefinition[] = [
 			const input = salesPdfGenerationInputSchema.parse(rawInput);
 			const resolved = await resolveSalesPdfOrder(actor, input, services);
 			if ("result" in resolved)
-				throw new Error("Sales PDF target is unavailable");
+				throw new AssistantProposalPrecommitError("conflict", "Sales PDF target is unavailable");
 			return { ok: true, targetRevision: resolved.order.revision };
 		},
 		async handler(actor, rawInput, services) {
@@ -2089,7 +2089,7 @@ const placeholders: AssistantToolDefinition[] = [
 			const input = salesPdfCancelInputSchema.parse(rawInput);
 			const resolved = await resolveSalesPdfOrder(actor, input, services);
 			if ("result" in resolved)
-				throw new Error("Sales PDF target is unavailable");
+				throw new AssistantProposalPrecommitError("conflict", "Sales PDF target is unavailable");
 			return { ok: true, targetRevision: resolved.order.revision };
 		},
 		async handler(actor, rawInput, services) {
@@ -2298,7 +2298,14 @@ export const assistantToolRegistry: AssistantToolDefinition[] = [
 				.filter(({ score }) => score > 0)
 				.sort((left, right) => right.score - left.score)
 				.slice(0, 12)
-				.map(({ tool }) => tool);
+				.map(({ tool }) => ({
+					toolId: tool.toolId,
+					version: tool.version,
+					title: tool.title,
+					description: tool.description,
+					capability: tool.capability,
+					effect: tool.effect,
+				}));
 			return resultEnvelope({ tools });
 		},
 	}),
@@ -2529,7 +2536,7 @@ export async function preflightRegisteredAssistantProposal(
 		!isAuthorized(actor, definition) ||
 		!definition.proposalPreflight
 	) {
-		throw new Error("Assistant tool is not available");
+		throw new AssistantProposalPrecommitError("denied", "Assistant tool is not available");
 	}
 	const parsedInput = definition.inputSchema.parse(input.input);
 	const result = await definition.proposalPreflight(actor, parsedInput, {
@@ -2581,10 +2588,11 @@ export async function executeApprovedAssistantProposal(
 	let parsedInput: unknown;
 	try {
 		parsedInput = definition.inputSchema.parse(proposalPayload);
-	} catch {
+	} catch (error) {
 		throw new AssistantProposalPrecommitError(
 			"failed",
 			"Assistant proposal payload is invalid",
+			{ cause: error },
 		);
 	}
 	const services = { ...defaultAssistantToolServices, ...serviceOverrides };
@@ -2595,10 +2603,12 @@ export async function executeApprovedAssistantProposal(
 			parsedInput,
 			services,
 		);
-	} catch {
+	} catch (error) {
+		if (error instanceof AssistantProposalPrecommitError) throw error;
 		throw new AssistantProposalPrecommitError(
-			"conflict",
-			"Assistant proposal target is unavailable",
+			"failed",
+			"Assistant proposal target could not be checked",
+			{ cause: error },
 		);
 	}
 	if (
@@ -2616,11 +2626,15 @@ export async function executeApprovedAssistantProposal(
 }
 
 export class AssistantProposalPrecommitError extends Error {
+	get statusCode() {
+		return this.code === "denied" ? 403 : this.code === "conflict" ? 409 : 500;
+	}
 	constructor(
 		readonly code: "conflict" | "denied" | "failed",
 		message: string,
+		options?: ErrorOptions,
 	) {
-		super(message);
+		super(message, options);
 		this.name = "AssistantProposalPrecommitError";
 	}
 }

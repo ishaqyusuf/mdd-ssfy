@@ -303,6 +303,13 @@ export function useArchiveWorkflowComponentsMutation() {
 	return useMutation(trpc.sales.archiveWorkflowComponents.mutationOptions());
 }
 
+export function useSetWorkflowComponentDefaultMutation() {
+	const trpc = useTRPC();
+	return useMutation(
+		trpc.sales.setWorkflowComponentDefault.mutationOptions(),
+	);
+}
+
 export function useUpdateDykeComponentPricingMutation() {
 	const trpc = useTRPC();
 	return useMutation(

@@ -2,6 +2,13 @@ import { salesPaymentMethods } from "@/utils/constants";
 import type { SalesPaymentMethods } from "@gnd/sales/constants";
 import type { PaymentOverlayState, PendingPrintRequest } from "./types";
 
+export function resolvePaymentAccountNo(
+	phoneNo: string | null | undefined,
+	customerId?: number,
+) {
+	return phoneNo?.trim() ? phoneNo : `cust-${customerId}`;
+}
+
 export const formatPaymentAmount = (value?: number | string | null) =>
 	new Intl.NumberFormat("en-US", {
 		style: "currency",
@@ -38,7 +45,9 @@ export function resolveAvailablePaymentTerminal<T extends PaymentTerminal>(
 	);
 }
 
-export function orderPaymentTerminals<T extends PaymentTerminal>(terminals: T[]) {
+export function orderPaymentTerminals<T extends PaymentTerminal>(
+	terminals: T[],
+) {
 	return [...terminals].sort(
 		(left, right) =>
 			Number(isAvailablePaymentTerminal(right)) -
@@ -76,7 +85,8 @@ export function buildPaymentMethodControlModel<
 	return {
 		availableTerminalCount,
 		methods,
-		presentation: input.method === "check" ? ("check" as const) : ("menu" as const),
+		presentation:
+			input.method === "check" ? ("check" as const) : ("menu" as const),
 		selectedTerminal,
 		terminals,
 		triggerLabel:
@@ -95,7 +105,10 @@ export function getPaymentMethodControlFeedback(input: {
 	terminalPaymentsEnabled: boolean;
 }) {
 	if (input.method === "check") {
-		return { error: input.checkError || null, invalid: Boolean(input.checkError) };
+		return {
+			error: input.checkError || null,
+			invalid: Boolean(input.checkError),
+		};
 	}
 
 	const terminalAvailabilityError = input.terminalPaymentsEnabled

@@ -3,6 +3,12 @@
 
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@gnd/ui/context-menu";
 import { Menu } from "@gnd/ui/custom/menu";
 import {
 	Dialog,
@@ -87,6 +93,10 @@ export type WorkflowStepComponentPanelProps<
 	onArchive?: (
 		components: TComponent[],
 	) => Promise<boolean | undefined> | boolean | undefined;
+	onSetDefault?: (
+		component: TComponent,
+		value: boolean,
+	) => Promise<void> | void;
 	onOpenDoorSizes: (component: TComponent) => void;
 	onOpenMouldingQty: (component: TComponent) => void;
 	onCloseMouldingQty: () => void;
@@ -157,6 +167,12 @@ export function WorkflowStepComponentPanel<
 			: {};
 	const isDoorStep = isDoorStepTitle(activeStepTitle);
 	const isMultiSelectStep = isMultiSelectStepTitle(activeStepTitle);
+	const normalizedStepTitle = String(activeStepTitle || "")
+		.trim()
+		.toLowerCase();
+	const supportsComponentDefault =
+		normalizedStepTitle !== "item type" &&
+		normalizedStepTitle !== "house package tool";
 	const supportsCustomComponents = Boolean(
 		activeStepMeta.custom || activeFormStepMeta.custom,
 	);
@@ -257,13 +273,20 @@ export function WorkflowStepComponentPanel<
 							componentUid;
 					const isManagementSelected = managementSelection.has(componentUid);
 
-					return (
+					const canSetDefault = Boolean(
+						props.onSetDefault &&
+							supportsComponentDefault &&
+							!isWorkflowComponentCustom(component) &&
+							!component.isDeleted,
+					);
+					const card = (
 						<WorkflowComponentCard
 							selected={isSelected}
 							selectedCustom={isSelectedCustom}
 							badgesSlot={
 								!props.isDealershipMode && !props.isStorefrontMode ? (
 									<WorkflowComponentBadges
+										isDefault={component.default === true}
 										hasVariations={Boolean(
 											(component as { variations?: unknown[] | null })
 												?.variations?.length,
@@ -287,6 +310,16 @@ export function WorkflowStepComponentPanel<
 							actionsSlot={
 								canManageCatalog && !managementSelection.size ? (
 									<WorkflowComponentActionMenu
+										isDefault={component.default === true}
+										onSetDefault={
+											canSetDefault
+												? () =>
+														props.onSetDefault?.(
+															component,
+															component.default !== true,
+														)
+												: undefined
+										}
 										redirectOptions={props.redirectOptions}
 										onEditDetails={
 											props.onEditDetails
@@ -383,6 +416,22 @@ export function WorkflowStepComponentPanel<
 								</button>
 							)}
 						</WorkflowComponentCard>
+					);
+					return canSetDefault ? (
+						<ContextMenu>
+							<ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
+							<ContextMenuContent>
+								<ContextMenuItem
+									onSelect={() =>
+										props.onSetDefault?.(component, component.default !== true)
+									}
+								>
+									{component.default ? "Remove default" : "Make default"}
+								</ContextMenuItem>
+							</ContextMenuContent>
+						</ContextMenu>
+					) : (
+						card
 					);
 				}}
 				toolbarSlot={

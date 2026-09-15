@@ -1,4 +1,11 @@
-# iOS TestFlight Internal Distribution Runbook
+# iOS TestFlight Internal Distribution Runbook (Historical)
+
+This runbook records the original September 12–14 TestFlight preparation. The
+product owner changed GND Millwork's release target to a public, globally
+available App Store app on September 15, 2026. **Do not use the tester or
+distribution instructions below for the current release.** Follow
+[`ios-public-app-store-distribution.md`](ios-public-app-store-distribution.md)
+and ADR-098. Existing signing/build evidence below remains valid.
 
 ## Scope and immutable identifiers
 

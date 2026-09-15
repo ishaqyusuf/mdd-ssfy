@@ -629,7 +629,10 @@ function createMockContext() {
   };
 
   const db = {
-    $transaction: async (cb: any) => cb(tx),
+    $transaction: async (cb: any) => cb({
+      ...tx,
+      salesOrders: { ...tx.salesOrders, count: db.salesOrders.count },
+    }),
     salesOrders: {
       count: async ({ where }: any) => {
         return state.orders.filter((o) => {
@@ -2058,6 +2061,7 @@ describe("new-sales-form relational parity", () => {
 
   it("writes legacy root metadata and date columns on save", async () => {
     const { ctx, state } = createMockContext();
+    const customerRequestText = "  1 attic kit\r\nOriginal customer wording <script>text</script>  ";
 
     const saved = await saveDraftNewSalesForm(ctx, {
       type: "order",
@@ -2079,6 +2083,7 @@ describe("new-sales-form relational parity", () => {
         deliveryDueDate: "2026-02-25T00:00:00.000Z",
         po: "PO-NEW",
         notes: null,
+        customerRequestText,
         deliveryOption: "delivery",
         taxCode: null,
       },
@@ -2106,6 +2111,7 @@ describe("new-sales-form relational parity", () => {
 
     const row = state.orders[0];
     expect(row?.salesRepId).toBe(77);
+    expect(row?.meta.newSalesForm.form.customerRequestText).toBe(customerRequestText);
     expect(row?.meta).toMatchObject({
       po: "PO-NEW",
       payment_option: "Check",
@@ -2127,6 +2133,7 @@ describe("new-sales-form relational parity", () => {
       slug: saved.slug!,
     });
     expect(loaded.form.po).toBe("PO-NEW");
+    expect(loaded.form.customerRequestText).toBe(customerRequestText);
     expect(loaded.form.paymentMethod).toBe("Check");
     expect((loaded.form as any).createdAt).toBe("2026-02-01T00:00:00.000Z");
     expect((loaded.form as any).paymentDueDate).toBe(

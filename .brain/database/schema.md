@@ -1,5 +1,69 @@
 # Database Schema
 
+## Sales Request mailbox persistence — implemented locally (2026-09-13)
+
+Ticket 12 requires dedicated additive persistence for OAuth attempts, employee-owned
+connections, resumable disconnects, selected sources, per-source sync streams and
+summaries, global message-detail leases, source-membership history, immutable
+sanitized snapshots, and the mutable current queue projection. These records must
+not reuse the legacy `Inbox` models or Better Auth accounts.
+
+The MVP cut uses nine tables: OAuth attempt, connection, source, sync stream,
+message summary, global message lease, source membership, immutable sanitized
+snapshot, and current queue projection. Disconnect phase/claim/failure state and
+token-health state are folded into the connection row. The MVP deliberately has no
+attachment, push-subscription, outbound-mail, advanced-filter, sync-run-history,
+health-history, classification-ledger, customer-match, generation-result, or
+persisted-Sales-draft table.
+
+`organizationId` is the canonical active office. Because `ModelHasRoles` has only
+the composite `(roleId, modelId, organizationId)` identity and may contain several
+roles for one employee and office, mailbox records use a bounded opaque versioned
+`officeAuthorityKey` derived from current user/profile/office/active-role evidence;
+they do not invent a role-membership row ID. `authorityRevision`, Sales Settings
+revision, policy revision, connection revision, and lease epoch remain independent
+write fences.
+
+Provider cursors are opaque bounded text. Tokens are stored only as purpose-bound
+encrypted envelopes. Snapshots contain sanitized display/model text and normalized
+addresses, never raw provider payloads, raw HTML, remote content, attachment bytes,
+or plaintext credentials. The queue has one current row per connection plus provider
+message; immutable content versions remain separate by content hash. The dedicated
+Prisma schema and additive migration now exist, and the nine empty tables were
+applied directly to the validated local `gnd-prisma2` database only. Preview and
+production were not touched.
+
+Provider account, source, and message uniqueness uses store-derived SHA-256 identity
+columns so opaque provider identifiers retain exact case semantics under MySQL's
+case-insensitive default collation. Raw provider identifiers remain available for
+provider calls and must be verified after hash lookup. Versioned public digests use
+69- or 80-character columns rather than unprefixed 64-character hash columns.
+
+Implementation invariants fixed by the nine-table audit:
+
+- Snapshot identity is `(connection, provider message, schema version, content
+  hash)`. Snapshot writes are insert-once/reuse-existing: replay cannot overwrite
+  content or extend expiry, and source revision remains on membership rather than
+  redefining the immutable snapshot.
+- Source membership keeps history but permits exactly one active key per
+  `(connection, source, provider message)`. A newer source revision atomically
+  retires the previous active membership; a tombstone withdraws the global queue
+  only after no selected active membership remains.
+- A same-content replay preserves queue status. Changed content replaces the current
+  snapshot under the global message lease and resets the review status to `new`.
+- Final disconnect nulls both encrypted credentials and global provider-account
+  identity, then purges sources, streams, summaries, leases, memberships, snapshots,
+  and queue content while retaining only explicitly allowlisted content-free audit.
+- Runtime work references reuse existing durable identities: sync-stream ID,
+  message-summary ID, connection health-operation ID, and connection disconnect ID.
+  No tenth generic work table is introduced.
+- Expiry cleanup independently selects expired snapshots using database time so an
+  expired historical version is deleted even when a newer version remains retained.
+  It deletes current queue rows, memberships, leases, and summaries only for message
+  identities with no retained snapshot after that selection, then deletes the
+  selected snapshots in one transaction. Cleanup never extends retention. OAuth
+  attempts are hard-deleted within 24 hours after terminal state or expiry.
+
 ## Fulfillment assignment scope — Ticket 01, work in progress (2026-09-10)
 
 A strict version-1 contract is defined for `OrderDelivery.meta.fulfillmentAssignment`: revision, selectionMode (all_remaining/selected), and unique sales-control-UID lines with mutually exclusive scalar or LH/RH quantities. This contract has a reader only; no assignment writer, backfill or schema migration has run. Planned scope does not create OrderItemDelivery packing records. Legacy or invalid metadata stays explicitly unresolved.
@@ -696,6 +760,16 @@ The delivery boundary writes separate SalesHistory receipts with event `FULFILLM
 
 Assignment create/edit SalesHistory data includes `notificationIntents`: immutable versioned records with eventKey (request/channel/recipient), channel, recipientId, actorId, salesId, fulfillmentId and dueDate. These records are committed with the command audit and are preserved by command replay. No-op/unassigned changes produce an empty list. This uses the existing JSON column; no schema migration. Delivery receipt storage and retry consumption are not implemented yet.
 
+## Progressive assistant persistence (2026-09-12)
+
+- `AssistantConversation` stores logical user ownership, optional scope, title/preferences, server-owned `lastSequence`, retention, archive, and soft-delete state.
+- `AssistantMessage` stores ordered validated UI parts, searchable user text, an optional parent, logical creator, client request ID, request fingerprint, and an optional unique generated-run ID. Unique `(conversationId, sequence)`, `(conversationId, clientRequestId)`, and generated-run identities enforce ordering and payload-bound retry safety for both sides of the chat.
+- `AssistantRun` stores the actor/request identity and fingerprint, frozen catalog/model/prompt versions, durable status/checkpoint/terminal result/usage, and an independent run-event sequence. Unique `(actorUserId, requestId)` prevents duplicate runs.
+- `AssistantToolExecution` stores stable run/tool-call, step/ordinal, and allocated event-sequence identities, version/effect, canonically computed input fingerprint, a redaction marker instead of input values, bounded result-reference metadata, status, duration, and a globally unique nullable effect idempotency key.
+- `AssistantActionProposal` stores an expiring actor-bound proposal with tool version, effect, payload hash/payload, server-derived target revision/diff, hashed nonce, idempotency identity, and allocated run-event sequence. T17 adds a unique confirmation request identity, execution start/completion timestamps, persisted result, and safe error code so claimed effects are never repeated after an uncertain outcome.
+- Assistant attachment ownership reuses `StoredDocument` with `ownerType = "assistant_conversation"` and the conversation ID as `ownerId`; client messages store server-resolved document IDs and metadata rather than arbitrary URLs.
+- MySQL-safe explicit index names remain below its identifier limit. No assistant field stores raw arbitrary SQL.
+
 ## Employee mobile access (2026-09-12)
 
 - `MobileAccessRequest` stores one unique record per `(userId, platform)`, the
@@ -708,3 +782,132 @@ Assignment create/edit SalesHistory data includes `notificationIntents`: immutab
   reads. `relationMode = "prisma"` means the additive SQL intentionally creates
   no physical foreign keys.
 - No field stores Apple passwords, OTPs, private keys, issuer IDs, or API-key
+  material.
+
+## Sales Request Generation telemetry (2026-09-13)
+
+- `SalesRequestGenerationRun` stores a unique server generation UUID, nullable
+  logical actor ID, settings scope/revision, provider/model/prompt/schema versions,
+  text-presence flag, lifecycle status/timestamps, bounded latency/token/issue
+  metadata, bounded apply/draft-save/final-save/feedback outcomes, representative
+  issue and changed-field categories, correction duration, `retentionUntil`, and
+  `deletedAt`. Successful runs may additionally store nullable `seedDigest`, a
+  67-character versioned HMAC binding (`h1:` plus lowercase SHA-256 hex) over the
+  validated seed and run/configuration identity. A low-touch run may additionally
+  store nullable `consumedSalesId`, used only to bind that generation to the one
+  native Sales row created from it.
+- `providerAttemptedAt` is the durable paid-provider denominator and must be
+  committed before provider construction/invocation. `providerLatencyMs` is the
+  bounded attempt-to-terminal duration used for the provider latency gate;
+  `latencyMs` remains the end-to-end request duration. Missing provider-attempt
+  latency or token samples remain unknown and make advancement evidence incomplete.
+- The schema intentionally has no source/request text, image, contact, credential,
+  generated seed, provider request/response/error body, or pricing. The temporary
+  Sales ID is an immutable logical idempotency/audit reference, not model context,
+  has no Prisma relation that deletion could clear, and remains
+  subject to the telemetry retention deadline.
+- `sales_req_gen_retention_idx(retentionUntil, deletedAt)` supports expiration.
+  Normal reads and outcome writes reject expired rows at the deadline. A shared
+  database query physically deletes all rows with `retentionUntil <= now`, whether
+  or not `deletedAt` was already set.
+- Completion writes also reject expired rows. Account anonymization clears the
+  logical actor ID, `seedDigest`, and `consumedSalesId`, preventing a retained
+  pseudonymous or commercial link.
+- `pilotSettingsRevision` and `providerBenchmarkApprovalRevision` are non-null
+  integers captured before provider work. Zero marks legacy rows; exact-period
+  rollout reports reject zero or mixed revisions rather than inferring identity
+  from current settings.
+- `correctionMs` means Apply-to-feedback correction time only for
+  `accepted-with-edits`. Plain acceptance and rejection leave it null; aggregate
+  reporting treats accepted-without-edits as zero correction effort without
+  persisting a browser-authored duration.
+
+## Sales Request pilot review decisions (2026-09-13)
+
+- `SalesRequestPilotReviewDecision` stores one immutable review for each active
+  Sales Settings row and seven-day UTC `periodStart`. The compound unique key on
+  `(settingId, periodStart)` prevents replacement or duplicate approval.
+- Each row stores the server-derived pass/fail decision, exact base runtime
+  authority, aggregate-only evidence, threshold policy, named reviewer signoff,
+  and SHA-256 digests for all three authority boundaries.
+- Reads parse the stored structures and recompute authority, evidence, and policy
+  digests before a period can count. A malformed or mismatched row fails closed.
+- The table intentionally contains no request text, generated/provider payload,
+  contact, credential, image, mailbox, Sales row, or representative-level record.
+  The migration is prepared but remains unapplied.
+
+## Assistant Sales PDF lifecycle additions (2026-09-13)
+
+`SalesDocumentSnapshot.providerJobId` is a nullable unique provider-run binding.
+It stores a short-lived `dispatching:<snapshot>:<claim>` compare-and-set claim
+before Trigger accepts work, then the exact Trigger run ID. Snapshot metadata
+stores the Assistant source revision, requesting actor/scope, stable job key, and
+expiry. Generated bytes remain represented by `StoredDocument`; failed upload
+cleanup uses `cleanup_required` and `deleting` recovery states before tombstoning.
+
+## Assistant preferences and saved actions (2026-09-13)
+
+- `AssistantPreference` stores one actor-and-scope-owned response style, detail,
+  chart presentation choice, and optimistic version.
+- `AssistantPersonalMemory` stores bounded text explicitly added by that actor.
+  Removal is a version-checked soft delete; memory remains untrusted prompt data.
+- `AssistantSavedAction` stores prompt shortcuts or deterministic recipes with
+  registry tool/version/effect identity, reviewed input template, typed parameter
+  definitions, output bindings, catalog compatibility revision, display order,
+  optimistic version, and last-run status/time. `activeKey` permits a removed name
+  to be reused without destroying history.
+
+## Assistant feature-request lifecycle (2026-09-13)
+
+`AssistantFeatureRequest` owns canonical scoped demand, analysis state, triage,
+merge, and release linkage. Submissions preserve caller evidence and scoped request
+idempotency; subscriptions use one `active` key and per-row unsubscribe tombstones.
+Sequenced events are immutable. Analysis jobs and notification outbox rows have
+bounded retry leases and unique identities. Capability releases store verified
+registry identity and grants. `Notifications.assistantDeliveryKey` provides unique
+destination-level delivery idempotency.
+
+## New Sales Form component defaults (2026-09-14)
+
+- `DykeStepProducts.isDefault` is a non-null Boolean with database default `false`.
+- `DykeStepProducts(dykeStepId, isDefault)` supports step-scoped replacement and
+  reads. Application transactions enforce at most one active marked default per
+  step; archived and custom components cannot remain defaults.
+
+## Assistant quota accounting (2026-09-14)
+
+- `AssistantQuotaPolicy` stores effective-dated per-user request, token,
+  concurrent-run, and optional integer-micro cost limits. Null means unlimited;
+  enforcement mode and timezone are stored with every version.
+- `AssistantQuotaReservation` stores one unique run admission, an immutable policy
+  snapshot, daily/monthly window keys, reserved capacity, actual settled usage,
+  lease state, and settlement timestamps.
+
+## Sales Request failure telemetry payload (2026-09-14)
+
+No table or column migration is required. For successful generation runs,
+`SalesRequestGenerationRun.issueCounts` retains its existing unresolved-status counts.
+For failed provider runs, the same JSON column may instead contain one
+`providerFailure` object with only normalized cause, HTTP/provider identity,
+retryability, and bounded schema issue codes/paths. Aggregation interprets the payload
+by terminal status and never mixes provider failures into successful-seed issue totals.
+
+## Assistant runtime settings (2026-09-14)
+
+- `AssistantRuntimeSetting` stores the singleton global provider/model selection,
+  optimistic version, last Super Admin actor, and timestamps. It contains no API
+  key or credential material.
+- `AssistantRuntimeSettingEvent` stores an immutable actor-attributed audit row for
+  every saved version. The `(settingKey, version)` unique key prevents duplicate
+  history entries.
+
+## 2026-09-15 — Assistant diagnostic ledger (local implementation)
+
+`AssistantDiagnostic` stores an immutable occurrence reference, fingerprint, nullable request/chat/run/tool/actor/scope links, operation/stage/code/severity/public outcome, sanitized technical JSON, environment/release/provider/model/duration, review status and 30-day expiry. Indexes support review status, fingerprint, conversation, run and expiry reads. `AssistantDiagnosticReview` records reviewer, prior/new status, note and timestamp. A reference upsert never overwrites occurrence evidence or review state. Deployment migration remains pending due existing local migration drift.
+
+### Assistant tool recovery evidence (2026-09-15)
+Existing AssistantToolExecution.result JSON can contain bounded recovery metadata `{attemptCount:2, firstFailureReference?:ERR-reference}` alongside the terminal summary. Normalization drops arbitrary retry payloads. Diagnostic attempt/presentation metadata is nested in existing details JSON, never spread into new Prisma columns. No physical schema migration is required for these compatible JSON fields.
+
+### Request clarification and rules — 2026-09-15
+
+SalesRequestClarificationSession stores id, actorUserId, saleType, scope, configurationRevision, original sourceText, revision, status, questions/answers JSON, createdAt/updatedAt. This private-content model is separate from SalesRequestGenerationRun telemetry. Global rules use existing Settings metadata; no rules table.

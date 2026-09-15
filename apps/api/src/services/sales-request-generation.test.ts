@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
 import { generateNewSalesFormSeed } from "./sales-request-generation";
 
 const configuration = {
@@ -169,7 +170,7 @@ test("returns a validated native new-sales-form seed", async () => {
 
 	expect(result.seed).toEqual(validSeed);
 	expect(result.configurationRevision).toBe("test-1");
-	expect(result.promptVersion).toBe("new-sales-form-seed-v6");
+	expect(result.promptVersion).toBe(SALES_REQUEST_PROMPT_VERSION);
 	expect(result.provider).toBe("anthropic");
 	expect(result.model).toBe("configured-model");
 });
@@ -186,8 +187,31 @@ test("validates and normalizes a source-grounded moulding linear-foot row", asyn
 
 	expect(result.seed.lineItems[0]).toMatchObject({
 		qty: 28,
-		meta: { mouldingRows: [{ uid: "baseboard-16", qty: 28 }] },
+		meta: {
+			mouldingRows: [
+				{
+					uid: "baseboard-16",
+					qty: 28,
+					calculation: {
+						linearFeet: 400,
+						pieceLength: 16,
+						wastePercentage: 10,
+					},
+				},
+			],
+		},
 	});
+	// Applying a normalized preview validates retained source facts, not the derived piece count.
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "BASEBOARD WM713 3-1/4 x 9/16 x 16, 400 linear feet including 10% waste",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: result.seed }),
+		),
+	).resolves.toMatchObject({ seed: result.seed });
 });
 
 test("accepts source-grounded direct moulding piece quantities", async () => {
@@ -534,6 +558,62 @@ test("canonicalizes source-grounded inch dimensions through the selected Height 
 		{ dimension: "2-10 x 6-8", totalQty: 11 },
 		{ dimension: "3-0 x 6-8", totalQty: 2 },
 	]);
+	const architectural = await generateNewSalesFormSeed(
+		{
+			...input,
+			text: "One 2/4 6/8, eleven 2/10 6/8, and two 3/0 6/8 door slabs",
+			configurationJson: JSON.stringify(sizedConfiguration),
+		},
+		async () => ({ output: seed }),
+	);
+	expect(architectural.seed.lineItems[0]?.housePackageTool?.doors).toEqual(
+		result.seed.lineItems[0]?.housePackageTool?.doors,
+	);
+	const thickness = await generateNewSalesFormSeed(
+		{
+			...input,
+			text: "One 28 x 1 3/4 x 80, eleven 34 x 1.75 x 80, and two 36 x 1 3/4 x 80 door slabs",
+			configurationJson: JSON.stringify(sizedConfiguration),
+		},
+		async () => ({ output: seed }),
+	);
+	expect(thickness.seed.lineItems[0]?.housePackageTool?.doors).toEqual(
+		result.seed.lineItems[0]?.housePackageTool?.doors,
+	);
+	const heightStep = sizedConfiguration.steps.find((step) => step.id === 4)!;
+	heightStep.components.push(["height-80", "8-0"]);
+	const partial = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "wrong-height",
+				qty: 1,
+				formSteps: [
+					{ stepId: 1, prodUid: "exterior" },
+					{ stepId: 4, prodUid: "height-80" },
+				],
+			},
+		],
+		unresolved: [
+			{
+				lineUid: "wrong-height",
+				stepId: 3,
+				field: "door",
+				status: "unsupported",
+				reason: "Product unavailable",
+			},
+		],
+	};
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "One 36 x 1 3/4 x 80 door",
+				configurationJson: JSON.stringify(sizedConfiguration),
+			},
+			async () => ({ output: partial }),
+		),
+	).rejects.toThrow("contradicts the dimensions stated");
 });
 
 test("rejects handed HPT rows on an effective no-handle route", async () => {
@@ -1169,4 +1249,184 @@ test("provider failure telemetry receives only a safe diagnostic", async () => {
 	).rejects.toThrow("AI provider could not generate");
 	expect(diagnostic).toEqual({ stage: "unknown" });
 	expect(JSON.stringify(diagnostic)).not.toMatch(/private|customer|request/i);
+});
+
+test("requires an explicitly counted exact catalog kit instead of accepting a partial conversion", async () => {
+	const config = structuredClone(mouldingConfiguration);
+	config.steps[1]!.components.push(["attic-kit", "ATTIC ACCESS KIT /"]);
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "400 linear feet BASEBOARD WM713 3-1/4 X 9/16 X 16 including 10% waste.\nOne (1) piece of ATTIC ACCESS KIT.",
+				configurationJson: JSON.stringify(config),
+			},
+			async () => ({ output: mouldingLinearFeetSeed }),
+		),
+	).rejects.toThrow("Requested Moulding ATTIC ACCESS KIT / is missing");
+});
+
+test("accepts an explicitly counted catalog kit without a product length", async () => {
+	const config = structuredClone(mouldingConfiguration);
+	config.steps[1]!.components.push(["attic-kit", "ATTIC ACCESS KIT /"]);
+	const seed = {
+		...mouldingLinearFeetSeed,
+		lineItems: [
+			{
+				...mouldingLinearFeetSeed.lineItems[0],
+				qty: 1,
+				formSteps: [
+					{ stepId: 1, prodUid: "mouldings" },
+					{ stepId: 215, meta: { selectedProdUids: ["attic-kit"] } },
+				],
+				meta: { mouldingRows: [{ uid: "attic-kit", qty: 1 }] },
+			},
+		],
+	};
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "One (1) piece of ATTIC ACCESS KIT.",
+				configurationJson: JSON.stringify(config),
+			},
+			async () => ({ output: seed }),
+		),
+	).resolves.toMatchObject({ seed });
+});
+
+test("retains an identified moulding with explicit pending quantity without inventing a charge", async () => {
+	const seed = {
+		...mouldingLinearFeetSeed,
+		lineItems: [
+			{
+				...mouldingLinearFeetSeed.lineItems[0],
+				qty: 0,
+				meta: { mouldingRows: [{ uid: "baseboard-16", qty: 0 }] },
+			},
+		],
+		unresolved: [
+			{
+				lineUid: "moulding-line",
+				stepId: null,
+				field: "quantity",
+				status: "ambiguous",
+				reason: "Confirm piece count",
+			},
+		],
+	};
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "BASEBOARD WM713 3-1/4 x 9/16 x 16, quantity to be confirmed",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: seed }),
+		),
+	).resolves.toMatchObject({ seed });
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "BASEBOARD WM713 3-1/4 x 9/16 x 16, quantity to be confirmed",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({
+				output: {
+					...seed,
+					lineItems: [
+						{
+							...seed.lineItems[0],
+							qty: 7,
+							meta: { mouldingRows: [{ uid: "baseboard-16", qty: 7 }] },
+						},
+					],
+				},
+			}),
+		),
+	).rejects.toThrow("Moulding quantity 7 must be stated");
+});
+
+test("confirmed product quantity resolves a repeated question without guessing other rows", async () => {
+	const title = "BASEBOARD WM713 3-1/4 X 9/16 X 16";
+	const pending = {
+		...mouldingLinearFeetSeed,
+		lineItems: [
+			{
+				...mouldingLinearFeetSeed.lineItems[0],
+				qty: 0,
+				meta: { mouldingRows: [{ uid: "baseboard-16", qty: 0 }] },
+			},
+		],
+		unresolved: [
+			{
+				lineUid: "moulding-line",
+				stepId: null,
+				field: "quantity",
+				status: "ambiguous",
+				reason: "Confirm quantity",
+			},
+		],
+	};
+	const result = await generateNewSalesFormSeed(
+		{
+			...input,
+			text: title,
+			groundingText: `${title} Quantity: 28`,
+			configurationJson: JSON.stringify(mouldingConfiguration),
+			clarifications: [
+				{
+					question: "Quantity?",
+					field: "quantity",
+					sourceText: title,
+					answer: "28",
+				},
+			],
+		},
+		async () => ({ output: pending }),
+	);
+	expect(result.seed.lineItems[0]?.qty).toBe(28);
+	expect(result.seed.unresolved).toEqual([]);
+});
+
+test("saved catalog alias reuses identity but requires current request quantities", async () => {
+	const guidance = [
+		{
+			question: "Which profile?",
+			field: "product",
+			sourceText: "standard base",
+			answer: "BASEBOARD WM713 3-1/4 X 9/16 X 16",
+		},
+	];
+	const result = await generateNewSalesFormSeed(
+		{
+			...input,
+			text: "400 linear feet of standard base, including 10% waste",
+			configurationJson: JSON.stringify(mouldingConfiguration),
+			guidance,
+		},
+		async () => ({ output: mouldingLinearFeetSeed }),
+	);
+	expect(result.seed.lineItems[0]?.qty).toBe(28);
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "standard base",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+				guidance,
+			},
+			async () => ({ output: mouldingLinearFeetSeed }),
+		),
+	).rejects.toThrow();
+});
+
+test("DeepSeek applies confirmed quantity before cross-field validation", async () => {
+ const {createSalesRequestProvider}=await import("./sales-request-provider");
+ const title="BASEBOARD WM713 3-1/4 X 9/16 X 16";
+ const pending={...mouldingLinearFeetSeed,lineItems:[{...mouldingLinearFeetSeed.lineItems[0],qty:0,meta:{mouldingRows:[{uid:"baseboard-16",qty:28}]}}],unresolved:[]};
+ const provider=createSalesRequestProvider({selection:{provider:"deepseek",model:"deepseek-flash"},environment:{SALES_REQUEST_DEEPSEEK_API_KEY:"test"},generateTextImpl:(async()=>({output:pending,text:JSON.stringify(pending),usage:{inputTokens:1,outputTokens:1}})) as any});
+ const result=await generateNewSalesFormSeed({...input,text:title,groundingText:`${title} Quantity: 28`,configurationJson:JSON.stringify(mouldingConfiguration),clarifications:[{question:"Quantity?",field:"quantity",sourceText:title,answer:"28"}]},provider);
+ expect(result.seed.lineItems[0]?.qty).toBe(28);
 });

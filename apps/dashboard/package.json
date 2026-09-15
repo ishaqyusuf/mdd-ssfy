@@ -11,7 +11,7 @@
     "lint": "next lint",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
+    "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --redis ${GND_REDIS_MODE:-local} --",
     "with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"
   },
   "dependencies": {

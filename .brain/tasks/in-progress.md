@@ -1,12 +1,29 @@
 # In Progress
 
-### [iOS TestFlight Internal Distribution And Employee Mobile Access](2026-09-12-ios-testflight-employee-mobile-access.md)
-- Status: In Progress — safe local preparation complete; EAS credential and external release actions gated
-
-### [Production Calendar Tablet Landscape Optimization](2026-09-11-production-calendar-tablet-landscape-optimization.md)
+### [Simple Assistant Experience and Developer Diagnostics](2026-09-15-assistant-simple-experience-and-diagnostics.md)
 - Status: In Progress
 
-### [Generate sales form drafts from requests and live configuration](2026-09-09-sales-customer-request-learning.md)
+### [Sales Request MVP Release Blockers](2026-09-14-sales-request-mvp-release-blockers.md)
+- Status: In Progress — DeepSeek calls recovered; sample 1 now returns a valid
+  partial seed and the Mouldings control passes native compatibility. Five complex
+  samples still fail output validation; live mailbox OAuth remains external.
+
+### [Progressive AI Chat T12 — Generate and manage PDF artifacts](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-12-pdf-artifact-workflows.md)
+- Status: In Progress
+
+### [Sales Request Generation T10 — Internal Text Pilot And Rollout](2026-09-12-sales-request-generation-pilot/10-internal-text-pilot-rollout.md)
+- Status: In Progress — code gates complete; named cohort/reviewer and two review periods remain
+
+### [Logly Web And Mobile Analytics Replacement](2026-09-12-logly-mobile-platform-analytics.md)
+- Status: In Progress — local implementation verified; production provisioning and acceptance remain
+
+### [Sales Request Generation Pilot And Rollout](2026-09-12-sales-request-generation-pilot-and-rollout.md)
+- Status: In Progress
+
+### [Public iOS App Store Distribution And Employee Mobile Access](2026-09-12-ios-testflight-employee-mobile-access.md)
+- Status: In Progress
+
+### [Production Calendar Tablet Landscape Optimization](2026-09-11-production-calendar-tablet-landscape-optimization.md)
 - Status: In Progress
 
 ### [Fulfillment quantity-scoped workflow](../../.scratch/fulfillment-quantity-scoped-assignments/README.md)
@@ -705,3 +722,13 @@ Tracks the active work queue. Keep this focused and execution-ready.
   copy the production database URL into staging.
 # [Sales Request DeepSeek Evaluation Corpus](2026-09-11-sales-request-deepseek-evaluation-corpus.md)
 - Status: In Progress
+
+### [Progressive AI Chat Platform](2026-09-12-progressive-ai-chat-platform/2026-09-11-progressive-ai-chat-platform.md)
+- Status: In Progress
+- Active ticket: T12 PDF artifact workflows, 5/7 checks (71%). Durable Sales PDF
+  jobs, storage, cancellation, retry, scoped download, and expiry cleanup are
+  implemented; T17 remains the activation gate.
+- T13 order draft creation is 2/8 complete (25%). Its reviewed draft travels as a
+  strict durable chat part into an adjacent dashboard canvas and reuses the native
+  Sales initializer with exact publication validation; evidence presentation and
+  edit/apply/discard are next.

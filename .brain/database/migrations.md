@@ -1,5 +1,76 @@
 # Database Migrations
 
+## 2026-09-13: Local and production schema push completed
+
+The requested local push ran first against the confirmed
+`mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d` target and reported the
+database already in sync. The production push then targeted the confirmed
+`mysql://aws.connect.psdb.cloud/gndprodesk#identity=ba57b207` database.
+
+Production initially stopped at Prisma's warnings for unique indexes on
+`Notifications.assistantDeliveryKey` and
+`SalesDocumentSnapshot.providerJobId`. A read-only metadata audit confirmed
+that both nullable columns were absent, making duplicate stored values
+impossible. The complete production SQL diff was captured and audited: 37 new
+tables, two nullable columns, and two unique indexes, with no drop, delete,
+update, truncate, rename, modify, or column-change statement. The push was then
+rerun with `--accept-data-loss` solely to acknowledge those generic warnings and
+completed successfully. Prisma Client regenerated, and a final read-only
+production diff reported `No difference detected`. No reset, data cleanup,
+migration-ledger rewrite, or Preview write occurred.
+
+## 2026-09-13: Local additive schema catch-up completed safely
+
+The local target was confirmed as
+`mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d`. Before any write, a
+read-only `information_schema` audit confirmed that
+`AssistantActionProposal.confirmationRequestId` and
+`SalesDocumentSnapshot.providerJobId` did not exist, so Prisma's unique-index
+warnings could not represent conflicts with stored values. A full
+database-to-datamodel diff was reviewed and contained only five new tables,
+nullable columns, and indexes; it contained no drop, delete, update, truncation,
+type narrowing, or required-column backfill.
+
+The reviewed diff was applied locally with `db:push --accept-data-loss`. In this
+case the flag acknowledged Prisma's generic unique-index warning; the executed
+change remained additive. Prisma Client regenerated successfully. A final
+read-only diff reported `No difference detected`, and direct metadata checks
+confirmed both nullable columns, both unique indexes, and all five expected
+tables. Production and Preview were untouched. The historical local Prisma
+migration ledger is still divergent, so `db:migrate` remains reset-blocked and
+was not retried or resolved.
+
+## 2026-09-13: Local migrate/push stopped at existing drift gates
+
+After the user corrected the intended target to local, both commands confirmed
+`mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d`. `db:migrate` detected the
+known absent/divergent local Prisma migration ledger and requested a full database
+reset; no reset was accepted. `db:push` then refused to add unique constraints on
+`AssistantActionProposal.confirmationRequestId` and
+`SalesDocumentSnapshot.providerJobId` because existing duplicates may conflict.
+`--accept-data-loss` was not supplied, and no local schema change was applied.
+
+## 2026-09-13: Production migrate/push attempt stopped safely
+
+With explicit user authorization, `bun run db:migrate -- --prod` confirmed the
+production fingerprint `mysql://aws.connect.psdb.cloud/gndprodesk#identity=ba57b207`
+and reached Prisma, but `prisma migrate deploy` exited with a schema-engine error
+before reporting or applying migrations. The separately requested
+`bun run db:push -- --prod` reached the same target and calculated the diff, then
+refused to apply it because new unique constraints on
+`Notifications.assistantDeliveryKey` and `SalesDocumentSnapshot.providerJobId` may
+conflict with existing duplicates. `--accept-data-loss` was not supplied. No reset,
+forced push, or confirmed production schema change occurred.
+
+## 2026-09-13: Sales Request mailbox migration applied locally
+
+Migration `20260914000000_add_sales_request_mailbox_mvp` adds the reviewed nine-table
+boundary, with disconnect and health state folded into the connection row. The full
+migration chain replayed in a disposable local database, then only the reviewed
+additive SQL was applied to validated local `gnd-prisma2` because its historical
+Prisma ledger remains divergent. No reset, historical resolve, preview write, or
+production write occurred. See the detailed migration record below.
+
 ## 2026-09-09: Reliability ledger local push; migration unresolved
 
 Follow-up: added nullable `ReliabilityRunWatch.providerUpdatedAt`. Client generation
@@ -839,6 +910,19 @@ Tracks notable migrations and migration strategy.
   `idx_sales_order_list_health` with `Using where; Using filesort`; afterward it
   selects the new index with `Using index condition` and no filesort.
 
+## 20260912120000_assistant_persistence
+
+- Adds `AssistantConversation`, `AssistantMessage`, `AssistantRun`, `AssistantToolExecution`, and `AssistantActionProposal` with additive actor/scope, lifecycle, message/run-event sequencing, generated-run identity, payload fingerprint, globally unique tool-effect idempotency, checkpoint, and proposal indexes.
+
+### `20260913220000_assistant_proposal_execution`
+
+- Adds unique `confirmationRequestId`, `executionStartedAt`, `executionCompletedAt`, `result`, and `errorCode` fields to `AssistantActionProposal`.
+- Supports atomic single-use claims, durable known/unknown outcomes, stale-execution recovery, and status-only retries without repeating effects.
+- Generated successfully on 2026-09-13. Local application remains pending because Prisma could not reach the configured MySQL endpoint at `127.0.0.1:3307`.
+- Uses explicit MySQL-safe index names and no physical foreign keys, matching the schema's `relationMode = "prisma"`; cleanup ordering remains an application responsibility.
+- `bun run db:generate` and `@gnd/db` typecheck pass. The additive SQL applied to local MySQL and a synthetic actor-isolation integration test passed, then removed its records. The exact final migration also created all five tables in a disposable local verification database, which was removed afterward.
+- `prisma migrate dev --create-only` safely stopped because the existing local database has pre-existing migration-history drift. The database was not reset, and no preview or production database was touched.
+
 ## 20260912173000_add_mobile_access_requests
 
 - Adds `MobileAccessRequest` and `MobileAccessRequestEvent` with platform/status
@@ -850,3 +934,183 @@ Tracks notable migrations and migration strategy.
   no foreign keys.
 - `db:push` synchronized local development without a data-loss flag. The full
   134-migration chain applied to an isolated empty local database, which was
+  removed after validation. No preview or production database was touched.
+
+## 20260912200000_sales_request_generation_telemetry
+
+- Adds `SalesRequestGenerationRun` with one unique server generation identity,
+  nullable logical actor binding, bounded metadata-only lifecycle/outcome fields,
+  a required 90-day `retentionUntil`, soft-delete marker, and report/retention
+  indexes. It adds no physical foreign key or customer/sale/content relation.
+- A shared `@gnd/db/queries` retention helper and daily concurrency-one Trigger
+  task now physically delete rows with `retentionUntil <= now`, including rows
+  already soft-deleted. The job logs and returns aggregate counts only.
+- This follow-up did not change migration SQL or Prisma schema and did not run a
+  migration, push, sync, or database write. Focused tests and `@gnd/db` typecheck
+  pass.
+
+## 20260913123000_add_sales_request_seed_digest
+
+- Adds nullable `SalesRequestGenerationRun.seedDigest VARCHAR(67)` for a versioned,
+  run/configuration-scoped HMAC binding to the validated generated seed.
+- Stores no seed, request text, provider response, price, customer, or sale relation.
+  Application validation accepts only `h1:` plus 64 lowercase hexadecimal digits;
+  account anonymization clears the field and retention still deletes the row.
+- `bun run db:generate`, 83 focused tests / 301 assertions, targeted Biome/diff
+  checks, and isolated compilation pass. The migration was not applied to local,
+  preview, or production databases.
+
+## 20260913130000_add_sales_request_generation_consumption
+
+- Adds nullable `SalesRequestGenerationRun.consumedSalesId` plus a lookup index. The
+  value is deliberately an immutable logical pointer with no Prisma or physical
+  foreign key, so deleting a Sales row cannot reopen a consumed generation.
+- The compare-and-set accepts only a retained, successful, completed pasted-text run
+  with a seed digest and matching actor. One generation can bind to one Sales ID;
+  same-ID retry is idempotent and competing IDs fail closed.
+- Account anonymization clears the Sales binding, and the existing 90-day purge
+  removes the telemetry row. No source text, seed, provider body, or price is added.
+- `bun run db:generate`, Prisma validation, 13 focused tests / 44 assertions,
+  targeted Biome, and diff checks pass. The migration was not applied to local,
+  preview, or production databases.
+
+## 20260913140000_add_sales_request_pilot_authority_revisions
+
+- Adds non-null integer `pilotSettingsRevision` and
+  `providerBenchmarkApprovalRevision` to `SalesRequestGenerationRun`.
+- Adds nullable `providerAttemptedAt` and `providerLatencyMs`. The first is written
+  durably before any provider construction/invocation; the second is bounded
+  terminal metadata. Missing values fail advancement completeness rather than
+  being interpreted as zero usage or latency.
+- Adds `sales_req_gen_started_deleted_idx(startedAt, deletedAt)` so exact UTC
+  periods are assigned by the server-captured generation start rather than database
+  insertion time.
+- Both default to zero so existing telemetry remains readable but is explicitly
+  unreportable as rollout evidence. New generation starts persist positive current
+  revisions before provider work.
+- The migration is additive and stores no source, provider body, customer, seed, or
+  pricing content. `bun run db:generate` and focused validation pass. The migration
+  was not applied to local, preview, or production databases.
+
+## 20260913150000_add_sales_request_pilot_review_authority
+
+- Adds `SalesRequestPilotReviewDecision`, an immutable aggregate-only weekly
+  review ledger keyed uniquely by active Sales Settings ID and UTC period start.
+- Stores server-derived pass/fail, base authority plus digest, frozen aggregate
+  evidence plus digest, threshold policy plus digest/version, and the named
+  reviewer signoff. No request, customer, provider payload, image, mailbox, Sales
+  row, or representative-level content is stored.
+- `bun run db:generate` and `@gnd/db` typecheck pass. Focused persistence,
+  advancement, settings, evidence, and route tests pass. The additive migration
+  was not applied to local, preview, or production databases.
+
+## 20260913190000_add_sales_document_snapshot_provider_job_id
+
+- Adds nullable `SalesDocumentSnapshot.providerJobId` with the unique
+  `sales_doc_provider_job_uq` constraint.
+- Supports compare-and-set dispatch claims, exact Trigger run attachment,
+  cancellation, retry, and terminal outcome recovery for Assistant PDF jobs.
+- The migration is additive. Prisma generation and database typechecking pass.
+  It has not been applied to local, preview, or production databases.
+
+## 20260913200000_assistant_saved_actions_preferences
+
+- Adds `AssistantPreference`, `AssistantPersonalMemory`, and
+  `AssistantSavedAction` with actor/scope indexes, bounded optimistic versions,
+  ordering, soft-removal identity, compatibility metadata, and last-run state.
+- The additive migration was applied in local development in isolation after the
+  repository migration command reported historical unapplied migrations. Preview
+  and production were unchanged.
+- `bun run db:generate`, the 143-test Assistant suite, targeted Biome, and diff
+  integrity checks pass.
+- 2026-09-13 Sales Request pilot readiness audit confirmed that the active Prisma
+  config points to `packages/db/src/migrations` and sees all five required pilot
+  migrations: telemetry, seed digest, generation consumption, pilot authority
+  revisions, and pilot review authority. A read-only local `prisma migrate status`
+  shows them as unapplied. No migration was applied. The first diagnostic used
+  `--schema` and therefore inspected the separate legacy `src/schema/migrations`
+  chain; operational checks must use `--config packages/db/prisma.config.ts`.
+
+## 20260913210000_assistant_feature_requests
+
+- Adds canonical requests, scoped submissions and subscriptions, immutable events,
+  bounded analysis jobs, verified capability releases, and notification outbox.
+- Adds `Notifications.assistantDeliveryKey` with a unique index for crash-safe
+  destination delivery. Relations follow the repository's Prisma relation mode.
+- The additive SQL was applied to local development in isolation after the standard
+  migration command reported pre-existing drift. Preview and production were not
+  changed. Prisma generation and the 223-test Assistant suite pass.
+
+## 2026-09-13 Sales Request mailbox migration gate audit
+
+- A read-only `prisma migrate status` using the authoritative
+  `packages/db/prisma.config.ts` reports all 144 migrations in
+  `packages/db/src/migrations` as unapplied against local
+  `mysql://127.0.0.1:3307/gnd-prisma2`.
+- This confirms the local schema was substantially aligned through direct additive
+  pushes and isolated applications while its Prisma ledger remains historically
+  divergent. A normal `db:migrate` is therefore not an acceptable way to introduce
+  the nine Sales Request mailbox tables: it would traverse the full historical
+  chain or request a reset rather than applying only the new additive mailbox cut.
+- No migration or schema write was performed during this audit. Before mailbox
+  persistence work proceeds, approve a reviewed additive schema/migration change
+  and an isolated local application/verification strategy that does not reset data
+  or replay the 144-entry chain. Preview and production remain out of scope.
+
+## 20260914000000_add_sales_request_mailbox_mvp
+
+- Adds exactly nine dedicated Sales Request mailbox tables for OAuth attempts,
+  employee-owned encrypted connections, selected sources, sync streams, message
+  summaries, global detail leases, source memberships, immutable sanitized
+  snapshots, and the mutable owner-private queue projection.
+- Prisma generated the SQL from a schema-to-schema diff that excluded the new
+  mailbox schema from the baseline. This avoided including six unrelated historical
+  schema/migration differences. The generated SQL contains nine `CREATE TABLE`
+  statements and no alter, drop, rename, data mutation, or legacy table operation.
+- The complete 145-migration chain replayed successfully against a fresh disposable
+  local MySQL database. Because the existing local database has no usable Prisma
+  migration ledger, only the reviewed additive SQL was then applied directly to the
+  validated local `gnd-prisma2` target; no reset or historical resolve was used.
+- Post-application introspection lists exactly nine `SalesRequestMailbox*` tables,
+  and Prisma reports no remaining mailbox schema diff. Six unrelated pre-existing
+  local schema differences were deliberately left untouched. Preview and production
+  were not accessed.
+
+### 2026-09-14 — Component default local schema status
+
+The Prisma schema adds `DykeStepProducts.isDefault` and the compound
+`(dykeStepId, isDefault)` index. Prisma Client generation passed and the confirmed
+local `gnd-prisma2` database was synchronized successfully with `db:push`.
+Migration `20260914143000_add_sales_request_component_defaults` was subsequently
+generated through an isolated Prisma before/after schema diff. It contains only one
+additive Boolean column and one compound index. The already-aligned shared local
+database was not reset, and its historical migration ledger was not modified.
+
+## 20260914011500_assistant_quota_policies
+
+- Adds `AssistantQuotaPolicy` and `AssistantQuotaReservation` with only additive
+  tables and indexes.
+- Prisma Client generation and local `db:push` passed; the local schema reported
+  already synchronized. Preview and production were not accessed.
+
+## 20260914183000_assistant_runtime_settings
+
+- Adds the singleton `AssistantRuntimeSetting` table and immutable
+  `AssistantRuntimeSettingEvent` audit table with only additive indexes.
+- API credentials are deliberately absent from both tables.
+- Prisma Client generation and local `db:push` passed. Preview and production were
+  not accessed.
+
+## 2026-09-15 — Assistant diagnostic schema: local push only
+
+`bun run db:migrate -- -- --name assistant_diagnostics` reached the local target `mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d` but Prisma reported existing migration drift and requested a reset. No reset was performed and no migration was generated. `bun run db:push` succeeded against that local target and regenerated Prisma Client 6.19.2. Production was not changed. A deployable migration and rollout validation remain outstanding; do not treat local push as a completed migration gate.
+
+## 20260915000000_add_assistant_diagnostics
+
+A deployable SQL artifact is now generated (not handwritten) via Prisma 6.19.2 isolated datamodel diff. It contains only AssistantDiagnostic, AssistantDiagnosticReview and their indexes, preserving the repository's `relationMode = "prisma"`. Regeneration was byte-identical and inspection found no existing-table alterations or data statements. Provenance is recorded in the migration directory README.
+
+This supersedes the earlier statement that no migration artifact exists. The shared-local schema was already pushed, so neither CREATE statements nor migration-ledger resolution were executed now. Existing unrelated drift and target-specific rollout validation remain unresolved. Preview and production were not accessed.
+
+### Request clarification and rules — 2026-09-15
+
+20260915183000_sales_request_clarification adds only SalesRequestClarificationSession and owner/scope/updatedAt index. Prisma migrate dev --create-only encountered pre-existing local migration-history drift; no reset was performed. Prisma migrate diff generated the additive SQL. A read-only database-to-schema diff proved only CREATE TABLE; reviewed local db:push then succeeded and regenerated Prisma Client. Migration file is prepared for other environments, not deployed there.

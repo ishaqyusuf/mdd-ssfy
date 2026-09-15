@@ -53,6 +53,17 @@ function own(record: RecordValue, key: string) {
 	return Object.prototype.hasOwnProperty.call(record, key);
 }
 
+function normalizeLegacySelection(value: unknown): unknown {
+	if (
+		isRecord(value) &&
+		value.provider === "deepseek" &&
+		value.model === "deepseek-v4-flash"
+	) {
+		return { provider: "deepseek", model: "deepseek-flash" };
+	}
+	return value;
+}
+
 function readPersistedSelection(meta: unknown): {
 	selection: SalesRequestAISelection;
 	source: "default" | "invalid" | "persisted";
@@ -69,7 +80,9 @@ function readPersistedSelection(meta: unknown): {
 		};
 	}
 
-	const parsed = salesRequestAISelectionSchema.safeParse(requestGeneration.ai);
+	const parsed = salesRequestAISelectionSchema.safeParse(
+		normalizeLegacySelection(requestGeneration.ai),
+	);
 	if (!parsed.success) {
 		return {
 			selection: { ...DEFAULT_SALES_REQUEST_AI_SELECTION },

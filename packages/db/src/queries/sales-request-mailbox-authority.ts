@@ -15,6 +15,29 @@ type PolicyResult = {
 	policy: SalesRequestMailboxPolicy;
 };
 
+type MailboxAuthorityIdentity = Pick<
+	SalesRequestMailboxPersistenceAuthority,
+	"ownerUserId" | "employeeProfileId" | "organizationId" | "officeAuthorityKey"
+>;
+
+type MailboxAuthorityIdentityResolution =
+	| {
+			kind: "authorized";
+			authority: MailboxAuthorityIdentity;
+			roleId: number;
+	  }
+	| {
+			kind: "rejected";
+			reason: "employee-inactive" | "profile-inactive" | "office-unavailable";
+	  };
+
+type MailboxConnectionListAuthorityResolution =
+	| { kind: "authorized"; authority: MailboxAuthorityIdentity }
+	| {
+			kind: "rejected";
+			reason: "employee-inactive" | "profile-inactive" | "office-unavailable";
+	  };
+
 export type ReadSalesRequestMailboxPolicy = (
 	db: Pick<TransactionClient, "settings">,
 	settingId: number,
@@ -40,50 +63,75 @@ function providerEligible(
 export function createSalesRequestMailboxAuthorityResolvers(dependencies: {
 	readPolicy: ReadSalesRequestMailboxPolicy;
 }) {
+	const resolveAuthorityIdentity = async (
+		tx: TransactionClient,
+		actorUserId: number,
+	): Promise<MailboxAuthorityIdentityResolution> => {
+		const user = await tx.users.findFirst({
+			where: {
+				id: actorUserId,
+				type: "EMPLOYEE",
+				deletedAt: null,
+				accessRevokedAt: null,
+			},
+			select: {
+				id: true,
+				employeeProfileId: true,
+				employeeProfile: {
+					select: { id: true, deletedAt: true },
+				},
+				roles: {
+					where: {
+						deletedAt: null,
+						role: { deletedAt: null },
+						organization: { deletedAt: null },
+					},
+					orderBy: [
+						{ organization: { primary: "desc" as const } },
+						{ organizationId: "asc" as const },
+						{ roleId: "asc" as const },
+					],
+					take: 1,
+					select: {
+						roleId: true,
+						organizationId: true,
+					},
+				},
+			},
+		});
+		if (!user) return { kind: "rejected", reason: "employee-inactive" };
+		if (
+			!user.employeeProfileId ||
+			!user.employeeProfile ||
+			user.employeeProfile.deletedAt
+		) {
+			return { kind: "rejected", reason: "profile-inactive" };
+		}
+		const office = user.roles[0];
+		if (!office) return { kind: "rejected", reason: "office-unavailable" };
+
+		const officeAuthorityFacts = {
+			ownerUserId: user.id,
+			employeeProfileId: user.employeeProfile.id,
+			organizationId: office.organizationId,
+			roleId: office.roleId,
+		};
+		return {
+			kind: "authorized",
+			authority: {
+				ownerUserId: user.id,
+				employeeProfileId: user.employeeProfile.id,
+				organizationId: office.organizationId,
+				officeAuthorityKey: digest("mbo1", officeAuthorityFacts),
+			},
+			roleId: office.roleId,
+		};
+	};
+
 	const resolvePersistenceAuthority: ResolveSalesRequestMailboxPersistenceAuthority =
 		async (tx, input) => {
-			const user = await tx.users.findFirst({
-				where: {
-					id: input.actorUserId,
-					type: "EMPLOYEE",
-					deletedAt: null,
-					accessRevokedAt: null,
-				},
-				select: {
-					id: true,
-					employeeProfileId: true,
-					employeeProfile: {
-						select: { id: true, deletedAt: true },
-					},
-					roles: {
-						where: {
-							deletedAt: null,
-							role: { deletedAt: null },
-							organization: { deletedAt: null },
-						},
-						orderBy: [
-							{ organization: { primary: "desc" as const } },
-							{ organizationId: "asc" as const },
-							{ roleId: "asc" as const },
-						],
-						take: 1,
-						select: {
-							roleId: true,
-							organizationId: true,
-						},
-					},
-				},
-			});
-			if (!user) return { kind: "rejected", reason: "employee-inactive" };
-			if (
-				!user.employeeProfileId ||
-				!user.employeeProfile ||
-				user.employeeProfile.deletedAt
-			) {
-				return { kind: "rejected", reason: "profile-inactive" };
-			}
-			const office = user.roles[0];
-			if (!office) return { kind: "rejected", reason: "office-unavailable" };
+			const identity = await resolveAuthorityIdentity(tx, input.actorUserId);
+			if (identity.kind !== "authorized") return identity;
 
 			const settings = await tx.settings.findMany({
 				where: { type: "sales-settings", deletedAt: null },
@@ -103,24 +151,17 @@ export function createSalesRequestMailboxAuthorityResolvers(dependencies: {
 				return { kind: "rejected", reason: "settings-unavailable" };
 			}
 
-			const officeAuthorityFacts = {
-				ownerUserId: user.id,
-				employeeProfileId: user.employeeProfile.id,
-				organizationId: office.organizationId,
-				roleId: office.roleId,
-			};
-			const officeAuthorityKey = digest("mbo1", officeAuthorityFacts);
 			const authorityRevision = digest("mba1", {
-				...officeAuthorityFacts,
+				ownerUserId: identity.authority.ownerUserId,
+				employeeProfileId: identity.authority.employeeProfileId,
+				organizationId: identity.authority.organizationId,
+				roleId: identity.roleId,
 				salesSettingsId: setting.id,
 				policyRevision: policyResult.policy.revision,
 				policy: policyResult.policy,
 			});
 			const authority: SalesRequestMailboxPersistenceAuthority = {
-				ownerUserId: user.id,
-				employeeProfileId: user.employeeProfile.id,
-				organizationId: office.organizationId,
-				officeAuthorityKey,
+				...identity.authority,
 				authorityRevision,
 				salesSettingsId: setting.id,
 				salesSettingsRevision: policyResult.policy.revision,
@@ -129,11 +170,20 @@ export function createSalesRequestMailboxAuthorityResolvers(dependencies: {
 				providerEligible: providerEligible(
 					policyResult.policy,
 					input.provider,
-					user.id,
+					identity.authority.ownerUserId,
 				),
 			};
 			return { kind: "authorized", authority };
 		};
+
+	const resolveConnectionListAuthority = async (
+		tx: TransactionClient,
+		input: { actorUserId: number },
+	): Promise<MailboxConnectionListAuthorityResolution> => {
+		const resolved = await resolveAuthorityIdentity(tx, input.actorUserId);
+		if (resolved.kind !== "authorized") return resolved;
+		return { kind: "authorized", authority: resolved.authority };
+	};
 
 	const resolveContentAuthority = async (
 		tx: TransactionClient,
@@ -181,5 +231,9 @@ export function createSalesRequestMailboxAuthorityResolvers(dependencies: {
 		};
 	};
 
-	return { resolvePersistenceAuthority, resolveContentAuthority };
+	return {
+		resolvePersistenceAuthority,
+		resolveContentAuthority,
+		resolveConnectionListAuthority,
+	};
 }

@@ -10,9 +10,40 @@ import {
 	getAssistantModelHistory,
 	getAssistantRunForReconnect,
 	listAssistantConversations,
+	recordAssistantToolExecution,
 } from "./assistant";
 
 describe("assistant persistence queries", () => {
+	it("stores bounded read-recovery evidence without arbitrary retry details", async () => {
+		let stored: unknown;
+		const tx = {
+			assistantRun: { findFirst: async () => ({ status: "running" }), updateMany: async () => ({ count: 1 }), findUnique: async () => ({ lastSequence: 1 }) },
+			assistantToolExecution: { findFirst: async () => null, create: async ({ data }: { data: unknown }) => { stored = data; return data; } },
+		};
+		const db = { $transaction: async (operation: (value: typeof tx) => Promise<unknown>) => operation(tx) };
+		await recordAssistantToolExecution(db as never, {
+			ownerUserId: 42, scopeType: "organization", scopeId: "7", runId: "run-1", toolCallId: "call-1", step: 1,
+			toolId: "sales_get_order_status", toolVersion: 1, effect: "read", status: "succeeded",
+			result: { status: "success", recovery: { attemptCount: 2, firstFailureReference: "ERR-RETRY00001", rawError: "private SQL" } } as never,
+		});
+		expect(stored).toMatchObject({ result: { status: "success", recovery: { attemptCount: 2, firstFailureReference: "ERR-RETRY00001" } } });
+		expect(JSON.stringify(stored)).not.toContain("private SQL");
+	});
+
+	it("keeps execution facts separate from the historical assistant reply", async () => {
+		const db = { assistantMessage: { findMany: async () => [
+			{ id: "a", sequence: 2, role: "assistant", parts: [
+				{ type: "text", text: "Your order is pending." },
+				{ type: "data-assistant-tool", data: { id: "tool-1", name: "sales_get_order_status", status: "complete" } },
+			] },
+			{ id: "u", sequence: 1, role: "user", parts: [{ type: "text", text: "Check my order" }] },
+		] } };
+		const history = await getAssistantModelHistory(db as never, { conversationId: "qa", ownerUserId: 9, scopeType: "organization", scopeId: "7" });
+		expect(history[1]?.text).toBe("Your order is pending.");
+		expect(history[1]?.executionFacts).toContain("sales_get_order_status: complete");
+		expect(history[0]?.executionFacts).toBeUndefined();
+	});
+
 	it("scopes conversation lists to the active owner and supports title search", async () => {
 		let received: Record<string, unknown> | undefined;
 		const db = {

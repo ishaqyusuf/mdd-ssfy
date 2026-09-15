@@ -21,6 +21,26 @@ function component(uid: string, overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales request catalog eligibility", () => {
+	it("retains unused heights and products without overriding explicit exclusions", () => {
+		const result = selectSalesRequestCatalogCandidates({
+			components: [
+				component("height-6-8", { dykeStepId: 13, sortIndex: 0 }),
+				component("height-8-0", { dykeStepId: 13, metric: null }),
+				component("door-base", { dykeStepId: 51, sortIndex: 0 }),
+				component("door-carrara", { dykeStepId: 51, metric: null }),
+				component("door-excluded", { dykeStepId: 51 }),
+				component("custom", { custom: true }),
+			],
+			includeUnused: true,
+			defaultComponentUids: new Set(),
+			policy: { ...policy, excludedComponentUids: ["door-excluded"] },
+		});
+		expect(result.components.map((entry) => entry.uid)).toEqual([
+			"height-6-8", "height-8-0", "door-base", "door-carrara",
+		]);
+		expect(result.diagnostics.excludedUnused).toBe(0);
+		expect(result.diagnostics.explicitExclusions).toBe(1);
+	});
 	it("keeps every active standard component for explicitly complete steps", () => {
 		const result = selectSalesRequestCatalogCandidates({
 			components: [

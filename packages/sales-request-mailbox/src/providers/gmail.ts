@@ -969,7 +969,7 @@ export class GmailSalesRequestMailboxAdapter
 			) {
 				throw malformedResponse();
 			}
-			for (const addition of additions ?? []) {
+			for (const addition of Array.isArray(additions) ? additions : []) {
 				if (!isRecord(addition) || !isRecord(addition.message)) {
 					throw malformedResponse();
 				}
@@ -985,7 +985,9 @@ export class GmailSalesRequestMailboxAdapter
 			) {
 				throw malformedResponse();
 			}
-			for (const addition of labelAdditions ?? []) {
+			for (const addition of Array.isArray(labelAdditions)
+				? labelAdditions
+				: []) {
 				if (
 					!isRecord(addition) ||
 					!isRecord(addition.message) ||
@@ -1007,7 +1009,7 @@ export class GmailSalesRequestMailboxAdapter
 				) {
 					throw malformedResponse();
 				}
-				for (const removal of removals ?? []) {
+				for (const removal of Array.isArray(removals) ? removals : []) {
 					if (!isRecord(removal) || !isRecord(removal.message)) {
 						throw malformedResponse();
 					}

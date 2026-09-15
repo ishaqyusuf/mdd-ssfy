@@ -59,7 +59,6 @@ const baseProps = {
 	onOpenChange: () => {},
 	sourceText: "Two interior doors, deliver to site.",
 	status: "success" as const,
-	requestId: 1,
 	capturedRevision: null,
 	result,
 	failure: null,

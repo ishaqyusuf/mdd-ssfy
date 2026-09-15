@@ -1,6 +1,9 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { type Database, Prisma } from "@gnd/db";
 import { z } from "zod";
+import { captureAssistantDiagnostic } from "./diagnostics";
+import { runAssistantOperation } from "./operation-diagnostics";
+import { assistantOutcomeSchema, type AssistantOutcome } from "./outcomes";
 import {
 	ASSISTANT_TOOL_CATALOG_VERSION,
 	AssistantProposalPrecommitError,
@@ -59,9 +62,13 @@ type ProposalRecord = {
 	executionStartedAt?: Date | null;
 	result?: unknown;
 	errorCode?: string | null;
-	run?: { requestFingerprint: string } | null;
+	run?: { requestFingerprint: string; conversationId?: string } | null;
 };
 type ProposalPreflight = typeof preflightRegisteredAssistantProposal;
+
+function approvalExecutionReference(proposal: ProposalRecord) {
+	return `ERR-${hash(`proposal-execution:${proposal.id}`).slice(0, 10).toUpperCase()}`;
+}
 
 function approvalSecret() {
 	const secret =
@@ -148,6 +155,11 @@ function proposalReceipt(
 	options: { includeProtected?: boolean } = {},
 ) {
 	const includeProtected = options.includeProtected ?? true;
+	const result = proposal.result;
+	const parsedOutcome = assistantOutcomeSchema.safeParse(
+		result && typeof result === "object" && "assistantOutcome" in result
+			? result.assistantOutcome : null,
+	);
 	return {
 		proposalId: proposal.id,
 		status: proposal.status,
@@ -157,6 +169,7 @@ function proposalReceipt(
 		expiresAt: proposal.expiresAt,
 		result: includeProtected ? (proposal.result ?? null) : null,
 		errorCode: proposal.errorCode ?? null,
+		outcome: includeProtected && parsedOutcome.success ? parsedOutcome.data : null,
 		review: includeProtected ? proposalReview(proposal) : null,
 	};
 }
@@ -197,11 +210,11 @@ async function reauthorizeProposal(
 			input: proposal.payload,
 		});
 		return (
-			!proposal.targetRevision ||
-			prepared.targetRevision === proposal.targetRevision
+			(!proposal.targetRevision || prepared.targetRevision === proposal.targetRevision) ? "authorized" : "conflict"
 		);
-	} catch {
-		return false;
+	} catch (error) {
+		if (error instanceof AssistantProposalPrecommitError && (error.code === "denied" || error.code === "conflict")) return error.code;
+		throw error;
 	}
 }
 
@@ -209,6 +222,8 @@ async function recoverStaleExecution(
 	db: Database,
 	proposal: ProposalRecord,
 	now: Date,
+	actor: AssistantToolActor,
+	capture: typeof captureAssistantDiagnostic,
 ) {
 	if (
 		proposal.status !== "executing" ||
@@ -217,15 +232,28 @@ async function recoverStaleExecution(
 	)
 		return proposal;
 	const errorCode = "EXECUTION_OUTCOME_UNKNOWN";
+	const reference = approvalExecutionReference(proposal);
+	const result = { status: "unknown", assistantOutcome: { kind: "uncertain" as const, reference } };
 	const count = await transitionProposalAndRun(
 		db,
 		proposal,
 		{ status: "executing", executionStartedAt: proposal.executionStartedAt },
-		{ status: "unknown", executionCompletedAt: now, errorCode },
-		{ status: "failed", completedAt: now, errorCode },
+		{ status: "unknown", executionCompletedAt: now, errorCode, result },
+		{ status: "failed", completedAt: now, errorCode, terminalResult: result },
 	);
+	if (count === 1) {
+		try {
+			await capture(new Error("Approved action exceeded its execution lease without a confirmed outcome"), {
+				reference, stage: "action", operation: "assistant.approval.recoverStaleExecution",
+				outcome: "uncertain", runId: proposal.runId, conversationId: proposal.run?.conversationId,
+				actorUserId: actor.userId, scopeType: actor.scopeType, scopeId: actor.scopeId,
+			});
+		} catch {
+			console.error("assistant_stale_approval_diagnostic_failed", { reference });
+		}
+	}
 	return count === 1
-		? { ...proposal, status: "unknown", errorCode }
+		? { ...proposal, status: "unknown", errorCode, result }
 		: { ...proposal, status: "processing" };
 }
 
@@ -236,7 +264,7 @@ async function findScopedProposal(
 ) {
 	return db.assistantActionProposal.findFirst({
 		where: { ...where, ...proposalScope(actor) },
-		include: { run: { select: { requestFingerprint: true } } },
+		include: { run: { select: { requestFingerprint: true, conversationId: true } } },
 	}) as Promise<ProposalRecord | null>;
 }
 
@@ -347,16 +375,17 @@ export async function getAssistantActionProposal(
 	proposalId: string,
 	now = new Date(),
 	preflight: ProposalPreflight = preflightRegisteredAssistantProposal,
+	capture: typeof captureAssistantDiagnostic = captureAssistantDiagnostic,
 ) {
 	const found = await findScopedProposal(db, actor, { id: proposalId });
 	if (!found) throw new Error("Assistant proposal was not found");
-	const proposal = await recoverStaleExecution(db, found, now);
+	const proposal = await recoverStaleExecution(db, found, now, actor, capture);
 	const authorized = await reauthorizeProposal(actor, proposal, preflight);
-	return authorized
+	return authorized === "authorized"
 		? proposalReceipt(proposal)
 		: {
 				...proposalReceipt(proposal, { includeProtected: false }),
-				errorCode: "AUTHORIZATION_CHANGED",
+				errorCode: authorized === "denied" ? "AUTHORIZATION_CHANGED" : "TARGET_CHANGED",
 			};
 }
 
@@ -367,6 +396,7 @@ export async function decideAssistantActionProposal(
 	dependencies: {
 		preflight: ProposalPreflight;
 		execute: typeof executeApprovedAssistantProposal;
+		capture?: typeof captureAssistantDiagnostic;
 	} = {
 		preflight: preflightRegisteredAssistantProposal,
 		execute: executeApprovedAssistantProposal,
@@ -377,7 +407,18 @@ export async function decideAssistantActionProposal(
 	const found = await findScopedProposal(db, actor, { id: input.proposalId });
 	if (!found || !validToken(found.nonceHash, input.approvalToken))
 		throw new Error("Assistant proposal was not found");
-	const proposal = await recoverStaleExecution(db, found, now);
+	const proposal = await recoverStaleExecution(db, found, now, actor, dependencies.capture ?? captureAssistantDiagnostic);
+	const failureResult = async (error: unknown, status: string, kind: AssistantOutcome["kind"]) => {
+		const reference = approvalExecutionReference(proposal);
+		if (kind === "temporary" || kind === "uncertain") {
+			await (dependencies.capture ?? captureAssistantDiagnostic)(error, {
+				reference, stage: "action", operation: `assistant.approval.${proposal.toolId}`,
+				runId: proposal.runId, conversationId: proposal.run?.conversationId, actorUserId: actor.userId,
+				scopeType: actor.scopeType, scopeId: actor.scopeId, outcome: kind,
+			});
+		}
+		return { status, assistantOutcome: { kind, ...(["temporary", "uncertain"].includes(kind) ? { reference } : {}) } };
+	};
 	if (proposal.status !== "pending") {
 		const authorized = await reauthorizeProposal(
 			actor,
@@ -388,11 +429,11 @@ export async function decideAssistantActionProposal(
 			proposal.status === "executing"
 				? { ...proposal, status: "processing" }
 				: proposal;
-		return authorized
+		return authorized === "authorized"
 			? proposalReceipt(visibleProposal)
 			: {
 					...proposalReceipt(visibleProposal, { includeProtected: false }),
-					errorCode: "AUTHORIZATION_CHANGED",
+					errorCode: authorized === "denied" ? "AUTHORIZATION_CHANGED" : "TARGET_CHANGED",
 				};
 	}
 	if (proposal.expiresAt <= now) {
@@ -434,18 +475,26 @@ export async function decideAssistantActionProposal(
 			version: proposal.toolVersion,
 			input: proposal.payload,
 		});
-	} catch {
-		const errorCode = "AUTHORIZATION_CHANGED";
+	} catch (error) {
+		if (!(error instanceof AssistantProposalPrecommitError) || !["denied", "conflict"].includes(error.code)) {
+			return runAssistantOperation({
+				stage: "action", operation: "assistant.approval.preflight", runId: proposal.runId,
+				conversationId: proposal.run?.conversationId, actorUserId: actor.userId,
+				scopeType: actor.scopeType, scopeId: actor.scopeId,
+			}, async () => { throw error; }, { capture: dependencies.capture });
+		}
+		const status = error.code;
+		const errorCode = status === "denied" ? "AUTHORIZATION_CHANGED" : "TARGET_CHANGED";
 		const count = await transitionProposalAndRun(
 			db,
 			proposal,
 			{ status: "pending" },
-			{ status: "denied", errorCode },
+			{ status, errorCode },
 			{ status: "failed", completedAt: now, errorCode },
 		);
 		return {
 			...proposalReceipt(
-				{ ...proposal, status: count ? "denied" : "processing", errorCode },
+				{ ...proposal, status: count ? status : "processing", errorCode },
 				{ includeProtected: false },
 			),
 			errorCode: count ? errorCode : null,
@@ -494,7 +543,10 @@ export async function decideAssistantActionProposal(
 			expectedTargetRevision: proposal.targetRevision ?? undefined,
 		});
 		const outcome = classifyExecutionResult(result);
-		const resultJson = result as Prisma.InputJsonValue;
+		const safeResult = outcome.proposalStatus === "succeeded" ? result
+			: await failureResult(new Error("Approved action returned a failure outcome"), outcome.proposalStatus,
+				outcome.proposalStatus === "denied" ? "denied" : outcome.proposalStatus === "conflict" ? "conflict" : "temporary");
+		const resultJson = safeResult as Prisma.InputJsonValue;
 		const finalized = await transitionProposalAndRun(
 			db,
 			proposal,
@@ -521,7 +573,7 @@ export async function decideAssistantActionProposal(
 		return proposalReceipt({
 			...proposal,
 			status: outcome.proposalStatus,
-			result,
+			result: safeResult,
 			errorCode: outcome.errorCode,
 		});
 	} catch (error) {
@@ -533,6 +585,7 @@ export async function decideAssistantActionProposal(
 					: status === "denied"
 						? "EXECUTION_DENIED"
 						: "EXECUTION_FAILED";
+			const result = await failureResult(error, status, status === "denied" ? "denied" : status === "conflict" ? "conflict" : "temporary");
 			await transitionProposalAndRun(
 				db,
 				proposal,
@@ -540,12 +593,13 @@ export async function decideAssistantActionProposal(
 					status: "executing",
 					confirmationRequestId: input.confirmationRequestId,
 				},
-				{ status, executionCompletedAt: now, errorCode },
-				{ status: "failed", completedAt: now, errorCode },
+				{ status, executionCompletedAt: now, errorCode, result },
+				{ status: "failed", completedAt: now, errorCode, terminalResult: result },
 			);
-			return proposalReceipt({ ...proposal, status, errorCode });
+			return proposalReceipt({ ...proposal, status, errorCode, result });
 		}
 		const errorCode = "EXECUTION_OUTCOME_UNKNOWN";
+		const result = await failureResult(error, "unknown", "uncertain");
 		await transitionProposalAndRun(
 			db,
 			proposal,
@@ -553,11 +607,11 @@ export async function decideAssistantActionProposal(
 				status: "executing",
 				confirmationRequestId: input.confirmationRequestId,
 			},
-			{ status: "unknown", executionCompletedAt: now, errorCode },
-			{ status: "failed", completedAt: now, errorCode },
+			{ status: "unknown", executionCompletedAt: now, errorCode, result },
+			{ status: "failed", completedAt: now, errorCode, terminalResult: result },
 		);
 		return {
-			...proposalReceipt({ ...proposal, status: "unknown", errorCode }),
+			...proposalReceipt({ ...proposal, status: "unknown", errorCode, result }),
 			errorCode,
 		};
 	}

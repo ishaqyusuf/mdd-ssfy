@@ -2,6 +2,63 @@ import { describe, expect, mock, test } from "bun:test";
 import { createAssistantMcpExecutionClient } from "./mcp";
 
 describe("assistant in-memory MCP", () => {
+	test("recovery reauthorizes before retry and records the recovered read", async () => {
+		const actor = { userId: 42, scopeType: "organization", scopeId: "7", grants: {} };
+		let checks = 0;
+		const records: unknown[] = [];
+		const captures: unknown[] = [];
+		const session = await createAssistantMcpExecutionClient(actor,
+			async () => { if (++checks === 1) throw Object.assign(new Error("private database failure"), { code: "ECONNRESET" }); return actor; },
+			async record => { records.push(record); },
+			async (error, context) => { captures.push({ error, context }); return { reference: "ERR-RETRY00001" }; },
+		);
+		try {
+			const execute = session.tools.system_search_tools?.execute as (input: unknown, options: unknown) => Promise<unknown>;
+			const result = await execute({ query: "sales" }, { toolCallId: "retry-call", messages: [], abortSignal: new AbortController().signal });
+			expect(checks).toBe(2);
+			expect(captures).toHaveLength(1);
+			expect(result).not.toHaveProperty("isError", true);
+			expect(JSON.stringify(result)).not.toContain("private database failure");
+			expect(records).toHaveLength(1);
+			expect(records[0]).toMatchObject({ status: "succeeded", recovery: { attemptCount: 2, firstFailureReference: "ERR-RETRY00001" } });
+		} finally { await session.close(); }
+	});
+
+	test("a changed scope during recovery prevents the retried read", async () => {
+		const actor = { userId: 42, scopeType: "organization", scopeId: "7", grants: {} };
+		let checks = 0;
+		const session = await createAssistantMcpExecutionClient(actor,
+			async () => { if (++checks === 1) throw Object.assign(new Error("network"), { code: "ECONNRESET" }); return { ...actor, scopeId: "8" }; },
+		);
+		try {
+			const execute = session.tools.system_search_tools?.execute as (input: unknown, options: unknown) => Promise<unknown>;
+			const result = await execute({ query: "sales" }, { toolCallId: "scope-retry", messages: [], abortSignal: new AbortController().signal });
+			expect(checks).toBe(2);
+			expect(result).toMatchObject({ isError: true, _meta: { assistantOutcome: { kind: "denied" } } });
+			expect(result).not.toHaveProperty("structuredContent");
+		} finally { await session.close(); }
+	});
+
+	test("captures both transient failure attempts and returns only safe copy and the final reference", async () => {
+		const original = Object.assign(new Error("SQL password=secret customer=private"), { code: "P2024" });
+		const captures: unknown[] = [];
+		const session = await createAssistantMcpExecutionClient(
+			{ userId: 42, scopeType: "organization", scopeId: "7", grants: {} },
+			async () => { throw original; },
+			undefined,
+			async (error, context) => { captures.push({ error, context }); return { reference: captures.length === 1 ? "ERR-RETRY00001" : "ERR-ABCDEFGHIJ" }; },
+		);
+		try {
+			const execute = session.tools.system_search_tools?.execute as (input: unknown, options: unknown) => Promise<unknown>;
+			const result = await execute({ query: "sales" }, { toolCallId: "call-1", messages: [], abortSignal: new AbortController().signal });
+			expect(captures).toHaveLength(2);
+			expect(captures[0]).toMatchObject({ error: original, context: { toolId: "system_search_tools", outcome: "temporary", effect: "read" } });
+			expect(captures[0]).toMatchObject({ context: { attempt: 1, retrying: true } });
+			expect(captures[1]).toMatchObject({ context: { attempt: 2 } });
+			expect(result).toMatchObject({ isError: true, content: [{ type: "text", text: "I couldn't check that right now. Please try again." }], _meta: { assistantOutcome: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" } } });
+			for (const secret of ["SQL", "password", "private", "P2024"]) expect(JSON.stringify(result)).not.toContain(secret);
+		} finally { await session.close(); }
+	});
 	test("creates a request-owned execution client with public definitions", async () => {
 		const session = await createAssistantMcpExecutionClient({
 			userId: 42,
@@ -100,7 +157,7 @@ describe("assistant in-memory MCP", () => {
 		expect(result).toMatchObject({
 			isError: true,
 			content: [
-				{ type: "text", text: "Assistant actor scope is no longer available" },
+				{ type: "text", text: "You don't have access to this information." },
 			],
 		});
 		expect(record).toHaveBeenCalledTimes(1);

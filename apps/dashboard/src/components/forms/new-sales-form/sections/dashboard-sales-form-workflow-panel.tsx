@@ -84,17 +84,20 @@ export function DashboardSalesFormWorkflowPanel() {
 				title,
 				unitPrice,
 				qty,
+				calculation,
 				onCalculate,
 			}: {
 				title: string;
 				unitPrice: number;
 				qty: number;
-				onCalculate: (qty: number) => void;
+				calculation?: { linearFeet: number; pieceLength: number; wastePercentage?: number };
+				onCalculate: (qty: number, calculation?: { linearFeet: number; pieceLength: number; wastePercentage?: number }) => void;
 			}) => (
 				<MouldingCalculator
 					title={title}
 					unitPrice={unitPrice}
 					qty={qty}
+					calculation={calculation}
 					onCalculate={onCalculate}
 				/>
 			),

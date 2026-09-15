@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { type Database, Prisma, type TransactionClient } from "..";
+import { assistantHistoryFacts } from "./assistant-history-facts";
 
 export const ASSISTANT_ATTACHMENT_OWNER_TYPE = "assistant_conversation";
 export const ASSISTANT_MAX_MESSAGE_PARTS = 20;
@@ -53,6 +54,7 @@ export type AssistantClientPart =
 
 export type AssistantPersistedToolResult = {
 	status: string;
+	recovery?: { attemptCount: 2; firstFailureReference?: string };
 	sourceRefs?: string[];
 	recordRefs?: string[];
 	artifactId?: string;
@@ -327,6 +329,10 @@ function normalizeToolResult(
 		values?.slice(0, 20).map((value) => value.slice(0, 191));
 	return {
 		status: result.status.slice(0, 50),
+		...(result.recovery?.attemptCount === 2 ? { recovery: {
+			attemptCount: 2,
+			...(/^ERR-[A-Z0-9]{10}$/.test(result.recovery.firstFailureReference ?? "") ? { firstFailureReference: result.recovery.firstFailureReference! } : {}),
+		} } : {}),
 		...(result.sourceRefs
 			? { sourceRefs: normalizeRefs(result.sourceRefs) }
 			: {}),
@@ -638,6 +644,7 @@ export async function getAssistantModelHistory(
 		sequence: number;
 		role: "user" | "assistant";
 		text: string;
+		executionFacts?: string;
 	}> = [];
 	for (const message of messages) {
 		if (remaining <= 0) break;
@@ -669,14 +676,17 @@ export async function getAssistantModelHistory(
 		) {
 			text = "Review the attached uploaded document context.";
 		}
-		if (!text) continue;
-		if (text.length > remaining) break;
-		remaining -= text.length;
+		const executionFacts = message.role === "assistant" ? assistantHistoryFacts(message.parts) : "";
+		if (!text && !executionFacts) continue;
+		const contextLength = text.length + executionFacts.length;
+		if (contextLength > remaining) break;
+		remaining -= contextLength;
 		selected.push({
 			id: message.id,
 			sequence: message.sequence,
 			role: message.role,
 			text,
+			...(executionFacts ? { executionFacts } : {}),
 		});
 	}
 	selected.reverse();

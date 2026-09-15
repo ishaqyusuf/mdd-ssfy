@@ -217,4 +217,48 @@ describe("Sales Request mailbox authority resolvers", () => {
 			}),
 		).resolves.toEqual({ kind: "rejected", reason: "settings-unavailable" });
 	});
+
+	test("scopes connection lists to current office identity and rejects revoked users", async () => {
+		const resolvers = createSalesRequestMailboxAuthorityResolvers({
+			readPolicy: async () => {
+				throw new Error("connection lists must not require policy reads");
+			},
+		});
+		const current = await resolvers.resolveConnectionListAuthority(
+			database() as never,
+			{ actorUserId: 42 },
+		);
+		const movedOffice = await resolvers.resolveConnectionListAuthority(
+			database({ organizationId: 41, roleId: 4 }) as never,
+			{ actorUserId: 42 },
+		);
+		if (current.kind !== "authorized" || movedOffice.kind !== "authorized") {
+			throw new Error("expected current authority identities");
+		}
+
+		expect(current.authority).toEqual({
+			ownerUserId: 42,
+			employeeProfileId: 12,
+			organizationId: 40,
+			officeAuthorityKey: expect.stringMatching(/^mbo1:[a-f0-9]{64}$/),
+		});
+		expect(movedOffice.authority).toMatchObject({
+			ownerUserId: 42,
+			employeeProfileId: 12,
+			organizationId: 41,
+		});
+		expect(movedOffice.authority.officeAuthorityKey).not.toBe(
+			current.authority.officeAuthorityKey,
+		);
+
+		const revoked = {
+			...database(),
+			users: { findFirst: async () => null },
+		};
+		await expect(
+			resolvers.resolveConnectionListAuthority(revoked as never, {
+				actorUserId: 42,
+			}),
+		).resolves.toEqual({ kind: "rejected", reason: "employee-inactive" });
+	});
 });

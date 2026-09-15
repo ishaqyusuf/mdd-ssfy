@@ -1,5 +1,87 @@
 # Done
 
+### [HRM-Managed Mobile Membership And Private Distribution](2026-09-15-hrm-managed-mobile-membership-and-private-distribution.md)
+- Status: Cancelled
+
+### [Component Defaults And Global Sales Request Shortcut](2026-09-13-component-defaults-in-new-sales-form.md)
+- Status: Done — component-owned default selection, compact global request shortcut,
+  native form handoff, and generated additive migration complete.
+
+### [Sales Request Generation T12 — Mailbox Connections And Sales Request Inbox](2026-09-12-sales-request-generation-pilot/12-mailbox-ingestion.md)
+- Status: MVP Done — provider-neutral encrypted backend plus compact owner-private
+  Inbox UI and immediate initial-sync submission; live OAuth acceptance and explicitly
+  deferred secondary capabilities remain outside technical completion.
+
+### [Progressive AI Chat T11 — Add production, inventory, fulfillment, and Community reads](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-11-operations-community-tools.md)
+- Status: Done — nine typed operations and Community reads with canonical quantities,
+  scoped active-row queries, restricted Community fields, pagination, sources,
+  revisions, and deep links; 129 tests / 522 assertions pass and both reviews are clean.
+
+### [Progressive AI Chat T10 — Ship Sales and customer read tools](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-10-sales-customer-read-tools.md)
+- Status: Done — seven actor-scoped Sales/customer reads use canonical lifecycle projections, bounded pagination, typed ambiguity/conflict states, privacy-safe customer identifiers, finance redaction, deep links, and permission-aware next actions; 79 Assistant tests / 331 assertions pass and both final reviews are clean.
+
+### [Progressive AI Chat T09 — Add artifact canvas, entity links, and query invalidation](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-09-artifact-canvas-invalidation.md)
+- Status: Done — trusted record actions, responsive document canvas, authenticated private document delivery, and deduplicated native query-event/global-search invalidation; 148 focused tests / 523 assertions pass. Commit `d99edd509`.
+
+### [Sales Request Generation T07 — Save And Reopen Safety](2026-09-12-sales-request-generation-pilot/07-save-reopen-safety.md)
+- Status: Done — native Door/HPT and Mouldings draft/final/reopen parity; 23
+  combined tests / 121 assertions plus local create-order/create-quote browser proof
+
+### [Sales Request Generation T05 — Text Review Panel](2026-09-12-sales-request-generation-pilot/05-text-review-panel.md)
+- Status: Done — text-only read-only proposal review in the native New Sales Form
+
+### [Sales Request Generation T09 — Pilot Telemetry And Feedback](2026-09-12-sales-request-generation-pilot/09-pilot-telemetry-feedback.md)
+- Status: Done — metadata-only server telemetry, aggregate-only Super Admin report,
+  actor-bound outcomes, and scheduled 90-day retention purge; 8 focused tests / 21 assertions
+
+### [Sales Request Generation T01 — Integration Checkpoint](2026-09-12-sales-request-generation-pilot/01-integration-checkpoint.md)
+- Status: Done
+
+### [Sales Request Generation T02 — Offline Corpus And Support Matrix](2026-09-12-sales-request-generation-pilot/02-offline-corpus-support-matrix.md)
+- Status: Done — 13 tests / 63 assertions; six supplied cases plus one exact Mouldings control
+
+### [Sales Request Generation T03 — Settings Defaults And Pilot Controls](2026-09-12-sales-request-generation-pilot/03-settings-defaults-pilot-controls.md)
+- Status: Done — 30 tests / 114 assertions
+
+### [Sales Request Generation T04 — Pasted-Text Client Boundary](2026-09-12-sales-request-generation-pilot/04-pasted-text-client-boundary.md)
+- Status: Done — 9 tests / 40 assertions
+
+### [Sales Request Generation T06 — Native Seed Apply And Undo](2026-09-12-sales-request-generation-pilot/06-native-seed-apply-undo.md)
+- Status: Done — 36 tests / 179 assertions across T04–T06 focused suites
+
+### [Generate sales form drafts from requests and live configuration](2026-09-09-sales-customer-request-learning.md)
+- Status: Done — 31/31
+- Validation: one explicitly approved DeepSeek call; raw provider accuracy 8/9,
+  normalized form-ready accuracy 9/9; 184 focused tests / 462 assertions; targeted
+  Biome and artifact integrity checks passed.
+- Scope: backend generation, native seed hydration, provider settings/adapters,
+  reproducible evaluation and Mouldings support. UI connection and image extraction
+  remain deferred by product direction.
+
+### [Progressive AI Chat T01 — Freeze Midday parity and GND boundaries](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-01-midday-parity-contract.md)
+- Status: Done
+
+### [Progressive AI Chat T02 — Persist conversations, runs, and trusted history](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-02-data-model-history.md)
+- Status: Done
+
+### [Progressive AI Chat T03 — Build the protected streaming chat endpoint](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-03-streaming-endpoint.md)
+- Status: Done
+
+### [Progressive AI Chat T04 — Implement bounded agent runtime and contextual prompt](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-04-agent-runtime-prompt.md)
+- Status: Done
+
+### [Progressive AI Chat T05 — Build MCP tool registry and semantic selection](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-05-mcp-tool-registry.md)
+- Status: Done
+
+### [Progressive AI Chat T06 — Connect the dashboard chat shell and AI SDK state](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-06-dashboard-shell-state.md)
+- Status: Done
+
+### [Progressive AI Chat T07 — Add composer, uploads, connected apps, and web sources](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-07-composer-uploads-providers.md)
+- Status: Done
+
+### [Progressive AI Chat T08 — Render streaming messages, sources, and tool progress](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-08-streaming-renderers.md)
+- Status: Done
+
 ### [Group Dashboard Quick Login By Role](2026-09-12-group-dashboard-quick-login-by-role.md)
 - Status: Done
 
@@ -1780,8 +1862,9 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Priority: Medium
 - Description: Implemented entry-only legacy-style Custom selection on eligible
   workflow steps, with hidden catalog cards, existing-value autocomplete,
-  standard/custom exclusivity, canonical deselection, applicable pricing, and
-  guarded step-scoped updates.
+  standard/custom exclusivity, applicable pricing, and guarded step-scoped
+  updates. Clarified 2026-09-15: repeat-click deselection applies only to true
+  multi-select steps; repeated single-select clicks reaffirm and advance.
 - Related Feature: New sales form workflow component picker
 - Status: Done
 - Plan Status: Done

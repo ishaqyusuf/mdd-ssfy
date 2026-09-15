@@ -217,6 +217,24 @@ function sha256(value: string) {
 	return createHash("sha256").update(value).digest("hex");
 }
 
+export function assertSalesRequestCorpusConfigurationLock(input: {
+	caseData: SalesRequestCorpusCase;
+	configurationJson: string;
+	configurationRevision: string;
+}) {
+	const lock = input.caseData.configurationLock;
+	if (
+		lock.configurationRevision !== input.configurationRevision ||
+		lock.configurationSha256 !== sha256(input.configurationJson) ||
+		lock.promptVersion !== SALES_REQUEST_PROMPT_VERSION ||
+		lock.outputContract !== "new-sales-form-seed-v2"
+	) {
+		throw new Error(
+			`Corpus case ${input.caseData.id} does not match the evaluation configuration.`,
+		);
+	}
+}
+
 function valueAtPath(value: unknown, path: string): unknown {
 	const tokens = [...path.matchAll(/([A-Za-z][A-Za-z0-9]*)|\[(\d+)\]/g)].map(
 		(match) => (match[1] === undefined ? Number(match[2]) : match[1]),
@@ -626,20 +644,16 @@ export async function evaluateSalesRequestCorpusCase(input: {
 	const startedAt = performance.now();
 	let providerOutput: unknown = null;
 	let providerFailure: SalesRequestProviderFailureDiagnostic | undefined;
-	const lock = input.caseData.configurationLock;
-	if (
-		lock.configurationRevision !== input.configurationRevision ||
-		lock.configurationSha256 !== sha256(input.configurationJson) ||
-		lock.promptVersion !== SALES_REQUEST_PROMPT_VERSION ||
-		lock.outputContract !== "new-sales-form-seed-v2"
-	) {
+	try {
+		assertSalesRequestCorpusConfigurationLock(input);
+	} catch (error) {
 		return {
 			status: "error",
 			caseId: input.caseData.id,
 			providerOutput,
 			validation: {
 				status: "failed",
-				error: `Corpus case ${input.caseData.id} does not match the evaluation configuration.`,
+				error: error instanceof Error ? error.message : "Invalid corpus lock",
 				hydration: "not-run",
 			},
 			metrics: {

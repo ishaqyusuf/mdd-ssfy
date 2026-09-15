@@ -103,6 +103,8 @@ export function selectSalesRequestCatalogCandidates(input: {
 	components: readonly SalesRequestCatalogCandidate[];
 	defaultComponentUids: ReadonlySet<string>;
 	completeStepIds?: ReadonlySet<number>;
+	/** Full request vocabulary must not depend on incomplete usage metrics. */
+	includeUnused?: boolean;
 	policy: SalesRequestCatalogPolicy;
 	now?: Date;
 }) {
@@ -131,6 +133,7 @@ export function selectSalesRequestCatalogCandidates(input: {
 
 	for (const component of activeStandard) {
 		const uid = component.uid as string;
+		if (input.includeUnused) included.add(uid);
 		if ((component.metric?.selectionCount ?? 0) > 0) {
 			included.add(uid);
 			reasons.used.add(uid);

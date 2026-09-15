@@ -50,6 +50,7 @@ export type WorkflowComponentRecord = {
 	} | null;
 	isDeleted?: boolean;
 	custom?: boolean;
+	default?: true;
 	_metaData?: {
 		custom?: boolean;
 		visible?: boolean;
@@ -171,6 +172,11 @@ export type DoorStoredRow = {
 };
 
 export type MouldingRow = {
+	calculation?: {
+		linearFeet: number;
+		pieceLength: number;
+		wastePercentage?: number;
+	};
 	uid?: string | null;
 	title?: string | null;
 	img?: string | null;

@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { newSalesFormSeedV2Schema } from "../contracts/new-sales-form-seed";
 import { buildSalesRequestInstructions } from "./prompt";
 
 test("prompt uses the native door shell and forbids opening-to-leaf inference", () => {
@@ -30,7 +31,7 @@ test("prompt uses the native door shell and forbids opening-to-leaf inference", 
 	expect(instructions).toContain("same product");
 	expect(instructions).toContain("ceil(linearFeet*");
 	expect(instructions).toContain("include wastePercentage when");
-	expect(instructions).toContain("title does not encode a length");
+	expect(instructions).toContain("Only linear-foot conversion requires a catalog length");
 	expect(instructions).toContain("Generic wording such as baseboard");
 	expect(instructions).toContain("never choose the first or closest profile");
 	expect(instructions).toContain("Brick moulding or trim");
@@ -48,4 +49,72 @@ test("prompt adds image-specific safety only for an attached image", () => {
 
 	expect(instructions).toContain("handwritten request photos");
 	expect(instructions).toContain("If an image is blurry");
+});
+
+test("partial door example is a valid seed with an explicit unmatched product", () => {
+	const lines = buildSalesRequestInstructions("{}").split("\n");
+	const heading = lines.findIndex((line) =>
+		line.startsWith("PARTIAL DOOR OUTPUT EXAMPLE"),
+	);
+	expect(heading).toBeGreaterThan(-1);
+	const example = lines[heading + 1];
+	if (!example) throw new Error("Partial door example is missing");
+	const seed = newSalesFormSeedV2Schema.parse(JSON.parse(example));
+	expect(seed.lineItems[0]?.housePackageTool?.doors).toHaveLength(1);
+	expect(seed.unresolved).toHaveLength(1);
+	expect(seed.unresolved[0]).toMatchObject({
+		lineUid: seed.lineItems[0]?.uid,
+		field: "door",
+		status: "unsupported",
+	});
+	expect(seed.unresolved[0]?.stepId).not.toBeNull();
+});
+
+test("route guide distinguishes single-product multi-selects and excludes structural steps", () => {
+	const instructions = buildSalesRequestInstructions(
+		JSON.stringify({
+			routes: [
+				{
+					itemTypeUid: "slab",
+					rootStepId: 1,
+					stepUids: ["height", "door", "hpt"],
+					config: { noHandle: true, hasSwing: false },
+				},
+			],
+			steps: [
+				{
+					id: 1,
+					uid: "root",
+					title: "Item Type",
+					components: [["slab", "Slabs"]],
+				},
+				{
+					id: 13,
+					uid: "height",
+					title: "Height",
+					selectionMode: "single",
+					components: [],
+				},
+				{
+					id: 51,
+					uid: "door",
+					title: "Door",
+					selectionMode: "multiple",
+					components: [],
+				},
+				{ id: 212, uid: "hpt", title: "House Package Tool", components: [] },
+				{ id: 999, uid: "other", title: "Unrelated", components: [] },
+			],
+		}),
+	);
+	const lines = instructions.split("\n");
+	const i = lines.findIndex((line) => line.startsWith("ROUTE OUTPUT GUIDE"));
+	expect(i).toBeGreaterThan(-1);
+	const [guide] = JSON.parse(lines[i + 1]!);
+	expect(guide.scalarSteps).toEqual([{ stepId: 13, title: "Height" }]);
+	expect(guide.multipleSteps).toEqual([{ stepId: 51, title: "Door" }]);
+	expect(guide.hptQuantityFields).toEqual(["dimension", "totalQty"]);
+	expect(guide.swingAllowed).toBe(false);
+	expect(instructions).toContain("exactly ONE product");
+	expect(instructions).toContain("Never emit placeholder dimensions");
 });

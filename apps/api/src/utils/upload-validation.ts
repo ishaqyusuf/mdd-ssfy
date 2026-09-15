@@ -14,6 +14,12 @@ export const supportedDocumentMimeTypes = [
 export type SupportedDocumentMimeType =
 	(typeof supportedDocumentMimeTypes)[number];
 
+export class DocumentUploadValidationError extends TRPCError {
+	constructor(readonly reason: "size" | "type" | "unreadable" | "pages" | "processing", message: string, cause?: unknown) {
+		super({ code: "BAD_REQUEST", message, cause });
+	}
+}
+
 function hasBytes(body: Buffer, offset: number, bytes: number[]) {
 	return bytes.every((byte, index) => body[offset + index] === byte);
 }
@@ -69,19 +75,13 @@ export async function decodeValidatedDocumentBase64(input: {
 	const maxBytes = input.maxBytes ?? 8_000_000;
 	const body = Buffer.from(input.content, "base64");
 	if (!body.length || body.length > maxBytes) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Document upload must be between 1 byte and ${Math.floor(maxBytes / 1_000_000)} MB.`,
-		});
+		throw new DocumentUploadValidationError("size", `Document upload must be between 1 byte and ${Math.floor(maxBytes / 1_000_000)} MB.`);
 	}
 	if (
 		body.toString("base64") !== input.content ||
 		!matchesMimeType(body, input.contentType)
 	) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Document bytes do not match the declared file type.",
-		});
+		throw new DocumentUploadValidationError("type", "Document bytes do not match the declared file type.");
 	}
 	if (input.contentType === "application/pdf" && input.maxPdfPages) {
 		let document: Awaited<ReturnType<typeof getDocument>["promise"]> | null =
@@ -94,19 +94,14 @@ export async function decodeValidatedDocumentBase64(input: {
 				stopAtErrors: true,
 			}).promise;
 			pageCount = document.numPages;
-		} catch {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "PDF document is malformed, encrypted, or cannot be verified.",
-			});
+		} catch (cause) {
+			const inputFailure = cause instanceof Error && ["InvalidPDFException", "PasswordException"].includes(cause.name);
+			throw new DocumentUploadValidationError(inputFailure ? "unreadable" : "processing", "PDF document is malformed, encrypted, or cannot be verified.", cause);
 		} finally {
 			await document?.destroy();
 		}
 		if (pageCount > input.maxPdfPages) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `PDF documents cannot exceed ${input.maxPdfPages} pages.`,
-			});
+			throw new DocumentUploadValidationError("pages", `PDF documents cannot exceed ${input.maxPdfPages} pages.`);
 		}
 	}
 	return body;

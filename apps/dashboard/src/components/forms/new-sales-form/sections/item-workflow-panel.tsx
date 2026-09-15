@@ -1550,6 +1550,7 @@ export function ItemWorkflowPanel() {
 						title={String(row.title || "")}
 						unitPrice={Number(row.estimateUnit || 0)}
 						qty={Number(row.qty || 0)}
+						calculation={row.calculation}
 						onCalculate={onCalculate}
 					/>
 				)}
@@ -2589,9 +2590,11 @@ export function ItemWorkflowPanel() {
 										title={String(component?.title || "")}
 										unitPrice={Number(component?.salesPrice || 0)}
 										qty={Number(mouldingSelectionPopover.qty || 0)}
-										onCalculate={(qty) =>
+										calculation={mouldingSelectionPopover.calculation}
+										onCalculate={(qty, calculation) =>
 											setMouldingSelectionQty(
 												String(Math.max(1, Number(qty || 0) || 1)),
+												calculation,
 											)
 										}
 									/>
@@ -2728,6 +2731,20 @@ export function ItemWorkflowPanel() {
 														component,
 													},
 												)
+										: undefined
+								}
+								onSetDefault={
+									workflowAdminCapabilities.canSetWorkflowComponentDefault
+										? (component, value) =>
+												componentAdmin.componentActions.onSetDefault?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+													component,
+													default: value,
+												})
 										: undefined
 								}
 								onSelect={(component) =>

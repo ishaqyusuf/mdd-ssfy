@@ -81,6 +81,21 @@ describe("sales request AI provider catalog", () => {
 			}).success,
 		).toBe(false);
 	});
+
+	it("uses the provider's current DeepSeek Flash model ID", () => {
+		expect(
+			salesRequestAISelectionSchema.safeParse({
+				provider: "deepseek",
+				model: "deepseek-flash",
+			}).success,
+		).toBe(true);
+		expect(
+			salesRequestAISelectionSchema.safeParse({
+				provider: "deepseek",
+				model: "deepseek-v4-flash",
+			}).success,
+		).toBe(false);
+	});
 });
 
 describe("persisted sales request AI settings", () => {
@@ -108,6 +123,22 @@ describe("persisted sales request AI settings", () => {
 		).resolves.toEqual({
 			settingId,
 			selection: { provider: "google", model: "gemini-3.8-flash" },
+			source: "persisted",
+		});
+	});
+
+	it("normalizes the retired DeepSeek Flash model ID while reading", async () => {
+		const fixture = fakeDatabase({
+			requestGeneration: {
+				ai: { provider: "deepseek", model: "deepseek-v4-flash" },
+			},
+		});
+
+		await expect(
+			getSalesRequestAISettings(fixture.getDb, settingId),
+		).resolves.toEqual({
+			settingId,
+			selection: { provider: "deepseek", model: "deepseek-flash" },
 			source: "persisted",
 		});
 	});
@@ -169,14 +200,14 @@ describe("persisted sales request AI settings", () => {
 	it("does not rewrite an identical persisted selection", async () => {
 		const fixture = fakeDatabase({
 			requestGeneration: {
-				ai: { provider: "deepseek", model: "deepseek-v4-flash" },
+				ai: { provider: "deepseek", model: "deepseek-flash" },
 			},
 		});
 
 		const result = await updateSalesRequestAISettings(fixture.db, {
 			settingId,
 			provider: "deepseek",
-			model: "deepseek-v4-flash",
+			model: "deepseek-flash",
 		});
 
 		expect(result.changed).toBe(false);
@@ -194,12 +225,12 @@ describe("persisted sales request AI settings", () => {
 			updateSalesRequestAISettings(fixture.db, {
 				settingId,
 				provider: "deepseek",
-				model: "deepseek-v4-flash",
+				model: "deepseek-flash",
 			}),
 		).resolves.toMatchObject({ changed: true, source: "persisted" });
 		expect(fixture.getMeta()).toEqual({
 			requestGeneration: {
-				ai: { provider: "deepseek", model: "deepseek-v4-flash" },
+				ai: { provider: "deepseek", model: "deepseek-flash" },
 			},
 		});
 	});

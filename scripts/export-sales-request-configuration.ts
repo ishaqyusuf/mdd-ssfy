@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@gnd/db";
 import { getSalesRequestConfigurationContext } from "../apps/api/src/services/sales-request-configuration-context";
 
 const target = new URL(process.env.DATABASE_URL || "");

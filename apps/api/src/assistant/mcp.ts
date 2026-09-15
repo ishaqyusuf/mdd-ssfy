@@ -2,6 +2,17 @@ import { createMCPClient } from "@ai-sdk/mcp";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createAssistantResultEnvelopeSchema } from "./contracts";
+import { createAssistantReadRecovery } from "./read-recovery";
+import { assistantEffectMayCommit, presentAssistantOutcome, type AssistantOutcome } from "./outcomes";
+
+type CaptureToolFailure = (error: unknown, context: {
+	toolCallId: string; toolId: string; effect: string; outcome: AssistantOutcome["kind"]; attempt?: 1 | 2; retrying?: boolean;
+}) => Promise<{ reference: string }>;
+
+class AssistantScopeUnavailableError extends Error {
+	readonly code = "FORBIDDEN";
+	constructor() { super("Assistant actor scope is no longer available"); }
+}
 import {
 	ASSISTANT_TOOL_CATALOG_VERSION,
 	type AssistantToolActor,
@@ -27,7 +38,7 @@ function assertSameAssistantScope(
 		initialActor.scopeType !== currentActor.scopeType ||
 		initialActor.scopeId !== currentActor.scopeId
 	) {
-		throw new Error("Assistant actor scope is no longer available");
+		throw new AssistantScopeUnavailableError();
 	}
 }
 
@@ -40,11 +51,13 @@ export function createAssistantMcpServer(
 		toolId: string;
 		toolVersion: number;
 		effect: string;
-		status: "succeeded" | "failed";
+		status: "succeeded" | "failed" | "cancelled";
 		toolInput: unknown;
 		result?: unknown;
 		durationMs: number;
+		recovery?: { attemptCount: 2; firstFailureReference?: string };
 	}) => Promise<void>,
+	captureFailure?: CaptureToolFailure,
 ) {
 	const server = new McpServer(
 		{
@@ -60,6 +73,7 @@ export function createAssistantMcpServer(
 	);
 
 	let executionStep = 0;
+	const recoverRead = createAssistantReadRecovery();
 	for (const definition of getExecutableAssistantDefinitions(actor)) {
 		server.registerTool(
 			definition.toolId,
@@ -82,10 +96,18 @@ export function createAssistantMcpServer(
 				const toolCallId = randomUUID();
 				const step = ++executionStep;
 				let result: unknown;
+				const attemptState: { count: 1 | 2 } = { count: 1 };
+				let firstFailureReference: string | undefined;
 				try {
-					const currentActor = await resolveCurrentActor();
+					result = await recoverRead({ effect: definition.effect, signal: extra.signal,
+						onRetry: async error => {
+							firstFailureReference = (await captureFailure?.(error, { toolCallId, toolId: definition.toolId, effect: definition.effect, outcome: "temporary", attempt: 1, retrying: true }))?.reference;
+						},
+						operation: async currentAttempt => {
+						attemptState.count = currentAttempt;
+						const currentActor = await resolveCurrentActor();
 					assertSameAssistantScope(actor, currentActor);
-					result = await executeRegisteredAssistantTool(
+					return executeRegisteredAssistantTool(
 						currentActor,
 						{
 							toolId: definition.toolId,
@@ -95,7 +117,14 @@ export function createAssistantMcpServer(
 						{},
 						{ signal: extra.signal },
 					);
+					} });
 				} catch (error) {
+					const kind: AssistantOutcome["kind"] = extra.signal.aborted ? "cancelled" : error instanceof AssistantScopeUnavailableError ? "denied" :
+						assistantEffectMayCommit(definition.effect) ? "uncertain" : "temporary";
+					let reference: string | undefined;
+					try {
+						if (kind !== "cancelled") reference = (await captureFailure?.(error, { toolCallId, toolId: definition.toolId, effect: definition.effect, outcome: kind, attempt: attemptState.count }))?.reference;
+					} catch { /* Capturing diagnostics cannot replace the business outcome. */ }
 					try {
 						await recordExecution?.({
 							toolCallId,
@@ -103,9 +132,10 @@ export function createAssistantMcpServer(
 							toolId: definition.toolId,
 							toolVersion: definition.version,
 							effect: definition.effect,
-							status: "failed",
+							status: kind === "cancelled" ? "cancelled" : "failed",
 							toolInput: input,
 							durationMs: Date.now() - startedAt,
+							...(attemptState.count === 2 ? { recovery: { attemptCount: 2 as const, firstFailureReference } } : {}),
 						});
 					} catch {
 						console.error("Unable to record failed Assistant tool execution", {
@@ -115,7 +145,12 @@ export function createAssistantMcpServer(
 							step,
 						});
 					}
-					throw error;
+					const outcome = { kind, ...(reference ? { reference } : {}) };
+					return {
+						isError: true,
+						content: [{ type: "text", text: presentAssistantOutcome(outcome).message }],
+						_meta: { assistantOutcome: outcome },
+					};
 				}
 				const status = (result as { status?: unknown }).status;
 				await recordExecution?.({
@@ -131,6 +166,7 @@ export function createAssistantMcpServer(
 					toolInput: input,
 					result,
 					durationMs: Date.now() - startedAt,
+					...(attemptState.count === 2 ? { recovery: { attemptCount: 2 as const, firstFailureReference } } : {}),
 				});
 				return {
 					content: [{ type: "text", text: JSON.stringify(result) }],
@@ -147,12 +183,14 @@ export async function createAssistantMcpExecutionClient(
 	actor: AssistantToolActor,
 	resolveCurrentActor?: () => Promise<AssistantToolActor>,
 	recordExecution?: Parameters<typeof createAssistantMcpServer>[2],
+	captureFailure?: CaptureToolFailure,
 ) {
 	const executableDefinitions = getExecutableAssistantDefinitions(actor);
 	const server = createAssistantMcpServer(
 		actor,
 		resolveCurrentActor,
 		recordExecution,
+		captureFailure,
 	);
 	const [clientTransport, serverTransport] =
 		InMemoryTransport.createLinkedPair();

@@ -36,6 +36,7 @@ export type UseSalesRequestGenerationApplyOptions = {
 	routingError?: boolean;
 	isStale?: boolean;
 	hasUnresolved?: boolean;
+	allowUnresolvedDraft?: boolean;
 	validateConfigurationRevision?: SalesRequestGenerationConfigurationValidator;
 	onBeforeApply?: () => void;
 	onApplyResult?: (
@@ -93,6 +94,51 @@ export function getSalesRequestGenerationApplyMessage(
 	if (result.status !== "blocked") {
 		return "The proposal could not be applied.";
 	}
+	const issueMessages: Partial<
+		Record<(typeof result.issues)[number]["reason"], string>
+	> = {
+		"root-step-missing":
+			"The item category step is unavailable in the current workflow.",
+		"root-selection-missing":
+			"Choose an item category before opening this draft.",
+		"route-missing": "The selected item category has no configured workflow.",
+		"step-outside-route":
+			"A selected option belongs to a different item category.",
+		"default-component-missing":
+			"A configured default product is no longer available.",
+		"default-component-not-visible":
+			"A configured default product is unavailable for these selections.",
+		"default-dependency-unresolved":
+			"A configured default needs another product selection first.",
+		"custom-step-not-supported":
+			"A requested custom option is unsupported by this workflow.",
+		"custom-value-requires-review":
+			"Review the requested custom option before opening this draft.",
+		"hpt-door-selection-ambiguous": "Select one Door product for these sizes.",
+		"hpt-door-quantity-shape-invalid":
+			"The requested quantities do not match this product's handing setup.",
+		"hpt-door-swing-not-supported":
+			"The selected product does not support the requested swing.",
+		"component-not-visible":
+			"A selected product is unavailable for this configuration. Review the product and Door Type together.",
+		"component-missing":
+			"A selected product is no longer available in the catalog.",
+		"component-price-missing": "A selected product has no configured price.",
+		"hpt-door-selection-missing":
+			"Choose a Door product before opening the requested sizes.",
+		"hpt-door-price-missing":
+			"The selected Door product has no configured price for one or more requested sizes.",
+		"hpt-door-dimension-unavailable":
+			"The selected Door product does not offer one or more requested sizes.",
+		"step-disabled-by-redirect":
+			"A selected option is disabled by the current workflow. Review the configuration.",
+		"selection-shape-invalid":
+			"A selected option does not match the current workflow format.",
+	};
+	const issueMessage = result.issues
+		.map((issue) => issueMessages[issue.reason])
+		.find(Boolean);
+	if (issueMessage) return issueMessage;
 	switch (result.reason) {
 		case "unresolved":
 			return "Resolve every blocking request item before applying.";
@@ -259,6 +305,7 @@ export function useSalesRequestGenerationApply(
 					asFreshStepComponentsClient(client),
 				),
 				applyProposal,
+				allowUnresolvedDraft: options.allowUnresolvedDraft,
 			});
 			setApplyResult(result);
 			options.onApplyResult?.(activeProposalId, result);
@@ -322,6 +369,8 @@ export function useSalesRequestGenerationApply(
 	]);
 
 	return {
+		refetchProfile: () =>
+			selectedProfileId > 0 ? profileQuery.refetch() : Promise.resolve(),
 		apply,
 		applyResult,
 		applyMessage: getSalesRequestGenerationApplyMessage(applyResult),

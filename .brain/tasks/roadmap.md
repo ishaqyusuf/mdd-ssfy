@@ -18,10 +18,17 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Completed Workstreams
 
+- Sales Request component defaults, global pasted-text shortcut, and Mailbox
+  Connections/Inbox technical MVP — completed locally 2026-09-14; one paid provider
+  benchmark and live mailbox OAuth acceptance remain operational gates.
 - Paid Sales Operational Handoff — completed locally 2026-08-23 across all
   seven approved tickets; no production deployment or production data mutation.
 
 ## Planned Tasks
+
+### [Assistant shadcn Chat UI Refresh](2026-09-15-assistant-shadcn-chat-ui.md)
+- Status: Roadmap
+
 
 ### [PlanetScale to Neon Postgres Migration](2026-09-03-planetscale-to-neon-postgres-migration.md)
 - Status: Roadmap
@@ -601,5 +608,13 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Plan File: .brain/plans/2026-08-08-feature-multi-tenant-saas-commercialization.md
 - Created Date: 2026-08-08
 
-### [Progressive AI Chat Platform](2026-09-11-progressive-ai-chat-platform.md)
+### Progressive AI Chat Individual Access, Usage, And Admin Governance
+- Priority: High
+- Description: Add account-by-account assistant enablement without role inheritance, preserve existing domain permissions inside every tool, meter provider requests/tokens/cost, enforce race-safe per-user limits, provide super-admin reporting, and operate the feature-request implementation board and release history.
+- Related Feature: Progressive AI Chat Platform
 - Status: Roadmap
+- Plan Status: Backlog
+- Plan File: .brain/plans/2026-09-11-feature-progressive-ai-chat-platform.md
+- Task File: .brain/tasks/2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-19-access-usage-admin-governance.md
+- Created Date: 2026-09-12
+- Last Updated: 2026-09-13

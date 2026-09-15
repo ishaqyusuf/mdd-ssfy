@@ -1,5 +1,7 @@
 "use client";
 
+import { RequestClarificationQuestionnaire } from "./request-clarification-questionnaire";
+import type { SalesRequestClarificationAnswer } from "./request-generation-controller";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import {
@@ -59,6 +61,9 @@ type GenerationSnapshotProps = Pick<
 
 export type SalesRequestGenerationPanelViewProps = GenerationSnapshotProps & {
 	model: SalesRequestReviewModel | null;
+    clarification?: SalesRequestGenerationSnapshot["clarification"];
+    clarificationHistory?: SalesRequestGenerationSnapshot["clarificationHistory"];
+    onAnswerQuestions?: (answers: SalesRequestClarificationAnswer[]) => void;
 	setSourceText: (value: string) => void;
 	onGenerate: () => void;
 	onCancel: () => void;
@@ -636,7 +641,7 @@ function SalesRequestGenerationFeedback({
 export function SalesRequestGenerationPanelView(
 	props: SalesRequestGenerationPanelViewProps,
 ) {
-	const hasResult = Boolean(props.result && props.model);
+	const hasResult = Boolean(props.result && props.model && !props.clarification);
 	const isPending = props.status === "pending";
 	const modelHasUnresolved = Boolean(props.model?.unresolved.length);
 	const [rejectedGenerationId, setRejectedGenerationId] = useState<
@@ -707,12 +712,13 @@ export function SalesRequestGenerationPanelView(
 				</div>
 			</div>
 
+            {props.clarification && props.onAnswerQuestions ? <RequestClarificationQuestionnaire key={`${props.clarification.sessionId}-${props.clarification.revision}`} clarification={props.clarification} history={props.clarificationHistory ?? []} pending={isPending} stale={props.isStale} onSubmit={props.onAnswerQuestions} /> : null}
 			<div className="flex flex-wrap items-center gap-2">
 				<Button
 					type="button"
 					onClick={props.onGenerate}
 					disabled={
-						isPending || props.generateDisabled || !props.sourceText.trim()
+						isPending || props.generateDisabled || !props.sourceText.trim() || Boolean(props.clarification && !props.isStale)
 					}
 				>
 					{hasResult ? "Regenerate" : "Generate"}
@@ -915,7 +921,7 @@ export function SalesRequestGenerationPanel(
 	const apply = useSalesRequestGenerationApply({
 		type: props.type,
 		open: props.open,
-		preview: controller.result,
+		preview: controller.clarification ? null : controller.result,
 		routeData: routing.data,
 		routingPending: Boolean(controller.result && routing.isPending),
 		routingError: Boolean(controller.result && routing.isError),
@@ -941,6 +947,9 @@ export function SalesRequestGenerationPanel(
 					</DialogDescription>
 				</DialogHeader>
 				<SalesRequestGenerationPanelView
+                    clarification={controller.clarification}
+                    clarificationHistory={controller.clarificationHistory}
+                    onAnswerQuestions={answers => void controller.answerQuestions(answers)}
 					sourceText={controller.sourceText}
 					status={controller.status}
 					result={controller.result}

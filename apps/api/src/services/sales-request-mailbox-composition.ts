@@ -95,20 +95,32 @@ function configure(): ConfiguredMailbox {
 
 	const dependencies: SalesRequestMailboxApiDependencies = {
 		readConnections: async ({ actorUserId }) => {
-			const rows = await db.salesRequestMailboxConnection.findMany({
-				where: { ownerUserId: actorUserId },
-				select: {
-					id: true,
-					provider: true,
-					accountEmail: true,
-					displayName: true,
-					state: true,
-					healthStatus: true,
-					revision: true,
-					lastSyncAt: true,
-				},
-				orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
-				take: 100,
+			const rows = await db.$transaction(async (tx) => {
+				const resolved = await authority.resolveConnectionListAuthority(tx, {
+					actorUserId,
+				});
+				if (resolved.kind !== "authorized") return [];
+
+				return tx.salesRequestMailboxConnection.findMany({
+					where: {
+						ownerUserId: resolved.authority.ownerUserId,
+						employeeProfileId: resolved.authority.employeeProfileId,
+						organizationId: resolved.authority.organizationId,
+						officeAuthorityKey: resolved.authority.officeAuthorityKey,
+					},
+					select: {
+						id: true,
+						provider: true,
+						accountEmail: true,
+						displayName: true,
+						state: true,
+						healthStatus: true,
+						revision: true,
+						lastSyncAt: true,
+					},
+					orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+					take: 100,
+				});
 			});
 			return rows.map((row) => ({
 				connectionId: row.id,

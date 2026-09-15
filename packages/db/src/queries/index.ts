@@ -23,6 +23,7 @@ export * from "./sales-request-mailbox-lifecycle";
 export * from "./sales-request-mailbox-scheduler";
 export * from "./short-links";
 export * from "./users";
+export * from "./assistant-diagnostics";
 export {
 	getReliabilityEvidencePacket,
 	initializeReliabilityEvidenceDraft,

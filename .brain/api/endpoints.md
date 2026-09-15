@@ -1,5 +1,16 @@
 # API Endpoints
 
+## Public mobile and legacy password sign-in (2026-09-15)
+
+- Dashboard Better Auth serves `POST /api/auth/www-mobile-sign-in` and
+  `POST /api/auth/www-legacy-sign-in`. Both invoke the distributed attempt
+  limiter before user lookup. The limiter's 429/503 contract and production
+  deployment checks are in
+  [mobile auth abuse protection](mobile-auth-abuse-protection.md).
+- The source route inventory does not prove that the mobile production Base
+  host actually routes `/api/auth` or `/api/trpc`; verify deployed routing and
+  an installed-build sign-in before queuing another public binary.
+
 ## Sales Request configuration administration (2026-09-11)
 
 - `salesRequest.getAISettings` returns catalog policy/publication status with the
@@ -8,8 +19,16 @@
   stale.
 - `salesRequest.regenerateConfiguration` is a Super Admin-only zero-provider
   mutation retaining the last good revision on failure.
+- `salesRequest.updateProviderBenchmarkApproval` is a Super Admin-only zero-provider
+  mutation that stores a versioned evidence-digest decision on the locked active
+  Sales Settings row. It rejects stale provider/model, configuration, prompt,
+  output-schema, corpus, and threshold-policy identity before writing.
 - `salesRequest.generatePreview` binds the component catalog and separately cached
   names-only service vocabulary into one SHA-256 context revision.
+- Generated HPT rows are route-aware (`totalQty` for no-handle routes), grouped by
+  identical form selections, source-grounded, and canonicalized through the live
+  Height/door-size variation rules. Width and House Package Tool are not selectable
+  form steps.
 
 ## Reliability Sentry ingestion (2026-09-09)
 
@@ -126,6 +145,16 @@
 - `newSalesForm.saveDraft` and `saveFinal` accept `approvedAdjustmentId` only as
   a server-verified bypass for the exact approved source version, total, and
   proposed quantity snapshot. Direct committed-line deletion is also guarded.
+- `newSalesForm.saveFinal` reserves a strict pasted-text-only `lowTouchClaim`
+  command envelope. The query strips it before diagnostics/persistence. When
+  present, it invokes fresh authority and native seed replay inside the existing
+  Serializable Sales transaction, then atomically consumes the generation and
+  writes a metadata-only audit. Exact audit-matched same-Sales retries are no-ops;
+  competing or edited retries fail closed. Ordinary human final saves remain on
+  their existing path; draft saves do not accept or retain the field. The dashboard
+  sends the claim only from explicit Finalize while the record is still identical
+  to the applied proposal; the server additionally requires current T10 two-period
+  advancement under the same authority.
 
 ## Sales dashboard and reporting
 
@@ -679,7 +708,8 @@ Tracks notable API surfaces and where they are implemented.
 ## Square Sales Refunds (2026-08-21)
 
 - `salesRefunds.overview`: verified tender, received/completed/pending/net and
-  remaining values, eligible orders, and refund timeline for one order.
+  remaining values, eligible orders, refund timeline, and check numbers for
+  one order.
 - `salesRefunds.create`: permissioned immutable GND-origin intent with exact
   principal/C.C.C./tip allocation and commercial evidence.
 - `salesRefunds.retry`: requeues the same refund/idempotency identity.
@@ -848,6 +878,19 @@ from `RELIABILITY_REVIEWER_MEMBERSHIPS`; absent membership is FORBIDDEN.
 Returns preview title/evidence/digest with service and revision, or not_available /
 informational. It performs no delivery, approval or credential acquisition.
 
+### `salesRequest.generatePreview` Mouldings behavior — 2026-09-12
+
+The existing protected preview endpoint now accepts provider output containing
+strict native Mouldings rows. It validates route, step, component membership and
+product-local literal request evidence before converting linear-foot calculator
+input to piece quantity. Exact titles and unique alphanumeric catalog profile/SKU
+identifiers are accepted; generic categories, omitted stated waste, mismatched or
+dimensionless catalog lengths fail closed. The response contains the same
+price-free native seed shell consumed by
+the New Sales Form initializer; it does not expose calculator metadata, prices,
+totals, or hydrated snapshots. Authorization, feature flag, usage reservation,
+provider/model settings, timeout, and stale-revision behavior are unchanged.
+
 ## Employee mobile access (2026-09-12)
 
 - `mobileAccess.myRequests`: protected active-employee read, scoped to the
@@ -858,7 +901,264 @@ informational. It performs no delivery, approval or credential acquisition.
 - `mobileAccess.adminList`: protected Super Admin queue with requester, reviewer,
   events, internal fields, and server-derived next statuses.
 - `mobileAccess.adminUpdate`: protected Super Admin lifecycle transition with
-  optimistic status concurrency, append-only event, manual invitation metadata,
+  optimistic status concurrency, append-only event, manual distribution/guidance metadata,
   and employee in-app notification.
 - `GET /api/download-app`: authenticated Android artifact proxy. It allows Super
   Admin or an employee whose Android request is Invited, Accepted, or Installed;
+  URL/filename are fixed server-side and cannot be supplied by the caller.
+
+## Progressive assistant streaming (2026-09-12)
+
+- `POST /api/assistant/chat`: authenticated private UI-message stream. Accepts one latest user message, a conversation/request identity, server-issued document handles, and explicitly mentioned integration IDs. The server validates actor ownership, trusted scope, body/origin bounds, rate/concurrency limits, and a single durable executor claim before running the assistant.
+- `GET /api/assistant/chat/runs/:runId`: authenticated actor-scoped reconnect snapshot. Returns a redacted, versioned DTO for the durable run, ordered events, persisted messages, and safe pending-proposal metadata. Request fingerprints, idempotency keys, raw tool payloads, and internal diagnostics are excluded.
+
+### Dashboard conversation state (2026-09-13)
+
+- Protected tRPC `assistant.create`, `assistant.list`, `assistant.get`, `assistant.setTitle`, `assistant.archive`, and `assistant.delete` own durable dashboard chat state.
+- Every operation resolves the current active user and organization scope. Reads and mutations include owner user, scope type, scope ID, and nondeleted conversation predicates.
+- Dashboard `POST /api/assistant/chat` forwards the existing protected AI SDK stream; `GET /api/assistant/chat/runs/:runId` forwards actor-scoped reconnect reads. Both load the MCP runtime only for assistant requests.
+- Conversation URLs use `/assistant?chat=<conversationId>`; the server still authorizes the ID and returns NOT_FOUND for inaccessible rows.
+
+## Sales Request Generation pilot telemetry (2026-09-13)
+
+- Protected `salesRequest.recordOutcome` accepts one bounded apply, draft/final
+  save, or representative feedback result for a generation UUID. The server
+  derives the actor from the authenticated session; missing, expired, deleted,
+  or differently owned runs return the same unavailable response.
+- Protected `salesRequest.pilotSummary` accepts one UTC calendar date and derives
+  an exact closed seven-day interval. It returns aggregate-only generation,
+  provider/model, outcome, issue-category, changed-field, token, latency,
+  correction, Apply, and save statistics only for a complete single-authority
+  period. Successful applied final saves are also split into assistive text-first
+  and low-touch consumed-final-save arms with aggregate handling-time percentiles
+  and correction rates. Handling time is generation start to successful Final Save;
+  correction rate is Accepted with edits divided by Accepted plus Accepted with
+  edits. Low-touch-minus-assistive deltas remain unavailable until both arms have
+  both samples. Super Admin is required; run IDs, actor IDs, Sales IDs, source
+  timestamps, and source content are omitted.
+- There is no public retention endpoint. Trigger task
+  `sales-request-generation-retention-purge` invokes the shared database purge
+  daily at 02:17 UTC with concurrency one and returns only aggregate purge count
+  plus the fixed retention-day policy.
+
+## Sales Request Generation pilot access (2026-09-13)
+
+- Protected `salesRequest.getPilotAccess` returns safe actor eligibility for an
+  exact `order` or `quote` create surface.
+- Super Admin-only `salesRequest.updatePilotSettings` persists the named cohort,
+  named reviewers, and enabled state in the active Sales Settings row after every
+  configured user is confirmed active.
+- `salesRequest.generatePreview` requires the same create-surface discriminator and
+  rechecks the global rollback flag, persisted pilot state, active actor, and named
+  membership before catalog reads, usage reservation, or provider construction.
+- `salesRequest.validatePreview` requires that same surface and repeats pilot,
+  native Sales permission, provider/model, and configuration identity checks at
+  Apply time. A disabled pilot or removed actor cannot apply an already-open preview.
+- During this text-only phase, `generatePreview` rejects every nonempty `images`
+  payload at schema validation; T11 and T12 remain deferred.
+
+## Sales Request Generation seed binding (2026-09-13)
+
+- Successful `salesRequest.generatePreview` completion stores only a versioned,
+  server-keyed, run/configuration-scoped seed HMAC in metadata-only telemetry.
+- The endpoint does not return the HMAC to the client and stores no request text,
+  provider response, or seed JSON. Expired-run completion is rejected and account
+  anonymization clears the binding.
+
+## Progressive Assistant Sales/customer reads (2026-09-13)
+
+The existing protected `POST /api/assistant/chat` runtime can discover and execute
+seven `assistant-catalog-v2` Sales/customer reads through its request-owned in-memory
+MCP transport. No new public HTTP route is introduced. The same registry supplies
+model definitions, execution validation, dashboard catalog data, and related-action
+hints.
+
+Order and customer searches are bounded and keyset paginated. Timeline pagination
+uses an opaque cursor over creation time plus stable event ID. Detailed Sales calls
+reuse the canonical Sales pipeline projection, while customer summary/history calls
+resolve the customer under the current actor scope before reading its orders.
+
+## Progressive Assistant operations/Community reads (2026-09-13)
+
+The protected Assistant runtime exposes the nine `assistant-catalog-v3` read tools
+through the existing request-owned MCP transport; no new public HTTP endpoint is
+introduced. Inventory, Production, fulfillment, and Community queries are bounded,
+actor-scoped, and return typed Assistant envelopes. Community unit listing uses an
+opaque keyset cursor, while exact Production and Community lookups return typed
+unavailable, ambiguity, permission, or conflict states instead of guessing.
+
+## Sales Request Generation exact pilot review periods (2026-09-13)
+
+- Protected `salesRequest.pilotSummary` now accepts one exact UTC `periodStart`
+  date and derives a closed seven-day interval.
+- It returns aggregate generation, provider/model, outcome, issue-category,
+  changed-field, token, latency, correction, Apply, and save statistics for every
+  closed, retained, non-truncated interval.
+- Super Admin is required. Open, expired, and over-limit intervals return no
+  metrics. Empty, legacy, mixed, incomplete, disabled, and stale-authority periods
+  remain reviewable but return blockers and `eligibleForAdvancement: false`; run
+  IDs, actor IDs, source text, generated seeds, and provider bodies are omitted.
+- The response also exposes aggregate `evidence` with independent reviewability,
+  lifecycle/provider-attempt/token/issue/feedback/correction coverage, and an
+  advancement state. Missing token samples remain null. The endpoint does not
+  accept caller-selected threshold or signoff data and therefore cannot claim
+  advancement without a later verified review authority.
+- `salesRequest.generatePreview` durably creates the run and records the provider
+  attempt before provider construction/invocation. Either pre-provider telemetry
+  failure stops the call. Terminal telemetry remains best effort so a valid preview
+  is not discarded; a missing terminal row blocks later advancement evidence.
+- `salesRequest.recordOutcome` accepts categorized Rejected feedback before Apply,
+  but rejects Accepted/Accepted-with-edits until Apply succeeds. A recorded
+  pre-Apply rejection prevents a later Apply outcome for the same generation.
+
+## Sales Request Generation durable pilot review authority (2026-09-13)
+
+- Protected `salesRequest.updatePilotReviewPolicy` is Super Admin-only. It accepts
+  the active provider/model plus bounded threshold, pricing-evidence, and manual-
+  baseline inputs; the server derives the policy digest and revision under the
+  active Sales Settings lock.
+- Protected `salesRequest.recordPilotReviewDecision` accepts one closed UTC
+  `periodStart`, a requested pass/fail acknowledgement, and bounded manual signoff
+  counts. Only an active user named in the persisted reviewer list may call it.
+  The server reloads the current pilot, benchmark, policy, catalog authority, and
+  aggregate telemetry in one serializable transaction, derives the actual decision,
+  rejects a mismatched requested decision, and creates one immutable review row.
+- `salesRequest.pilotSummary` remains Super Admin-only and now returns the current
+  review-policy state, safe metadata for at most the two latest reviews, and a
+  fail-closed two-adjacent-period advancement evaluation. Stored review evidence is
+  never returned.
+
+## Progressive Assistant document access (2026-09-13)
+
+- The Assistant document proxy accepts only current ready `StoredDocument` rows
+  bound to the actor's conversation or an exact authorized Sales snapshot.
+- Sales PDFs repeat current order scope, document kind/source binding, canonical
+  source revision, expiry, and mode-specific grants before proxying a trusted
+  Vercel public Blob URL.
+- Invoice, quote, and order-packing documents require payment access. Production
+  and packing-slip documents omit price data and require order access only.
+- Expired, stale, cancelled, replaced, mismatched, or deleted artifacts return no
+storage location.
+
+## Progressive Assistant saved-action procedures (2026-09-13)
+
+The protected Assistant tRPC router adds scoped list/create/update/remove,
+duplicate/reorder/execute, save-from-successful-run, preferences update, and
+personal-memory create/remove procedures. All actor and scope values come from the
+server resolver. No new public HTTP endpoint is introduced.
+
+## Sales Request final-save exceptions (2026-09-13)
+
+- Protected `salesRequest.listFinalSaveExceptions` accepts only a bounded limit
+  (`1..50`, default `25`). The server derives the actor from the authenticated
+  context and requires current `editOrders` authority.
+- The query returns only the actor's retained, nondeleted, successful pasted-text
+  runs that were applied and whose latest final-save outcome is `failed`. A later
+  successful retry promotes the outcome monotonically and removes the row from the
+  derived queue; a late failure cannot reopen it.
+
+## Progressive Assistant feature requests (2026-09-13)
+
+The protected Assistant tRPC router exposes request preparation/submission,
+caller-owned status, unsubscribe, and Super Admin triage/release procedures.
+Scheduled Trigger workers drain one bounded AI analysis and up to 25 notification
+intents per minute. The chat runtime emits the request card only from the trusted
+missing-capability tool result; no public unauthenticated endpoint is added.
+# Assistant approval endpoints — 2026-09-13
+
+- `assistant.createProposal` creates or idempotently returns an actor/conversation-scoped consequential-action proposal after current registry, permission, input, and business preflight validation.
+- `assistant.proposal` returns current proposal status and returns review/result data only while the actor remains authorized for the exact tool and target.
+- `assistant.decideProposal` accepts an explicit approve/reject UI decision with a hashed-token proof and unique confirmation request identity. Approval rechecks authorization and revision, atomically claims execution, and persists the classified outcome.
+- The normal chat runtime emits a strict `data-assistant-document-action` only from a trusted `documents_get_sales_pdf_status` result whose registered next action permits PDF generation.
+
+## Sales Request mailbox policy endpoints — 2026-09-13
+
+- `salesRequest.getAISettings` now returns the fail-closed mailbox policy and its
+  persistence source inside `requestGeneration`.
+- `salesRequest.updateMailboxPolicy` is a protected Super Admin mutation. It accepts
+  providers, named eligible employee IDs, retention, automation ceiling, emergency
+  disable, and attachment controls; the active Sales Settings row is server-derived.
+- `salesRequestMailbox.connections`, `beginConnect`, `listInbox`,
+  `getInboxDetail`, `generatePreview`, and `disconnect` are protected tRPC
+  procedures. Owner, organization, office, policy, and revision authority are
+  resolved server-side; clients provide only bounded connection/queue references.
+  `connections` specifically filters by the active owner profile and canonical office
+  authority key while ignoring mailbox-policy drift so old connections remain visible
+  for disconnect.
+- `GET /api/sales-request/mailbox/:provider/callback` completes Gmail or Microsoft
+  OAuth against the authenticated web session, best-effort submits newly queued
+  initial sync streams, and redirects only to the fixed Sales Request Inbox target.
+  It is exposed by the Next dashboard runtime and standalone API.
+- The mailbox preview procedure accepts only actor ID, opaque queue identity,
+  quote/order type, and cancellation signal. It resolves authorized persisted content
+  server-side and delegates to the existing Sales Request preview path; no public
+  mailbox preview response exposes only the existing native unsaved Sales seed.
+- Trigger tasks are registered for sync, detail, token health, disconnect, bounded
+  sweep, and retention. Runtime payloads remain strict opaque work references;
+  retention accepts only `{}` and is not exposed as a public API.
+
+## Workflow component default mutation — 2026-09-14
+
+- `sales.setWorkflowComponentDefault` accepts `{ componentId, default }`.
+- It requires the existing workflow-component administrator boundary, rejects
+  missing, archived, or custom targets, replaces the step default atomically, and
+  invalidates workflow/request-configuration caches without inventory sync.
+- Archiving a workflow component also clears its default flag.
+
+## Assistant quota endpoints — 2026-09-14
+
+- `assistant.bootstrap` includes the authenticated user's bounded quota state,
+  remaining requests/tokens, warning/exceeded state, and next reset.
+- `assistant.quotaPolicies` and `assistant.setQuotaPolicy` are Super Admin-only
+  procedures for bounded effective-dated user policy reads and writes.
+- `POST /api/assistant/chat` reserves quota before provider execution and returns
+  typed `ASSISTANT_QUOTA_EXCEEDED` (429) or `ASSISTANT_QUOTA_UNAVAILABLE` (503)
+  responses separately from infrastructure rate limiting.
+
+## Sales Request provider diagnostics endpoint — 2026-09-14
+
+- Protected `salesRequest.providerDiagnostics` is Super Admin-only and returns retained
+  Sales Request AI attempt/failure counts by provider plus at most 20 recent sanitized
+  failure summaries.
+- Returned rows contain only a shortened generation reference, provider/model,
+  allowlisted stage/cause/status identity, retryability, bounded schema issue
+  codes/paths, latency, tokens, and timestamp.
+- The endpoint never returns actor identity, customer/request text, provider output or
+  message, response body, credential, image, seed, or Sales row identity.
+
+## Assistant runtime settings endpoints — 2026-09-14
+
+- `assistant.runtimeSettings` is a protected Super Admin query returning the saved
+  selection, optimistic version, allowlisted provider/model catalog, credential
+  presence booleans, and the latest 20 audit events.
+- `assistant.updateRuntimeSettings` is a protected Super Admin mutation accepting
+  one allowlisted provider/model pair and expected version. It rejects missing
+  credentials and stale concurrent updates.
+- `POST /api/assistant/chat` resolves the saved selection when creating a run and
+  executes that run with its persisted model identity.
+
+## Sales Request manual drafts — 2026-09-15
+
+salesRequest.generatePreview and validatePreview permit explicitly requested manual
+drafts without a passing benchmark. Persisted AI selection, pilot access, permissions,
+usage and catalog/output checks remain required. Automatic finalization still needs
+a current passing benchmark; see decisions/2026-09-15-manual-request-drafts-and-benchmark-authority.md.
+
+## 2026-09-15 — Assistant diagnostics (implementation in progress)
+
+Added protected tRPC procedures `assistant.diagnosticAccess`, `assistant.diagnostics`, `assistant.diagnostic`, and `assistant.reviewDiagnostic`. Listing and detail reads recheck current Super Admin membership; review writes status and an audit note in one serializable transaction. List reads return bounded summaries and fingerprint occurrence counts, with status/stage/provider/model/environment/reference/date/cursor filters. Expired records are excluded. Browser acceptance currently confirms the empty inbox loads; populated detail/review acceptance remains pending.
+
+### Assistant early failure capture
+
+Chat request-start failures now produce a typed public outcome; genuine server failures carry a private diagnostic reference. Uncaught REST and stream failures are captured through the same bounded service. Pre-run capture does not trust the submitted conversation ID as an authorized link. Expected quota replies retain existing quota/reset fields. Frontend reads typed request outcomes and suppresses a second transport warning when the chat already has an outcome. Unknown transport failures no longer offer a blind retry.
+
+### assistant.reportClientFailure
+
+Authenticated tRPC mutation resolves the current Assistant actor, uses an atomic shared-Redis five-per-minute account limit, validates conversation ownership/scope and optional run ownership, then captures a server-authored diagnostic. Missing Redis fails closed. Transport/reconnect reports use uncertain outcome semantics. The chat transport sends a report after a noncancelled network failure; reporting failure never recursively reports itself or blocks chat. A late report cannot overwrite the next request's outcome.
+
+### Assistant capture health
+- `assistant.captureHealth` (protected tRPC query): active Super Admin required; current UTC-day aggregate capture counters or explicit unavailable state. No individual chat, incident or business payload is returned.
+
+### Request clarification and rules — 2026-09-15
+
+salesRequest adds answerClarification, cancelClarification, listClarificationGuidance, setClarificationGuidance, getAIRules and updateAIRules. Existing generatePreview starts the questionnaire flow; rule endpoints use dedicated shared settings functions.

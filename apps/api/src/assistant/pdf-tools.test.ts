@@ -4,6 +4,7 @@ import {
 	assistantToolRegistry,
 	executeApprovedAssistantProposal,
 	executeRegisteredAssistantTool,
+	AssistantProposalPrecommitError,
 } from "./registry";
 
 const actor = {
@@ -12,6 +13,25 @@ const actor = {
 	scopeId: "7",
 	grants: { viewOrders: true, viewOrderPayment: true },
 };
+
+test("approved PDF preflight preserves unexpected causes without queueing a job", async () => {
+	const original = new Error("private database password");
+	let queueCalls = 0;
+	try {
+		await executeApprovedAssistantProposal(actor, {
+			toolId: "documents_generate_pdf", version: 1,
+			payload: { orderNo: "QA-123", mode: "invoice", expectedRevision: "revision-1", forceRegenerate: false },
+		}, {
+			getSalesOrderCandidates: async () => { throw original; },
+			queueSalesPdfJob: async () => { queueCalls++; throw new Error("must not queue"); },
+		});
+		throw new Error("Expected preflight failure");
+	} catch (error) {
+		expect(error).toBeInstanceOf(AssistantProposalPrecommitError);
+		expect(error).toMatchObject({ code: "failed", cause: original });
+	}
+	expect(queueCalls).toBe(0);
+});
 
 const order = {
 	id: 101,

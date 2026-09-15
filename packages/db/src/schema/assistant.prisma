@@ -1,3 +1,51 @@
+// Diagnostic references intentionally survive missing/deleted chats; reads reauthorize context.
+model AssistantDiagnostic {
+    reference       String   @id @db.VarChar(32)
+    fingerprint     String   @db.Char(64)
+    requestId       String?  @db.VarChar(191)
+    conversationId  String?  @db.VarChar(191)
+    runId           String?  @db.VarChar(191)
+    toolCallId      String?  @db.VarChar(191)
+    actorUserId     Int?
+    scopeType       String?  @db.VarChar(32)
+    scopeId         String?  @db.VarChar(191)
+    stage           String   @db.VarChar(32)
+    operation       String   @db.VarChar(120)
+    code            String   @db.VarChar(100)
+    severity        String   @db.VarChar(16)
+    outcome         String   @db.VarChar(32)
+    publicMessage   String   @db.VarChar(500)
+    environment     String   @db.VarChar(32)
+    release         String?  @db.VarChar(64)
+    provider        String?  @db.VarChar(32)
+    model           String?  @db.VarChar(100)
+    durationMs      Int?
+    details         Json?    @db.Json
+    status          String   @default("new") @db.VarChar(20)
+    createdAt       DateTime @default(now()) @db.DateTime(3)
+    expiresAt       DateTime @db.DateTime(3)
+    reviews         AssistantDiagnosticReview[]
+
+    @@index([status, createdAt])
+    @@index([fingerprint, createdAt])
+    @@index([conversationId, createdAt])
+    @@index([runId, createdAt])
+    @@index([expiresAt])
+}
+
+model AssistantDiagnosticReview {
+    id             String   @id @default(cuid()) @db.VarChar(191)
+    reference      String   @db.VarChar(32)
+    reviewerId     Int
+    fromStatus     String   @db.VarChar(20)
+    status         String   @db.VarChar(20)
+    note           String   @db.Text
+    createdAt      DateTime @default(now()) @db.DateTime(3)
+    diagnostic     AssistantDiagnostic @relation(fields: [reference], references: [reference], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([reference, createdAt])
+}
+
 model AssistantConversation {
     id             String             @id @default(cuid()) @db.VarChar(191)
     ownerUserId    Int

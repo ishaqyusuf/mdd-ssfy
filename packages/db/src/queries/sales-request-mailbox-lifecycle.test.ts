@@ -746,6 +746,99 @@ describe("sales request mailbox lifecycle persistence", () => {
 		expect(authorityReads).toBe(0);
 	});
 
+	test("allows an owner to disconnect after mailbox policy changes", async () => {
+		let connectionUpdate: Record<string, unknown> | undefined;
+		const record = {
+			id: "connection-1",
+			organizationId: 40,
+			ownerUserId: 7,
+			employeeProfileId: 70,
+			officeAuthorityKey: "office:40",
+			authorityRevision: "authority-before-policy-change",
+			salesSettingsId: 1,
+			salesSettingsRevision: 2,
+			policyRevision: 4,
+			provider: "microsoft-graph",
+			providerAccountId: "graph-account",
+			providerAccountIdentityHash: hashMailboxProviderAccountIdentity(
+				"microsoft-graph",
+				"graph-account",
+			),
+			grantedScopes: ["scope"],
+			accessTokenEnvelope: null,
+			refreshTokenEnvelope: null,
+			tokenExpiresAt: null,
+			revision: 5,
+			state: "active",
+			disconnectId: null,
+			disconnectPhase: null,
+			disconnectPreviousRevision: null,
+			disconnectCompletedAt: null,
+		};
+		const tx = {
+			salesRequestMailboxConnection: {
+				findUnique: async () => record,
+				updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+					connectionUpdate = data;
+					return { count: 1 };
+				},
+			},
+			salesRequestMailboxSyncStream: {
+				updateMany: async () => ({ count: 0 }),
+			},
+			salesRequestMailboxMessageLease: {
+				updateMany: async () => ({ count: 0 }),
+			},
+		};
+		const stores = createSalesRequestMailboxLifecycleStores(
+			{
+				$transaction: <T>(run: (client: typeof tx) => Promise<T>) => run(tx),
+			} as never,
+			{
+				createDisconnectId: () => "disconnect-after-policy-change",
+				resolveAuthority: async () => ({
+					kind: "authorized",
+					authority: {
+						...authorized().authority,
+						authorityRevision: "authority-after-policy-change",
+						salesSettingsRevision: 3,
+						policyRevision: 5,
+						providerEligible: false,
+					},
+				}),
+			},
+		);
+
+		const result = await stores.disconnect.claimDisconnect({
+			actorUserId: 7,
+			connectionId: record.id,
+			expectedConnectionRevision: 5,
+			now: new Date("2026-09-14T10:07:00.000Z"),
+			authorityBehavior: {
+				requireActiveEmployee: true,
+				requireActiveProfile: true,
+				requireCanonicalActiveOffice: true,
+				requireOwnerMatch: true,
+				ignoreMailboxPolicy: true,
+			},
+			claimBehavior: {
+				deactivateConnection: true,
+				incrementConnectionRevision: true,
+				invalidateSyncLeases: true,
+				invalidateCursors: true,
+				invalidateSubscriptions: true,
+				blockNewReads: true,
+				persistResumableDisconnect: true,
+			},
+		});
+
+		expect(result.kind).toBe("cleanup-required");
+		expect(connectionUpdate).toMatchObject({
+			state: "disconnecting",
+			syncBlocked: true,
+		});
+	});
+
 	test("keeps missing Gmail credentials in resumable provider revocation while Graph can clean up locally", async () => {
 		for (const provider of ["gmail", "microsoft-graph"] as const) {
 			let connectionUpdate: Record<string, unknown> | undefined;

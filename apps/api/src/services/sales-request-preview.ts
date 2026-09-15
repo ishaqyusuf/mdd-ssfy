@@ -1,3 +1,7 @@
+import {
+	salesRequestGroundingText,
+	type SalesRequestGenerationContext,
+} from "./sales-request-context";
 import { randomUUID } from "node:crypto";
 import {
 	SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
@@ -23,6 +27,8 @@ type Snapshot = Awaited<
 	ReturnType<typeof getSalesRequestConfigurationSnapshot>
 >;
 type PreviewContext = Snapshot & {
+	adminRules?: SalesRequestGenerationContext["adminRules"];
+	adminRulesRevision?: number;
 	aiSelection: SalesRequestAISelection;
 	pilotSettingsRevision: number;
 	providerBenchmarkApprovalRevision: number;
@@ -69,6 +75,7 @@ function assertCurrentSnapshot(
 ) {
 	if (
 		current.settingId !== expected.settingId ||
+		(current.adminRulesRevision ?? 0) !== (expected.adminRulesRevision ?? 0) ||
 		current.scope !== expected.scope ||
 		current.revision !== expected.revision ||
 		current.aiSelection.provider !== expected.aiSelection.provider ||
@@ -85,7 +92,7 @@ function assertCurrentSnapshot(
 
 /** Internal orchestration: authorize before reading catalog or invoking a paid model. */
 export async function createSalesRequestPreview(
-	input: {
+	input: Pick<SalesRequestGenerationContext, "clarifications" | "guidance"> & {
 		text: string;
 		/** Decoded source for grounding when text is a canonical safety envelope. */
 		groundingText?: string;
@@ -176,6 +183,11 @@ export async function createSalesRequestPreview(
 		const result = await generateNewSalesFormSeed(
 			{
 				...input,
+				groundingText: salesRequestGroundingText(
+					input.groundingText ?? input.text,
+					input.clarifications,
+				),
+				adminRules: snapshot.adminRules,
 				configurationJson: snapshot.configurationJson,
 				configurationRevision: snapshot.revision,
 			},
@@ -239,6 +251,31 @@ export async function createSalesRequestPreview(
 			...(providerFailure
 				? {
 						failureStage: providerFailure.stage,
+						issueCounts: {
+							providerFailure: {
+								...(providerFailure.structuredOutputCause
+									? {
+											structuredOutputCause:
+												providerFailure.structuredOutputCause,
+										}
+									: {}),
+								...(providerFailure.schemaIssues
+									? { schemaIssues: providerFailure.schemaIssues }
+									: {}),
+								...(providerFailure.statusCode !== undefined
+									? { statusCode: providerFailure.statusCode }
+									: {}),
+								...(providerFailure.providerCode !== undefined
+									? { providerCode: providerFailure.providerCode }
+									: {}),
+								...(providerFailure.providerStatus
+									? { providerStatus: providerFailure.providerStatus }
+									: {}),
+								...(providerFailure.retryable !== undefined
+									? { retryable: providerFailure.retryable }
+									: {}),
+							},
+						},
 						...(providerFailure.inputTokens !== undefined
 							? { inputTokens: providerFailure.inputTokens }
 							: {}),

@@ -35,6 +35,7 @@ export type MouldingLineItemEditorRow = {
 	title?: string | null;
 	img?: string | null;
 	qty?: number | null;
+	calculation?: { linearFeet: number; pieceLength: number; wastePercentage?: number };
 	addon?: number | null;
 	customPrice?: number | string | null;
 	estimateUnit?: number | null;
@@ -57,7 +58,7 @@ export type MouldingLineItemsEditorProps<
 	renderCalculator?: (args: {
 		row: TRow;
 		index: number;
-		onCalculate: (qty: number) => void;
+		onCalculate: (qty: number, calculation?: { linearFeet: number; pieceLength: number; wastePercentage?: number }) => void;
 	}) => ReactNode;
 	canEditPricing?: boolean;
 	priceBreakdown?: CostPriceBreakdownContext | null;
@@ -282,19 +283,23 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 								</td>
 								<td className="px-3 py-2 max-lg:col-span-2 max-lg:col-start-1 max-lg:row-start-2 max-lg:p-0 md:max-lg:col-span-1">
 									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Quantity</p>
+									{row.quantityReview === true && qty <= 0 && (
+										<p className="mb-1 text-xs font-medium text-amber-700 dark:text-amber-400">Quantity needs review</p>
+									)}
 									<div className="flex items-center justify-end gap-2 max-lg:justify-start">
 										{props.renderCalculator?.({
 											row,
 											index,
-											onCalculate: (qty) =>
+											onCalculate: (qty, calculation) =>
 												patchRow(index, {
 													qty: Number(qty || 0),
+													...(calculation ? { calculation } : {}),
 												} as Partial<TRow>),
 										})}
 										<SalesFormQuantityStepper
 											label={`Moulding line ${index + 1} quantity`}
 											value={row.qty}
-											min={1}
+											min={row.quantityReview === true ? 0 : 1}
 											onChange={(value) =>
 												patchRow(index, {
 													qty: value,

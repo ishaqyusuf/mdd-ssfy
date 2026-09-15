@@ -9,7 +9,6 @@ import {
 import {
 	applySalesRequestGenerationProposal,
 	createFreshStepComponentsResolver,
-	extractRequestGenerationDefaults,
 	getSalesRequestGenerationProposalId,
 	resolveSalesRequestProfileCoefficient,
 } from "./request-generation-apply";
@@ -110,6 +109,21 @@ function applyInput(
 }
 
 describe("sales request generation apply boundary", () => {
+	test("preserves exact customer text on reviewed proposals without modifying the base", async () => {
+		const sourceText = '  Original request\r\n1 attic kit <script>alert(1)</script>  ';
+		const baseRecord = createRecord();
+		const result = await applySalesRequestGenerationProposal(applyInput({
+			baseRecord,
+			preview: { ...preview, sourceText, userReviewed: true },
+			performApply: false,
+		}));
+		expect(result.status).toBe("ready");
+		if (result.status !== "ready") throw new Error("Expected prepared proposal");
+		expect(result.proposal.record.form.customerRequestText).toBe(sourceText);
+		expect(result.proposal.lowTouchClaim).toBeNull();
+		expect(baseRecord.form.customerRequestText).toBeNull();
+	});
+
 	test("keeps preview preparation inert until the atomic apply callback", async () => {
 		const baseRecord = createRecord();
 		let applyCalls = 0;
@@ -158,6 +172,32 @@ describe("sales request generation apply boundary", () => {
 
 		expect(result).toMatchObject({ status: "blocked", reason: "unresolved" });
 		expect(applyCalls).toBe(0);
+	});
+
+	test("allows unresolved facts only for an explicit review-only handoff", async () => {
+		const unresolvedPreview = structuredClone(preview);
+		const unresolvedLine = unresolvedPreview.seed.lineItems[0];
+		if (!unresolvedLine) throw new Error("Expected generated line");
+		unresolvedLine.formSteps = [{ stepId: 1, prodUid: "interior" }];
+		unresolvedPreview.seed.unresolved.push({
+			lineUid: "generated-line",
+			stepId: 2,
+			field: "Finish",
+			status: "ambiguous",
+			reason: "Two finishes match.",
+		});
+		let proposalUnresolved = 0;
+		const result = await applySalesRequestGenerationProposal({
+			...applyInput({ preview: unresolvedPreview }),
+			allowUnresolvedDraft: true,
+			applyProposal: (proposal) => {
+				proposalUnresolved = proposal.unresolved.length;
+				return { status: "applied" as const };
+			},
+		});
+
+		expect(result.status).toBe("applied");
+		expect(proposalUnresolved).toBe(1);
 	});
 
 	test("requires a current configuration validator and rejects a stale revision", async () => {
@@ -245,23 +285,6 @@ describe("sales request generation apply boundary", () => {
 		expect(result).toMatchObject({ status: "error" });
 	});
 
-	test("extracts only configured omission defaults by item type", () => {
-		expect(
-			extractRequestGenerationDefaults({
-				...routeData,
-				settingsMeta: {
-					route: {
-						interior: {
-							requestGeneration: {
-								defaults: { finish: "default-finish", unsafe: 42 },
-							},
-						},
-					},
-				},
-			}),
-		).toEqual({ interior: { finish: "default-finish" } });
-	});
-
 	test("uses coefficient one without a profile and blocks a malformed coefficient", () => {
 		expect(resolveSalesRequestProfileCoefficient(createRecord(), [])).toEqual({
 			status: "ready",
@@ -308,4 +331,20 @@ describe("sales request generation apply boundary", () => {
 		).toBe("generation-43");
 		expect(getSalesRequestGenerationProposalId(null)).toBeNull();
 	});
+});
+
+test("manually reviewed selections do not receive an unchanged AI final-save claim", async () => {
+	const result = await applySalesRequestGenerationProposal(
+		applyInput({
+			preview: { ...preview, userReviewed: true },
+			performApply: false,
+		}),
+	);
+	expect(result.status).toBe("ready");
+	if (result.status === "ready")
+		expect(result.proposal.lowTouchClaim).toBeNull();
+});
+
+test("an unset profile coefficient uses the native neutral multiplier", () => {
+ expect(resolveSalesRequestProfileCoefficient(createRecord(7), [{id: 7, coefficient: null}])).toEqual({status: "ready", profileCoefficient: 1});
 });

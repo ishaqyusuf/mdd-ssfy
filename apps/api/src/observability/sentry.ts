@@ -4,6 +4,7 @@ import {
 	resolveObservabilityEnvironment,
 } from "@gnd/observability";
 import * as Sentry from "@sentry/bun";
+import { createHash } from "node:crypto";
 import type { TRPCError } from "@trpc/server";
 
 type TrpcErrorDetails = {
@@ -100,6 +101,35 @@ export function captureApiError(
 	if (!report.classified.reportable) return;
 
 	Sentry.captureException(report.reportableError, report.captureContext);
+}
+
+// Callers supply an already sanitized Assistant report, never an exception or
+// request body. The occurrence reference makes repeated delivery idempotent.
+type AssistantMonitoringReport = {
+	reference: string;
+	fingerprint: string;
+	stage: string;
+	code: string;
+	severity: string;
+	details: { causes: Array<{ name: string; code?: string; status?: number }>; frames: string[] };
+};
+
+export function buildAssistantMonitoringEvent(report: AssistantMonitoringReport): Sentry.Event {
+	const eventId = createHash("sha256").update(`assistant:${report.reference}`).digest("hex").slice(0, 32);
+	return {
+		event_id: eventId,
+		message: `Assistant ${report.stage} failure (${report.code})`,
+		level: report.severity === "info" ? "info" : report.severity === "warning" ? "warning" : "error",
+		fingerprint: [report.fingerprint],
+		tags: { assistant_reference: report.reference, assistant_stage: report.stage },
+		extra: { assistant: report.details },
+	};
+}
+
+export function captureAssistantErrorEvent(report: AssistantMonitoringReport) {
+	const client = Sentry.getClient();
+	if (!client?.getDsn() || client.getOptions().enabled === false) return;
+	return Sentry.captureEvent(buildAssistantMonitoringEvent(report));
 }
 
 export function getApiErrorContext(request: {

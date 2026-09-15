@@ -1,12 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import {
 	ASSISTANT_ATTACHMENT_MAX_BYTES,
+	AssistantAttachmentValidationError,
+	assistantAttachmentErrorMessage,
 	assistantAttachmentParts,
 	validateAssistantAttachment,
 	validateAssistantAttachmentTotal,
 } from "./assistant-attachments";
 
 describe("assistant attachments", () => {
+	test("accepts only approved server correction copy with a valid reference", () => {
+		const response = (message: string, referenceId = "ERR-ABCDEFGHIJ") => ({ data: { appError: { message, referenceId } } });
+		expect(assistantAttachmentErrorMessage(response("I couldn't read that file. Try another copy."))).toBe("I couldn't read that file. Try another copy.");
+		expect(assistantAttachmentErrorMessage(response("private SQL decoder payload"))).toBe("I couldn't attach that file. Please try again.");
+		expect(assistantAttachmentErrorMessage(response("I couldn't read that file. Try another copy.", "invalid"))).toBe("I couldn't attach that file. Please try again.");
+	});
+	test("keeps helpful input corrections while hiding unexpected upload details", () => {
+		expect(assistantAttachmentErrorMessage(new AssistantAttachmentValidationError("Choose an image or PDF."))).toBe("Choose an image or PDF.");
+		expect(assistantAttachmentErrorMessage(new Error("SQL failed token=secret"))).toBe("I couldn't attach that file. Please try again.");
+	});
 	test("maps only stored document handles into chat file parts", () => {
 		expect(
 			assistantAttachmentParts([

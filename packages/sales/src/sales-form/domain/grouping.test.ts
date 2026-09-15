@@ -6,6 +6,23 @@ import {
 } from "./grouping";
 
 describe("sales form grouped line parity", () => {
+  it("restores per-row calculator inputs while preserving relational quantity overrides", () => {
+    const calculation = { linearFeet: 400, pieceLength: 16, wastePercentage: 20 };
+    const storedRows = [
+      { uid: "baseboard", qty: 30, salesPrice: 999, calculation },
+      { uid: "attic", qty: 1 },
+    ];
+    const [line] = collapseLegacyGroupedLines([
+      { id: 1, uid: "baseboard", title: "Moulding", description: "Baseboard", multiDykeUid: "group", multiDyke: true,
+        qty: 32, unitPrice: 10, lineTotal: 320, meta: { mouldingRows: storedRows }, formSteps: [] },
+      { id: 2, uid: "attic", title: "Moulding", description: "Attic", multiDykeUid: "group", multiDyke: false,
+        qty: 1, unitPrice: 20, lineTotal: 20, meta: { mouldingRows: storedRows }, formSteps: [] },
+    ]);
+    expect(line?.meta.mouldingRows[0]).toMatchObject({ qty: 32, salesPrice: 10, calculation });
+    expect(line?.meta.mouldingRows[1]?.calculation).toBeUndefined();
+    expect(line?.lineTotal).toBe(340);
+  });
+
   it("collapses legacy moulding siblings and preserves row identity", () => {
     const [line] = collapseLegacyGroupedLines([
       {

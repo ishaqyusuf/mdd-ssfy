@@ -5,6 +5,16 @@ import {
 	updateAssistantEntitlement,
 } from "@api/assistant/access-governance";
 import { resolveAssistantActor } from "@api/assistant/actor";
+import { reportAssistantClientFailure } from "@api/assistant/client-diagnostics";
+import { assistantDiagnosticUiState } from "@api/assistant/diagnostic-rollout";
+import { getAssistantCaptureHealth } from "@api/assistant/capture-health";
+import { runAssistantOperation } from "@api/assistant/operation-diagnostics";
+import { assistantClientDiagnosticSchema } from "@api/assistant/diagnostic-contract";
+import {
+	assistantDiagnosticFilterSchema,
+	assistantDiagnosticReferenceSchema,
+	assistantDiagnosticReviewSchema,
+} from "@api/assistant/diagnostic-details";
 import {
 	assistantProposalCreateSchema,
 	assistantProposalDecisionSchema,
@@ -68,6 +78,9 @@ import {
 	archiveAssistantConversation,
 	createAssistantConversation,
 	getAssistantConversation,
+	getAssistantDiagnostic,
+	listAssistantDiagnostics,
+	reviewAssistantDiagnostic,
 	getAssistantQuotaStatus,
 	listAssistantConversations,
 	listAssistantQuotaPolicies,
@@ -163,6 +176,43 @@ const assistantQuotaPolicyUpdateSchema = z
 	.strict();
 
 export const assistantRouter = createTRPCRouter({
+	captureHealth: protectedProcedure.query(async ({ ctx }) => {
+		await featureAdminOrThrow(ctx);
+		return getAssistantCaptureHealth();
+	}),
+	reportClientFailure: protectedProcedure.input(assistantClientDiagnosticSchema).mutation(async ({ ctx, input }) => {
+		const actor = await actorOrThrow(ctx);
+		return reportAssistantClientFailure(ctx.db, actor, input);
+	}),
+	diagnosticAccess: protectedProcedure.query(async ({ ctx }) => {
+		try {
+			await featureAdminOrThrow(ctx);
+			return assistantDiagnosticUiState(true);
+		} catch (error) {
+			if (error instanceof TRPCError && error.code === "FORBIDDEN") return assistantDiagnosticUiState(false);
+			throw error;
+		}
+	}),
+	diagnostics: protectedProcedure
+		.input(assistantDiagnosticFilterSchema)
+		.query(async ({ ctx, input }) => {
+			await featureAdminOrThrow(ctx);
+			return listAssistantDiagnostics(ctx.db, ctx.userId, input);
+		}),
+	diagnostic: protectedProcedure
+		.input(z.object({ reference: assistantDiagnosticReferenceSchema }).strict())
+		.query(async ({ ctx, input }) => {
+			await featureAdminOrThrow(ctx);
+			const diagnostic = await getAssistantDiagnostic(ctx.db, ctx.userId, input.reference);
+			if (!diagnostic) throw new TRPCError({ code: "NOT_FOUND", message: "This diagnostic is no longer available." });
+			return diagnostic;
+		}),
+	reviewDiagnostic: protectedProcedure
+		.input(assistantDiagnosticReviewSchema)
+		.mutation(async ({ ctx, input }) => {
+			await featureAdminOrThrow(ctx);
+			return reviewAssistantDiagnostic(ctx.db, ctx.userId, input);
+		}),
 	bootstrap: protectedProcedure.query(async ({ ctx }) => {
 		const [access, quota] = await Promise.all([
 			getAssistantAccessState(ctx.db, ctx.userId),
@@ -261,19 +311,19 @@ export const assistantRouter = createTRPCRouter({
 		.input(assistantProposalCreateSchema)
 		.mutation(async ({ ctx, input }) => {
 			const actor = await actorOrThrow(ctx);
-			return createAssistantActionProposal(ctx.db, actor, input);
+			return runAssistantOperation({ stage: "action", operation: "assistant.prepareApproval", requestId: ctx.requestId, actorUserId: actor.userId, scopeType: actor.scopeType, scopeId: actor.scopeId }, () => createAssistantActionProposal(ctx.db, actor, input));
 		}),
 	proposal: protectedProcedure
 		.input(z.object({ proposalId: z.string().trim().min(1).max(191) }))
 		.query(async ({ ctx, input }) => {
 			const actor = await actorOrThrow(ctx);
-			return getAssistantActionProposal(ctx.db, actor, input.proposalId);
+			return runAssistantOperation({ stage: "action", operation: "assistant.readApproval", requestId: ctx.requestId, actorUserId: actor.userId, scopeType: actor.scopeType, scopeId: actor.scopeId }, () => getAssistantActionProposal(ctx.db, actor, input.proposalId));
 		}),
 	decideProposal: protectedProcedure
 		.input(assistantProposalDecisionSchema)
 		.mutation(async ({ ctx, input }) => {
 			const actor = await actorOrThrow(ctx);
-			return decideAssistantActionProposal(ctx.db, actor, input);
+			return runAssistantOperation({ stage: "action", operation: "assistant.decideApproval", requestId: ctx.requestId, actorUserId: actor.userId, scopeType: actor.scopeType, scopeId: actor.scopeId }, () => decideAssistantActionProposal(ctx.db, actor, input), { uncertainOnFailure: true });
 		}),
 	prepareFeatureRequest: protectedProcedure
 		.input(z.object({ summary: z.string().trim().min(10).max(500) }))

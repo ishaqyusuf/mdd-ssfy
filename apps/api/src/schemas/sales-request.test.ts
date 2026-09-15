@@ -4,7 +4,6 @@ import {
 	listSalesRequestFinalSaveExceptionsSchema,
 	recordSalesRequestGenerationOutcomeSchema,
 	salesRequestGenerationPilotSummarySchema,
-	setSalesRequestDefaultSchema,
 	setSalesRequestProviderBenchmarkApprovalSchema,
 	validateSalesRequestPreviewSchema,
 } from "./sales-request";
@@ -92,24 +91,6 @@ test("preview validation accepts only the server-issued configuration identity",
 			configurationRevision: "a".repeat(64),
 			provider: "deepseek",
 			model: "deepseek-chat",
-			settingId: 7,
-		}).success,
-	).toBe(false);
-});
-
-test("default writes accept a nullable component UID but never a client setting ID", () => {
-	expect(
-		setSalesRequestDefaultSchema.parse({
-			rootUid: "root",
-			stepUid: "step",
-			componentUid: null,
-		}),
-	).toEqual({ rootUid: "root", stepUid: "step", componentUid: null });
-	expect(
-		setSalesRequestDefaultSchema.safeParse({
-			rootUid: "root",
-			stepUid: "step",
-			componentUid: "component",
 			settingId: 7,
 		}).success,
 	).toBe(false);

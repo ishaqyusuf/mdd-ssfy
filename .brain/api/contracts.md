@@ -1,3 +1,38 @@
+### 2026-09-15 — Public web/mobile password-login response boundary
+
+`POST /api/auth/www-mobile-sign-in` and
+`POST /api/auth/www-legacy-sign-in` now admit an attempt through a shared
+production limiter before legacy-user lookup. Over-quota requests return 429
+with `Retry-After`; unavailable trusted-IP/Redis/key infrastructure returns
+503. Successful and invalid-credential response shapes are otherwise
+unchanged. See [mobile auth abuse protection](mobile-auth-abuse-protection.md).
+
+### 2026-09-15 — Manual request JSON correction budget
+
+The one correction now covers the shared seed semantic checks and native
+configuration/source-grounding checks as well as JSON shape. The generation
+service supplies a local validation closure; decoded source is not added to model
+messages. The final service validation remains. Shape, semantic and catalog errors
+share one correction budget, not one retry per stage. Safe provider diagnostics
+use configuration-validation/seed for native validation failures; no raw failure
+message is returned to clients. Evaluation callers still default to zero repairs.
+
+Preview checks the current published catalog revision before provider I/O, matching
+Apply. A stale publication instructs the caller to regenerate AI component
+configuration in Sales Settings. This is independent of benchmark approval.
+
+DeepSeek now receives the strict native JSON schema in the initial system prompt;
+the adapter response format remains generic JSON for compatibility. Strict local
+validation and the shared two-response/45-second ceiling remain unchanged.
+
+Manual generatePreview permits one DeepSeek schema-correction response under the
+original 45-second abort signal, with transport retries zero and 4,000 output tokens
+per response. Corrections use the unchanged source and strict validation errors;
+valid results aggregate usage across both responses. Benchmark/evaluation provider
+defaults retain zero corrections. Scalar product selection is normalized to a list
+only for catalog-declared multiple steps; unknown fields and invalid quantities
+remain rejected. No request/response API shape or benchmark authority changed.
+
 ### 2026-09-10 — Completion quantity review read boundary
 
 Added manager-protected fulfillmentCompletionReview with explicit order/fulfillment pairing. It projects physical evidence and delegates assigned/packed/left-behind quantities to the shared sales validator through buildFulfillmentCompletionReview. Unknown scopes, overpacking and unresolved physical evidence return a blocked review instead of guessed quantities. Two shared review tests pass with nine assertions. This is a quantity-only preview, not inventory/evidence/permission readiness to complete. UI consumption, delivered/order remainder context, manifest binding and protected-query integration remain unfinished.
@@ -1338,6 +1373,7 @@ Tracks important request/response contracts and shared schema boundaries.
 - Sales overview transaction contract:
   - `sales.getSaleTransactions({ orderNo?, accountNo? })` returns display-ready customer transaction rows for the overview Transactions tab
   - when `orderNo` is supplied, both the transaction query and nested `salesPayments` rows are scoped to that order so multi-order customer transactions do not display unrelated order payments
+  - `salesRefunds.overview({ orderNo })` includes a normalized `checkNo` from payment or transaction metadata, and the Sales payment overview displays it for Check payments
 - Sales inbound management contract:
   - `sales.inboundIndex` rows now expose the same `inventoryInboundOwnership` object as `sales.getOrders`. The inbound-management action opens the order Inventory/Inbounds workspace for inventory-owned inbound work and keeps the legacy manual update action for orders that have not entered inventory-owned inbound; the status column uses the linked shipment status label for inventory-owned rows instead of the stale manual order prompt.
 - Product report contract:
@@ -2885,13 +2921,11 @@ Inbound creation orchestration forwards an internal creatorUserId derived from t
 ### Sales request preview — 2026-09-10
 
 `salesRequest.generatePreview` is a protected, off-by-default backend prototype.
-Input: bounded `text` and up to three JPEG/PNG/WebP `{mediaType, base64}` images.
+Input: bounded nonblank `text` plus the stable empty placeholder `images: []`.
 It carries no customer/profile pricing context because the endpoint returns only a
 native seed; normal new-form bootstrap supplies that context later.
-It accepts no client setting ID, candidate catalog, price, cache scope or image URL.
-Images are request-scoped bytes, decoded and stripped of metadata, not stored in
-the shared public document service. Hosting request-body limits may be lower than
-the validator's 10 MiB decoded aggregate limit; transport rollout must account for it.
+It accepts no client setting ID, candidate catalog, price, cache scope, image URL,
+media type, or base64 payload. Image and mailbox input are separately deferred.
 Output contains a strict native `NewSalesFormSeed`, configuration scope/revision,
 prompt version and token usage. The seed is checked against configured route, step,
 component, cardinality and visibility rules, and the configuration revision is
@@ -2899,6 +2933,16 @@ rechecked after generation. It is not hydrated, priced, or saved. The implemente
 shared `initializeNewSalesFormSeed` boundary—not this API—expands the seed through
 normal form logic when a future UI/apply adapter supplies authoritative form data
 and pricing context.
+
+HPT door output is a strict route-aware union: `noHandle:true` uses
+`{dimension,totalQty}`, while handled routes use
+`{dimension,lhQty,rhQty,swing?}`. Effective flags include selected-component
+`sectionOverride` precedence. The endpoint groups identical HPT configurations,
+aggregates duplicate size rows, verifies line quantity against the HPT-row sum, and
+requires one selected Door or a line-scoped unresolved Door. Width is not a step.
+The compact snapshot carries sanitized price-free door-size variation rules; the
+endpoint canonicalizes each source-stated dimension against the selected Height's
+`deriveDoorSizeCandidates` result before returning the seed.
 
 Configuration snapshots are cached as compact tuple JSON under server-owned
 `sales-settings:<id>` scope and a price-free structural revision. Cache storage is
@@ -2961,6 +3005,69 @@ pin/exclude UID arrays. `salesRequest.regenerateConfiguration` accepts no input,
 requires settings administration, records generation state, and never creates a
 provider or reserves usage.
 
+### Sales request native Mouldings rows — 2026-09-12
+
+`NewSalesFormSeed` v2 line metadata may contain exactly one grouped-row family.
+`mouldingRows` is a nonempty array whose unique UIDs must exactly match the selected
+UIDs on the configured multiple-selection Moulding step:
+
+- Direct pieces: `{uid,qty}` with a positive integer quantity.
+- Linear feet: `{uid,calculation:{linearFeet,pieceLength,wastePercentage?}}`.
+
+The provider boundary validates calculator facts before normalization and returns
+only native `{uid,qty}` rows, with line quantity recalculated from the rows.
+Moulding rows cannot coexist with service rows or HPT doors. Model-supplied prices,
+totals, selected component snapshots, and persisted identities remain invalid.
+
+The server binds each row to the configured Mouldings route and an exact selected
+component title or unique alphanumeric catalog profile/SKU. Direct quantities
+require explicit piece/count syntax in the same product request segment instead of
+merely appearing inside product dimensions. Linear feet and waste are likewise
+bound to that segment; commas remain inside the same product segment so trailing
+qualifiers such as “including 10% waste” remain attached. Newlines, semicolons, and
+numeric conjunctions delimit distinct product requests. Explicitly stated waste
+cannot be dropped. Piece length must be encoded by and match the catalog title, so
+dimensionless catalog titles fail closed instead of receiving the form calculator's
+ordinary 16-foot UI fallback. Generic categories remain unresolved instead of
+selecting an arbitrary component.
+
+The evaluation corpus may include strict optional raw-output and normalized-seed
+oracles. Results expose `providerOracle` for the provider's unnormalized structured
+output and `seedOracle` for the authoritative form-ready seed; normalization must
+not hide a raw model mismatch. Both scorers ignore transient line/row UIDs,
+form-step ordering, and multi-select UID ordering, but require identical
+step/component sets, quantities, delivery facts, unresolved facts, and grouped
+native row meaning. Run manifests list `providerOracleCaseIds` and
+`seedOracleCaseIds` independently so a case with only one oracle remains visible in
+the archived scoring coverage. Mock corpus runs must not be presented as provider
+accuracy or token/cost evidence.
+
+Ordinary sales-request provider creation retains one automatic AI SDK retry. The
+live corpus runner explicitly overrides that value to zero; its manifest records
+`maxRetries: 0`, provider/model, prompt/configuration revisions, timeout, output
+limit, usage, and end-to-end generation latency. A failed live attempt requires new
+explicit authorization before another billed request.
+
+For House Package Tool rows, an unresolved Door may substitute for a selected Door
+only when its `lineUid` matches the line, its `stepId` is the Door step on that
+line's active route, and its normalized `field` is exactly `door`. A Door step from
+another route or an unresolved width/height fact cannot authorize HPT rows.
+
+### Progressive assistant public contract — 2026-09-12
+
+`apps/api/src/assistant/contracts.ts` defines the first executable assistant
+boundary. Tool identities use lower snake case `<domain>_<action>` plus a positive
+integer version. Capability states are `implemented`, `coming_soon`, `disabled`,
+and `degraded`; effects are `read`, `draft`, `artifact`, `write`, `external_send`,
+and `destructive`.
+
+Every result validates stable status, bounded sources/warnings/next actions,
+observation time, and distinct artifact/job references. Tool-specific `data` is
+accepted only through `createAssistantResultEnvelopeSchema(outputSchema)`, so each
+registry tool must supply its own Zod output schema. Artifact and job lifecycles
+remain separate. ADR-090 and the assistant implementation contract own the broader
+runtime, authorization, MCP, and UI decisions.
+
 ### Employee mobile access contract — 2026-09-12
 
 - Platforms are `ANDROID | IOS`. Statuses are `REQUESTED | APPROVED | INVITED |
@@ -2969,10 +3076,505 @@ provider or reserves usage.
   note. Actor and employee ID are never accepted from the client.
 - Admin update input contains positive request ID, a non-Requested target status,
   optional 500-character employee-visible/internal notes, and an optional
-  255-character non-secret portal reference.
+  255-character non-secret distribution reference.
 - Employee output contains lifecycle timestamps and event history but excludes
   internal notes, invitation provider/reference, and reviewer details.
 - Admin output includes audit/admin fields plus legal next statuses. Concurrent
+  status changes fail with conflict instead of overwriting another reviewer.
+- For new iOS `INVITED` transitions, internal `invitationProvider` is
+  `MANUAL_PUBLIC_APP_STORE_GUIDANCE`: the admin has sent account/download
+  guidance after public release, not an Apple tester invitation. Historical
+  `MANUAL_APP_STORE_CONNECT` values remain unchanged. Android continues to
+  record `MANUAL_ANDROID_DISTRIBUTION`. Provider/reference stay admin-only.
+
+### Progressive assistant stream contract — 2026-09-12
+
+The chat POST accepts a strict bounded object containing `conversationId`, `requestId`, and one latest `role: "user"` UI message. User parts are limited to text and server-owned document IDs; client-authored assistant/tool/reasoning/source parts, raw file URLs, and unknown keys fail validation. Mentioned integration IDs must resolve inside the authenticated actor's connected-app scope.
+
+Actor scope comes from the active user and one active organization-role assignment. Soft-deleted users, organizations, assignments, roles, role-permission pivots, permission definitions, and individual grants cannot authorize work. Locale, timezone, organization, role, and operation grants are server context rather than client claims.
+
+The stream uses typed `data-rate-limit`, `data-title`, `data-run`, `data-sequence`, `data-source`, `data-warning`, and `data-terminal-status` parts. Request/run creation is atomic; repeated request identities replay the existing run, and only the executor that atomically claims queued state may invoke runtime work. Cancellation wins over a late provider success. Returned and thrown provider errors are normalized and persisted without raw provider text.
+
+Production rate/concurrency enforcement uses one atomic Redis admission command plus renewable token-owned leases and fails closed if Redis is unavailable. Reconnect output is mapped through an explicit DTO and uses private, no-store responses. T04 supplies the real model runtime; T07 supplies connected-app resolution.
+
+### Progressive assistant runtime contract — 2026-09-12
+
+The runtime resolves one allowlisted provider/model identity on the server and records that identity with `assistant-catalog-v1` and `gnd-assistant-prompt-v1`. Each foreground execution is limited to ten AI SDK tool-loop steps, twelve eligible discovery tools, one retry, 4,000 output tokens, and 45 seconds. Token usage is reduced to finite nonnegative counts plus provider/model identity before persistence.
+
+Model messages come from bounded actor-and-scope-filtered durable history. The 40-message/48,000-character window retains complete messages and removes orphaned leading assistant turns. Assistant text is saved through the generated-message idempotency boundary before success is terminalized. Cancellation before that commit prevents persistence; a late abort after committed history retains success. Provider and cleanup errors cannot expose raw text or replace an already valid outcome.
+
+### Progressive assistant MCP registry contract — 2026-09-12
+
+`assistant-catalog-v1` is the single versioned source for MCP exposure, model discovery, UI capability catalogs, future recipes, and diagnostics. Definitions contain a stable lower-snake-case ID, positive version, domain, strict Zod input/output schemas, capability, effect, grants, presentation metadata, related tools, and always-active state. Public catalog/index records omit handlers, actor context, results, and secrets.
+
+Availability and authorization are intersected before Toolpick ranking. Each execution resolves current authenticated access, requires the same user and scope as the originating turn, rechecks the tool grants, parses input again, and validates the tool-specific result envelope. In-memory MCP client/server pairs belong to one request and close across normal completion, cancellation, setup failure, and provider failure. Search and capability-explanation tools remain active so unavailable, degraded, disabled, and coming-soon capabilities can be represented without exposing an executable handler.
+
+### Dashboard chat state contract — 2026-09-13
+
+- The AI SDK transport adapts its message list to the strict server request: `{ conversationId, requestId, message: latestUserMessage, timezone, localTime, mentionedIntegrationIds }`. Earlier messages and client-authored assistant parts are never reposted.
+- Persisted conversation hydration accepts only user and assistant roles. Stream `data-title`, `data-rate-limit`, `data-run`, `data-sequence`, `data-warning`, and `data-terminal-status` parts update client state.
+- Conversation list accepts bounded `search`, `includeArchived`, and `take`. Conversation fetch includes ordered persisted messages and the latest run's ID, status, and reconnect sequence.
+
+### Sales Request Generation pilot telemetry contract — 2026-09-13
+
+Generation creates a server UUID and 90-day deadline. The durable payload is
+metadata-only: actor binding, settings scope/revision, provider/model/prompt/schema
+versions, a text-present boolean, status, bounded latency/token/issue counts,
+bounded apply/save/feedback categories, changed-field categories, and correction
+duration. Raw or normalized request text, images, contacts, credentials, generated
+seed JSON, provider bodies/errors, and prices are forbidden. A retained successful
+run may hold only the native Sales ID created from it for final-save idempotency.
+
+Successful completion may persist a `h1:`-versioned HMAC binding derived server-side
+from the validated seed plus generation/configuration identity. It is pseudonymous,
+run-scoped metadata—not request content or client proof. Invalid bindings are
+omitted, expired runs reject completion, and account anonymization clears it.
+
+`consumeSalesRequestGenerationRun` is an internal transaction-owned compare-and-set,
+not a public endpoint. It requires the creating actor, `succeeded` status, pasted
+text, completed time, seed digest, active retention, and no conflicting Sales binding.
+Same-generation/same-Sales retry is idempotent. Account anonymization clears actor,
+seed digest, and Sales binding together. The binding is an immutable logical pointer,
+not a Prisma relation; Sales deletion cannot reopen it, and completion cannot mutate
+an already-consumed run.
+
+`recordOutcome` is actor-bound and idempotent for each outcome slot. Apply/save
+outcomes may move only toward terminal success (`blocked|stale|unavailable` to
+`applied`, or `failed` to `saved`); late failures never replace success. Other
+conflicting repeats fail; expired, deleted, absent, and cross-actor identities are
+indistinguishable. `pilotSummary` reads one exact closed seven-day UTC interval and
+returns aggregates only, including latency p50/p95 and explicit blocked/stale/
+unavailable Apply plus failed/successful draft/final-save counts. More than 10,000
+rows fails completeness rather than returning a truncated aggregate.
+
+The same summary returns `representativeComparison` over successful applied final
+saves only. `assistiveTextFirst` contains rows without a generation-to-Sales
+consumption binding; `lowTouchConsumedFinalSave` contains rows atomically consumed
+by the low-touch transaction. Each arm exposes finalization count,
+generation-start-to-successful-final-save sample count/p50/p95, and correction rate
+as Accepted-with-edits over Accepted plus Accepted-with-edits, returned as reviewed
+count, edited count, and basis points. `comparison` returns low-touch-minus-assistive
+p95 and correction-rate deltas only when every finalized row in both arms has valid
+timing and accepted-review evidence; otherwise it returns deterministic completeness
+blockers and no deltas. The delta is explicitly descriptive observational evidence,
+not randomized or request-family-matched evidence, and is never by itself eligible
+to authorize increased autonomy. An anonymized, absent, or malformed actor or
+consumption identity is excluded from both arms. The response never exposes the
+selected generation, actor, Sales IDs, or source timestamps.
+Scheduled retention deletes rows with
+`retentionUntil <= now`, including soft-deleted rows, and returns only
+`{ purgedCount, retentionDays: 90 }`.
+
+### Sales Request Generation pilot access contract — 2026-09-13
+
+Sales Settings owns a nested, revisioned pilot record containing only `enabled`,
+named cohort user IDs, named reviewer user IDs, revision, and change timestamp.
+Enabling requires at least one cohort member and one reviewer. Writes normalize IDs,
+preserve unrelated Sales metadata under a serializable row lock, and reject any
+deleted, revoked, or unknown named user before persistence.
+
+`getPilotAccess` accepts exactly one create surface, `order` or `quote`, and returns
+only safe eligibility flags/reason plus the settings revision. `generatePreview`
+requires the same surface in its strict input. The pasted-text dashboard sends
+`images: []`; the server accepts only that empty placeholder and exposes no dormant
+media type, base64, or byte-limit contract. The route always forwards an empty image
+list to generation. No image or mailbox client path is part of this pilot.
+
+### Sales Request Generation native unsaved preview contract — 2026-09-13
+
+Human Apply marks the native in-memory New Sales Form record as requiring an explicit
+save. Debounced autosave is disabled while this transient hold is active. Local
+recovery persists only the hold boolean beside the ordinary native recovery payload;
+it does not persist source text, model output, generation IDs, or provider data.
+
+`buildApprovedSalesRequestInvoicePreview` is a local pure composition boundary. It
+requires the transient human-applied explicit-save hold plus an unsaved record and
+returns the existing Sales `PrintPage` invoice shape. It remains available after
+local recovery without persisting source text, provider output, generation IDs, or
+undo snapshots. Preview opens this page in memory and returns before its persistence
+flush; Print and PDF download remain blocked while the hold is active. The composer
+has no API endpoint, mutation, document-token, or outbound-delivery capability.
+
+The Preview action resolves customer/address data through `newSalesForm.resolveCustomer`
+and current print settings through the narrow protected
+`newSalesForm.getPrintContext` query. The print-context query reads only the current
+Sales setting ID and metadata directly; it neither loads the component workflow graph
+nor exposes a general client cache-bypass flag. Resolved customer/address DTOs include
+business name and address-specific phone/email fields required by the existing print
+composer. Neither read persists the Sales form.
+
+### Sales Request Generation low-touch final-save claim — 2026-09-13
+
+`newSalesForm.saveFinal` reserves an optional strict `lowTouchClaim` containing
+`source:"pasted-text"`, UUID `generationId`, configuration scope/revision, an
+allowlisted provider/model pair, and a strict `NewSalesFormSeed`. Draft saves do not
+retain this field. The final-save query splits the envelope from the ordinary native
+payload before any diagnostic capture or persistence.
+
+Durable successful-generation telemetry supplies the server-derived seed HMAC used
+by the transactional comparison. A claim now activates fresh authority resolution
+inside the native Serializable save transaction. Missing or stale benchmark,
+generation, configuration, commercial, permission, replay, pricing, tax, or stock
+evidence returns `PRECONDITION_FAILED` before the first Sales write. Ordinary
+explicit human final saves remain on the existing path.
+
+Human Apply binds exact preview metadata and seed to the semantic revision of the
+applied native record. Explicit Finalize sends the ephemeral claim only while that
+revision still matches; edits, recovery, Undo, Save Draft, and ordinary manual saves
+clear or omit it. Final-save authority also requires exactly two passing adjacent
+T10 review periods under the current server-built authority. Pilot membership and
+benchmark approval alone are insufficient.
+
+The internal commercial-authority contract now resolves exact active office
+customer/profile/address/tax records and returns only their IDs, coefficient, tax
+percentage, and a versioned opaque revision. It accepts a transaction-compatible DB
+surface, makes no fallback selections, and treats missing, ambiguous, stale,
+cross-customer, malformed, or case-insensitive impostor facts as blockers. It is not
+an endpoint; `saveFinal` now invokes it inside the native Serializable transaction
+whenever a low-touch claim is present. Tax-exempt low-touch requests remain
+unsupported pending explicit exemption proof.
+
+The internal generation-run authority accepts the strict ephemeral claim plus the
+authenticated actor and a transaction-compatible telemetry reader. It requires one
+unexpired successful completed pasted-text run, exact run/configuration/provider/
+model identity, current prompt and output-schema versions, and a constant-time match
+between the retained `h1:` seed binding and a server-side replay. It returns only
+metadata needed by preflight, including the binding and prior consumption ID; it
+does not return or persist the claim seed, source text, or provider response.
+
+The internal permission authority accepts only the authenticated actor ID and the
+native target surface. It re-resolves one active, non-revoked user plus active
+role/role-permission and individual-grant evidence, then allows only Super Admin or
+the exact `editOrders` grant for both new orders and quotes. It returns actor ID,
+surface, grant kind, and a versioned opaque revision, with no contact or credential
+fields. It is a transaction-compatible internal read contract, not an endpoint, and
+does not widen existing Sales permissions.
+
+The internal stock authority accepts the fully initialized native candidate and a
+read-only transaction client. It reuses the shared inventory sync mapper, resolves
+unique active tracked Inventory/Variant/category identities, and returns a
+versioned revision plus exact per-line/component/HPT/Mouldings quantities and
+observed physical/committed/pending-review capacity. Missing, ambiguous, untracked,
+malformed, overcommitted, or insufficient evidence fails closed; Shelf Items and
+Services are outside the first cohort. This is observational evidence recomputed
+inside the native Serializable save transaction. It reserves or allocates nothing.
+
+The composed final-save authority replays the claimed seed through the current New
+Sales Form initializer with fresh route/default/component data and authoritative
+profile coefficient/tax percentage. It compares that result against the submitted
+record after both use the same native hydration and commercial-fingerprint rules.
+Successful native writes, generation consumption, and the versioned metadata-only
+Sales History audit are atomic. A draft-key recheck and bounded low-touch-only
+P2002/P2034 retry cover create races. After a committed response is lost, only one
+exact same-actor/generation/Sales/configuration/model/fingerprint audit permits a
+read-only replay; no Sales write, second audit, consumption, or post-save job runs.
+
+### Sales Request Generation provider-benchmark approval — 2026-09-13
+
+`salesRequest.updateProviderBenchmarkApproval` accepts one strict administrative
+decision: `approved`, allowlisted `provider`/`model`, bounded `evaluationRunId`,
+`corpusVersion`, `policyVersion`, current 64-hex `configurationRevision`, current
+`promptVersion`, positive bounded `schemaVersion`, and a lowercase
+`sha256:<64-hex>` evidence digest. Actor, time, and decision revision are always
+server-derived. Unknown keys—including client actor metadata—are rejected.
+
+The write selects the active Sales Settings authority server-side and then locks and
+revalidates that authority, provider/model, configuration, prompt, schema, corpus,
+and policy inside a serializable transaction. The settings read surface returns both
+the auditable historical record and a current/approved result that is false for every
+missing, malformed, revoked, default-only, or stale identity. Evidence content,
+provider output, source text, credentials, prices, and seed JSON are never stored.
+
+### Progressive Assistant Sales/customer tool contract — 2026-09-13
+
+`assistant-catalog-v2` adds seven strict version-1 read identities:
+`sales_find_orders`, `sales_get_order_status`, `sales_explain_blockers`,
+`sales_get_timeline`, `customers_find`, `customers_get_summary`, and
+`customers_get_order_history`. Their Zod outputs use the shared typed Assistant
+envelope, bounded record sources, executable next actions, and validated order or
+customer entities.
+
+Sales detail projects the canonical `sales-pipeline/v2` snapshot and returns decimal
+money and quantities as strings. Duplicate order/quote identities return
+`requires_input`; stale expected revisions return `conflict`. Detailed revisions
+include child delivery, payment, statistic, pipeline, and timeline-history evidence.
+Customer results use `cust-<id>` as the supported non-contact route key and omit
+phone, email, address, metadata, and raw history payloads. Payment values and
+payment-dimension blockers are null or absent unless the actor has the existing
+payment-view grant.
+
+### Progressive Assistant operations/Community tool contract — 2026-09-13
+
+`assistant-catalog-v3` adds nine strict version-1 read identities:
+`inventory_check_status`, `inventory_get_demand`, `production_check_status`,
+`production_get_schedule`, `fulfillment_check_status`,
+`fulfillment_explain_exceptions`, `community_search`,
+`community_get_project_summary`, and `community_list_units`.
+
+Inventory quantities distinguish physical stock, committed allocation,
+pending-review allocation, inbound quantity, and outstanding demand. Production
+reads bind worker results to active assignments and active Sales orders; manager
+reads remain organization-scoped. Community summaries gate each child resource
+family independently and never return install costs. All outputs use bounded
+pagination, source records, evidence-backed revisions, related actions, and typed
+Community project/unit entities.
+
+### Sales Request Generation exact pilot review period — 2026-09-13
+
+`salesRequest.pilotSummary` accepts exactly `{ periodStart: YYYY-MM-DD }` and
+derives one closed seven-day UTC interval using half-open `[from, toExclusive)`
+semantics. It resolves current Sales Settings, configuration, provider/model,
+prompt/schema, pilot revision, and benchmark approval in the same repeatable-read
+transaction as telemetry. Closed, retained, non-truncated intervals remain
+reviewable after rollback or authority drift, while stable blockers and
+`eligibleForAdvancement: false` prevent those metrics from authorizing expansion.
+This intentionally replaces the earlier rolling `{ days }` pilot-only contract;
+there was no production caller in the repository when it changed.
+
+The response contains the period, coverage state, safe authority identity, stable
+blockers, advancement eligibility, and aggregate metrics. Only open, retention-
+expired, or over-10,000-row coverage returns `metrics: null`; empty, legacy, mixed,
+incomplete, disabled, or stale-authority periods remain visible but cannot advance.
+It never returns
+run IDs, actor IDs, request/customer text, generated seeds, provider bodies, contact
+data, or credentials.
+
+Provider execution now uses a three-stage metadata lifecycle: durable `beginRun`,
+durable `markProviderAttempted`, and best-effort `completeRun`. Failure of either
+pre-provider write prevents provider construction and invocation. A terminal-write
+failure preserves the valid preview but leaves the run visibly incomplete for
+advancement. The summary includes privacy-safe evidence coverage for terminal
+lifecycle, provider-attempt marker/latency, input/output tokens, issue counts,
+feedback, Apply semantics, and edited-correction samples. Missing tokens are null,
+not zero. `eligibleForAdvancement` remains false unless explicit thresholds and a
+verified review signoff evaluate to pass; the current endpoint does not accept
+client-authored thresholds or signoff.
+
+Feedback is keyed by the exact generation UUID. Before Apply only categorized
+Rejected feedback is valid; after successful Apply, Accepted, Accepted with edits,
+or categorized Rejected is valid. A successful pre-Apply rejection is terminal for
+that proposal and races atomically against Apply. `correctionMs` is server-derived
+from successful Apply to Accepted-with-edits feedback only.
+
+## Progressive Assistant PDF artifacts (2026-09-13)
+
+`assistant-catalog-v5` defines typed status, generation, and cancellation contracts
+for invoice, quote, packing-slip, Production, and order-packing PDFs. Jobs and
+artifacts keep separate lifecycle states and return opaque snapshot/document IDs,
+canonical source revisions, expiry, and dashboard entity references. Trigger run
+IDs are operational metadata and never authorize document access.
+
+Generation and cancellation handlers remain `coming_soon` until T17 supplies the
+approval execution boundary. Their durable handlers already enforce one stable
+idempotency key, terminal stale/conflict outcomes, bounded retry, and cancellation
+without external-send side effects.
+
+### Sales Request Generation durable pilot review contract — 2026-09-13
+
+The active Sales Settings metadata may contain `pilotReviewPolicy` with a strict
+provider/model, threshold policy, server-derived SHA-256 digest, revision, actor,
+and UTC change timestamp. An identical digest is a no-op. Changing thresholds
+requires a new `policyVersion`, increments the policy revision, and increments the
+pilot-settings revision so earlier periods cannot silently retain authority.
+
+`salesRequest.recordPilotReviewDecision` accepts only:
+
+```ts
+{
+  periodStart: "YYYY-MM-DD";
+  decision: "pass" | "fail";
+  signoff: {
+    unsafeApplyCount: number;
+    ambiguousUnsupportedFactCount: number;
+    ambiguousUnsupportedVisibleCount: number;
+    saveReopenCheckedCount: number;
+    saveReopenSucceededCount: number;
+  };
+}
+```
+
+Reviewer identity, review time, benchmark status, authority match, evidence digest,
+policy digest, and final decision are server-owned. Pass cannot override a failed
+threshold. Evidence must describe one closed, retained, complete seven-day UTC
+period under the current configuration/provider/model/prompt/schema/pilot/
+benchmark/policy authority. `(settingId, periodStart)` is immutable and duplicate
+writes conflict.
+
+`pilotSummary` returns only aggregate current-period evidence plus safe decision
+metadata for the latest two stored periods. Before evaluation, stored JSON is
+parsed and all authority/evidence/policy digests are recomputed. Missing, invalid,
+nonadjacent, failed, stale-authority, or policy-mismatched periods produce explicit
+blockers and `eligibleForAdvancement: false`.
+
+## Progressive Assistant saved-action contracts (2026-09-13)
+
+Prompt shortcuts contain a bounded prompt template. Deterministic recipes contain
+a registry tool/version identity derived from a durable successful execution, a
+strict recursive JSON template, unique typed parameters, bounded output paths, and
+a catalog compatibility revision. Execution returns `prompt_ready`,
+`repair_required`, a typed safe result, or a fresh `requires_approval` proposal;
+saved approval tokens are not part of the contract.
+
+## Progressive Assistant feature-request contracts (2026-09-13)
+
+Missing capability is distinct from denial, ambiguity, outage, unmet prerequisite,
+and degraded rollout. Submission accepts a durable client request UUID, editable
+bounded summary, minimal scoped evidence, and independent release opt-in. Analysis
+uses a strict output schema and a category-scoped knowledge snapshot capped at
+64,000 UTF-8 bytes. Release publication derives title and structured grants from
+the exact implemented registry version and requires nonfuture rollout verification.
+
+### Sales Request final-save exception contract — 2026-09-13
+
+`salesRequest.listFinalSaveExceptions({ limit? })` is strict and accepts no actor,
+request, customer, provider, seed, or commercial selector. It returns
+`{ items, truncated }`; every item contains only `generationId`, constant kind
+`final-save-failed`, `failedAt`, and `retentionUntil`. Source text, model output,
+seed content, provider bodies, contacts, addresses, prices, amounts, and Sales IDs
+are never selected or returned.
+# Assistant consequential-action contract — 2026-09-13
+
+- Proposal creation accepts `conversationId`, UUID `clientRequestId`, exact `toolId`/`toolVersion`, and typed tool `input`. Caller-authored review diffs are rejected.
+- Proposal receipts include status, tool identity/effect, expiry, safe error code, and an authorized review containing title, exact parameters, target revision, and server-derived diff.
+- Approval decisions accept `proposalId`, browser-held `approvalToken`, UUID `confirmationRequestId`, and `approve | reject`.
+- Known execution envelopes map to durable success/conflict/denied/failure states. Exceptions and expired execution leases map to `unknown`; clients poll status and never repeat the effect.
+- `data-assistant-document-action` is a strict persisted chat part for `documents_generate_pdf@1` with order number, mode, approved Sales revision, and regeneration choice.
+
+## Sales Request mailbox policy contract — 2026-09-13
+
+`salesRequest.getAISettings` includes `requestGeneration.mailbox` and
+`mailboxSource`. Missing or invalid persisted policy returns a disabled,
+emergency-disabled, manual-only default. `salesRequest.updateMailboxPolicy` accepts
+only supported Gmail/Microsoft Graph providers, named eligible employee IDs, bounded
+retention, an organization automation ceiling, and attachment controls. It derives
+the active Sales Settings record on the server, normalizes lists, increments the
+revision only on change, and preserves unrelated Sales metadata.
+
+The shared provider contract normalizes account identity, token lifecycle, message
+summary/detail, pages, opaque cursor recovery, and optional subscription renewal.
+The initial provider consent is read-only and cannot create drafts or send mail.
+
+OAuth state is an opaque 32-byte base64url value; only its domain-separated digest
+is retained. The server record owns organization, employee, provider, fixed redirect
+key, ten-minute expiry, and consumption state. Callback persistence must claim it
+atomically before code exchange. Synchronization requests carry an opaque cursor or
+page token plus a bounded `since` value and full-recovery flag; the shared recovery
+contract permits one cursor reset and never exposes continuation secrets to clients.
+
+Mailbox display and model text are separate plain-text projections. Both are
+bounded; neither loads remote HTML content. The model projection removes conservative
+quoted-history/signature markers and wraps remaining content as untrusted data, but
+does not claim semantic prompt injection can be sanitized away.
+
+`SalesRequestMailboxAdapter.listMessages` accepts one optional provider source scope
+per synchronization stream: a Gmail label or Microsoft Graph folder. Missing scope
+means the provider Inbox. The orchestrator will fan out configured source arrays and
+persist cursors per connection plus source scope. Every page returns new/changed
+message summaries and explicit provider-message tombstones; tombstones count toward
+the same page/message budget and prevent provider-side deletion or label/folder moves
+from leaving stale Sales Request Inbox entries. Graph next/delta URLs are opaque but
+must remain on the exact Graph origin and `/v1.0/me/` path; Gmail page tokens are
+wrapped with their full/history synchronization identity.
+
+The database-independent Inbox contract accepts only bounded status, search,
+API-issued opaque keyset cursor, and limit fields; clients cannot select owner,
+organization, provider, source, or connection authority. Summary/detail projections
+exclude provider IDs/cursors/payloads, credentials, raw errors, HTML, and model input.
+Content authorization requires an active actor, current authority, exact connection
+office, and connection owner. A same-office administrator may receive only bounded
+connection health. Runtime job payloads are strict `{workId}` references; durable
+resolvers load actor, source, message, and revision evidence server-side before the
+lifecycle store repeats authorization.
+
+Retention is the sole exception to reference payloads: its scheduler-owned task
+accepts exactly `{}`. Limits and time cutoffs are package/store owned; the store uses
+database current time and returns bounded aggregate counts plus `hasMore` for safe
+continuation. Clients cannot invoke it with a cutoff, owner, connection, or limit.
+
+Inbox cursors are short-lived, HMAC-authenticated `mbx1` keyset envelopes. Their
+scope digest binds owner, organization, connection, connection revision, authority
+revision, normalized status, and normalized search; provider cursors and raw scope
+values are never exposed. Persisted mailbox model input must match the one canonical
+untrusted-data envelope produced by the sanitizer. The mailbox-to-preview bridge
+resolves it owner-side, sends the hardened envelope to the configured model, uses
+only its decoded request for deterministic grounding checks, and repeats mailbox
+authorization/content identity before the existing preview lifecycle can record
+success. Its result is the existing native, review-only unsaved Sales seed.
+
+The implemented tRPC boundary exposes connection status/start/disconnect, Inbox
+summary/detail, and mailbox preview. Every call derives the actor from the protected
+session and re-resolves current employee, canonical office, Sales Settings policy,
+connection revision, and ownership. OAuth callback routes accept only Gmail or
+Microsoft Graph, consume server-stored state, best-effort submit durable initial
+sync work, and redirect to a fixed same-origin Sales Request Inbox location.
+Provider authorization URLs must be bounded HTTPS URLs.
+
+Disconnect deliberately ignores current mailbox eligibility and policy-revision
+equality so policy disablement cannot trap stored credentials. Its first durable
+claim still requires the active owner, active employee profile, organization, and
+the same canonical office authority key; later cleanup resumes only from the exact
+persisted disconnect claim.
+
+Connection listing resolves the actor's active employee profile and canonical office
+before querying. Returned rows must match owner, employee profile, organization, and
+office authority key. It does not require current provider eligibility or policy-
+revision equality because those connections must remain visible for disconnect.
+
+Mailbox preview handoff routes `quote` to the native quote form and `order` to the
+native order form. The handoff-only review mode may initialize a partial shell with
+unresolved selections blank; normal Apply still rejects unresolved facts, and no
+low-touch claim is attached to an unresolved proposal.
+
+## Workflow component default contract — 2026-09-14
+
+Active component DTOs expose `default: true` only when marked; false is omitted.
+Default writes are component-owned and step-scoped. Request configuration and the
+native initializer no longer accept route-level default maps. For an omitted safe
+step, selection precedence is marked eligible component, then the first eligible
+component in canonical `sortIndex/title/UID` order. Explicit, ambiguous, unreadable,
+empty-family, and redirect-target behavior remains fail-closed or blank as defined
+by the native initializer.
+
+The global pasted-request shortcut calls the existing `generatePreview` contract,
+then transfers that exact validated response by generation ID to the New Sales Form.
+It does not introduce an API that saves or finalizes a Sales order.
+
+## Assistant quota contract — 2026-09-14
+
+Quota admission is server-derived, serializable, and idempotent by run ID. Policy
+nulls mean unlimited. Hard mode blocks projected overage; warning and dry-run modes
+record the reservation without blocking. Terminal runs settle reservation usage
+from the provider ledger, while unknown receipts retain their conservative reserved
+amount until reconciliation. User bootstrap omits organization-wide spend data.
+
+## Sales Request provider diagnostic contract — 2026-09-14
+
+Provider failures are normalized into a closed metadata vocabulary. Structured-output
+causes are `json-parse` or `schema-validation`; schema issues retain only an allowlisted
+Zod code and a path whose unknown segments are replaced before persistence. HTTP and
+provider status values must pass existing numeric/enum allowlists. All lists and
+strings are bounded. Raw error messages, request/provider payloads, contacts, and
+credentials are forbidden at the provider, persistence, aggregation, and tRPC output
+boundaries.
+
+DeepSeek uses generic JSON-object response format at the adapter boundary and strict
+local V2 seed validation before returning. Other providers retain their existing
+typed-object strategy.
+
+The current DeepSeek Flash API identifier is `deepseek-flash`. Sales Request settings
+normalize the retired persisted `deepseek-v4-flash` identifier to the current value
+when read, while new writes and provider calls accept only the current allowlisted ID.
+Evaluation corpus configuration locks must pass before a one-call approval is
+consumed or any provider is constructed.
+
+## Assistant runtime settings contract — 2026-09-14
+
+Runtime settings expose provider IDs, labels, allowlisted model IDs, default model,
+and a credential-configured Boolean. They never expose credential names or values.
+Updates carry `expectedVersion`; a stale version returns a conflict. A valid saved
+selection overrides environment provider/model defaults for new runs, while an
+invalid retired selection falls back to the validated environment default and is
+reported as an invalid source for administrator repair.
 
 ### Batch sale deletion confirmation
 
@@ -2981,3 +3583,155 @@ provider or reserves usage.
 captured before it runs. IDs are confirmed only when the entire bounded set was
 updated; a partial count returns an empty confirmed list. Consumers must not infer
 individual success from a count. Handoff reconciliation keeps its existing scope.
+
+## Sales Request manual-draft benchmark scope — 2026-09-15
+
+Manual preview/Apply no longer require benchmark approval, per explicit user decision.
+All access, usage, catalog and output-validation gates remain. An unapproved manual
+run records providerBenchmarkApprovalRevision: 0; this grants no automatic-final-save
+or rollout authority. Final-save benchmark enforcement remains unchanged. DeepSeek
+output normalization may lift an incorrectly nested unresolved array only when every
+fact already names that same line; strict schema validation follows unchanged.
+
+## 2026-09-15 — Assistant public outcome and history contracts
+
+`data-assistant-outcome` contains an allowlisted `kind` plus optional opaque `ERR-` reference; it carries no raw error text. Staff copy comes from `outcomes.ts`. Outcomes distinguish empty, input correction, denied access, unapproved action, sign-in, temporary/partial failure, unsupported capability, cancellation, conflict, uncertain write and limits. Failure narration is consolidated with priority for uncertain/restricted actions. Trusted feature-request cards remain actionable. Tool lifecycle parts persist once per stable ID, with terminal state replacing running state. Failed responses persist the same safe outcome/reference before run finalization. Model history appends bounded prior execution names/status/outcome, explicitly marked historical; it excludes tool inputs, raw outputs, diagnostic details, and references.
+
+### Assistant model boundary and MCP error results
+
+Every model step now receives sanitized tool error outputs, including SDK-generated error-text/error-json and MCP isError payloads. Typed failure envelopes are projected to safe outcome/message pairs; successful business outputs and tool selection are preserved. Handler failures return friendly content plus `_meta.assistantOutcome` with the captured reference. Runtime recognizes MCP isError as failure and reuses that reference rather than capturing it again. A provider interruption after a write/destructive tool starts produces an uncertain outcome.
+
+### Assistant client reports and diagnostic filters
+
+Browser-safe diagnostic schemas now live in `assistant/diagnostic-contract.ts`. List filters include outcome category alongside status, stage, provider/model, environment, reference and date bounds. Client reports accept only UUID event identity, bounded conversation/run IDs and one of transport/render/attachment/reconnect; arbitrary messages, URLs and additional properties are rejected. Duplicate event delivery for the same actor derives the same occurrence reference.
+
+### Assistant diagnostic client/approval additions
+
+Client failure reports accept a generated eventId and one allowlisted stage, with optional conversation/run identities validated against the actor. Conversation is required for transport/reconnect; pre-chat attachment/render reports may omit it and cannot supply a run alone. No client error text or URL is accepted. Approval create/read/decide exception responses use the shared AppError public envelope and validated referenceId; uncertain decisions are not publicly retryable. Returned failure envelopes still require a complete capture audit.
+
+### Assistant private monitoring metadata
+
+Assistant diagnostic `details.monitoring` contains status (`submitted`, `unavailable`, `failed`) and an optional validated 32-character hexadecimal eventId. This stays in the administrator-only diagnostic DTO; public chat retains only its opaque reference. The existing Sentry adapter receives sanitized cause/frame data and a deterministic occurrence event identity. Submission and durable remote delivery are intentionally distinct.
+
+### Approval failure receipt outcome
+
+Proposal receipts now expose `outcome`, either a validated public Assistant outcome or null. Newly finalized execution failures persist the same outcome inside the safe result's `assistantOutcome` and the parent run terminal result. Authorized replay/status reads reuse the reference. `includeProtected: false` always returns null outcome, even when persisted data contains a reference. Failure envelope warning/body content is not returned in the saved public failure result.
+
+### Diagnostic pagination cursor
+
+The Diagnostics list cursor now contains the immutable UTC millisecond timestamp and reference (`<ISO timestamp>|<ERR reference>`). The browser-safe codec is exported as `@gnd/db/assistant-diagnostic-cursor`; it has no database/runtime imports. API validation rejects invalid dates, extra fields and old reference-only cursors. List queries apply a strict descending timestamp/reference boundary, so retention can remove the original cursor record without losing the next page. Cursors are transient UI state, not stored incident identities; refresh resets an older in-flight cursor after an upgrade.
+
+### Captured Assistant operation propagation
+
+Internal AssistantOperationError extends the shared AppError and carries a validated public assistantOutcome/reference. It has no original exception cause. REST forwards this public outcome instead of capturing again; nested operation boundaries preserve the same instance. Authenticated history/attachment operations bind run/chat/request and actor scope server-side. Explicitly cancelled requests do not create an operation incident. This marker is an internal server contract, not client-submitted data.
+
+New tool-execution result summaries retain warningCount (bounded to 20) instead of raw warning strings; legacy persisted rows are unchanged.
+
+### Unconfirmed reply-history save
+
+`history-unconfirmed` is an approved outcome with static copy. A separate `data-assistant-history-notice` stream part (stable id assistant-history-notice) contains only this literal kind and an optional validated error reference. It does not replace the primary response/outcome. Successful runtime execution whose history save throws returns success/usage with committed false; no provider or business tool is retried. The history diagnostic uses operation assistant.saveReply. The notice says "may not be saved" because a database commit may have occurred before the response was lost.
+
+The client renderer validates the distinct notice schema, retains answer text/Copy, and provides secondary diagnostic Help. The notice is live recovery state; a failed persistence cannot promise a durable transcript.
+
+### Approval preflight and stale recovery outcomes
+
+Stale executing proposals persist uncertain assistantOutcome/reference in both proposal result and parent run terminal result. Capture happens only after a successful conditional recovery transition, using the same execution occurrence reference on subsequent reads. An unexpected preflight outage remains a temporary captured operation error before execution; it does not mutate a pending proposal into denied.
+
+Expected precommit errors expose internal HTTP classification hints (403 denied, 409 conflict, 500 failed) to the shared error classifier. Original unexpected preflight causes are retained internally for sanitized capture. Status reads and decision replays distinguish TARGET_CHANGED from AUTHORIZATION_CHANGED while hiding protected result/review data in either case. Clients must inspect these error codes before interpreting a receipt's historical status as an accessible current success.
+
+### Assistant private model-history context (2026-09-15)
+`getAssistantModelHistory` keeps visible historical text separate from optional bounded executionFacts. Both count toward the existing history character budget. execute-turn supplies facts as private system context; facts are not appended to a past assistant reply or added to the public history contract. Live follow-up recall and 53 focused tests verify the new path.
+
+### Distinct ambiguous Assistant outcome (2026-09-15)
+Trusted requires_input envelopes with more than one candidate map to public kind `ambiguous`: “I found more than one match. Which one do you mean?” Missing input remains `input`; no match remains `empty`. Typed candidates remain separate record links. This low-impact outcome cannot override denied or uncertain outcomes. Private history accepts the new outcome vocabulary; its diagnostic classification is informational.
+
+### Diagnostic UI rollout contract (2026-09-15)
+`assistant.diagnosticAccess` now returns `{ allowed, uiEnabled }`. `allowed` remains server-authorized Super Admin access; `uiEnabled` additionally requires ASSISTANT_DIAGNOSTICS_UI_ROLLOUT to be unset or super-admin. Off/unknown values disable UI only. Detail/list/review authorization and capture are independent. Consumers fail closed when uiEnabled is absent.
+
+### Preserved order findings (2026-09-15)
+Additive `data-assistant-finding` part contains strict order-status data: orderNo, salesType, allowlisted status code and observedAt. Runtime produces it only from successful trusted native order-status/blocker/fulfillment results. Canonical lifecycle status takes precedence; only commercial pending has an explicit fallback. Arbitrary returned labels/messages, finance values and errors are not copied. At most six distinct order/quote findings are emitted; stable IDs update repeat observations. execute-turn validates before persistence. Unknown/malformed findings are ignored by the view model.
+
+### Bounded automatic read recovery (2026-09-15)
+Each request-owned MCP session has one shared automatic retry budget, including concurrent tools. Only thrown explicit transient codes/statuses on effect=read qualify; returned failure envelopes, arbitrary error text, drafts, artifacts, sends and writes are never automatically replayed. Retry waits honor supported Retry-After seconds/date values up to one second; longer/invalid values skip automatic retry. The existing tool abort signal controls waiting and the second operation. Actor identity, scope and current grants are resolved again before executing the second attempt.
+
+Failed attempts have separate diagnostic references. The first attempt selected for silent recovery stores details.attempt=1 and presentation=not-shown; its publicMessage truthfully says no error was shown for that attempt. A failed second attempt receives its own visible failure reference. Cancellation produces neutral cancelled state with no new cancellation incident. Terminal tool summaries may add recovery `{attemptCount:2, firstFailureReference?}`; normalization accepts only the fixed attempt count and valid opaque reference. Public successful tool output does not expose recovery internals.
+
+### Capture-health counters (2026-09-15)
+Super Admin-only `assistant.captureHealth` returns `{available, periodStart, counts}` for the current environment/UTC day. Counts are null when unavailable or malformed, not zero. Fixed counters: attempts, storageConfirmed, storageUnconfirmed, monitorSubmitted, monitorUnavailable, monitorFailed. They count capture attempts, not unique incidents, failed requests or proven remote deliveries. No references, payloads or record IDs enter the metrics hash.
+
+Capture records health after its existing bounded storage attempt; metric work has a separate 150ms bound and never changes the capture result. Store timeout is unconfirmed, not proven loss. A failed metrics write emits a bounded reference-only server-log event. Redis writes are atomic and daily hashes expire after 31 days. Reads use JSON-returning EVAL for compatibility with the existing TCP Redis adapter.
+
+### Assistant attachment correction outcomes (2026-09-15)
+The public outcome vocabulary includes attachment-too-large, attachment-unreadable,
+attachment-unsupported and image-unsupported, with fixed correction copy and no
+automatic retry action. Known PDF invalid/password and Sharp corrupt/unsupported
+input errors become informational corrections; unexpected decoder failures remain
+temporary failures. The private diagnostic records the preprocessing operation.
+
+### 2026-09-15 — Upload failure Help and exact diagnostic copy
+Added upload-failed to the strict public outcome vocabulary and shared its fixed
+copy with the attachment composer. Client attachment reports now record that exact
+copy instead of the generic temporary-check message. A confirmed recorded report
+adds the existing Help / authorized View diagnostics control beside the composer
+error. Missing/failed recording adds no misleading link. Generation and error
+version checks discard late report references after a new attempt, clear, discard
+or removal. Tests: 13 pass / 58 assertions across client-report, health, outcome and
+diagnostic-details suites. Live Help-link acceptance remains dependent on working
+upload/report infrastructure; no durable capture was claimed in the failing local
+upload test.
+
+Assistant chat and reconnect HTTP 401 responses now return the signed-out public
+outcome and fixed sign-in wording. Authentication rejection remains before
+conversation persistence.
+
+### 2026-09-15 — Monitoring event lookup link
+Submitted Sentry captures now retain a validated SENTRY_ORG slug with their event
+ID. The authorized diagnostic detail sheet builds a fixed sentry.io organization
+issue-search link for that exact event ID and a 30-day window. It ignores arbitrary
+stored URLs and hides links for unavailable/failed/malformed or legacy records
+without an organization. No environment files changed. This is an event lookup
+link, not proof of remote event delivery or a resolved issue permalink.
+Reference for event-ID issue lookup: https://forum.sentry.io/t/event-id-sentry-issue-url/4005/2
+Live remote destination/delivery verification remains outstanding.
+
+### 2026-09-15 — Capture upload validation before generic wrapping
+The upload endpoint already parses Assistant PDFs before storage. Malformed PDF
+validation therefore explained the earlier incomplete-file test without proving a
+blob service failure. Added typed upload-validation reasons with retained decoder
+causes. Assistant validation runs inside assistant.validateUpload capture, with
+actor/scope context and fixed unreadable/size correction copy. Unexpected decoder
+failures remain upload-failed, not a claimed invalid file. The composer accepts
+only approved server copy with a valid reference and avoids duplicate browser
+reporting when the server already captured it. Other upload workflows retain their
+existing BAD_REQUEST messages. Actual parser test proves InvalidPDFException cause
+retention. API typecheck reports only the existing Sales copy nullability issue.
+Live re-test of corrected upload Help flow remains open.
+
+
+## Native sales form customer request context (2026-09-15)
+
+The shared sales form metadata contract accepts optional nullable
+`customerRequestText: string` (maximum 20,000 characters). It preserves the exact
+pasted request, including whitespace, rather than a generated summary. Apply binds
+it from client source context into form metadata; ordinary save stores it at
+`SalesOrders.meta.newSalesForm.form.customerRequestText`, and form hydration returns
+it for the rep's collapsed request-reference section. It follows existing sale
+read/write permissions and is not an authorization or automatic-finalization claim.
+Generation telemetry and low-touch evidence remain source-free; this explicit sales
+record context is separate from those earlier no-source-retention guarantees.
+No database schema migration is required. Targeted save/reload test: 1 pass / 15
+assertions; shared normalization/schema round trip also passes.
+
+### AI moulding quantity review (2026-09-15)
+
+V2 allows qty0 only for pending moulding rows with line-scoped quantity unresolved (stepIdnull). Native marked rows preserve quantityReview:true at0; final-save rejects those until positive, while draft save permits review. Explicit exact-title counted moulding omissions invoke bounded correction. Prompt v10 removes length requirement for direct piece counts. Existing native catalog/pricing/permission checks remain.
+
+### Moulding saved calculations (2026-09-15)
+
+V2 moulding qty rows may retain validated calculation {linearFeet,pieceLength,wastePercentage?}. AI normalization retains these inputs with the derived qty and grounding revalidates calculation facts. Native rows store optional calculation in existing line meta.mouldingRows; save/reopen preserves it without migration. Native manual qty overrides do not recompute from saved inputs until calculator Apply. Calculator callbacks accept optional calculation alongside qty, keeping qty-only callers compatible.
+
+Grouped legacy row reconstruction restores only validated calculation metadata from the persisted row with matching UID; relational item quantity and pricing remain authoritative, including manual overrides. Verified through actual local saved-order09664PC reopen.
+
+### Request clarification and rules — 2026-09-15
+
+generatePreview returns the existing validated preview plus clarification:null or {sessionId,revision,round,questions}. Questions include id,lineUid,field,question,sourceText,reason. answerClarification accepts sessionId/revision and all current {questionId,answer,reuse} records once; returns the next questionnaire or resolved preview. Original text is preserved; verified source anchors bind short answers. Global rules and remembered guidance cannot supply new numerical facts.

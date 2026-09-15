@@ -184,3 +184,54 @@ test("does not invent a title when authoritative catalog data is missing", () =>
 		},
 	]);
 });
+
+// Regression from the live DeepSeek slab output: there is deliberately no Door selection.
+test("retains every slab size and the missing-product warning without route data", () => {
+	const model = buildSalesRequestReviewModel(
+		{
+			schemaVersion: 2,
+			lineItems: [
+				{
+					uid: "line-1",
+					qty: 14,
+					formSteps: [
+						{ stepId: 1, prodUid: "2oWEo" },
+						{ stepId: 13, prodUid: "D2Vup" },
+						{ stepId: 41, prodUid: "owVLr" },
+					],
+					housePackageTool: {
+						doors: [
+							{ dimension: "2-10 x 6-8", totalQty: 11 },
+							{ dimension: "3-0 x 6-8", totalQty: 2 },
+							{ dimension: "2-4 x 6-8", totalQty: 1 },
+						],
+					},
+				},
+			],
+			unresolved: [
+				{
+					lineUid: "line-1",
+					stepId: 51,
+					field: "door",
+					status: "unsupported",
+					reason:
+						"No listed Door product matches the requested properties: smooth, white-primed, engineered solid-core interior door slabs.",
+				},
+			],
+		},
+		null,
+	);
+	expect(model.lines[0]?.quantity).toBe(14);
+	expect(
+		model.lines[0]?.hptRows.map(({ dimension, quantity }) => ({
+			dimension,
+			quantity,
+		})),
+	).toEqual([
+		{ dimension: "2-10 x 6-8", quantity: 11 },
+		{ dimension: "3-0 x 6-8", quantity: 2 },
+		{ dimension: "2-4 x 6-8", quantity: 1 },
+	]);
+	expect(model.unresolved[0]?.reason).toContain("engineered solid-core");
+	expect(model.defaults).toEqual([]);
+});

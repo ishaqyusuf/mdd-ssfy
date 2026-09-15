@@ -7,7 +7,6 @@ import {
 } from "./configuration-serializer";
 import {
 	type RequestConfigurationComponent,
-	type RequestConfigurationDefaults,
 	type RequestConfigurationRepository,
 	type RequestConfigurationRootComponent,
 	type RequestConfigurationSource,
@@ -15,12 +14,9 @@ import {
 	loadRequestConfigurationSource,
 } from "./load-configuration";
 
-export type { RequestConfigurationDefaults } from "./load-configuration";
-
 export type ProjectRequestConfigurationInput = {
 	settingId: number;
 	repository: RequestConfigurationRepository;
-	defaults?: RequestConfigurationDefaults;
 };
 
 export type ProjectedRequestConfiguration = {
@@ -32,7 +28,6 @@ type ProjectedRoute = {
 	itemTypeUid: string;
 	rootStepUid: string;
 	stepUids: string[];
-	defaults?: Record<string, string>;
 };
 
 type ProjectedComponent = NonNullable<
@@ -57,6 +52,7 @@ type ProjectedStep = {
 		uid: string;
 		title: string;
 		sortIndex?: number | null;
+		default?: true;
 	}>;
 };
 
@@ -168,14 +164,6 @@ function withoutDeferredShelfItems(
 		(step) => step.uid && includedStepUids.has(step.uid),
 	);
 	const includedStepIds = new Set(steps.map((step) => step.id));
-	const defaults = source.defaults
-		? Object.fromEntries(
-				Object.entries(source.defaults).filter(([itemTypeUid]) =>
-					routes.some((route) => route.itemTypeUid === itemTypeUid),
-				),
-			)
-		: undefined;
-
 	return {
 		routes,
 		steps,
@@ -185,7 +173,6 @@ function withoutDeferredShelfItems(
 		components: source.components.filter((component) =>
 			includedStepIds.has(component.dykeStepId),
 		),
-		...(defaults && Object.keys(defaults).length ? { defaults } : {}),
 	};
 }
 
@@ -456,68 +443,21 @@ function snapshotComponent(component: ProjectedComponent) {
 	return {
 		uid: component.uid,
 		title: component.title,
+		...(component.default ? { default: true as const } : {}),
 		...(component.sortIndex == null ? {} : { sortIndex: component.sortIndex }),
 	};
-}
-
-function normalizeRouteDefaults(
-	defaults: RequestConfigurationDefaults | undefined,
-	routes: ProjectedRoute[],
-	componentUidsByStepUid: ReadonlyMap<string, ReadonlySet<string>>,
-) {
-	if (!defaults) return new Map<string, Record<string, string>>();
-
-	const routeByItemTypeUid = new Map(
-		routes.map((route) => [route.itemTypeUid, route]),
-	);
-	for (const itemTypeUid of Object.keys(defaults)) {
-		if (!routeByItemTypeUid.has(itemTypeUid)) {
-			throw new Error(`Default references unknown route: ${itemTypeUid}`);
-		}
-	}
-
-	const normalized = new Map<string, Record<string, string>>();
-	for (const route of routes) {
-		const routeDefaults = defaults[route.itemTypeUid];
-		if (!routeDefaults) continue;
-		const allowedStepUids = new Set(route.stepUids);
-		const values: Record<string, string> = {};
-		for (const [stepUid, componentUid] of Object.entries(routeDefaults)) {
-			if (!allowedStepUids.has(stepUid)) {
-				throw new Error(
-					`Default step ${stepUid} is not in route ${route.itemTypeUid}`,
-				);
-			}
-			if (!hasText(componentUid)) {
-				throw new Error(
-					`Default component for ${route.itemTypeUid}/${stepUid} must be a UID`,
-				);
-			}
-			if (!componentUidsByStepUid.get(stepUid)?.has(componentUid)) {
-				throw new Error(
-					`Default component ${componentUid} is not in step ${stepUid}`,
-				);
-			}
-			values[stepUid] = componentUid;
-		}
-		if (Object.keys(values).length) normalized.set(route.itemTypeUid, values);
-	}
-	return normalized;
 }
 
 function buildSnapshotRoutes(
 	source: RequestConfigurationSource,
 	rootStepId: number | null,
-	defaults: ReadonlyMap<string, Readonly<Record<string, string>>>,
 ) {
 	return source.routes.map((route) => {
-		const routeDefaults = defaults.get(route.itemTypeUid);
 		return {
 			itemTypeUid: route.itemTypeUid,
 			rootStepId,
 			stepUids: [...route.stepUids],
 			...(route.config ? { config: { ...route.config } } : {}),
-			...(routeDefaults ? { defaults: { ...routeDefaults } } : {}),
 		};
 	});
 }
@@ -683,18 +623,9 @@ export async function projectRequestConfiguration(
 			stepUids: [...route.stepUids],
 		};
 	});
-	const normalizedDefaults = normalizeRouteDefaults(
-		input.defaults ?? source.defaults,
-		projectedRoutes,
-		componentUidsByStepUid,
-	);
-	for (const route of projectedRoutes) {
-		const defaults = normalizedDefaults.get(route.itemTypeUid);
-		if (defaults) route.defaults = defaults;
-	}
 	const configuration: SalesRequestConfiguration = {
 		schemaVersion: 1,
-		routes: buildSnapshotRoutes(source, rootStepId, normalizedDefaults),
+		routes: buildSnapshotRoutes(source, rootStepId),
 		steps: projectedSteps,
 		visibilityByComponentUid: buildVisibilityMetadata([
 			...projectedByComponentUid.values(),

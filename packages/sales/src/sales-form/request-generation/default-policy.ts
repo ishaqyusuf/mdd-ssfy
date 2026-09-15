@@ -16,13 +16,13 @@ export type RequestStepCandidate = {
 		}[];
 	}[];
 	isDeleted?: boolean;
+	default?: true;
 };
 
 export type ResolveRequestStepSelectionInput = {
 	stepUid: string;
 	inputStatus: RequestStepInputStatus;
 	requestedComponentUid: string | null;
-	defaultComponentUid: string | null;
 	candidates: readonly RequestStepCandidate[];
 	selectedByStepUid?: Readonly<Record<string, string>>;
 	selectedProdUidsByStepUid?: Readonly<Record<string, readonly string[]>>;
@@ -127,44 +127,28 @@ export function resolveRequestStepSelection(
 		};
 	}
 
-	const defaultCandidate = findCandidate(
-		input.candidates,
-		input.defaultComponentUid,
-	);
-	if (!defaultCandidate) {
-		return {
-			status: "unresolved",
-			reason: input.defaultComponentUid
-				? "default-component-missing"
-				: "default-component-not-configured",
-		};
-	}
-	if (defaultCandidate.isDeleted) {
-		return { status: "unresolved", reason: "default-component-deleted" };
-	}
-
 	const resolvedStepUids = new Set(input.resolvedStepUids);
-	const unresolvedDependency = Array.from(
-		getVariationDependencyStepUids(defaultCandidate),
-	).find((stepUid) => !resolvedStepUids.has(stepUid));
-	if (unresolvedDependency) {
-		return {
-			status: "unresolved",
-			reason: `default-dependency-unresolved:${unresolvedDependency}`,
-		};
-	}
-
-	if (
-		!isCandidateVisible(
-			defaultCandidate,
+	const orderedCandidates = [
+		...input.candidates.filter((candidate) => candidate.default === true),
+		...input.candidates.filter((candidate) => candidate.default !== true),
+	];
+	const defaultCandidate = orderedCandidates.find((candidate) => {
+		if (candidate.isDeleted) return false;
+		if (
+			Array.from(getVariationDependencyStepUids(candidate)).some(
+				(stepUid) => !resolvedStepUids.has(stepUid),
+			)
+		) {
+			return false;
+		}
+		return isCandidateVisible(
+			candidate,
 			selectedByStepUid,
 			input.selectedProdUidsByStepUid,
-		)
-	) {
-		return {
-			status: "unresolved",
-			reason: "default-component-not-visible",
-		};
+		);
+	});
+	if (!defaultCandidate) {
+		return { status: "unresolved", reason: "default-component-not-configured" };
 	}
 
 	return {

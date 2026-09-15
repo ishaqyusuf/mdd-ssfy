@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { AssistantQuotaExceededError } from "@gnd/db/queries";
 import { readUIMessageStream } from "ai";
+import { runAssistantOperation } from "@api/assistant/operation-diagnostics";
+import { AssistantAttachmentInputError } from "@api/assistant/attachment-errors";
 import {
 	AssistantStreamGuard,
 	DistributedAssistantStreamGuard,
@@ -19,6 +21,8 @@ const actor = {
 function createHarness(overrides: Record<string, unknown> = {}) {
 	const calls: Record<string, unknown>[] = [];
 	const router = createAssistantChatRouter({
+		persistFailure: async (input) => { calls.push({ persistedFailure: input }); },
+		captureDiagnostic: async () => ({ reference: "ERR-ABCDEFGHIJ", recorded: true }),
 		resolveActor: async () => actor,
 		resolveIntegrations: async (_actor, integrationIds) => integrationIds,
 		guard: new AssistantStreamGuard(),
@@ -113,6 +117,20 @@ async function readStream(response: Response) {
 }
 
 describe("assistant chat REST router", () => {
+	test("captures pre-run storage failures without trusting a supplied conversation link", async () => {
+		const original = new Error("private database credentials");
+		const captures: unknown[] = [];
+		const { router } = createHarness({
+			startRun: async () => { throw original; },
+			captureDiagnostic: async (error: unknown, context: unknown) => { captures.push({ error, context }); return { reference: "ERR-ABCDEFGHIJ", recorded: true }; },
+		});
+		const response = await router.request("/", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(requestBody()) });
+		expect(response.status).toBe(500);
+		expect(await response.json()).toEqual({ error: { code: "ASSISTANT_REQUEST_FAILED", message: "I couldn't check that right now. Please try again." }, outcome: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" } });
+		expect(captures).toHaveLength(1);
+		expect(captures[0]).toMatchObject({ error: original, context: { stage: "request", actorUserId: actor.userId } });
+		expect(captures[0]).not.toHaveProperty("context.conversationId");
+	});
 	test("rejects unauthenticated requests before persistence", async () => {
 		const { router, calls } = createHarness({ resolveActor: async () => null });
 		const response = await router.request("/", {
@@ -122,6 +140,7 @@ describe("assistant chat REST router", () => {
 		});
 
 		expect(response.status).toBe(401);
+		expect(await response.json()).toEqual({ error: { code: "UNAUTHORIZED", message: "Please sign in again to continue." }, outcome: { kind: "signed-out" } });
 		expect(calls).toHaveLength(0);
 	});
 
@@ -216,7 +235,7 @@ describe("assistant chat REST router", () => {
 		expect(await response.json()).toEqual({
 			error: {
 				code: "ASSISTANT_QUOTA_EXCEEDED",
-				message: "Assistant quota reached",
+				message: "You've reached your current limit. Please try again later.",
 			},
 			quota: {
 				dimension: "daily_requests",
@@ -224,6 +243,7 @@ describe("assistant chat REST router", () => {
 				remaining: 0,
 				resetAt: resetAt.toISOString(),
 			},
+			outcome: { kind: "limit" },
 		});
 	});
 
@@ -405,6 +425,51 @@ describe("assistant chat REST router", () => {
 		});
 	});
 
+	test("forwards a captured operation reference without creating a second diagnostic", async () => {
+		let boundaryCaptures = 0;
+		let routerCaptures = 0;
+		const { router, calls } = createHarness({
+			captureDiagnostic: async () => { routerCaptures++; return { reference: "ERR-KLMNOPQRST", recorded: true }; },
+			executeRun: async () => runAssistantOperation({ stage: "history", operation: "assistant.loadHistory" }, async () => { throw new Error("private database password"); }, { capture: async () => { boundaryCaptures++; return { reference: "ERR-ABCDEFGHIJ", recorded: true }; } }),
+		});
+		const response = await router.request("/", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(requestBody()) });
+		const raw = await response.text();
+		expect(raw).toContain("ERR-ABCDEFGHIJ");
+		expect(raw).not.toContain("private database password");
+		expect(boundaryCaptures).toBe(1);
+		expect(routerCaptures).toBe(0);
+		expect(calls.find(call => call.persistedFailure)).toMatchObject({ persistedFailure: { actor, conversationId: requestBody().conversationId, runId: "run-1", outcome: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" } } });
+	});
+
+	for (const saveFails of [false, true]) {
+		test(`preserves attachment correction and finalizes when failure history save fails: ${saveFails}`, async () => {
+			let executions = 0;
+			const saved: unknown[] = [];
+			const captures: unknown[] = [];
+			const { router, calls } = createHarness({
+				executeRun: async () => {
+					executions++;
+					return runAssistantOperation({ stage: "attachment", operation: "assistant.extractPdf" }, async () => { throw new AssistantAttachmentInputError("attachment-unreadable", new Error("private decoder payload")); }, { capture: async () => ({ reference: "ERR-ABCDEFGHIJ", recorded: true }) });
+				},
+				persistFailure: async (input: unknown) => { saved.push(input); if (saveFails) throw new Error("private save failure"); },
+				captureDiagnostic: async (error: unknown, context: unknown) => { captures.push({ error, context }); return { reference: "ERR-KLMNOPQRST", recorded: true }; },
+			});
+			const response = await router.request("/", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(requestBody()) });
+			const raw = await response.text();
+			expect(raw).toContain('"kind":"attachment-unreadable"');
+			expect(raw).not.toContain("private");
+			expect(executions).toBe(1);
+			expect(saved).toHaveLength(1);
+			expect(saved[0]).toMatchObject({ outcome: { kind: "attachment-unreadable", reference: "ERR-ABCDEFGHIJ" } });
+			expect(calls.find(call => call.complete)).toMatchObject({ complete: { status: "failed" } });
+			expect(captures).toHaveLength(saveFails ? 1 : 0);
+			if (saveFails) {
+				expect(captures[0]).toMatchObject({ context: { stage: "history", operation: "assistant.saveFailure", outcome: "history-unconfirmed" } });
+				expect(raw).toContain('"kind":"history-unconfirmed"');
+			} else expect(raw).not.toContain("history-unconfirmed");
+		});
+	}
+
 	test("redacts runtime errors from the stream", async () => {
 		const { router } = createHarness({
 			executeRun: async () => {
@@ -420,6 +485,20 @@ describe("assistant chat REST router", () => {
 
 		expect(raw).toContain("Assistant runtime failed");
 		expect(raw).not.toContain("provider secret detail");
+	});
+
+	test("a cancelled thrown operation creates neither failure history nor an incident", async () => {
+		const controller = new AbortController();
+		let captures = 0;
+		const { router, calls } = createHarness({
+			executeRun: async () => { controller.abort(); throw new Error("operation aborted"); },
+			captureDiagnostic: async () => { captures++; return { reference: "ERR-ABCDEFGHIJ", recorded: true }; },
+		});
+		const response = await router.request("/", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(requestBody()), signal: controller.signal });
+		await response.text();
+		expect(captures).toBe(0);
+		expect(calls.some(call => call.persistedFailure)).toBe(false);
+		expect(calls.find(call => call.complete)).toMatchObject({ complete: { status: "cancelled" } });
 	});
 
 	test("redacts error text returned by a failed runtime outcome", async () => {

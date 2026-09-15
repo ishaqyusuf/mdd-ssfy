@@ -1,9 +1,12 @@
 import { resolveAssistantActor } from "@api/assistant/actor";
+import { AssistantAttachmentInputError } from "@api/assistant/attachment-errors";
+import { runAssistantOperation } from "@api/assistant/operation-diagnostics";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import { registerStoredDocumentUpload } from "@api/utils/stored-documents";
 import { finalizeUploadedDocument } from "@api/utils/upload-finalization";
 import {
 	decodeValidatedDocumentBase64,
+	DocumentUploadValidationError,
 	supportedDocumentMimeTypes,
 } from "@api/utils/upload-validation";
 import type { Db } from "@gnd/db";
@@ -121,16 +124,25 @@ export const storageRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (
-				input.path === "assistant-documents" &&
-				!(await resolveAssistantActor(ctx.db, ctx.userId))
-			) {
+			const assistantActor = input.path === "assistant-documents" ? await resolveAssistantActor(ctx.db, ctx.userId) : null;
+			if (input.path === "assistant-documents" && !assistantActor) {
 				throw new TRPCError({ code: "FORBIDDEN" });
 			}
-			const body = await decodeValidatedDocumentBase64({
+			const decode = () => decodeValidatedDocumentBase64({
 				...input,
 				maxPdfPages: input.path === "assistant-documents" ? 50 : undefined,
 			});
+			const body = assistantActor ? await runAssistantOperation({
+				stage: "attachment", operation: "assistant.validateUpload", actorUserId: assistantActor.userId,
+				scopeType: assistantActor.scopeType, scopeId: assistantActor.scopeId,
+			}, async () => {
+				try { return await decode(); }
+				catch (error) {
+					if (error instanceof DocumentUploadValidationError && error.reason === "processing") throw error.cause ?? error;
+					if (error instanceof DocumentUploadValidationError) throw new AssistantAttachmentInputError(error.reason === "size" || error.reason === "pages" ? "attachment-too-large" : "attachment-unreadable", error);
+					throw error;
+				}
+			}, { fallbackOutcome: "upload-failed" }) : await decode();
 			const owner = {
 				ownerType: "user" as const,
 				ownerId: String(ctx.userId),

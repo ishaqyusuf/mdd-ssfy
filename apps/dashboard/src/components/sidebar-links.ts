@@ -301,6 +301,14 @@ const profileSection = _section("settings", null, [
 		_role.some("Admin", "Super Admin"),
 	).data,
 ]);
+const createAssistantSection = () =>
+	_section("", null, [
+		{
+			..._link("Assistant", "ChatBubble", "/assistant").badge("Preview").data,
+			entitlementGranted: true,
+			show: true,
+		},
+	]);
 
 const canEditProject = _perm.in("editProject", "editCommunity");
 const canViewCommunityUnits = _perm.in(
@@ -314,7 +322,6 @@ const isDev = process.env.NODE_ENV !== "production";
 export const linkModules = [
 	_module("Sales", "salesDashboard", "GND Sales", [
 		_section(null, null, [
-			_link("Assistant", "ChatBubble", "/assistant").badge("Preview").data,
 			_link("Sales Dashboard", "salesDashboard", "/sales-dashboard").access(
 				_perm.in("viewOrders", "editOrders", "viewSales"),
 			).data,
@@ -371,6 +378,9 @@ export const linkModules = [
 				_subLink("Shelf Items", "/sales-book/shelf-items").access(
 					_perm.is("editOrders"),
 				).data,
+				_subLink("Requests", "/sales-book/requests").access(
+					_perm.is("editOrders"),
+				).data,
 				_subLink("Emails", "/sales-book/emails").access(
 					_perm.in("editOrders", "viewOrders", "viewEstimates"),
 				).data,
@@ -382,6 +392,7 @@ export const linkModules = [
 				.access(_perm.in("editOrders", "viewOrders"))
 				.childPaths(
 					"sales-book/orders",
+					"sales-book/requests",
 					"sales-book/emails",
 					// "sales-book/orders/sales-statistics",
 				).data,
@@ -726,14 +737,9 @@ export function getAssistantAccessLinkModules({
 	if (enabled)
 		return modules.map((module) => ({
 			...module,
-			sections: module.sections.map((section) => ({
-				...section,
-				links: section.links.map((link) =>
-					link?.href === "/assistant"
-						? { ...link, entitlementGranted: true, show: true }
-						: link,
-				),
-			})),
+			sections: module.name
+				? [createAssistantSection(), ...module.sections]
+				: module.sections,
 		}));
 	return modules.map((module) => ({
 		...module,

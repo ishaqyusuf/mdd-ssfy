@@ -2,7 +2,21 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { getPublicError } from "@gnd/errors";
 
 export type SalesRequestGeneratePreviewOutput =
-	RouterOutputs["salesRequest"]["generatePreview"];
+	RouterOutputs["salesRequest"]["generatePreview"] & {
+		userReviewed?: true;
+		/** Exact source copied into form metadata on Apply; never part of the provider seed or save claim. */
+		sourceText?: string;
+		clarification?: SalesRequestClarification | null;
+	};
+
+export type SalesRequestClarification = {
+ sessionId: string;
+ revision: number;
+ round: number;
+ questions: Array<{ id: string; lineUid: string | null; field: string; question: string; sourceText: string | null; reason: string }>;
+};
+export type SalesRequestClarificationAnswer = { questionId: string; answer: string; reuse: boolean };
+export type SalesRequestClarificationSubmission = { sessionId: string; revision: number; answers: SalesRequestClarificationAnswer[]; signal?: AbortSignal };
 
 export type SalesRequestGeneratePreviewVariables = {
 	text: string;
@@ -27,6 +41,7 @@ export type SalesRequestGenerationFailureCode =
 	| "timeout"
 	| "invalid-output"
 	| "configuration-changed"
+	| "configuration-required"
 	| "cancelled"
 	| "unknown";
 
@@ -53,6 +68,8 @@ export type SalesRequestGenerationSnapshot = {
 	failure: SalesRequestGenerationFailure | null;
 	isStale: boolean;
 	canRetry: boolean;
+	clarification: SalesRequestClarification | null;
+	clarificationHistory: Array<{ round: number; answers: Array<{ question: string; answer: string; reuse: boolean }> }>;
 };
 
 type GeneratePreview = (
@@ -96,6 +113,10 @@ const FAILURE_DEFINITIONS: Record<
 		message:
 			"The form or sales configuration changed. Generate the preview again.",
 		retryable: true,
+	},
+	"configuration-required": {
+		message: "Request AI settings need review before generation. Check the provider approval in Sales Settings.",
+		retryable: false,
 	},
 	cancelled: {
 		message: "Request generation was cancelled.",
@@ -241,6 +262,13 @@ export function mapSalesRequestGenerationError(
 		return failureFor("timeout", publicError.referenceId);
 	}
 	if (
+		transportCode === "PRECONDITION_FAILED" ||
+		message.includes("benchmark approval") ||
+		message.includes("pilot authority")
+	) {
+		return failureFor("configuration-required", publicError.referenceId);
+	}
+	if (
 		code === "VALIDATION_FAILED" ||
 		message.includes("seed format") ||
 		message.includes("structured output") ||
@@ -268,6 +296,10 @@ function isResultStale(
 export function createSalesRequestGenerationController(
 	generatePreview: GeneratePreview,
 	initialRevision: SalesRequestGenerationRevisionInput,
+ clarificationActions?: {
+  answer: (input: SalesRequestClarificationSubmission) => Promise<SalesRequestGeneratePreviewOutput>;
+  cancel: (sessionId: string) => Promise<unknown>;
+ },
 ) {
 	let currentRevision =
 		normalizeSalesRequestGenerationRevision(initialRevision);
@@ -291,6 +323,8 @@ export function createSalesRequestGenerationController(
 		failure: null,
 		isStale: false,
 		canRetry: false,
+		clarification: null,
+		clarificationHistory: [],
 	};
 
 	function emit() {
@@ -347,12 +381,14 @@ export function createSalesRequestGenerationController(
 		setSnapshot({
 			...snapshot,
 			sourceText,
-			isStale: snapshot.status === "success" ? true : snapshot.isStale,
+			isStale: snapshot.status === "success" || snapshot.clarification ? true : snapshot.isStale,
 			canRetry: snapshot.status !== "pending" && Boolean(sourceText.trim()),
 		});
 	}
 
-	function generate(sourceText = snapshot.sourceText) {
+	function generate(sourceText = snapshot.sourceText, answers?: SalesRequestClarificationAnswer[]) {
+		const clarification = answers ? snapshot.clarification : null;
+		if (answers && (!clarification || !clarificationActions || snapshot.isStale)) return Promise.resolve(null);
 		if (disposed || !sourceText.trim()) return Promise.resolve(null);
 		if (
 			activeRequest &&
@@ -363,10 +399,14 @@ export function createSalesRequestGenerationController(
 		}
 
 		abortActiveRequest();
+        if (!answers && snapshot.clarification) void clarificationActions?.cancel(snapshot.clarification.sessionId).catch(() => undefined);
 		const id = ++nextRequestId;
 		const revision = currentRevision;
 		const abortController = new AbortController();
 		setSnapshot({
+            ...snapshot,
+            clarification: clarification ?? null,
+            clarificationHistory: answers ? snapshot.clarificationHistory : [],
 			sourceText,
 			status: "pending",
 			requestId: id,
@@ -377,11 +417,11 @@ export function createSalesRequestGenerationController(
 			canRetry: false,
 		});
 
-		const promise = generatePreview({
-			text: sourceText,
-			signal: abortController.signal,
-		})
-			.then((result) => {
+		const promise = (clarification && answers && clarificationActions
+            ? clarificationActions.answer({sessionId: clarification.sessionId, revision: clarification.revision, answers, signal: abortController.signal})
+            : generatePreview({ text: sourceText, signal: abortController.signal }))
+			.then((providerResult) => {
+				const result = { ...providerResult, sourceText };
 				if (
 					disposed ||
 					!activeRequest ||
@@ -420,6 +460,8 @@ export function createSalesRequestGenerationController(
 					requestId: id,
 					capturedRevision: completedRevision,
 					result,
+                    clarification: result.clarification ?? null,
+                    clarificationHistory: clarification && answers ? [...snapshot.clarificationHistory, {round: clarification.round, answers: clarification.questions.map(question => ({question: question.question, answer: answers.find(answer => answer.questionId === question.id)?.answer ?? "", reuse: answers.find(answer => answer.questionId === question.id)?.reuse ?? true}))}] : snapshot.clarificationHistory,
 					failure: null,
 					isStale:
 						isStale ||
@@ -483,9 +525,12 @@ export function createSalesRequestGenerationController(
 
 	function clear() {
 		if (disposed) return;
+        if (snapshot.clarification) void clarificationActions?.cancel(snapshot.clarification.sessionId).catch(() => undefined);
 		abortActiveRequest();
 		setSnapshot({
 			sourceText: "",
+            clarification: null,
+            clarificationHistory: [],
 			status: "idle",
 			requestId: null,
 			capturedRevision: null,
@@ -515,15 +560,21 @@ export function createSalesRequestGenerationController(
 		};
 	}
 
+	function release() {
+		cancel();
+	}
+
 	return {
 		getSnapshot: () => snapshot,
 		subscribe,
 		setRevision,
 		setSourceText,
 		generate,
+        answerQuestions: (answers: SalesRequestClarificationAnswer[]) => generate(snapshot.sourceText, answers),
 		cancel,
 		clear,
 		retry,
+		release,
 		dispose,
 	};
 }

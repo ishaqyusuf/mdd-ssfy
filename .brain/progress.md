@@ -1,35 +1,368 @@
-### 2026-09-14 — iOS signing fallback prepared after upstream Apple-auth failure
+### 2026-09-15 — Sales payment overview now shows check numbers
 
-The explicitly approved production EAS build initialized remote iOS build number
-`1` and created the `production` update channel/branch, but no build was queued.
-Apple password authentication failed before credential creation with
-`iTunes service key is empty`; Expo's open `eas-cli#4392` shows the same defect on
-newer EAS CLI and Node combinations. Generated a Keychain-backed CSR for
-`GND Millwork Distribution`; the private key remains in the login keychain.
-Apple created Distribution certificate `ZDC9NMPYX8` and App Store profile
-`GND Millwork App Store` / `6VT956987X` for `com.gnd.prodesk`; both expire
-September 14, 2027. The downloaded certificate and profile were validated, the
-Apple WWDR G3 intermediate was installed, and Keychain reports exactly one valid
-matching signing identity. After explicit approval for local export, an encrypted
-`0600` temporary `.p12` containing exactly one private key was created outside the
-repository. After separate approval, EAS stored it and the active profile for
-`@pcruz321/gnd-prodesk`, confirmed matching serial/team/bundle data, and reported
-all credentials ready; the temporary `.p12`, password, and secret-bearing JSON
-were immediately removed. Production `STORE` build
-`3f3a6acf-ac06-42b8-ab72-1837480f49cc` then completed as version `1.0.305`, build
-`5`, without Apple upload. IPA inspection confirmed the production bundle/team,
-active App Store beta profile, `get-task-allow=false`, and export-compliance flag.
-Because unrelated uncommitted workspace changes were included in the archive,
-build `5` is validation-only and must not be submitted. A detached snapshot of
-reviewed commit `40a62218e` passed 19/19 checks and produced clean `STORE` build
-`f3985128-844d-432c-bbc3-e0e4c93e37ac`, version `1.0.305`, build `6`. Independent
-IPA inspection confirmed the bundle, team, App Store beta profile, production
-entitlements, and export declaration; the temporary snapshot/artifacts were then
-removed. Build `6` is prepared at the explicit App Store Connect upload gate.
-The user approved that upload, but EAS then required a new App Store Connect API
-key. The command was cancelled at the generation prompt; no key, EAS submission
-job, or Apple upload was created. API-key creation is the current separate
-action-time gate; permission changes and tester invitations remain gated.
+Fixed the Sales Overview Transactions payment payload to expose the check number
+stored in either SalesPayment or CustomerTransaction metadata. The payment
+activity row and detail pane now display `Check no.` for Check payments. No
+database, permission, or payment-write behavior changed. Scoped diff integrity
+check passed; browser, build, and typecheck verification were not run under the
+fast Bun monorepo command-discipline rules.
+
+### 2026-09-15 — Sales Form retained custom single-select navigation fixed
+
+Authenticated in-app browser reproduction on an existing Sales item confirmed
+that retained standard single-select `NO BORE` advanced on one click, while
+retained custom single-select `QA CUSTOM DOOR TYPE` was removed on the first
+click and left Door Type active; the resulting grid shift made the next click
+hit another component. Removed the pre-multi-select custom clear branch from the
+shared workflow action. Repeated single-select clicks now preserve custom
+metadata and configured downstream choices and advance once; true multi-select
+steps still toggle the selected custom off, truncate downstream steps, and stay
+active. The regression failed before the fix (15 pass / 1 fail) and the focused
+selection suite now passes 17 tests / 48 assertions; route-engine passes 16 / 41.
+Sales package typecheck reaches one unrelated existing `copy-sales.ts:521`
+nullability error and reports no changed-workflow diagnostics. No route-engine,
+workflow-host, schema, API, permission, database, or commercial Sales data changed.
+
+### 2026-09-15 — Assistant moved to a system-level workspace
+
+Restored `/assistant` as the canonical entitlement-gated full-page workspace and
+moved its navigation to the first shared sidebar position inside every selected
+business module. The Assistant is absent from the module selector and its page
+keeps the standard dashboard sidebar and header. Sales Dashboard now renders
+only Sales content. Conversation links use `/assistant?chat=<id>` and
+legacy `/sales-dashboard?assistant=true` URLs redirect while preserving other
+query state. Runtime authorization and tool behavior are unchanged. The focused
+sidebar suite passes 19 tests / 67 assertions. Dashboard typecheck initially
+exhausted Node's default 4 GB heap; the 8 GB rerun completed against the existing
+broad TypeScript error baseline without a surfaced error in the routing files
+changed here. Targeted Biome parsed all changed files but remains red on existing
+format/import and accessibility findings in concurrently modified Assistant files.
+The seven clean-scope routing/navigation files pass targeted Biome. Local HTTPS
+smoke returns 200 for `/assistant`; the legacy Sales URL returns 307 to
+`/assistant?chat=route-smoke`, preserving the conversation ID.
+
+### 2026-09-15 — Configuration tests repaired; remaining acceptance inputs documented
+
+Replaced two obsolete route-default test expectations with current component
+isDefault ordering and cache-revision checks. Configuration suite: 18 pass / 67
+assertions. Documented exact missing sample specifications/product mappings in
+evaluations/sales-request-generation/remaining-acceptance-inputs-2026-09-15.md.
+Asked whether remaining local workflow tests should use labeled test-only choices
+or wait for exact mappings. No answer yet; no test prices/products fabricated.
+Full workflow completion remains 1/7; source-fidelity engineering also remains.
+
+### 2026-09-15 — Shared semantic/native validation now participates in correction
+
+Latest fire-rated output still selected 8-0 for 80-inch source dimensions on a
+partial line without HPT rows. Added Height contradiction validation for that path;
+offline replay of the captured response now rejects it. Provider/generation
+checks: 67 pass / 129 assertions. This sample is not a successful draft.
+
+Fresh remaining-sample diagnostics exposed a mismatch: provider v2 shape checks
+passed outputs that the shared seed semantic refinements rejected (HPT qty sums,
+selected-and-unresolved steps). Provider now runs shared semantics and the native
+validation closure within its one correction budget. Final validation remains;
+decoded source stays local. Also grounded three-part width/thickness/height notation.
+Provider/generation tests: 67 pass / 128 assertions. No additional full UI workflow
+has passed; source ambiguity, product selection and pricing work remain.
+
+### 2026-09-15 — First-call output contract and preserved source review
+
+Browser also exposed retained prior-generation state; keyed native handoff by
+generation ID and verified the correct slab review. Published local configuration
+generation 2 (`af0845d114d3`) through Settings; added publication check before paid
+preview calls. Router checks: 27 pass, plus focused stale-publication regression.
+UI generation `05c2a86f-0bf4-47bd-b5fb-2c9666feffe8` preserves 14 doors and sizes;
+after reload, remaining issues are missing Height/Bore prices and exact Door choice.
+Original source disclosure was browser-verified. No additional sale/payment.
+
+Added the strict output schema to DeepSeek's initial system prompt while retaining
+generic API JSON format. Provider checks: 26 pass / 56 assertions. A one-call slab
+diagnostic now preserves exactly 14 units and dimensions (11x34x80, 2x36x80,
+1x28x80), with exact product unresolved. Original pasted text now travels with
+the short-lived handoff and is available in failed draft review; source storage
+and review tests: 7 pass / 24 assertions. Full acceptance remains 1/7.
+
+### 2026-09-15 — Missing catalog vocabulary and slash-dimension grounding fixed
+
+Local DB inspection proved active 8-0 Height and Carrara products were omitted
+because usage metrics were null. Runtime/admin projections now retain unused
+standard options; fingerprint v8 invalidates snapshots. Catalog tests: 5 pass /
+10 assertions. Source grounding now accepts `2/8 8/0` without an x separator;
+prompt v9 explains it. Generation/prompt: 42 pass / 109 assertions. Configuration
+suite: 16 pass, two failures in legacy route-default fixtures; not a green suite.
+
+Added `scripts/diagnose-sales-request-local.ts`: bounded local diagnostics archive
+provider responses and validation results, never grant benchmark approval. First
+Carrara capture proves wrong Height; the next is valid but omits dimensions and
+is not acceptance evidence. Full workflow acceptance remains 1/7 (mouldings).
+
+### 2026-09-15 — Seven request samples attempted; full acceptance remains 1/7
+
+Mouldings passed save, preview and local cash payment. Slabs remain blocked on
+catalog visibility/prices; product/pricing clarification is pending. The remaining
+samples have generated-output or catalog failures. Townhouse returned an empty
+seed; fixed misleading empty-form navigation/feedback. Carrara retest still fails
+output validation. Focused controller/storage/modal checks: 15 pass / 56 assertions.
+Details and generation references: evaluations/sales-request-generation/ui-current-catalog-2026-09-15.md.
+
+### 2026-09-15 — First complete request UI workflow and payment fix
+
+Mouldings generation 856179ae-da3c-4a53-adeb-85e4abf13bf4 applied to test customer
+34 and saved as 09659PC (28185). Reopened editor and document preview retain
+28 baseboards, 3 flat boards and 1 attic kit, subtotal $513.91; card estimate
+$529.33 includes $15.42 fee. Cash initially failed before writes because the
+widget used an empty phone as accountNo. It now falls back to cust-34 for blank
+phones, matching existing customer account handling. Focused utility tests pass
+24/24 (44 assertions). Retried through real UI: overview shows Settled, paid
+$513.91, balance $0, Cash. Customer notification and automatic printing were off.
+Initial post-save navigation returned to an empty create page; the saved order
+was recovered through the list. Navigation still needs examination. Six samples
+remain; no corpus-wide readiness or benchmark approval claimed.
+
+### 2026-09-15 — Mouldings UI customer and profile-pricing handoff
+
+Real preview displays 28 baseboard pieces, 3 flat boards and 1 attic kit. Selected
+local test customer 34. Handoff exposed a pricing mismatch: missing coefficients
+were treated as zero, while native dual-pricing uses coefficient ?? 1. Aligned the
+handoff with that native neutral default; explicit zero/invalid values still block.
+Focused apply suite passes 13 tests / 28 assertions. Native Apply retry is underway.
+
+### 2026-09-15 — First successful real modal generation after runtime repair
+
+Mouldings paste now returns through the real API and navigates to native create-order,
+generation 856179ae-da3c-4a53-adeb-85e4abf13bf4. The customer selection dialog is visible.
+Customer selection, applied quantities, save/preview/payment are not yet verified.
+
+### 2026-09-15 — Dashboard Redis environment root cause
+
+Runtime-only instrumentation proved the dashboard had neither Redis nor REST Redis
+configuration; local CLI diagnostics used a different loaded environment. The
+with-env wrapper omitted a Redis mode, causing local-infra-kit to clear both
+configurations. Dashboard with-env now explicitly forwards GND_REDIS_MODE and defaults
+to local mode. No secret files or shared proxy configuration changed. Restarted via
+the existing launcher. Temporary instrumentation was removed. The limiter also
+avoids redundant readiness PING and has a bounded five-second store deadline;
+five-per-minute limits and fail-closed behavior remain (three tests pass).
+
+### 2026-09-15 — Manual draft gate and real UI usage failure repaired
+
+Implemented the user's decision: benchmark approval applies only to automatic
+finalization. Manual preview/Apply retain other gates and record zero benchmark
+revision without fabricating approval. 52 authority/preview/router tests pass.
+Real UI Mouldings submission advanced past that gate and exposed a usage-store
+timeout before provider I/O. Removed redundant readiness wait; live reservation
+now succeeds in 1,053 ms, with five-per-minute and outage tests passing. Added
+lossless nested unresolved normalization with strict ownership checks (25 tests).
+UI retry is underway. No sale or payment created in this checkpoint.
+
+### 2026-09-15 — Explicit missing-Door review implemented
+
+Failed quick-create handoffs now offer a fresh product picker for unresolved Door
+entries. Explicit selection updates only that line/step, retains all quantities
+and other uncertainty, persists the reviewed preview, and retries strict native
+preparation. Reviewed proposals cannot receive an unchanged-AI final-save claim.
+Focused edit/apply/transaction suites pass 28 tests / 131 assertions, including
+missing-Door rejection followed by 14-unit, three-size native initialization.
+Browser acceptance, remaining provider failures and commercial workflow proof are
+still pending; no provider calls or commercial writes in this checkpoint.
+
+### 2026-09-15 — Numeric route prompt guide and seven-sample verification
+
+Prompt v8 repeats numeric route membership, multi-select shape and quantity fields;
+adds missing-size and thickness interpretation rules. Focused suites pass 56 tests /
+172 assertions. Seven zero-retry live responses archived: slabs preserve all 14
+units and exact dimensions, Mouldings returns a reviewable seed, five fail strict
+schema/size/visibility checks. No benchmark approval or commercial writes. Full UI
+acceptance remains incomplete; see the current-catalog diagnostic report.
+
+### 2026-09-15 — Preserve failed request review and refresh all samples
+
+Failed handoffs now show the generated review with sizes and unresolved facts;
+pending handoffs cannot autosave or manually save. Added a real slab-shape review
+regression; focused checks pass. Browser confirms corrected settings message and
+retained Hello. Fixed configuration export to use the current workspace Prisma
+client, then collected seven current-catalog DeepSeek responses: duplex/Mouldings
+need review; five others still fail route/shape/size validation. No benchmark
+approval or commercial write occurred. See evaluations/sales-request-generation/
+ui-current-catalog-2026-09-15.md for evidence and remaining work.
+
+### 2026-09-15 — Sales Request UI repair checkpoint
+
+Changed local setting 3 to DeepSeek / deepseek-flash through canonical Settings.
+Fixed stale route fixtures, pending Cancel, storage fallback, retained handoff error
+recovery and configuration-error classification. Focused route/controller/storage
+checks pass 40 tests / 125 assertions. Authenticated modal Hello exercises loading
+and enabled Cancel, but the missing provider benchmark still rejects before I/O.
+Real slab product resolution and all seven complete UI workflows remain pending.
+Updated the UI readiness plan with full authorized scope and implementation contract.
+
+### 2026-09-15 — Sales Request input-modal readiness review
+
+Reviewed paste, generation, session handoff, native preparation and autosave guards.
+Local provider remains Gemini and its required benchmark approval is missing;
+successful DeepSeek diagnostics did not prove this protected UI path. The real
+partial slab still raises an initializer issue despite the unresolved-draft flag,
+and terminal pre-apply failures have no visible recovery. Four dashboard suites
+pass; the combined router/dashboard matrix is 56 pass / seven route failures.
+Saved `.brain/plans/2026-09-15-fix-sales-request-ui-readiness.md` with a scoped fix
+sequence and UI acceptance criteria. No source/settings change or browser test ran.
+
+### 2026-09-15 — DeepSeek connectivity recovered and sample JSON diagnosed
+
+Code-only Hello succeeds in 3.5 seconds with the existing DeepSeek credential and
+current Flash model. All six supplied requests plus the exact Mouldings control
+return JSON and token usage. Prompt v7 clarifies route scope and source matching,
+and adds a valid partial-door example: the slab output now preserves all 14 units
+and explicitly flags the missing exact Door product. The Mouldings control passes
+native initialization/save-reopen compatibility; five complex samples remain
+blocked by schema or business validation. Archived raw JSON and per-case evidence
+are linked from `.brain/evaluations/sales-request-generation/deepseek-recovery-2026-09-15.md`.
+Focused suites pass 77 tests / 209 assertions. No UI test, credential/timeout change,
+provider-setting change, Gemini call, schema/API change or commercial Sales write ran.
+
+### 2026-09-13 — Sales Request mailbox source-module resolution fix
+
+Removed explicit `.js` suffixes from internal imports and exports in the raw-source
+`@gnd/sales-request-mailbox` TypeScript package. Next/Turbopack no longer attempts to
+resolve a nonexistent `connection-lifecycle.js` while compiling the New Sales Form.
+Added a package regression test that scans every TypeScript source file and rejects
+future internal `.js` specifiers. The focused regression test, mailbox package
+typecheck, and full mailbox suite pass (183 tests / 790 assertions); the live shared
+HTTPS `/sales-form/create-order` route returns 200 with no module-resolution error.
+No provider, mailbox, AI, credential, or database operation ran.
+
+### 2026-09-13 — Sales Request feature-wide minimal interface rule
+
+Clarified that minimal copy and progressive disclosure govern the entire Sales
+Request feature, not only the mailbox Inbox. Sales Settings, pasted-text capture,
+generation, review/apply, mailbox connection and Inbox screens, diagnostics, and the
+deferred image flow must use self-explanatory controls and short action labels while
+avoiding redundant headings, decorative labels, repeated statuses, explanatory text
+blocks, and descriptions that merely restate controls. Optional and advanced settings
+remain hidden until requested or contextually required. This clarification changes
+acceptance criteria only; no UI or runtime code changed.
+
+### 2026-09-13 — Sales Request MVP execution priority
+
+Product direction now prioritizes the usable MVP and asks implementation to stop at
+that verified boundary with a completed-versus-secondary handoff. The MVP is pasted
+text plus read-only mailbox intake into the existing review-ready, unsaved native
+Sales draft, including safe provider deadlines, encrypted persistence, thin
+OAuth/API/polling-job wiring, owner-private Inbox reads, and local end-to-end proof.
+Image and attachment interpretation, push subscriptions/webhooks, outbound mail,
+advanced filters, UI polish, broad provider benchmarks, and longer pilot measurement
+are secondary. The persistent Goal must remain incomplete while those secondary
+items remain; execution will pause without falsely marking them done.
+
+### 2026-09-13 — Sales Request mailbox persistence handoff
+
+Completed a read-only mapping from the database-independent T12 store contracts to
+the current Prisma ownership model. The planned additive persistence separates OAuth
+attempts, employee-owned connections, disconnect recovery, selected sources, sync
+streams/summaries, global detail leases, source memberships, immutable sanitized
+snapshots, and the current queue. It uses the canonical organization office plus an
+opaque derived `officeAuthorityKey`; it does not invent a `ModelHasRoles` row ID or
+reuse legacy `Inbox`/authentication records. Provider I/O remains outside atomic
+claim/commit transactions. No schema, migration, generated client, or database was
+changed because the existing unapplied migration chain remains an explicit gate.
+
+### 2026-09-13 — Sales Request mailbox token refresh and health seam
+
+Added the database-independent T12 token refresh/health lifecycle with encrypted-only
+atomic claims, exact connection/purpose AAD decryption, provider refresh outside the
+transaction, shared exact read-only scope validation, durable refresh-token
+preservation/rotation, active-key re-encryption, and exact revision-CAS commits.
+Successful refresh preserves preferences, source selections, cursors, and
+subscriptions while invalidating prior-revision work. Revocation, scope/account
+drift, malformed/provider mismatch, bounded retries, dead-lettering, key failures,
+lease loss, replay, impossible revision transitions, and storage failures settle or
+fail closed using content-free health evidence. Focused validation passes 11 tests /
+64 assertions; the full package passes 126 tests / 575 assertions, typecheck, Biome,
+and scoped diff checks. No schema, Prisma, database, API, job, UI, live provider,
+mailbox, credential, or commit action ran; concrete persistence remains open.
+
+### 2026-09-13 — Sales Request T13 aggregate comparison readiness
+
+Added an aggregate-only comparison to the closed-period Super Admin pilot summary.
+Successful applied final saves are separated into the unconsumed assistive text-first
+arm and the low-touch consumed-final-save arm. Each arm reports finalization count,
+generation-start-to-successful-final-save p50/p95, and Accepted-with-edits over
+accepted-review rate as aggregate counts plus basis points. Low-touch-minus-assistive
+deltas fail closed until both arms have complete handling and feedback coverage;
+anonymized and unclassified rows are excluded. The output is explicitly
+descriptive-only and not autonomy-decision-eligible because the arms are
+outcome-selected rather than matched experiments. The query uses existing telemetry
+only and returns no run, actor, Sales ID, or source timestamp. Focused telemetry tests
+pass 35 tests / 96 assertions. No provider call, database write,
+schema/migration, UI, image, mailbox, or Shelf Item work occurred. T13 still requires
+representative operational evidence before increasing autonomy.
+
+### 2026-09-13 — Sales Request Generation scope and low-touch truth reconciliation
+
+Reaffirmed pasted text as the only active intake; T11 image/OCR and T12 mailbox
+connections remain explicitly deferred and do not block the 11-ticket active scope.
+Commit `d126a8f9c` makes aggregate telemetry preserve missing successful-run issue
+evidence as `null` instead of silently reporting zero. Commit `37628a4b6` wires the
+unchanged human-applied proposal's ephemeral claim to explicit Finalize, requires
+the current two-period pilot advancement inside server authority resolution, and
+opens the native invoice composer in memory without a Sales/document write. The
+focused low-touch matrix passes 43 tests / 191 assertions; 12 formatted modules and
+all scoped diffs pass checks. A deterministic synthetic browser harness was removed
+after three fixture boot failures, so authenticated T05/T07 browser evidence remains
+open. A follow-on server slice adds a strict actor-owned metadata-only final-save
+exception queue from retained telemetry, monotonic failed-to-saved resolution, and
+forced-late-failure rollback proof without a schema change. Its focused matrix passes
+66 tests / 215 assertions. T13 remains in progress only for representative
+handling-time/correction comparison. No paid provider call, database write,
+migration application, image work, or mailbox work occurred.
+
+### 2026-09-13 — Sales Request Generation durable pilot review authority
+
+Implemented the technical T10 review path without enabling the operational pilot.
+Sales Settings now owns a strict revisioned provider/model threshold policy;
+authenticated named reviewers can create one immutable server-derived pass/fail
+decision per closed UTC week; and stored aggregate evidence, runtime authority, and
+policy digests are revalidated before the latest two adjacent periods can advance.
+The Super Admin summary exposes safe decision metadata only. Focused tests, Prisma
+Client generation, and `@gnd/db` typecheck pass; API typecheck reaches only known
+unrelated baselines. Migration `20260913150000` is prepared but unapplied. No paid
+provider call, Sales/database mutation, image work, or mailbox work occurred; T10
+remains 2/5 until a real cohort and two review periods are completed.
+
+### 2026-09-13 — Progressive AI Chat T06 dashboard shell complete
+
+- Connected `/assistant` to AI SDK 6 `DefaultChatTransport` and `@ai-sdk/react` while preserving the normal dashboard header/sidebar and existing navigation grant.
+- Added actor-scoped conversation create/list/search/get/title/archive/delete, refresh-safe chat deep links, durable message hydration, generated title updates, and latest-run reconnect metadata.
+- Added offline, rate-limit, stop, retry, reconnect, loading, empty, error, keyboard, terminal-status, and compact composer states.
+- Prevented assistant MCP initialization from breaking normal dashboard tRPC by lazy-loading the chat router and externalizing `@ai-sdk/mcp` from the Next server bundle.
+- Validation: focused assistant suites 22/22 pass; changed assistant files pass Biome; full dashboard typecheck has no assistant-path diagnostics but remains red from existing project-wide errors. In-app browser verified authenticated desktop, history dialog, and 390×844 layout; both protected endpoints return structured JSON when unauthenticated.
+
+### 2026-09-13 — Sales Request Generation T06 native apply/undo complete
+
+Completed the dashboard-only native seed apply boundary. The review panel now
+prepares through `initializeNewSalesFormSeed`, resolves fresh authoritative step
+components, applies one revision- and generation-identity-guarded Zustand
+transaction, and exposes full/selective Undo. Unresolved facts, stale form or
+configuration, route/profile failures, persisted records, and initializer issues
+remain blocking. Reviewing/applying suspends autosave; queued autosave work is
+cancelled and an in-flight save prevents opening or generating. The existing
+`salesRequest.validatePreview` boundary is used for current configuration identity,
+including safe CONFLICT-to-stale mapping. Focused T04–T06 tests pass: 36 tests / 179
+assertions; targeted Biome and scoped `git diff --check` pass. No provider call,
+database write, or production mutation ran.
+
+### 2026-09-12 — Sales Request Generation rollout T01 completed
+
+Goal-backed rollout execution started. T01 isolated 32 tracked and two new
+sales-request foundation files from concurrent assistant/sidebar and mixed Brain
+changes, corrected stale release-status documentation, reran 184 tests / 462
+assertions, targeted Biome, live-artifact JSON parsing, typechecks, and diff
+integrity, and reused the clean two-axis review evidence. Sales/API typechecks reach
+only the unrelated `packages/sales/src/copy-sales.ts:521` baseline error. Commit
+`83bc508df` records the scoped backend foundation. T02 is active; all six sanitized
+sample case folders already exist, no paid provider call ran, and oracle/configuration
+lock/support-matrix work remains.
 
 ### 2026-09-12 — App Store Connect app record created
 
@@ -40,6 +373,18 @@ SKU `gnd-prodesk-ios`, and Full Access. Apple assigned numeric app ID
 the release-readiness checker enforces it. No certificate, provisioning profile,
 build, upload, submission, API-access request/key, permission change, or tester
 invitation was created. First-build signing is the next separately confirmed gate.
+
+### 2026-09-12 — Sales Request Generation pilot and rollout roadmap proposed
+
+Created a new 13-ticket roadmap that starts from the completed backend foundation
+and sequences: mergeable integration checkpoint, offline sample corpus/support
+matrix, Sales Settings defaults, pasted-text client/controller, human review panel,
+atomic native-seed apply/undo, save/reopen safety, one-call-at-a-time provider
+benchmarks, privacy-safe telemetry, internal text pilot, secondary image input,
+mailbox ingestion, and finally low-touch order/invoice draft preparation. Shelf
+items remain outside the pilot. Tickets 01–08 have no open product blocker; images,
+mailbox retention/provider choice, and the final approval boundary remain later
+gates. Plan status is Proposed and no implementation or provider call ran.
 
 ### 2026-09-12 — Production Apple App ID registered
 
@@ -809,6 +1154,17 @@ While Decision 4 awaits approval, inspected existing notification helper, handle
 Decision 3 fulfillment forms approval preserved. Built and browser-checked the driver packing preview: assigned quantity limits, shortage reason, confirmed backlog release and saved quantity review. Decision 4 awaits user approval; completion confirmation remains the next design decision. Local prototype only; no application or business-data changes.
 
 # Progress
+
+## 2026-09-15 — Public mobile/web password-attempt boundary
+
+Public binary availability increases exposure of the existing company-account
+mobile sign-in. Both custom Better Auth password routes now require an atomic,
+HMAC-keyed IP/account attempt quota in production Vercel before user lookup,
+with 429/Retry-After and fail-closed 503 responses. Six focused tests pass
+(32 assertions), while package typecheck reports only its seven existing
+`packages/errors` NodeNext import-extension errors. ADR-102, API contract,
+employee-access feature, and public iOS runbook describe the deployment
+verification gate. No production Redis or Apple/EAS mutation occurred.
 
 ## Fulfillment design Decision 3 approved
 
@@ -18517,6 +18873,19 @@ sample or additional retry ran. The next proposed correction is explicit DeepSee
 Flash non-thinking mode before reconsidering the timeout. Artifact:
 `.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-deepseek-v2`.
 
+### 2026-09-11 — DeepSeek non-thinking Sales Request attempt
+
+Implemented provider-specific DeepSeek non-thinking mode, reduced the maximum
+output to 4,000 tokens, retained the 45-second timeout, and added these runtime
+settings to evaluation manifests. Focused verification passed 38 tests. The
+`compact-v12` prepare packet remained 20,336 bytes. The authorized same-case live
+attempt completed in 1,804.13 ms with 4,314 input and 218 output tokens, finish
+reason `stop`, then failed at strict v2 structured-output parsing/validation before
+application validation or hydration. No raw invalid text was persisted. Gemini was
+not called because `SALES_REQUEST_GOOGLE_API_KEY` is not configured. No other case
+ran. Artifact:
+`.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-deepseek-v3`.
+
 ### 2026-09-11 — Progressive AI chat platform plan
 
 Created a proposed Midday-grounded plan for GND chat, a domain-grouped tool catalog,
@@ -18528,3 +18897,2163 @@ and access/retry acceptance gates. Reuses existing Sales Request AI and preserve
 MySQL/Prisma and current domain authorities. Companion task is Roadmap, 0% implemented.
 No application code, schema, database data or external notifications changed.
 Plan: `.brain/plans/2026-09-11-feature-progressive-ai-chat-platform.md`.
+
+### 2026-09-11 — First Gemini Sales Request live attempt
+
+After confirming `SALES_REQUEST_GOOGLE_API_KEY` was configured, generated a
+provider-specific prepare-only record and ran exactly one authorized paid case,
+`interior-solid-core-slabs`, with setting 3 and `gemini-3.8-flash`. The provider
+returned a non-retryable HTTP 400 after 402.11 ms. No output, seed, token usage,
+application validation, or hydration was available. The current privacy-safe
+failure record does not retain Google's bounded error code/reason, so no retry was
+made. No other sample ran. Artifact:
+`.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-gemini-v1`.
+
+### 2026-09-11 — Gemini invalid-argument diagnosis and compatibility fix
+
+Added privacy-safe provider code/status diagnostics with a canonical status
+allowlist, matching HTTP-code constraint, and last-error-only `RetryError`
+classification. The one same-case diagnostic retry returned Google code 400 and
+`INVALID_ARGUMENT` after 386.02 ms, with no output or usage. Offline request
+interception identified the native seed union/null response schema being submitted
+to Gemini. Google runtime now disables provider-native structured schema submission
+but retains JSON response mode and unchanged local native v2 validation. The final
+focused suite passes 23 tests / 39 assertions and Biome passes. A prepare-only run
+records `{google:{structuredOutputs:false}}`; no post-fix paid call has run.
+Artifacts: `.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-gemini-v2`
+and `.brain/evaluations/sales-request-generation/runs/2026-09-11T-input-review-interior-solid-core-slabs-gemini-v2-json-mode`.
+
+### 2026-09-11 — Gemini JSON-mode post-fix attempt
+
+Ran exactly one authorized post-fix live attempt of the same sanitized
+`interior-solid-core-slabs` case using `gemini-3.8-flash`. JSON mode with native
+Google structured-schema submission disabled cleared the previous immediate
+`INVALID_ARGUMENT` response, confirming that compatibility correction. Generation
+then reached the configured abort boundary after 45,007.01 ms without output,
+usage, native seed, validation, or hydration. No retry or other case ran. Artifact:
+`.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-gemini-v3-json-mode`.
+
+### 2026-09-11 — OpenAI catalog correction and quota-limited retry
+
+The first OpenAI comparison exposed that Sales Settings incorrectly mixed Codex
+host model names into the OpenAI API catalog: `gpt-5.6-luna` returned non-retryable
+HTTP 400. Replaced those entries with official API IDs (`gpt-5-mini`, `gpt-5`, and
+`gpt-4.1-mini`), made `gpt-5-mini` the cost-conscious default, and configured
+non-strict OpenAI provider-schema handling while retaining strict local native-v2
+validation. Forty-two focused tests / 84 assertions and Biome pass. The single
+corrected same-case call reached `gpt-5-mini` but returned retryable HTTP 429 after
+5,029.09 ms, with no output, usage, validation, or hydration. No immediate retry or
+other sample ran. Artifacts:
+`.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-openai-v1`
+and `.brain/evaluations/sales-request-generation/runs/2026-09-11T-live-interior-solid-core-slabs-openai-v2-gpt5-mini`.
+
+### 2026-09-12 — Internal Luna Sales Request benchmark
+
+Used Luna at max reasoning for one internal-agent benchmark against the exact
+recorded `interior-solid-core-slabs` input; no external API key or provider credit
+was used. Raw output preserved the 11/2/1 quantities, selected Door Slabs Only, and
+mapped 80 inches to 6-8, but failed the full native contract on two globally scoped
+step uncertainties and made an unsafe closest-title Shaker selection. Preserved the
+raw output unchanged, then stored a distinct human-reviewed seed that removed the
+guess and scoped width/type/door uncertainty to each line. The reviewed seed passes
+native schema, configuration, and source-grounding validation with 3 lines, 14
+total units, and 9 unresolved entries; hydration was not run because those fields
+remain blocking. Updated the prompt to `new-sales-form-seed-v3` with explicit
+closest-match and unresolved-scope rules. Eighteen focused tests / 42 assertions
+and Biome pass. Artifact:
+`.brain/evaluations/sales-request-generation/runs/2026-09-11T-internal-agent-interior-solid-core-slabs-luna-v1`.
+
+### 2026-09-11 — AI chat UI stack clarification
+
+Verified Midday uses `@ai-sdk/react` useChat, custom tool/message/invoice UI,
+Streamdown and Recharts. AI Elements provenance was not established. Updated the
+progressive AI chat plan and task to explicitly include AI SDK UI, selected
+compatible AI Elements primitives, existing GND Recharts wrappers and validated
+chart/table/KPI results. No application code or dependencies changed.
+
+### 2026-09-12 — New Sales Form request-seed flow audit
+
+Opened the authenticated New Sales Form in the in-app browser and walked an unsaved
+Door Slabs Only configuration without saving. Confirmed the optional customer gate,
+root-driven step routing, Height -> Door Type -> Door flow, and that selecting a Door
+opens the height-filtered size dialog. Width is not a step: 6-8 yielded 80-inch size
+rows, while 8-0 yielded 96-inch rows. Applying 28x80 quantity 1, 34x80 quantity 11
+and 36x80 quantity 2 kept one sales line with three House Package Tool rows and let
+the existing form calculate quantity, prices, subtotal, card surcharge and total.
+
+Code tracing found the current native v2 seed cannot represent this path correctly:
+Door Slabs Only has `noHandle:true`/`hasSwing:false`, and the form stores `totalQty`
+with zero LH/RH values, while the seed requires positive `lhQty + rhQty`. It also
+does not yet validate requested dimensions against the existing height-dependent
+`deriveDoorSizeCandidates` result. Reopened the implementation checklist to 15/18
+for route-aware unhanded rows, candidate validation, and same-configuration size
+grouping. No sale was saved and no application code, API or database schema changed.
+
+### 2026-09-12 — Native HPT seed correction and internal re-test
+
+Implemented the live-form corrections discovered in the New Sales Form audit.
+`NewSalesFormSeed` now has strict handled and unhanded HPT row branches, rejects
+mixed shapes, and verifies HPT line quantity. Generated HPT lines with equivalent
+form selections are grouped; duplicate dimensions are deliberately aggregated.
+API and initializer validation mirror effective route handling flags, including
+component section overrides. Width remains outside `formSteps`.
+
+The compact configuration now projects bounded, price-free step
+`doorSizeVariation` rules and width lists, removes empty/impossible branches, and
+includes the result in structural cache identity (projection version 4). Generated
+inch dimensions are source-grounded and canonicalized through the existing
+height-dependent `deriveDoorSizeCandidates` logic. Prompt version is
+`new-sales-form-seed-v4`; evaluation manifests now record prompt and output-contract
+identity.
+
+Focused verification passes 132 tests / 322 assertions across contracts,
+normalization, initializer, projection/serialization/cache, API validation, prompt
+and evaluation harnesses. Sales and API typechecks now retain only the unrelated
+`copy-sales.ts:521` baseline; the provider runtime-options and HPT evaluation-harness
+typing exposed during this work were corrected.
+
+Prepared one final no-provider packet at
+`.brain/evaluations/sales-request-generation/runs/2026-09-12T-input-review-interior-solid-core-slabs-v6`.
+Luna Max then evaluated only that first case using the exact copied input and no
+external API call. The raw output passed schema, live-configuration and
+source-grounding validation with one grouped line, quantity 14, three unhanded HPT
+rows and two line-scoped unresolved catalog choices. Hydration remains correctly
+blocked until Door Type/Door are reviewed. Artifact:
+`.brain/evaluations/sales-request-generation/runs/2026-09-12T-internal-agent-interior-solid-core-slabs-luna-v2`.
+
+### 2026-09-12 — Remaining sales-request fixture and form gap audit
+
+Reviewed all six sanitized request fixtures, the final compact configuration, source
+validation, initializer, and the live Shelf Items flow without calling a provider.
+Shelf Items uses a dedicated product/category row editor and is not representable by
+the current native seed. Moulding and loose hardware are separate families but also
+lack quantity-row parity; they must not be disguised as services. The current seed
+also loses room/floor labels because it omits the form's native line title and groups
+HPT lines solely by selections, while handing/swing are not source-grounded.
+
+Recommended the next increment: whitelist the door pilot plus existing review-only
+Services/Delivery; defer Shelf Items, standalone moulding/hardware, pocket, sidelite,
+double-unit semantics and fire/thickness fields; add source-grounded native line
+titles and handing/swing validation; and use historical component usage for ranking
+rather than hard exclusion. The best remaining bounded fixture is
+`exterior-impact-door-sidelite`, treated as a partial/negative unresolved test after
+an expected oracle and input review. No paid API call or application-code change was
+made during this audit.
+
+### 2026-09-12 — Progressive assistant UI-first preview
+
+Built `/assistant` and a development-only synthetic `/assistant-preview` using
+shared shadcn primitives, lazy Recharts, sample order/invoice cards, session-only
+favorites/history, tool browsing and consented feature-request preview. UI checklist
+is 5/5; platform phases remain 0/7. Browser verified key interactions and 390px
+layout without horizontal overflow; no browser errors. Screenshots saved in the
+thread visualization directory. Employee quick-login was rejected by automatic
+approval review; no employee session was used. Protected shell integration remains
+unverified. No provider, business data, PDF generation or developer notifications
+were invoked. Feature documentation and plan/task status updated.
+
+### 2026-09-12 — Assistant uses dashboard navigation
+Removed separate assistant header, moved chat actions beside the composer and registered Assistant in normal Sales navigation using existing Sales grants. Browser verified header-free synthetic preview; screenshot `assistant-no-header.png` saved. Correction checklist 4/4; authenticated shell remains unverified. Plan, feature and task updated.
+
+### 2026-09-12 — Mouldings feasibility and sample interpretation
+
+Walked the standalone Mouldings route in the authenticated New Sales Form without
+saving. The live Moulding step exposes roughly 73 products and captures a separate
+quantity for each; its calculator converts linear feet, piece length and waste into
+piece quantity before the existing row patch calculates current pricing. Code
+tracing confirmed native `meta.mouldingRows` uses the selected component UID per row
+and that `buildWorkflowMouldingRowsPatch` owns aggregate quantity and price.
+
+Therefore Mouldings can be the next native AI adapter rather than remaining broadly
+deferred. The current blocker is representational: the compact input prunes most of
+the live catalog, while the seed has only a generic line quantity and the initializer
+does not hydrate per-product moulding rows. Recommended a strict component-UID row
+union for explicit pieces versus requested linear feet, followed by existing
+calculator and row-patch reuse; the AI must not calculate prices or guess an absent
+profile/length.
+
+Mapped the fixtures to the live vocabulary: duplex baseboard LF, 1x12 boards and
+attic-access kits; Carrara base/casing/crown piece counts plus ambiguous door-stop
+and pocket-hardware variants; and exterior PVC brickmoulding as an exterior-route
+add-on. No provider was called, no sale was saved, and no application code or
+database schema changed.
+
+### 2026-09-12 — Native Mouldings request adapter implemented
+
+Implemented the backend Mouldings path without a paid provider call or UI work.
+The v2 seed contract supports direct-piece rows and transient linear-foot calculator
+rows. API validation binds them to the exact Mouldings route, selected component
+set, complete catalog title and source-stated quantity/LF/waste facts; piece length
+comes from the selected title. Calculator rows normalize to native piece quantities
+before initialization.
+
+The compact configuration retains the complete active non-custom Moulding catalog
+in persisted form order and advances structural projection identity to version 5.
+The shared initializer uses the existing Moulding row context/patch helpers to attach
+authoritative current component snapshots, pricing, quantities and totals. A
+non-persisting test proves save-payload and rehydrate stability.
+
+Prompt version `new-sales-form-seed-v5` and synthetic evaluation cover exact pieces,
+exact linear feet and ambiguous profile wording. Final review additionally binds
+numbers to the same product request segment, requires explicitly stated waste,
+rejects linear-foot rows when the catalog title has no encoded length, and accepts
+unique alphanumeric profile/SKU identifiers such as WM713. The focused matrix passes
+159 tests / 398 assertions, New Sales Form migration test suites pass, and Biome passes on
+all touched code/tests. Sales and API typechecks contain no new diagnostics; both
+stop only on pre-existing `packages/sales/src/copy-sales.ts:521`. Root typecheck also
+stops on existing `@gnd/errors` NodeNext extension diagnostics. The migration
+command's final Dealership typecheck remains blocked by existing Dealership,
+fulfillment and workflow diagnostics. Shelf Items, request-paste/apply UI, browser
+apply/undo and live provider accuracy remain deferred. No sale, database schema,
+production data or environment value changed.
+
+### 2026-09-12 — Progressive assistant converted to Midday-parity tickets
+
+Audited the current local Midday chat path across its streaming REST route, AI SDK
+`ToolLoopAgent`, contextual prompt, in-memory MCP server, Toolpick semantic catalog,
+AI SDK UI state, composer/uploads/connected-app mentions, Streamdown messages,
+sources, grouped tool progress, entity links, query invalidation, and invoice canvas.
+Recorded the exact behavior mapping in
+`.brain/features/progressive-ai-chat-midday-parity.md` and recorded that Midday's
+inspected chat uses client state. GND history, favorites, feature intake, developer
+analysis, release subscriptions, and schema-aware analytics remain additive product
+requirements.
+
+Converted the master plan into 18 dependency-linked Brain implementation tickets
+across six waves: contract/security; live Midday-parity core; Midday-parity
+interaction; GND operational tools; progressive product features; and production
+rollout. Every ticket is registered once in the Backlog ledger. The UI prototype
+remains complete, while platform implementation stays 0/18 and T01 plus T17 form
+the next execution frontier. No application code, database schema, external system,
+or live assistant behavior changed in this ticketization pass.
+
+### 2026-09-12 — Progressive assistant tickets grouped
+
+Moved the master assistant task and all 18 implementation tickets into the dated
+feature folder `.brain/tasks/2026-09-12-progressive-ai-chat-platform/`. Updated the
+master plan, feature file, Backlog ledger, In Progress ledger, and moved task files
+so their relative links resolve from the new location. Ticket status and checklist
+progress did not change.
+
+### 2026-09-12 — Progressive assistant T01 complete
+
+Completed T01 and committed the first executable assistant boundary as
+`4daf8c9c6`. ADR-090 and the implementation contract now freeze the Midday-style
+REST/AI SDK/MCP/tool-selection/dashboard layering while retaining GND's explicit
+user/profile/operation authorization, Prisma/MySQL, domain packages, Trigger jobs,
+stored documents, notifications, shadcn UI, and Recharts boundaries.
+
+Added strict Zod contracts for versioned lower-snake-case tool identities,
+capability and effect vocabulary, result status, typed sources, separate artifact
+and job lifecycles, bounded next actions, and tool-specific output validation.
+Red/green tests pass 7/7 and Biome passes. API typecheck reports only the unrelated
+existing `packages/sales/src/copy-sales.ts:521` error. Independent standards and
+spec reviews found no remaining issues after reconciling MCP release requirements,
+connected-app/web-search policy, capability naming, per-tool data schemas, and job
+status ownership. Platform progress is 1/18; T17 is active next.
+
+### 2026-09-12 — Exact Mouldings provider-input gate prepared
+
+Locked a sanitized three-product Mouldings corpus request to the current Settings 3
+catalogue (72 active non-custom products) and added strict raw-output plus normalized
+seed oracles. The network-off runner now archives the exact provider/model input and
+scores optional oracles. Its first run exposed comma-based product segmentation
+that detached a trailing waste qualifier; validation now preserves commas inside a
+product segment, with regression coverage. The corrected run normalizes 400 LF at
+16 feet with 10% waste plus three boards and one attic kit to 32 total pieces and
+matches 9/9 oracle fields with zero unsafe guesses.
+
+Save/reopen coverage now exercises the same mixed calculator/direct-row shape, and
+oracle scoring treats equivalent form-step/multi-select ordering semantically. The
+focused matrix passes 180 tests / 454 assertions across 16 files and targeted Biome
+passes. Sales/API typechecks stop only on the existing unrelated
+`packages/sales/src/copy-sales.ts:521` error. No provider call, credential read, sale
+save, database mutation, or environment edit occurred. The sequence is paused at
+the explicit exact-input review gate before one DeepSeek call.
+
+Final prompt v6 also removes image-only instructions from text-only requests and
+adds them conditionally only when images are attached. The regenerated v3 review
+artifact remains a 9/9 offline oracle match and shrinks from 31,311 to 30,993 bytes;
+image evaluation is still deferred.
+
+### 2026-09-12 — First live DeepSeek Mouldings evaluation
+
+After explicit approval, executed exactly one `deepseek-v4-flash` attempt with AI
+SDK retries disabled and recorded as `maxRetries: 0`. The provider selected the
+correct Mouldings route, step, three product UIDs, calculator facts and direct
+quantities, but returned raw parent quantity 306 instead of 32. The authoritative
+normalizer correctly emitted 28 + 3 + 1 = 32 pieces. Raw accuracy is therefore 8/9
+fields (88.89%, no exact whole-order match); normalized form readiness is 9/9
+(100%, exact match), with zero unsafe guesses and one automatic derived-field
+correction. End-to-end generation latency was 1,935.24 ms and usage was 7,378 input
+/ 143 output tokens. Official DeepSeek off-peak rates observed on 2026-09-12 yield
+an estimated $0.000146026–$0.00171754 range because the response omitted its input
+cache split.
+
+The corpus evaluator now records separate `providerOracle` and `seedOracle` scores
+so normalization cannot conceal raw model errors. Final focused validation passes
+184 tests / 462 assertions across 16 files; targeted Biome passes. Sales/API
+typechecks report only unrelated shared-checkout failures: the existing
+`packages/sales/src/copy-sales.ts:521` nullability error and concurrent
+assistant-schema diagnostics in `packages/db/src/queries/assistant.ts`. No second
+provider call, sale save, database mutation, image work, or UI change occurred.
+
+Final review preserved normal provider resilience: the corpus runner alone injects
+zero retries for an explicitly approved billed test, while ordinary provider
+creation keeps the existing one-retry default. Mock oracle selection is now bound
+directly to each case rather than matched by potentially duplicate request text.
+Final two-axis review is clean after restricting unresolved HPT Door evidence to
+the active route and exact `door` field, archiving raw and normalized oracle
+coverage separately, and adding runtime proof that `maxRetries: 0` reaches the AI
+SDK only for live corpus evaluation. The ticket is complete at 31/31; no scoped
+commit was made because the shared dirty checkout overlaps unrelated active work.
+
+### 2026-09-12 — Progressive assistant T02 persistence implemented
+
+Added the durable assistant persistence foundation: actor-and-context-scoped
+conversations, server-sequenced messages and run events, payload-bound idempotent
+runs/tool calls, durable checkpoints/terminal results, and expiring action proposals.
+Query helpers now cover create/list/search/history, archive/soft-delete and owned-file
+revocation, bounded client message validation, retry deduplication, generated
+messages, run lifecycle, tool execution, retention scans, and cursor-bounded reconnect.
+Client writes accept bounded text and authorized StoredDocument handles; assistant,
+tool, reasoning, source, checkpoint, and terminal parts remain server-owned.
+
+Final review hardening binds generated assistant output to one run, computes tool
+fingerprints from canonical inputs, persists no raw tool input values, restricts
+durable tool results to bounded reference metadata, makes tool effect keys globally
+unique, and fences terminal runs against late checkpoints or new effects.
+
+Prisma generation, DB package typecheck, 7 focused tests / 15 assertions, and a local MySQL
+integration test pass. The integration proves another actor or organization scope
+cannot read history/reconnect state, mismatched retries conflict, concurrent writes
+retain contiguous sequence, file handles require conversation ownership, durable
+events resume by cursor, and archived/deleted chats reject writes. The additive migration was applied locally through the
+guarded DB shell. Ordinary migration generation safely stopped on existing local
+migration-history drift; no reset, preview write, or production write occurred.
+
+The final migration also creates all five assistant tables from scratch in a
+disposable database that is removed in the same validation command. Final review
+added stable `(updatedAt, id)` keyset pagination and transactional, idempotent
+concurrent run completion; both specification and engineering reviews are clean.
+T02 is complete, and T03 is now active.
+
+### 2026-09-12 — Progressive assistant T19 governance ticket added
+
+Expanded the roadmap to 19 tickets with account-by-account assistant entitlement
+instead of role-derived access. T19 covers server-side enablement checks, super-admin
+user controls, idempotent token/request/cost ledgers, per-user quota reserve/settle
+accounting, reset/override policy, usage dashboards/exports, and a T16-backed
+feature-request implementation board with immutable delivery history. Added
+recommendations for user usage meters, quota templates, alert-only budgets, provider
+receipt reconciliation, anomaly alerts, duplicate request merging, and release-ready
+governance. Planning only; ongoing T02 implementation was not blocked.
+### 2026-09-12 — Progressive assistant protected streaming transport completed
+
+Ticket 03 is complete. GND now has an authenticated, origin-checked, body-bounded assistant stream endpoint plus actor-scoped reconnect snapshots. Server-derived organization role, active permissions, timezone, document ownership, and integration scope protect the boundary. Atomic request/run persistence, one-executor claiming, Redis production admission with renewable owned leases, durable cancellation/terminal state, safe replay, and redacted errors close the transport-level Midday parity requirements. Focused suites pass 44 tests with 93 assertions; the database integration passes 36 assertions and database typechecking is clean. Independent specification and standards reviews found no remaining actionable issue. Ticket 04 is active for the bounded provider runtime and contextual prompt.
+### 2026-09-12 — Progressive assistant bounded agent runtime completed
+
+Ticket 04 is complete. The protected assistant now runs through an AI SDK 6 `ToolLoopAgent` with allowlisted provider/model selection, bounded steps/tools/retries/output/deadline, smooth text streaming, deterministic non-overriding cleanup, normalized GND profile formatting, and strongly labeled untrusted document/integration context. Actor-scoped history supplies complete recent turns, generated replies persist before terminal success, cancellation wins before commit, and late abort cannot contradict committed reconnect history. Model/catalog/prompt identity and bounded usage are durable. The full T01–T04 assistant regression set passes 58 tests with 138 assertions, database typechecking passes, and both final reviews are clean. Ticket 05 is active for the canonical MCP registry and semantic selection.
+
+### 2026-09-12 — Progressive assistant MCP registry and semantic selection completed
+
+Ticket 05 is complete. `assistant-catalog-v1` now owns strict, versioned tool contracts across all declared GND domains and supplies the same public metadata to MCP, model discovery, UI catalogs, future recipes, and diagnostics. Each turn uses a request-owned in-memory MCP server/client; calls reload current authenticated access, verify the original user/scope, recheck grants, validate typed inputs/results, and clean up transports across every exit path. Toolpick ranks only authorized implemented public definitions, supports related and always-active discovery tools, and keeps actor handlers/results out of bounded caches. A frozen general English sentence-embedding benchmark scored 75% top-1/top-3 versus the deterministic baseline's 87.5%, so production embeddings remain opt-in. Full T01–T05 regression passes 53 tests with 206 assertions; targeted formatting and diff checks pass; API typecheck reaches only the existing unrelated Sales nullability error. Ticket 06 is active for the live dashboard chat shell and AI SDK UI state.
+
+### 2026-09-13 — Sales Request Generation T09 retention completed
+
+Completed the privacy-safe server telemetry foundation with an executable retention
+path. The 90-day policy and purge/anonymize helpers now live at the shared database
+query boundary, and a concurrency-one Trigger task runs the physical purge daily at
+02:17 UTC. Expiry uses `retentionUntil <= now` and also removes already soft-deleted
+rows. The task exposes only aggregate purge count and policy duration; it never
+selects or logs run, actor, request/customer, contact, image, credential, generated
+seed, or provider-body data. Eight focused tests / 21 assertions and database
+typecheck pass; Jobs typecheck reaches only existing Sales/UI diagnostics. No
+provider call, UI/image/mailbox/secret change, migration execution, or database
+write occurred.
+
+### 2026-09-13 — Sales Request Generation T07 save/reopen safety completed
+
+The generated Door/HPT order and Mouldings quote fixtures now cross the same native
+draft/final schemas and hydration boundary as manual New Sales Form records. The
+proof retains authoritative quantities, current profile-derived pricing, HPT rows,
+Mouldings multi-selection/calculator rows, and summaries while persisting no
+request-generation metadata. Combined apply, transaction, and save/reopen coverage
+passes 23 tests / 121 assertions for unresolved blocking, stale revisions, duplicate
+apply, safe/selective undo, canonical save composition, and reopen parity.
+
+Authenticated local browser verification loaded both create-order and create-quote,
+confirmed the shared native form/pricing shell and text-only read-only review panel,
+and made no customer selection, sale save, finalization, invoice send, provider call,
+or database mutation. T07 is complete; T08 remains a one-call-at-a-time approval gate.
+
+### 2026-09-13 — Sales Request Generation T13 eligibility boundary started
+
+Added a shared fail-closed policy for low-touch preparation from reviewed pasted
+text. It permits native draft/invoice-preview preparation only when the seed and
+initializer have no unresolved, custom, invalid, unpriced, or Shelf Item facts and
+all provider/configuration/commercial/permission evidence is current. Final save,
+send, payment, inventory, and Production remain explicit human commands. Four
+focused tests / six assertions and targeted Biome pass; image and mailbox sources
+are explicitly rejected. T13 is 1/5 complete pending connection to the native
+draft/preview path and the T08/T10 operational evidence gates.
+
+### 2026-09-13 — Sales Request Generation T13 native unsaved preview slice
+
+Connected human Apply to an explicit-save hold on the ordinary native New Sales Form
+record. Debounced autosave can no longer persist an applied generated proposal; the
+hold clears after successful Save Draft/Finalize or safe full Undo, remains after a
+selective Undo that retains edited generated lines, and survives local browser
+recovery. Added a pure technical invoice-preview builder that accepts only a
+human-applied unsaved record and uses the existing Sales invoice print composer with
+no save, snapshot-publication, send, payment, Inventory, or Production capability.
+The text API retains only the empty `images: []` placeholder and removes dormant
+media/base64 decoding; mailbox ingestion remains absent. Follow-up review closed two
+persistence gaps: internal draft transforms now preserve the hold, and persisted
+Preview/Print/PDF actions stop before `autosave.flush` while it is active. Recovery
+keeps the pure invoice composer available without retaining undo snapshots. Focused
+validation passes 51 tests / 220 assertions, targeted Biome and isolated
+compilation. No provider call, Sales/database write, environment change, image
+implementation, or mailbox connection occurred. T13 is 3/5 complete; authoritative
+commercial/permission revalidation immediately before final save and the remaining
+audit/exception proof are still open behind the T08/T10 evidence gates.
+
+### 2026-09-13 — Sales Request Generation T13 fail-closed final-save groundwork
+
+Reserved a bounded pasted-text-only `lowTouchClaim` on the existing final-save
+schema, split it from the native payload before diagnostics/persistence, and reject
+it before database access while the runtime preflight is unavailable. Ordinary
+explicit human final saves remain unchanged. Added a shared pure commercial
+preflight core with deterministic typed blockers and a versioned fingerprint that
+tracks configuration scope, seed binding, catalog IDs/UIDs, selections, quantities,
+HPT, Mouldings, extra costs, taxable flags, prices, and totals while excluding only
+persisted Sales-row IDs and presentation data. Combined T13/text validation passes
+67 tests / 260 assertions; targeted Biome, diff checks, and isolated compilation
+pass. No provider, database, environment, image, or mailbox action ran. T13 remains
+3/5: runtime authority resolution, durable provider-benchmark evidence, and full
+transaction/audit/recovery proof are still required before low-touch finalization.
+
+### 2026-09-13 — Sales Request Generation T13 seed binding hardened
+
+Added nullable metadata-only seed binding to successful generation telemetry. The
+binding is `h1:` plus a server-keyed HMAC over the canonical validated seed,
+generation ID, and configuration scope/revision; identical request shapes cannot be
+correlated across runs, and neither request text, provider output, nor seed JSON is
+stored. Completion rejects expired runs, malformed bindings are omitted instead of
+overwriting a prior value, and account anonymization clears the binding. Prisma
+Client generation, targeted Biome/diff checks, isolated compilation, and the focused
+T13/text matrix pass with 83 tests / 301 assertions. Migration
+`20260913123000_add_sales_request_seed_digest` was created but not applied to local,
+preview, or production databases. Commit: `14e0fd964`. T13 remains 3/5 pending the
+fresh transactional authority resolver, durable provider benchmark evidence, and
+complete audit/idempotency/exception proof.
+
+### 2026-09-13 — Sales Request Generation T09 complete and T10 code gates connected
+
+Completed privacy-safe dashboard Apply/save/feedback telemetry and connected the
+persisted internal pilot to both sides of the pasted-text New Sales Form boundary.
+The client now requests eligibility for its exact order/quote create surface, hides
+generation for excluded actors, and sends that same required surface to preview.
+The server rechecks the global rollback flag, persisted pilot state, active actor,
+and named cohort/reviewer membership before snapshot, quota, or provider work.
+Pilot-setting writes reject inactive or unknown identities. Sales Settings now
+provides bounded active-user cohort/reviewer controls and emergency disable.
+Apply-time validation repeats pilot and native Sales authority; the server rejects
+all image payloads in this text-only phase. Outcome retries promote only toward
+success, and low-touch eligibility excludes existing/non-order/quote records. The
+final focused matrix passes 109 tests / 410 assertions; targeted Biome across 26
+files and isolated compilation pass. No provider call, Sales save, database write,
+image path, mailbox connection, or environment edit occurred. T09 is complete;
+T10 remains operationally gated on
+the real cohort/reviewer selection and two successful review periods.
+Implementation commit: `0042fcf73`.
+### 2026-09-13 — Progressive AI Chat T07 composer and providers complete
+
+- Added permission-aware curated suggestions with persisted metadata-only usage events, queued multi-file image/PDF uploads, paste/drop, local previews, removal errors, server MIME/size/PDF-page validation, authorized document adoption, and multimodal model inputs.
+- Added Midday-style actor-scoped Composio toolkit discovery with sessions limited to explicitly mentioned configured toolkits, search-only meta-tools with live scope reauthorization, connected-app mentions and management entry, retry-preserved app context, and policy-controlled public-first-turn web search with deterministic private-data egress filtering, post-internal-tool shutdown, cancellation propagation, unique bounded HTTPS sources, and per-run source reset.
+- Added stale-upload cleanup during navigation plus an hourly 24-hour claim-based retention sweep for abandoned staging rows.
+- Added private Blob storage, serializable staged-upload quota reservations, aggregate attachment enforcement before adoption, bounded image preprocessing, stale claim recovery, abandoned reservation cleanup, and bounded retention draining.
+- Validation: focused T07 suite passes 69 tests / 184 assertions; the PDF.js browser-build plus Sharp import smoke test emits no duplicate-native-loader warning; Biome and targeted diff checks pass; API typecheck reaches only unrelated sales baseline errors and the dashboard scan has no assistant-path diagnostics. Authenticated in-app browser verification confirms the normal dashboard shell, 390 px compact layout, suggestions, multiline composer behavior, attachment entry, and Sources dialog.
+
+### 2026-09-13 — Progressive AI Chat T08 streaming renderers complete
+
+- Added Streamdown Markdown responses, copy controls, normalized AI SDK message parts, grouped and explicitly labelled tool states, bounded source cards, typed response-state cards, actionable retry recovery, attachment chips, active thinking feedback, completed-message memoization, and reduced-motion behavior.
+- Added a sequential server allowlist for the AI SDK full stream. Browser chunks contain only text, bounded HTTPS citations, generic tool states, and typed cards; reasoning, tool inputs/outputs, provider metadata, generated files, and raw errors are discarded at the server boundary.
+- Validation: all 88 assistant tests pass with 317 assertions across 17 files; targeted Biome and diff checks pass; API typecheck reaches only three unrelated concurrent Sales diagnostics; dashboard typecheck passes with the Node 22 workspace runtime and an 8 GB heap; the authenticated in-app browser confirms the normal dashboard shell remains intact.
+### 2026-09-13 — Sales Request Generation T12 mailbox work reactivated
+
+Reactivated Ticket 12 inside the current 13-ticket Sales Request rollout and expanded
+it from generic mailbox ingestion into employee-owned multi-mailbox connections plus
+a dedicated Sales Request Inbox. The plan now requires Midday-style provider adapters,
+encrypted OAuth lifecycle, connection health, background synchronization, thin
+summary-first dashboard composition, detail-on-demand reads, idempotent ingestion,
+and explicit user/organization scoping within existing GND boundaries.
+
+The ticket supports manual generation, automatic classification, and automatic
+preparation of review-ready unsaved native drafts. It adds exact customer-email
+matching with ambiguity handling and evidence-backed new-customer prefill. Reply
+drafts remain post-save and explicitly confirmed; unattended sending remains a later
+separately gated mode with strict commercial/document eligibility, templates,
+idempotency, rate limits, audit, monitoring, rollback, and kill switch. One employee
+may connect multiple mailboxes with independent provider identity, filters, sync
+state, preferences, and automation mode. T12 is active/queued rather than deferred;
+T11 image input remains deferred. Documentation only: no code, schema, provider,
+mailbox authorization, database data, or outbound email changed.
+
+### 2026-09-13 — Sales Request Generation T11/T12 deferred
+
+Latest product direction defers both image input and mailbox connections/Sales
+Request Inbox work. Their design checklists remain in Brain for future resumption,
+but neither ticket is part of the active Goal scope. Current work is text-only and
+continues through T08 provider evidence, T10 pilot operations, and T13 final-save
+revalidation. No image, mailbox, OAuth, provider, schema, database, or outbound-email
+action occurred for this scope update.
+### 2026-09-13 — Sales Request provider-benchmark approval authority complete
+
+Commit `444e8d108` adds a durable, Super Admin-only benchmark decision to the active
+Sales Settings authority. The record is privacy-safe and binds the exact run/evidence
+digest, provider/model, configuration, prompt, output schema, corpus, threshold
+policy, actor, time, and monotonic revision. The write reselects and locks the active
+row and rechecks current identity inside a serializable transaction; stale and
+malformed records fail closed on reads. Focused validation passes 59 tests / 153
+assertions, scoped Biome/diff checks and isolated bundling pass. Package typechecks
+report only pre-existing diagnostics in `@gnd/errors`, `copy-sales.ts`, and the
+earlier final-save preflight. No paid provider call, database write/migration, UI,
+image, or mailbox work ran. T08 remains incomplete pending exact-case approval and
+evidence; active-scope completion remains 8/11 (73%).
+### 2026-09-13 — Sales Request low-touch atomic consumption primitive
+
+Commit `1c2ddf7ca` adds nullable `consumedSalesId` telemetry binding plus the
+`20260913130000_add_sales_request_generation_consumption` migration. The internal
+compare-and-set accepts only retained, successful, completed pasted-text generations
+with a seed digest and matching actor; same-Sales retry is idempotent and competing,
+expired, deleted, cross-actor, incomplete, or unbound runs fail closed. Account
+anonymization clears the actor, seed digest, and Sales binding; retention still
+deletes the row. Prisma Client generation/validation, 13 focused tests / 44
+assertions, targeted Biome, and diff integrity pass. API typecheck reports only the
+existing `copy-sales.ts:521` diagnostic. The migration was not applied, the primitive
+is not connected to final save, and no provider, UI, image, or mailbox work ran.
+### 2026-09-13 — Sales Request consumption lifecycle hardened
+
+Commit `36c6aa733` closes two post-consumption races. The Sales ID binding is now an
+immutable logical pointer rather than a Prisma relation, so deleting a Sales row
+cannot clear the value and reopen the generation. Completion updates require
+`consumedSalesId:null`, preventing delayed provider lifecycle events from rewriting
+consumed evidence. Concurrent different-ID attempts have one winner and same-ID
+attempts remain idempotent. Prisma generation, Biome, and 15 focused tests / 49
+assertions pass. No migration was applied and low-touch save remains disabled.
+
+### 2026-09-13 — Sales Request low-touch commercial authority resolved
+
+Commit `625c062fa` adds a strict, transaction-client-compatible authority resolver
+for the office customer graph used by the first low-touch cohort. It proves the
+exact active office customer, explicit active office pricing profile, exact
+customer-owned billing/shipping addresses, customer tax profile, and current tax
+row without any fallback. It rejects ambiguity, cross-customer rows, mismatched
+identity, malformed coefficient/tax values, and case-insensitive tax impostors. The
+output contains only IDs, commercial numbers, and an opaque revision; no contact or
+postal data is returned. Native-form parity was preserved by allowing an explicit
+pricing-profile override distinct from the customer's default. Seven tests / 26
+assertions and targeted Biome pass; API typecheck reaches only the existing
+`copy-sales.ts:521` diagnostic. Tax-exempt automation, stock/permission authority,
+and atomic final-save integration remain fail-closed. No provider or database call
+ran.
+
+### 2026-09-13 — Sales Request retained generation authority resolved
+
+Commit `c8bc02d0a` adds a strict read-only authority for the metadata-only generation
+run consumed by low-touch final preflight. It requires exactly one unexpired,
+successful, completed pasted-text run for the authenticated actor; post-validates
+the exact generation/configuration/provider/model identity and current prompt/schema;
+and replays the server-keyed seed HMAC from the ephemeral claim using constant-time
+comparison. No request text, provider output, or seed is read from telemetry or
+returned. Eight tests / 16 assertions, targeted Biome, and diff checks pass. Save
+integration still waits for stock and permission authorities and remains disabled;
+no provider or database call ran.
+
+### 2026-09-13 — Sales Request low-touch permission authority resolved
+
+Commit `5fe4f9d38` adds a transaction-compatible, read-only permission authority for
+the authenticated actor. It requires one active non-revoked user and current active
+role/direct-grant evidence, matching the native new-order/new-quote rule of
+`editOrders` or Super Admin. Soft-deleted or malformed evidence fails closed. The
+result is privacy-minimized to actor ID, surface, grant kind, and an opaque revision;
+no contact or credential fields are queried. Nine focused tests / 32 assertions,
+targeted Biome, and diff checks pass. API typecheck reaches only the pre-existing
+`copy-sales.ts:521` diagnostic. It adds no permission and remains disconnected
+pending stock authority and atomic native final-save orchestration. No provider or
+database call ran.
+
+### 2026-09-13 — Sales Request low-touch stock authority resolved
+
+Commit `2cffccb2c` adds a conservative read-only stock authority for the exact
+native candidate. It delegates material identity to the shared inventory-sync
+mapper, then requires unique active tracked Inventory/Variant/category rows and
+sufficient physical quantity after both committed and pending-review allocations.
+Unknown/untracked stock, malformed or ambiguous mapping, overcommit, insufficient
+capacity, Shelf Items, and Services fail closed. Review fixes cover HPT legacy
+`stepProductId` snapshots, explicit component identity, per-line/category
+aggregation, and all Mouldings multi-selection quantities. The revision is
+observational only: final integration must recompute it inside the native
+Serializable transaction, while allocation remains an explicit downstream command.
+Forty-one focused/shared mapper tests / 106 assertions, targeted Biome, and diff
+checks pass; API typecheck reaches only the pre-existing `copy-sales.ts:521`
+diagnostic. No provider or database call ran.
+
+### 2026-09-13 — Sales Request T13 final-save transaction complete
+
+Commit `b5766c0d6` connects the strict pasted-text low-touch claim to the existing
+New Sales Form final-save engine. Fresh pilot, benchmark, retained-run/seed-HMAC,
+commercial, permission, route/default/component, native pricing, and conservative
+stock evidence are resolved before the first Sales write inside the same
+Serializable transaction. Submitted and replayed records use the same native
+hydration before full commercial-fingerprint comparison. Successful native writes,
+generation consumption, and the versioned metadata-only Sales History audit commit
+atomically; payment, allocation, Production, and sending remain separate explicit
+commands.
+
+The transaction now rechecks the draft key and gives only low-touch P2002/P2034
+conflicts a maximum of three attempts. A committed-response-loss retry is a no-op
+only when one exact durable audit matches the current actor, generation, Sales ID,
+configuration/prompt/schema/benchmark identity, provider/model, and commercial
+fingerprint; edited, competing, missing, or duplicate evidence fails closed and
+post-save jobs are not repeated. The focused T13 matrix passes 122 tests / 372
+assertions. API typecheck reports only the unrelated pre-existing
+`packages/sales/src/copy-sales.ts:521` nullability issue. No provider call, database
+write, migration application, image work, or mailbox work ran. T13 is code-complete;
+active-scope progress is 9/11 (82%). T08 provider evidence and T10 named-cohort/two-
+period operations still block rollout, and the later UI slice must opt into the
+claim before this server path becomes reachable.
+
+### 2026-09-13 — Sales Request T08 first approval packet prepared
+
+The first one-case DeepSeek benchmark packet is selected and preserved as
+`prepare-only`: `interior-solid-core-slabs` using Settings `3`, current configuration
+revision `2f101a8a257491570612e9f06d8404eeddaa7e3eacc0d2d8ad5eaa3921b61d09`, prompt
+`new-sales-form-seed-v6`, output contract `new-sales-form-seed-v2`, and model
+`deepseek-v4-flash`. The exact 31,533-byte model input, 1,086-byte seed oracle,
+provider-output oracle, and request metadata are archived together. T08 is 1/5:
+the next action is one zero-retry call only after case-specific user approval. No
+provider call, usage, cost, database write, image work, or mailbox work occurred.
+
+### 2026-09-13 — Sales Request T10 reporting readiness advanced
+
+Closed a concrete internal-pilot reporting gap without enabling the pilot. The
+aggregate-only Super Admin summary now includes latency sample count/p50/p95 and
+explicit blocked/stale/unavailable Apply plus failed/successful draft/final-save
+counts. Twenty-one focused telemetry tests pass with 63 assertions, and targeted
+Biome/diff checks pass. Added a text-pilot runbook covering unresolved/defaulted and
+catalog-warning review, issue classification, weekly evidence, privacy, two-period
+advancement, and emergency rollback. T10 is 2/5: named cohort/reviewer selection and
+real review evidence remain outstanding. No provider call, database write, image
+work, or mailbox work occurred.
+
+### 2026-09-13 — Progressive AI Chat T09 artifact canvas and freshness complete
+
+- Added typed GND entity actions, URL-restored document canvas state, authenticated actor-scoped private document delivery, and reuse of existing Sales, customer, inventory, Community, file-preview, and query-event authorities.
+- Persisted validated entity and invalidation stream parts with assistant messages. Only canonical write, artifact, external-send, and destructive tool effects can refresh reviewed cache families; partial committed mutations also refresh, while read and denied outcomes cannot.
+- Validation passes 148 focused tests / 523 assertions, targeted Biome, and diff integrity. API typecheck reaches only the existing `copy-sales.ts:521` diagnostic; the 8 GB dashboard typecheck reports existing workspace diagnostics with none in the touched assistant modules. Authenticated browser verification confirms the normal dashboard navigation and assistant layout remain intact.
+- Implementation commit: `d99edd509`. Independent specification and engineering reviews are clean after the final accessibility, cache-effect, focus, and memoization corrections.
+### 2026-09-13 — Progressive AI Chat T19 governance ticket expanded
+
+Expanded T19 without changing or blocking active T10 implementation. The ticket now
+defines four delivery slices for individual account entitlement, provider-normalized
+usage accounting, race-safe per-user quotas and reporting, and the T16-backed feature
+request governance board. It explicitly separates Assistant product enablement from
+existing domain permissions and row/field access, adds data/API/dashboard/lifecycle
+contracts, acceptance criteria, privacy boundaries, reconciliation rules, personal
+usage meters, temporary pilot grants, dry-run budgets, model-routing policy, anomaly
+alerts, and append-only implementation/release history. Planning only; no schema,
+application behavior, provider request, or operational data changed.
+# 2026-09-13 — Progressive AI Chat T10 Sales/customer reads complete
+
+- Completed all seven T10 checklist items: typed Sales/customer tools, canonical
+  `sales-pipeline/v2` projections, bounded keyset reads, ambiguity/conflict states,
+  privacy-safe customer identities, finance redaction, related actions, and selector
+  evaluations.
+- Final validation passes 79 Assistant tests / 331 assertions, DB typecheck, and
+  targeted Biome. API typecheck reports only the unrelated existing
+  `packages/sales/src/copy-sales.ts:521` nullable-string error.
+- Independent specification and engineering re-reviews are clean. The platform is
+  10/19 complete and T11 operations/Community reads is active.
+### 2026-09-13 — Progressive AI Chat T20 admin feature-delivery ticket added
+
+Added T20 in the existing dated Progressive AI task folder without changing active T11 work. T19 remains the secure per-user entitlement, usage, quota, and governance foundation; T20 owns the full normal-dashboard admin center, feature-request delivery board, reviewed AI analysis, implementation/release history, requester self-service, explainable prioritization, and post-release adoption insights. The roadmap now contains 20 tickets, with T11 still active and T20 queued after its T16/T18/T19 dependencies. Planning and Brain documentation only; no application code, schema, API, permissions, provider activity, or notifications changed.
+
+### 2026-09-13 — Progressive AI Chat T11 operations/Community reads complete
+
+Implemented nine typed `assistant-catalog-v3` reads spanning Inventory, Production,
+Fulfillment, and Community. The queries preserve worker assignment and manager
+organization scope, canonical physical/committed/pending/inbound/demand quantities,
+active project semantics, independent child-resource grants, install-cost exclusion,
+bounded pagination, evidence revisions, sources, related actions, and dashboard deep
+links. Validation passes 129 tests / 522 assertions, DB typecheck, and targeted
+Biome; independent specification and engineering reviews are clean. Database
+integration could not connect to the offline local MySQL service at
+`127.0.0.1:3307`. No schema or migration changed. Platform progress is 11/20 and
+T12 PDF artifact workflows is active.
+
+### 2026-09-13 — Sales Request T10 exact-period evidence hardened
+
+Replaced rolling pilot reporting with one exact closed seven-day UTC interval. New
+generation starts persist the current pilot-settings and benchmark-approval
+revisions; reports bind every row to current scope/configuration/provider/model/
+prompt/schema authority. Closed complete periods remain reviewable after rollback,
+but legacy, mixed, incomplete, disabled, stale, or empty evidence cannot advance;
+open, expired, or over-10,000-row periods return no metrics. The provider path now matches T08's
+zero-retry policy, preserves safe token counts on structured-output failure, and
+returns an actionable benchmark precondition. Prisma generation and 113 focused
+tests / 301 assertions pass; API typecheck reaches only the existing unrelated
+`packages/sales/src/copy-sales.ts:521` error. Migration
+`20260913140000_add_sales_request_pilot_authority_revisions` is prepared but not
+applied. No provider call, database write, image work, or mailbox work occurred.
+T10 remains 2/5 pending named cohort/reviewer selection and two real periods.
+
+The scoped T10 evidence-hardening implementation is committed as `e92785d39`.
+Independent Sol High re-review found no blocker, P1, or P2 and separately passed 49
+tests / 131 assertions plus scoped Biome, diff, and Prisma validation. Active-scope
+progress remains 9/11 (82%): T08 still needs an explicitly approved single paid
+provider case, and T10 still needs the named cohort/reviewer and two closed periods.
+
+### 2026-09-13 — Sales Request T08/T10 approval and evidence gate hardened
+
+The one-case evaluation runner now binds live execution to an immutable SHA-256
+packet and atomically consumes that approval before any zero-retry provider call;
+the legacy direct-live entry point is disabled. Runtime pilot generation now commits
+both run start and provider-attempt metadata before provider construction/invocation.
+Missing terminal, provider-latency, token, issue, feedback, Apply, or edited-
+correction evidence remains explicitly incomplete, and missing tokens are null
+rather than zero. Operational reviewability is separate from advancement, which
+cannot pass without precommitted thresholds and a verified review signoff.
+
+The New Sales Form can record categorized rejection before Apply. Successful
+pre-Apply rejection is terminal for the exact generation, Accepted/edited feedback
+remains post-Apply, and correction time is server-derived from Apply to edited
+feedback only. The combined T08/T10 regression passes 114 tests / 404 assertions;
+Prisma generation, DB typecheck, script bundling, targeted Biome, and diff checks
+pass. API typecheck reaches only the existing `copy-sales.ts:521` issue; dashboard
+typecheck reaches the broad existing baseline after the touched BigInt target issue
+was removed. The refreshed DeepSeek packet remains unconsumed at digest
+`sha256:074cbc8a17158e8d9c98516667ad38e70e43e8c4ce058db97bd133ad8cf82571`.
+No provider call, migration application, image work, mailbox work, or Sales write ran.
+Active progress stays 9/11: T08 needs the approved paid call and T10 needs a named
+cohort/reviewer plus two real closed periods.
+
+The approval-bound evaluator is committed as `8a133cfb6`; the runtime telemetry,
+evidence, and feedback hardening is committed as `82adf37d2`. A final focused T10
+rerun passes 96 tests / 327 assertions. The additive migration remains unapplied,
+the approval packet remains unconsumed, and no paid provider, Sales, image, or
+mailbox action occurred.
+
+### 2026-09-13 — Progressive AI Chat T12 durable PDF lifecycle
+
+T12 advanced from 2/7 to 5/7. `assistant-catalog-v5` now has durable Sales PDF
+status, generation, and cancellation handlers backed by `SalesDocumentSnapshot`,
+Trigger idempotency, canonical source revisions, current actor/scope/grant checks,
+the canonical Sales v2 renderer, Vercel Blob, and `StoredDocument`. Generation and
+cancellation remain hidden behind T17's approval activation gate.
+
+Dispatch claims recover after a lease, concurrent callers share one provider run,
+fast worker terminal outcomes remain authoritative, retries restore pending state
+until the final attempt, and cancellations invalidate database state before
+provider cancellation. Price-bearing modes require payment access; Production and
+packing-slip modes require order access only. Failed and expired artifacts flow
+through an hourly atomic invalidation and cleanup queue.
+
+Final tests pass: Assistant 88/88, database 8/8, Sales 10/10, and PDF job/cleanup
+9/9. Database typechecking is clean. API/jobs typechecks stop only on existing
+`copy-sales.ts:521` and shared duplicate React-type failures. Independent spec and
+standards reviews are clean after their findings were fixed. The additive migration
+has not been applied to any database.
+
+### 2026-09-13 — Progressive AI Chat T13 typed order-draft contract
+
+T13 started with `assistant-catalog-v6` and
+`sales_draft_from_request@1`. The strict text-only draft contract preserves the
+native `NewSalesFormSeed`, published configuration revision, provider/model and
+prompt identity, generation ID, bounded provider token usage, source evidence, and
+derived unresolved state. It requires `editOrders`, rejects image-shaped input,
+and remains unavailable to normal tool execution until T17.
+
+The Assistant suite passes 90 tests / 402 assertions, targeted Biome passes, and
+both independent reviews are clean. The checklist remains 0/8 because the live
+default Sales Request orchestration, native initializer, editable canvas, reviewed
+proposal, and canonical save have not yet been connected.
+
+### 2026-09-13 — Progressive AI Chat T13 guarded draft orchestration
+
+The default `sales_draft_from_request@1` service now reuses the production Sales
+Request preview orchestrator with existing pilot authority, storefront quote
+creation permission, usage reservation, current provider benchmark approval,
+repeatable-read catalog snapshots, zero-retry live provider selection, and durable
+actor-bound telemetry. It now requires a published catalog record whose
+`publishedRevision` exactly matches the generated context before usage reservation
+or provider work. The MCP request cancellation signal is carried through the
+registry into generation.
+
+The orchestration boundary is independently testable and covers fail-closed pilot
+denial, the successful two-snapshot lifecycle, terminal provider failure, and
+cancellation propagation. The complete Assistant suite passes 95 tests / 415
+assertions; targeted Biome and the independent standards review are clean. API
+typechecking stops only on the pre-existing nullable value error at
+`packages/sales/src/copy-sales.ts:521`. T13 is now 1/8 complete (13%); native form
+hydration and artifact canvas editing are next.
+
+### 2026-09-13 — Progressive AI Chat T13 native draft canvas
+
+Strict `sales_draft_from_request@1` output now becomes a dedicated validated
+`data-assistant-order-draft` stream part, persists with the assistant message, and
+is parsed again by the dashboard after live delivery or history reload. A review
+action opens the draft in an adjacent canvas inside the normal dashboard chat.
+
+The canvas prepares resolved requests through the existing
+`applySalesRequestGenerationProposal` and generic `initializeNewSalesFormSeed`
+path with fresh component lookup, profile pricing, and exact published-catalog
+revision validation. Unresolved requests are also freshness-checked before their
+review state is shown. Loading, stale, initializer-blocked, query-failure, and
+draft-switch states are terminal or announced and have focused regression tests.
+
+Assistant tests pass 96/96 and dashboard Assistant tests pass 43/43. The focused
+Sales Request route, settings, and canvas matrix passes 31/31. Dashboard
+typechecking is clean; API typechecking stops only on the unrelated existing
+`packages/sales/src/copy-sales.ts:521` nullable-string error. Independent spec and
+standards reviews are clean after fixes. T13 is now 2/8 complete (25%).
+### 2026-09-13 — Sales Request T08 benchmark final evidence hardened
+
+The approval packet now binds dated provider/model pricing evidence and an exact
+runtime source lock. Successful raw provider output is archived before
+normalization; integer-micro cost calculation fails closed on unknown usage/rates
+and enforces a conservative $0.025 one-call ceiling. A strict offline finalizer
+requires complete per-fact review, matching raw/output/token evidence, native
+save/reopen proof, zero unsafe continuation evidence, and byte-identical approved
+artifacts before producing an immutable digest. The focused T08/T10 pure-logic
+matrix passes 49 tests / 178 assertions after correcting one test expectation;
+both operational scripts bundle and API typecheck reaches only the existing
+`copy-sales.ts:521` diagnostic. The current prepare-only v4 DeepSeek packet has
+digest `sha256:9b61a0e2043d07e67e1d01853104a8ecb736eacd5235e066fec3234b21827a0d`.
+No paid provider call, Sales write, migration application, image, or mailbox action
+occurred. Active progress remains 9/11 (82%).
+
+### 2026-09-13 — Sales Request T08 approval packet refreshed
+
+Regenerated the single-case DeepSeek benchmark in `prepare-only` mode after the
+runtime evidence hardening. The current unconsumed packet is
+`2026-09-13T-approval-bound-priced-interior-solid-core-slabs-v6` with approval
+digest `sha256:d973bfae63304d747c6ee3204063df0bab03592128d6868ef6061f4da83ece09`.
+It remains bound to Settings `3`, configuration revision
+`2f101a8a257491570612e9f06d8404eeddaa7e3eacc0d2d8ad5eaa3921b61d09`,
+`deepseek-v4-flash`, zero retries, a 45-second timeout, a 4,000-token output ceiling,
+and a conservative 25,000 micro-USD cost ceiling. No paid provider call, Sales write,
+migration application, image, or mailbox action occurred; T08 remains 1/5 and needs
+explicit approval for this exact case and digest before one live call.
+
+### 2026-09-13 — Sales Request T10 review authority accepted
+
+Completed the durable pilot-review authority path and its final standards refactor.
+Named active reviewer checks and current pilot/benchmark/policy authority now live in
+one service used by both review writes and Super Admin summaries. A single strict
+aggregate-only signoff schema drives construction, threshold evaluation, and database
+validation. The focused T10 matrix passes 63 tests / 196 assertions; targeted Biome
+and diff checks pass, database typecheck is clean, and API typecheck reaches only the
+pre-existing `packages/sales/src/copy-sales.ts:521` diagnostic. Independent Sol High
+re-review reports no Blocker, P1, or P2. The additive migration remains unapplied,
+and no cohort or operational period is claimed, so T10 remains 2/5. No provider call,
+Sales/database mutation, image work, or mailbox work occurred. Commit: `33397d3e5`.
+
+### 2026-09-13 — Progressive AI Chat T15 saved actions and preferences
+
+Added scoped response/chart preferences, explicit removable memory, prompt
+shortcuts, and deterministic versioned recipes. Favorites now support durable
+outcome conversion, parameters, append/run, edit, duplicate, ordering, removal,
+compatibility repair previews, and last-run status. Recipes reauthorize current
+grants and records; every write/send execution creates a fresh expiring approval
+proposal. The additive local-only migration was applied in isolation. The full
+Assistant suite passes 151 tests / 772 assertions; targeted formatting and diff
+checks pass, and independent specification and standards reviews report no P1/P2
+findings. T15 is complete at 8/8 and T16 is next.
+
+### 2026-09-13 — Sales Request authenticated form boundary restored
+
+Authenticated in-app browser acceptance reproduced a Create Order crash caused by
+the new in-memory invoice preview importing the server-heavy Sales print barrel,
+which pulled Prisma Client into the browser bundle. The preview now imports an
+explicit client-safe snapshot-composer subpath, following the Midday package-export
+boundary, and a structural regression test rejects future broad print imports from
+the New Sales Form. A live reload reached the native order editor, Root Step
+Components, customer prompt, summary, and save controls. The generation entry stayed
+hidden because the current actor is not pilot-eligible; no gate was bypassed.
+
+Focused invoice/save-reopen and browser-boundary validation passes 11 tests / 63
+assertions; targeted Biome and diff checks pass. The
+Sales package typecheck reaches only the existing `copy-sales.ts:521` diagnostic;
+the dashboard typecheck exhausted its default 4 GB heap without reporting a touched-
+file diagnostic. No provider call, Sales/database write, migration application,
+image work, or mailbox work occurred. T11 image input and T12 mailbox connections
+remain explicitly deferred. Commit: `f758c43f2`.
+
+### 2026-09-13 — Sales Request lean context and complete invoice preview authority
+
+Removed the deferred Shelf Items route, root choice, and route-exclusive catalog
+from the model-facing configuration while preserving native Shelf behavior. The
+stable `2K7Mz` root UID is authoritative, title matching is a compatibility fallback,
+and structural projection version 6 invalidates the old DeepSeek v6 approval packet.
+The scoped configuration matrix passes 77 tests / 180 assertions, targeted Biome,
+Sales package typecheck, and diff checks. Commit: `2d2292c0e`.
+
+Closed the T13 in-memory invoice preview context gap: Preview now reads current
+customer/address and Sales routing authority at action time, rejects form drift, and
+adapts phone/ZIP fields to the native print composer. The focused preview,
+customer-resolution, save/reopen, and browser-boundary matrix passes 23 tests / 79
+assertions. The final expanded matrix, including async authority reads, form drift,
+read failure, shipping fallback, current print-context reads, and customer contact
+fidelity, passes 38 tests / 130 assertions. The broad
+dashboard typecheck remains red on its existing repository-wide
+baseline. No provider call, database write, migration application, image work, or
+mailbox work occurred. T08 remains 1/5, T10 remains 2/5 operationally, and the T13
+representative handling-time/correction comparison remains open.
+
+### 2026-09-13 — Sales Request v7 approval packet prepared
+
+Committed the current customer/address and Sales print-setting preview boundary as
+`1350ce06f`. Focused validation passes 27 tests / 118 assertions, targeted Biome and
+diff checks; independent specification and standards reviews found no Blocker, P1,
+or P2.
+
+Regenerated exactly one DeepSeek benchmark packet in prepare-only mode after the
+Shelf projection change. The current packet is
+`2026-09-13T-approval-bound-priced-interior-solid-core-slabs-v7`, bound to approval
+digest `sha256:250e99c40d3bfdf8616d7e74b21ddce89f04de3d8c7e137a088954f15ad95a08`.
+Its configuration/model-input sizes are 20,647/31,280 bytes, down from
+21,039/31,533 bytes in v6, and inspection found no Shelf title or stable route/step
+identifiers. No provider call, Sales/database write, or migration application ran.
+T08 remains 1/5 pending explicit approval for this exact digest; T10 remains 2/5
+pending operational cohort and two adjacent complete review periods. Image input
+and mailbox connection work remain deferred.
+
+### 2026-09-13 — Sales Request approval ordering and v8 packet
+
+Commit `cbcf778c3` makes the evaluation runner atomically consume the one-use
+approval before provider construction; duplicate consumption cannot construct or
+invoke a provider. Seven approval/runtime tests pass with 26 assertions. This
+correctly invalidated v7 before any approval or provider call.
+
+Commit `87b57fb22` adds privacy-safe descriptive T13 comparison metrics. Anonymized
+and unclassified rows are excluded, incomplete timing/feedback coverage produces no
+delta, and outcome-selected arms are explicitly ineligible to authorize autonomy.
+The focused combined safety matrix passes 43 tests / 132 assertions. Commit
+`0f87a4e8a` separately guards discovery of all five required Sales Request migrations
+in Prisma's configured active chain; read-only status confirms they remain unapplied.
+
+The current prepare-only DeepSeek packet is
+`2026-09-13T-approval-bound-priced-interior-solid-core-slabs-v8`, bound to digest
+`sha256:9a82ff252f2edf0834b3a99874bb8ccd2fe1741c34a8b481e9ee71a5faf0ed15`.
+It contains no Shelf route identifiers, has zero retries, and has no consumed,
+execution, or provider-return artifact. No paid provider call, Sales/database write,
+or migration application occurred.
+
+### 2026-09-13 — Sales Request T13 evidence and rollback code gates closed
+
+Commits `369de9a41`, `5c755b18e`, and `3f1de6696` complete the remaining T13
+code-quality gates. The native Serializable sequence is now exercised through its
+production consume-then-audit helper; a forced late audit failure proves generation
+consumption and audit state both roll back. Pilot feedback categories now come from
+one allowlisted vocabulary shared by API ingress, retained evidence, and comparison
+reporting. Missing required arrays, empty changed-field evidence, and unknown legacy
+categories fail closed and cannot produce a descriptive delta.
+
+Focused validation passes 56 tests / 182 assertions across schema, evidence,
+telemetry, and persistence, plus 4 tests / 25 assertions for the low-touch final-save
+boundary. T13's code groups are complete, but its representative matched/stratified
+operational acceptance remains open. Active rollout progress therefore stays 8/11:
+T08 requires the exact v8 one-call approval and result review; T10 requires named
+cohort/reviewer operation and two adjacent passing seven-day periods. No provider
+call, Sales/database write, migration application, image work, mailbox work, or
+Shelf pilot work occurred.
+
+### 2026-09-13 — Sales Request local operational readiness inspected
+
+A read-only local probe confirmed that runtime implementation is ahead of rollout
+configuration: Settings ID 3 is deterministically selected from two active Sales
+Settings rows, but its AI selection is still the default OpenAI model, the feature
+flag and pilot are disabled, pilot revision is zero, cohort/reviewer counts are
+zero, and benchmark approval plus review policy are missing. The five required
+Sales Request migrations remain discoverable and unapplied. The privacy-safe
+checkpoint is recorded at
+`.brain/evaluations/sales-request-generation/readiness/2026-09-13-local.md`.
+No credential, person, request, provider response, customer, or Sales record was
+read into the artifact; no provider call, database mutation, or migration occurred.
+
+### 2026-09-13 — Sales Request T12 mailbox work reactivated again
+
+Explicit product direction reactivates Ticket 12: employee-owned multi-mailbox
+connections and the Sales Request Inbox are again part of the active Goal. Work will
+follow the approved Midday-style adapter, encrypted OAuth, connection-health,
+background synchronization, owner-private inbox, and native Sales Request reuse
+boundaries. External access remains off until credentials, provider registration,
+policy, additive migrations, and operational enablement are separately ready.
+Image input remains deferred, and outbound sending remains a later independently
+gated effect.
+
+### 2026-09-13 — Sales Request T12 provider and policy foundation
+
+ADR-095 selects direct read-only Gmail and Microsoft Graph adapters behind the new
+`@gnd/sales-request-mailbox` boundary. The package now defines normalized provider,
+message, cursor, subscription, policy, per-connection preference, deterministic
+exclusion, owner-access, and queue-identity contracts. Credential envelopes use
+AES-256-GCM, are bound to connection plus secret purpose, and resolve keys by stored
+version. Sales Settings now persists and serves an off-by-default, Super Admin-owned
+mailbox policy without accepting provider credentials.
+
+Focused validation passes 46 tests across the shared package, Settings, and Sales
+Request router surfaces. No provider call, OAuth connection, database schema/write,
+migration application, commercial action, image work, or outbound email occurred.
+Ticket 12 is 2/18 complete; secure connection persistence and owner-scoped lifecycle
+are next.
+
+The foundation was committed as `d95f50f41`. Independent review initially found two
+authority P1s and two contract-hardening P2s; all were corrected by separating
+client-editable preferences from server/provider identity, enforcing active employee
+profiles, renaming the non-throwing access resolver, and parsing only five bounded
+normalized automation headers. Final review found no remaining Blocker, P1, or P2.
+The next persistence slice awaits explicit authorization to run the local Prisma
+migration commands because the database still has an existing unapplied migration
+chain.
+
+### 2026-09-13 — Sales Request T12 pre-persistence security seam
+
+Added pure, provider-neutral contracts for opaque short-lived OAuth state, bounded
+provider-failure evidence, separate email display/model sanitization, and capped
+cursor recovery. A lost Gmail history ID or Microsoft delta token can reset only
+once while preserving the configured history window; every pass is capped at 20
+pages and 500 messages and rejects continuation loops. No provider, mailbox,
+database, migration, model, commercial, or outbound-mail operation occurred.
+
+Ticket 12 remains 2/18 because atomic OAuth consumption, encrypted connection
+persistence, provider adapters, and immutable retained message snapshots depend on
+the pending additive schema. The local migration gate remains explicit because the
+database has an existing unapplied Sales Request migration chain.
+
+### 2026-09-13 — Sales Request T12 read-only provider adapters
+
+Implemented provider-neutral construction plus complete injected-transport Gmail and
+Microsoft Graph adapters. Gmail supports full and history-ID synchronization, label
+scope, metadata/detail MIME extraction, refresh/revoke, and deletion/label-change
+tombstones. Graph supports per-folder delta synchronization, opaque continuation
+origin validation, bounded streaming, refresh-token rotation, message details, and
+deletion tombstones. Inbox is the default when no label/folder is selected.
+
+Independent review exposed and drove fixes for plural Gmail label-history fields,
+label-add ingestion, deletion-only pagination, list/metadata races, chunked Graph
+response limits, missing delta cursors, and automation-header ordering/X-Loop. The
+focused package matrix passes 46 tests / 159 assertions with clean typecheck, Biome,
+and diff checks. No live provider, mailbox, credential, model, database, migration,
+commercial action, or outbound message was used. Ticket 12 remains 2/18 because
+provider persistence, jobs, reconciliation, and dead-letter integration are pending.
+
+Commit `952cd6089` records the provider slice. The final review edge case was closed:
+an omitted optional Microsoft token `scope` is treated as the read-only scopes from
+the authorization request, while an explicitly reduced grant still fails closed.
+
+### 2026-09-13 — Sales Request T12 sync orchestration seam
+
+Commit `9946919ed` adds the provider-neutral, one-source-per-run synchronization
+orchestrator and its injected durable-store contract. Each page and its cursor are
+an atomic idempotent projection; scoped tombstones cannot delete another selected
+label/folder; retries, reauthorization, dead letters, and continuations are durable;
+and every mutation is fenced by the active lease plus organization, owner, provider,
+connection revision, and policy revision. Initial and recovery reads remain bounded
+by current retention, recovery budgets reset safely, and continuation-loop evidence
+survives across job runs as bounded SHA-256 fingerprints.
+
+Final validation passes 66 tests / 237 assertions, package typecheck, Biome, and
+scoped diff checks. Independent review reports no remaining P0-P2. This slice does
+not fetch message detail, hash content, create queue identities, call AI, touch a
+database, run a job, expose UI, or mutate Sales. Ticket 12 remains 2/18 until the
+persistent store and scheduled job/reconciliation wiring implement this contract.
+
+The reviewed implementation is in commits `5b864e46e`, `b7464cca7`, and
+`41acc4a37`. Focused validation passes 26 tests / 68 assertions plus package
+typecheck, Biome, and diff checks. OAuth validation now binds organization, owner,
+provider, and fixed redirect intent; retry attempts live in sync state; recovery
+without a bounded history window fails closed; and JSON-heavy model input remains
+nonempty within its encoded-size ceiling. Atomic OAuth consumption remains a
+database-transaction requirement for the next slice rather than a completed claim.
+### 2026-09-13 — Sales Request T12 message-detail projection seam
+
+Added the database-independent message-detail worker contract after bounded summary
+sync. Exact connection/source/message/summary-revision claims reuse lease and
+authority fences, revalidate policy and retention before access/writes, sanitize
+display and model text, create a capture/source-membership-independent v1 content
+hash, and atomically express immutable snapshot plus current queue projection intent.
+The reviewed contract uses one global connection-plus-message lease and separate
+deterministic per-source revision memberships. Same global identity preserves status;
+hash changes supersede under the global lease; stale source revisions cannot regress
+membership; and removing one source keeps the global item while another selected
+membership remains. Summary exclusions run before body fetch. Graph's default inbox
+alias accepts opaque folder IDs while detail must retain the claimed folder, and a
+summary thread requires the same non-null detail thread. Scoped withdrawals and safe
+retry/reauth/dead-letter evidence remain; unknown/storage failures escape. Graph
+detail rejects response-ID mismatch. Package tests pass 83/83 with 336 assertions and
+typecheck passes. No database, Prisma, app, job, UI, live provider, AI, customer,
+attachment, Sales, commercial, or provider-write work occurred.
+
+Commit `2b0b795c0` records the reviewed seam. Independent review reports no remaining
+P0-P2 after fixes for Graph's well-known Inbox alias, summary exclusion before body
+fetch, globally serialized message content with per-source memberships, and required
+thread identity.
+
+### 2026-09-13 — Sales Request T12 mailbox OAuth lifecycle seam
+
+Added a database-independent start/callback contract for employee-owned mailbox
+connections. Start derives active employee/profile, canonical active office, and the
+selected current company-wide Sales Settings policy entirely through the injected
+store. `organizationId` remains the canonical office identity; because
+`ModelHasRoles` has no membership surrogate, the lifecycle now requires a bounded
+opaque versioned `officeAuthorityKey` that the future store derives from canonical
+user/profile/organization/active-role evidence. It persists that evidence key only
+with the digest-bound attempt while `authorityRevision` remains the drift fence.
+Callback atomically consumes before provider exchange, requires immutable provider identity,
+a durable refresh token, and exact normalized read-only resource scopes, and encrypts
+access/refresh tokens separately before envelope-only persistence. Microsoft
+`offline_access` remains requested refresh consent but may be omitted from returned
+access-token scope metadata; `Mail.Read` and `User.Read` remain exact.
+
+The lifecycle expresses new UUID and same-owner/office reconnect targets, global
+provider-account collision opacity, commit-time authority/policy/connection fencing,
+bounded recovery resets on reconnect, safe provider outcomes, and best-effort
+terminal cleanup on every post-exchange rejection. Provisional tokens are discarded
+without provider revocation because a failed or colliding callback can share an
+existing or concurrently winning authorization; only explicit disconnect may revoke.
+Validation passes 19 focused lifecycle tests / 105 assertions and 114 full-package
+tests / 497 assertions, package typecheck, targeted Biome, and scoped diff checks.
+No Prisma,
+database, route, job, UI, AI, Sales, secret, live provider, or outbound-mail operation
+was added or run. Ticket 12 remains 2/18 until concrete persistence and runtime wiring
+implement the reviewed contract.
+
+Commit `0c49dbeff` records the lifecycle seam. Independent re-review found no
+remaining P0-P2 after the Microsoft scope and provisional-revocation corrections.
+
+### 2026-09-13 — Sales Request T12 disconnect lifecycle seam
+
+Commit `a3fb0c74d` adds the database-independent, owner-only explicit-disconnect
+lifecycle and replaces the nonexistent numeric office-membership surrogate with a
+bounded opaque `officeAuthorityKey`; `organizationId` remains the canonical office
+identity and `authorityRevision` remains the drift fence. Disconnect first
+deactivates and revision-fences the connection, then resumes provider revocation and
+immediate private-data cleanup through durable phases while retaining content-free
+audit only. Gmail retries accept only an exact bounded single-field
+`400 {"error":"invalid_token"}` as prior idempotent revoke success; Graph stays
+local-only. Final validation passes 115 tests / 511 assertions, typecheck, Biome,
+and scoped diff checks. Independent re-review found no remaining P0-P2. No schema,
+database, API, job, UI, live mailbox, provider credential, AI, or Sales operation
+was added or run.
+
+### 2026-09-13 — Sales Request T12 bounded provider requests
+
+Commit `304b57593` adds a hard-settling provider request boundary and propagates its
+signal through the Gmail and Microsoft Graph adapters. It distinguishes caller,
+lease, and OAuth-attempt cancellation from retryable provider timeouts; aborts sibling
+transport work after failure; discards late results even when a transport ignores
+abort; and bounds, cancels, and releases response bodies. Equal authority and provider
+deadlines resolve in favor of the authority fence. Gmail revocation now uses a
+15-second provider timeout.
+
+The full mailbox package passes 141 tests / 609 assertions, typecheck, Biome, and
+diff checks. Independent review found no remaining P0-P2 in this boundary. No live
+provider, credential, mailbox, database, Sales, AI, or UI operation occurred.
+Lifecycle callers still need to propagate their durable lease/attempt deadlines and
+re-read the clock before post-provider persistence.
+
+### 2026-09-13 — Sales Request T12 lifecycle deadline completion
+
+Commit `078f74d3a` wires the bounded request signal and authority deadlines through
+OAuth, disconnect, token-health, synchronization, and message-detail lifecycles.
+Post-provider persistence and retention checks use fresh clocks; lease/caller
+cancellation performs no stale sync/detail write; Gmail revocation stays resumable;
+and refresh timeout/cancellation fails closed with content-free
+`refresh-outcome-unknown` evidence.
+
+The full package passes 160 tests / 695 assertions, typecheck, Biome, and diff checks.
+Independent review found no remaining P0-P2 after correcting frozen post-provider
+clocks and a stale pre-fetch retention check. No live provider, mailbox, credential,
+database, AI, Sales, or UI operation occurred.
+
+The MVP persistence design is reduced to nine additive tables, folding disconnect
+and health state into the connection. Attachments, provider push subscriptions,
+outbound mail, advanced filters, auxiliary history ledgers, and persisted Sales
+drafts are secondary. Schema implementation/application remains gated on explicit
+local migration authorization because of the existing unapplied migration chain.
+
+### 2026-09-13 — Sales Request T12 Inbox and runtime contracts
+
+Commit `4b51b4215` adds database-independent owner-private Inbox projections and
+reference-only job runtime composition. Inbox authorization requires an active actor,
+current authority, and exact connection-office scope. Content remains owner-only;
+administrators may read bounded same-office health metadata only. Summary/detail
+projections exclude provider IDs, payloads, credentials, HTML, raw errors, and model
+input.
+
+Sync, detail, token-health, and disconnect job payloads now carry exactly one opaque
+durable `workId`. Server-side work resolution supplies actor/source/message/revision
+evidence, and lifecycle stores repeat authority checks. Cancellation before
+resolution claims nothing; cancellation after a durable disconnect claim records
+content-free evidence and leaves cleanup retryable.
+
+The mailbox package passes 170 tests / 744 assertions and typecheck. The focused Jobs
+runtime passes 6 tests / 34 assertions and isolated strict TypeScript; targeted Biome
+and diff checks pass. The full Jobs typecheck retains known unrelated diagnostics in
+Sales copy and shared UI React types. Independent review found no remaining P0-P2.
+No database, provider, mailbox, AI, Sales, route registration, or live Trigger task
+was used.
+
+### 2026-09-13 — Sales Request T12 secure Inbox cursor and native preview bridge
+
+Added short-lived HMAC-authenticated Inbox keyset cursors bound to owner, office,
+connection and authority revisions, status, and search. Added exact parsing for the
+canonical untrusted mailbox model-input envelope and connected authorized persisted
+mailbox requests to the existing Sales Request preview/native unsaved draft path.
+The provider receives only the hardened envelope; decoded request text is used only
+for deterministic grounding. A second authorization/content-identity resolution now
+runs before successful preview telemetry, so drift or access loss returns stale.
+
+Validation passes 176 mailbox tests / 770 assertions, 59 generation/preview tests /
+127 assertions, mailbox package typecheck, targeted Biome, and diff checks. The API
+typecheck reaches only the pre-existing `packages/sales/src/copy-sales.ts:521`
+nullable-string error. Independent Sol High review found no P0-P2. No live AI,
+mailbox/provider, database, job, UI, or Sales mutation was performed. The remaining
+MVP is the authorized nine-table schema/migration, transactional stores, thin
+OAuth/API/job registration, and local end-to-end acceptance; secondary image,
+attachment interpretation, push/webhook, outbound, advanced-filter, and UI-polish
+work stays deferred.
+
+Follow-up commit `343cf3b41` closes the reviewer's non-blocking stale-source test
+gaps: the preview bridge now has direct regressions for changed canonical model input
+and replaced snapshot identity while the other identity fields remain stable. The
+focused generation/preview matrix passes 61 tests / 129 assertions; Biome and diff
+checks remain clean.
+
+### 2026-09-13 — Sales Request T12 nine-table invariant audit
+
+An independent Sol High audit confirmed that the nine-table mailbox MVP cut is
+sufficient without a generic job-work table and identified missing persistence
+semantics. Shared contracts now require insert-once snapshots whose expiry cannot be
+extended, atomic replacement of the one active source membership, reset to `new` on
+changed content, provider-account identity erasure on disconnect, and existing-row
+work IDs. Added a bounded provider-free retention cleanup contract with explicit
+child-to-parent transactional ordering and cancellation/result validation.
+
+The mailbox package passes 179 tests / 778 assertions and typecheck; targeted Biome
+and diff checks pass. No schema, migration, database write, provider, mailbox, AI,
+Sales, route, job, or UI operation occurred. Concrete schema/store implementation
+still awaits approval for the isolated additive local migration strategy.
+
+Commit `ad9058319` records this invariant and retention-contract slice. Independent
+re-review found no remaining P0-P2 after switching cleanup exclusively to database
+time, deleting expired historical snapshots independently of retained versions,
+including terminal or expired OAuth attempts, and removing source revision from the
+global immutable snapshot. Concrete persistence integration tests must prove these
+effects rather than only their descriptors once schema work is authorized.
+
+### 2026-09-13 — Sales Request T12 retention Jobs runtime
+
+Commit `cd57e1fdd` connects the bounded mailbox retention contract to the existing
+reference-only Jobs runtime. Retention is scheduler-owned and accepts exactly `{}`;
+callers cannot supply a destructive cutoff or batch size. Cancellation prevents
+store entry, database time remains the only cutoff, the package-owned batch defaults
+to 200, and `hasMore` is preserved for bounded Trigger continuation.
+
+Seven runtime tests / 40 assertions and the isolated strict runtime TypeScript check
+pass; the combined review matrix passes 10 tests / 48 assertions. Biome and diff
+checks pass, and independent Sol High review found no P0-P2. Full Jobs typecheck
+retains only existing unrelated Sales/UI diagnostics. No task was registered or run,
+and no database, provider, mailbox, AI, Sales, or UI operation occurred.
+
+### 2026-09-13 — Sales Request T12 local mailbox persistence schema
+
+Implemented the reviewed nine-table Prisma persistence cut and generated migration
+`20260914000000_add_sales_request_mailbox_mvp` through Prisma schema-to-schema diff.
+The schema includes purpose-bound nullable credential envelopes, globally unique
+case-safe provider identity hashes, durable health/disconnect work references,
+lease and authority fields, insert-once snapshots, one-active-membership enforcement,
+owner-private keyset indexes, and bounded retention indexes.
+
+The full 145-migration chain replayed successfully in a fresh disposable local MySQL
+database. A broad local push was rejected after its read-only diff exposed unrelated
+pending changes; only the reviewed nine-table SQL was applied to local `gnd-prisma2`.
+All nine tables are present and the post-apply mailbox diff is clean. Schema tests
+pass 5 tests / 46 assertions, Prisma validates, and the client regenerates. Preview
+and production were untouched. MVP progress is 10/14 (71%); transactional stores are
+next.
+### 2026-09-13 — Next/Turbopack Assistant router initialization fix
+
+Fixed every dashboard tRPC request failing during `assistant.route.ts` evaluation
+with `Cannot read properties of undefined (reading 'def')`. The expanded server
+bundle exposed a fragile module-load-time Zod `.omit()` transformation on the
+Assistant preference schema. The Assistant domain now exports a finalized strict
+update schema assembled from shared fields, and both the router and persistence
+function consume it directly without `.omit()`. The exact HTTP repro for
+`/api/trpc/hrm.getEmployees` changed from a router-initialization `500` to the normal
+request-validation `400`; the focused saved-actions suite passes 13 tests / 30
+assertions, targeted Biome passes, and the filtered API typecheck reports no touched
+module diagnostics. No database, mailbox, provider, AI, or commercial write ran.
+
+### 2026-09-13 — Sales Request mailbox technical MVP complete
+
+Completed and paused Ticket 12 at its approved backend MVP boundary. Transactional
+Prisma stores now enforce current employee/office/policy authority, encrypted OAuth
+and refresh/disconnect lifecycles, database-time lease fencing, exact raw provider
+identity checks, multi-source tombstone/repoint behavior, immutable sanitized
+snapshots, owner-private Inbox reads, and retention-safe cleanup. Registered bounded
+Trigger sync/detail/health/disconnect/retention work and a five-minute scheduler.
+Registered protected mailbox tRPC procedures plus fixed-target Gmail/Microsoft OAuth
+callbacks in both API runtimes. Mailbox preview uses the same authorization, pilot,
+catalog, provider/model benchmark, quota, telemetry, and native unsaved Sales seed
+pipeline as pasted text; there is no second generator or pricing path.
+
+Focused acceptance: content persistence 10/10, lifecycle 10/10, mailbox API 13/13,
+jobs 10/10, DB and mailbox package typechecks, scoped API/jobs typecheck scans, app
+router import, HTTPS New Sales Form compile, and unauthenticated callback `401` all
+pass. Commits: `daacdcd53`, `96883d735`, `25d58fd77`, and `7e74bacbe`; source-module
+resolution fix: `4299599e2`. No live provider, mailbox, AI, credential, preview DB,
+production DB, or commercial Sales write ran. UI, live provider registration,
+attachments/images, push/webhooks, customer matching, outbound drafts/sending, and
+advanced filters remain secondary.
+### 2026-09-13 — Production database commands stopped at safety gates
+
+Ran the explicitly requested production migrate and push commands against confirmed
+fingerprint `mysql://aws.connect.psdb.cloud/gndprodesk#identity=ba57b207` under the
+careful safety workflow. Migration reached Prisma but exited with a schema-engine
+error before reporting or applying migrations. Push calculated the production diff
+but Prisma refused it because unique constraints on
+`Notifications.assistantDeliveryKey` and `SalesDocumentSnapshot.providerJobId`
+could encounter duplicate values. No `--accept-data-loss`, reset, or forced change
+was used; no confirmed production schema change occurred.
+### 2026-09-13 — Local database commands stopped at drift/data-loss gates
+
+Corrected the requested database target from production to the confirmed local
+`127.0.0.1:3307/gnd-prisma2` database. Migration reached local MySQL but stopped when
+Prisma requested a destructive reset because the existing schema and migration
+ledger diverge. Local push then stopped at potential duplicate conflicts for unique
+constraints on `AssistantActionProposal.confirmationRequestId` and
+`SalesDocumentSnapshot.providerJobId`. No reset, `--accept-data-loss`, or local
+schema change was applied.
+
+### 2026-09-13 — Local additive schema catch-up verified
+
+Safely aligned the confirmed local `gnd-prisma2` database with the current
+Prisma datamodel after first auditing the exact SQL and column/index state. The
+diff contained only five new tables, nullable columns, and indexes. Both
+unique-index target columns were absent before the change, eliminating duplicate
+value risk. The local push completed, Prisma Client regenerated, metadata checks
+confirmed the expected objects, and a final Prisma diff reported `No difference
+detected`. No reset, data cleanup, migration-ledger rewrite, Preview write, or
+production write occurred. The pre-existing local migration-ledger divergence
+remains documented and `db:migrate` remains reset-blocked.
+
+### 2026-09-13 — Local and production Prisma schema push complete
+
+The local push reported `gnd-prisma2` already in sync. The production push was
+paused at two generic unique-index warnings, then preceded by a read-only column
+audit and a complete SQL-diff audit. Both warned nullable columns were absent,
+and the production diff contained only 37 table creations, two nullable column
+additions, and two unique indexes. The acknowledged push completed in 20.53
+seconds, regenerated Prisma Client, and a final production diff reported `No
+difference detected`. No destructive SQL, reset, data cleanup, migration-ledger
+rewrite, or Preview write occurred.
+
+### 2026-09-13 — Request-generation defaults removal plan proposed
+
+Audited the visible defaults card and its full settings, API, catalog, cache,
+initializer, preview, and final-save dependency chain. The proposed fix removes
+persisted per-route defaults and makes the first eligible visible component in
+one shared `sortIndex/title/UID` order the native initializer fallback. The plan
+also corrects the current ordering mismatch: AI tuples use sort index while the
+live New Sales Form query currently ranks by recent usage and title. No code,
+settings metadata, database, provider, or production behavior changed during
+planning.
+
+### 2026-09-13 — Component-owned default ticket added
+
+Revised the defaults-removal plan so an eligible component explicitly marked as
+default wins, with the first eligible `sortIndex/title/UID` component as fallback.
+Added a High-priority implementation ticket for Midday-style component-owned
+`isDefault` persistence, sparse `default:true` projection, transaction-safe
+set/replace/clear behavior, workflow
+admin permissions, shared three-dot and right-click commands, compact badge,
+cache invalidation, archive handling, and request-initializer integration. No code,
+schema, database, provider, or production behavior changed.
+
+### 2026-09-14 — Component defaults and global Sales Request shortcut implemented
+
+Implemented component-owned New Sales Form defaults and removed the redundant
+request-generation defaults Settings surface. Workflow administrators can use the
+existing component menu or right-click menu to make/remove a default; the server
+serializes replacement per step, rejects custom/archived targets, clears defaults
+on archive, and invalidates only workflow/request-configuration caches. AI input
+projects sparse `default:true`; omitted steps use the marked eligible component or
+the first canonical `sortIndex/title/UID` candidate. Empty component lists and
+redirect targets remain blank.
+
+Added the Midday-style single global header action and lazy compact modal for pasted
+requests. It reuses the existing provider-agnostic preview controller, transfers the
+validated result through an expiring generation-bound browser handoff, and opens it
+through the native New Sales Form initializer. It performs no parallel pricing,
+automatic Sales persistence, finalization, invoice, or send. Partial shells keep
+ambiguous fields blank for review.
+
+Validation: 40 request/default/initializer tests, 10 API/settings contract tests,
+and 27 Sales Request router tests pass; targeted Biome and `git diff --check` pass. Authenticated local browser proof
+confirmed the header action, modal, empty-input disabled state, and visible `Make
+default` command. No provider call or commercial write ran. Prisma Client generation
+and local `db:push` passed. A checked-in migration remains blocked because
+`bun run db:migrate` cannot reach Docker Engine after 30 checks; no reset,
+handwritten migration, Preview/production command, or migration-ledger edit ran.
+### 2026-09-14 — Sales Request MVP release blocker and Mailbox Inbox slice
+
+Generated the missing additive component-default migration from isolated Prisma
+before/after schemas, then changed the evaluation runner to import Prisma Client
+through the workspace database package so its runtime schema matches generation.
+The first provider-free replay exposed a stale corpus configuration lock before any
+provider invocation. The lock was reviewed and advanced to the current configuration;
+the second replay passed facts, normalization, and both 9/9 oracles with no unsafe
+guess. Its native initializer remains correctly review-blocked on the sample's two
+explicit unresolved door facts. Fresh prepare-only DeepSeek packet
+`2026-09-14T-mvp-release-interior-solid-core-slabs-v5` is bound to current
+configuration with approval digest
+`sha256:d907ab9f286a22e78ce8ca00190cbd1a45ce27e479fcae9255e762baa7a365ac`,
+one call, zero retries, 45 seconds, 4,000 maximum output tokens, and USD 0.025
+maximum estimated cost. No paid provider call has run pending exact approval.
+
+Completed the compact Midday-style Mailbox Connections/Inbox UI and callback flow.
+Sales Settings owns the mailbox policy; `/sales-book/requests` provides owner-private
+active mailbox selection, status counts/tabs, search, keyset pagination,
+detail-on-demand, disconnect, and native Quote Draft / Order Draft handoff. Successful
+OAuth callbacks best-effort submit queued initial sync streams and both callback
+runtimes return to the Inbox. Focused validation passes 61 tests / 281 assertions,
+mailbox and database package typechecks, targeted Biome, import smoke checks, and
+scoped diff checks. Broad app typechecks retain unrelated repository baseline
+diagnostics. Live mailbox OAuth requires supplied credentials
+and callback registration. Images/attachments, push, customer matching, outbound
+mail, automatic modes, and broad benchmarks remain deferred.
+
+### 2026-09-14 — Mailbox disconnect policy-change blocker closed
+
+Removed mailbox policy-revision equality from the first disconnect claim. An active
+connection owner with the same active employee profile and canonical office can now
+disconnect even after mailbox eligibility, enablement, or policy revision changes;
+all ownership and office boundaries remain fail-closed. The focused mailbox lifecycle
+suite passes 11 tests / 31 assertions and the database package typecheck passes.
+
+### 2026-09-14 — Final Sales Request MVP code blockers closed
+
+Closed the independent audit's three P1 findings. Mailbox Quote Draft now opens the
+native quote route instead of the order route. The native quick-create handoff has an
+explicit review-only mode that may apply a partial shell while preserving unresolved
+facts and blank selections; ordinary Apply stays strict and unresolved proposals do
+not receive low-touch final-save authority. Mailbox connection listings now resolve
+the active employee/profile/canonical office and filter rows to that exact identity,
+without policy-revision equality so stale connections remain disconnectable.
+
+The focused blocker matrix passes 40 tests / 166 assertions, database typecheck,
+targeted Biome, and diff checks. No paid AI call, mailbox provider operation, database
+write, or commercial Sales write ran. Exact DeepSeek approval and live OAuth
+credentials/callback registration remain the two operational acceptance gates.
+
+### 2026-09-14 — Sales Request MVP goal blocked on external acceptance
+
+Revalidated the final two gates after all code-level P0/P1 findings were closed. The
+DeepSeek run remains `prepare-only` with no provider result, and the exact approval
+digest has not been authorized. Local environment files contain none of the required
+mailbox OAuth or encryption variables, so live OAuth cannot be exercised safely. This
+is the third consecutive goal turn with the same external blockers; the goal and task
+are marked blocked pending explicit one-call approval and one configured mailbox
+provider. No provider call, mailbox operation, secret edit, or database write ran.
+### 2026-09-14 — Sales Request default-component UI checkpoint
+
+Before any new DeepSeek sample call, authenticated UI QA assigned three local
+workflow defaults under Door Slabs Only: Height `7-0`, Door Type `SC Flush`, and
+Bore `No Bore`. Item Type, Door, and Mouldings were deliberately untouched. Each
+component action changed from `Make default` to `Remove default`, survived a fresh
+form reload, and retained its visible `Default` marker. Sales Request settings then
+published price-free AI component configuration Generation 1 with digest prefix
+`deb6d5639422`; publication made no AI provider call. The authoring/publication path
+passes, while actual omission-only default consumption remains the first DeepSeek
+sample's explicit acceptance assertion. Browser inspection found no application
+error and only existing DropdownMenu control-state and logo image warnings. QA
+report: `.gstack/qa-reports/qa-report-gndprodesk-default-components-2026-09-14.md`.
+Execution is paused for review before the first paid UI sample run.
+
+### 2026-09-14 — DeepSeek sample 1 UI run blocked before provider
+
+Enabled the internal pasted-text pilot for the signed-in test user as the sole cohort
+member and reviewer; revision 1 persisted after reload. DeepSeek / DeepSeek V4 Flash
+and published AI configuration Generation 1 (`deb6d5639422`) were confirmed before
+opening the New request dialog for `interior-solid-core-slabs`. The visible, enabled,
+focusable, non-read-only Customer request textarea did not retain multiline fill,
+keyboard, clipboard paste, accessibility-value, or individual-keystroke input. The
+`Create draft` control therefore remained disabled. Browser console tracing found no
+application errors or submission toast, only existing logo aspect-ratio warnings.
+No DeepSeek call, generated proposal, native Sales handoff, or commercial Sales write
+occurred. QA report:
+`.gstack/qa-reports/qa-report-gndprodesk-deepseek-interior-solid-core-slabs-2026-09-14.md`.
+Execution remains paused at sample 1 for review and repair; sample 2 must not begin
+until this same sample is rerun successfully and explicitly approved.
+
+### 2026-09-14 — DeepSeek sample 1 reached provider after Strict Mode repair
+
+User approval resumed sample 1. Root cause of the empty quick-create textarea was
+React development Strict Mode cleanup permanently disposing the render-owned request
+controller. Input events reached the modal, but the disposed controller suppressed
+subscriber notifications, so the controlled value reset. Added reversible
+`release()` cleanup for the hook while preserving terminal `dispose()` behavior.
+The regression went red before the fix and now passes; the controller suite is 10/10,
+the New Sales Form directory is 159/159 with 619 assertions, Biome and scoped diff
+checks pass, and authenticated UI verification confirms the textarea retains text and
+enables `Create draft`. Dashboard typecheck exhausted Node's 4 GB heap without a
+changed-file diagnostic.
+
+The exact `interior-solid-core-slabs` sample was then submitted once through the UI
+to DeepSeek V4 Flash, with zero retries. DeepSeek returned, but its output failed the
+strict native seed validation boundary and surfaced safe reference
+`ERR-FE8E7EB89B`. No validated proposal, default-consumption evidence, native Sales
+handoff, or commercial Sales write resulted. Updated QA report:
+`.gstack/qa-reports/qa-report-gndprodesk-deepseek-interior-solid-core-slabs-2026-09-14.md`.
+Execution is paused for review at sample 1; sample 2 has not started.
+
+### 2026-09-14 — DeepSeek compatibility repair and provider error chart
+
+The approved sample-1 repair now sends DeepSeek generic JSON-object response format
+instead of the full nested seed schema, then applies the unchanged strict V2 seed
+schema locally. Provider failures are normalized into privacy-safe parse/schema,
+HTTP/status, retryability, token, and bounded issue-path metadata. The existing
+retained telemetry envelope stores only this allowlisted failure object, and a new
+Super Admin `Provider API health` card on Request AI settings shows attempts, failures,
+stacked per-provider counts, and recent sanitized failures with 15-second refresh.
+
+Focused verification passes 114 backend tests. API typecheck reaches only the existing
+unrelated `packages/sales/src/copy-sales.ts:521` nullability error; dashboard typecheck
+again exhausts Node's 4 GB heap without a changed-file diagnostic. Live UI inspection
+confirms the chart renders cleanly at desktop width.
+
+The single approved UI resubmission showed invalid-output reference `ERR-AB948E86EA`
+but produced no retained provider attempt and no exact-reference Sentry match in
+development or production. The run is therefore an observability failure, not a
+confirmed DeepSeek retry. No Sales write occurred, no historical event was fabricated,
+and sample 2 has not started. Execution is paused for review.
+### 2026-09-14 — iOS signing fallback prepared after upstream Apple-auth failure
+
+The explicitly approved production EAS build initialized remote iOS build number
+`1` and created the `production` update channel/branch, but no build was queued.
+Apple password authentication failed before credential creation with
+`iTunes service key is empty`; Expo's open `eas-cli#4392` shows the same defect on
+newer EAS CLI and Node combinations. Generated a Keychain-backed CSR for
+`GND Millwork Distribution`; the private key remains in the login keychain and
+Apple created Distribution certificate `ZDC9NMPYX8` and App Store profile
+`GND Millwork App Store` / `6VT956987X` for `com.gnd.prodesk`; both expire
+September 14, 2027. The downloaded certificate and profile were validated, the
+Apple WWDR G3 intermediate was installed, and Keychain reports exactly one valid
+matching signing identity. After explicit approval for local export, an encrypted
+`0600` temporary `.p12` containing exactly one private key was created outside the
+repository. After separate approval, EAS stored it and the active profile for
+`@pcruz321/gnd-prodesk`, confirmed matching serial/team/bundle data, and reported
+all credentials ready; the temporary `.p12`, password, and secret-bearing JSON
+were immediately removed. Production `STORE` build
+`3f3a6acf-ac06-42b8-ab72-1837480f49cc` then completed as version `1.0.305`, build
+`5`, without Apple upload. IPA inspection confirmed the production bundle/team,
+active App Store beta profile, `get-task-allow=false`, and export-compliance flag.
+Because unrelated uncommitted workspace changes were included in the archive,
+build `5` is validation-only and must not be submitted. A detached snapshot of
+reviewed commit `40a62218e` passed 19/19 checks and produced clean `STORE` build
+`f3985128-844d-432c-bbc3-e0e4c93e37ac`, version `1.0.305`, build `6`. Independent
+IPA inspection confirmed the bundle, team, App Store beta profile, production
+entitlements, and export declaration; the temporary snapshot/artifacts were then
+removed. Build `6` is prepared at the explicit App Store Connect upload gate.
+The user approved that upload, but EAS then required a new App Store Connect API
+key. The command was cancelled at the generation prompt; no key, EAS submission
+job, or Apple upload was created. API-key creation is the current separate
+action-time gate; permission changes and tester invitations remain gated.
+
+### 2026-09-14 — Global Sales Request modal aligned with Midday lifecycle
+
+Reproduced and traced the `New request` header action on the authenticated Request AI
+settings page. The live trigger was already an explicit non-submit button with no
+form or link ancestor; the lifecycle mismatch was the modal's conditional dynamic
+mount after the click. The dashboard provider now background-loads and continuously
+mounts the modal, matching Midday's global modal/sheet pattern while the existing
+Zustand store controls visibility. Focused validation passes 12 tests / 48 assertions,
+targeted Biome, and scoped diff checks. Browser verification confirms open and close
+remain on `/settings/sales/request-generation`, preserve the page content, and emit
+no console errors. No provider call, settings save, database write, or commercial
+Sales write ran.
+### 2026-09-14 — Assistant Midday query-state surface conformance
+
+Moved the assistant from a dedicated `/assistant` page to the Sales Dashboard's
+Midday-style `?assistant=true` state while retaining the Assistant sidebar entry.
+The ordinary Sales Dashboard remains unchanged; chat replaces it only when opened.
+Chat now has the compact Back/title/New chat header, a shared 680px content-editable
+composer for first and reply messages, inline attachments/suggestions/app mentions,
+dynamic placeholder copy, and visible persisted titles. The message body is the only
+scrolling chat region; the local chat header and bottom composer remain anchored, and
+the standard page title switches to `Chat Assistant`. GND's durable history,
+server-reconstructed context, idempotency, reconnect, private uploads, permissions,
+quotas, approvals, and typed artifacts remain intact. Focused validation passes 31
+tests / 91 assertions; authenticated browser QA verified sidebar query navigation,
+exclusive Assistant active-nav state, Back behavior, clean overview, anchored header
+and composer geometry, `Chat Assistant` page title, and draft submit readiness. Full dashboard typecheck
+remains red on the existing repository-wide baseline and reported one pre-existing
+assistant proposal-schema diagnostic unrelated to this surface change. Decision:
+`.brain/decisions/ADR-097-query-state-assistant-on-sales-dashboard.md`.
+
+### 2026-09-14 — Assistant first-submit continuity and Strict Mode repair
+
+Traced the live `Cannot read properties of undefined (reading 'state')` console
+exception to two concurrent AI SDK requests created by React development Strict
+Mode replaying the pending first-message effect. Pending prompts now have a unique
+dispatch ID that is claimed once per mounted chat. The first user turn renders
+optimistically while GND creates its durable conversation, the bottom composer and
+chat header remain mounted, and post-stream persistence refreshes without replacing
+the chat with a centered loader. The focused regression suite passes 13 tests / 27
+assertions and targeted Biome passes. A full 8 GB dashboard typecheck completed
+against the existing repository-wide error baseline with no new touched-file
+diagnostic; the existing assistant proposal-schema diagnostic remains unrelated.
+The browser session expired on reload, so no additional live provider message was
+sent during final verification.
+
+### 2026-09-14 — Direct DeepSeek sample-1 root-cause pass
+
+The first direct corpus attempt never contacted DeepSeek because the sample retained
+a stale configuration lock; the runner also consumed its one-call approval before
+discovering that mismatch. Updated the sample to published configuration
+`deb6d5639422`, selecting the newly available `SC Flush` Door Type and retaining the
+unsupported exact Door product. Provider-free replay now passes 3/3 facts, both
+whole-order oracles, and zero unsafe guesses. Added configuration preflight before
+approval consumption.
+
+Live diagnosis then identified retired configured model ID `deepseek-v4-flash`.
+DeepSeek's authenticated model list returns `deepseek-flash` and `deepseek-v4-pro`,
+so the Sales Request catalog now uses `deepseek-flash` and normalizes the legacy
+persisted Flash value. Nevertheless, corpus calls timed out at 45 and 90 seconds,
+and the corrected model timed out at 45 seconds. A separate five-token request also
+timed out with and without the optional thinking field, while model listing remained
+healthy. The unresolved blocker is therefore DeepSeek generation availability for
+this account. No valid live seed or commercial Sales write was created. Focused
+validation passes 48 tests / 134 assertions.
+
+### 2026-09-14 — DeepSeek `Hello` control request
+
+A direct, non-streaming `deepseek-flash` request containing only `Hello`, capped at
+64 output tokens with no retry, returned no headers or body and ended in
+`TimeoutError` at 45,003 ms. This reproduces the corpus failure without customer
+content, Sales configuration, JSON response mode, schema validation, or the optional
+thinking field. The active blocker is the DeepSeek generation endpoint/account path,
+not Sales Request parsing. No Sales write occurred.
+
+### 2026-09-14 — DeepSeek request-count reconciliation
+
+The dashboard's zero-request/zero-token reading triggered transport-level controls.
+Both versioned and unversioned chat routes returned an invalid-key 401 in under one
+second. The configured key returned a deliberate invalid-model 400 in 534 ms, and
+the balance endpoint returned available in 602 ms. A valid one-token streaming
+`Hello` request returned HTTP 200 headers in 617 ms and its first chunk at 12.6
+seconds, proving the authenticated inference route is reached. However, the stream
+did not complete, and the full corpus stream reached the 120-second cap without a
+finished response or usage record. Streaming and the longer timeout were therefore
+reverted as unverified fixes. The remaining failure is provider-side completion for
+valid-model inference; the earlier model-ID and corpus-preflight repairs remain.
+
+### 2026-09-14 — DeepSeek dashboard and queue behavior confirmed
+
+Authenticated Chrome inspection confirms `GND_SALES` is active and was last used
+September 14. The account has available topped-up balance, while today's filtered
+usage remains zero requests, zero tokens, and zero cost. DeepSeek's API FAQ documents
+that requests waiting to begin inference remain connected with empty lines for
+non-streaming calls or `: keep-alive` SSE comments for streaming calls; the provider
+may close them only after 10 minutes without inference. Therefore the earlier HTTP
+200 stream chunk was a queue keep-alive, not a generated token. The release banner
+announces DeepSeek V4.1 Flash, so current provider congestion is plausible but not
+confirmed by an incident notice. No account setting or key was changed.
+
+### 2026-09-14 — Sales Request provider switched to Gemini
+
+At user direction, the live local Sales Request setting changed from DeepSeek Flash
+to Google Gemini / Gemini 3.8 Flash. The Settings UI confirmed the save and retained
+the selection after a full reload. No request-generation call or commercial Sales
+write ran during the provider change.
+
+### 2026-09-14 — Gemini code-only provider checks
+
+Kept the browser untouched and reran the focused settings/provider/corpus suite:
+48 tests and 134 assertions passed. Google's authenticated models endpoint returned
+HTTP 200 and confirmed that the configured `gemini-3.8-flash` model is available to
+the key. A synthetic `Hello` generation reached that model and returned HTTP 200 in
+9.5 seconds with 63 total tokens; the deliberately tiny 64-token ceiling ended with
+`MAX_TOKENS` before visible text. Two subsequent executions through GND's real Sales
+Request provider adapter, using the pending `interior-solid-core-slabs` sample and
+zero retries, both failed safely with provider HTTP 503 / `UNAVAILABLE` after 7.2
+and 17.1 seconds. This establishes working credentials and routing but repeatable
+provider unavailability for the full structured request. No UI test or commercial
+Sales write ran.
+
+### 2026-09-15 — Public iOS App Store release direction
+
+The owner replaced the employee-only TestFlight destination with a public GND
+Millwork App Store release targeting All Countries or Regions. Production EAS
+store signing, team, bundle, owner, project ID, and update channel were kept.
+Added public build/upload aliases, including an upload that requires a reviewed
+EAS build ID; changed new iOS access records from Apple tester invitations to
+manual public App Store guidance; published ADR-098 and the public release
+runbook. The proposed private Custom App/MDM plan was cancelled. Focused checks
+passed 13 tests / 75 assertions, including the UI copy guard, and release readiness
+passed 21/21. Read-only App Store Connect inspection reached an Apple sign-in
+screen, so public distribution settings and listing are not yet verified live.
+The stalled old EAS Apple ID prompt was cancelled; no API key or Apple upload
+was created. All Apple legal/metadata, credential, upload, review, and release
+actions remain separately gated.
+
+### 2026-09-15 — Public iOS privacy-link preparation
+
+A source-backed App Privacy audit identified conditional Logly/Sentry paths,
+authenticated profile/session data, and document/photo/signature uploads. The
+live GND Millwork privacy and contact pages are candidates only; seller/app
+coverage and accurate disclosures require owner/legal review. Both mobile
+sign-in designs now expose an accessible Privacy Policy link when the public
+HTTPS `EXPO_PUBLIC_PRIVACY_POLICY_URL` is set. The iOS readiness check fails
+closed when it is absent; the production store build and combined build/upload
+scripts invoke that preflight before EAS queueing. Android/preview scripts are
+unchanged. Focused release/security/UI-guard tests passed 6/6 (47 assertions);
+production-env readiness without the URL passed 22/23 with the sole intended
+privacy gate, and a synthetic one-off URL passed 23/23 for wiring validation only.
+Scoped Biome lint passed. The broad mobile typecheck remains red on the known
+API/path-alias backlog; its two diagnostics on touched login templates concern
+unchanged `form.handleSubmit` lines, while the new policy component/config/
+readiness files produced none.
+Build `6` predates the link and remains build-path proof, not the final IPA. No
+policy was approved, no EAS production URL was saved, and no Apple upload or
+submission occurred.
+The shared signed-in Settings screen now renders the same policy link outside
+its dev-only section, before Log Out. The focused UI guard verifies the two
+sign-in designs and the production Settings footer; no policy URL or external
+account state was changed.
+Read-only product-scope audit confirmed the mobile sign-up route is a
+placeholder, while `www-mobile-sign-in` requires an existing legacy
+employee/manager account that is not revoked or deleted. Public App Store
+download therefore does not yet provide public account creation; the owner
+must decide whether that is a separate launch requirement.
+The Account Holder then signed in to App Store Connect. Read-only inspection
+confirmed the existing GND Millwork iOS 1.0 record is Prepare for Submission,
+Public distribution is selected by default, Free Apps Agreement is active,
+and EU DSA trader status is incomplete. No price schedule or app availability
+is configured; App Privacy URL/questionnaire, category/age/Content Rights,
+screenshots, listing/support fields, attached build, and Review Information
+are incomplete. Automatic release, Apple silicon Mac, and Vision Pro are
+selected by default and require owner review. No portal save or Apple upload
+occurred.
+Prepared a local App Store listing packet with provisional current-behavior
+copy, a field/owner inventory, real iPhone/iPad screenshot candidates, and a
+credential-free Review Information template. Public registration, final text,
+privacy/legal answers, and every portal action still require owner direction or
+action-time confirmation. No screenshot or review account was fabricated.
+Hardened the legacy root iOS submit alias as well as the public upload alias:
+both now require a reviewed build UUID, and the account runner rejects missing,
+malformed, or `--latest` inputs before attempting Expo authentication. App
+package submit scripts no longer auto-select `--latest`. Android routing and
+EAS project/update linkage are unchanged. The focused runner test passed 3/3,
+including fail-closed invalid-ID subprocess checks; no Apple binary was uploaded.
+Current-state mobile-access audit then found a Medium APK authorization edge:
+the protected download route checked role-assignment liveness but not the
+referenced Super Admin role's liveness. A focused regression failed on the old
+query. Filtering both soft-delete fields using the existing repository pattern
+closes the bypass; the focused access subset passes 12/12 tests. No account
+permission, external invitation, or artifact download changed.
+The shared HRM Super Admin guard used by mobile-access admin review had a
+related High-severity liveness gap: it selected a user by ID and a role name
+without current user revocation/soft-delete or referenced-role soft-delete
+checks. Tightened those filters and allowed any active Super Admin assignment;
+employee self-service now requires an active referenced role. A new regression
+failed before the fix; the focused access suite passes 13 tests / 36 assertions.
+API typecheck remains red only on unrelated current Assistant/Sales errors.
+No request status, account permission, or external state was changed.
+A runtime mock-database test of the HRM Super Admin guard now verifies current
+user/role filters, any-position Super Admin matching, and denied users. The
+combined focused access suite passes 16 tests / 41 assertions; isolated
+database/HTTP negative acceptance remains future verification, not a claimed
+launch proof.
+The scoped public-release and mobile-access source/doc set was committed as
+`56d1d91d7` after a combined focused run of 26 tests / 128 assertions and a
+clean staged whitespace check. The policy URL remains absent; this is a stable
+local source baseline, not a fresh privacy-complete EAS IPA or Apple upload.
+Unrelated Sales/Assistant changes in the shared worktree were left unstaged.
+A final manual release-delta review found the dashboard's iOS Invited label
+was specific to new public guidance even for older manual Apple invitation
+records. Replaced that display-only label with the neutral **Access details
+sent** while retaining the new public download instructions and historical
+provider values. The focused dashboard UI guard failed before and passed after
+the correction; no request or Apple account state changed.
+
+### 2026-09-15 — Public iOS company-login App Review evidence and auth-route cleanup
+
+Official Apple guidance supports a publicly available business app using an
+existing organization-issued login without public self-registration; App
+Review still requires an active demo account and live backend. The source-cited
+report is `.brain/reports/2026-09-15-ios-public-login-app-review.md`.
+Removed the one-word Expo Router sign-up placeholder and driver-app alias,
+leaving existing company-account sign-in intact. A focused release test failed
+before the removal and passes afterward. Public registration remains an
+owner-controlled product fork; no credential, Apple save, upload, or submission
+occurred.
+The next local release audit added a non-secret telemetry inventory to iOS
+preflight and an explicit production-config guard for Sentry debug/smoke modes
+and enabled Sentry/Logly without HTTPS configuration. The focused iOS
+readiness suite passes four tests, including negative config subprocesses.
+The effective EAS production artifact, vendor handling, approved policy URL,
+and Apple App Privacy form remain separate evidence and action gates.
+Normal local readiness is 27/28 with only the policy URL missing; a synthetic
+HTTPS URL produces 28/28, proving configuration wiring without approving a
+policy or queueing a build.
+The bounded server-side document audit found that authenticated employee
+document deletion tombstones the owned database records but does not call
+Vercel Blob `del`; the direct Blob deletion inspected elsewhere is for staged
+browser uploads. The privacy handoff now marks physical purge and legally
+required retention as owner decisions. No document or Blob was changed.
+The telemetry config guard was narrowed to the iOS production profile using
+Expo-supported platform-specific `ios.env`, while the local iOS preflight
+sets the same flag explicitly. A negative Android subprocess confirms the
+production Android path is not blocked by the new iOS guard.
+Read-only authenticated EAS production name checks found no privacy-policy
+URL variable at either project or account scope. Logly/Sentry setting names
+exist at project scope, but their enabled values were not verified without
+displaying sensitive configuration. The value-suppressed report and runbook
+now put the next EAS production URL set behind exact legal approval and
+action-time owner confirmation; no EAS setting was changed.
+The combined iOS build/automatic-upload aliases were then guarded at both
+the root account runner and direct mobile-package script: separate explicit
+acknowledgments are required before authentication/preflight, and the first
+public release still uses a reviewed build-ID upload after IPA inspection.
+Ten focused runner/readiness tests pass, including denial of an explicit
+Android platform on iOS-only submit routes; no EAS job or Apple upload began.
+A primary-source comparison of the live retail privacy page identified
+unresolved seller/controller identity, employee-operation, vendor, retention,
+and document-purge wording. The source-cited gap report is a legal-review
+packet, not permission to use the page as this app's approved policy.
+The direct mobile-package iOS submit aliases now use a reviewed-ID-only
+adapter instead of EAS's interactive build selector. It rejects missing,
+duplicate, malformed, alternate, and known retired build `5`/`6` IDs before
+EAS runs; both root and package entry points remain gated by action-time
+upload permission. The 13-test focused runner/readiness/adapter suite passes
+(97 assertions), and scoped Biome is clean. Read-only signed-in App Store
+Connect inspection reconfirmed the GND Millwork app's Privacy Policy URL and
+App Privacy disclosure are blank; no Apple field was saved or build uploaded.
+The installed iOS dependency inventory found Expo, React Native, Async
+Storage, and Lottie privacy manifests with required-reason API declarations.
+The bounded report and public runbook now distinguish local package files
+from the exact IPA and Apple questionnaire; no app-owned manifest reason or
+data-collection answer was inferred, and no EAS/Apple action occurred.
+An employee-access permission audit found the shared Better Auth session
+resolver could derive capabilities from soft-deleted role assignments,
+referenced roles/offices, or role-grant rows. It now filters those records and
+deleted permission definitions before selecting the first role. The focused
+auth suite passes 18/18 and scoped Biome is clean. Auth-package typecheck's
+only remaining diagnostics are existing `packages/errors` NodeNext import
+extensions; no session-source error remains. A permanent bug record captures
+the source-level risk without claiming a live exploit. No account, role,
+external permission, build, or Apple form was changed.
+The remaining public-release privacy gate was converted into a concise owner
+decision packet covering legal entity/controller identity, company-only login
+versus public registration, app-specific data practices, vendors/telemetry,
+retention/Blob purge, and the exact approved policy URL. Local readiness is
+still 27/28 with only that URL absent. A fresh read-only EAS account/project
+probe failed at `api.expo.dev` DNS resolution, not authentication; no EAS
+setting, Apple form, new build, or upload was changed.
+
+### 2026-09-15 — Assistant DeepSeek browser smoke test
+
+Verified the configured DeepSeek Flash greeting after fixing configured public
+origin resolution behind the shared HTTPS proxy. Fixed strict capability-search
+output projection and verified the live Sales tool list. Focused tests pass 25 /
+203 assertions. Chat text survives reload. Basic read-only order/status testing
+finds a visibility mismatch with the native Sales overview, misleading no-match
+error cards, and lost tool context after reload; these remain open findings.
+Evidence: `.brain/reports/2026-09-15-assistant-deepseek-browser-smoke.md`.
+
+### 2026-09-15 — Assistant conversation menu spacing
+
+Added the standard `gap-2` spacing between icons and labels for all Assistant
+conversation menu actions in `assistant-header.tsx`. This is a local UI-only
+change; no API, database, or runtime behavior changed.
+### 2026-09-15 — Simple Assistant experience and diagnostics plan
+
+Saved a proposed six-phase plan for concise staff-facing chat, classified public
+outcomes, redacted correlated diagnostics, safe recovery/history, and a protected
+developer inbox/detail sheet beside the affected conversation. Reuses shared
+error/report utilities and existing execution history; canonical diagnostic
+storage and active capture sink are explicit Phase 1 decisions. Added one roadmap
+task with a 0/6 implementation checklist. Planning only; no runtime changes.
+
+## 2026-09-15 — Assistant simplicity and developer diagnostics: implementation ongoing
+
+Added protected diagnostics list/detail/review routes and a lazy shared detail sheet, simplified chat progress, preserved missing-feature actions, and persisted safe failed outcomes plus terminal tool facts. Focused tests cover response consolidation, secret filtering, admin denial, transcript ownership, idempotent capture, transactional review and historical evidence. Browser confirmed a fresh DeepSeek greeting and an empty diagnostics inbox. Remaining: comprehensive capture boundaries, populated diagnostic acceptance, retries/reconciliation, retention scheduling and full rollout checks. See `.brain/tasks/2026-09-15-assistant-simple-experience-and-diagnostics.md`.
+
+- Assistant browser acceptance progressed: missing-order response/refresh and populated synthetic diagnostic detail/review passed. See `.brain/reports/2026-09-15-assistant-simple-diagnostics-acceptance.md`. Full goal remains in progress.
+
+### Assistant boundary capture progress
+
+Added original MCP exception capture, safe per-step model error projections, MCP isError classification/reference reuse, pre-run/stream capture, request outcome UI and duplicate-warning suppression. Added bounded hourly retention job and uncertain-outcome handling after attempted writes. Expanded focused suite: 52 passing tests / 180 assertions. Full implementation goal remains active.
+
+### Assistant filters and client reports
+
+Completed advanced diagnostics filters, validated filter/reset behavior in the browser, and added an authenticated ownership-checked rate-limited client report service with chat transport integration. Contract/client/REST suite passes 22 tests. API typecheck still has only the unrelated Sales copy nullable-string error. The full Assistant goal remains in progress.
+
+### Assistant simple experience — client/approval checkpoint (2026-09-15)
+
+Connected client failure reporting for attachment/render/reconnect, added safe approval operation capture, validated stored approval review JSON, and changed uncertain decision recovery to read status before offering another confirmation. Diagnostic references appear inside the approval dialog and stale render reports are ignored after retry. Narrow diagnostic and approval suites pass; API typecheck remains blocked by the unrelated Sales copy nullability error. Full acceptance, sink correlation, partial-result recovery and migration rollout remain open; task stays In Progress.
+
+### Assistant business review and monitoring correlation (2026-09-15)
+
+Removed technical approval payloads from staff UI in favor of validated business document summaries. Added correlated sanitized Sentry submission metadata to diagnostics, with stable occurrence event identity and independent sink/storage failure handling. 28 relevant tests pass; broad typing remains blocked by unrelated repository errors. Live failure acceptance, remaining capture boundaries, monitoring deep links and migration rollout remain open.
+
+### Assistant approval error capture (2026-09-15)
+
+Captured swallowed execution exceptions and failure envelopes with persisted public outcomes/references, safe replay and revoked-access masking. 18 relevant tests pass. Live scoped order lookup still gives a neutral no-match and cannot reach approval UI acceptance. Stale recovery/preflight coverage, fault matrix, scope discrepancy analysis and schema rollout remain open.
+
+### Assistant mixed-result and stream checkpoint (2026-09-15)
+
+Closed interrupted text-only narration leakage and unified uncertain-effect handling for artifacts/external sends as well as writes. Added six-effect mixed-result regressions proving preserved order entities and one safe outcome. 49 tests pass. Richer successful findings, targeted recovery, browser fault matrix and existing rollout/capture gaps remain open.
+
+### Assistant Sales scope diagnosis complete (2026-09-15)
+
+Read-only local DB evidence explains empty Assistant order searches: organization 1 has zero assigned active orders and known order 09640PC has null orgId; native overview uses a different scope predicate. Recorded the finding and a separate legacy-ownership/access-policy backlog task. No data or permissions were changed. The diagnostics plan discrepancy-investigation step is complete; other implementation/acceptance work remains active.
+
+### Assistant diagnostic migration artifact (2026-09-15)
+
+Generated an isolated Prisma migration for the two diagnostic tables; verified reproducibility and additive-only scope. Prior local db:push is unchanged, and no migration ledger, preview or production was touched. Artifact gap closed; target rollout/history validation remains open.
+
+### Assistant inbox database acceptance (2026-09-15)
+
+Real local transactional QA found and fixed cursor pagination losing later rows after its anchor was removed. The saved regression now passes ordering, page coverage, filters, expiry, audit and guessed-reference denial, and verifies no synthetic data survives rollback. Contract/query unit tests pass; other failure/recovery and rollout acceptance remains active.
+
+## 2026-09-15 — create hydration and save navigation follow-up
+
+- Observed generation `0a2c903c-27b7-442a-9750-de527abd16cb` produce the expected mouldings quantities 28/3/1, then reject native application as `form-stale`.
+- Temporary field-only diagnostic (removed) identified replacement of `version`, `updatedAt`, `form`, and `lineItems` during preparation. Bootstrap returns a fresh random version on each fetch; create hydration formerly keyed on that version. Create hydration now uses a stable mode/type/initial-customer key, while saved-record hydration retains version comparison. Actual form-edit revision protection remains intact.
+- Final and draft save paths now clear the selected-customer URL parameter before navigating to inventory/saved-order views, avoiding a later query update on the previous create URL.
+- Focused verification: apply boundary 13 tests / 28 assertions; transaction boundary 14 tests / 96 assertions. Fixed a trailing comma in an inline import type that prevented the transaction suite parsing. No broad checks run.
+- Browser verification is still pending: after hot refreshes the handoff parameter disappeared and the editor was blank. This is not evidence of a successful Apply or of a verified navigation fix. No additional sale or payment created for this attempt. Full acceptance remains 1/7 (the earlier mouldings order and cash payment).
+
+### Assistant history/attachment boundaries (2026-09-15)
+
+Added precise history and attachment load/download capture with same-reference REST forwarding and cancellation suppression. Removed raw warnings from new execution summaries. 34 focused tests pass; completed-response save recovery and remaining acceptance gaps remain open.
+
+## 2026-09-15 — browser verification of hydration and navigation
+
+Fresh modal submission of the mouldings sample successfully opened three native lines (28 baseboards, 3 flat boards, 1 attic kit). No stale-form error. With existing customer 34 / Tier 1, native prices were 7.68, 28.64 and 33.00; subtotal 333.96 and estimated card total 343.98. Saved as order 09660PC / salesId 28187, PO `AI QA NAVIGATION 2026-09-15`. Browser landed on `/sales-book/orders?sales-overview-id=09660PC&sales-type=order&mode=sales&salesTab=inventory`, then General retained the saved PO and 333.96 balance. Invoice preview visibly preserved all three products, quantities and line totals (215.04, 85.92, 33.00). This verifies the latest create-hydration and save-navigation fixes through the UI. No duplicate payment was needed; this additional navigation-test order remains unpaid. Prior mouldings full acceptance (09659PC) remains the only one of seven complete sample workflows. Other sample requirements remain open; no corpus-wide success claimed.
+
+## Acceptance input blocker audit — 2026-09-15
+
+The choice between exact catalog/specification data and explicitly labeled local test substitutions has remained unanswered across at least three consecutive goal turns. Independent hydration/save-navigation repairs are now browser-verified. Re-read the corpus: duplex has door widths but no heights; slab source specifies smooth white-primed engineered solid-core, not a unique catalog UID or price configuration. Existing initializer still requires valid Door selections and prices. No supplied answer establishes how to resolve these and the other six-sample ambiguities listed in remaining-acceptance-inputs. Current slab tab no longer contains its review, so historical UI evidence is not represented as a fresh observation.
+
+Goal blocked on the user's test-data choice/specification mappings; not complete. Full workflow count remains 1/7. Source-fidelity and remaining modal/save/preview/payment verification remain required after inputs arrive. Do not fabricate mappings, use zero prices, approve benchmarks, or count partial JSON as full acceptance. No source code changes in this audit.
+
+### Assistant completed-response save recovery (2026-09-15)
+
+Preserved answers across transcript-save failure, added safe unconfirmed-save notice and correlated Help, and prevented replay of provider/business work. 46 relevant tests pass. Browser verified the synthetic answer, Copy, matching notice/reference, adjacent diagnostic and audited resolved note (ERR-3C23FA48AB). Other live fault/recovery and rollout gates remain active.
+
+### Assistant stale approval and preflight recovery (2026-09-15)
+
+Captured stale recovery with durable uncertain references and race-safe single capture. Separated preflight outages from revoked access and changed records, retained original PDF preflight causes, and prevented misleading terminal-success copy for protected receipts. 41 relevant tests pass; live fixture/fault and rollout acceptance remains active.
+
+### 2026-09-15 — Assistant order/review acceptance
+Verified scoped synthetic order lookup and invoice approval review/decline locally. Removed duplicate related-record links (14 focused tests pass; reload checked). Tightened concise-answer guidance after live verbosity finding; narrative cleanup and full acceptance remain in progress. See reports/2026-09-15-assistant-simple-diagnostics-acceptance.md.
+
+### 2026-09-15 — Assistant final narration and private history
+Fixed pre-tool narration retention, text-block boundaries and an observed model-history note echo caused by appending execution facts to assistant-role text. 53 focused tests pass; fresh browser exact-order follow-up and concise recall verified. Initial search inconsistency and remaining acceptance items still open. Details in the Assistant diagnostics acceptance report.
+
+### 2026-09-15 — Assistant ambiguity and scope audit
+Added neutral multiple-match choice outcome and verified retained record choices with focused tests (37 pass). Completed a numbered-step coverage audit in reports/2026-09-15-assistant-requirement-audit.md; goal remains in progress with recovery, capture health/rollout and runtime matrix gaps explicit. No production changes.
+
+### 2026-09-15 — Diagnostic UI release switch
+Implemented server-owned Super Admin UI gate for inbox/detail/in-chat diagnostics, with reversible off mode independent of logging and permissions. Default live inbox verified; 8 focused tests pass. Documented operator workflow in runbooks/assistant-diagnostics-rollout.md. Remaining capture-health, recovery and full-release acceptance stay open.
+
+### 2026-09-15 — Preserve successful order findings
+Partial requests now retain safe successful order status beside the error outcome. Strict stream/persistence/view-model contract and six effect-class regression cases pass (56 tests). Synthetic local display/reload/diagnostic linkage verified and fixture clearly resolved as QA-only. Broader partial-result and retry work continues.
+
+### 2026-09-15 — Quiet bounded read recovery
+Implemented one request-wide transient-read retry with renewed authorization, abort-aware delay and Retry-After handling. No non-read replay. Failed attempts and recovered terminal summaries keep private bounded evidence. 43 focused tests pass; API check still only has pre-existing Sales copy nullability. Remaining selective recovery/browser/deployment metrics are tracked in the requirement audit.
+
+### 2026-09-15 — Diagnostic capture health
+Developer diagnostics now exposes fixed current-day capture counters with explicit unavailable state. Real isolated Redis integration passed and exposed/fixed TCP array-response incompatibility using JSON EVAL. 8 focused tests pass. Current local profile lacks Redis; browser unavailable behavior verified. Scratch data/containers cleaned; rollout configuration and request-level recovery metrics remain open.
+
+### 2026-09-15 — Assistant attachment corrections and diagnostic coverage
+Completed focused attachment preprocessing correction handling and tests. Known
+input failures receive plain copy and informational diagnostics; unexpected decoder
+failures preserve their private cause and exact processing stage. Invalid preflight
+inputs never download bytes or invoke the model. Tests: 34 pass / 137 assertions.
+API typecheck only reports the existing Sales copy nullable-string error. Full
+Assistant acceptance and live attachment scenarios remain in progress.
+
+### 2026-09-15 — Preserve early Assistant failures in conversation history
+The REST execution catch now persists the public outcome and fixed copy before
+finalizing a failed run. This covers attachment/history/pre-model throws that
+previously appeared only in the live stream. Persistence uses the existing scoped,
+run-idempotent generated-message helper; raw errors are never saved as chat text.
+If transcript persistence fails, the original outcome remains primary and a
+separate history-unconfirmed notice is emitted with its own diagnostic. Execution
+is never replayed. User cancellation skips failure persistence and capture.
+Focused REST/execute-turn suites: 39 pass, 162 assertions. Browser refresh acceptance
+for an actual attachment failure is still outstanding.
+
+### 2026-09-15 — Live upload failure and report-limiter visibility
+Uploaded a synthetic intentionally incomplete PDF from the browser new-chat
+composer. Upload failed before an attachment was added; UI displayed only
+“I couldn't attach that file. Please try again.” and re-enabled Attach files.
+No new incident appeared in the diagnostics inbox. This verifies the upload
+failure presentation only, not PDF decoding or saved failure reload. The local
+profile lacks Redis; reportAssistantClientFailure rejects when its Redis limiter
+is unavailable, and the client currently discards that rejection. Added a fixed,
+bounded server signal assistant_client_reports_unavailable (at most once per
+process per minute), independent of Redis/DB and containing no client payload.
+Rate limiting still fails closed; no unbounded fallback capture was introduced.
+Focused health/client-report tests: 5 pass. Remaining: upload root cause, durable
+client incident delivery, attachment Help reference, actual PDF failure/reload.
+
+### 2026-09-15 — Upload failure Help and exact diagnostic copy
+Added upload-failed to the strict public outcome vocabulary and shared its fixed
+copy with the attachment composer. Client attachment reports now record that exact
+copy instead of the generic temporary-check message. A confirmed recorded report
+adds the existing Help / authorized View diagnostics control beside the composer
+error. Missing/failed recording adds no misleading link. Generation and error
+version checks discard late report references after a new attempt, clear, discard
+or removal. Tests: 13 pass / 58 assertions across client-report, health, outcome and
+diagnostic-details suites. Live Help-link acceptance remains dependent on working
+upload/report infrastructure; no durable capture was claimed in the failing local
+upload test.
+
+### 2026-09-15 — Signed-out text recovery
+The live chat transport now snapshots the submitted user text and restores it on
+HTTP 401 only when the composer is empty and the response belongs to the current
+transport attempt. A newer draft is not overwritten. A Sign in link opens /login
+in a separate tab, keeping the conversation and restored draft in memory; copy
+explains returning to send manually. No automatic resend or write replay occurs.
+This does not provide durable draft recovery after closing the tab, nor restore
+attachment chips. Browser expired-session acceptance remains open.
+
+### 2026-09-15 — Monitoring event lookup link
+Submitted Sentry captures now retain a validated SENTRY_ORG slug with their event
+ID. The authorized diagnostic detail sheet builds a fixed sentry.io organization
+issue-search link for that exact event ID and a 30-day window. It ignores arbitrary
+stored URLs and hides links for unavailable/failed/malformed or legacy records
+without an organization. No environment files changed. This is an event lookup
+link, not proof of remote event delivery or a resolved issue permalink.
+Reference for event-ID issue lookup: https://forum.sentry.io/t/event-id-sentry-issue-url/4005/2
+Live remote destination/delivery verification remains outstanding.
+
+Assistant operation diagnostic capture now includes elapsed boundary duration.
+Operation regression tests remain green (4 pass). Full acceptance remains open.
+
+### 2026-09-15 — Saved provider configuration boundary
+Runtime selection now runs through assistant.resolveProvider at the provider
+diagnostic stage. Invalid saved model settings are captured once with run/request
+context and elapsed time before history/document reads or model execution. Public
+response remains the fixed temporary-failure copy and opaque reference. Focused
+execute-turn/operation suites pass. Broader setup, SDK and job boundary acceptance
+remains open; this does not claim provider availability or credential validation.
+
+### 2026-09-15 — Capture upload validation before generic wrapping
+The upload endpoint already parses Assistant PDFs before storage. Malformed PDF
+validation therefore explained the earlier incomplete-file test without proving a
+blob service failure. Added typed upload-validation reasons with retained decoder
+causes. Assistant validation runs inside assistant.validateUpload capture, with
+actor/scope context and fixed unreadable/size correction copy. Unexpected decoder
+failures remain upload-failed, not a claimed invalid file. The composer accepts
+only approved server copy with a valid reference and avoids duplicate browser
+reporting when the server already captured it. Other upload workflows retain their
+existing BAD_REQUEST messages. Actual parser test proves InvalidPDFException cause
+retention. API typecheck reports only the existing Sales copy nullability issue.
+Live re-test of corrected upload Help flow remains open.
+
+### 2026-09-15 — Live unreadable-PDF correction and Help verified
+First live retest created ERR-080987B7E3 at assistant.validateUpload with outcome
+upload-failed. Its sanitized frame identified PDF.js fake-worker setup in the Next
+server bundle. Source inspection confirmed a relative dynamic worker import.
+Added pdfjs-dist to dashboard serverExternalPackages so the package resolves its
+worker beside its installed module. No shared proxy or environment settings changed.
+Second live upload of /tmp/gnd-assistant-unreadable-qa.pdf produced
+“I couldn't read that file. Try another copy.” Help opened ERR-31FFE0E445, with the
+exact same copy, attachment-unreadable, VALIDATION_FAILED and assistant.validateUpload.
+The diagnostic was marked resolved with a clearly labeled local QA note, verified
+in review history. No attachment was stored and no model/business action ran.
+This closes the live upload-validation/correlated-Help scenario; post-submission
+attachment failure history/reload and actual successful uploads remain separate.
+Known InvalidPDFException/PasswordException names are now retained in sanitized
+future diagnostics; arbitrary error messages remain excluded. Existing immutable
+records are not rewritten. Monitoring remained unavailable locally.
+
+### 2026-09-15 — Manual failed-read retry core (not yet exposed)
+Added manual-read-retry.ts: registry-validated read-only retry tickets stored in
+private Redis execution state for 10 minutes, bounded to 8 KB, referenced by opaque
+UUIDs. Inputs are not copied to diagnostics or public UI. Redemption checks actor
+and scope, expiry, current read definition/grants, input schema and an obligatory
+durable-history authorization callback, then atomically consumes the exact stored
+value before executing only that original read. Concurrent redemption executes
+once; cancelled/stale/denied attempts do not execute. Unavailable storage issues no
+handle. This core is not yet wired into failed-tool emission, a protected endpoint,
+result persistence or UI; selective manual retry remains incomplete.
+Focused tests cover concurrent single execution, scope and grant changes, rejected
+history, expiry, cancellation, forbidden write issuance, invalid input and Redis
+failure. Real Redis integration and browser acceptance remain open.
+
+### 2026-09-15 — Shadcn composer and empty state
+Reused shared InputGroupTextarea/addon/buttons, Field and Empty primitives. Added
+official shadcn Attachment composition from CLI source, adapting cn/Slot/Button
+imports to existing workspace dependencies without overwriting shared Button.
+Composer now uses a controlled textarea instead of contenteditable/execCommand;
+file paste, Stop, error Help and attachment removal remain connected. Drop events
+stop propagation to prevent duplicate parent uploads. New-chat Empty provides
+three suggestions that fill the draft for review. Browser /assistant verified
+visual layout, suggestion fill, native Shift+Enter and disabled empty Send. No
+message sent, broad typecheck or new unit tests for this UI-only follow-up. Existing
+Assistant diagnostics/retry implementation remains paused. Task ticket updated.
+
+## Shared sales-form loading skeleton — 2026-09-15
+
+Reused the full-form skeleton for initial/edit loads and the entire generated-draft handoff. The sales editor and customer selector are not mounted while a generation handoff remains active. Handoff stays mounted to prepare/apply the seed; loading uses a supplied skeleton fallback, and errors/unresolved initialization show existing review/retry controls rather than an endless skeleton. Loading has a visible contextual message and accessible busy/status label. Customer selection appears after handoff completes.
+
+Validation: existing-order UI visibly showed `Loading sales form…`; generated request completed into native editor/customer selector. The brief generated loading frame was not captured by the DOM snapshot, so its visual timing is not independently verified. Handoff storage tests: 3 pass / 8 assertions; scoped diff check passed. No broad checks. The generated verification still omitted the attic kit, an existing extraction issue separate from this loading change. No sale/payment created. No API/database changes.
+
+## 2026-09-15 — moulding omission, quantity review and exact source follow-up
+
+User authorized keeping identified products selected when only quantity is uncertain and showing exact customer text below customer/address in the summary. Prompt v10 limits length requirements to linear-foot conversion, explicitly retains kits with direct counts, and represents uncertain moulding quantities as qty0 with an unresolved quantity entry. Validator now rejects omissions of explicitly counted unique exact-title standalone mouldings via existing bounded provider correction. This is a scoped completeness check, not complete arbitrary-text extraction coverage.
+
+Schema requires quantity review for zero moulding rows; native rows retain quantityReview:true and zero charge, show Quantity needs review, and both final UI/API guard reject pending marked rows. Draft saves allowed; entering positive qty resolves the block. Original source persists as form.customerRequestText in existing metadata, rendered escaped in a collapsed Customer request text below address.
+
+One UI generation run used the accepted mouldings text (no further retry): all products retained at28/3/1; native total333.96 before estimated card fee. Collapsible initially closed; exact-source string equality true on expansion. Saved order09663PC, PO AI QA SOURCE TEXT 2026-09-15; reopened native editor and exact source equality remained true. No payment or additional provider run for this follow-up. This confirms this run, not universal repeatability or all-seven acceptance.
+
+Validation: parent generation/prompt/apply58tests145assertions pass; quantity agent shared44tests125assertions plus server1test2assertions pass; source agent36tests125assertions plus API save/reload1test15assertions pass (overlapping suites, not additive). Scoped diff checks clean; no broad checks. Two focused subagents used at user request.
+
+## 2026-09-15 — saved moulding calculator inputs verified
+
+Optional calculation {linearFeet,pieceLength,wastePercentage?} now travels from AI normalization into each native moulding row and through existing metadata persistence. Both row and pre-selection calculators restore it. Apply saves inputs and shared-calculated quantity; Cancel discards edits. The calculator icon is blue when saved inputs exist. Manual quantity changes retain those inputs and the dialog displays calculated versus current quantities. Older/direct-count rows remain compatible without calculation data.
+
+Actual UI save/reopen exposed a read-path defect: collapseLegacyGroupedLines rebuilt rows from relational items and discarded calculator context. It now restores validated calculation from the matching saved row UID, while relational quantity/pricing remain authoritative.
+
+Focused validation only: normalization/initializer 26 tests / 93 assertions; API moulding 8 / 14; pre-selection workflow 13 / 41; calculator semantics 4 / 6; actual grouped-row reconstruction regression 6 / 30. Suites may overlap; no broad build/typecheck run. Scoped diff checks passed.
+
+One provider generation (73ca9652-932c-4dac-982b-56b809b12452) produced the accepted sample at28/3/1 with400ft,16ft pieces,10% waste. Generated loading skeleton was visibly observed before editor/customer prompt. Calculator restored inputs; applying20% gave30; cancelling21% retained20%; manual override32 displayed against calculated30. Saved local order09664PC (PO AI QA CALCULATOR 2026-09-15) and reopened:400/16/20 inputs, blue indicator, and manual qty32 all survived. Other rows remained3/1 with ordinary calculator icons. No payment or second provider call. Remaining sample acceptance is unchanged.
+
+## 2026-09-15 — pending sales request work and clarification proposal
+
+User deferred final test reporting/release report to future testing; updated MVP blocker checklist accordingly without deleting sample evidence or marking unresolved samples verified. Reviewed current-catalog diagnostics and remaining-acceptance input matrix. Proposed request-specific questions with default-checked answer reuse, durable per-request answers and separately scoped reusable guidance. Only relevant active guidance should enter future prompts; explicit source/catalog remains authoritative. Proposal: plans/2026-09-15-sales-request-clarification-learning.md. No application code or provider calls in this status/planning turn.
+
+## 2026-09-15 — request clarification sessions and admin rules
+
+Text quick-create and inline generation now support deliberate multi-round clarification. Valid unresolved fields become questions; each answer has a default-checked reuse choice. Answers and exact source are durably stored separately from metadata-only telemetry. The UI retains previous rounds, pending/error/cancel/stale states, and offers manual form entry. Numeric answers tied to an exact moulding product resolve quantity deterministically before canonical validation; other unresolved fields remain.
+
+Reusable guidance is restricted to completed sessions owned by the same rep, sales scope and catalog revision, with a matching source phrase. Only product/terminology fields qualify; quantities/dimensions never become future defaults. Numbered product names qualify only when they exactly match a current catalog title. Conflicting answers are suppressed. At most50 recent sessions and12 relevant answers are considered. Owner guidance management supports editing and disabling; it mounts on demand in the request modal and appears in Settings.
+
+Super Admin Sales Settings has a rule list with add/edit/delete/enable/disable, max30 rules and12,000 total characters. Rules persist under Settings.meta.requestGeneration.aiRules with revision/actor/time and optimistic conflict protection. Enabled rules enter the shared preview provider path for pasted and mailbox requests. Confirmed answers, remembered guidance and global rules are separate prompt sections. Current source/catalog/pricing validation remains authoritative; exact product aliases may identify a moulding without supplying historical quantities. Prompt version11 invalidates old prompt-bound benchmark evidence; manual drafts remain benchmark-independent.
+
+Limits: maximum10 questionnaire revisions and24,000 characters of answer/reason history; the UI offers manual entry. Followup submissions use durable revision/status compare-and-set; initial generation uses existing client pending guard. Invalid provider schemas remain errors and do not become fabricated questions. Existing six complex sample blockers are not resolved by this feature alone.
+
+### Clarification verification complete
+
+Live exact WM713 missingquantity request showed multi-round questionnaire; confirmed28 opened native draft at28pieces (subtotal215.04). Read-only persistence verified complete session revision3, two answers28/reusefalse, no remaining questions, no reusable guidance and separately retained source. Admin Missing quantities rule saved enabled and survived reload. Focused UI20/106, backend5/21, rules2/10, preview/context15/47 plus admin propagation1/2, quantity/alias2/4 and actual adapter1/1 checks passed. No broad typecheck/build; no sale/payment saved. UI-found canonical component shape, title whitespace, and prevalidation quantity issues fixed. Generic unmatched-product provider schema errors and other complex sample blockers remain. Full details and Brain impact index: plans/2026-09-15-sales-request-clarification-learning.md.

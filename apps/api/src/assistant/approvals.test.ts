@@ -91,6 +91,107 @@ const allowedPreflight = mock(async () => ({
 }));
 
 describe("Assistant approval execution", () => {
+	test("a changed reviewed record stays distinct from revoked access on status reads and decision replay", async () => {
+		const { store } = executionStore(proposal({ status: "succeeded", result: { privateArtifactId: "artifact-1" } }));
+		const preflight = (async () => ({ ok: true, targetRevision: "new-revision" })) as never;
+		const read = await getAssistantActionProposal(store as never, actor, "proposal-1", now, preflight);
+		const replay = await decideAssistantActionProposal(store as never, actor, decision, { preflight, execute: (async () => { throw new Error("must not replay"); }) as never }, now);
+		for (const result of [read, replay]) {
+			expect(result.errorCode).toBe("TARGET_CHANGED");
+			expect(result.review).toBeNull();
+			expect(result.result).toBeNull();
+		}
+	});
+	test("unexpected preflight outages are captured without denying or executing the pending action", async () => {
+		const original = new Error("private database connection");
+		const captured: unknown[] = [];
+		const { store, proposalUpdateMany } = executionStore();
+		const execute = mock(async () => ({ status: "success" }));
+		await expect(decideAssistantActionProposal(store as never, actor, decision, {
+			preflight: (async () => { throw original; }) as never,
+			execute: execute as never,
+			capture: async (error, context) => { captured.push({ error, context }); return { reference: "ERR-ABCDEFGHIJ", recorded: true }; },
+		}, now)).rejects.toMatchObject({ assistantOutcome: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" } });
+		expect(proposalUpdateMany).not.toHaveBeenCalled();
+		expect(execute).not.toHaveBeenCalled();
+		expect(captured).toHaveLength(1);
+		expect(captured[0]).toMatchObject({ error: original, context: { operation: "assistant.approval.preflight", outcome: "temporary" } });
+	});
+
+	test("status reauthorization does not mislabel an infrastructure outage as revoked access", async () => {
+		const original = new Error("private provider outage");
+		const { store } = executionStore(proposal({ status: "succeeded" }));
+		await expect(getAssistantActionProposal(store as never, actor, "proposal-1", now, (async () => { throw original; }) as never)).rejects.toBe(original);
+	});
+
+	for (const claimed of [0, 1]) {
+		test(`stale status reads capture only the winning recovery (claimed: ${claimed})`, async () => {
+			const row = proposal({ status: "executing", executionStartedAt: new Date("2026-09-13T11:54:59.000Z") });
+			const { store, proposalUpdateMany, runUpdateMany } = executionStore(row, [claimed]);
+			const captured: unknown[] = [];
+			const capture = async (error: unknown, context: { reference?: string }) => {
+				captured.push({ error, context });
+				return { reference: context.reference!, recorded: true };
+			};
+			const result = await getAssistantActionProposal(store as never, actor, row.id, now, allowedPreflight as never, capture);
+			expect(result.status).toBe(claimed ? "unknown" : "processing");
+			expect(captured).toHaveLength(claimed);
+			if (claimed) {
+				expect(result.outcome?.kind).toBe("uncertain");
+				expect(result.outcome?.reference).toMatch(/^ERR-[A-Z0-9]{10}$/);
+				expect(captured[0]).toMatchObject({ context: { stage: "action", operation: "assistant.approval.recoverStaleExecution", outcome: "uncertain", runId: row.runId, reference: result.outcome?.reference } });
+				expect(proposalUpdateMany.mock.calls[0]?.[0]).toMatchObject({ data: { result: { assistantOutcome: result.outcome } } });
+				expect(runUpdateMany.mock.calls[0]?.[0]).toMatchObject({ data: { terminalResult: { assistantOutcome: result.outcome } } });
+				const next = executionStore(proposal({ status: "unknown", result: result.result }));
+				const replay = await getAssistantActionProposal(next.store as never, actor, row.id, now, allowedPreflight as never, capture);
+				expect(replay.outcome).toEqual(result.outcome);
+				expect(captured).toHaveLength(1);
+				expect(next.proposalUpdateMany).not.toHaveBeenCalled();
+			} else {
+				expect(result.outcome).toBeNull();
+			}
+		});
+	}
+
+	test("captures the original uncertain action once and retains the reference on authorized replay", async () => {
+		const original = new Error("private provider response token=secret");
+		const captured: unknown[] = [];
+		const deps = {
+			preflight: allowedPreflight as never,
+			execute: mock(async () => { throw original; }) as never,
+			capture: async (error: unknown, context: { reference?: string }) => {
+				captured.push({ error, context });
+				return { reference: context.reference!, recorded: true };
+			},
+		};
+		const { store, proposalUpdateMany } = executionStore();
+		const result = await decideAssistantActionProposal(store as never, actor, decision, deps, now);
+		expect(result.outcome?.kind).toBe("uncertain");
+		expect(result.outcome?.reference).toMatch(/^ERR-[A-Z0-9]{10}$/);
+		expect(captured).toHaveLength(1);
+		expect(captured[0]).toMatchObject({ error: original, context: { runId: "run-1", actorUserId: 42, outcome: "uncertain" } });
+		expect(JSON.stringify(result)).not.toContain("token=secret");
+		expect(proposalUpdateMany.mock.calls[1]?.[0]).toMatchObject({ data: { result: { assistantOutcome: result.outcome } } });
+		const replayStore = executionStore(proposal({ status: "unknown", result: result.result }));
+		const replay = await decideAssistantActionProposal(replayStore.store as never, actor, decision, deps, now);
+		expect(replay.outcome).toEqual(result.outcome);
+		expect(deps.execute).toHaveBeenCalledTimes(1);
+		expect(captured).toHaveLength(1);
+	});
+
+	test("returned failures are captured and their raw warning data is excluded from the receipt", async () => {
+		const captured: unknown[] = [];
+		const { store } = executionStore();
+		const result = await decideAssistantActionProposal(store as never, actor, decision, {
+			preflight: allowedPreflight as never,
+			execute: mock(async () => ({ status: "failed", warnings: ["private SQL password=secret"] })) as never,
+			capture: async (error, context) => { captured.push({ error, context }); return { reference: context.reference!, recorded: true }; },
+		}, now);
+		expect(result.outcome).toMatchObject({ kind: "temporary" });
+		expect(captured).toHaveLength(1);
+		expect(JSON.stringify(result)).not.toContain("password");
+	});
+
 	test("publishes one permission and confirmation policy for every tool", () => {
 		const matrix = getAssistantPermissionMatrix();
 		expect(matrix.length).toBeGreaterThan(10);
@@ -220,7 +321,7 @@ describe("Assistant approval execution", () => {
 		const { store } = executionStore(
 			proposal({
 				status: "succeeded",
-				result: { privateArtifactId: "artifact-1" },
+				result: { privateArtifactId: "artifact-1", assistantOutcome: { kind: "uncertain", reference: "ERR-ABCDEFGHIJ" } },
 			}),
 		);
 		const result = await getAssistantActionProposal(
@@ -229,7 +330,7 @@ describe("Assistant approval execution", () => {
 			"proposal-1",
 			now,
 			mock(async () => {
-				throw new Error("revoked");
+				throw new AssistantProposalPrecommitError("denied", "revoked");
 			}) as never,
 		);
 		expect(result).toMatchObject({
@@ -239,6 +340,8 @@ describe("Assistant approval execution", () => {
 			errorCode: "AUTHORIZATION_CHANGED",
 		});
 		expect(JSON.stringify(result)).not.toContain("artifact-1");
+		expect(result.outcome).toBeNull();
+		expect(JSON.stringify(result)).not.toContain("ERR-ABCDEFGHIJ");
 	});
 
 	test("rejects a forged token before preflight or execution", async () => {
@@ -271,7 +374,8 @@ describe("Assistant approval execution", () => {
 			store as never,
 			actor,
 			decision,
-			{ preflight: allowedPreflight as never, execute: execute as never },
+			{ capture: async (_error, context) => ({ reference: context.reference!, recorded: true }),
+				preflight: allowedPreflight as never, execute: execute as never },
 			now,
 		);
 		expect(result).toMatchObject({
@@ -297,7 +401,8 @@ describe("Assistant approval execution", () => {
 			store as never,
 			actor,
 			decision,
-			{ preflight: allowedPreflight as never, execute: execute as never },
+			{ capture: async (_error, context) => ({ reference: context.reference!, recorded: true }),
+				preflight: allowedPreflight as never, execute: execute as never },
 			now,
 		);
 		expect(result).toMatchObject({
@@ -316,7 +421,8 @@ describe("Assistant approval execution", () => {
 			expiredStore.store as never,
 			actor,
 			decision,
-			{ preflight: allowedPreflight as never, execute: execute as never },
+			{ capture: async (_error, context) => ({ reference: context.reference!, recorded: true }),
+				preflight: allowedPreflight as never, execute: execute as never },
 			now,
 		);
 		expect(expired).toMatchObject({
@@ -332,7 +438,8 @@ describe("Assistant approval execution", () => {
 			rejectedStore.store as never,
 			actor,
 			{ ...decision, decision: "reject" },
-			{ preflight: allowedPreflight as never, execute: execute as never },
+			{ capture: async (_error, context) => ({ reference: context.reference!, recorded: true }),
+				preflight: allowedPreflight as never, execute: execute as never },
 			now,
 		);
 		expect(rejected).toMatchObject({
@@ -370,7 +477,7 @@ describe("Assistant approval execution", () => {
 			decision,
 			{
 				preflight: mock(async () => {
-					throw new Error("private authorization detail");
+					throw new AssistantProposalPrecommitError("denied", "private authorization detail");
 				}) as never,
 				execute: execute as never,
 			},
@@ -395,6 +502,7 @@ describe("Assistant approval execution", () => {
 			actor,
 			decision,
 			{
+				capture: async (_error, context) => ({ reference: context.reference!, recorded: true }),
 				preflight: allowedPreflight as never,
 				execute: mock(async () => ({
 					status: "conflict",
@@ -421,7 +529,8 @@ describe("Assistant approval execution", () => {
 			thrownStore.store as never,
 			actor,
 			decision,
-			{ preflight: allowedPreflight as never, execute: execute as never },
+			{ capture: async (_error, context) => ({ reference: context.reference!, recorded: true }),
+				preflight: allowedPreflight as never, execute: execute as never },
 			now,
 		);
 		expect(result).toMatchObject({
@@ -440,7 +549,8 @@ describe("Assistant approval execution", () => {
 			staleStore.store as never,
 			actor,
 			decision,
-			{ preflight: allowedPreflight as never, execute: execute as never },
+			{ capture: async (_error, context) => ({ reference: context.reference!, recorded: true }),
+				preflight: allowedPreflight as never, execute: execute as never },
 			now,
 		);
 		expect(stale).toMatchObject({
@@ -457,6 +567,7 @@ describe("Assistant approval execution", () => {
 			actor,
 			decision,
 			{
+				capture: async (_error, context) => ({ reference: context.reference!, recorded: true }),
 				preflight: allowedPreflight as never,
 				execute: mock(async () => {
 					throw new AssistantProposalPrecommitError(

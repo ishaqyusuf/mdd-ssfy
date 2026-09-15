@@ -28,3 +28,10 @@ High-level description of the runtime surfaces and operating model of the GND mo
 - Preserve correctness for revenue-impacting sales flows.
 - Reduce duplication across web, API, and mobile surfaces.
 - Keep changes incremental and compatible with active production paths while migrations are in progress.
+
+### Dashboard request-AI development dependency
+
+Dashboard with-env explicitly passes Redis mode, honoring GND_REDIS_MODE and defaulting
+to local mode, so the environment loader does not clear the usage-store configuration.
+Request generation requires the atomic shared limiter even for manually reviewed drafts.
+Use the existing Redis-enabled dev launcher; shared HTTPS proxy configuration is unchanged.

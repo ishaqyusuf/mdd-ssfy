@@ -1,11 +1,14 @@
 "use client";
 
 import { useTRPCClient } from "@/trpc/client";
+import { assistantErrorReference } from "@api/assistant/diagnostic-contract";
 import { Button } from "@gnd/ui/button";
 import { FileText, ImageIcon, LoaderCircle, Paperclip, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	ASSISTANT_ATTACHMENT_MAX_FILES,
+	AssistantAttachmentValidationError,
+	assistantAttachmentErrorMessage,
 	type AssistantAttachment,
 	type AssistantAttachmentMimeType,
 	assistantAttachmentMimeTypes,
@@ -15,11 +18,13 @@ import {
 } from "./assistant-attachments";
 import styles from "./assistant.module.css";
 
-export function useAssistantAttachments() {
+export function useAssistantAttachments(conversationId?: string) {
 	const client = useTRPCClient();
 	const [attachments, setAttachments] = useState<AssistantAttachment[]>([]);
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [errorReference, setErrorReference] = useState<string | null>(null);
+	const errorVersionRef = useRef(0);
 	const countRef = useRef(0);
 	const generationRef = useRef(0);
 	const queueRef = useRef<Promise<void>>(Promise.resolve());
@@ -46,7 +51,9 @@ export function useAssistantAttachments() {
 		async (files: File[]) => {
 			if (!files.length) return;
 			const generation = generationRef.current;
+			const errorVersion = ++errorVersionRef.current;
 			setError(null);
+			setErrorReference(null);
 			setUploading(true);
 			const upload = queueRef.current
 				.catch(() => undefined)
@@ -56,7 +63,7 @@ export function useAssistantAttachments() {
 						countRef.current + files.length >
 						ASSISTANT_ATTACHMENT_MAX_FILES
 					) {
-						throw new Error("You can attach up to five files to one message.");
+						throw new AssistantAttachmentValidationError("You can attach up to five files to one message.");
 					}
 					validateAssistantAttachmentTotal(attachmentsRef.current, files);
 					for (const file of files) {
@@ -92,8 +99,15 @@ export function useAssistantAttachments() {
 			try {
 				await upload;
 			} catch (cause) {
-				if (mountedRef.current) {
-					setError(cause instanceof Error ? cause.message : "Upload failed.");
+				const serverReference = assistantErrorReference(cause);
+				if (mountedRef.current && generation === generationRef.current && errorVersion === errorVersionRef.current) {
+					setError(assistantAttachmentErrorMessage(cause));
+					setErrorReference(serverReference);
+				}
+				if (!serverReference && !(cause instanceof AssistantAttachmentValidationError)) {
+					void client.assistant.reportClientFailure.mutate({ eventId: crypto.randomUUID(), conversationId, stage: "attachment" }).then((report) => {
+						if (mountedRef.current && generation === generationRef.current && errorVersion === errorVersionRef.current && report.recorded && /^ERR-[A-Z0-9]{10}$/.test(report.reference)) setErrorReference(report.reference);
+					}).catch(() => undefined);
 				}
 			} finally {
 				if (queueRef.current === upload && mountedRef.current) {
@@ -101,11 +115,13 @@ export function useAssistantAttachments() {
 				}
 			}
 		},
-		[client],
+		[client, conversationId],
 	);
 
 	const remove = useCallback(
 		(attachment: AssistantAttachment) => {
+			errorVersionRef.current += 1;
+			setErrorReference(null);
 			URL.revokeObjectURL(attachment.previewUrl);
 			setAttachments((current) =>
 				current.filter((item) => item.id !== attachment.id),
@@ -123,9 +139,12 @@ export function useAssistantAttachments() {
 		attachments,
 		uploading,
 		error,
+		errorReference,
 		addFiles,
 		remove,
 		discard: () => {
+			errorVersionRef.current += 1;
+			setErrorReference(null);
 			generationRef.current += 1;
 			for (const attachment of attachments) {
 				URL.revokeObjectURL(attachment.previewUrl);
@@ -137,6 +156,8 @@ export function useAssistantAttachments() {
 			setError(null);
 		},
 		clear: () => {
+			errorVersionRef.current += 1;
+			setErrorReference(null);
 			generationRef.current += 1;
 			for (const attachment of attachments) {
 				URL.revokeObjectURL(attachment.previewUrl);

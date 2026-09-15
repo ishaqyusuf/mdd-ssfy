@@ -29,6 +29,7 @@ type FixtureState = {
 		meta: unknown;
 		redirectUid: string | null;
 		custom?: boolean | null;
+		isDefault?: boolean;
 		sortIndex?: number | null;
 		createdAt?: Date | string | null;
 		metric?: { selectionCount?: number | null } | null;
@@ -407,17 +408,21 @@ test("persisted component order participates in structural revision identity", a
 	expect(secondRevision).not.toBe(firstRevision);
 });
 
-test("changing a default changes the revision and the AI payload", async () => {
-	const plain = await getSalesRequestConfigurationSnapshot(fixture().db, {
+test("changing a component default changes candidate order and the snapshot revision", async () => {
+	const current = fixture();
+	current.state.components.push({ ...current.state.components[0]!, id: 102, uid: "wood", name: "Wood" });
+	const plain = await getSalesRequestConfigurationSnapshot(current.db, {
 		settingId: 3,
 	});
+	current.state.components[1]!.isDefault = true;
 	const defaults = await getSalesRequestConfigurationSnapshot(
-		fixture(false, true).db,
+		current.db,
 		{ settingId: 3 },
 	);
 	expect(defaults.revision).not.toBe(plain.revision);
-	expect(defaults.configurationJson).toContain('"defaults":{"frame":"pvc"}');
-	expect(defaults.configuration.routes[0]?.defaults).toEqual({ frame: "pvc" });
+	const wire = JSON.parse(defaults.configurationJson);
+	expect(wire.steps.find((step: { uid: string }) => step.uid === "frame").components[0]).toEqual(["wood", "Wood"]);
+	expect(defaults.configuration.routes[0]?.defaults).toBeUndefined();
 });
 
 test("route shape flags affect revision but route prices never enter the payload", async () => {
@@ -574,12 +579,7 @@ test("structural changes publish a new cache artifact while price-only edits hit
 		{
 			name: "default",
 			mutate: (state) => {
-				const meta = state.meta as {
-					route: { exterior: { requestGeneration?: unknown } };
-				};
-				meta.route.exterior.requestGeneration = {
-					defaults: { frame: "pvc" },
-				};
+				state.components[1]!.isDefault = true;
 			},
 		},
 		{
@@ -627,6 +627,9 @@ test("structural changes publish a new cache artifact while price-only edits hit
 
 	for (const scenario of scenarios) {
 		const fixtureState = fixture();
+		if (scenario.name === "default") {
+			fixtureState.state.components.push({ ...fixtureState.state.components[0]!, id: 102, uid: "wood", name: "Wood" });
+		}
 		const memory = memoryCache();
 		const first = await getSalesRequestConfigurationSnapshot(
 			fixtureState.db,

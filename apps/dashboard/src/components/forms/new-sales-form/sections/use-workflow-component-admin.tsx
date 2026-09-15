@@ -31,6 +31,7 @@ import {
 	useSaveWorkflowComponentRedirectMutation,
 	useSaveWorkflowComponentSectionOverrideMutation,
 	useSaveWorkflowComponentVisibilityMutation,
+	useSetWorkflowComponentDefaultMutation,
 } from "../api";
 import type { NewSalesFormLineItem } from "../schema";
 import {
@@ -139,6 +140,7 @@ export function useWorkflowComponentAdmin(input: {
 	const redirectMutation = useSaveWorkflowComponentRedirectMutation();
 	const pricingMutation = useSaveWorkflowComponentPricingMutation();
 	const archiveMutation = useArchiveWorkflowComponentsMutation();
+	const defaultMutation = useSetWorkflowComponentDefaultMutation();
 	const [dialog, setDialog] = useState<AdminDialogState>({ kind: "closed" });
 
 	async function refreshCatalog() {
@@ -238,6 +240,13 @@ export function useWorkflowComponentAdmin(input: {
 			});
 			await refreshCatalog();
 			return true;
+		},
+		onSetDefault: async (action) => {
+			await defaultMutation.mutateAsync({
+				componentId: Number(action.component.id),
+				default: action.default,
+			});
+			await refreshCatalog();
 		},
 	};
 

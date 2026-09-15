@@ -1,3 +1,4 @@
+import { calculateMouldingQuantity, parseMouldingPieceLength } from "@gnd/sales/sales-form-core";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -10,6 +11,14 @@ import { AnimatedNumber } from "./animated-number";
 import { ButtonGroup, ButtonGroupSeparator } from "@gnd/ui/button-group";
 import { Icons } from "@gnd/ui/icons";
 
+const calculationSchema = z.object({
+    linearFeet: z.number().finite().positive(),
+    pieceLength: z.number().finite().positive(),
+    wastePercentage: z.number().finite().min(0).max(100).optional(),
+});
+
+type SavedCalculation = z.infer<typeof calculationSchema>;
+
 interface Props {
     title: string;
     unitLF?: number;
@@ -17,7 +26,8 @@ interface Props {
     wastePercentage?: number;
     longFoot?: number;
     qty?: number;
-    onCalculate?: (qty) => void;
+    calculation?: SavedCalculation;
+    onCalculate?: (qty: number, calculation?: SavedCalculation) => void;
 }
 export function MouldingCalculator(props: Props) {
     const form = useZodForm(
@@ -32,9 +42,9 @@ export function MouldingCalculator(props: Props) {
         {
             defaultValues: {
                 unitPrice: props.unitPrice,
-                wastePercentage: props.wastePercentage,
-                longFoot: props.longFoot,
-                unitLF: props.unitLF || Number(getMouldingLength(props.title)),
+                wastePercentage: props.calculation?.wastePercentage ?? props.wastePercentage ?? 0,
+                longFoot: props.calculation?.linearFeet ?? props.longFoot,
+                unitLF: props.calculation?.pieceLength ?? (props.unitLF || Number(parseMouldingPieceLength(props.title) ?? getMouldingLength(props.title))),
                 qty: props.qty,
                 totalPrice: props.unitPrice,
             },
@@ -46,14 +56,17 @@ export function MouldingCalculator(props: Props) {
         if (opened) return;
         form.reset({
             unitPrice: props.unitPrice,
-            wastePercentage: props.wastePercentage,
-            longFoot: props.longFoot,
-            unitLF: props.unitLF || Number(getMouldingLength(props.title)),
+            wastePercentage: props.calculation?.wastePercentage ?? props.wastePercentage ?? 0,
+            longFoot: props.calculation?.linearFeet ?? props.longFoot,
+            unitLF: props.calculation?.pieceLength ?? (props.unitLF || Number(parseMouldingPieceLength(props.title) ?? getMouldingLength(props.title))),
             qty: props.qty,
             totalPrice: props.unitPrice,
         });
     }, [
         opened,
+        props.calculation?.linearFeet,
+        props.calculation?.pieceLength,
+        props.calculation?.wastePercentage,
         props.longFoot,
         props.qty,
         props.title,
@@ -63,26 +76,14 @@ export function MouldingCalculator(props: Props) {
     ]);
     useEffect(() => {
         if (!opened) return;
-        // qty = longFoot / unitLF * (1 + wastePercentage/100)
-        const qty =
-            data.longFoot && data.unitLF
-                ? (data.longFoot / data.unitLF) *
-                  (1 + (data.wastePercentage || 0) / 100)
-                : 0;
-        const roundQty = Math.ceil(qty);
-        form.setValue("qty", roundQty);
-        const totalPrice =
-            data.unitPrice && roundQty ? data.unitPrice * roundQty : 0;
-        // 2 decimal places toatl price
-        const tPrice = Math.round(totalPrice * 100) / 100;
-        form.setValue("totalPrice", tPrice);
-
-        // const length = data.length || 1;
-        // const wasteFactor = 1 + (data.wastePercentage || 0) / 100;
-        // const qty =
-        //     data.price && length ? (data.price / length) * wasteFactor : 0;
-        // form.setValue("quantity", Math.round(qty * 100) / 100);
-        // props.onCalculate?.(data.price, data.wastePercentage);
+        const result = calculateMouldingQuantity({
+            linearFeet: data.longFoot ?? 0,
+            pieceLength: data.unitLF,
+            wastePercentage: data.wastePercentage,
+            unitPrice: data.unitPrice,
+        });
+        form.setValue("qty", result.pieces);
+        form.setValue("totalPrice", result.totalCost);
     }, [
         data.longFoot,
         data.wastePercentage,
@@ -90,25 +91,32 @@ export function MouldingCalculator(props: Props) {
         data.unitPrice,
         opened,
     ]);
-    //   const calculatedBaseLF = data.quantity// parseFloat(budget) / pricePerLF;
-    const totalPieces = data.qty || 0;
-    const totalFootage = data.longFoot;
     const pricePerLF =
         data.unitLF && data.unitPrice ? data.unitPrice / data.unitLF : 0;
-    const calculatedBaseLF = pricePerLF
-        ? (data.totalPrice || 0) / pricePerLF
-        : 0;
+    const currentCalculation = calculationSchema.safeParse({
+        linearFeet: data.longFoot,
+        pieceLength: data.unitLF,
+        wastePercentage: data.wastePercentage,
+    });
+    const savedCalculation = calculationSchema.safeParse(props.calculation);
+    const savedPieces = savedCalculation.success
+        ? calculateMouldingQuantity(savedCalculation.data).pieces
+        : undefined;
+    const quantityOverridden = savedPieces !== undefined &&
+        props.qty !== undefined && savedPieces !== props.qty;
+    const calculatorTitle = savedCalculation.success
+        ? `Saved calculation: ${savedCalculation.data.linearFeet} ft + ${savedCalculation.data.wastePercentage ?? 0}% waste → ${savedPieces} pieces${quantityOverridden ? "; quantity manually adjusted" : ""}`
+        : "Open Calculator";
     return (
         <Dialog open={opened} onOpenChange={setOpened}>
             <Dialog.Trigger asChild>
                 <Button
-                    onClick={() => {
-                        // handleCalculatorOpen('5-1/4" Crown Moulding')
-                    }}
-                    className=""
+                    type="button"
+                    className={savedCalculation.success ? "text-blue-600 dark:text-blue-400" : ""}
                     size="icon-sm"
                     variant="secondary"
-                    title="Open Calculator"
+                    title={calculatorTitle}
+                    aria-label={calculatorTitle}
                 >
                     <Icons.Calculator className="" />
                 </Button>
@@ -134,8 +142,16 @@ export function MouldingCalculator(props: Props) {
                         </Button>
                     </Dialog.Close>
                 </Dialog.Header>
-                <form>
+                <form onSubmit={(event) => event.preventDefault()}>
                     <div className="grid gap-4">
+                        {quantityOverridden && (
+                            <div className="rounded-md border p-3 text-sm" role="status">
+                                <p className="font-medium">Quantity manually adjusted</p>
+                                <p>Saved calculated quantity: {savedPieces} pieces</p>
+                                <p>Current order quantity: {props.qty} pieces</p>
+                                <p className="text-muted-foreground">Apply will replace the current order quantity with the calculation below.</p>
+                            </div>
+                        )}
                         {/* Content */}
                         <div className="space-y-8 overflow-y-auto max-h-[70vh]s">
                             {/* Project Needs */}
@@ -198,7 +214,7 @@ export function MouldingCalculator(props: Props) {
                                                         type="number"
                                                         placeholder="0"
                                                         className=""
-                                                        value={field.value}
+                                                        value={Number.isFinite(field.value) ? field.value : ""}
                                                         onChange={(e) =>
                                                             field.onChange(
                                                                 parseFloat(
@@ -374,11 +390,22 @@ export function MouldingCalculator(props: Props) {
                     {/* Footer */}
                     <div className="gap-1 w-full">
                         <Button
+                            type="button"
+                            variant="outline"
+                            className="mb-2 w-full"
+                            onClick={() => setOpened(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            disabled={!currentCalculation.success}
                             onClick={() => {
+                                if (!currentCalculation.success) return;
+                                const calculation = currentCalculation.data;
                                 props.onCalculate?.(
-                                    data.qty,
-                                    // data.price,
-                                    // data.wastePercentage,
+                                    calculateMouldingQuantity(calculation).pieces,
+                                    calculation,
                                 );
                                 setOpened(false);
                             }}

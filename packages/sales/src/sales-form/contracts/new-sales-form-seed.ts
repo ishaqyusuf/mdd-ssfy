@@ -81,11 +81,21 @@ export const newSalesFormSeedServiceRowSchema = z
 	})
 	.strict();
 
+export const newSalesFormSeedMouldingCalculationSchema = z
+	.object({
+		linearFeet: z.number().positive().max(10000000),
+		pieceLength: z.number().positive().max(1000),
+		wastePercentage: z.number().min(0).max(100).optional(),
+	})
+	.strict();
+
 export const newSalesFormSeedMouldingPieceRowSchema = z
 	.object({
 		/** Existing Moulding component UID; this becomes the native row UID. */
 		uid: z.string().trim().min(1).max(128),
-		qty: z.number().int().positive().max(100000),
+		qty: z.number().int().min(0).max(100000),
+		/** Retained calculator facts after normalization computes the piece count. */
+		calculation: newSalesFormSeedMouldingCalculationSchema.optional(),
 	})
 	.strict();
 
@@ -93,14 +103,7 @@ export const newSalesFormSeedMouldingLinearFeetRowSchema = z
 	.object({
 		/** Existing Moulding component UID; this becomes the native row UID. */
 		uid: z.string().trim().min(1).max(128),
-		/** Transient calculator facts; normalization replaces them with native qty. */
-		calculation: z
-			.object({
-				linearFeet: z.number().positive().max(10000000),
-				pieceLength: z.number().positive().max(1000),
-				wastePercentage: z.number().min(0).max(100).optional(),
-			})
-			.strict(),
+		calculation: newSalesFormSeedMouldingCalculationSchema,
 	})
 	.strict();
 
@@ -151,7 +154,7 @@ export const newSalesFormSeedLineSchema = z
 	.object({
 		/** Transient client identity, never a persisted sales-item ID. */
 		uid: lineUid,
-		qty: z.number().positive().max(100000),
+		qty: z.number().min(0).max(100000),
 		formSteps: z.array(newSalesFormSeedStepSchema).max(100),
 		meta: newSalesFormSeedLineMetaSchema.optional(),
 		housePackageTool: housePackageToolSchema,
@@ -224,6 +227,21 @@ export const newSalesFormSeedSchema = z
 				});
 			}
 			lineUids.add(line.uid);
+			const pendingMouldingRows = "meta" in line
+				? line.meta?.mouldingRows?.filter((row) => "qty" in row && row.qty === 0) || []
+				: [];
+			const hasQuantityReview = seed.unresolved.some((entry) =>
+				entry.lineUid === line.uid && entry.stepId === null && entry.field === "quantity",
+			);
+			if ((line.qty === 0 && pendingMouldingRows.length === 0) ||
+				(pendingMouldingRows.length > 0 && !hasQuantityReview)) {
+				context.addIssue({
+					code: "custom",
+					message: "Zero quantities require selected moulding rows and an explicit quantity review",
+					path: ["lineItems", lineIndex, "qty"],
+				});
+			}
+
 			if (line.housePackageTool) {
 				const doorQty = line.housePackageTool.doors.reduce(
 					(total, door) => total + newSalesFormSeedDoorQty(door),

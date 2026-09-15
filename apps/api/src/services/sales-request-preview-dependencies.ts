@@ -27,7 +27,10 @@ import {
 	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
 	SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
 	getSalesRequestAISettings,
+	getSalesRequestAIRules,
 	getSalesRequestPilotSettings,
+	getSalesRequestCatalogSettings,
+	isSalesRequestCatalogPublicationCurrent,
 	getSalesRequestProviderBenchmarkApproval,
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 } from "@gnd/settings";
@@ -58,7 +61,7 @@ export async function authorizeSalesRequestPreview(input: {
 	});
 }
 
-function requireCurrentProviderBenchmark(input: {
+function currentProviderBenchmarkRevision(input: {
 	aiSettings: Awaited<ReturnType<typeof getSalesRequestAISettings>>;
 	configurationRevision: string;
 	providerBenchmark: Awaited<
@@ -76,19 +79,11 @@ function requireCurrentProviderBenchmark(input: {
 			policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
 		},
 	);
-	if (
-		input.aiSettings.source !== "persisted" ||
-		input.providerBenchmark.source !== "persisted" ||
-		!current
-	) {
-		throw new AppError({
-			code: "VALIDATION_FAILED",
-			publicMessage:
-				"The selected Sales Request provider and model need a current benchmark approval before generation.",
-			transportCode: "PRECONDITION_FAILED",
-			reportable: false,
-		});
-	}
+	// Zero records an unapproved manual draft; automatic finalization requires a
+	// positive current approval through its independent server authority.
+	return current && input.providerBenchmark.source === "persisted"
+		? (input.providerBenchmark.approval?.revision ?? 0)
+		: 0;
 }
 
 /** Shared native preview dependencies for pasted text and authorized mailbox input. */
@@ -115,18 +110,35 @@ export function createSalesRequestPreviewDependencies(input: {
 						{ settingId },
 						{ cache: salesRequestConfigurationCache },
 					);
-					const [aiSettings, pilot, providerBenchmark] = await Promise.all([
-						getSalesRequestAISettings(tx, settingId),
-						getSalesRequestPilotSettings(tx, settingId),
-						getSalesRequestProviderBenchmarkApproval(tx, settingId),
-					]);
-					if (aiSettings.source === "invalid") {
+					const [aiSettings, pilot, providerBenchmark, catalog, adminRules] =
+						await Promise.all([
+							getSalesRequestAISettings(tx, settingId),
+							getSalesRequestPilotSettings(tx, settingId),
+							getSalesRequestProviderBenchmarkApproval(tx, settingId),
+							getSalesRequestCatalogSettings(tx, settingId),
+							getSalesRequestAIRules(tx, settingId),
+						]);
+					if (
+						!isSalesRequestCatalogPublicationCurrent(
+							catalog.publication,
+							snapshot.revision,
+						)
+					) {
+						throw new AppError({
+							code: "VALIDATION_FAILED",
+							publicMessage:
+								"Regenerate the AI component configuration in Sales Settings before creating a request draft.",
+							transportCode: "PRECONDITION_FAILED",
+							reportable: false,
+						});
+					}
+					if (aiSettings.source !== "persisted") {
 						throw new TRPCError({
 							code: "PRECONDITION_FAILED",
 							message: "Sales request AI settings need administrator review.",
 						});
 					}
-					requireCurrentProviderBenchmark({
+					const benchmarkRevision = currentProviderBenchmarkRevision({
 						aiSettings,
 						configurationRevision: snapshot.revision,
 						providerBenchmark,
@@ -134,8 +146,7 @@ export function createSalesRequestPreviewDependencies(input: {
 					if (
 						pilot.source !== "persisted" ||
 						!pilot.settings.enabled ||
-						pilot.settings.revision <= 0 ||
-						!providerBenchmark.approval
+						pilot.settings.revision <= 0
 					) {
 						throw new AppError({
 							code: "VALIDATION_FAILED",
@@ -147,10 +158,13 @@ export function createSalesRequestPreviewDependencies(input: {
 					}
 					return {
 						...snapshot,
+						adminRules: adminRules.rules
+							.filter((rule) => rule.enabled)
+							.map(({ title, instruction }) => ({ title, instruction })),
+						adminRulesRevision: adminRules.revision,
 						aiSelection: aiSettings.selection,
 						pilotSettingsRevision: pilot.settings.revision,
-						providerBenchmarkApprovalRevision:
-							providerBenchmark.approval.revision,
+						providerBenchmarkApprovalRevision: benchmarkRevision,
 					};
 				},
 				{ isolationLevel: "RepeatableRead" },
@@ -159,6 +173,7 @@ export function createSalesRequestPreviewDependencies(input: {
 			createSalesRequestProvider({
 				selection,
 				maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+				maxOutputRepairs: 1,
 			}),
 		telemetry: {
 			beginRun: async (event) => {

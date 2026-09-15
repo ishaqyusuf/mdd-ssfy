@@ -5,6 +5,28 @@ import {
 } from "./workflow-moulding-actions";
 
 describe("workflow moulding actions", () => {
+	it("keeps calculator inputs when adding and manually adjusting a selected row", () => {
+		const calculation = { linearFeet: 400, pieceLength: 16, wastePercentage: 10 };
+		const component = { uid: "baseboard", title: "Baseboard", salesPrice: 10 };
+		const input = {
+			line: { uid: "line-1", meta: {} },
+			steps: [{ step: { title: "Moulding" }, meta: {} }],
+			stepIndex: 0,
+			component,
+			visibleComponents: [component],
+			activeStepTitle: "Moulding",
+		};
+		const added = saveWorkflowMouldingSelectionWithQty({ ...input, qty: 28, calculation });
+		expect(added?.meta.mouldingRows).toMatchObject([{ uid: "baseboard", qty: 28, calculation }]);
+		const adjusted = saveWorkflowMouldingSelectionWithQty({
+			...input,
+			line: { uid: "line-1", meta: added!.meta },
+			steps: added!.formSteps,
+			qty: 30,
+		});
+		expect(adjusted?.meta.mouldingRows).toMatchObject([{ uid: "baseboard", qty: 30, calculation }]);
+	});
+
 	it("does not remove the final selected moulding row", () => {
 		const patch = removeWorkflowMouldingSelection({
 			line: {

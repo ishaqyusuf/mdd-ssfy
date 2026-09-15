@@ -1,3 +1,4 @@
+import type { SalesRequestAnswerContext } from "./sales-request-context";
 import {
 	type NewSalesFormSeed,
 	deriveDoorSizeCandidates,
@@ -208,10 +209,35 @@ function dimensionKey(value: string) {
 
 function sourceDimensionKeys(sourceText: string) {
 	const keys = new Set<string>();
+	// Three-number door specifications may put thickness between width and height.
+	// Only treat the middle number as thickness when it is a plausible <=4 inches.
+	for (const match of sourceText.matchAll(
+		/\b(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+))?\s*[x×]\s*(\d+(?:\.\d+)?)\b/gi,
+	)) {
+		const thickness =
+			Number(match[2]) + (match[3] ? Number(match[3]) / Number(match[4]) : 0);
+		if (
+			thickness > 0 &&
+			thickness <= 4 &&
+			Number(match[1]) > 4 &&
+			Number(match[5]) >= 24
+		) {
+			const key = dimensionKey(`${match[1]} x ${match[5]}`);
+			if (key) keys.add(key);
+		}
+	}
 	const matches = sourceText.matchAll(
 		/(\d+(?:\s*[-/]\s*\d+)?)\s*(?:["”'])?\s*[x×]\s*(\d+(?:\s*[-/]\s*\d+)?)\s*(?:["”'])?/gi,
 	);
 	for (const match of matches) {
+		const key = dimensionKey(`${match[1]} x ${match[2]}`);
+		if (key) keys.add(key);
+	}
+	// Trade notation commonly separates two architectural dimensions with space,
+	// e.g. 2/8 8/0 RH. Require both feet/inches parts; bare numbers stay ambiguous.
+	for (const match of sourceText.matchAll(
+		/\b([1-9][-/](?:1[01]|[0-9]))[ \t]+([1-9][-/](?:1[01]|[0-9]))\b/g,
+	)) {
 		const key = dimensionKey(`${match[1]} x ${match[2]}`);
 		if (key) keys.add(key);
 	}
@@ -251,6 +277,7 @@ export function validateNewSalesFormSeedConfiguration(
 	seed: NewSalesFormSeed,
 	configurationJson: string,
 	sourceText = "",
+	identityGuidance: SalesRequestAnswerContext[] = [],
 ): NewSalesFormSeed {
 	const normalizedSeed = structuredClone(seed);
 	const configuration = parseModelConfiguration(configurationJson);
@@ -259,9 +286,98 @@ export function validateNewSalesFormSeedConfiguration(
 		configuration.steps.map((step) => [step.uid, step]),
 	);
 
+	// A valid subset is not a complete conversion: explicitly counted, exact-match
+	// standalone mouldings must remain selected, even when quantity needs review.
+	for (const step of configuration.steps) {
+		if (
+			!/^mouldings?$/i.test(step.title?.trim() || "") ||
+			step.selectionMode !== "multiple"
+		)
+			continue;
+		const standalone = configuration.routes.some(
+			(route) =>
+				route.stepUids.includes(step.uid) &&
+				configuration.steps.some(
+					(root) =>
+						root.id === route.rootStepId &&
+						root.components.some(
+							([uid, title]) =>
+								uid === route.itemTypeUid && /^mouldings?$/i.test(title.trim()),
+						),
+				),
+		);
+		if (!standalone) continue;
+		for (const [uid, title] of step.components) {
+			const name = comparableSourceText(title);
+			if (
+				!name ||
+				step.components.filter(
+					([, candidate]) => comparableSourceText(candidate) === name,
+				).length !== 1
+			)
+				continue;
+			const explicitlyCounted = sourceText
+				.split(/\r?\n|;/)
+				.some(
+					(segment) =>
+						comparableSourceText(segment).includes(name) &&
+						/\b(?:pieces?|strips?|tiras?|piezas?)\b/i.test(segment) &&
+						/\d/.test(segment) &&
+						!/\b(?:not|without|exclude|excluding|no)\b/i.test(segment),
+				);
+			if (!explicitlyCounted) continue;
+			const selected = normalizedSeed.lineItems.some((line) =>
+				line.formSteps.some(
+					(selection) =>
+						selection.stepId === step.id &&
+						"meta" in selection &&
+						selection.meta.selectedProdUids.includes(uid),
+				),
+			);
+			if (!selected)
+				throw new Error(
+					`Requested Moulding ${title} is missing. Select its catalog UID ${uid}; preserve explicit quantity or flag quantity for review.`,
+				);
+		}
+	}
+
 	const statedDimensionKeys = sourceDimensionKeys(sourceText);
+	const statedDimensionHeights = new Set(
+		[...statedDimensionKeys].map((key) => Number(key.split(":")[1])),
+	);
 	for (const line of normalizedSeed.lineItems) {
 		const formSteps = line.formSteps as ValidatedSeedStep[];
+		for (const selection of formSteps) {
+			const step = stepsById.get(selection.stepId);
+			if (
+				step?.title?.trim().toLowerCase() !== "height" ||
+				!("prodUid" in selection)
+			)
+				continue;
+			const title = step.components.find(
+				([uid]) => uid === selection.prodUid,
+			)?.[1];
+			const inches = title ? dimensionPartInches(title) : null;
+			if (
+				!title ||
+				inches == null ||
+				statedDimensionHeights.size === 0 ||
+				statedDimensionHeights.has(inches)
+			)
+				continue;
+			// A separate height statement can coexist with another line's complete dimensions.
+			const architectural = title.trim().match(/^(\d+)[-/](\d+)$/);
+			const standalone = architectural
+				? new RegExp(
+						`\\b${architectural[1]}\\s*[-/]\\s*${architectural[2]}\\b|\\b${inches}\\s*(?:["”]|inches\\b|in\\b)`,
+						"i",
+					)
+				: new RegExp(`\\b${inches}\\s*(?:["”]|inches\\b|in\\b)`, "i");
+			if (!standalone.test(sourceText))
+				throw new Error(
+					`Line ${line.uid} selects Height ${title}, which contradicts the dimensions stated in the customer request.`,
+				);
+		}
 		const rootMatches = configuration.routes.filter((route) => {
 			const root = formSteps.find(
 				(step) => step.stepId === route.rootStepId && "prodUid" in step,
@@ -364,8 +480,31 @@ export function validateNewSalesFormSeedConfiguration(
 						`Line ${line.uid} references an unavailable Moulding component.`,
 					);
 				}
+				const identitySource = identityGuidance.reduce((text, guidance) => {
+					// A reviewed alias may identify a current product, never contribute
+					// a historic quantity or dimension to the numeric source checks.
+					if (
+						mouldingTitles.some((candidate) =>
+							comparableSourceText(sourceText).includes(
+								comparableSourceText(candidate),
+							),
+						)
+					)
+						return text;
+					const phrase = guidance.sourceText?.trim();
+					if (
+						!phrase ||
+						phrase.length < 4 ||
+						guidance.answer.trim().toLowerCase() !== title.trim().toLowerCase()
+					)
+						return text;
+					const offset = text.toLowerCase().indexOf(phrase.toLowerCase());
+					return offset < 0
+						? text
+						: `${text.slice(0, offset)}${title}${text.slice(offset + phrase.length)}`;
+				}, sourceText);
 				const rowSourceText = mouldingSourceSegments(
-					sourceText,
+					identitySource,
 					title,
 					mouldingTitles,
 				);
@@ -374,7 +513,9 @@ export function validateNewSalesFormSeedConfiguration(
 						`Moulding component ${title} must be stated in the customer request.`,
 					);
 				}
-				if ("qty" in row) {
+				if (!row.calculation && "qty" in row) {
+					// Zero is an explicitly reviewed pending quantity, never a charge.
+					if (row.qty === 0) continue;
 					if (!sourceStatesMouldingPieceQuantity(rowSourceText, row.qty)) {
 						throw new Error(
 							`Moulding quantity ${row.qty} must be stated in the customer request.`,
@@ -382,6 +523,7 @@ export function validateNewSalesFormSeedConfiguration(
 					}
 					continue;
 				}
+				if (!row.calculation) continue;
 				if (
 					!sourceStatesLinearFeet(rowSourceText, row.calculation.linearFeet)
 				) {
@@ -723,6 +865,56 @@ export function validateNewSalesFormSeedConfiguration(
 	);
 }
 
+/** A numeric answer to a product-bound quantity question is already resolved. */
+function applyConfirmedMouldingQuantities(
+	seed: NewSalesFormSeed,
+	configurationJson: string,
+	answers: SalesRequestAnswerContext[] = [],
+): NewSalesFormSeed {
+	const next = structuredClone(seed);
+	if (next.schemaVersion !== 2) return next;
+	const titles = new Map(
+		parseModelConfiguration(configurationJson).steps.flatMap(
+			(step) => step.components,
+		),
+	);
+	for (const answer of answers) {
+		if (
+			!/^(quantity|qty|count)$/i.test(answer.field ?? "") ||
+			!answer.sourceText
+		)
+			continue;
+		const match = answer.answer
+			.trim()
+			.match(/^(\d+)(?:\s*(?:pieces?|pcs?|units?))?\.?$/i);
+		const qty = match ? Number(match[1]) : 0;
+		if (!Number.isSafeInteger(qty) || qty <= 0) continue;
+		for (const line of next.lineItems) {
+			const rows = line.meta?.mouldingRows;
+			if (!rows?.length) continue;
+			const matching = rows.filter(
+				(row) =>
+					titles.get(row.uid)?.trim().toLowerCase() ===
+					answer.sourceText!.trim().toLowerCase(),
+			);
+			if (matching.length !== 1) continue;
+			Object.assign(matching[0]!, { qty });
+			line.qty = rows.reduce(
+				(sum, row) => sum + ("qty" in row ? row.qty : 0),
+				0,
+			);
+			next.unresolved = next.unresolved.filter(
+				(issue) =>
+					!(
+						issue.lineUid === line.uid &&
+						/^(quantity|qty|count)$/i.test(issue.field)
+					),
+			);
+		}
+	}
+	return next;
+}
+
 export async function generateNewSalesFormSeed(
 	input: SalesRequestProviderInput & {
 		configurationRevision: string;
@@ -747,6 +939,22 @@ export async function generateNewSalesFormSeed(
 	try {
 		generated = await provider({
 			text: input.text,
+			clarifications: input.clarifications,
+			guidance: input.guidance,
+			adminRules: input.adminRules,
+			prepareSeed: (seed) => applyConfirmedMouldingQuantities(seed, input.configurationJson, input.clarifications),
+			validateSeed: (seed) => {
+				validateNewSalesFormSeedConfiguration(
+					applyConfirmedMouldingQuantities(
+						seed,
+						input.configurationJson,
+						input.clarifications,
+					),
+					input.configurationJson,
+					input.groundingText ?? input.text,
+					input.guidance,
+				);
+			},
 			images,
 			configurationJson: input.configurationJson,
 			signal,
@@ -770,9 +978,14 @@ export async function generateNewSalesFormSeed(
 		);
 	}
 	const configured = validateNewSalesFormSeedConfiguration(
-		parsed.data,
+		applyConfirmedMouldingQuantities(
+			parsed.data,
+			input.configurationJson,
+			input.clarifications,
+		),
 		input.configurationJson,
 		input.groundingText ?? input.text,
+		input.guidance,
 	);
 	return {
 		seed: configured,

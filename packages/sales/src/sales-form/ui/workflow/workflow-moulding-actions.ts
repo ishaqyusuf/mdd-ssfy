@@ -80,6 +80,11 @@ export function saveWorkflowMouldingSelectionWithQty(input: {
 	component: WorkflowComponentRecord;
 	visibleComponents: WorkflowComponentRecord[];
 	qty: number | string;
+	calculation?: {
+		linearFeet: number;
+		pieceLength: number;
+		wastePercentage?: number;
+	};
 	activeStepTitle?: string | null;
 }): WorkflowMouldingSelectionPatch | null {
 	const step = input.steps[input.stepIndex];
@@ -111,6 +116,7 @@ export function saveWorkflowMouldingSelectionWithQty(input: {
 			? {
 					...row,
 					qty: nextQty,
+					...(input.calculation ? { calculation: input.calculation } : {}),
 				}
 			: row,
 	);

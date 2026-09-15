@@ -1,5 +1,11 @@
 # Backlog
 
+### [Sales Request Generation T08 — Provider Benchmarks](2026-09-12-sales-request-generation-pilot/08-provider-benchmarks.md)
+- Status: Backlog
+
+### [Sales Request Generation T11 — Image Input](2026-09-12-sales-request-generation-pilot/11-image-input.md)
+- Status: Deferred by explicit product direction on 2026-09-13
+
 ### [Fulfillment quantity-scoped assignments, backlog, and recovery completion](../plans/2026-09-10-spec-fulfillment-quantity-scoped-assignments-and-backlog.md)
 - Status: In progress — Tickets 01–02 complete, Ticket 03 active; design gate removed by user
 - Tickets: [Local dependency index: 14 implementation tickets](../../.scratch/fulfillment-quantity-scoped-assignments/README.md)
@@ -135,3 +141,31 @@ Tracks queued work that is important but not currently in the top execution slic
 - [ ] Add customer self-service depth around payment/dashboard surfaces, including saved preferences, wallet-led payment options, and post-checkout account history (API + UI + Validation)
 - [ ] Add integration/e2e coverage for sales delivery creation, quotes flow, dispatch packing updates, and notifications
 - [ ] Deprecate compatibility-only legacy payment mutations and cached balance ownership once canonical payment projections and resolution workflows are proven stable in production (Schema + API + Ops)
+
+### [Progressive AI Chat T13 — Draft and create orders from customer requests](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-13-order-draft-creation.md)
+- Status: Backlog
+
+### [Progressive AI Chat T14 — Build schema-aware analytics and charts](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-14-schema-aware-analytics.md)
+- Status: Backlog
+
+### [Progressive AI Chat T15 — Add favorites, reusable actions, and preferences](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-15-saved-actions-preferences.md)
+- Status: Backlog
+
+### [Progressive AI Chat T16 — Intake missing features and notify subscribers](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-16-feature-intake-notifications.md)
+- Status: Backlog
+
+### [Progressive AI Chat T17 — Enforce approval, authorization, and idempotency](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-17-approval-security-idempotency.md)
+- Status: Backlog
+
+### [Progressive AI Chat T18 — Operationalize reliability, evaluations, and rollout](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-18-reliability-evals-rollout.md)
+- Status: Backlog
+
+### [Progressive AI Chat T19 — Control individual access, usage, quotas, and admin governance](2026-09-12-progressive-ai-chat-platform/2026-09-12-progressive-ai-chat-19-access-usage-admin-governance.md)
+- Status: Backlog
+
+### [Progressive AI Chat T20 — Build the assistant admin and feature delivery center](2026-09-12-progressive-ai-chat-platform/2026-09-13-progressive-ai-chat-20-admin-feature-delivery-center.md)
+- Status: Backlog
+
+### [Align legacy Sales ownership and access policy](2026-09-15-sales-legacy-organization-scope-alignment.md)
+- Status: Backlog
+- Priority: High

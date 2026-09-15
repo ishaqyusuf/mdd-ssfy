@@ -428,3 +428,38 @@ test("settings selection matches the new sales form's lowest active record", () 
 	expect(selectSalesRequestSettingId([4, 3])).toBe(3);
 	expect(selectSalesRequestSettingId([3])).toBe(3);
 });
+
+test("enabled admin context reaches provider and rule changes invalidate in-flight preview", async () => {
+	const adminRules = [
+		{ title: "Terminology", instruction: "Preserve room names." },
+	];
+	let reads = 0;
+	let received: unknown;
+	await expect(
+		createSalesRequestPreview(
+			{
+				...source,
+				clarifications: [{ question: "Finish?", answer: "Primed" }],
+			},
+			{
+				authorize: async () => {},
+				reserveUsage: async () => {},
+				telemetry,
+				readSnapshot: async () => ({
+					...snapshot,
+					adminRules,
+					adminRulesRevision: ++reads,
+				}),
+				createProvider: () => async (input) => {
+					received = input;
+					return { output };
+				},
+			},
+		),
+	).rejects.toThrow("Sales configuration changed");
+	expect(received).toMatchObject({
+		text: source.text,
+		adminRules,
+		clarifications: [{ question: "Finish?", answer: "Primed" }],
+	});
+});

@@ -126,9 +126,9 @@ app.get("/api/sales-request/mailbox/:provider/callback", async (c) => {
 			cancelled: Boolean(providerError),
 			signal: c.req.raw.signal,
 		});
-		return c.redirect(`/sales-form/create-order?mailbox=${outcome}`);
+		return c.redirect(`/sales-book/requests?mailbox=${outcome}`);
 	} catch {
-		return c.redirect("/sales-form/create-order?mailbox=error");
+		return c.redirect("/sales-book/requests?mailbox=error");
 	}
 });
 if (process.env.NODE_ENV === "development")

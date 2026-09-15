@@ -266,6 +266,12 @@ export function TransactionsTab({
 											? format(new Date(item.createdAt), "MMM d, yyyy · h:mm a")
 											: "Date unavailable"}
 									</span>
+									{item.paymentMethod.trim().toLowerCase() === "check" &&
+									item.checkNo ? (
+										<span className="mt-1 block font-mono text-[11px] text-muted-foreground">
+											Check no. {item.checkNo}
+										</span>
+									) : null}
 								</span>
 								<span className="shrink-0 text-right">
 									<strong className="block font-mono text-sm tabular-nums">
@@ -435,8 +441,14 @@ function PaymentTransactionDetails({
 			<div className="rounded-xl border p-4 text-sm">
 				<div className="flex justify-between gap-4">
 					<span className="text-muted-foreground">Method</span>
-					<span className="capitalize">
+					<span className="text-right capitalize">
 						{transaction.paymentMethod.replaceAll("-", " ")}
+						{transaction.paymentMethod.trim().toLowerCase() === "check" &&
+						transaction.checkNo ? (
+							<span className="block font-mono text-xs normal-case text-muted-foreground">
+								Check no. {transaction.checkNo}
+							</span>
+						) : null}
 					</span>
 				</div>
 				<div className="mt-2 flex justify-between gap-4">

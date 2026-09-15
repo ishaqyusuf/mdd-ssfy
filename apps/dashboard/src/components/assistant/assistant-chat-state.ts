@@ -129,6 +129,15 @@ export function rotateAssistantRequestId(
 	return created;
 }
 
+export function claimAssistantPendingPrompt(
+	claimedPromptIds: Set<string>,
+	promptId: string,
+) {
+	if (claimedPromptIds.has(promptId)) return false;
+	claimedPromptIds.add(promptId);
+	return true;
+}
+
 export function shouldSubmitAssistantComposerKey(input: {
 	key: string;
 	shiftKey: boolean;

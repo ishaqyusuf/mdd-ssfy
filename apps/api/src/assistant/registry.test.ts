@@ -15,6 +15,22 @@ const actor = {
 };
 
 describe("assistant tool registry", () => {
+	test("returns schema-valid discovery results without internal catalog metadata", async () => {
+		const result = await executeRegisteredAssistantTool(actor, {
+			toolId: "system_search_tools",
+			version: 1,
+			input: { query: "sales" },
+		});
+		expect(result).toMatchObject({
+			status: "success",
+			data: { tools: expect.arrayContaining([
+				expect.objectContaining({ toolId: "sales_find_orders" }),
+			]) },
+		});
+		expect(JSON.stringify(result)).not.toContain('"presentation"');
+		expect(JSON.stringify(result)).not.toContain('"sales_create_order"');
+	});
+
 	test("keeps one unique versioned definition for every platform surface", () => {
 		const identities = assistantToolRegistry.map(
 			(tool) => `${tool.toolId}@${tool.version}`,

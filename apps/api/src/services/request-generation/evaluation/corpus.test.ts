@@ -3,8 +3,10 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
 import { SalesRequestProviderExecutionError } from "../../sales-request-provider";
 import {
+	assertSalesRequestCorpusConfigurationLock,
 	buildSalesRequestModelInput,
 	evaluateSalesRequestCorpusCase,
 	getSalesRequestCorpusOracleCoverage,
@@ -25,7 +27,7 @@ const configurationRevision = createHash("sha256")
 const configurationLock = {
 	configurationRevision,
 	configurationSha256: configurationRevision,
-	promptVersion: "new-sales-form-seed-v6",
+	promptVersion: SALES_REQUEST_PROMPT_VERSION,
 	outputContract: "new-sales-form-seed-v2",
 } as const;
 
@@ -240,6 +242,34 @@ describe("sales request evaluation corpus", () => {
 			},
 		});
 		expect(providerCalls).toBe(0);
+	});
+
+	test("exposes configuration lock validation for runner preflight", () => {
+		expect(() =>
+			assertSalesRequestCorpusConfigurationLock({
+				caseData: {
+					id: "locked-case",
+					label: "Locked case",
+					language: "en",
+					sourceType: "email",
+					sanitized: true,
+					text: "one door",
+					inputSha256: "hash",
+					configurationLock: {
+						...configurationLock,
+						configurationRevision: "a".repeat(64),
+					},
+					factExpectations: {
+						shelfItemsExcluded: true,
+						facts: [requestFact],
+					},
+				},
+				configurationJson,
+				configurationRevision,
+			}),
+		).toThrow(
+			"Corpus case locked-case does not match the evaluation configuration.",
+		);
 	});
 
 	test("retains scores and seed for review when a fact expectation is not met", async () => {
@@ -487,10 +517,27 @@ describe("sales request evaluation corpus", () => {
 		).toEqual(["ambiguous", "custom", "supported", "unsupported"]);
 
 		for (const caseData of suppliedCases) {
+			const caseConfigurationJson =
+				caseData.id === "interior-solid-core-slabs"
+					? JSON.stringify(
+							JSON.parse(
+								await readFile(
+									join(
+										repositoryRoot,
+										".brain/evaluations/sales-request-generation/runs/2026-09-14T-direct-debug-interior-solid-core-slabs-mock-v3/deepseek/deepseek-v4-flash/configuration.json",
+									),
+									"utf8",
+								),
+							),
+						)
+					: currentConfigurationJson;
+			const caseRevision = createHash("sha256")
+				.update(caseConfigurationJson)
+				.digest("hex");
 			const result = await evaluateSalesRequestCorpusCase({
 				caseData,
-				configurationJson: currentConfigurationJson,
-				configurationRevision: currentRevision,
+				configurationJson: caseConfigurationJson,
+				configurationRevision: caseRevision,
 				provider: async () => ({
 					output: structuredClone(caseData.expectedProviderOutput),
 				}),

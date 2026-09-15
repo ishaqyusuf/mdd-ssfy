@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { resolveAssistantActor } from "@api/assistant/actor";
 import { executeAssistantConversationTurn } from "@api/assistant/execute-turn";
+import { captureAssistantDiagnostic } from "@api/assistant/diagnostics";
+import { AssistantOperationError } from "@api/assistant/operation-diagnostics";
+import { presentAssistantOutcome, type AssistantOutcome } from "@api/assistant/outcomes";
 import { resolveAssistantIntegrationIds } from "@api/assistant/integrations";
+import { getAssistantAllowedOrigins } from "@api/assistant/origins";
 import { getAssistantRuntimeIdentity } from "@api/assistant/runtime";
 import { getAssistantRuntimeConfiguration } from "@api/assistant/runtime-settings";
 import {
@@ -15,14 +19,7 @@ import {
 	assistantReconnectResponseSchema,
 } from "@api/schemas/assistant";
 import { createTRPCContext } from "@api/trpc/init";
-import {
-	getSharedRedisClient,
-	waitForRedisReady,
-} from "@gnd/cache/shared-redis";
-import {
-	hasUpstashRestConfig,
-	sendUpstashRestCommand,
-} from "@gnd/cache/upstash-rest";
+import { sendAssistantRedisCommand } from "@api/assistant/redis-command";
 import { type Prisma, db } from "@gnd/db";
 import {
 	AssistantConversationAccessError,
@@ -31,6 +28,7 @@ import {
 	AssistantQuotaExceededError,
 	AssistantQuotaUnavailableError,
 	claimAssistantRunForExecution,
+	appendAssistantGeneratedMessage,
 	completeAssistantRun,
 	createOrReuseAssistantRequestRun,
 	getAssistantRunForReconnect,
@@ -118,6 +116,8 @@ type RunOutcome = {
 };
 
 type AssistantRouterDependencies = {
+	captureDiagnostic: typeof captureAssistantDiagnostic;
+	persistFailure(input: { actor: AssistantStreamActor; conversationId: string; runId: string; parentMessageId: string | null; outcome: AssistantOutcome }): Promise<unknown>;
 	resolveActor(request: Request): Promise<AssistantStreamActor | null>;
 	resolveIntegrations(
 		actor: AssistantStreamActor,
@@ -242,22 +242,6 @@ export class AssistantStreamGuard {
 	}
 }
 
-async function sendAssistantRedisCommand<T>(command: (string | number)[]) {
-	if (hasUpstashRestConfig()) {
-		const result = await sendUpstashRestCommand<T>(command);
-		if (result === null) throw new Error("Shared Redis returned no result");
-		return result;
-	}
-	if (!(await waitForRedisReady())) {
-		throw new Error("Shared Redis is unavailable");
-	}
-	const result = await getSharedRedisClient().send(
-		String(command[0]),
-		command.slice(1),
-	);
-	if (result === null) throw new Error("Shared Redis returned no result");
-	return result as T;
-}
 
 type AssistantRedisCommand = <T>(command: (string | number)[]) => Promise<T>;
 
@@ -494,6 +478,13 @@ function sanitizeRunOutcome(outcome: RunOutcome): RunOutcome {
 const defaultGuard = new DistributedAssistantStreamGuard();
 
 const defaultDependencies: AssistantRouterDependencies = {
+	persistFailure: ({ actor, conversationId, runId, parentMessageId, outcome }) => appendAssistantGeneratedMessage(db, {
+		conversationId, runId, parentMessageId,
+		ownerUserId: actor.userId, scopeType: actor.scopeType, scopeId: actor.scopeId,
+		parts: [{ type: "data-assistant-outcome", id: "assistant-outcome", data: outcome }, { type: "text", text: presentAssistantOutcome(outcome).message }],
+		searchText: presentAssistantOutcome(outcome).message,
+	}),
+	captureDiagnostic: captureAssistantDiagnostic,
 	async resolveActor(request) {
 		const honoContext = {
 			req: {
@@ -641,8 +632,11 @@ const defaultDependencies: AssistantRouterDependencies = {
 		});
 	},
 	guard: defaultGuard,
-	allowedOrigins:
-		process.env.ALLOWED_API_ORIGINS?.split(",").filter(Boolean) ?? [],
+	allowedOrigins: getAssistantAllowedOrigins({
+		ALLOWED_API_ORIGINS: process.env.ALLOWED_API_ORIGINS,
+		NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+		PORTLESS_URL: process.env.PORTLESS_URL,
+	}),
 };
 
 export function createAssistantChatRouter(
@@ -650,6 +644,18 @@ export function createAssistantChatRouter(
 ) {
 	const dependencies = { ...defaultDependencies, ...overrides };
 	const router = new OpenAPIHono();
+	async function requestFailure(error: unknown, actor?: AssistantStreamActor) {
+		const response = publicRequestError(error);
+		const kind: AssistantOutcome["kind"] = response.status >= 500 ? "temporary" : response.status === 429 ? "limit" : response.status === 409 ? "conflict" : response.status === 404 ? "empty" : "input";
+		const diagnostic = response.status >= 500 ? await dependencies.captureDiagnostic(error, {
+			stage: "request", operation: "assistant.start", requestId: randomUUID(),
+			actorUserId: actor?.userId, scopeType: actor?.scopeType, scopeId: actor?.scopeId, outcome: kind,
+		}) : null;
+		const outcome = { kind, ...(diagnostic ? { reference: diagnostic.reference } : {}) };
+		const body = await response.json() as { error: { code: string; message: string } };
+		return new Response(JSON.stringify({ ...body, error: { ...body.error, message: presentAssistantOutcome(outcome).message }, outcome }), { status: response.status, headers: response.headers });
+	}
+	router.onError(async error => requestFailure(error));
 	router.use(
 		"*",
 		cors({
@@ -681,7 +687,7 @@ export function createAssistantChatRouter(
 		const actor = await dependencies.resolveActor(context.req.raw);
 		if (!actor) {
 			return context.json(
-				{ error: { code: "UNAUTHORIZED", message: "Authentication required" } },
+				{ error: { code: "UNAUTHORIZED", message: presentAssistantOutcome({ kind: "signed-out" }).message }, outcome: { kind: "signed-out" as const } },
 				401,
 			);
 		}
@@ -746,7 +752,7 @@ export function createAssistantChatRouter(
 			});
 		} catch (error) {
 			await lease?.release();
-			return publicRequestError(error);
+			return requestFailure(error, actor);
 		}
 
 		const stream = createUIMessageStream<AssistantStreamMessage>({
@@ -835,6 +841,28 @@ export function createAssistantChatRouter(
 								: runtimeOutcome,
 						);
 					} catch (runtimeError) {
+						if (!context.req.raw.signal.aborted) {
+							const diagnostic = runtimeError instanceof AssistantOperationError ? null : await dependencies.captureDiagnostic(runtimeError, {
+								stage: "stream", operation: "assistant.execute", runId: run.runId,
+								conversationId: parsed.data.conversationId, requestId: parsed.data.requestId,
+								actorUserId: actor.userId, scopeType: actor.scopeType, scopeId: actor.scopeId,
+							});
+							const publicOutcome: AssistantOutcome = runtimeError instanceof AssistantOperationError ? runtimeError.assistantOutcome : { kind: "temporary", reference: diagnostic!.reference };
+							writer.write({ type: "data-assistant-outcome", id: "assistant-outcome", data: publicOutcome });
+							try {
+								await dependencies.persistFailure({ actor, conversationId: parsed.data.conversationId, runId: run.runId, parentMessageId: run.triggerMessageId ?? null, outcome: publicOutcome });
+							} catch (saveError) {
+								// The original failure remains the primary message. Never replay
+								// execution just because its transcript could not be confirmed.
+								let reference: string | undefined;
+								try {
+									reference = (await dependencies.captureDiagnostic(saveError, { stage: "history", operation: "assistant.saveFailure", outcome: "history-unconfirmed", runId: run.runId, conversationId: parsed.data.conversationId, requestId: parsed.data.requestId, actorUserId: actor.userId, scopeType: actor.scopeType, scopeId: actor.scopeId })).reference;
+								} catch {
+									console.error("assistant_history_diagnostic_failed", { runId: run.runId });
+								}
+								writer.write({ type: "data-assistant-history-notice", id: "assistant-history-notice", data: { kind: "history-unconfirmed", ...(reference ? { reference } : {}) } });
+							}
+						}
 						outcome = {
 							status: context.req.raw.signal.aborted ? "cancelled" : "failed",
 							errorCode: context.req.raw.signal.aborted
@@ -911,7 +939,7 @@ export function createAssistantChatRouter(
 		const actor = await dependencies.resolveActor(context.req.raw);
 		if (!actor) {
 			return context.json(
-				{ error: { code: "UNAUTHORIZED", message: "Authentication required" } },
+				{ error: { code: "UNAUTHORIZED", message: presentAssistantOutcome({ kind: "signed-out" }).message }, outcome: { kind: "signed-out" as const } },
 				401,
 			);
 		}

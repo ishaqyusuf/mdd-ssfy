@@ -13,12 +13,19 @@ import { saveWorkflowMouldingSelectionWithQty as buildMouldingSelectionPatch } f
 
 import type { SalesFormLineItemRecord } from "../../application";
 
+type MouldingCalculation = {
+	linearFeet: number;
+	pieceLength: number;
+	wastePercentage?: number;
+};
+
 type WorkflowStep = NonNullable<SalesFormLineItemRecord["formSteps"]>[number];
 type WorkflowComponent = {
 	uid?: string | null;
 	title?: string | null;
 	description?: string | null;
 	qty?: number | null;
+	calculation?: MouldingCalculation;
 	addon?: number | null;
 	customPrice?: number | string | null;
 	salesPrice?: number | null;
@@ -32,6 +39,7 @@ type MouldingSelectionPopoverState = {
 	stepIndex: number;
 	component: WorkflowComponent | null;
 	qty: string;
+	calculation?: MouldingCalculation;
 };
 
 type RetainedMouldingSelectionStep = {
@@ -61,6 +69,7 @@ function normalizeMouldingStoredRows(rows: WorkflowComponent[]) {
 		salesPrice: Number(row?.salesPrice || 0),
 		basePrice: Number(row?.basePrice || 0),
 		lineTotal: roundMoney(Number(row?.lineTotal || 0)),
+		calculation: row.calculation,
 	}));
 }
 
@@ -201,6 +210,7 @@ export function useMouldingWorkflow(args: {
 			lineUid: line.uid ? String(line.uid) : null,
 			stepIndex,
 			component,
+			calculation: existingRow?.calculation,
 			qty:
 				Number.isFinite(existingQty) && existingQty > 0
 					? String(existingQty)
@@ -223,6 +233,13 @@ export function useMouldingWorkflow(args: {
 			component,
 			visibleComponents,
 			qty: qtyInput,
+			calculation:
+				mouldingSelectionPopover.lineUid === String(line.uid || "") &&
+				mouldingSelectionPopover.stepIndex === currentStepIndex &&
+				String(mouldingSelectionPopover.component?.uid || "") ===
+					String(component.uid || "")
+					? mouldingSelectionPopover.calculation
+					: undefined,
 			activeStepTitle,
 		});
 		if (nextPatch) {
@@ -242,10 +259,11 @@ export function useMouldingWorkflow(args: {
 		mouldingQtyInputRef,
 		openMouldingSelectionQtyPopover,
 		saveMouldingSelectionWithQty,
-		setMouldingSelectionQty: (qty: string) =>
+		setMouldingSelectionQty: (qty: string, calculation?: MouldingCalculation) =>
 			setMouldingSelectionPopover((prev) => ({
 				...prev,
 				qty,
+				...(calculation ? { calculation } : {}),
 			})),
 		closeMouldingSelectionPopover: () =>
 			setMouldingSelectionPopover(closePopoverState()),

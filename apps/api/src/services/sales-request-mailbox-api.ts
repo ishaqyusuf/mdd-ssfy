@@ -49,16 +49,9 @@ export type SalesRequestMailboxConnectionStatusSource = {
 	lastSyncAt?: Date | null;
 };
 
-export type SalesRequestMailboxConnectionStatus = {
-	connectionId: string;
-	provider: MailboxProvider;
-	accountEmail: string | null;
-	displayName: string | null;
-	state: MailboxConnectionState;
-	healthStatus: MailboxHealthStatus;
-	revision: number;
-	lastSyncAt: Date | null;
-};
+export type SalesRequestMailboxConnectionStatus = ReturnType<
+	typeof salesRequestMailboxConnectionStatusSchema.parse
+>;
 
 export type SalesRequestMailboxInboxAuthorityResolution =
 	| {

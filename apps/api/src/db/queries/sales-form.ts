@@ -259,6 +259,11 @@ export const archiveWorkflowComponentsSchema = z.object({
 	componentIds: z.array(z.number().int().positive()).min(1),
 });
 
+export const setWorkflowComponentDefaultSchema = z.object({
+	componentId: z.number().int().positive(),
+	default: z.boolean(),
+});
+
 type WorkflowComponentMutationResult = {
 	componentIds: number[];
 	stepIds: number[];
@@ -518,7 +523,7 @@ export async function archiveWorkflowComponents(
 	const components = await activeWorkflowComponents(ctx, input.componentIds);
 	await ctx.db.dykeStepProducts.updateMany({
 		where: { id: { in: components.map((component) => component.id) } },
-		data: { deletedAt: new Date() },
+		data: { deletedAt: new Date(), isDefault: false },
 	});
 	return finishWorkflowComponentMutation({
 		componentIds: components.map((component) => component.id),
@@ -526,6 +531,52 @@ export async function archiveWorkflowComponents(
 		stepIds: components.map((component) => component.dykeStepId),
 		routing: true,
 	});
+}
+
+export async function setWorkflowComponentDefault(
+	ctx: TRPCContext,
+	input: z.infer<typeof setWorkflowComponentDefaultSchema>,
+) {
+	const result = await ctx.db.$transaction(async (tx) => {
+		const target = await tx.dykeStepProducts.findFirst({
+			where: { id: input.componentId, deletedAt: null },
+			select: {
+				id: true,
+				uid: true,
+				dykeStepId: true,
+				custom: true,
+			},
+		});
+		if (!target) throw new Error("Workflow component does not exist.");
+		if (target.custom === true) {
+			throw new Error("Custom workflow components cannot be defaults.");
+		}
+
+		await tx.$queryRaw`SELECT id FROM DykeSteps WHERE id = ${target.dykeStepId} FOR UPDATE`;
+		await tx.dykeStepProducts.updateMany({
+			where: { dykeStepId: target.dykeStepId, isDefault: true },
+			data: { isDefault: false },
+		});
+		if (input.default) {
+			await tx.dykeStepProducts.update({
+				where: { id: target.id },
+				data: { isDefault: true },
+			});
+		}
+		return target;
+	});
+
+	await invalidateSalesWorkflowForStepComponent({
+		componentId: result.id,
+		componentUid: result.uid,
+		stepId: result.dykeStepId,
+		routing: true,
+	});
+	return {
+		componentIds: [result.id],
+		stepIds: [result.dykeStepId],
+		default: input.default,
+	};
 }
 
 export const getStepComponentsSchema = z.object({
@@ -624,16 +675,18 @@ async function fetchStepComponentsFromDb(
 	const result = stepProducts.map((stepProduct) =>
 		dtoStepComponent(stepProduct, pricingByComponentUid),
 	);
-	const filtered = result.filter(
-		(r, i) => result.findIndex((s) => s.title == r.title) == i,
-	);
 	return result.sort((a, b) => {
-		const aStatistics = Number(a.statistics || 0);
-		const bStatistics = Number(b.statistics || 0);
-		if (bStatistics !== aStatistics) {
-			return bStatistics - aStatistics; // higher statistics first
-		}
-		return String(a.title || "").localeCompare(String(b.title || "")); // then by title
+		const aIndex = Number.isFinite(a.sortIndex)
+			? Number(a.sortIndex)
+			: Number.MAX_SAFE_INTEGER;
+		const bIndex = Number.isFinite(b.sortIndex)
+			? Number(b.sortIndex)
+			: Number.MAX_SAFE_INTEGER;
+		return (
+			aIndex - bIndex ||
+			String(a.title || "").localeCompare(String(b.title || "")) ||
+			String(a.uid || "").localeCompare(String(b.uid || ""))
+		);
 	});
 	// return stepProducts.map((s) => ({
 	//   ...s,
@@ -755,6 +808,7 @@ export function dtoStepComponent(
 		pricing,
 		productCode: component.productCode,
 		redirectUid: component.redirectUid,
+		...(component.isDefault ? { default: true as const } : {}),
 		_metaData: {
 			sorts: (sorts || [])?.map(({ sortIndex, stepComponentId, uid }) => ({
 				sortIndex,

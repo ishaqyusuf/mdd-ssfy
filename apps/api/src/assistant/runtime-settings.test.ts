@@ -25,7 +25,7 @@ describe("assistant runtime settings", () => {
 	test("reports credential availability without returning credential values", () => {
 		const providers = getAssistantProviderOptions({
 			ASSISTANT_OPENAI_API_KEY: "secret-value-that-must-not-leak",
-			ASSISTANT_DEEPSEEK_API_KEY: " ",
+			SALES_REQUEST_DEEPSEEK_API_KEY: "sales-secret-that-must-not-leak",
 		});
 
 		expect(
@@ -33,9 +33,12 @@ describe("assistant runtime settings", () => {
 		).toBe(true);
 		expect(
 			providers.find((provider) => provider.id === "deepseek")?.configured,
-		).toBe(false);
+		).toBe(true);
 		expect(JSON.stringify(providers)).not.toContain(
 			"secret-value-that-must-not-leak",
+		);
+		expect(JSON.stringify(providers)).not.toContain(
+			"sales-secret-that-must-not-leak",
 		);
 	});
 
@@ -44,7 +47,7 @@ describe("assistant runtime settings", () => {
 		const configuration = await getAssistantRuntimeConfiguration(
 			databaseWithSetting({
 				provider: "deepseek",
-				model: "deepseek-v4-flash",
+				model: "deepseek-flash",
 				version: 3,
 				updatedAt,
 				updatedByUserId: 42,
@@ -56,7 +59,7 @@ describe("assistant runtime settings", () => {
 		);
 
 		expect(configuration).toEqual({
-			selection: { provider: "deepseek", model: "deepseek-v4-flash" },
+			selection: { provider: "deepseek", model: "deepseek-flash" },
 			source: "persisted",
 			version: 3,
 			updatedAt,

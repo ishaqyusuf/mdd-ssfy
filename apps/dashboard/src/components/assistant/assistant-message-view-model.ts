@@ -3,6 +3,8 @@ import {
 	assistantAnalyticsPartSchema,
 } from "@api/assistant/analytics-result-contract";
 import type { AssistantEntityReference } from "@api/assistant/contracts";
+import { assistantFindingPartSchema, type AssistantOrderFinding } from "@api/assistant/finding-contract";
+import { assistantHistoryNoticeSchema, assistantOutcomeSchema, presentAssistantOutcome, type AssistantOutcome } from "@api/assistant/outcomes";
 import {
 	type AssistantDocumentProposalAction,
 	assistantDocumentProposalActionPartSchema,
@@ -45,6 +47,9 @@ export type AssistantResponseCardKind =
 
 export type AssistantMessageViewModel = {
 	text: string;
+	outcome: AssistantOutcome | null;
+	historyNotice: AssistantOutcome | null;
+	findings: AssistantOrderFinding[];
 	reasoningStatus: "streaming" | "complete" | null;
 	tools: Array<{
 		id: string;
@@ -99,23 +104,11 @@ function boundedString(value: unknown, max: number) {
 
 export function formatAssistantToolLabel(name: string) {
 	if (assistantToolLabels[name]) return assistantToolLabels[name];
-	const segments = name.split("_").filter(Boolean);
-	const action = segments.at(-1);
-	const noun = segments.slice(0, -1).join(" ");
-	const verbs: Record<string, string> = {
-		list: "Looking up",
-		get: "Fetching",
-		search: "Searching",
-		create: "Creating",
-		update: "Updating",
-		delete: "Deleting",
-		export: "Exporting",
-		send: "Sending",
-	};
-	if (action && noun && verbs[action]) return `${verbs[action]} ${noun}`;
-	return segments
-		.map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-		.join(" ");
+	if (name.startsWith("orders_")) return "Checking your order";
+	if (name.startsWith("customers_")) return "Checking customer details";
+	if (name.startsWith("inventory_")) return "Checking availability";
+	if (name.startsWith("documents_")) return "Preparing your document";
+	return "Working on your request";
 }
 
 function normalizeToolStatus(state: string): AssistantToolStatus {
@@ -239,10 +232,20 @@ export function normalizeAssistantMessage(
 				return value ? [value] : [];
 			})
 		: [];
-	const tools = parts.flatMap((part) => {
+	const tools = [...new Map(parts.flatMap((part) => {
 		const tool = normalizeAssistantTool(part);
-		return tool ? [tool] : [];
-	});
+		return tool ? [[tool.id, tool] as const] : [];
+	})).values()];
+	const outcome = parts.reduce<AssistantOutcome | null>((current, part) => {
+		if (part.type !== "data-assistant-outcome") return current;
+		const parsed = assistantOutcomeSchema.safeParse(part.data);
+		return parsed.success ? parsed.data : current;
+	}, null);
+	const historyNotice = parts.reduce<AssistantOutcome | null>((current, part) => {
+		if (part.type !== "data-assistant-history-notice") return current;
+		const parsed = assistantHistoryNoticeSchema.safeParse(part.data);
+		return parsed.success ? parsed.data : current;
+	}, null);
 	const lastToolIndex = parts.reduce(
 		(last, part, index) => (normalizeAssistantTool(part) ? index : last),
 		-1,
@@ -250,8 +253,8 @@ export function normalizeAssistantMessage(
 	const toolsInProgress = tools.some(
 		(tool) => tool.status === "queued" || tool.status === "running",
 	);
-	const text =
-		options.isLastMessage && toolsInProgress
+	const text = outcome ? presentAssistantOutcome(outcome).message :
+		options.isLastMessage && options.isStreaming && toolsInProgress
 			? ""
 			: parts
 					.flatMap((part, index) =>
@@ -283,13 +286,30 @@ export function normalizeAssistantMessage(
 		const card = normalizeAssistantCard(part);
 		return card ? [card] : [];
 	});
+	const seenEntities = new Set<string>();
 	const entities = parts
 		.flatMap((part) => {
 			if (part.type !== "data-assistant-entity") return [];
 			const entity = parseAssistantEntity(part.data);
-			return entity ? [entity] : [];
+			if (!entity) return [];
+			const subtype = entity.kind === "community"
+				? entity.communityType
+				: entity.kind === "order" ? entity.salesType ?? "order" : "";
+			const key = JSON.stringify([entity.kind, subtype, entity.id]);
+			if (seenEntities.has(key)) return [];
+			seenEntities.add(key);
+			return [entity];
 		})
 		.slice(0, 20);
+	const findingMap = new Map<string, AssistantOrderFinding>();
+	for (const part of parts) {
+		const parsed = assistantFindingPartSchema.safeParse(part);
+		if (!parsed.success) continue;
+		const finding = parsed.data.data;
+		const key = `${finding.salesType}:${finding.orderNo}`;
+		if (findingMap.has(key) || findingMap.size < 6) findingMap.set(key, finding);
+	}
+	const findings = outcome ? [...findingMap.values()] : [];
 	const orderDrafts = parts.flatMap((part) => {
 		const parsed = assistantOrderDraftPartSchema.safeParse(part);
 		return parsed.success
@@ -316,6 +336,9 @@ export function normalizeAssistantMessage(
 		cards.length === 0;
 	return {
 		text,
+		outcome,
+		historyNotice,
+		findings,
 		reasoningStatus,
 		tools,
 		sources,
@@ -327,7 +350,9 @@ export function normalizeAssistantMessage(
 		cards,
 		showThinking,
 		hasContent:
+			Boolean(historyNotice) ||
 			Boolean(text) ||
+			findings.length > 0 ||
 			tools.length > 0 ||
 			sources.length > 0 ||
 			files.length > 0 ||

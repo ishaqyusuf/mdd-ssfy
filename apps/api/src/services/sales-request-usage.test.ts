@@ -18,3 +18,10 @@ test("usage store failure and malformed responses fail closed", async () => {
 		requireSalesRequestUsage(7, async () => null),
 	).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
 });
+
+test("allows a healthy store response beyond the old 1.5-second deadline", async () => {
+	await requireSalesRequestUsage(
+		7,
+		() => new Promise((resolve) => setTimeout(() => resolve(1), 1600)),
+	);
+});

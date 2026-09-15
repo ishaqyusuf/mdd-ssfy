@@ -385,7 +385,7 @@ export function createPrismaSalesRequestMailboxSyncStore(
 			allowInvalidPolicy?: boolean;
 		} = {},
 	): Promise<MailboxSyncMutationResult> {
-		return db.$transaction(
+		const result = await db.$transaction(
 			async (tx) => {
 				const dbNow = await databaseNow(tx);
 				const exactSource = await selectedSourceForInput(
@@ -437,6 +437,7 @@ export function createPrismaSalesRequestMailboxSyncStore(
 			},
 			{ maxWait: 5_000, timeout: 15_000 },
 		);
+		return result ?? { kind: "applied" };
 	}
 
 	return {
@@ -624,9 +625,10 @@ export function createPrismaSalesRequestMailboxSyncStore(
 						disposition: projection.disposition.accepted
 							? "accepted"
 							: "excluded",
-						exclusionReason: projection.disposition.accepted
-							? null
-							: projection.disposition.reason,
+						exclusionReason:
+							"reason" in projection.disposition
+								? projection.disposition.reason
+								: null,
 						active: true,
 						detailStatus: projection.disposition.accepted
 							? "queued"
@@ -1074,7 +1076,7 @@ export function createPrismaSalesRequestMailboxMessageDetailStore(
 		) => Promise<MailboxSyncMutationResult | void>,
 		options: { allowInactiveOwner?: boolean } = {},
 	): Promise<MailboxSyncMutationResult> {
-		return db.$transaction(
+		const result = await db.$transaction(
 			async (tx) => {
 				const dbNow = await databaseNow(tx);
 				const identityHash = hashMailboxProviderMessageIdentity(
@@ -1146,6 +1148,7 @@ export function createPrismaSalesRequestMailboxMessageDetailStore(
 			},
 			{ maxWait: 5_000, timeout: 15_000 },
 		);
+		return result ?? { kind: "applied" };
 	}
 
 	return {

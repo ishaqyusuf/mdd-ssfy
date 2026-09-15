@@ -1,5 +1,19 @@
 # Sales Form System Hardening
 
+## Retained single-select component navigation (2026-09-15)
+
+- Clicking an already-selected component on a single-select workflow step now
+  reaffirms that selection and advances in one action. This includes selected
+  custom components and preserves their custom snapshot metadata plus valid
+  configured downstream selections.
+- Repeat-click deselection remains limited to true multi-select step families
+  (`Door`, `Moulding`, and `Weatherstrip Color`). Removing the final selected
+  component there clears the step, truncates downstream steps, and keeps that
+  step active.
+- The fix is package-owned in the shared workflow selection action, so both
+  workflow hosts receive the behavior without host-specific branching. Route
+  auto-selection and configured-series merging are unchanged.
+
 ## Versioned workflow step list (2026-09-04)
 
 - The shared Sales Form workflow item card now delegates step navigation to a
@@ -374,9 +388,10 @@
 - Eligible workflow steps now expose Custom only through the bottom action bar.
   Custom catalog entries stay out of ordinary grids, while an actively selected
   or historical snapshot remains visible. Custom is mutually exclusive with
-  standard selections even on multi-select steps; clicking the selected custom
-  clears it and truncates downstream route state, while choosing a standard
-  component removes custom metadata and cost before totals recalculate.
+  standard selections even on multi-select steps. Clicking the selected custom
+  clears it and truncates downstream route state only on a true multi-select
+  step; on a single-select step it reaffirms the selection and advances. Choosing
+  a standard component removes custom metadata and cost before totals recalculate.
 - The Custom editor reuses the legacy autocomplete for step-scoped existing
   values and new uppercase titles. Cost Price renders only when the active step
   has component pricing support. The sales picker no longer has an `Enable

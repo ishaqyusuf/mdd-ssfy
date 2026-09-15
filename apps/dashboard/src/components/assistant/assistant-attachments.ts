@@ -1,4 +1,18 @@
+import { presentAssistantOutcome } from "@api/assistant/outcomes";
+import { assistantErrorReference } from "@api/assistant/diagnostic-contract";
+
 export const ASSISTANT_ATTACHMENT_MAX_FILES = 5;
+export class AssistantAttachmentValidationError extends Error {}
+
+export function assistantAttachmentErrorMessage(error: unknown) {
+	if (assistantErrorReference(error)) {
+		const message = (error as { data?: { appError?: { message?: unknown } } }).data?.appError?.message;
+		for (const kind of ["attachment-too-large", "attachment-unreadable", "attachment-unsupported", "upload-failed"] as const) {
+			if (message === presentAssistantOutcome({ kind }).message) return message;
+		}
+	}
+	return error instanceof AssistantAttachmentValidationError ? error.message : presentAssistantOutcome({ kind: "upload-failed" }).message;
+}
 export const ASSISTANT_ATTACHMENT_MAX_BYTES = 8_000_000;
 export const ASSISTANT_ATTACHMENT_MAX_TOTAL_BYTES = 16_000_000;
 export const ASSISTANT_PDF_MAX_PAGES = 50;
@@ -30,10 +44,10 @@ export async function validateAssistantAttachment(file: File) {
 			file.type as AssistantAttachmentMimeType,
 		)
 	) {
-		throw new Error(`${file.name} is not a supported image or PDF.`);
+		throw new AssistantAttachmentValidationError(`${file.name} is not a supported image or PDF.`);
 	}
 	if (!file.size || file.size > ASSISTANT_ATTACHMENT_MAX_BYTES) {
-		throw new Error(`${file.name} must be smaller than 8 MB.`);
+		throw new AssistantAttachmentValidationError(`${file.name} must be smaller than 8 MB.`);
 	}
 }
 
@@ -46,7 +60,7 @@ export function validateAssistantAttachmentTotal(
 		0,
 	);
 	if (total > ASSISTANT_ATTACHMENT_MAX_TOTAL_BYTES) {
-		throw new Error("Attachments can total up to 16 MB per message.");
+		throw new AssistantAttachmentValidationError("Attachments can total up to 16 MB per message.");
 	}
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { salesFormMetaSchema } from "../contracts/schemas";
 
 import {
 	hydrateSalesFormRecord,
@@ -7,6 +8,20 @@ import {
 } from "./record-normalization";
 
 describe("record-normalization application", () => {
+	it("round trips exact customer request text through hydration and save schema", () => {
+		const customerRequestText = '  Customer original\r\n1 attic kit <script>text</script>  ';
+		const record = hydrateSalesFormRecord({
+			type: "order", form: { customerId: 101, customerRequestText },
+			lineItems: [{ uid: "line-1", title: "Kit", qty: 1 }],
+			extraCosts: [], summary: { taxRate: 0 },
+		});
+		const payload = toSalesFormSaveDraftPayload(record, false);
+		const persistedForm = salesFormMetaSchema.parse(payload.meta);
+		const reopened = hydrateSalesFormRecord({ ...record, form: persistedForm });
+		expect(reopened.form.customerRequestText).toBe(customerRequestText);
+		expect(salesFormMetaSchema.safeParse({ customerRequestText: "x".repeat(20_001) }).success).toBe(false);
+	});
+
 	it("validates the shared save prerequisites", () => {
 		expect(
 			validateSalesFormBeforeSave({ form: {}, lineItems: [{ uid: "line-1" }] }),

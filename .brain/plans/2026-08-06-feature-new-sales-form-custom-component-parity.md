@@ -2,6 +2,17 @@
 
 Status: Implemented 2026-08-06
 
+## 2026-09-15 Supersession — repeat clicks on single-select steps
+
+The original interaction contract and Phase 2 wording treated clicking a
+selected custom as canonical deselection for every step. Authenticated browser
+reproduction showed that this made a retained custom single-select require two
+clicks to continue and could shift the grid between clicks. The current contract
+supersedes that part of this historical plan: a repeated selection on a
+single-select step reaffirms the component and advances, while click-to-toggle-off
+is retained only for true multi-select steps. Explicit clearing/replacement
+remains available through the appropriate workflow action.
+
 ## Objective
 
 Bring the legacy sales form's step-level Custom component workflow into the new

@@ -1303,8 +1303,7 @@ function createDisconnectStore(
 					resolved.authority.organizationId !== record.organizationId ||
 					resolved.authority.ownerUserId !== record.ownerUserId ||
 					resolved.authority.employeeProfileId !== record.employeeProfileId ||
-					resolved.authority.officeAuthorityKey !== record.officeAuthorityKey ||
-					resolved.authority.authorityRevision !== record.authorityRevision
+					resolved.authority.officeAuthorityKey !== record.officeAuthorityKey
 				) {
 					return { kind: "unavailable" } as const;
 				}

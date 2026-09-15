@@ -59,6 +59,20 @@ export type SalesRequestGenerationIssueCounts = {
 	unsupported: number;
 };
 
+export type SalesRequestProviderFailureTelemetry = Pick<
+	SalesRequestProviderFailureDiagnostic,
+	| "statusCode"
+	| "providerCode"
+	| "providerStatus"
+	| "retryable"
+	| "structuredOutputCause"
+	| "schemaIssues"
+>;
+
+export type SalesRequestGenerationIssuePayload =
+	| SalesRequestGenerationIssueCounts
+	| { providerFailure: SalesRequestProviderFailureTelemetry };
+
 export type SalesRequestGenerationStartEvent = {
 	generationId: string;
 	scope: string;
@@ -88,7 +102,7 @@ export type SalesRequestGenerationCompleteEvent = {
 	seedDigest?: string;
 	inputTokens?: number;
 	outputTokens?: number;
-	issueCounts?: SalesRequestGenerationIssueCounts;
+	issueCounts?: SalesRequestGenerationIssuePayload;
 	failureStage?: SalesRequestProviderFailureDiagnostic["stage"];
 };
 
@@ -179,6 +193,7 @@ export type SalesRequestGenerationRunForReport = {
 	pilotSettingsRevision?: number | null;
 	providerBenchmarkApprovalRevision?: number | null;
 	status?: string | null;
+	failureStage?: string | null;
 	latencyMs?: number | null;
 	consumedSalesId?: number | null;
 	startedAt?: Date | null;
@@ -375,6 +390,108 @@ export function normalizeSalesRequestGenerationIssueCounts(
 		unreadable: finiteInteger(counts.unreadable),
 		unsupported: finiteInteger(counts.unsupported),
 	};
+}
+
+const providerFailureCauseSet = new Set(["json-parse", "schema-validation"]);
+const providerFailureStatusSet = new Set([
+	"OK",
+	"CANCELLED",
+	"UNKNOWN",
+	"INVALID_ARGUMENT",
+	"DEADLINE_EXCEEDED",
+	"NOT_FOUND",
+	"ALREADY_EXISTS",
+	"PERMISSION_DENIED",
+	"RESOURCE_EXHAUSTED",
+	"FAILED_PRECONDITION",
+	"ABORTED",
+	"OUT_OF_RANGE",
+	"UNIMPLEMENTED",
+	"INTERNAL",
+	"UNAVAILABLE",
+	"DATA_LOSS",
+	"UNAUTHENTICATED",
+]);
+const providerFailureIssueCodeSet = new Set([
+	"custom",
+	"invalid_element",
+	"invalid_format",
+	"invalid_key",
+	"invalid_type",
+	"invalid_union",
+	"invalid_value",
+	"not_multiple_of",
+	"too_big",
+	"too_small",
+	"unrecognized_keys",
+]);
+
+export function normalizeSalesRequestProviderFailureTelemetry(value: unknown) {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+	const input = value as Record<string, unknown>;
+	const structuredOutputCause =
+		typeof input.structuredOutputCause === "string" &&
+		providerFailureCauseSet.has(input.structuredOutputCause)
+			? (input.structuredOutputCause as "json-parse" | "schema-validation")
+			: undefined;
+	const statusCode =
+		Number.isInteger(input.statusCode) &&
+		(input.statusCode as number) >= 100 &&
+		(input.statusCode as number) <= 599
+			? (input.statusCode as number)
+			: undefined;
+	const providerCode =
+		Number.isInteger(input.providerCode) &&
+		(input.providerCode as number) >= 100 &&
+		(input.providerCode as number) <= 599
+			? (input.providerCode as number)
+			: undefined;
+	const providerStatus =
+		typeof input.providerStatus === "string" &&
+		providerFailureStatusSet.has(input.providerStatus)
+			? input.providerStatus
+			: undefined;
+	const retryable =
+		typeof input.retryable === "boolean" ? input.retryable : undefined;
+	const schemaIssues = Array.isArray(input.schemaIssues)
+		? input.schemaIssues.slice(0, 12).flatMap((issue) => {
+				if (!issue || typeof issue !== "object") return [];
+				const candidate = issue as Record<string, unknown>;
+				if (
+					typeof candidate.code !== "string" ||
+					!providerFailureIssueCodeSet.has(candidate.code) ||
+					typeof candidate.path !== "string" ||
+					candidate.path.length > 256 ||
+					!/^(?:\$|(?:[A-Za-z]+|\[\]|<field>)(?:\.(?:[A-Za-z]+|\[\]|<field>))*)$/.test(
+						candidate.path,
+					)
+				) {
+					return [];
+				}
+				return [{ code: candidate.code, path: candidate.path }];
+			})
+		: [];
+	const normalized: SalesRequestProviderFailureTelemetry = {
+		...(structuredOutputCause ? { structuredOutputCause } : {}),
+		...(statusCode !== undefined ? { statusCode } : {}),
+		...(providerCode !== undefined ? { providerCode } : {}),
+		...(providerStatus ? { providerStatus } : {}),
+		...(retryable !== undefined ? { retryable } : {}),
+		...(schemaIssues.length ? { schemaIssues } : {}),
+	};
+	return Object.keys(normalized).length ? normalized : null;
+}
+
+export function normalizeSalesRequestGenerationIssuePayload(
+	value: unknown,
+): SalesRequestGenerationIssuePayload {
+	if (value && typeof value === "object" && "providerFailure" in value) {
+		const providerFailure = normalizeSalesRequestProviderFailureTelemetry(
+			(value as { providerFailure?: unknown }).providerFailure,
+		);
+		if (providerFailure) return { providerFailure };
+	}
+	return normalizeSalesRequestGenerationIssueCounts(value);
 }
 
 function hasCompleteSalesRequestGenerationIssueCounts(
@@ -782,5 +899,123 @@ export function aggregateSalesRequestGenerationRuns(
 		},
 		representativeComparison: representativeComparison(rows),
 		matchedRepresentativeComparison: buildSalesRequestMatchedComparison(rows),
+	};
+}
+
+export function aggregateSalesRequestProviderDiagnostics(
+	rows: readonly SalesRequestGenerationRunForReport[],
+) {
+	const providerCounts = new Map<
+		string,
+		{ provider: string; attempts: number; failures: number }
+	>();
+	const failures: Array<{
+		reference: string;
+		provider: string;
+		model: string;
+		stage: string;
+		cause?: "json-parse" | "schema-validation";
+		statusCode?: number;
+		providerStatus?: string;
+		retryable?: boolean;
+		schemaIssues?: Array<{ code: string; path: string }>;
+		occurredAt: Date;
+		latencyMs?: number;
+		inputTokens?: number;
+		outputTokens?: number;
+	}> = [];
+
+	for (const row of rows) {
+		if (!isValidDate(row.providerAttemptedAt)) continue;
+		const provider =
+			typeof row.provider === "string" &&
+			/^[A-Za-z0-9._:-]{1,32}$/.test(row.provider)
+				? row.provider
+				: "unknown";
+		const current = providerCounts.get(provider) ?? {
+			provider,
+			attempts: 0,
+			failures: 0,
+		};
+		current.attempts += 1;
+		const failed =
+			row.status === "provider-error" || row.status === "invalid-output";
+		if (failed) current.failures += 1;
+		providerCounts.set(provider, current);
+		if (!failed || !isValidDate(row.startedAt)) continue;
+
+		const payload =
+			row.issueCounts &&
+			typeof row.issueCounts === "object" &&
+			"providerFailure" in row.issueCounts
+				? normalizeSalesRequestProviderFailureTelemetry(
+						(row.issueCounts as { providerFailure?: unknown }).providerFailure,
+					)
+				: null;
+		const reference =
+			typeof row.generationId === "string" &&
+			/^[A-Za-z0-9-]{8,36}$/.test(row.generationId)
+				? row.generationId.slice(0, 8)
+				: "unknown";
+		const model =
+			typeof row.model === "string" &&
+			/^[A-Za-z0-9._:-]{1,100}$/.test(row.model)
+				? row.model
+				: "unknown";
+		const stage =
+			typeof row.failureStage === "string" &&
+			SALES_REQUEST_GENERATION_FAILURE_STAGES.includes(
+				row.failureStage as (typeof SALES_REQUEST_GENERATION_FAILURE_STAGES)[number],
+			)
+				? row.failureStage
+				: "unknown";
+		failures.push({
+			reference,
+			provider,
+			model,
+			stage,
+			...(payload?.structuredOutputCause
+				? { cause: payload.structuredOutputCause }
+				: {}),
+			...(payload?.statusCode !== undefined
+				? { statusCode: payload.statusCode }
+				: {}),
+			...(payload?.providerStatus
+				? { providerStatus: payload.providerStatus }
+				: {}),
+			...(payload?.retryable !== undefined
+				? { retryable: payload.retryable }
+				: {}),
+			...(payload?.schemaIssues?.length
+				? { schemaIssues: payload.schemaIssues }
+				: {}),
+			occurredAt: row.startedAt,
+			...(Number.isInteger(row.latencyMs) && (row.latencyMs as number) >= 0
+				? { latencyMs: Math.min(row.latencyMs as number, 300_000) }
+				: {}),
+			...(Number.isInteger(row.inputTokens) && (row.inputTokens as number) >= 0
+				? { inputTokens: Math.min(row.inputTokens as number, 100_000_000) }
+				: {}),
+			...(Number.isInteger(row.outputTokens) &&
+			(row.outputTokens as number) >= 0
+				? { outputTokens: Math.min(row.outputTokens as number, 100_000_000) }
+				: {}),
+		});
+	}
+
+	return {
+		attemptCount: [...providerCounts.values()].reduce(
+			(total, entry) => total + entry.attempts,
+			0,
+		),
+		failureCount: failures.length,
+		providers: [...providerCounts.values()].sort((left, right) =>
+			left.provider.localeCompare(right.provider),
+		),
+		recentFailures: failures
+			.sort(
+				(left, right) => right.occurredAt.getTime() - left.occurredAt.getTime(),
+			)
+			.slice(0, 20),
 	};
 }

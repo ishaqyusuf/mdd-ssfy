@@ -15,6 +15,16 @@ function deferred<T>() {
 	return { promise, resolve, reject };
 }
 
+test("configuration prerequisites are not mislabeled as generated-output failures", () => {
+	const failure = mapSalesRequestGenerationError({
+		message: "The selected Sales Request provider and model need a current benchmark approval before generation.",
+		data: { code: "PRECONDITION_FAILED" },
+	});
+	expect(failure.code).toBe("configuration-required");
+	expect(failure.retryable).toBe(false);
+	expect(failure.message).toContain("Sales Settings");
+});
+
 function preview(configurationRevision = "config-1") {
 	return {
 		configurationRevision,
@@ -47,7 +57,7 @@ describe("sales request generation controller", () => {
 		expect(calls[0]?.signal.aborted).toBe(false);
 
 		request.resolve(preview());
-		expect(await first).toEqual(preview());
+		expect(await first).toEqual({ ...preview(), sourceText: "customer request" });
 		expect(controller.getSnapshot().status).toBe("success");
 	});
 
@@ -80,8 +90,8 @@ describe("sales request generation controller", () => {
 
 		const result = preview();
 		secondRequest.resolve(result);
-		expect(await second).toEqual(result);
-		expect(controller.getSnapshot().result).toEqual(result);
+		expect(await second).toEqual({ ...result, sourceText: "second request" });
+		expect(controller.getSnapshot().result).toEqual({ ...result, sourceText: "second request" });
 	});
 
 	test("cancels a pending request without retaining its response", async () => {
@@ -120,7 +130,7 @@ describe("sales request generation controller", () => {
 		expect(await controller.generate("retry this request")).toBeNull();
 		expect(controller.getSnapshot().failure?.code).toBe("invalid-output");
 
-		expect(await controller.retry()).toEqual(result);
+		expect(await controller.retry()).toEqual({ ...result, sourceText: "retry this request" });
 		expect(attempts).toBe(2);
 		expect(controller.getSnapshot().sourceText).toBe("retry this request");
 		expect(controller.getSnapshot().status).toBe("success");
@@ -140,6 +150,24 @@ describe("sales request generation controller", () => {
 		request.resolve(preview());
 		expect(await pending).toBeNull();
 		expect(controller.getSnapshot().result).toBeNull();
+	});
+
+	test("remains usable after the hook's reversible cleanup", () => {
+		const controller = createSalesRequestGenerationController(
+			() => Promise.resolve(preview()),
+			{ formRevision: "form-1", configurationRevision: "config-1" },
+		);
+		const sourceTexts: string[] = [];
+		const unsubscribe = controller.subscribe(() => {
+			sourceTexts.push(controller.getSnapshot().sourceText);
+		});
+
+		controller.release();
+		controller.setSourceText("customer request");
+
+		expect(controller.getSnapshot().sourceText).toBe("customer request");
+		expect(sourceTexts).toEqual(["customer request"]);
+		unsubscribe();
 	});
 
 	test("marks a completed result stale when form or configuration revision changes", async () => {
@@ -248,4 +276,32 @@ describe("sales request generation controller", () => {
 			expect(mapSalesRequestGenerationError(error).code).toBe(code);
 		}
 	});
+});
+
+test("clarifications run multiple deliberate rounds, retain source and reuse choices, and reject stale answers", async () => {
+ const question = {id: "q1", lineUid: "line-1", field: "Door", question: "Which door?", sourceText: "standard door", reason: "Select the product"};
+ const clarification = {sessionId: "session-1", revision: 1, round: 1, questions: [question]};
+ const calls: unknown[] = [];
+ const controller = createSalesRequestGenerationController(async () => ({...preview(), clarification}), {}, {
+  answer: async input => {
+   calls.push(input);
+   return {...preview(), clarification: input.revision === 1 ? {...clarification, revision: 2, round: 2, questions: [{...question, id: "q2", question: "Which height?"}]} : null};
+  },
+  cancel: async () => undefined,
+ });
+ const source = "  Customer's exact request\nstandard door  ";
+ await controller.generate(source);
+ expect(calls).toHaveLength(0);
+ await controller.answerQuestions([{questionId: "q1", answer: "Carrara", reuse: false}]);
+ expect(controller.getSnapshot().clarification?.round).toBe(2);
+ expect(controller.getSnapshot().clarificationHistory[0]?.answers[0]?.reuse).toBe(false);
+ expect(controller.getSnapshot().sourceText).toBe(source);
+ await controller.answerQuestions([{questionId: "q2", answer: "80 inches", reuse: true}]);
+ expect(controller.getSnapshot().clarification).toBeNull();
+ expect(controller.getSnapshot().result?.sourceText).toBe(source);
+ expect(controller.getSnapshot().clarificationHistory).toHaveLength(2);
+ await controller.generate(source);
+ controller.setSourceText("different request");
+ expect(await controller.answerQuestions([{questionId: "q1", answer: "wrong request", reuse: true}])).toBeNull();
+ expect(calls).toHaveLength(2);
 });

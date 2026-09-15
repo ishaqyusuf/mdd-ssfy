@@ -80,7 +80,8 @@ export type SalesFormWorkflowDataSource = {
 		title: string;
 		unitPrice: number;
 		qty: number;
-		onCalculate: (qty: number) => void;
+		calculation?: { linearFeet: number; pieceLength: number; wastePercentage?: number };
+		onCalculate: (qty: number, calculation?: { linearFeet: number; pieceLength: number; wastePercentage?: number }) => void;
 	}) => ReactNode;
 };
 
@@ -176,6 +177,11 @@ export type SalesFormWorkflowSurfaceSlots<
 		onArchive?: (
 			input: SalesFormWorkflowComponentBatchActionInput<TLine>,
 		) => Promise<boolean | undefined> | boolean | undefined;
+		onSetDefault?: (
+			input: SalesFormWorkflowComponentActionInput<TLine> & {
+				default: boolean;
+			},
+		) => Promise<void> | void;
 	};
 };
 

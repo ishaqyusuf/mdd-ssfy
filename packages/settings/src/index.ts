@@ -9,15 +9,6 @@ export {
 	updateGuardedPackingSettings,
 } from "./guarded-packing-settings";
 export {
-	getSalesRequestGenerationDefaults,
-	updateSalesRequestGenerationDefault,
-} from "./sales-request-generation-defaults";
-export type {
-	SalesRequestGenerationDefaultUpdate,
-	SalesRequestGenerationDefaults,
-	UpdateSalesRequestGenerationDefaultInput,
-} from "./sales-request-generation-defaults";
-export {
 	DEFAULT_SALES_REQUEST_AI_SELECTION,
 	SALES_REQUEST_AI_PROVIDER_CATALOG,
 	SALES_REQUEST_AI_PROVIDERS,
@@ -220,3 +211,6 @@ export {
 	normalizeProductionReceivingPolicy,
 	productionReceivingPolicyInputSchema,
 } from "./production-receiving-settings";
+
+export { getSalesRequestAIRules, updateSalesRequestAIRules, salesRequestAIRulesInputSchema } from "./sales-request-ai-rules";
+export type { SalesRequestAIRule, SalesRequestAIRulesInput } from "./sales-request-ai-rules";

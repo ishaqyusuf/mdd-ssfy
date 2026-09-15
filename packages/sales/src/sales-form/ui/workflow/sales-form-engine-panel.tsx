@@ -84,6 +84,9 @@ export function filterSalesFormWorkflowSlots<
 					onArchive: capabilities.canArchiveWorkflowComponents
 						? slots.componentActions.onArchive
 						: undefined,
+					onSetDefault: capabilities.canSetWorkflowComponentDefault
+						? slots.componentActions.onSetDefault
+						: undefined,
 				}
 			: undefined,
 	};

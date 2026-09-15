@@ -10,10 +10,6 @@ export type RequestConfigurationSetting = {
 	meta: unknown;
 };
 
-export type RequestConfigurationDefaults = Readonly<
-	Record<string, Readonly<Record<string, string>>>
->;
-
 export type RequestConfigurationStep = {
 	id: number;
 	uid: string | null;
@@ -29,6 +25,7 @@ export type RequestConfigurationComponent = {
 	meta: unknown;
 	redirectUid: string | null;
 	custom?: boolean | null;
+	isDefault?: boolean | null;
 	sortIndex?: number | null;
 	dykeStepId: number;
 	product?: { title: string | null } | null;
@@ -60,7 +57,6 @@ export type RequestConfigurationSource = {
 	steps: RequestConfigurationStep[];
 	rootComponents: RequestConfigurationRootComponent[];
 	components: RequestConfigurationComponent[];
-	defaults?: RequestConfigurationDefaults;
 };
 
 function hasText(value: unknown): value is string {
@@ -151,62 +147,6 @@ function assertRouteStructure(meta: unknown) {
 	}
 }
 
-function readConfiguredRequestDefaults(
-	meta: unknown,
-	routes: readonly ConfiguredRequestRoute[],
-): RequestConfigurationDefaults | undefined {
-	const settings = strictRecord(meta, "metadata");
-	const direct = strictRecord(settings.route, "route");
-	const nestedData = strictRecord(settings.data, "data");
-	const routeDefinitions = Object.keys(direct).length
-		? direct
-		: strictRecord(nestedData.route, "data.route");
-	const configuredRouteUids = new Set(routes.map((route) => route.itemTypeUid));
-	const defaults: Record<string, Record<string, string>> = {};
-
-	for (const route of routes) {
-		const routeDefinition = strictRecord(
-			routeDefinitions[route.itemTypeUid],
-			`route ${route.itemTypeUid}`,
-		);
-		const requestGeneration = strictRecord(
-			routeDefinition.requestGeneration,
-			`route ${route.itemTypeUid}.requestGeneration`,
-		);
-		const stored = requestGeneration.defaults;
-		if (stored == null) continue;
-		if (!isRecord(stored)) {
-			throw new Error(
-				`Invalid request-generation defaults for route ${route.itemTypeUid}`,
-			);
-		}
-
-		const routeDefaults: Record<string, string> = {};
-		for (const [stepUid, componentUid] of Object.entries(stored)) {
-			if (componentUid === null) continue;
-			if (!hasText(componentUid)) {
-				throw new Error(
-					`Invalid request-generation default for ${route.itemTypeUid}/${stepUid}`,
-				);
-			}
-			routeDefaults[stepUid] = componentUid.trim();
-		}
-		if (Object.keys(routeDefaults).length) {
-			defaults[route.itemTypeUid] = routeDefaults;
-		}
-	}
-
-	for (const routeUid of Object.keys(routeDefinitions)) {
-		if (!configuredRouteUids.has(routeUid)) {
-			throw new Error(
-				`Configured route disappeared while reading defaults: ${routeUid}`,
-			);
-		}
-	}
-
-	return Object.keys(defaults).length ? defaults : undefined;
-}
-
 function componentTitle(component: RequestConfigurationRootComponent) {
 	for (const value of [
 		component.name,
@@ -270,7 +210,6 @@ export async function loadRequestConfigurationSource(
 
 	assertRouteStructure(setting.meta);
 	const routes = getConfiguredRequestRoutes(setting.meta);
-	const defaults = readConfiguredRequestDefaults(setting.meta, routes);
 	const rootComponentUids = unique(routes.map((route) => route.itemTypeUid));
 	if (rootComponentUids.some((uid) => !hasText(uid))) {
 		throw new Error("Configured route has an empty root component UID");
@@ -322,6 +261,5 @@ export async function loadRequestConfigurationSource(
 		steps,
 		rootComponents,
 		components,
-		...(defaults ? { defaults } : {}),
 	};
 }

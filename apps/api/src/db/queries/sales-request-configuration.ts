@@ -35,6 +35,7 @@ const componentSelect = {
 	meta: true,
 	redirectUid: true,
 	custom: true,
+	isDefault: true,
 	sortIndex: true,
 	createdAt: true,
 	dykeStepId: true,
@@ -136,19 +137,14 @@ export function createSalesRequestConfigurationRepository(
 			const parsedPolicy = salesRequestCatalogPolicySchema.safeParse(
 				requestGeneration.catalogPolicy,
 			);
-			const routes = getConfiguredRequestRoutes(settingMeta);
 			const defaultComponentUids = new Set(
-				normalizeDefaults(settingMeta, routes).flatMap((route) => {
-					const defaults = readRecord(route.defaults);
-					return defaults
-						? Object.values(defaults).filter(
-								(value): value is string => typeof value === "string",
-							)
-						: [];
-				}),
+				components.flatMap((component) =>
+					component.isDefault && component.uid ? [component.uid] : [],
+				),
 			);
 			const selected = selectSalesRequestCatalogCandidates({
 				components,
+				includeUnused: true,
 				defaultComponentUids,
 				completeStepIds: new Set(
 					loadedSteps
@@ -317,6 +313,7 @@ function normalizeComponent(component: RequestConfigurationComponent) {
 		dykeStepId: component.dykeStepId,
 		title: componentTitle(component),
 		redirectUid: component.redirectUid,
+		...(component.isDefault ? { default: true } : {}),
 		...(typeof component.sortIndex === "number"
 			? { sortIndex: component.sortIndex }
 			: {}),
@@ -484,6 +481,7 @@ function selectAdminCatalogComponents(
 	try {
 		return selectSalesRequestCatalogCandidates({
 			components: eligibleSource,
+			includeUnused: true,
 			defaultComponentUids,
 			completeStepIds,
 			policy,
@@ -495,6 +493,7 @@ function selectAdminCatalogComponents(
 		try {
 			return selectSalesRequestCatalogCandidates({
 				components: eligibleSource,
+				includeUnused: true,
 				defaultComponentUids: new Set(),
 				completeStepIds,
 				policy,
@@ -864,20 +863,20 @@ export async function getSalesRequestConfigurationStructuralRevision(
 		: [];
 
 	return hashCanonical({
+		// Version 8 retains unused standard candidates regardless of usage metrics.
 		// Bump whenever the cached wire projection changes. Version 6 removes the
 		// deferred Shelf Items route from the model context. Version 5 keeps the
 		// complete active standard catalog for Moulding steps. Version 4 includes
 		// the sanitized height-driven door-size variation structure. Version 3 removes
 		// persisted custom components from the model catalog and moves custom
 		// capability to the authoritative step metadata.
-		version: 6,
+		version: 8,
 		settingId: input.settingId,
 		routes: routes.map((route) => ({
 			itemTypeUid: route.itemTypeUid,
 			stepUids: [...route.stepUids],
 			...(route.config ? { config: { ...route.config } } : {}),
 		})),
-		defaults: normalizeDefaults(setting.meta, routes),
 		steps: sortCanonical(steps.map(normalizeStep)),
 		rootComponents: sortCanonical(
 			rootComponents

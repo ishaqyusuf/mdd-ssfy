@@ -5,6 +5,7 @@
 		"./types": "./dist/index.d.ts",
 		".": "./src/index.ts",
 		"./queries": "./src/queries/index.ts",
+		"./assistant-diagnostic-cursor": "./src/queries/assistant-diagnostic-cursor.ts",
 		"./transactions": "./src/transactions.ts"
 	},
 	"prisma": {

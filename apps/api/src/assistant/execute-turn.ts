@@ -9,7 +9,10 @@ import { get } from "@vercel/blob";
 import type { ModelMessage } from "ai";
 import { getDocument } from "pdfjs-dist/build/pdf.mjs";
 import sharp from "sharp";
+import { assistantOutcomeSchema, presentAssistantOutcome } from "./outcomes";
 import { assistantAnalyticsPartSchema } from "./analytics-result-contract";
+import { assistantFindingPartSchema } from "./finding-contract";
+import { AssistantAttachmentInputError, withAssistantAttachmentCorrection } from "./attachment-errors";
 import {
 	assistantEntityReferenceSchema,
 	assistantInvalidationTagSchema,
@@ -17,6 +20,9 @@ import {
 import { assistantDocumentProposalActionPartSchema } from "./document-action-contract";
 import { getAssistantComposioTools } from "./integrations";
 import { createAssistantMcpExecutionClient } from "./mcp";
+import { captureAssistantDiagnostic } from "./diagnostics";
+import { runAssistantOperation } from "./operation-diagnostics";
+import type { AssistantDiagnosticStage } from "./diagnostic-contract";
 import { assistantOrderDraftPartSchema } from "./order-draft-contract";
 import {
 	type AssistantRuntimeInput,
@@ -52,6 +58,7 @@ type AssistantTurnHistory = Array<{
 	sequence: number;
 	role: "user" | "assistant";
 	text: string;
+	executionFacts?: string;
 }>;
 
 type AssistantTurnOutcome =
@@ -92,15 +99,18 @@ export function summarizeAssistantToolExecutionResult(result: unknown) {
 					: [],
 			)
 			.slice(0, 20),
-		warnings: Array.isArray(envelope.warnings)
-			? envelope.warnings.filter(
-					(warning): warning is string => typeof warning === "string",
-				)
-			: undefined,
+		// Warning bodies may contain provider/database details. Execution history
+		// retains only their presence; the private diagnostic owns failure context.
+		warningCount: Array.isArray(envelope.warnings)
+			? Math.min(20, envelope.warnings.filter((warning) => typeof warning === "string").length)
+			: 0,
 	};
 }
 
 type ExecuteAssistantTurnDependencies = {
+	prepareImage: typeof prepareAssistantImage;
+	extractPdf: typeof extractAssistantPdfText;
+	captureDiagnostic: typeof captureAssistantDiagnostic;
 	preprocessingDeadlineMs: number;
 	loadHistory(input: {
 		actor: AssistantTurnActor;
@@ -130,6 +140,17 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 	const part = chunk as { type?: unknown; id?: unknown; data?: unknown };
 	if (typeof part.id !== "string" || !part.id.trim() || part.id.length > 240)
 		return null;
+	if (part.type === "data-assistant-outcome") {
+		const parsed = assistantOutcomeSchema.safeParse(part.data);
+		return parsed.success ? { type: part.type, id: part.id, data: parsed.data } : null;
+	}
+	if (part.type === "data-assistant-tool" && part.data && typeof part.data === "object") {
+		const data = part.data as Record<string, unknown>;
+		if (typeof data.id === "string" && data.id.length <= 160 && typeof data.name === "string" && /^[a-z][a-z0-9_]{0,99}$/.test(data.name) &&
+			["running", "complete", "failed", "approval-required"].includes(String(data.status))) {
+			return { type: part.type, id: part.id, data: { id: data.id, name: data.name, status: String(data.status) } };
+		}
+	}
 	if (part.type === "data-assistant-entity") {
 		const parsed = assistantEntityReferenceSchema.safeParse(part.data);
 		return parsed.success
@@ -139,6 +160,10 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 					data: parsed.data,
 				} as Prisma.InputJsonValue)
 			: null;
+	}
+	if (part.type === "data-assistant-finding") {
+		const parsed = assistantFindingPartSchema.safeParse(part);
+		return parsed.success ? parsed.data as Prisma.InputJsonValue : null;
 	}
 	if (part.type === "data-assistant-order-draft") {
 		const parsed = assistantOrderDraftPartSchema.safeParse(part);
@@ -182,6 +207,9 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 }
 
 const defaultDependencies: ExecuteAssistantTurnDependencies = {
+	prepareImage: prepareAssistantImage,
+	extractPdf: extractAssistantPdfText,
+	captureDiagnostic: captureAssistantDiagnostic,
 	preprocessingDeadlineMs: ASSISTANT_PREPROCESSING_DEADLINE_MS,
 	loadHistory({ actor, conversationId }) {
 		return getAssistantModelHistory(db, {
@@ -267,12 +295,19 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 								effect: execution.effect,
 								status: execution.status,
 								toolInput: execution.toolInput as Prisma.InputJsonValue,
-								result,
+								result: execution.recovery ? { ...(result ?? { status: execution.status }), recovery: execution.recovery } : result,
 								durationMs: execution.durationMs,
 								completedAt: new Date(),
 							});
 						}
 					: undefined,
+				async (error, failure) => captureAssistantDiagnostic(error, {
+					attempt: failure.attempt, presentation: failure.retrying ? "not-shown" : undefined,
+					stage: "tool", operation: failure.toolId, toolCallId: failure.toolCallId,
+					outcome: failure.outcome, runId, requestId: input.requestId, conversationId: input.conversationId,
+					actorUserId: input.actor.userId, scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
+					provider: input.runtimeSelection?.provider, model: input.runtimeSelection?.model,
+				}),
 			),
 			getAssistantComposioTools(
 				input.actor,
@@ -308,8 +343,8 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 			scopeId: input.actor.scopeId,
 			runId: input.runId,
 			parts: [
-				{ type: "text", text: input.assistantText },
 				...input.assistantParts,
+				{ type: "text", text: input.assistantText },
 			],
 			searchText: input.assistantText,
 			parentMessageId: input.parentMessageId,
@@ -380,7 +415,7 @@ async function prepareAssistantImage(
 			!metadata.height ||
 			metadata.width * metadata.height > ASSISTANT_MAX_IMAGE_PIXELS
 		) {
-			throw new Error("Uploaded image dimensions are too large");
+			throw new AssistantAttachmentInputError("attachment-too-large");
 		}
 		const nativeMimeTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
 		if (nativeMimeTypes.has(mimeType)) {
@@ -389,7 +424,7 @@ async function prepareAssistantImage(
 		const normalized = new Uint8Array(await image.rotate().jpeg().toBuffer());
 		throwIfAssistantPreprocessingAborted(signal);
 		if (normalized.byteLength > ASSISTANT_MAX_NORMALIZED_IMAGE_BYTES) {
-			throw new Error("Normalized assistant image is too large");
+			throw new AssistantAttachmentInputError("attachment-too-large");
 		}
 		return { bytes: normalized, mimeType: "image/jpeg" };
 	} finally {
@@ -409,26 +444,31 @@ export async function executeAssistantConversationTurn(
 	overrides: Partial<ExecuteAssistantTurnDependencies> = {},
 ) {
 	const dependencies = { ...defaultDependencies, ...overrides };
+	const stage = <T>(name: AssistantDiagnosticStage, operation: string, execute: () => Promise<T>) => runAssistantOperation({
+		stage: name, operation, runId: input.run.runId, conversationId: input.request.conversationId,
+		requestId: input.request.requestId, actorUserId: input.actor.userId,
+		scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
+	}, execute, { capture: dependencies.captureDiagnostic, signal: input.signal });
 	const [runProvider, runModel] = input.run.modelIdentity?.split(":", 2) ?? [];
-	const runtimeSelection =
+	const runtimeSelection = await stage("provider", "assistant.resolveProvider", async () =>
 		runProvider && runModel
 			? resolveAssistantRuntimeSelection({
 					ASSISTANT_AI_PROVIDER: runProvider,
 					ASSISTANT_AI_MODEL: runModel,
 				})
-			: getAssistantRuntimeIdentity();
+			: getAssistantRuntimeIdentity());
 	const documentIds = input.request.message.parts.flatMap((part) =>
 		part.type === "file" ? [part.documentId] : [],
 	);
 	const [history, documents] = await Promise.all([
-		dependencies.loadHistory({
+		stage("history", "assistant.loadHistory", () => dependencies.loadHistory({
 			actor: input.actor,
 			conversationId: input.request.conversationId,
-		}),
-		dependencies.loadDocuments({
+		})),
+		stage("attachment", "assistant.loadAttachments", () => dependencies.loadDocuments({
 			conversationId: input.request.conversationId,
 			documentIds,
-		}),
+		})),
 	]);
 	const fallbackText =
 		input.request.message.parts
@@ -438,9 +478,14 @@ export async function executeAssistantConversationTurn(
 		(total, document) => total + (document.size ?? 8_000_000),
 		0,
 	);
-	if (declaredAttachmentBytes > 16_000_000) {
-		throw new Error("Assistant attachments cannot exceed 16 MB per message");
-	}
+	await stage("attachment", "assistant.checkAttachments", async () => {
+		if (declaredAttachmentBytes > 16_000_000) throw new AssistantAttachmentInputError("attachment-too-large");
+		for (const document of documents) {
+			if (document.mimeType === "application/pdf") continue;
+			if (!document.mimeType?.startsWith("image/")) throw new AssistantAttachmentInputError("attachment-unsupported");
+			if (runtimeSelection.provider === "deepseek") throw new AssistantAttachmentInputError("image-unsupported");
+		}
+	});
 	const preprocessingController = new AbortController();
 	const preprocessingTimeout = setTimeout(
 		() =>
@@ -464,41 +509,30 @@ export async function executeAssistantConversationTurn(
 		}> = [];
 		let loadedAttachmentBytes = 0;
 		for (const document of documents) {
-			const bytes = await dependencies.loadDocumentBytes({
+			const bytes = await stage("attachment", "assistant.downloadAttachment", () => dependencies.loadDocumentBytes({
 				document,
 				signal: preprocessingSignal,
-			});
+			}));
 			throwIfAssistantPreprocessingAborted(preprocessingSignal);
 			loadedAttachmentBytes += bytes.byteLength;
 			if (loadedAttachmentBytes > 16_000_000) {
-				throw new Error(
-					"Assistant attachments cannot exceed 16 MB per message",
-				);
+				throw new AssistantAttachmentInputError("attachment-too-large");
 			}
 			documentContent.push({ document, bytes });
 		}
-		const provider = runtimeSelection.provider;
 		attachmentParts = await Promise.all(
 			documentContent.map(async ({ document, bytes }) => {
 				if (document.mimeType === "application/pdf") {
 					return {
 						type: "text" as const,
-						text: `[Uploaded PDF: ${document.filename || "document.pdf"}]\n${await extractAssistantPdfText(bytes, preprocessingSignal)}`,
+						text: `[Uploaded PDF: ${document.filename || "document.pdf"}]\n${await stage("attachment", "assistant.extractPdf", () => withAssistantAttachmentCorrection("pdf", () => dependencies.extractPdf(bytes, preprocessingSignal)))}`,
 					};
 				}
-				if (provider === "deepseek") {
-					throw new Error(
-						"The configured assistant model cannot analyze images",
-					);
-				}
-				if (!document.mimeType?.startsWith("image/")) {
-					throw new Error("Uploaded document type is unsupported by the model");
-				}
-				const normalized = await prepareAssistantImage(
+				const normalized = await stage("attachment", "assistant.prepareImage", () => withAssistantAttachmentCorrection("image", () => dependencies.prepareImage(
 					bytes,
-					document.mimeType,
+					document.mimeType!,
 					preprocessingSignal,
-				);
+				)));
 				return {
 					type: "image" as const,
 					image: normalized.bytes,
@@ -506,16 +540,21 @@ export async function executeAssistantConversationTurn(
 				};
 			}),
 		);
+	} catch (error) {
+		return stage("attachment", "assistant.prepareAttachments", async () => { throw error; });
 	} finally {
 		clearTimeout(preprocessingTimeout);
 	}
 	const triggerMessageId = input.run.triggerMessageId;
 	const modelMessages: ModelMessage[] = history.length
-		? history.map((message): ModelMessage => {
+		? history.flatMap((message): ModelMessage[] => {
 				if (message.role === "assistant") {
-					return { role: "assistant", content: message.text };
+					return [
+						...(message.text ? [{ role: "assistant" as const, content: message.text }] : []),
+						...(message.executionFacts ? [{ role: "system" as const, content: `Private historical context for the preceding response. Use it only to interpret prior checks; never quote this note or its tool identifiers in your reply.\n${message.executionFacts}` }] : []),
+					];
 				}
-				return {
+				return [{
 					role: "user",
 					content:
 						message.id === triggerMessageId && attachmentParts.length
@@ -527,7 +566,7 @@ export async function executeAssistantConversationTurn(
 									...attachmentParts,
 								]
 							: message.text,
-				};
+				}];
 			})
 		: [
 				{
@@ -540,9 +579,11 @@ export async function executeAssistantConversationTurn(
 						: fallbackText,
 				},
 			];
-	const assistantParts: Prisma.InputJsonValue[] = [];
+	const assistantPartMap = new Map<string, Prisma.InputJsonValue>();
 	const outcome = await dependencies.executeRuntime({
 		runId: input.run.runId,
+		conversationId: input.request.conversationId,
+		requestId: input.request.requestId,
 		actor: input.actor,
 		modelMessages,
 		recentUploads: documents.map((document) => ({
@@ -559,14 +600,16 @@ export async function executeAssistantConversationTurn(
 			write(chunk) {
 				input.writer.write(chunk);
 				const persistentPart = persistentAssistantPart(chunk);
-				if (persistentPart) assistantParts.push(persistentPart);
+				if (persistentPart && typeof persistentPart === "object" && "id" in persistentPart) {
+					assistantPartMap.set(String(persistentPart.id), persistentPart);
+				}
 			},
 		},
 		signal: input.signal,
 		reauthorizeActor: input.reauthorizeActor,
 		runtimeSelection,
 	});
-	if (outcome.status !== "succeeded") return outcome;
+	const assistantParts = [...assistantPartMap.values()];
 	if (input.signal.aborted) {
 		return {
 			status: "cancelled" as const,
@@ -574,17 +617,53 @@ export async function executeAssistantConversationTurn(
 			errorMessage: "Assistant run cancelled",
 		};
 	}
-	await dependencies.persistAssistantMessage({
-		actor: input.actor,
-		conversationId: input.request.conversationId,
-		runId: input.run.runId,
-		parentMessageId: input.run.triggerMessageId ?? null,
-		assistantText: outcome.assistantText,
-		assistantParts,
-	});
+	if (outcome.status === "cancelled") return outcome;
+	const persistResponse = async (assistantText: string) => {
+		try {
+			await dependencies.persistAssistantMessage({
+				actor: input.actor, conversationId: input.request.conversationId,
+				runId: input.run.runId, parentMessageId: input.run.triggerMessageId ?? null,
+				assistantText, assistantParts,
+			});
+			return true;
+		} catch (error) {
+			if (input.signal.aborted) return false;
+			let reference: string | undefined;
+			try {
+				reference = (await dependencies.captureDiagnostic(error, {
+					stage: "history", operation: "assistant.saveReply", outcome: "history-unconfirmed",
+					runId: input.run.runId, conversationId: input.request.conversationId,
+					requestId: input.request.requestId, actorUserId: input.actor.userId,
+					scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
+				})).reference;
+			} catch {
+				console.error("assistant_history_diagnostic_failed", { runId: input.run.runId });
+			}
+			// Keep the completed business response. Do not retry a provider/tool
+			// because saving its transcript failed or its commit is uncertain.
+			input.writer.write({ type: "data-assistant-history-notice", id: "assistant-history-notice", data: {
+				kind: "history-unconfirmed", ...(reference ? { reference } : {}),
+			} });
+			return false;
+		}
+	};
+	if (outcome.status === "failed") {
+		const storedOutcome = assistantPartMap.get("assistant-outcome");
+		const parsed = assistantOutcomeSchema.safeParse(storedOutcome && typeof storedOutcome === "object" && "data" in storedOutcome ? storedOutcome.data : null);
+		const publicOutcome = parsed.success ? parsed.data : { kind: "temporary" as const };
+		if (!parsed.success) {
+			const part = { type: "data-assistant-outcome", id: "assistant-outcome", data: publicOutcome };
+			input.writer.write(part);
+			assistantParts.push(part);
+		}
+		await persistResponse(presentAssistantOutcome(publicOutcome).message);
+		return outcome;
+	}
+	if (outcome.status !== "succeeded") return outcome;
+	const committed = await persistResponse(outcome.assistantText);
 	return {
 		status: outcome.status,
 		usage: outcome.usage,
-		committed: true as const,
+		committed,
 	};
 }

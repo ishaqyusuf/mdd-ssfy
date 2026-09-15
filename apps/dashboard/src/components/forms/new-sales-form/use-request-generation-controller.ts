@@ -1,5 +1,6 @@
 "use client";
 
+import { useTRPCClient } from "@/trpc/client";
 import {
 	useCallback,
 	useEffect,
@@ -24,6 +25,7 @@ export type UseSalesRequestGenerationControllerOptions =
 export function useSalesRequestGenerationController(
 	options: UseSalesRequestGenerationControllerOptions,
 ) {
+	const trpcClient = useTRPCClient();
 	const previewMutation = useSalesRequestGeneratePreviewMutation(options.type);
 	const mutationRef = useRef(previewMutation.mutateAsync);
 	mutationRef.current = previewMutation.mutateAsync;
@@ -41,6 +43,15 @@ export function useSalesRequestGenerationController(
 		controllerRef.current = createSalesRequestGenerationController(
 			(input) => mutationRef.current(input),
 			revision,
+			{
+				answer: ({ signal, ...input }) =>
+					trpcClient.salesRequest.answerClarification.mutate(
+						input,
+						signal ? { signal } : undefined,
+					),
+				cancel: (sessionId) =>
+					trpcClient.salesRequest.cancelClarification.mutate({ sessionId }),
+			},
 		);
 	}
 	const controller = controllerRef.current;
@@ -50,7 +61,7 @@ export function useSalesRequestGenerationController(
 	}, [controller, revision]);
 
 	useEffect(() => {
-		return () => controller.dispose();
+		return () => controller.release();
 	}, [controller]);
 
 	const snapshot = useSyncExternalStore(
@@ -74,6 +85,7 @@ export function useSalesRequestGenerationController(
 		...snapshot,
 		setSourceText,
 		generate,
+		answerQuestions: controller.answerQuestions,
 		cancel,
 		clear,
 		retry,

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Deprecated — superseded for iOS release distribution by ADR-098 on September 15, 2026. The authenticated mobile-access request/audit decision remains implemented.
 
 ## Context
 

@@ -50,6 +50,7 @@ import {
 	shouldPreserveInitialEditTaxRate,
 } from "./customer-resolution";
 import { CustomerSelectorDialog } from "./customer-selector-dialog";
+import { CustomerRequestText } from "./customer-request-text";
 import { SpecialOrderDeclarationControl } from "./special-order-declaration-control";
 
 interface Props {
@@ -718,6 +719,8 @@ export function InvoiceOverviewPanel(props: Props) {
 				shippingLines={shippingLines}
 				shippingMatchesBilling={!hasDistinctShippingAddress}
 			/>
+
+			<CustomerRequestText text={record.form.customerRequestText} />
 
 			<SalesFormInvoiceDetailsPanel
 				type={props.type}

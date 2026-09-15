@@ -96,7 +96,6 @@ import {
 	hydrateHptLineFromLegacy,
 	normalizeHptLineForLegacy,
 } from "@gnd/sales/sales-form/domain/hpt-compatibility";
-import { getSalesRequestConfigurationDefaults } from "@gnd/sales/sales-form/request-generation";
 import { normalizeSalesInventoryLegacyStatus } from "@gnd/sales/sales-inventory-legacy-compatibility";
 import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
 import {
@@ -3550,9 +3549,6 @@ async function saveNewSalesFormInternal(
 								settings: currentSettings,
 							},
 							routeData,
-							defaultsByItemTypeUid: getSalesRequestConfigurationDefaults(
-								configuration.configuration,
-							),
 							pricing: { profileCoefficient },
 							resolveComponents: async ({ step }) =>
 								(
@@ -5124,6 +5120,15 @@ export async function saveFinalNewSalesForm(
 	const parsed = saveFinalNewSalesFormSchema.parse(input);
 	const { claim: lowTouchClaim, payload } =
 		splitSalesRequestLowTouchFinalSaveClaim(parsed);
+	for (const line of payload.lineItems) {
+		const rows = line.meta?.mouldingRows;
+		if (Array.isArray(rows) && rows.some((row) =>
+			row?.quantityReview === true && !(Number(row.qty) > 0),
+		)) {
+			throw new TRPCError({ code: "BAD_REQUEST", message: "Confirm the pending moulding quantities before saving the final order." });
+		}
+	}
+
 	const startedAt = performance.now();
 	logNewSalesFormSaveDiagnostic({
 		action: "save-final",

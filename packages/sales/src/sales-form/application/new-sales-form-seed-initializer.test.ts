@@ -109,17 +109,11 @@ function seedLine(
 	};
 }
 
-function initialize(
-	seed: NewSalesFormSeed,
-	defaultsByItemTypeUid?: Readonly<
-		Record<string, Readonly<Record<string, string>>>
-	>,
-) {
+function initialize(seed: NewSalesFormSeed) {
 	return initializeNewSalesFormSeed({
 		seed,
 		baseRecord,
 		routeData,
-		defaultsByItemTypeUid,
 		pricing: { profileCoefficient: 0.5 },
 		resolveComponents: ({ step }) => componentsByStepId[Number(step.id)] || [],
 	});
@@ -681,6 +675,25 @@ describe("initializeNewSalesFormSeed", () => {
 			resolveComponents: ({ step }) =>
 				mouldingComponents[Number(step.id)] || [],
 		});
+		const pendingResult = await initializeNewSalesFormSeed({
+			seed: {
+				schemaVersion: 2,
+				lineItems: [{ uid: "pending", qty: 0,
+					formSteps: [{ stepId: 1, prodUid: "mouldings" }, { stepId: 215, meta: { selectedProdUids: ["attic-access"] } }],
+					meta: { mouldingRows: [{ uid: "attic-access", qty: 0 }] },
+				}],
+				unresolved: [{ lineUid: "pending", stepId: null, field: "quantity", status: "ambiguous", reason: "Confirm piece quantity" }],
+			},
+			baseRecord,
+			routeData: mouldingRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => mouldingComponents[Number(step.id)] || [],
+		});
+		expect(pendingResult.issues).toEqual([]);
+		expect(pendingResult.record.lineItems[0]?.qty).toBe(0);
+		expect(pendingResult.record.lineItems[0]?.lineTotal).toBe(0);
+		expect(pendingResult.record.lineItems[0]?.meta?.mouldingRows).toMatchObject([{ uid: "attic-access", qty: 0 }]);
+		expect(pendingResult.unresolved).toHaveLength(1);
 		const line = result.record.lineItems[0];
 		const payload = toSalesFormSaveDraftPayload(result.record, true);
 		const reopened = hydrateSalesFormRecord({
@@ -777,6 +790,11 @@ describe("initializeNewSalesFormSeed", () => {
 			{ uid: "attic-access", qty: 1 },
 		]);
 
+		expect(reopened.lineItems[0]?.meta?.mouldingRows?.[0]?.calculation).toEqual({
+			linearFeet: 400, pieceLength: 16, wastePercentage: 10,
+		});
+		expect(reopened.lineItems[0]?.meta?.mouldingRows?.[1]?.calculation).toBeUndefined();
+
 		const invalidCalculatorSeed: NewSalesFormSeed = {
 			schemaVersion: 2,
 			lineItems: [
@@ -854,14 +872,12 @@ describe("initializeNewSalesFormSeed", () => {
 		expect(result.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("primed");
 	});
 
-	it("uses a configured default only for an omitted, resolved step", async () => {
+	it("uses the first sorted component only for an omitted, resolved step", async () => {
 		const seed = seedLine("interior", "primed");
 		const seedItem = seed.lineItems[0];
 		if (!seedItem) throw new Error("Expected seed fixture line");
 		seedItem.formSteps = seedItem.formSteps.filter((step) => step.stepId !== 2);
-		const result = await initialize(seed, {
-			interior: { frame: "primed" },
-		});
+		const result = await initialize(seed);
 		expect(result.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("primed");
 		expect(result.issues).toEqual([]);
 
@@ -872,9 +888,7 @@ describe("initializeNewSalesFormSeed", () => {
 			status: "ambiguous",
 			reason: "Customer named two frame types",
 		});
-		const blocked = await initialize(seed, {
-			interior: { frame: "primed" },
-		});
+		const blocked = await initialize(seed);
 		expect(blocked.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("");
 		expect(blocked.unresolved).toEqual(seed.unresolved);
 	});
@@ -892,9 +906,7 @@ describe("initializeNewSalesFormSeed", () => {
 			reason: "The note does not identify which requested option it describes",
 		});
 
-		const result = await initialize(seed, {
-			interior: { frame: "primed" },
-		});
+		const result = await initialize(seed);
 
 		expect(result.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("");
 		expect(result.unresolved).toEqual(seed.unresolved);
@@ -914,18 +926,14 @@ describe("initializeNewSalesFormSeed", () => {
 				"The handwritten annotation cannot be assigned to a specific line",
 		});
 
-		const result = await initialize(seed, {
-			interior: { frame: "primed" },
-		});
+		const result = await initialize(seed);
 
 		expect(result.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("");
 		expect(result.unresolved).toEqual(seed.unresolved);
 	});
 
 	it("rejects a dependency-hidden selection without substituting a default", async () => {
-		const result = await initialize(seedLine("exterior", "primed", ["lite"]), {
-			exterior: { door: "panel" },
-		});
+		const result = await initialize(seedLine("exterior", "primed", ["lite"]));
 		expect(result.issues).toContainEqual({
 			lineUid: "exterior-line",
 			stepId: 3,
@@ -966,7 +974,7 @@ describe("initializeNewSalesFormSeed", () => {
 		);
 	});
 
-	it("follows the canonical component redirect while replaying selections", async () => {
+	it("follows a component redirect without auto-selecting its target step", async () => {
 		const frameComponents = componentsByStepId[2];
 		if (!frameComponents) throw new Error("Expected frame component fixtures");
 		const redirectRouteData: WorkflowRouteData = {

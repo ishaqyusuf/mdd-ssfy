@@ -1,5 +1,6 @@
 "use client";
 
+import { SalesRequestGuidanceSection } from "@/components/sales-request/sales-request-guidance-section";
 import { useTRPC } from "@/trpc/client";
 import type {
 	SalesRequestAIProvider,
@@ -20,9 +21,15 @@ import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useState } from "react";
 import {
+	type SalesRequestMailboxPolicyDraft,
+	SalesRequestMailboxSettingsSection,
+} from "./sales-request-mailbox-settings-section";
+import {
 	type SalesRequestPilotDraft,
 	SalesRequestPilotSettingsSection,
 } from "./sales-request-pilot-settings-section";
+import { SalesRequestAIRulesSection } from "./sales-request-ai-rules-section";
+import { SalesRequestProviderDiagnosticsSection } from "./sales-request-provider-diagnostics-section";
 import { SalesSettingsRouteSkeleton } from "./sales-settings-route-skeleton";
 import { SettingsCard } from "./settings-card";
 import { SettingsQueryError } from "./settings-query-error";
@@ -30,14 +37,6 @@ import { SettingsQueryError } from "./settings-query-error";
 type ConfiguredProviderOption = SalesRequestAIProviderOption & {
 	configured: boolean;
 };
-
-const NO_DEFAULT_VALUE = "__no_default__";
-const WARNING_LABELS = {
-	stale: "Stale default",
-	deleted: "Deleted default",
-	hidden: "Hidden default",
-	"dependency-ineligible": "Dependency-ineligible default",
-} as const;
 
 function findProvider(
 	providers: readonly ConfiguredProviderOption[],
@@ -78,9 +77,13 @@ export function SalesRequestGenerationSettingsPage() {
 	const [pilotDraft, setPilotDraft] = useState<SalesRequestPilotDraft | null>(
 		null,
 	);
+	const [mailboxDraft, setMailboxDraft] =
+		useState<SalesRequestMailboxPolicyDraft | null>(null);
 	const persisted = settingsQuery.data?.settings ?? null;
 	const settings = draft ?? persisted;
 	const persistedPilot = settingsQuery.data?.requestGeneration.pilot ?? null;
+	const persistedMailbox =
+		settingsQuery.data?.requestGeneration.mailbox ?? null;
 
 	const updateSettings = useMutation(
 		trpc.salesRequest.updateAISettings.mutationOptions({
@@ -101,28 +104,6 @@ export function SalesRequestGenerationSettingsPage() {
 				toast({
 					variant: "destructive",
 					title: "Unable to save sales request AI settings",
-					description: error.message,
-				});
-			},
-		}),
-	);
-	const setDefault = useMutation(
-		trpc.salesRequest.setDefault.mutationOptions({
-			onSuccess() {
-				void queryClient.invalidateQueries({
-					queryKey: trpc.salesRequest.getAISettings.queryKey(),
-				});
-				toast({
-					variant: "success",
-					title: "Request-generation default saved",
-					description:
-						"The settings surface was refreshed with the saved route default.",
-				});
-			},
-			onError(error) {
-				toast({
-					variant: "destructive",
-					title: "Unable to save request-generation default",
 					description: error.message,
 				});
 			},
@@ -183,6 +164,27 @@ export function SalesRequestGenerationSettingsPage() {
 			},
 		}),
 	);
+	const updateMailboxPolicy = useMutation(
+		trpc.salesRequest.updateMailboxPolicy.mutationOptions({
+			onSuccess() {
+				setMailboxDraft(null);
+				void queryClient.invalidateQueries({
+					queryKey: trpc.salesRequest.getAISettings.queryKey(),
+				});
+				toast({
+					variant: "success",
+					title: "Mailbox settings saved",
+				});
+			},
+			onError(error) {
+				toast({
+					variant: "destructive",
+					title: "Unable to save mailbox settings",
+					description: error.message,
+				});
+			},
+		}),
+	);
 
 	if (settingsQuery.isError) {
 		return (
@@ -194,7 +196,13 @@ export function SalesRequestGenerationSettingsPage() {
 		);
 	}
 
-	if (settingsQuery.isPending || !persisted || !settings || !persistedPilot) {
+	if (
+		settingsQuery.isPending ||
+		!persisted ||
+		!settings ||
+		!persistedPilot ||
+		!persistedMailbox
+	) {
 		return <SalesSettingsRouteSkeleton cardCount={4} />;
 	}
 
@@ -244,6 +252,14 @@ export function SalesRequestGenerationSettingsPage() {
 				onDraftChange={setPilotDraft}
 				onSave={(nextPilot) => updatePilotSettings.mutate(nextPilot)}
 				onDiscard={() => setPilotDraft(null)}
+			/>
+			<SalesRequestMailboxSettingsSection
+				policy={persistedMailbox}
+				draft={mailboxDraft}
+				isSaving={updateMailboxPolicy.isPending}
+				onDraftChange={setMailboxDraft}
+				onSave={(next) => updateMailboxPolicy.mutate(next)}
+				onDiscard={() => setMailboxDraft(null)}
 			/>
 			<SettingsCard
 				title="Request generation provider"
@@ -307,114 +323,6 @@ export function SalesRequestGenerationSettingsPage() {
 			</SettingsCard>
 
 			<SettingsCard
-				title="Request-generation defaults"
-				description="Choose a default component for each configured route step. Defaults are saved per route and never include prices or provider credentials."
-			>
-				<div className="flex flex-col gap-6">
-					<div className="rounded-md border bg-muted/20 px-4 py-3 text-sm">
-						<p>
-							Generation feature flag:{" "}
-							{settingsQuery.data.requestGeneration.featureEnabled
-								? "enabled"
-								: "disabled"}
-						</p>
-						<p className="mt-1 text-xs text-muted-foreground">
-							Changing defaults does not call an AI provider.
-						</p>
-					</div>
-					{settingsQuery.data.requestGeneration.routes.length ? (
-						settingsQuery.data.requestGeneration.routes.map((route) => (
-							<div key={route.rootUid} className="flex flex-col gap-4">
-								<div>
-									<p className="text-sm font-medium">Route: {route.rootUid}</p>
-									{route.warnings.map((routeWarning) => (
-										<p
-											key={`${routeWarning.code}-${routeWarning.message}`}
-											className="mt-1 text-xs text-destructive"
-										>
-											{WARNING_LABELS[routeWarning.code]}:{" "}
-											{routeWarning.message}
-										</p>
-									))}
-								</div>
-								<div className="grid gap-5 sm:grid-cols-2">
-									{route.steps.map((step) => {
-										const hasStaleDefault =
-											Boolean(step.defaultComponentUid) &&
-											!step.candidates.some(
-												(candidate) =>
-													candidate.uid === step.defaultComponentUid,
-											);
-										return (
-											<div key={step.uid} className="space-y-2">
-												<Label
-													htmlFor={`sales-request-default-${route.rootUid}-${step.uid}`}
-												>
-													{step.title}
-												</Label>
-												<Select
-													value={step.defaultComponentUid ?? NO_DEFAULT_VALUE}
-													disabled={setDefault.isPending}
-													onValueChange={(value) =>
-														setDefault.mutate({
-															rootUid: route.rootUid,
-															stepUid: step.uid,
-															componentUid:
-																value === NO_DEFAULT_VALUE ? null : value,
-														})
-													}
-												>
-													<SelectTrigger
-														id={`sales-request-default-${route.rootUid}-${step.uid}`}
-													>
-														<SelectValue placeholder="Choose a default" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value={NO_DEFAULT_VALUE}>
-															No default
-														</SelectItem>
-														{hasStaleDefault ? (
-															<SelectItem
-																value={step.defaultComponentUid as string}
-																disabled
-															>
-																{step.defaultComponentUid} (needs repair)
-															</SelectItem>
-														) : null}
-														{step.candidates.map((candidate) => (
-															<SelectItem
-																key={candidate.uid}
-																value={candidate.uid}
-															>
-																{candidate.title}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-												{step.warnings.map((stepWarning) => (
-													<p
-														key={`${stepWarning.code}-${stepWarning.message}`}
-														className="text-xs text-destructive"
-													>
-														{WARNING_LABELS[stepWarning.code]}:{" "}
-														{stepWarning.message}
-													</p>
-												))}
-											</div>
-										);
-									})}
-								</div>
-							</div>
-						))
-					) : (
-						<p className="text-sm text-muted-foreground">
-							No configured request-generation routes are available.
-						</p>
-					)}
-				</div>
-			</SettingsCard>
-
-			<SettingsCard
 				title="AI component configuration"
 				description="Rebuild the price-free component catalog used for request generation. This does not call the selected AI provider."
 			>
@@ -439,6 +347,13 @@ export function SalesRequestGenerationSettingsPage() {
 					</Button>
 				</div>
 			</SettingsCard>
+
+			<SalesRequestAIRulesSection />
+			<SettingsCard title="Saved request guidance" description="Manage your reusable answers to sales request questions.">
+				<SalesRequestGuidanceSection />
+			</SettingsCard>
+
+			<SalesRequestProviderDiagnosticsSection />
 
 			<div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
 				<p className="text-sm text-muted-foreground">

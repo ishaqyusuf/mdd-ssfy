@@ -39,14 +39,6 @@ export const salesRequestPilotAccessSchema = z
 	})
 	.strict();
 
-export const setSalesRequestDefaultSchema = z
-	.object({
-		rootUid: z.string().trim().min(1).max(128),
-		stepUid: z.string().trim().min(1).max(128),
-		componentUid: z.string().trim().min(1).max(128).nullable(),
-	})
-	.strict();
-
 export const generateSalesRequestPreviewSchema = z
 	.object({
 		type: z.enum(["order", "quote"]),
@@ -145,5 +137,35 @@ export const salesRequestGenerationPilotSummarySchema = z
 	.object({
 		// A UTC calendar date identifies one immutable, closed seven-day slice.
 		periodStart: z.string().date(),
+	})
+	.strict();
+
+export const answerSalesRequestClarificationSchema = z
+	.object({
+		sessionId: z.string().uuid(),
+		revision: z.number().int().positive(),
+		answers: z
+			.array(
+				z
+					.object({
+						questionId: z.string().uuid(),
+						answer: z.string().trim().min(1).max(2000),
+						reuse: z.boolean().default(true),
+					})
+					.strict(),
+			)
+			.min(1)
+			.max(300),
+	})
+	.strict();
+export const salesRequestClarificationSessionSchema = z
+	.object({ sessionId: z.string().uuid() })
+	.strict();
+export const setSalesRequestGuidanceSchema = z
+	.object({
+		sessionId: z.string().uuid(),
+		questionId: z.string().uuid(),
+		active: z.boolean(),
+		answer: z.string().trim().min(1).max(2000).optional(),
 	})
 	.strict();

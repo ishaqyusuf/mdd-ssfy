@@ -9,8 +9,8 @@ import { SiteNav, createSiteNavContext } from "@gnd/site-nav";
 import { DropdownMenuItem } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@gnd/ui/tanstack";
-import { usePathname } from "next/dist/client/components/navigation";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { Header } from "./header";
 import {

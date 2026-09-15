@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { NewSalesFormSeed } from "../contracts/new-sales-form-seed";
+import { newSalesFormSeedSchema, type NewSalesFormSeed } from "../contracts/new-sales-form-seed";
 import { normalizeNewSalesFormSeed } from "./new-sales-form-seed-normalization";
 
 describe("normalizeNewSalesFormSeed", () => {
@@ -34,10 +34,13 @@ describe("normalizeNewSalesFormSeed", () => {
 			unresolved: [],
 		} as NewSalesFormSeed;
 
-		expect(normalizeNewSalesFormSeed(seed).lineItems[0]).toMatchObject({
+		const normalized = normalizeNewSalesFormSeed(seed);
+		expect(newSalesFormSeedSchema.parse(normalized)).toEqual(normalized);
+		expect(normalizeNewSalesFormSeed(normalized)).toEqual(normalized);
+		expect(normalized.lineItems[0]).toMatchObject({
 			qty: 28,
 			meta: {
-				mouldingRows: [{ uid: "baseboard-16", qty: 28 }],
+				mouldingRows: [{ uid: "baseboard-16", qty: 28, calculation: { linearFeet: 400, pieceLength: 16, wastePercentage: 10 } }],
 			},
 		});
 	});

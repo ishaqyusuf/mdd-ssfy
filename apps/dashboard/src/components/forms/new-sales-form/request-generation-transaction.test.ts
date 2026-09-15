@@ -488,6 +488,29 @@ describe("sales request generation transaction", () => {
 			"Two possible configured doors match.",
 		);
 
+		const partial = await prepareRequestGenerationProposal({
+			proposalId: "proposal-partial-draft-1",
+			configurationRevision: "config-1",
+			seed: unresolvedSeed,
+			baseRecord,
+			routeData: doorRouteData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) => doorComponents[Number(step.id)] || [],
+			allowUnresolvedDraft: true,
+		});
+		expect(partial.status).toBe("ready");
+		if (partial.status !== "ready") return;
+		expect(partial.proposal.unresolved).toEqual(unresolvedSeed.unresolved);
+		expect(
+			useNewSalesFormStore
+				.getState()
+				.applyRequestGenerationProposal(partial.proposal, "config-1"),
+		).toEqual({ status: "applied" });
+		expect(
+			useNewSalesFormStore.getState().requestGeneration.manualSaveRequired,
+		).toBe(true);
+		useNewSalesFormStore.getState().hydrate(baseRecord);
+
 		const ready = await prepareRequestGenerationProposal({
 			proposalId: "proposal-forged-unresolved-1",
 			configurationRevision: "config-1",
@@ -721,4 +744,78 @@ describe("sales request generation transaction", () => {
 		// cannot enter autosave even after its low-touch provenance is stale.
 		expect(state.requestGeneration.manualSaveRequired).toBe(true);
 	});
+});
+
+it("keeps a missing Door blocked until review, then initializes every retained slab size", async () => {
+	const { resolveSalesRequestDoorProduct } = await import(
+		"./request-generation-review-edit"
+	);
+	const seed = structuredClone(doorSeed);
+	const line = seed.lineItems[0]!;
+	line.qty = 14;
+	line.formSteps = line.formSteps.filter((step) => step.stepId !== 3);
+	line.housePackageTool = {
+		doors: [
+			{ dimension: "2-10 x 6-8", totalQty: 11 },
+			{ dimension: "3-0 x 6-8", totalQty: 2 },
+			{ dimension: "2-4 x 6-8", totalQty: 1 },
+		],
+	};
+	seed.unresolved = [
+		{
+			lineUid: line.uid,
+			stepId: 3,
+			field: "Door",
+			status: "unsupported",
+			reason: "Exact product missing",
+		},
+	];
+	const route = structuredClone(doorRouteData);
+	route.composedRouter!.interior!.config = { noHandle: true, hasSwing: false };
+	const catalog = structuredClone(doorComponents);
+	catalog[3]![0]!.pricing = {
+		"2-10 x 6-8": { basePrice: 150 },
+		"3-0 x 6-8": { basePrice: 160 },
+		"2-4 x 6-8": { basePrice: 140 },
+	};
+	const input = {
+		seed,
+		proposalId: "reviewed",
+		configurationRevision: "current",
+		baseRecord: createRecord(),
+		routeData: route,
+		resolveComponents: ({ step }: { step: { id?: number | null } }) =>
+			catalog[Number(step.id)] || [],
+		pricing: { profileCoefficient: 1 },
+		allowUnresolvedDraft: true,
+	};
+	const blocked = await prepareRequestGenerationProposal(input);
+	expect(blocked.status).toBe("blocked");
+	if (blocked.status === "blocked")
+		expect(
+			blocked.issues.some(
+				(issue) => issue.reason === "hpt-door-selection-missing",
+			),
+		).toBe(true);
+	const reviewed = resolveSalesRequestDoorProduct(
+		{ seed } as import(
+			"./request-generation-controller"
+		).SalesRequestGeneratePreviewOutput,
+		{ lineUid: line.uid, stepId: 3, componentUid: "panel" },
+	);
+	const result = await prepareRequestGenerationProposal({
+		...input,
+		seed: reviewed.seed,
+	});
+	expect(result.status).toBe("ready");
+	if (result.status !== "ready") throw new Error(JSON.stringify(result));
+	const rows =
+		result.proposal.record.lineItems[0]?.housePackageTool?.doors || [];
+	expect(
+		rows.map((row) => ({ dimension: row.dimension, qty: row.totalQty })),
+	).toEqual([
+		{ dimension: "2-10 x 6-8", qty: 11 },
+		{ dimension: "3-0 x 6-8", qty: 2 },
+		{ dimension: "2-4 x 6-8", qty: 1 },
+	]);
 });

@@ -22,6 +22,8 @@ export type WorkflowComponentActionMenuProps = {
 	onClearRedirect?: () => void;
 	onSetRedirect?: (uid: string) => void;
 	onArchive?: () => void;
+	onSetDefault?: () => void;
+	isDefault?: boolean;
 };
 
 export function WorkflowComponentActionMenu(
@@ -41,6 +43,11 @@ export function WorkflowComponentActionMenu(
 				</Button>
 			}
 		>
+			{props.onSetDefault ? (
+				<Menu.Item Icon={Icons.Star} onClick={props.onSetDefault}>
+					{props.isDefault ? "Remove default" : "Make default"}
+				</Menu.Item>
+			) : null}
 			{props.onEditDetails ||
 			props.onEditVisibility ||
 			props.showPricing ||

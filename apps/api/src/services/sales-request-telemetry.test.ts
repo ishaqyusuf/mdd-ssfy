@@ -5,12 +5,84 @@ import {
 	SALES_REQUEST_GENERATION_ISSUE_CATEGORIES,
 	SALES_REQUEST_GENERATION_STATUSES,
 	aggregateSalesRequestGenerationRuns,
+	aggregateSalesRequestProviderDiagnostics,
 	countSalesRequestGenerationIssues,
 	createSalesRequestSeedDigest,
 	getSalesRequestGenerationPilotAuthorityBlockers,
 } from "./sales-request-telemetry";
 
 describe("sales request telemetry boundaries", () => {
+	test("aggregates privacy-safe provider failures for the settings chart", () => {
+		const diagnostics = aggregateSalesRequestProviderDiagnostics([
+			{
+				generationId: "11111111-1111-4111-8111-111111111111",
+				provider: "deepseek",
+				model: "deepseek-v4-flash",
+				status: "provider-error",
+				failureStage: "structured-output",
+				providerAttemptedAt: new Date("2026-09-14T17:36:11.000Z"),
+				startedAt: new Date("2026-09-14T17:36:10.000Z"),
+				latencyMs: 1_900,
+				inputTokens: 400,
+				outputTokens: 80,
+				issueCounts: {
+					providerFailure: {
+						structuredOutputCause: "schema-validation",
+						schemaIssues: [{ code: "invalid_type", path: "unresolved" }],
+					},
+				},
+			},
+			{
+				generationId: "22222222-2222-4222-8222-222222222222",
+				provider: "openai",
+				model: "gpt-5-mini",
+				status: "provider-error",
+				failureStage: "provider-api",
+				providerAttemptedAt: new Date("2026-09-14T16:00:00.000Z"),
+				startedAt: new Date("2026-09-14T16:00:00.000Z"),
+				issueCounts: {
+					providerFailure: {
+						statusCode: 429,
+						providerStatus: "RESOURCE_EXHAUSTED",
+						retryable: true,
+					},
+				},
+			},
+			{
+				generationId: "33333333-3333-4333-8333-333333333333",
+				provider: "deepseek",
+				model: "deepseek-v4-flash",
+				status: "succeeded",
+				providerAttemptedAt: new Date("2026-09-14T15:00:00.000Z"),
+				startedAt: new Date("2026-09-14T15:00:00.000Z"),
+			},
+		]);
+
+		expect(diagnostics).toMatchObject({
+			attemptCount: 3,
+			failureCount: 2,
+			providers: [
+				{ provider: "deepseek", attempts: 2, failures: 1 },
+				{ provider: "openai", attempts: 1, failures: 1 },
+			],
+		});
+		expect(diagnostics.recentFailures[0]).toEqual({
+			reference: "11111111",
+			provider: "deepseek",
+			model: "deepseek-v4-flash",
+			stage: "structured-output",
+			cause: "schema-validation",
+			schemaIssues: [{ code: "invalid_type", path: "unresolved" }],
+			occurredAt: new Date("2026-09-14T17:36:10.000Z"),
+			latencyMs: 1_900,
+			inputTokens: 400,
+			outputTokens: 80,
+		});
+		expect(JSON.stringify(diagnostics)).not.toMatch(
+			/actorUserId|customer|private request/i,
+		);
+	});
+
 	test("counts only bounded unresolved issue statuses", () => {
 		expect(
 			countSalesRequestGenerationIssues({

@@ -68,6 +68,7 @@ export type PreparedRequestGenerationProposal = {
 	generatedLineUids: string[];
 	replacedBootstrapLineUid: string | null;
 	unresolved: NewSalesFormSeed["unresolved"];
+	allowUnresolvedDraft: boolean;
 	lowTouchClaim: NewSalesFormLowTouchClaim | null;
 };
 
@@ -112,6 +113,7 @@ type PrepareRequestGenerationProposalInput = Omit<
 	configurationRevision: string;
 	seed: NewSalesFormSeed;
 	baseRecord: NewSalesFormRecord;
+	allowUnresolvedDraft?: boolean;
 };
 
 function clone<T>(value: T): T {
@@ -192,7 +194,10 @@ export async function prepareRequestGenerationProposal(
 			stepId: null,
 			reason: "unresolved-facts",
 		}));
-	if (initialized.issues.length > 0 || unresolvedIssues.length > 0) {
+	if (
+		initialized.issues.length > 0 ||
+		(!input.allowUnresolvedDraft && unresolvedIssues.length > 0)
+	) {
 		return {
 			status: "blocked",
 			issues: [...clone(initialized.issues), ...unresolvedIssues],
@@ -244,6 +249,7 @@ export async function prepareRequestGenerationProposal(
 			generatedLineUids: generatedLines.map((line) => line.uid),
 			replacedBootstrapLineUid: bootstrapLine?.uid || null,
 			unresolved: clone(initialized.unresolved),
+			allowUnresolvedDraft: input.allowUnresolvedDraft === true,
 			lowTouchClaim: null,
 		},
 	};

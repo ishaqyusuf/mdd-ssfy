@@ -292,7 +292,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 		};
 		set((state) => {
 			if (!state.record) return state;
-			if (proposal.unresolved.length > 0) {
+			if (proposal.unresolved.length > 0 && !proposal.allowUnresolvedDraft) {
 				result = { status: "unresolved" };
 				return state;
 			}

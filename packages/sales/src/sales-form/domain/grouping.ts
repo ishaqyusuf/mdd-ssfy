@@ -6,6 +6,7 @@ import {
   subtractMoney,
   sumMoney,
 } from "../../payment-system/domain/money";
+import { newSalesFormSeedMouldingCalculationSchema } from "../contracts/new-sales-form-seed";
 import { readSalesFormObjectMetadata } from "./metadata";
 import { normalizeSalesFormTitle } from "./step-engine";
 
@@ -254,7 +255,16 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
       const hptMeta = safeRecord(hpt?.meta);
       const priceTags = safeRecord(hptMeta.priceTags);
       const mouldingTag = safeRecord(priceTags.moulding);
+      // Restore calculator context only. Relational items remain authoritative
+      // for quantity and pricing, including a rep's manual quantity override.
+      const storedRow = getLineMetaRows(item, "mouldingRows").find(
+        (row: any) => String(row.uid || "").trim() === String(item.uid || "").trim(),
+      );
+      const calculation = newSalesFormSeedMouldingCalculationSchema.safeParse(
+        storedRow?.calculation,
+      );
       return {
+        ...(calculation.success ? { calculation: calculation.data } : {}),
         salesItemId: item?.id ?? null,
         hptId: hpt?.id ?? null,
         groupUid,

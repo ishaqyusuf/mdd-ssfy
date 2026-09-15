@@ -86,6 +86,7 @@ import {
 	getPaymentMethodControlFeedback,
 	isAvailablePaymentTerminal,
 	resolveAvailablePaymentTerminal,
+	resolvePaymentAccountNo,
 	resolveDefaultPaymentMethod,
 	resolveDefaultPaymentTerminal,
 	sanitizePaymentMethodFields,
@@ -347,7 +348,7 @@ function Content(
 	const queryClient = useQueryClient();
 	const salesPrint = useSalesPrintController();
 	const postPaymentPrint = usePostPaymentPrintFlow(salesPrint.print);
-	const accountNo = props.phoneNo ?? `cust-${props.customerId}`;
+	const accountNo = resolvePaymentAccountNo(props.phoneNo, props.customerId);
 	const { data, refetch } = useSuspenseQuery(
 		trpc.customers.getCustomerPayPortal.queryOptions({
 			accountNo,

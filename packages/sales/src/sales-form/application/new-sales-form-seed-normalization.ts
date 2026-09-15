@@ -48,13 +48,19 @@ function mergeDoors(doors: SeedDoor[]) {
 function normalizeMouldingLine(line: SeedLine): SeedLine {
 	if (!("meta" in line) || !line.meta?.mouldingRows?.length) return line;
 	const mouldingRows = line.meta.mouldingRows.map((row) => {
-		if ("qty" in row) return { uid: row.uid, qty: row.qty };
+		if (!row.calculation) {
+			return { uid: row.uid, qty: "qty" in row ? row.qty : 0 };
+		}
 		const calculation = calculateMouldingQuantity({
 			linearFeet: row.calculation.linearFeet,
 			pieceLength: row.calculation.pieceLength,
 			wastePercentage: row.calculation.wastePercentage,
 		});
-		return { uid: row.uid, qty: calculation.pieces };
+		return {
+			uid: row.uid,
+			qty: calculation.pieces,
+			calculation: { ...row.calculation },
+		};
 	});
 	return {
 		...line,

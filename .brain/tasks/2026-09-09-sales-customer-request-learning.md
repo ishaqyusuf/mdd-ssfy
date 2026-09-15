@@ -1,7 +1,7 @@
 # Task: Generate sales form drafts from requests and live configuration
 
 ## Status
-In Progress
+Done
 
 ## Priority
 Medium
@@ -13,7 +13,7 @@ Medium
 2026-09-09
 
 ## Last Updated
-2026-09-11
+2026-09-12
 
 ## Source Context
 Execution steering: implement backend functionality and automated tests first.
@@ -42,12 +42,13 @@ file path stable so existing links continue to work.
 
 ## Implementation Progress
 - Ticket Position: 1/1
-- Completion: 100%
-- Current Checklist: 15/15 — Provider-agnostic backend and Sales Settings selection implemented
-- Blockers: Provider credentials are not configured locally, so paid live-model accuracy, token,
-  cost and latency measurement cannot run. A clean scoped commit is unsafe while
-  unrelated active work overlaps shared manifests/lockfile. UI and image extraction
-  remain intentionally deferred.
+- Completion: 100% (31/31 checks complete)
+- Current Checklist: 31/31 — Complete
+- Blockers: None for the approved backend and one-call evaluation scope. UI and
+  image extraction remain intentionally deferred by product direction. A task-only
+  commit was not made because unrelated active work overlaps the same shared
+  checkout and manifests/lockfile; combining those changes would violate task
+  isolation.
 
 ## Product Contract
 - First deliver a small Dashboard prototype: paste email/request text or upload
@@ -153,6 +154,39 @@ of the feature. Customer/profile selection must be available for correct pricing
   Settings while retaining server-only provider credentials.
 - [x] Complete provider-focused tests, final review, Brain synchronization, and a
   safely scoped commit when the shared dirty worktree permits it.
+- [x] Add native `totalQty` HPT seed rows for `noHandle:true` routes, retain handed
+  rows for handled routes, and enforce the route-appropriate shape.
+- [x] Validate generated dimensions with the existing height-dependent Door Size
+  candidate resolver and reject unavailable size/height combinations before apply.
+- [x] Group several size rows sharing one product configuration into one sales line,
+  derive its quantity from HPT rows, and update prompt/examples/evaluation fixtures.
+- [x] Add strict native moulding seed rows with direct-piece and deterministic
+  linear-foot quantity normalization while keeping prices out of AI output.
+- [x] Include every active non-custom Moulding-step component in the price-free
+  model catalog, preserving the New Sales Form's persisted sort order.
+- [x] Validate moulding route/step/row membership, one-row-per-selected-component,
+  source-stated quantities and calculator inputs before initialization.
+- [x] Hydrate moulding rows through existing workflow row/pricing helpers and prove
+  save/reopen compatibility without persisting a sale.
+- [x] Update prompt, examples, fixture expectations and focused evaluation coverage
+  for moulding pieces, linear feet and ambiguous product profiles.
+- [x] Run final focused suites, type checks, implementation review and Brain sync;
+  a scoped commit remains deferred because the shared dirty checkout overlaps this
+  work and unrelated active changes.
+- [x] Verify the active Mouldings snapshot and lock the first exact three-product
+  request against real catalogue UIDs/titles.
+- [x] Add a reproducible corpus case and expected oracle covering one native
+  multi-selection line with mixed linear-foot and direct-piece rows.
+- [x] Generate and archive the exact model input, then validate schema,
+  source-grounding, normalization and initializer behavior without a provider call.
+- [x] Present the exact input and expected result for the explicit paid-provider
+  review gate.
+- [x] After approval, make one provider call and capture raw output, validated seed,
+  normalized seed, usage and latency without saving a sale.
+- [x] Compare the live result against the oracle, record correction effort and run
+  final focused regression/type checks.
+- [x] Complete final code review, Brain synchronization and a scoped commit only if
+  the shared dirty checkout permits safe isolation.
 
 ## Architecture and Midday Guidance
 - Inspect local Midday at /Users/M1PRO/Documents/code/_kitchen_sink/midday,
@@ -202,6 +236,85 @@ of the feature. Customer/profile selection must be available for correct pricing
   sending remain governed by existing user actions.
 
 ## Validation Evidence
+- The approved live run made exactly one DeepSeek API attempt with SDK retries
+  disabled (`maxRetries: 0`). End-to-end generation took 1,935.24 ms and used
+  7,378 input tokens plus 143 output tokens. At the official DeepSeek off-peak
+  rates observed on 2026-09-12, estimated cost is $0.000146026–$0.00171754; the
+  provider response did not expose the cache-hit/cache-miss split needed for an
+  exact charge. The run is archived under
+  `.brain/evaluations/sales-request-generation/runs/2026-09-12T-live-mouldings-exact-multi-selection-deepseek-01/`.
+- Raw provider accuracy was 8/9 fields (88.89%): all route, step, component,
+  calculator, direct-quantity, and unresolved facts were correct, but the provider
+  returned parent quantity `306` instead of `32`. The server-owned normalizer
+  deterministically recalculated `28 + 3 + 1`, producing a 9/9 (100%) form-ready
+  seed with zero unsafe guesses. Correction effort was one automatic derived-field
+  correction and zero manual product/row corrections. Corpus metrics now report
+  `providerOracle` separately from `seedOracle` so normalization cannot hide raw
+  model errors.
+- The zero-retry constraint is injected only by the corpus runner. Ordinary
+  production provider creation retains the existing one-retry default; the shared
+  4,000-token structured-output ceiling remains an intentional feature-wide bound.
+- After the live comparison, final two-axis review and hardening, the focused matrix
+  passes 184 tests / 462 assertions across 16 files and targeted Biome passes. Sales
+  typecheck stops on the existing unrelated `packages/sales/src/copy-sales.ts:521`
+  nullability error; API typecheck also reports unrelated concurrent assistant-schema
+  diagnostics in `packages/db/src/queries/assistant.ts`.
+- Final review restricted HPT unresolved-Door acceptance to the active route and
+  exact `door` field, records provider and normalized oracle coverage independently
+  in run manifests, and proves at runtime that live evaluation forwards
+  `maxRetries: 0` to the AI SDK. Both review axes report no remaining actionable
+  findings in the completed slice.
+- The sanitized `mouldings-exact-multi-selection` corpus case is locked to the
+  current local Settings 3 catalogue: Mouldings route UID `5DcsP`, Moulding step
+  ID `215`, and component UIDs `6KsgK`, `n3uPq`, and `DKAy6`. The snapshot contains
+  72 active, non-custom products in persisted form order and revision
+  `2f101a8a257491570612e9f06d8404eeddaa7e3eacc0d2d8ad5eaa3921b61d09`.
+- The first network-off run correctly failed because comma tokenization detached
+  “including 10% waste” from the baseboard request segment. Product segmentation
+  now preserves commas and splits on newline, semicolon, or a numeric conjunction;
+  a regression proves the comma-qualified waste wording remains source-grounded.
+- The final corrected network-off DeepSeek-shaped run is archived under
+  `.brain/evaluations/sales-request-generation/runs/2026-09-12T-input-review-mouldings-exact-multi-selection-v3/`.
+  It validates and normalizes one native line to 32 pieces: 28 baseboard pieces
+  from 400 LF at 16 feet with 10% waste, three flat boards, and one attic-access
+  kit. Oracle scoring reports 9/9 fields, one whole-order match, zero unsafe
+  guesses, and no mismatches. This was mock/oracle execution; input/output token
+  counts are null and no provider credential was read.
+- Save/reopen parity now covers the same mixed calculator/direct-row shape. The
+  form-owned pricing path yields quantity 32, line total 690, and the canonical
+  two-decimal aggregate unit price 21.56 in the isolated fixture. Evaluation treats
+  form-step order and multi-select UID order semantically while retaining exact
+  selected sets. The expanded focused matrix passes 180 tests / 454 assertions
+  across 16 files; targeted Biome passes. Sales and API typechecks reach only the
+  existing unrelated `packages/sales/src/copy-sales.ts:521` nullability error.
+- Prompt version `new-sales-form-seed-v6` documents direct-piece and linear-foot
+  moulding rows, exact row/selection identity, server-verifiable quantity math,
+  exact-profile or unique-SKU identification, ambiguous generic profile handling,
+  product-specific numeric evidence, mandatory source-stated waste, and the
+  distinction between standalone Mouldings and door-route brick moulding.
+- Native moulding initialization passes with the full initializer suite: 23 tests /
+  79 assertions. Compact row quantities are joined to the authoritative selected
+  component snapshots, then priced and summarized by the existing moulding row
+  helpers. The resulting parent line and rows preserve quantities, current prices,
+  totals and component identities through the ordinary save-payload and rehydrate
+  functions without writing a sale.
+- Moulding API boundary validation passes 34 tests in its full service suite.
+  Calculator
+  facts are checked before normalization: the route and multiple-selection step
+  must be Mouldings, row UIDs must exactly equal selected component UIDs, direct
+  quantities and linear feet/waste must occur in the request segment for that same
+  product, explicitly stated waste cannot be omitted, and piece length must be
+  encoded by and match the selected product title. A unique alphanumeric catalog
+  profile/SKU such as `WM713` may identify a component; generic categories cannot.
+  Only normalized `{uid,qty}` rows leave the boundary.
+- Moulding seed contract and normalization tracer tests pass: 22 tests / 38
+  assertions across `new-sales-form-seed.test.ts` and
+  `new-sales-form-seed-normalization.test.ts`. Linear-foot input is reduced to the
+  final native `{uid,qty}` row before form initialization.
+- Catalog eligibility and snapshot query tests pass: 20 tests / 67 assertions.
+  Moulding-step candidates bypass historical-use pruning while custom/deleted rows
+  remain excluded, form sort order is preserved, and structural cache identity is
+  bumped to projection version 5.
 - A shared-initializer compatibility test composes the hydrated record through the
   existing New Sales Form save-payload function, validates its meta, line, extra-cost
   and summary structures against the canonical schemas, then rehydrates it through
@@ -221,11 +334,12 @@ of the feature. Customer/profile selection must be available for correct pricing
   door-line hydration modules were removed. The remaining expansion boundary is
   the generic `initializeNewSalesFormSeed`; `default-policy.ts` remains as its safe
   omission-only fallback helper. No legacy stack symbols remain in executable code.
-- Current consolidated feature verification passes 98 tests / 268 assertions across
-  20 files after removing the two obsolete cache-wrapper tests. Targeted Biome is
-  clean across 41 feature files. Cache typecheck is clean; Sales and API typechecks
-  report only the unrelated `copy-sales.ts:521` baseline. Settings typecheck reaches
-  only pre-existing `packages/errors` NodeNext extension diagnostics.
+- Final Mouldings/backend matrix passes 159 tests / 398 assertions across 14 files.
+  Targeted Biome is clean. Sales and API typechecks both reach only the unrelated
+  `copy-sales.ts:521` baseline nullability error; no touched feature file appears
+  in their diagnostics. The final Sol High review's four findings were closed:
+  per-product numeric evidence, required stated waste, rejection of dimensionless
+  catalog titles for linear-foot calculation, and unique profile/SKU recognition.
 - Shared `initializeNewSalesFormSeed` now owns seed expansion in the sales-form
   application layer rather than the AI API. It resolves authoritative route/component
   inputs, replays existing scalar/multi-select mutations, applies defaults only to

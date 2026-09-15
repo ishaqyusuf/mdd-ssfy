@@ -937,6 +937,7 @@ model DykeStepProducts {
     img               String?
     redirectUid       String?
     custom            Boolean?            @default(false)
+    isDefault         Boolean             @default(false)
     sortIndex         Int?
     dykeProductId     Int?
     doorId            Int?
@@ -957,6 +958,7 @@ model DykeStepProducts {
 
     @@index([doorId])
     @@index([dykeStepId])
+    @@index([dykeStepId, isDefault])
     @@index([dykeProductId])
 }
 

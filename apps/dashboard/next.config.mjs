@@ -90,7 +90,8 @@ const config = {
     },
     // experimental: {
     // serverExternalPackages: ["puppeteer-core", "@prisma/client", "@gnd/db"],
-    serverExternalPackages: ["puppeteer-core", "pino", "@ai-sdk/mcp"],
+    // PDF.js resolves its worker relative to its own module at runtime.
+    serverExternalPackages: ["puppeteer-core", "pino", "@ai-sdk/mcp", "pdfjs-dist"],
     // },
     // webpack: (config, { isServer }) => {
     //     if (isServer) {

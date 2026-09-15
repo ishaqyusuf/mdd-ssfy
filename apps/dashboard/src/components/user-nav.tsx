@@ -37,6 +37,7 @@ import { BugReportButton } from "./bug-reports/bug-report-button";
 import { NotificationCenter } from "./notification-center";
 import { SalesRepRequestBadge } from "./sales-rep-request-badge";
 import { OpenSearchButton } from "./search/open-search-button";
+import { OpenSalesRequestQuickCreateButton } from "./sales-request/open-sales-request-quick-create-button";
 
 type UserNavLink = {
 	href?: string;
@@ -151,6 +152,7 @@ function AccountIdentity() {
 export function HeaderActions() {
 	return (
 		<>
+			<OpenSalesRequestQuickCreateButton />
 			<SalesRepRequestBadge />
 			<BugReportButton />
 			<TestEmailModeButton />

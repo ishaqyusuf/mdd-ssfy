@@ -1,6 +1,6 @@
 .workspace {
 	--assistant-green: #547568;
-	height: calc(100dvh - 70px);
+	height: calc(100dvh - 94px);
 	min-height: 0;
 	overflow: hidden;
 	display: flex;
@@ -172,11 +172,11 @@
 }
 .composerArea {
 	width: 100%;
-	max-width: 836px;
+	max-width: 736px;
 	margin: 0 auto;
-	padding: 18px 28px 24px;
+	padding: 32px 28px 16px;
 	flex-shrink: 0;
-	background: var(--background);
+	background: linear-gradient(to top, var(--background) 72%, transparent);
 }
 .composer {
 	border: 1px solid var(--border);
@@ -344,7 +344,7 @@
 }
 .footerNote {
 	display: flex;
-	justify-content: space-between;
+	justify-content: center;
 	gap: 12px;
 	color: var(--muted-foreground);
 	font-size: 9px;
@@ -360,7 +360,7 @@
 }
 .messages {
 	width: 100%;
-	max-width: 780px;
+	max-width: 680px;
 	margin: 0 auto;
 }
 .userMessage {
@@ -1170,7 +1170,7 @@
 		padding: 8px 12px;
 	}
 	.workspace {
-		height: calc(100dvh - 54px);
+		height: calc(100dvh - 94px);
 	}
 	.body {
 		overflow-x: hidden;
@@ -1192,6 +1192,21 @@
 		width: 100vw;
 		height: 100dvh;
 		border-left: 0;
+	}
+}
+@media (min-width: 640px) {
+	.workspace {
+		height: calc(100dvh - 102px);
+	}
+}
+@media (min-width: 768px) {
+	.workspace {
+		height: calc(100dvh - 118px);
+	}
+}
+@media (min-width: 1024px) {
+	.workspace {
+		height: calc(100dvh - 134px);
 	}
 }
 @media (prefers-reduced-motion: reduce) {

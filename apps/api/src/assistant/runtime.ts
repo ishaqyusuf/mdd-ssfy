@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { createDeepSeek } from "@ai-sdk/deepseek";
+import {
+	type DeepSeekLanguageModelOptions,
+	createDeepSeek,
+} from "@ai-sdk/deepseek";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -20,8 +23,19 @@ import {
 	assistantResultStatuses,
 	assistantSourceKinds,
 } from "./contracts";
+import { captureAssistantDiagnostic } from "./diagnostics";
 import { assistantDocumentProposalActionSchema } from "./document-action-contract";
+import { assistantOrderFinding } from "./finding-contract";
+import { prepareAssistantSafeStep } from "./model-errors";
 import { assistantSalesRequestDraftPreviewSchema } from "./order-draft-contract";
+import {
+	type AssistantOutcome,
+	assistantEffectMayCommit,
+	assistantOutcomeFromEnvelope,
+	assistantOutcomeSchema,
+	mergeAssistantOutcome,
+	presentAssistantOutcome,
+} from "./outcomes";
 import {
 	ASSISTANT_PROMPT_VERSION,
 	type AssistantPromptContext,
@@ -43,7 +57,7 @@ export const ASSISTANT_PROVIDER_CATALOG = {
 		"claude-sonnet-4-6",
 		"claude-haiku-4-5-20251001",
 	],
-	deepseek: ["deepseek-v4-flash", "deepseek-v4-pro"],
+	deepseek: ["deepseek-flash", "deepseek-v4-pro"],
 	google: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"],
 } as const;
 
@@ -66,6 +80,8 @@ type AssistantRuntimeWriter = {
 
 export type AssistantRuntimeInput = {
 	runId?: string;
+	conversationId?: string;
+	requestId?: string;
 	runtimeSelection?: AssistantRuntimeSelection;
 	actor: Omit<
 		AssistantPromptContext,
@@ -127,6 +143,7 @@ function assistantEnvelopeFromOutput(output: unknown) {
 		output && typeof output === "object"
 			? (output as Record<string, unknown>)
 			: null;
+	if (wrapper?.isError === true) return { status: "failed" };
 	const envelope =
 		wrapper?.structuredContent && typeof wrapper.structuredContent === "object"
 			? (wrapper.structuredContent as Record<string, unknown>)
@@ -280,26 +297,37 @@ async function writeSafeAssistantStream(input: {
 	allowedTools: ReadonlySet<string>;
 	trustedResultTools: ReadonlySet<string>;
 	trustedResultToolEffects: ReadonlyMap<string, AssistantEffect>;
+	captureFailure?: (
+		error: unknown,
+		toolCallId?: string,
+		toolName?: string,
+	) => Promise<string | undefined>;
 }) {
 	const toolNames = new Map<string, string>();
 	const toolInputs = new Map<string, unknown>();
 	const runningTools = new Map<string, string>();
 	const openTextIds = new Set<string>();
+	const findingKeys = new Set<string>();
+	let lastTextId: string | null = null;
 	let assistantText = "";
 	let sourceCount = 0;
 	let completed = false;
+	let publicOutcome: AssistantOutcome | null = null;
+	let successfulBusinessTools = 0;
 	try {
 		for await (const part of input.stream) {
 			const type = boundedRuntimeString(part.type, 80);
 			if (!type) continue;
 			if (type === "error" || type === "abort") {
-				throw new Error("Assistant stream ended before completion");
+				throw new Error("Assistant stream ended before completion", {
+					cause: part.error,
+				});
 			}
 			if (type === "text-start") {
 				const id = boundedRuntimeString(part.id, 160);
 				if (id) {
 					openTextIds.add(id);
-					input.writer.write({ type: "text-start", id });
+					// Buffer model narration until tool outcomes are known.
 				}
 				continue;
 			}
@@ -309,17 +337,20 @@ async function writeSafeAssistantStream(input: {
 				if (id && text) {
 					if (!openTextIds.has(id)) {
 						openTextIds.add(id);
-						input.writer.write({ type: "text-start", id });
+					}
+					// Separate model text blocks while leaving token fragments intact.
+					// Tool steps may produce a new block without leading whitespace.
+					if (lastTextId !== null && lastTextId !== id && assistantText) {
+						assistantText += "\n\n";
 					}
 					assistantText += text;
-					input.writer.write({ type: "text-delta", id, delta: text });
+					lastTextId = id;
 				}
 				continue;
 			}
 			if (type === "text-end") {
 				const id = boundedRuntimeString(part.id, 160);
-				if (id && openTextIds.delete(id))
-					input.writer.write({ type: "text-end", id });
+				if (id) openTextIds.delete(id);
 				continue;
 			}
 			if (type === "tool-input-start" || type === "tool-call") {
@@ -329,6 +360,12 @@ async function writeSafeAssistantStream(input: {
 				);
 				const name = boundedRuntimeString(part.toolName, 100);
 				if (id && name && input.allowedTools.has(name)) {
+					if (!toolNames.has(id)) {
+						// The UI owns progress. Keep only the answer after the last
+						// tool step; typed business results remain separate below.
+						assistantText = "";
+						lastTextId = null;
+					}
 					toolNames.set(id, name);
 					if (type === "tool-call") toolInputs.set(id, part.input);
 					runningTools.set(id, name);
@@ -368,12 +405,66 @@ async function writeSafeAssistantStream(input: {
 				}
 				const trustedResult =
 					knownName && input.trustedResultTools.has(knownName);
+				if (knownName) {
+					const envelope = trustedResult
+						? assistantEnvelopeFromOutput(part.output)
+						: null;
+					const finding = assistantOrderFinding(knownName, envelope);
+					if (finding) {
+						const key = `finding:${finding.salesType}:${finding.orderNo}`;
+						if (findingKeys.has(key) || findingKeys.size < 6) {
+							findingKeys.add(key);
+							input.writer.write({
+								type: "data-assistant-finding",
+								id: key,
+								data: finding,
+							});
+						}
+					}
+					const outputMeta =
+						trustedResult && part.output && typeof part.output === "object"
+							? (part.output as { _meta?: { assistantOutcome?: unknown } })
+									._meta
+							: undefined;
+					const captured = assistantOutcomeSchema.safeParse(
+						outputMeta?.assistantOutcome,
+					);
+					let kind = captured.success
+						? captured.data.kind
+						: type === "tool-error"
+							? ("temporary" as const)
+							: assistantOutcomeFromEnvelope(envelope);
+					const effect = input.trustedResultToolEffects.get(knownName);
+					if (kind === "temporary" && assistantEffectMayCommit(effect))
+						kind = "uncertain";
+					if (kind) {
+						const failure = kind === "temporary" || kind === "uncertain";
+						const reference =
+							captured.success && captured.data.reference
+								? captured.data.reference
+								: failure
+									? await input.captureFailure?.(
+											part.error ?? new Error("Assistant tool failed"),
+											id ?? undefined,
+											knownName,
+										)
+									: undefined;
+						publicOutcome = mergeAssistantOutcome(publicOutcome, {
+							kind,
+							...(reference ? { reference } : {}),
+						});
+					} else if (
+						envelope?.status === "success" &&
+						!knownName.startsWith("system_")
+					)
+						successfulBusinessTools++;
+				}
 				const card = trustedResult
 					? type === "tool-error"
 						? assistantCardForOutput({ status: "failed" })
 						: assistantCardForOutput(part.output)
 					: null;
-				if (card) {
+				if (card && (!publicOutcome || card.kind === "missing-feature")) {
 					input.writer.write({
 						type: "data-assistant-card",
 						id: `card-${id ?? randomUUID()}`,
@@ -551,14 +642,8 @@ async function writeSafeAssistantStream(input: {
 						id: `tool-${id}`,
 						data: { id, name, status: "failed" },
 					});
-					input.writer.write({
-						type: "data-assistant-card",
-						id: `card-${id}`,
-						data: {
-							kind: "permission",
-							title: "Action not approved",
-							description: "The action was not run.",
-						},
+					publicOutcome = mergeAssistantOutcome(publicOutcome, {
+						kind: "not-approved",
 					});
 				}
 				continue;
@@ -614,7 +699,6 @@ async function writeSafeAssistantStream(input: {
 		}
 		completed = true;
 	} finally {
-		for (const id of openTextIds) input.writer.write({ type: "text-end", id });
 		if (!completed) {
 			for (const [id, name] of runningTools)
 				input.writer.write({
@@ -623,6 +707,22 @@ async function writeSafeAssistantStream(input: {
 					data: { id, name, status: "failed" },
 				});
 		}
+	}
+	if (publicOutcome) {
+		if (successfulBusinessTools > 0 && publicOutcome.kind === "temporary")
+			publicOutcome = { ...publicOutcome, kind: "partial" };
+		assistantText = presentAssistantOutcome(publicOutcome).message;
+		input.writer.write({
+			type: "data-assistant-outcome",
+			id: "assistant-outcome",
+			data: publicOutcome,
+		});
+	}
+	if (assistantText) {
+		const id = randomUUID();
+		input.writer.write({ type: "text-start", id });
+		input.writer.write({ type: "text-delta", id, delta: assistantText });
+		input.writer.write({ type: "text-end", id });
 	}
 	return assistantText;
 }
@@ -635,8 +735,20 @@ type AssistantAgentSettings = {
 	stopWhen: ReturnType<typeof stepCountIs>;
 	maxOutputTokens: number;
 	maxRetries: number;
+	providerOptions?: Record<string, Record<string, unknown>>;
 	prepareStep?: unknown;
 };
+
+export function getAssistantProviderRuntimeOptions(
+	provider: AssistantProvider,
+): Record<string, Record<string, unknown>> | undefined {
+	if (provider !== "deepseek") return undefined;
+	return {
+		deepseek: {
+			thinking: { type: "disabled" },
+		} satisfies DeepSeekLanguageModelOptions,
+	};
+}
 
 function createAssistantWebSearchTool(input: {
 	apiKey: string;
@@ -840,10 +952,21 @@ function requireAssistantApiKey(
 	provider: AssistantProvider,
 	environment: Readonly<Record<string, string | undefined>> = process.env,
 ) {
-	const key =
-		environment[`ASSISTANT_${provider.toUpperCase()}_API_KEY`]?.trim();
+	const key = getAssistantApiKey(provider, environment);
 	if (!key) throw new Error("The assistant AI provider is not configured");
 	return key;
+}
+
+export function getAssistantApiKey(
+	provider: AssistantProvider,
+	environment: Readonly<Record<string, string | undefined>> = process.env,
+) {
+	return (
+		environment[`ASSISTANT_${provider.toUpperCase()}_API_KEY`]?.trim() ||
+		(provider === "deepseek"
+			? environment.SALES_REQUEST_DEEPSEEK_API_KEY?.trim()
+			: undefined)
+	);
 }
 
 export function createAssistantModel(
@@ -942,8 +1065,8 @@ export function createAssistantRuntime(options?: {
 			);
 			const signal = AbortSignal.any([input.signal, timeoutController.signal]);
 			const textId = randomUUID();
-			let startedText = false;
 			let assistantText = "";
+			let writeAttempted = false;
 			try {
 				const instructions = buildAssistantSystemPrompt({
 					...input.actor,
@@ -994,19 +1117,27 @@ export function createAssistantRuntime(options?: {
 					stopWhen: stepCountIs(ASSISTANT_MAX_STEPS),
 					maxOutputTokens: ASSISTANT_MAX_OUTPUT_TOKENS,
 					maxRetries: ASSISTANT_MAX_RETRIES,
-					prepareStep:
-						webSearchApiKey || options?.alwaysActiveTools?.length
-							? (stepInput: unknown) =>
-									retainAlwaysActiveTools(
-										options?.prepareStep,
-										[
-											...(webSearchApiKey ? ["web_search"] : []),
-											...(options?.alwaysActiveTools ?? []),
-										],
-										webSearchApiKey ? "web_search" : null,
-										stepInput,
-									)
-							: options?.prepareStep,
+					providerOptions: getAssistantProviderRuntimeOptions(
+						selection.provider,
+					),
+					prepareStep: (stepInput: unknown) =>
+						prepareAssistantSafeStep(
+							webSearchApiKey || options?.alwaysActiveTools?.length
+								? (stepInput: unknown) =>
+										retainAlwaysActiveTools(
+											options?.prepareStep,
+											[
+												...(webSearchApiKey ? ["web_search"] : []),
+												...(options?.alwaysActiveTools ?? []),
+											],
+											webSearchApiKey ? "web_search" : null,
+											stepInput,
+										)
+								: typeof options?.prepareStep === "function"
+									? (options.prepareStep as (input: unknown) => unknown)
+									: undefined,
+							stepInput,
+						),
 				};
 				const agent =
 					options?.createAgent?.(settings) ??
@@ -1020,29 +1151,64 @@ export function createAssistantRuntime(options?: {
 				if (result.fullStream) {
 					assistantText = await writeSafeAssistantStream({
 						stream: result.fullStream,
-						writer: input.writer,
+						writer: {
+							write(chunk) {
+								const part = chunk as {
+									type?: string;
+									data?: { name?: string; status?: string };
+								};
+								const effect = part.data?.name
+									? trustedResultToolEffects.get(part.data.name)
+									: undefined;
+								if (
+									part.type === "data-assistant-tool" &&
+									part.data?.status === "running" &&
+									assistantEffectMayCommit(effect)
+								)
+									writeAttempted = true;
+								input.writer.write(chunk);
+							},
+						},
 						allowedTools: new Set(Object.keys(runtimeTools)),
 						trustedResultTools,
 						trustedResultToolEffects,
+						captureFailure: async (error, toolCallId, toolName) => {
+							if (!input.runId) return undefined;
+							return (
+								await captureAssistantDiagnostic(error, {
+									stage: "tool",
+									operation: toolName ?? "assistant.tool",
+									toolCallId,
+									runId: input.runId,
+									requestId: input.requestId,
+									conversationId: input.conversationId,
+									actorUserId: input.actor.userId,
+									scopeType: input.actor.scopeType,
+									scopeId: input.actor.scopeId,
+									provider: selection.provider,
+									model: selection.model,
+								})
+							).reference;
+						},
 					});
 				} else {
 					for await (const delta of result.textStream) {
-						if (!startedText) {
-							input.writer.write({ type: "text-start", id: textId });
-							startedText = true;
-						}
-						input.writer.write({ type: "text-delta", id: textId, delta });
 						assistantText += delta;
 					}
-					if (startedText) input.writer.write({ type: "text-end", id: textId });
-					startedText = false;
+					// The compatibility stream has no per-tool events. As with the
+					// full stream, do not reveal incomplete narration before failure.
+					if (assistantText) {
+						input.writer.write({ type: "text-start", id: textId });
+						input.writer.write({
+							type: "text-delta",
+							id: textId,
+							delta: assistantText,
+						});
+						input.writer.write({ type: "text-end", id: textId });
+					}
 				}
 				if (!assistantText) {
-					return {
-						status: "failed" as const,
-						errorCode: "ASSISTANT_EMPTY_RESPONSE",
-						errorMessage: "Assistant runtime failed",
-					};
+					throw new Error("Assistant returned no response");
 				}
 				const [usage, steps] = await Promise.all([
 					result.totalUsage,
@@ -1110,14 +1276,34 @@ export function createAssistantRuntime(options?: {
 						...(calls.length === 0 ? {} : { calls }),
 					},
 				};
-			} catch {
-				if (startedText) input.writer.write({ type: "text-end", id: textId });
+			} catch (error) {
 				if (input.signal.aborted) {
 					return {
 						status: "cancelled" as const,
 						errorCode: "ASSISTANT_RUN_CANCELLED",
 						errorMessage: "Assistant run cancelled",
 					};
+				}
+				if (input.runId) {
+					const kind = writeAttempted ? "uncertain" : "temporary";
+					const diagnostic = await captureAssistantDiagnostic(error, {
+						stage: "provider",
+						operation: "assistant.chat",
+						runId: input.runId,
+						requestId: input.requestId,
+						conversationId: input.conversationId,
+						actorUserId: input.actor.userId,
+						scopeType: input.actor.scopeType,
+						scopeId: input.actor.scopeId,
+						provider: selection.provider,
+						model: selection.model,
+						outcome: kind,
+					});
+					input.writer.write({
+						type: "data-assistant-outcome",
+						id: "assistant-outcome",
+						data: { kind, reference: diagnostic.reference },
+					});
 				}
 				if (timeoutController.signal.aborted) {
 					return {

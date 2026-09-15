@@ -1,5 +1,34 @@
 # Database Relationships
 
+## Sales Request mailbox ownership — planned (2026-09-13)
+
+- `Users` owns multiple mailbox connections; each connection is private to that
+  employee even when an administrator may read bounded connection-health metadata.
+- `Organization` supplies the canonical active-office authority boundary, while the
+  selected global `Settings` row supplies the mailbox policy and revision fences.
+- A mailbox connection owns selected sources, sync streams, summaries, detail leases,
+  source memberships, immutable sanitized snapshots, one current queue projection
+  per provider message, and resumable disconnect evidence.
+- For the MVP, resumable disconnect and token-health evidence are fields on the
+  connection rather than separate history tables. The remaining eight child/attempt
+  concerns stay separate, producing nine mailbox tables in total.
+- Source is deliberately excluded from the global detail-lease and current-queue
+  identity. One provider message can belong to several selected folders/labels;
+  withdrawing one membership must not remove the current item while another active
+  selected membership remains.
+- No mailbox model relates to `ModelHasRoles`, legacy `Inbox`, or Better Auth
+  `Account`. The project uses Prisma relation mode, so cleanup order and all owner,
+  authority, revision, lease, and retention checks remain application-owned.
+- Historical source memberships are retained only within the message retention
+  window. A nullable active key enforces one current membership per connection,
+  selected source, and provider message; current queue identity remains global to
+  the connection/message/content hash and is not duplicated by folder membership.
+- Retention and disconnect cleanup use explicit child-to-parent transactions because
+  relation mode supplies no physical cascade: current queue, memberships, global detail
+  lease, orphaned summaries, then immutable snapshots. Disconnect additionally
+  clears sources/streams and private connection identity before retaining its
+  content-free connection audit row.
+
 ## Sales Order workspace archive boundary (2026-09-02)
 
 - `SalesOrders.archivedAt` is an order-local workspace visibility scalar, not a
@@ -416,6 +445,16 @@ run-watch records stand independently so discovery can precede incident creation
 No business-order, payment, inventory, or user relationship is added; owner/actor
 identities are operational identifiers awaiting the authorization adapter.
 
+## Progressive assistant relationships (2026-09-12)
+
+- `AssistantConversation 1:N AssistantMessage` and `AssistantConversation 1:N AssistantRun`.
+- `AssistantMessage 1:N AssistantMessage` through the optional parent/replies branch, and `AssistantMessage 1:N AssistantRun` through an optional trigger message.
+- `AssistantRun 1:N AssistantToolExecution` and `AssistantRun 1:N AssistantActionProposal`.
+- T17 updates an `AssistantActionProposal` and its parent `AssistantRun` in the same transaction for claim and every terminal transition. The proposal is the effect/idempotency authority; the run is the conversation progress and recovery projection.
+- `ownerUserId`, `actorUserId`, and `createdByUserId` are logical references to the authenticated legacy user ID. Every public query includes that actor plus normalized `scopeType`/`scopeId` in its predicate; no browser-provided actor becomes authority.
+- Relations use `NoAction` under `relationMode = "prisma"`. Conversations are soft-deleted for immediate access revocation; retention cleanup must remove dependent proposal/execution/run/message rows in application-owned order.
+- `StoredDocument` links attachments and generated files polymorphically through `ownerType = "assistant_conversation"` and `ownerId = AssistantConversation.id`; messages reference validated server document handles and no parallel blob table is introduced.
+
 ## Employee mobile access relationships (2026-09-12)
 
 - `Users 1:N MobileAccessRequest` through the requester relation; uniqueness on
@@ -425,3 +464,112 @@ identities are operational identifiers awaiting the authorization adapter.
   MobileAccessRequestEvent` attributes every transition actor.
 - Because the database uses Prisma relation mode, application transactions own
   consistency and cleanup ordering. The workflow does not physically delete
+  employee audit records.
+
+## Sales Request Generation telemetry relationships (2026-09-13)
+
+- `SalesRequestGenerationRun.actorUserId` is a nullable logical reference to the
+  authenticated legacy user ID. Nullable `consumedSalesId` relates a retained run
+  to the native `SalesOrders.id` created from it solely for atomic idempotency. It is
+  deliberately an immutable logical pointer with no Prisma or physical foreign key,
+  so deleting a Sales row cannot reopen a consumed generation.
+- Outcome writes require the same current actor as the run creator. Account
+  deletion can null the logical actor reference without removing aggregate-safe
+  metrics before their ordinary retention deadline.
+- Account anonymization clears actor, seed binding, and Sales binding together.
+  Daily retention is application-owned: the Trigger task physically deletes every
+  expired telemetry row directly. There are no dependent telemetry tables or blob,
+  image, mailbox, provider-body, or generated-seed relationships to clean first.
+- `pilotSettingsRevision` and `providerBenchmarkApprovalRevision` are immutable
+  logical bindings to revisioned records inside Sales Settings metadata. They are
+  not foreign keys; reporting compares them with current authority and rejects
+  legacy, stale, or mixed values.
+
+## Sales Request pilot review relationships (2026-09-13)
+
+- `SalesRequestPilotReviewDecision.settingId` and `reviewerUserId` are logical
+  references to the active Sales Settings row and authenticated named reviewer.
+  They deliberately have no physical or Prisma relation under the existing
+  application-owned consistency model.
+- Review authority binds configuration, provider/model, prompt/schema, pilot
+  revision, benchmark approval revision, and threshold-policy version/digest.
+  Changing any current authority makes earlier rows visible history but unusable
+  for advancement.
+- Review evidence is a frozen aggregate snapshot; it has no relation to a
+  generation run, actor, Sales order, source request, image, or mailbox record.
+
+## Assistant Sales PDF relationships (2026-09-13)
+
+`SalesDocumentSnapshot.storedDocumentId` points logically to the generated
+`StoredDocument`, whose `sourceType` is `sales_document_snapshot` and
+`sourceId` points back to the exact snapshot. `providerJobId` binds one durable
+snapshot to one Trigger run without introducing a provider table. Cleanup
+invalidates the snapshot and moves its document to `cleanup_required` in one
+database transaction; Blob deletion then precedes the document tombstone.
+
+## Assistant preference and saved-action relationships (2026-09-13)
+
+Preferences, personal memories, and saved actions carry the same logical
+`ownerUserId` plus normalized `scopeType`/`scopeId` boundary as conversations.
+They deliberately have no physical user or organization foreign key under Prisma
+relation mode. A saved recipe refers logically to the versioned Assistant registry;
+compatibility is rechecked against the current catalog and effect before every run.
+Write proposals relate to the fresh `AssistantRun` created for that invocation,
+never to reusable approval state on the saved action.
+
+## Assistant feature-request relationships (2026-09-13)
+
+`AssistantFeatureRequest` has many submissions, subscriptions, lifecycle events,
+analysis jobs, and notification outbox rows; it may merge into another canonical
+request and link to one capability release. A release aggregates canonical and
+merged subscribers through outbox rows. User, conversation, run, and message IDs
+remain logical application-authorized references under Prisma relation mode.
+
+## Sales Request mailbox relationships (2026-09-13)
+
+- Mailbox persistence deliberately uses logical IDs without physical foreign keys,
+  matching the repository's application-owned consistency model. Store transactions
+  must verify current organization, owner, employee profile, Sales Settings policy,
+  connection revision, and lease epoch before every mutation.
+- A connection owns many selected sources; each source has one resumable sync stream
+  and many source-scoped summaries. One connection-plus-provider-message lease
+  serializes detail capture across overlapping labels or folders.
+- Immutable snapshots are shared by exact connection/message/content identity.
+  Source-membership rows preserve per-source revision history while a nullable
+  unique active key permits only one active membership for each exact source
+  identity. The current queue points to one retained snapshot and membership.
+- Disconnect and retention cleanup are application-owned and child-first: queue,
+  memberships, leases, summaries, snapshots, streams, and sources are removed before
+  content-free connection audit is retained. Provider IDs use exact-identity hashes
+  plus raw-value verification to avoid collation-based aliasing.
+
+## Workflow component default relationship (2026-09-14)
+
+`DykeStepProducts.isDefault` belongs to its existing `DykeSteps` parent. The API
+locks the parent step, clears sibling flags, then optionally marks one active,
+non-custom child in a single transaction. This is an application-enforced
+one-default-per-step invariant; no new table or foreign key is introduced.
+
+## Assistant quota relationships (2026-09-14)
+
+Quota policy `userId`, template source, administrator IDs, reservation actor, and
+run/policy IDs are logical application-authorized references under Prisma relation
+mode. One reservation belongs logically to one `AssistantRun`; its unique `runId`
+prevents replay charging. The policy snapshot preserves report meaning after later
+policy changes.
+
+## Assistant runtime-setting relationships (2026-09-14)
+
+Runtime setting and event actor IDs are logical references to authenticated users,
+matching the repository's application-owned Prisma relation mode. Events bind to
+the singleton setting through `settingKey` and version. Each `AssistantRun.model`
+stores the resolved provider/model identity at admission, so execution does not
+depend on a later settings change.
+
+## 2026-09-15 — Assistant diagnostics
+
+`AssistantDiagnosticReview.reference` relates to `AssistantDiagnostic.reference`; retention deletes review rows before expired occurrences in one transaction. Request/conversation/run/tool identifiers on diagnostic occurrences are nullable scalar correlations, so failures before run creation or after context deletion remain representable. API reads reauthorize conversation context independently.
+
+### Request clarification and rules — 2026-09-15
+
+SalesRequestClarificationSession actorUserId and scope are logical authorization bindings checked server-side; this first slice adds no relational foreign keys or Sales order link. Each row contains its questionnaire rounds/answers. Settings rules belong to the selected sales-settings row.
