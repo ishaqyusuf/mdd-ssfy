@@ -97,8 +97,11 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    Store app `6811442922`, `pcruz321`, the EAS project/update URL, production
    channel, and `distribution: "store"`.
    Then run the package's production `ios:release:preflight`: it forces the
-   production variant and reports only whether Sentry/Logly are enabled and
-   configured for HTTPS. Do not copy DSNs or collector URLs into review notes.
+   production variant, checks a public HTTPS API/auth origin, and reports only
+   whether Sentry/Logly are enabled and configured for HTTPS. Do not copy
+   DSNs or collector URLs into review notes. The preflight launches Bun from
+   a neutral directory through a Node wrapper because local Bun 1.3.0
+   reloads `.env*` credentials after `env -u`; no dotenv file is changed.
    Confirm those booleans again against the exact EAS production build
    environment/artifact before answering App Privacy; a local pass is not
    proof of remote vendor/data handling.
@@ -116,6 +119,11 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    config guard on the EAS builder; do not use the job-only
    `EAS_BUILD_PLATFORM` variable as proof that the local app-config evaluation
    was guarded. Android production does not carry the iOS flag.
+   Installed preview/production builds resolve the embedded variant and use
+   `EXPO_PUBLIC_BASE_URL` for both `/api/trpc` and `/api/auth`. Verify those
+   routes on the approved production origin and complete a real installed
+   release-build login with a least-privilege review account before App Review;
+   the origin check alone proves neither backend reachability nor login.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

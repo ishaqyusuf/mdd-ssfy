@@ -89,6 +89,17 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 production-origin and dotenv follow-up: installed release
+  routing now selects the embedded Expo variant and a public HTTPS
+  `EXPO_PUBLIC_BASE_URL` for both tRPC and Better Auth; the iOS production
+  config/preflight reject absent or non-public origins without changing
+  Android production. Bun 1.3.0 was observed reloading local dotenv values
+  after `env -u`; a Node preflight wrapper strips development login keys and
+  starts the checker from a neutral temp-directory cwd. Thirteen focused tests
+  passed (100 expectations). Actual `with-env:prod` preflight now passes 28/29
+  with only the unapproved privacy-policy URL failing, and a one-off synthetic
+  HTTPS policy URL passed 29/29 as wiring proof only. No `.env` file, EAS
+  setting, Apple field, build, or upload was changed.
 - September 15 public-release delta: 13 focused release/permission/guidance
   tests passed (75 expectations), including the dashboard public-copy guard,
   `bun run ios:release:check` passed 21/21, and scoped `git diff --check`

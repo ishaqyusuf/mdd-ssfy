@@ -58,6 +58,18 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   policy URL stops build queueing; Android and preview scripts are unchanged.
 - The iOS preflight explicitly evaluates `APP_VARIANT=production` and reports
   only non-secret booleans for Sentry/Logly enablement and HTTPS configuration.
+  It now also checks that the configured API/auth base is a public HTTPS root
+  origin. Installed preview/production clients select their embedded
+  `extra.appVariant` before any public variant env flag and route both tRPC
+  and Better Auth through `EXPO_PUBLIC_BASE_URL`; development keeps its
+  debugger-host routing. The production iOS config guard rejects a missing,
+  local, or non-HTTPS base before EAS build queueing. The URL check is
+  structural; installed-build login and backend reachability remain required.
+  Bun 1.3.0 reloads mobile `.env*` values when launched from the app root even
+  after `env -u`, so the preflight uses a Node wrapper that strips development
+  login keys and launches the Bun checker from a neutral temp-directory cwd.
+  The final EAS command retains the existing credential stripping and
+  `EXPO_NO_DOTENV=1`; no secret file is edited.
   The iOS-specific production-profile `ios.env` flag makes Expo config reject
   Sentry debug/smoke-test modes and enabled Sentry/Logly without an HTTPS
   DSN/endpoint. Android production does not receive this flag, preserving its
@@ -115,6 +127,8 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - `apps/mobile/src/screens/updates-screen.tsx`
 - `apps/mobile/src/lib/launch-auto-update.test.ts`
 - `apps/mobile/src/lib/preview-build-security.test.ts`
+- `apps/mobile/src/lib/release-base-url.ts`
+- `apps/mobile/scripts/run-ios-release-preflight.cjs`
 - `apps/mobile/src/components/privacy-policy-link.tsx`
 - `apps/mobile/scripts/eas-update.mjs`
 - `apps/mobile/assets/icons/*`

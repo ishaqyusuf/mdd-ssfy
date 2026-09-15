@@ -62,6 +62,31 @@ describe("iOS public App Store release readiness", () => {
 		}
 	});
 
+	it("isolates the production preflight from local dotenv credentials", () => {
+		const result = Bun.spawnSync({
+			cmd: ["node", "./scripts/run-ios-release-preflight.cjs"],
+			cwd: path.join(import.meta.dir, ".."),
+			env: {
+				...process.env,
+				APP_VARIANT: "production",
+				GND_IOS_PUBLIC_RELEASE: "true",
+				EXPO_PUBLIC_BASE_URL: "https://api.example.com",
+				EXPO_PUBLIC_PRIVACY_POLICY_URL: "https://example.com/privacy",
+				EXPO_PUBLIC_EMAIL: "release-secret-sentinel-5927",
+				EXPO_PUBLIC_TOK: "release-secret-sentinel-5927",
+				EXPO_PUBLIC_SENTRY_ENABLED: "false",
+				EXPO_PUBLIC_SENTRY_DEBUG: "false",
+				EXPO_PUBLIC_SENTRY_SMOKE_TEST: "false",
+				EXPO_PUBLIC_LOGLY_ENABLED: "false",
+			},
+		});
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout.toString()).toContain(
+			"29/29 iOS release-readiness checks passed.",
+		);
+		expect(result.stdout.toString()).not.toContain("release-secret-sentinel-5927");
+	});
+
 	it("rejects unsafe telemetry settings in explicit production config", () => {
 		for (const [overrides, expectedError] of [
 			[
@@ -83,10 +108,10 @@ describe("iOS public App Store release readiness", () => {
 			const result = Bun.spawnSync({
 				cmd: [process.execPath, "-e", "import './app.config.ts'"],
 				cwd: path.join(import.meta.dir, ".."),
-				env: {
-					...process.env,
+				env: Object.assign({}, process.env, {
 					APP_VARIANT: "production",
 					GND_IOS_PUBLIC_RELEASE: "true",
+					EXPO_PUBLIC_BASE_URL: "https://api.example.com",
 					EXPO_PUBLIC_EMAIL: "",
 					EXPO_PUBLIC_TOK: "",
 					EXPO_PUBLIC_PRIVACY_POLICY_URL: "",
@@ -96,11 +121,30 @@ describe("iOS public App Store release readiness", () => {
 					EXPO_PUBLIC_SENTRY_DSN: "",
 					EXPO_PUBLIC_LOGLY_ENABLED: "false",
 					EXPO_PUBLIC_LOGLY_ENDPOINT: "",
-					...overrides,
-				},
+				}, overrides),
 			});
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr.toString()).toContain(expectedError);
+		}
+		for (const baseUrl of ["", "http://api.example.com", "https://localhost:3010"]) {
+			const result = Bun.spawnSync({
+				cmd: [process.execPath, "-e", "import './app.config.ts'"],
+				cwd: path.join(import.meta.dir, ".."),
+				env: {
+					...process.env,
+					APP_VARIANT: "production",
+					GND_IOS_PUBLIC_RELEASE: "true",
+					EXPO_PUBLIC_BASE_URL: baseUrl,
+					EXPO_PUBLIC_EMAIL: "",
+					EXPO_PUBLIC_TOK: "",
+					EXPO_PUBLIC_SENTRY_ENABLED: "false",
+					EXPO_PUBLIC_LOGLY_ENABLED: "false",
+				},
+			});
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr.toString()).toContain(
+				"Public iOS production builds require a public HTTPS EXPO_PUBLIC_BASE_URL origin.",
+			);
 		}
 		expect(isHttpsEndpoint("https://example.test/collector")).toBe(true);
 		expect(isHttpsEndpoint("http://example.test/collector")).toBe(false);
@@ -112,6 +156,7 @@ describe("iOS public App Store release readiness", () => {
 				...process.env,
 				APP_VARIANT: "production",
 				GND_IOS_PUBLIC_RELEASE: "false",
+				EXPO_PUBLIC_BASE_URL: "",
 				EXPO_PUBLIC_EMAIL: "",
 				EXPO_PUBLIC_TOK: "",
 				EXPO_PUBLIC_PRIVACY_POLICY_URL: "",

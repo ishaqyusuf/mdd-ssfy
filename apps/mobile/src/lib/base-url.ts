@@ -1,5 +1,7 @@
 import Constants from "expo-constants";
 
+import { resolveConfiguredReleaseBaseUrl } from "./release-base-url";
+
 const DEFAULT_WEB_APP_PORT = "3010";
 
 const getPortlessAppPort = () =>
@@ -30,22 +32,17 @@ const resolveReachableLocalUrl = (value: string) => {
   }
 };
 
-/**
- * Extend this function when going to production by
- * setting the baseUrl to your production API URL.
- */
+const getReleaseBaseUrl = () =>
+  resolveConfiguredReleaseBaseUrl({
+    appVariant: Constants.expoConfig?.extra?.appVariant,
+    envVariant: process.env.EXPO_PUBLIC_APP_VARIANT,
+    baseUrl: process.env.EXPO_PUBLIC_BASE_URL,
+    isDev: __DEV__,
+  });
+
 export const getBaseUrl = () => {
-  /**
-   * Gets the IP address of your host-machine. If it cannot automatically find it,
-   * you'll have to manually set it. NOTE: The default web app port is driven by
-   * PORTLESS_APP_PORT / EXPO_PUBLIC_PORTLESS_APP_PORT and falls back to 3010.
-   *
-   * **NOTE**: This is only for development. In production, you'll want to set the
-   * baseUrl to your production API URL.
-   */
-  // return process.env.EXPO_PUBLIC_BASE_URL;
-  if (process.env.EXPO_PUBLIC_APP_VARIANT === "preview")
-    return process.env.EXPO_PUBLIC_BASE_URL;
+  const releaseBaseUrl = getReleaseBaseUrl();
+  if (releaseBaseUrl) return releaseBaseUrl;
 
   const localhost = getDebuggerHostname();
 
@@ -59,12 +56,8 @@ export const getBaseUrl = () => {
   return `http://${localhost}:${getPortlessAppPort()}`;
 };
 export const getWebUrl = () => {
-  if (
-    process.env.EXPO_PUBLIC_APP_VARIANT === "preview" &&
-    process.env.EXPO_PUBLIC_BASE_URL
-  ) {
-    return process.env.EXPO_PUBLIC_BASE_URL.replace(/\/$/, "");
-  }
+  const releaseBaseUrl = getReleaseBaseUrl();
+  if (releaseBaseUrl) return releaseBaseUrl;
 
   if (process.env.EXPO_PUBLIC_WEB_URL) {
     return resolveReachableLocalUrl(process.env.EXPO_PUBLIC_WEB_URL);

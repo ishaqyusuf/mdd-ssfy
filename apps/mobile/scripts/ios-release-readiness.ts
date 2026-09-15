@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import appConfig, { isHttpsEndpoint } from "../app.config";
+import { isPublicHttpsOrigin } from "../src/lib/release-base-url";
 
 type Check = { label: string; ok: boolean; detail: string };
 
@@ -61,6 +62,9 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	const loglyEndpointIsHttps = isHttpsEndpoint(
 		process.env.EXPO_PUBLIC_LOGLY_ENDPOINT,
 	);
+	const isProductionIosCheck =
+		process.env.APP_VARIANT === "production" &&
+		process.env.GND_IOS_PUBLIC_RELEASE === "true";
 	return [
 		check(
 			"Expo SDK 54 release dependencies",
@@ -157,6 +161,12 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 				: "Missing EXPO_PUBLIC_PRIVACY_POLICY_URL; owner/legal approval required before a public build",
 		),
 		check(
+			"Public iOS API/auth origin",
+			!isProductionIosCheck ||
+				isPublicHttpsOrigin(process.env.EXPO_PUBLIC_BASE_URL),
+			`productionIos=${isProductionIosCheck}; configuredPublicHttpsOrigin=${isPublicHttpsOrigin(process.env.EXPO_PUBLIC_BASE_URL)}`,
+		),
+		check(
 			"Production telemetry inventory (non-secret local snapshot)",
 			true,
 			`Sentry enabled=${sentryEnabled}; Logly enabled=${loglyEnabled}; compare with the final EAS artifact/environment before App Privacy answers`,
@@ -245,7 +255,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 				scripts["ios:release:preflight"]?.includes("GND_IOS_PUBLIC_RELEASE=true") &&
 				scripts["ios:release:preflight"]?.includes("EXPO_NO_DOTENV=1") &&
 				scripts["ios:release:preflight"]?.includes(
-					"bun ./scripts/ios-release-readiness.ts",
+					"node ./scripts/run-ios-release-preflight.cjs",
 				),
 			scripts["ios:release:preflight"] ?? "missing",
 		),

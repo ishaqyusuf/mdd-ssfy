@@ -1,4 +1,5 @@
 import type { ExpoConfig } from "expo/config";
+import { isPublicHttpsOrigin } from "./src/lib/release-base-url";
 
 export const UPDATE_VERSION = "2026.08.17";
 const DEFAULT_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS = 5 * 60 * 1000;
@@ -59,6 +60,9 @@ export function isHttpsEndpoint(value: string | undefined): boolean {
 }
 
 if (isExplicitProductionIosBuild) {
+  if (!isPublicHttpsOrigin(process.env.EXPO_PUBLIC_BASE_URL)) {
+    throw new Error("Public iOS production builds require a public HTTPS EXPO_PUBLIC_BASE_URL origin.");
+  }
   if (
     process.env.EXPO_PUBLIC_SENTRY_DEBUG === "true" ||
     process.env.EXPO_PUBLIC_SENTRY_SMOKE_TEST === "true"
