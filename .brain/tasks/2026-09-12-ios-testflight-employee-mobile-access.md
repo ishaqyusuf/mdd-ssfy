@@ -134,12 +134,14 @@ approved public registration design exists.
 - Release-specific privacy hardening: `ios:release:preflight` now forces the
   production Expo variant and emits only non-secret telemetry enablement/HTTPS
   booleans. Explicit production config rejects Sentry debug/smoke-test modes
-  and enabled Sentry/Logly without HTTPS configuration; this guard also runs
-  in EAS's production environment. The four-test focused iOS readiness suite
-  passes, including three negative subprocess cases. The local inventory is
+  and enabled Sentry/Logly without HTTPS configuration. The iOS-only EAS
+  profile flag also guards EAS's production environment without changing
+  Android production routing. The four-test focused iOS readiness suite
+  passes, including three negative subprocess cases and an Android non-impact
+  case. The local inventory is
   not an App Privacy answer or proof of the final remote build's vendor
-  behavior. The normal local check remains 26/27 with only the unapproved
-  privacy-policy URL failing; a one-off synthetic HTTPS URL passes 27/27 as
+  behavior. The normal local check remains 27/28 with only the unapproved
+  privacy-policy URL failing; a one-off synthetic HTTPS URL passes 28/28 as
   wiring proof only. Privacy/legal approval and a fresh binary remain gated.
 - Server-side privacy follow-up: the mobile employee-document upload registers
   a Vercel Blob-backed `StoredDocument`; its authenticated delete operation

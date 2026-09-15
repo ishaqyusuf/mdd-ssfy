@@ -106,6 +106,10 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    tombstones database records but does not itself call Blob `del`; legal/data
    operations must approve the retention/purge explanation before the policy
    or App Privacy answers claim physical deletion.
+   Expo's iOS production-profile `ios.env` flag activates the same telemetry
+   config guard on the EAS builder; do not use the job-only
+   `EAS_BUILD_PLATFORM` variable as proof that the local app-config evaluation
+   was guarded. Android production does not carry the iOS flag.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

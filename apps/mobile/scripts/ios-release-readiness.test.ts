@@ -86,6 +86,7 @@ describe("iOS public App Store release readiness", () => {
 				env: {
 					...process.env,
 					APP_VARIANT: "production",
+					GND_IOS_PUBLIC_RELEASE: "true",
 					EXPO_PUBLIC_EMAIL: "",
 					EXPO_PUBLIC_TOK: "",
 					EXPO_PUBLIC_PRIVACY_POLICY_URL: "",
@@ -104,5 +105,19 @@ describe("iOS public App Store release readiness", () => {
 		expect(isHttpsEndpoint("https://example.test/collector")).toBe(true);
 		expect(isHttpsEndpoint("http://example.test/collector")).toBe(false);
 		expect(isHttpsEndpoint("not-a-url")).toBe(false);
+		const android = Bun.spawnSync({
+			cmd: [process.execPath, "-e", "import './app.config.ts'"],
+			cwd: path.join(import.meta.dir, ".."),
+			env: {
+				...process.env,
+				APP_VARIANT: "production",
+				GND_IOS_PUBLIC_RELEASE: "false",
+				EXPO_PUBLIC_EMAIL: "",
+				EXPO_PUBLIC_TOK: "",
+				EXPO_PUBLIC_PRIVACY_POLICY_URL: "",
+				EXPO_PUBLIC_SENTRY_SMOKE_TEST: "true",
+			},
+		});
+		expect(android.exitCode).toBe(0);
 	});
 });

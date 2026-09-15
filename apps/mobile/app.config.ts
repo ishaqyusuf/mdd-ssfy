@@ -22,6 +22,8 @@ const isExplicitReleaseBuild =
 const isExplicitProductionBuild =
   (appVariant !== undefined && normalizedAppVariant === "production") ||
   normalizedEasBuildProfile === "production";
+const isExplicitProductionIosBuild =
+  isExplicitProductionBuild && process.env.GND_IOS_PUBLIC_RELEASE === "true";
 const exposedDevCredentialKeys = [
   "EXPO_PUBLIC_EMAIL",
   "EXPO_PUBLIC_TOK",
@@ -56,7 +58,7 @@ export function isHttpsEndpoint(value: string | undefined): boolean {
   }
 }
 
-if (isExplicitProductionBuild) {
+if (isExplicitProductionIosBuild) {
   if (
     process.env.EXPO_PUBLIC_SENTRY_DEBUG === "true" ||
     process.env.EXPO_PUBLIC_SENTRY_SMOKE_TEST === "true"

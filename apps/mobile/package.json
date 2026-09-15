@@ -15,7 +15,7 @@
     "eas-build-submit:ios:prod": "bun run ios:release:preflight && BUN_AUTO_INSTALL=0 bun run with-env:prod env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK EXPO_NO_DOTENV=1 eas build -p ios --profile production --auto-submit-with-profile production",
     "eas:update": "node ./scripts/eas-update.mjs",
     "ios:release:check": "bun ./scripts/ios-release-readiness.ts",
-    "ios:release:preflight": "BUN_AUTO_INSTALL=0 bun run with-env:prod env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK APP_VARIANT=production EXPO_NO_DOTENV=1 bun ./scripts/ios-release-readiness.ts",
+    "ios:release:preflight": "BUN_AUTO_INSTALL=0 bun run with-env:prod env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK APP_VARIANT=production GND_IOS_PUBLIC_RELEASE=true EXPO_NO_DOTENV=1 bun ./scripts/ios-release-readiness.ts",
     "ios": "bun run with-env node ./scripts/run-expo-cli.cjs run:ios",
     "start": "bun run with-env node ./scripts/run-expo-cli.cjs start --port ${GND_MOBILE_PORT:-3012}",
     "web": "bun run with-env node ./scripts/run-expo-cli.cjs start --web",

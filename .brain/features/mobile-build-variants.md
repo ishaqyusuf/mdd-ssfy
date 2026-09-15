@@ -58,10 +58,12 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   policy URL stops build queueing; Android and preview scripts are unchanged.
 - The iOS preflight explicitly evaluates `APP_VARIANT=production` and reports
   only non-secret booleans for Sentry/Logly enablement and HTTPS configuration.
-  Explicit production Expo config rejects Sentry debug/smoke-test modes and
-  enabled Sentry/Logly without an HTTPS DSN/endpoint. This also guards the
-  EAS production build environment, which may differ from the local snapshot;
-  it does not establish vendor retention, tracking, or final App Privacy answers.
+  The iOS-specific production-profile `ios.env` flag makes Expo config reject
+  Sentry debug/smoke-test modes and enabled Sentry/Logly without an HTTPS
+  DSN/endpoint. Android production does not receive this flag, preserving its
+  existing route. The iOS guard also runs in EAS's production build
+  environment, which may differ from the local snapshot; it does not establish
+  vendor retention, tracking, or final App Privacy answers.
 - Both root iOS submit aliases require an explicit reviewed EAS build UUID.
   The account runner rejects absent/malformed IDs and `--latest` before EAS
   account authentication; the app package's submit scripts no longer select

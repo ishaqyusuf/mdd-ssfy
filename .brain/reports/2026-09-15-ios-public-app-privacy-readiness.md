@@ -51,7 +51,10 @@ The iOS production preflight now emits only booleans for effective local
 Sentry/Logly enablement and HTTPS configuration, without printing a DSN,
 collector URL, or credential. Explicit production Expo configuration rejects
 Sentry debug/smoke-test modes and enabled telemetry lacking a valid HTTPS
-endpoint; the same guard runs when EAS evaluates its production environment.
+endpoint. The guard is activated by the iOS-only production-profile `ios.env`
+flag, which [Expo documents as platform-specific build configuration](https://docs.expo.dev/build/eas-json/);
+Android production keeps its existing route. The same flag guards the EAS
+iOS production environment.
 The local boolean snapshot is not proof that the final EAS environment matches
 it, and neither check answers vendor handling, linkage, tracking, retention,
 or the accurate App Store Connect questionnaire. Those owner/vendor/artifact

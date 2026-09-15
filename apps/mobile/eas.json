@@ -25,6 +25,11 @@
 			"bun": "1.3.9",
 			"distribution": "store",
 			"environment": "production",
+			"ios": {
+				"env": {
+					"GND_IOS_PUBLIC_RELEASE": "true"
+				}
+			},
 			"env": {
 				"APP_VARIANT": "production"
 			},

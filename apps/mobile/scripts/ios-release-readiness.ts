@@ -107,6 +107,11 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			String(eas.build?.production?.distribution),
 		),
 		check(
+			"iOS-only production privacy guard",
+			eas.build?.production?.ios?.env?.GND_IOS_PUBLIC_RELEASE === "true",
+			"The iOS production profile enables the guard without changing Android production routing",
+		),
+		check(
 			"Preview remains development-only internal distribution",
 			eas.build?.preview?.distribution === "internal",
 			String(eas.build?.preview?.distribution),
@@ -230,6 +235,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"iOS store preflight loads production configuration",
 			scripts["ios:release:preflight"]?.includes("with-env:prod") &&
 				scripts["ios:release:preflight"]?.includes("APP_VARIANT=production") &&
+				scripts["ios:release:preflight"]?.includes("GND_IOS_PUBLIC_RELEASE=true") &&
 				scripts["ios:release:preflight"]?.includes("EXPO_NO_DOTENV=1") &&
 				scripts["ios:release:preflight"]?.includes(
 					"bun ./scripts/ios-release-readiness.ts",
