@@ -1,11 +1,4 @@
-# iOS TestFlight Internal Distribution Runbook (Historical)
-
-This runbook records the original September 12–14 TestFlight preparation. The
-product owner changed GND Millwork's release target to a public, globally
-available App Store app on September 15, 2026. **Do not use the tester or
-distribution instructions below for the current release.** Follow
-[`ios-public-app-store-distribution.md`](ios-public-app-store-distribution.md)
-and ADR-098. Existing signing/build evidence below remains valid.
+# iOS TestFlight Internal Distribution Runbook
 
 ## Scope and immutable identifiers
 
@@ -15,7 +8,6 @@ and ADR-098. Existing signing/build evidence below remains valid.
 - Production bundle ID: `com.gnd.prodesk`
 - EAS owner/project: `pcruz321` /
   `8ea2eecb-4109-453c-827f-9b2de2e3a9aa`
-- App Store Connect app ID: `6811442922`
 - First audience: employees only. Prefer Internal Testing only for employees who
   can safely be App Store Connect users.
 
@@ -29,117 +21,50 @@ credentials. Obtain explicit action-time confirmation before performing it.
    task file. Confirm `com.gnd.prodesk`, `distribution: store`, `production`
    channel, `pcruz321`, the existing project/update ID, and team
    `ZXC78SPCV4`.
-3. Run `EXPO_NO_DOTENV=1 bunx expo install --check`; it must report the SDK
-   dependencies up to date. React, React DOM, and React types are intentionally
-   excluded because the web workspace uses root 19.2 overrides while mobile
-   Metro tests enforce the SDK 54-compatible 19.1 aliases.
-4. Run `EXPO_NO_DOTENV=1 bunx expo-doctor`. The currently documented result is
-   17/18: Bun's isolated workspace graph leaves duplicate Expo peer
-   installations on disk. Confirm the only failure is that known duplicate
-   warning and that public config still has
-   `experiments.autolinkingModuleResolution: true`; any additional failure is a
-   release blocker.
-5. Run a production-mode local iOS bundle validation with development
-   credentials removed:
-
-   ```sh
-   env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK EXPO_NO_DOTENV=1 bunx expo export --platform ios --output-dir <temporary-dir> --clear
-   ```
-
-   Any unresolved Node built-in or bundle failure is a release blocker.
-6. Confirm there are no pending changes that would embed development login
+3. Confirm there are no pending changes that would embed development login
    values. Never inspect, copy, or send passwords/OTPs into source control.
-7. Confirm the intended build version in `apps/mobile/app.config.ts`; EAS remote
+4. Confirm the intended build version in `apps/mobile/app.config.ts`; EAS remote
    app-version source and auto-increment own the iOS build number.
 
 ## 2. App Store Connect record and agreements
 
-1. Sign in to App Store Connect with the Account Holder or another explicitly
-   authorized user. App Store Connect Terms of Service V100 was accepted by the
-   Account Holder on September 12, 2026 after explicit action-time approval.
+1. **GATE:** Sign in to App Store Connect with the Account Holder or another
+   explicitly authorized user.
 2. Check Business/Agreements for any agreement, tax, or banking item that blocks
    app processing. **GATE:** accept or change only with action-time confirmation.
-   The Free Apps Agreement is active. The Paid Apps Agreement remains unaccepted
-   and is not required unless GND offers paid apps or in-app purchases.
-3. Check EU Digital Services Act trader status. **GATE:** complete the legal and
-   contact-information workflow before making the app available in EU storefronts.
-4. App Store Connect contains the `GND Millwork` iOS record with bundle ID
-   `com.gnd.prodesk`, English (U.S.), SKU `gnd-prodesk-ios`, Full Access, and
-   numeric app ID `6811442922`. It was created September 12, 2026 after explicit
-   action-time approval. `apps/mobile/eas.json` pins this verified ID as
-   `submit.production.ios.ascAppId`; do not create a second app record.
-6. App Store Connect API access currently reports that permission is required
-   and offers `Request Access`. Do not request access or create a key for the
-   manual first release without separate action-time approval.
+3. Search Apps for the GND record with bundle ID `com.gnd.prodesk`.
+4. If absent, **GATE:** create the app record with platform iOS, the approved
+   display name, primary language, bundle ID `com.gnd.prodesk`, and an approved
+   unique SKU. Record the numeric Apple app ID for later optional `ascAppId`
+   configuration; do not guess it.
 
 ## 3. Signing readiness
 
-1. Identifiers contains the explicit App ID `GND Millwork` / `com.gnd.prodesk`
-   under team `ZXC78SPCV4`, registered September 12, 2026 after explicit approval.
-   Its optional capabilities were left disabled because the native entitlement
-   audit found no evidence requiring one. Do not create a wildcard identifier or
-   a second bundle identifier.
-2. Verify certificates and profiles separately; neither existed during the
-   activation-day inspection.
-3. Prefer EAS-managed Apple Distribution certificate and App Store provisioning
-   profile when Apple authentication succeeds. If EAS fails with
-   `iTunes service key is empty`, do not keep retrying passwords or OTPs. This is
-   tracked upstream as `expo/eas-cli#4392` on current EAS releases.
-4. **GATE:** authenticate Apple/EAS, create/reuse certificates, or repair a
+1. Verify Identifiers contains `com.gnd.prodesk` under team `ZXC78SPCV4`.
+2. Prefer EAS-managed Apple Distribution certificate and App Store provisioning
+   profile for the first release.
+3. **GATE:** authenticate Apple/EAS, create/reuse certificates, or repair a
    profile only after explicit confirmation. Do not export credentials into the
    repository.
-5. If credentials already exist, confirm their team, bundle ID, expiry, and
+4. If credentials already exist, confirm their team, bundle ID, expiry, and
    revocation state before selecting them. Never revoke a shared certificate as
    a troubleshooting shortcut.
-6. Manual fallback:
-   - In Keychain Access, request a certificate from a certificate authority,
-     use the Apple Account email and a descriptive common name, leave the CA
-     email blank, and save the CSR to disk. The private key must remain in the
-     login keychain.
-   - In Certificates, Identifiers & Profiles, create **Apple Distribution** from
-     that CSR, download/install the certificate, and create an **App Store
-     Connect** provisioning profile for `GND Millwork` / `com.gnd.prodesk`.
-   - Export the certificate/private-key pair as an encrypted `.p12` outside the
-     repository. **GATE:** obtain action-time confirmation before uploading the
-     `.p12` and `.mobileprovision` to Expo/EAS. Remove temporary exported private
-     material after EAS confirms storage; retain the keychain identity.
-   - For the current release, certificate `ZDC9NMPYX8`, profile `6VT956987X`
-     (UUID `be302ee0-1e9c-4df4-b39d-248ad085c5a4`), and exactly one valid local
-     signing identity have been verified. After action-time approval they were
-     stored by EAS for `@pcruz321/gnd-prodesk`; the temporary encrypted `.p12`,
-     password file, and secret-bearing `credentials.json` were removed. Retain
-     the Keychain identity and do not recreate/export it unless rotation or EAS
-     recovery requires it.
 
 ## 4. Build and upload
 
-1. The current machine's EAS session must be authorized for `pcruz321`.
-2. Use `bun run eas:auth` to switch credentials and verify identity without
-   starting a build, update, upload, or submission. On September 12, 2026 this
-   authenticated as `pcruz321` after explicit action-time approval.
-3. Run `EXPO_NO_DOTENV=1 eas project:info` and verify
-   `@pcruz321/gnd-prodesk` / `8ea2eecb-4109-453c-827f-9b2de2e3a9aa` exactly.
-   This linkage was verified on September 12, 2026; do not relink it.
-4. For separate review points:
+1. The current machine's EAS session must be authorized for `pcruz321`. The
+   read-only audit found `ishaqyusuf`, which cannot read the project.
+2. **GATE:** after confirmation, authenticate/switch EAS using the established
+   account runner, then re-run `eas project:info --json` and verify the owner and
+   project ID exactly.
+3. For separate review points:
    - **GATE build:** `bun run eas:build:ios`
    - **GATE upload after a successful build:** `bun run eas:submit:ios`
-5. For one confirmed combined operation:
+4. For one confirmed combined operation:
    - **GATE build + upload:** `bun run eas:build-submit:ios`
-6. The submit command uploads to App Store Connect/TestFlight; it does not
+5. The submit command uploads to App Store Connect/TestFlight; it does not
    submit the app for App Store review. Capture the EAS build URL, Apple build
    number, upload outcome, and processing status in the release record.
-7. Build `3f3a6acf-ac06-42b8-ab72-1837480f49cc` proved the remote store build and
-   signing path but includes unrelated dirty workspace state; never submit build
-   `5`. A detached snapshot of reviewed commit `40a62218e` produced clean build
-   `6`, EAS ID `f3985128-844d-432c-bbc3-e0e4c93e37ac`. Its packaged bundle,
-   version, build, team, entitlements, export declaration, and embedded profile
-   were independently verified. This is the candidate for the separately
-   confirmed `bun run eas:submit:ios` upload gate.
-8. The first confirmed submit attempt for build `6` reached **Generate a new App
-   Store Connect API Key?** and was cancelled before creation or upload. **GATE:**
-   obtain separate action-time confirmation before allowing EAS to create the
-   key. Record its least-privilege ownership and EAS storage result without
-   exposing issuer IDs, key IDs, or private-key material in documentation.
 
 ## 5. Processing and compliance
 
@@ -185,12 +110,8 @@ Beta App Review.
 ## 8. Rollback and troubleshooting
 
 - Failed local readiness: do not build; fix the named invariant.
-- EAS unauthorized: run `bun run eas:auth` at the credential gate, then re-check
-  project info. Do not relink.
-- `iTunes service key is empty`: treat this as the current upstream EAS/Apple
-  password-authentication defect (`expo/eas-cli#4392`), not as proof that the
-  Apple ID is wrong. Use the manual Apple Distribution certificate/profile path
-  above; do not request an App Store Connect API key as a shortcut.
+- EAS unauthorized: run `eas whoami`, authenticate the authorized `pcruz321`
+  account at the credential gate, then re-check project info. Do not relink.
 - Bundle ID/team mismatch: stop; verify the App Store Connect record and signing
   profile. Do not create a second app record to bypass it.
 - Processing failure: retain logs/build ID, fix the reported native/config issue,

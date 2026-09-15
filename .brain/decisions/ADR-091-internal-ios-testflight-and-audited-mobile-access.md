@@ -2,7 +2,7 @@
 
 ## Status
 
-Deprecated — superseded for iOS release distribution by ADR-098 on September 15, 2026. The authenticated mobile-access request/audit decision remains implemented.
+Accepted
 
 ## Context
 
@@ -58,10 +58,3 @@ mobile-access Prisma schema, tRPC router/query layer, dashboard support page,
 and `mobile-access-invitation.ts` adapter. Uploads, submissions, API-key creation,
 permission changes, and tester invitations remain action-time-confirmed
 external operations.
-
-Shared schemas imported by the mobile notification surface must remain
-platform-neutral. Sales completion filter contracts therefore live separately
-from the server implementation that uses `node:crypto`; the server module
-re-exports the contract for backward compatibility. A production-mode iOS Metro
-export is part of release validation so future server-only transitive imports
-fail before an EAS build is requested.
