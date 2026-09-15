@@ -80,3 +80,13 @@ and displayed publicly on EU App Store product pages, no value was inferred,
 autofilled, typed or submitted. The Account Holder must supply or directly
 enter a monitored public business phone and email after confirming that the
 displayed D-U-N-S address is suitable for publication.
+
+## Verified completion
+
+After the Account Holder completed the owner-controlled contact and
+verification steps, the App Store Connect **Business → Compliance** table
+showed **Digital Services Act — Active**, covering **27 Countries or Regions**,
+last updated **Sep 15, 2026**. The prior red DSA completion banner was no longer
+present. This is authoritative portal evidence that the DSA compliance gate is
+currently cleared. Public contact values and verification codes are
+intentionally not copied into this report.

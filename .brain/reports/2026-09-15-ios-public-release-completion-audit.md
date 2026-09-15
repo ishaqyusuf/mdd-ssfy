@@ -55,24 +55,20 @@ longer release requirements. Public acquisition does not create public accounts.
 - Public distribution is selected. Automatic release after approval is selected
   and is a hard submission hold until a separately confirmed manual-release
   choice is saved. Mac/Vision Pro and School Manager options need review.
-- EU Digital Services Act trader status remains incomplete. On September 15,
-  the signed-in Account Holder dashboard showed Apple's explicit warning that
-  trader status must be provided to submit a new app or update for EU
-  distribution, and that affected apps may be removed from the EU storefront.
-  The Business module remained on a loading spinner after one reload, so the
-  declaration fields were not available for read-only inventory. No
-  declaration was started or submitted. Apple's current first-party checklist
-  is captured in
+- EU Digital Services Act trader status is **Active** for 27 Countries or
+  Regions, last updated September 15, 2026. The Account Holder completed the
+  owner-controlled contact and verification flow; the Business Compliance
+  table and disappearance of the prior warning are authoritative portal
+  evidence. Public contact values and verification codes are intentionally not
+  recorded. Apple's current first-party checklist remains captured in
   [the DSA requirements report](2026-09-15-apple-eu-trader-requirements.md);
   it identifies the authorized role, public contact/address display, evidence,
   payment-details-if-absent, certification and verification-state gates.
   At the initial handoff the Account Holder tab was open at the first DSA modal
   with neither legal status selected and **Next** disabled, ready for an
   explicit owner decision.
-  Following owner authorization to proceed as a trader, the live workflow is
-  now at Contact Information Verification. The D-U-N-S address is read-only;
-  public phone/email are blank and Next is disabled. No contact value or
-  verification code was entered or transmitted.
+  Following owner authorization to proceed as a trader, the workflow reached
+  Contact Information Verification and was completed by the Account Holder.
 - The configured apex backend redirects to `www`; generic auth is reachable,
   but the named mobile-access tRPC procedure returns JSON `NOT_FOUND`.
 - The authoritative dashboard project was previously verified as `GND SERVER /
@@ -97,14 +93,12 @@ longer release requirements. Public acquisition does not create public accounts.
    login limiter behaviors, and installed release-build login using a synthetic
    least-privilege review account.
 4. **Apple form decisions/saves:** approve listing copy, screenshots, category,
-   age rating, content rights, free price, worldwide availability, DSA trader
+   age rating, content rights, free price, worldwide availability, DSA status
    declaration, platform availability, School Manager option, review contact,
    review credentials and manual release. Each save/legal/credential action is
-   separately gated. The Account Holder must retry the Business module when it
-   renders and have the legal/business owner provide the accurate trader facts;
-   do not infer or prefill them from the Apple organization record. Do not put
-   verification codes, payment details, private evidence or credentials in
-   repository documentation or chat.
+   separately gated. DSA is currently Active; recheck it immediately before App
+   Review without copying contact values, payment details, private evidence or
+   credentials into repository documentation or chat.
 5. **Fresh candidate:** set the approved privacy URL in EAS production only
    with confirmation, queue a clean store build with build acknowledgment, and
    inspect its source, Info.plist, privacy manifests, profile, entitlements,

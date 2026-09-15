@@ -64,12 +64,12 @@ authorization to save listing data or transmit review credentials.
 - Free Apps Agreement: **Active** for All Countries or Regions through
   September 12, 2027. Paid Apps Agreement: **New/unsigned**; do not sign it
   merely for the planned free release.
-- EU Digital Services Act trader compliance: **incomplete**. On September 15,
-  the signed-in Account Holder dashboard warned that trader status must be
-  provided to submit new apps or updates for EU distribution and that affected
-  apps may be removed from the EU storefront. The Business module remained on
-  a loading spinner after one reload, so its declaration fields were not
-  inventoried and no declaration was started or submitted.
+- EU Digital Services Act trader compliance: **Active** for 27 Countries or
+  Regions, last updated September 15, 2026. The signed-in Account Holder
+  completed the owner-controlled contact and verification flow; the Business
+  Compliance table and removal of the prior red warning provide authoritative
+  portal evidence. Public contact values and verification codes are not stored
+  in repository documentation.
   Use the [official-Apple DSA evidence checklist](../reports/2026-09-15-apple-eu-trader-requirements.md)
   before retrying: an organization trader may need its D-U-N-S-linked public
   address, verified public phone and email, current business/address evidence,
@@ -225,10 +225,9 @@ needed before the production policy URL or App Privacy fields are saved.
    the App Store is supported, not a promise of availability in every country.
    Review the default-on Apple silicon Mac and Vision Pro compatibility toggles
    as part of this gate; validate them or opt out for the first release.
-3. **GATE legal:** Re-check EU Digital Services Act trader status; the last live
-   audit found it incomplete. All Countries or Regions includes EU storefronts,
-   so the Account Holder/legal owner must complete accurate trader information
-   before global publication. Re-check any country-specific age/content,
+3. **VERIFY legal:** Re-check EU Digital Services Act trader status remains
+   Active before App Review; it was verified Active for 27 Countries or Regions
+   on September 15, 2026. Re-check any country-specific age/content,
    encryption, business, or tax obligations shown in App Store Connect. Do not
    answer legal questions by inference from the code or the Apple organization
    record. If the Business module still remains on a loading spinner, retry in
@@ -238,8 +237,8 @@ needed before the production policy URL or App Privacy fields are saved.
    Do not paste verification codes, payment details, private records or account
    credentials into Brain or chat. The authorized Account Holder should enter
    them directly in App Store Connect after action-time confirmation. Treat EU
-   availability as blocked until Apple shows the trader information verified;
-   a submitted declaration alone is not completion.
+   availability as blocked if Apple no longer shows the trader information
+   Active; a submitted declaration alone is not completion.
    At the initial handoff, the Account Holder tab was prepared at the first DSA
    modal with neither **trader** nor **not a trader / no EU distribution**
    selected and **Next** disabled. That legal-owner choice was required before
@@ -250,7 +249,8 @@ needed before the production policy URL or App Privacy fields are saved.
    unset, leaving **Next** disabled. Confirm that the displayed address is
    suitable for public EU product pages, then have the owner provide or enter a
    monitored business phone/email. Do not use login or personal-account
-   autofill for public trader contacts.
+   autofill for public trader contacts. The Account Holder subsequently
+   completed verification; Business now reports DSA **Active**.
 4. **GATE listing:** Provide final app name/subtitle, description, keywords,
    primary category, Content Rights, support URL, marketing URL if used,
    copyright, age-rating answers,

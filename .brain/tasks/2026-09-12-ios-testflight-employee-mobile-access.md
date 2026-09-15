@@ -42,8 +42,8 @@ approved public registration design exists.
 - Remaining gate: The Account Holder signed in on September 15 and live
   App Store Connect readiness was inspected read-only. Worldwide
   release also requires accurate App Privacy/privacy-policy URL, final listing
-  screenshots and support URL, review account/demo, age rating, EU trader
-  declaration, pricing/availability, and separate binary upload/App Review/
+  screenshots and support URL, review account/demo, age rating,
+  pricing/availability, and separate binary upload/App Review/
   public-release confirmations. EAS now securely stores Apple Distribution certificate `ZDC9NMPYX8`
   and App Store profile `6VT956987X`; all temporary exported private material was
   removed. Store build `3f3a6acf-ac06-42b8-ab72-1837480f49cc` completed for
@@ -128,6 +128,12 @@ approved public registration design exists.
   contact value, verification code, payment detail or document was entered or
   transmitted. The Account Holder must confirm the public address and supply or
   directly enter monitored business contact details.
+- September 15 DSA completion: after the Account Holder completed the
+  owner-controlled contact and verification steps, App Store Connect Business
+  showed **Digital Services Act — Active**, covering 27 Countries or Regions
+  and last updated September 15, 2026. The prior red warning disappeared. The
+  EU trader gate is cleared subject to a final pre-review status recheck; no
+  public contact value or verification code is stored in Brain.
 - September 15 accessibility/review inventory: live App Accessibility shows
   Get Started, confirming no accessibility support answers are published, and
   App Review contains no submitted items. A narrow source inventory found
