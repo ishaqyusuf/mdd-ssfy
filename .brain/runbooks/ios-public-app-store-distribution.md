@@ -305,6 +305,9 @@ needed before the production policy URL or App Privacy fields are saved.
    retention schedule, or document-deletion/purge explanation. Do not treat
    the current retail policy as legally approved for this binary based solely
    on its URL or generic language.
+   Use the [app-specific privacy-policy draft](../reports/2026-09-15-ios-app-specific-privacy-policy-draft.md)
+   as the legal/data-owner review starting point. Every bracketed item is a
+   blocking fact, not publication-ready copy.
 6. **GATE review access:** Apple requires an active demo account or approved
    fully featured demo mode for account-based features. Arrange a least-
    privilege, non-production-data review account and clear Review Notes that

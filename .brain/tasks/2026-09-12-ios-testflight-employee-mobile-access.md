@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 app-specific privacy draft: a local, source-backed policy draft
+  now covers company-issued authentication, role access, job/dispatch data,
+  employee documents, proof photos/signatures, conditional analytics and crash
+  diagnostics, providers, storage, retention/deletion, rights, international
+  processing and public contact. Unknown controller/seller relationships,
+  vendor operations, production telemetry, retention/purge, legal bases and
+  regional terms remain bracketed blockers. Nothing was published or entered
+  in Apple/EAS, and no `.env*` file changed.
 - September 15 completion audit: every original deliverable and updated public
   App Store acceptance criterion now maps to authoritative source, test,
   artifact, portal or deployment evidence. The visible iOS 1.0 Build section

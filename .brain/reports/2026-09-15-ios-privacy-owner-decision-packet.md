@@ -74,6 +74,12 @@ least-privilege review account via the approved secret channel, App Privacy
 publication, App Review submission, and final public release. This packet
 supplies questions, not authorization to save any of those fields.
 
+The [source-backed app-specific policy draft](2026-09-15-ios-app-specific-privacy-policy-draft.md)
+turns the known mobile flows into proposed public wording and isolates every
+remaining legal, vendor, retention, deletion and regional fact as an explicit
+placeholder. It must not be published until all placeholders are resolved and
+the final text is approved.
+
 ## Current recheck limitation
 
 The local release-readiness source check remains 27/28, with only the missing

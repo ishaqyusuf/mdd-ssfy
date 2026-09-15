@@ -86,7 +86,10 @@ longer release requirements. Public acquisition does not create public accounts.
 
 1. **Business/legal decision:** approve or replace the exact public privacy
    policy and support URLs; approve the data-retention/purge wording and App
-   Privacy answers. Candidate URLs are not approvals.
+   Privacy answers. Candidate URLs are not approvals. A source-backed
+   [app-specific policy draft](2026-09-15-ios-app-specific-privacy-policy-draft.md)
+   now reduces this gate to explicit controller/seller, vendor, telemetry,
+   retention, deletion, regional-rights and public-contact decisions.
 2. **Deployment authority:** regain access to the known `gndprodesk` Vercel
    project, identify the deployed SHA/full proposed delta/rollback target, confirm
    required limiter variable presence without exposing values, and approve the
