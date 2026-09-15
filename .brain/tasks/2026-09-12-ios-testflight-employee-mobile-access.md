@@ -104,6 +104,15 @@ approved public registration design exists.
   reload, so its fields could not be inventoried. No declaration, portal field,
   permission or submission changed; accurate DSA trader facts remain an
   Account Holder plus legal/business-owner gate.
+- September 15 official DSA requirements packet: Apple says free pricing alone
+  does not establish non-trader status. For an organization trader, the
+  Account Holder/Admin workflow may require the D-U-N-S-linked public address,
+  verified public phone and email, current business/address evidence,
+  payment-account details if absent, and an EU-law compliance certification.
+  Apple does not promise a review duration; its general compliance guidance
+  says to contact Apple after 14 business days pending. No sensitive evidence,
+  verification code, payment detail or account value was collected, and EU
+  release remains gated until Apple shows verification complete.
 - September 15 accessibility/review inventory: live App Accessibility shows
   Get Started, confirming no accessibility support answers are published, and
   App Review contains no submitted items. A narrow source inventory found
@@ -143,6 +152,14 @@ approved public registration design exists.
   workspace contents. The packet names exact auth/router, limiter, redirect,
   rollback, and installed-build acceptance evidence for an action-time
   deployment review. No Vercel/Apple/EAS setting or binary changed.
+- September 15 deployment-identity correction: existing Brain evidence from
+  September 4–5 already identifies the dashboard target as `GND SERVER /
+  gndprodesk` (`prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`, root `apps/dashboard`). The
+  repository-root `.vercel/project.json` is linked to the separate
+  `gnd-storefront` project and must not be used for dashboard deployment. The
+  remaining credential gate is current access to the known project so its live
+  deployment SHA, aliases, variable presence and rollback target can be
+  verified before any separately approved deployment.
 - September 15 source-to-handler regression: a focused API route test now
   checks that protected `mobileAccess.myRequests` is registered in the app
   router and exported through the dashboard's internal API handler. This

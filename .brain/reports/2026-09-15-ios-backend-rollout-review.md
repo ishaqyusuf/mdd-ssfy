@@ -25,15 +25,17 @@ Status: Prepared locally; no deployment or account setting changed
 
 ## Information required before a production deployment decision
 
-1. Identify the exact current Vercel production deployment, linked project,
-   alias and source commit/build artifact. The observed HTTP responses do not
-   provide its Git SHA. A September 15 read-only Chrome inventory opened an
-   `ishaqyusufs-projects` Hobby Vercel tab; its project search did not contain
-   GND, and a subsequent team/account interaction led to a Vercel login page.
-   No Google identity or Vercel login was selected. This tab is **not** an
-   authoritative GND deployment view. **TODO:** obtain the correct GND Vercel
-   project/deployment ID/SHA through owner-provided access or an approved
-   credential step, without printing credentials.
+1. Re-open the previously verified Vercel project `GND SERVER / gndprodesk`
+   (`prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`, root `apps/dashboard`) and identify its
+   exact current production deployment, aliases, source commit and build
+   artifact. This project identity was verified read-only on September 4 and
+   September 5 and is preserved in `.brain/progress.md`; the repository-root
+   `.vercel/project.json` is instead linked to `gnd-storefront` and must not be
+   used for a dashboard deployment. The observed HTTP responses do not provide
+   the current deployment Git SHA. A September 15 Chrome inventory exposed only
+   the unrelated `ishaqyusufs-projects` Hobby team, and no Google identity or
+   Vercel login was selected. **TODO:** regain current read-only access to the
+   known project and record the deployment ID/SHA without printing credentials.
 2. Compare that deployment against the proposed immutable source ref, including
    every committed change that would ship, not only mobile-access files.
    The full delta is presently unknown; recent router history also includes

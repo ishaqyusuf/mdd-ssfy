@@ -61,19 +61,28 @@ longer release requirements. Public acquisition does not create public accounts.
   distribution, and that affected apps may be removed from the EU storefront.
   The Business module remained on a loading spinner after one reload, so the
   declaration fields were not available for read-only inventory. No
-  declaration was started or submitted.
+  declaration was started or submitted. Apple's current first-party checklist
+  is captured in
+  [the DSA requirements report](2026-09-15-apple-eu-trader-requirements.md);
+  it identifies the authorized role, public contact/address display, evidence,
+  payment-details-if-absent, certification and verification-state gates.
 - The configured apex backend redirects to `www`; generic auth is reachable,
   but the named mobile-access tRPC procedure returns JSON `NOT_FOUND`.
-- The visible Vercel Hobby team does not expose a GND project. The authoritative
-  GND deployment ID/SHA, aliases and environment-variable presence are unknown.
+- The authoritative dashboard project was previously verified as `GND SERVER /
+  gndprodesk` (`prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`, root `apps/dashboard`). The
+  repository-root `.vercel/project.json` points to the separate
+  `gnd-storefront` project and is not a safe dashboard deployment target. The
+  visible September 15 Hobby-team session does not expose the GND project, so
+  the current production deployment ID/SHA, aliases and environment-variable
+  presence remain unknown.
 
 ## Exact remaining gates
 
 1. **Business/legal decision:** approve or replace the exact public privacy
    policy and support URLs; approve the data-retention/purge wording and App
    Privacy answers. Candidate URLs are not approvals.
-2. **Deployment authority:** obtain the correct GND Vercel project access,
-   identify the deployed SHA/full proposed delta/rollback target, confirm
+2. **Deployment authority:** regain access to the known `gndprodesk` Vercel
+   project, identify the deployed SHA/full proposed delta/rollback target, confirm
    required limiter variable presence without exposing values, and approve the
    exact deployment action.
 3. **Runtime acceptance:** after deployment, verify the exact approved origin,
@@ -86,7 +95,9 @@ longer release requirements. Public acquisition does not create public accounts.
    review credentials and manual release. Each save/legal/credential action is
    separately gated. The Account Holder must retry the Business module when it
    renders and have the legal/business owner provide the accurate trader facts;
-   do not infer or prefill them from the Apple organization record.
+   do not infer or prefill them from the Apple organization record. Do not put
+   verification codes, payment details, private evidence or credentials in
+   repository documentation or chat.
 5. **Fresh candidate:** set the approved privacy URL in EAS production only
    with confirmation, queue a clean store build with build acknowledgment, and
    inspect its source, Info.plist, privacy manifests, profile, entitlements,

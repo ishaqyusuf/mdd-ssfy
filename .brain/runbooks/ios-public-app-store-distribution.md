@@ -70,6 +70,10 @@ authorization to save listing data or transmit review credentials.
   apps may be removed from the EU storefront. The Business module remained on
   a loading spinner after one reload, so its declaration fields were not
   inventoried and no declaration was started or submitted.
+  Use the [official-Apple DSA evidence checklist](../reports/2026-09-15-apple-eu-trader-requirements.md)
+  before retrying: an organization trader may need its D-U-N-S-linked public
+  address, verified public phone and email, current business/address evidence,
+  payment-account details if absent, and an EU-law compliance certification.
 - App Information: name, bundle, SKU, Apple ID, and English (U.S.) are present;
   subtitle, primary category, age-rating answers, and Content Rights setup are
   missing.
@@ -231,6 +235,11 @@ needed before the production policy URL or App Privacy fields are saved.
    a clean signed-in session or contact App Store Connect support; do not bypass
    the declaration or remove EU availability merely to clear the submission
    warning without an explicit product/legal decision.
+   Do not paste verification codes, payment details, private records or account
+   credentials into Brain or chat. The authorized Account Holder should enter
+   them directly in App Store Connect after action-time confirmation. Treat EU
+   availability as blocked until Apple shows the trader information verified;
+   a submitted declaration alone is not completion.
 4. **GATE listing:** Provide final app name/subtitle, description, keywords,
    primary category, Content Rights, support URL, marketing URL if used,
    copyright, age-rating answers,
