@@ -90,3 +90,9 @@ last updated **Sep 15, 2026**. The prior red DSA completion banner was no longer
 present. This is authoritative portal evidence that the DSA compliance gate is
 currently cleared. Public contact values and verification codes are
 intentionally not copied into this report.
+
+The app-specific **GND Millwork → App Information → Digital Services Act**
+section also states: **This developer has identified itself as a trader for
+this app.** This resolves the remaining app-level ambiguity. The Apps dashboard
+continued to show its generic trader reminder, but it is weaker evidence than
+the Active Business compliance row plus the explicit app-specific status.

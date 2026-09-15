@@ -133,7 +133,10 @@ approved public registration design exists.
   showed **Digital Services Act — Active**, covering 27 Countries or Regions
   and last updated September 15, 2026. The prior red warning disappeared. The
   EU trader gate is cleared subject to a final pre-review status recheck; no
-  public contact value or verification code is stored in Brain.
+  public contact value or verification code is stored in Brain. GND Millwork's
+  app-specific App Information also states that the developer is identified as
+  a trader for this app. The Apps dashboard's generic reminder remains visible,
+  but the Active compliance row and explicit app status are controlling.
 - September 15 accessibility/review inventory: live App Accessibility shows
   Get Started, confirming no accessibility support answers are published, and
   App Review contains no submitted items. A narrow source inventory found

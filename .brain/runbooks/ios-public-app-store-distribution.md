@@ -69,7 +69,10 @@ authorization to save listing data or transmit review credentials.
   completed the owner-controlled contact and verification flow; the Business
   Compliance table and removal of the prior red warning provide authoritative
   portal evidence. Public contact values and verification codes are not stored
-  in repository documentation.
+  in repository documentation. GND Millwork's app-specific App Information also
+  states that the developer is identified as a trader for this app. Treat the
+  Apps dashboard's remaining generic trader reminder as stale/non-controlling
+  unless either authoritative status changes.
   Use the [official-Apple DSA evidence checklist](../reports/2026-09-15-apple-eu-trader-requirements.md)
   before retrying: an organization trader may need its D-U-N-S-linked public
   address, verified public phone and email, current business/address evidence,
@@ -251,6 +254,8 @@ needed before the production policy URL or App Privacy fields are saved.
    monitored business phone/email. Do not use login or personal-account
    autofill for public trader contacts. The Account Holder subsequently
    completed verification; Business now reports DSA **Active**.
+   GND Millwork's App Information independently confirms trader status for this
+   app; recheck both surfaces before submission.
 4. **GATE listing:** Provide final app name/subtitle, description, keywords,
    primary category, Content Rights, support URL, marketing URL if used,
    copyright, age-rating answers,

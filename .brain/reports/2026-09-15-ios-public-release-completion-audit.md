@@ -60,7 +60,10 @@ longer release requirements. Public acquisition does not create public accounts.
   owner-controlled contact and verification flow; the Business Compliance
   table and disappearance of the prior warning are authoritative portal
   evidence. Public contact values and verification codes are intentionally not
-  recorded. Apple's current first-party checklist remains captured in
+  recorded. The app-specific App Information page independently says this
+  developer is identified as a trader for GND Millwork. The Apps dashboard
+  still renders a generic trader reminder, but it does not contradict those
+  two specific status surfaces. Apple's current first-party checklist remains captured in
   [the DSA requirements report](2026-09-15-apple-eu-trader-requirements.md);
   it identifies the authorized role, public contact/address display, evidence,
   payment-details-if-absent, certification and verification-state gates.
