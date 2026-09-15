@@ -4,6 +4,7 @@ import {
 	resolveSalesPrintMode,
 } from "@/modules/sales-print/application/sales-print-service";
 import type { IOrderPrintMode } from "@/types/sales";
+import type { SalesPriceDisplay } from "@gnd/sales/print";
 
 interface Props extends SalesPrintProps {}
 export type SalesPrintProps = {
@@ -14,6 +15,7 @@ export type SalesPrintProps = {
 	pdf?: boolean;
 	deletedAt?;
 	dispatchId?;
+	priceDisplay?: SalesPriceDisplay;
 };
 export async function printSalesData(props: Props) {
 	const salesIds =
@@ -31,6 +33,7 @@ export async function printSalesData(props: Props) {
 			salesIds,
 			mode,
 			dispatchId: props.dispatchId ?? null,
+			priceDisplay: props.priceDisplay ?? null,
 		});
 		return;
 	}
@@ -39,5 +42,6 @@ export async function printSalesData(props: Props) {
 		salesIds,
 		mode,
 		dispatchId: props.dispatchId ?? null,
+		priceDisplay: props.priceDisplay ?? null,
 	});
 }

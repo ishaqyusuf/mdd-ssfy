@@ -15,7 +15,14 @@ import {
 	resolveCurrentSalesDocument,
 	salesPrintDataToPrintDocumentData,
 } from "@gnd/sales/pdf-system";
-import type { PrintPricingMode, getPrintDocumentData } from "@gnd/sales/print";
+import {
+	assertSalesPriceDisplaySupported,
+	normalizeSalesPriceDisplay,
+	resolveSalesPriceDisplayTemplateId,
+	type PrintPricingMode,
+	type SalesPriceDisplay,
+	type getPrintDocumentData,
+} from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
 import {
 	type SalesPrintSettings,
@@ -60,11 +67,13 @@ type SalesDocumentMeta = {
 	expiresAt?: string | null;
 	templateId?: string | null;
 	mode?: PrintMode | null;
+	pricingMode?: PrintPricingMode | null;
 	dispatchId?: number | null;
 	scopeKey?: string | null;
 	title?: string | null;
 	publicLinkMode?: "public-token" | "access-token" | null;
 	printConfig?: SalesPrintSettings | null;
+	priceDisplay?: SalesPriceDisplay | null;
 };
 
 export type ResolveSalesDocumentAccessInput = {
@@ -72,6 +81,7 @@ export type ResolveSalesDocumentAccessInput = {
 	salesIds: number[];
 	mode: PrintMode;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
@@ -84,6 +94,7 @@ export type ResolveSalesDocumentHtmlPreviewAccessInput = {
 	salesIds: number[];
 	mode: PrintMode;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
@@ -98,6 +109,7 @@ export type ResolveSalesDocumentAccessResult = {
 	kind: "snapshot" | "legacy";
 	generated: boolean;
 	mode: PrintMode;
+	priceDisplay: SalesPriceDisplay;
 	documentType: string;
 	salesOrderId: number | null;
 	snapshotId?: string | null;
@@ -122,6 +134,7 @@ export type ResolveSalesDocumentPreviewDataResult = {
 	logoUrl?: Awaited<ReturnType<typeof getPrintDocumentData>>["logoUrl"];
 	watermark: null;
 	mode: PrintMode;
+	priceDisplay: SalesPriceDisplay;
 	orderNo: string | null;
 	salesOrderId: number | null;
 	customerEmail: string | null;
@@ -159,9 +172,12 @@ type SnapshotAccessLookup = {
 export function buildSalesDocumentTypeKey(input: {
 	mode: PrintMode;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 }) {
-	return buildSalesPrintDocumentTypeKey(input);
+	const priceDisplay = normalizeSalesPriceDisplay(input.priceDisplay);
+	assertSalesPriceDisplaySupported(input.mode, priceDisplay);
+	return buildSalesPrintDocumentTypeKey({ ...input, priceDisplay });
 }
 
 function buildSalesDocumentScopeKey(input: {
@@ -255,16 +271,28 @@ function resolveBaseUrl(baseUrl?: string | null) {
 function resolveSalesPrintConfig(input?: {
 	templateId?: string | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
+	priceDisplay?: SalesPriceDisplay | null;
 }) {
+	const priceDisplay = normalizeSalesPriceDisplay(input?.priceDisplay);
 	return normalizeSalesPrintSettings({
 		...(input?.printConfig || {}),
-		...(input?.templateId ? { templateId: input.templateId } : {}),
+		...(input?.templateId
+			? {
+					templateId: resolveSalesPriceDisplayTemplateId(
+						priceDisplay,
+						input.templateId,
+					),
+				}
+			: priceDisplay === "totals-only"
+				? { templateId: resolveSalesPriceDisplayTemplateId(priceDisplay) }
+				: {}),
 	});
 }
 
 function buildPrintConfigSearchParams(input?: {
 	templateId?: string | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
+	priceDisplay?: SalesPriceDisplay | null;
 }) {
 	const config = resolveSalesPrintConfig(input);
 	const params = new URLSearchParams();
@@ -288,6 +316,12 @@ function buildPricingModeSearchParam(pricingMode?: PrintPricingMode | null) {
 	return pricingMode ? `&pricingMode=${encodeURIComponent(pricingMode)}` : "";
 }
 
+function buildPriceDisplaySearchParam(priceDisplay?: SalesPriceDisplay | null) {
+	return normalizeSalesPriceDisplay(priceDisplay) === "totals-only"
+		? "&priceDisplay=totals-only"
+		: "";
+}
+
 function hashShortLinkValue(value: string) {
 	return createHash("sha256").update(value).digest("base64url").slice(0, 16);
 }
@@ -296,12 +330,14 @@ function buildQrShortLinkSourceId(input: {
 	locator: string;
 	templateId?: string | null;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	previewUrl: string;
 }) {
 	const templateId = input.templateId || DEFAULT_TEMPLATE_ID;
 	const pricingMode = input.pricingMode || "default";
+	const priceDisplay = normalizeSalesPriceDisplay(input.priceDisplay);
 	const urlHash = hashShortLinkValue(input.previewUrl);
-	return `${input.locator}:${templateId}:${pricingMode}:${urlHash}`;
+	return `${input.locator}:${templateId}:${pricingMode}:${priceDisplay}:${urlHash}`;
 }
 
 async function generateShortSalesDocumentQrCodeDataUrl(input: {
@@ -313,11 +349,13 @@ async function generateShortSalesDocumentQrCodeDataUrl(input: {
 	locator: string;
 	templateId?: string | null;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 }) {
 	const sourceId = buildQrShortLinkSourceId({
 		locator: input.locator,
 		templateId: input.templateId,
 		pricingMode: input.pricingMode,
+		priceDisplay: input.priceDisplay,
 		previewUrl: input.previewUrl,
 	});
 
@@ -333,6 +371,7 @@ async function generateShortSalesDocumentQrCodeDataUrl(input: {
 				locator: input.locator,
 				templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 				pricingMode: input.pricingMode ?? null,
+				priceDisplay: normalizeSalesPriceDisplay(input.priceDisplay),
 				previewUrlHash: hashShortLinkValue(input.previewUrl),
 			},
 		});
@@ -345,6 +384,7 @@ async function generateShortSalesDocumentQrCodeDataUrl(input: {
 			locator: input.locator,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay: normalizeSalesPriceDisplay(input.priceDisplay),
 			error: error instanceof Error ? error.message : "Unknown error",
 		});
 		return generateQrCodeDataUrl(input.previewUrl);
@@ -387,12 +427,14 @@ function buildLegacySalesDocumentPreviewUrls(input: {
 	templateId?: string | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 }) {
 	const baseUrl = resolveBaseUrl(input.baseUrl);
 	const printConfigParams = buildPrintConfigSearchParams(input);
 	const pricingModeParam = buildPricingModeSearchParam(input.pricingMode);
-	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?token=${encodeURIComponent(input.token)}${printConfigParams}${pricingModeParam}`;
-	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?token=${encodeURIComponent(input.token)}&preview=false${printConfigParams}${pricingModeParam}`;
+	const priceDisplayParam = buildPriceDisplaySearchParam(input.priceDisplay);
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?token=${encodeURIComponent(input.token)}${printConfigParams}${pricingModeParam}${priceDisplayParam}`;
+	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?token=${encodeURIComponent(input.token)}&preview=false${printConfigParams}${pricingModeParam}${priceDisplayParam}`;
 	return { previewUrl, downloadUrl };
 }
 
@@ -592,7 +634,9 @@ export async function resolveSalesDocumentHtmlPreviewAccess(
 	if (!input.salesIds.length) {
 		throw new Error("At least one sales order is required.");
 	}
-	const printConfig = resolveSalesPrintConfig(input);
+	const priceDisplay = normalizeSalesPriceDisplay(input.priceDisplay);
+	assertSalesPriceDisplaySupported(input.mode, priceDisplay);
+	const printConfig = resolveSalesPrintConfig({ ...input, priceDisplay });
 
 	if (input.salesIds.length === 1) {
 		const salesOrderId = input.salesIds[0];
@@ -605,7 +649,8 @@ export async function resolveSalesDocumentHtmlPreviewAccess(
 			salesOrderId,
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? null,
-			documentType: buildSalesDocumentTypeKey(input),
+			priceDisplay,
+			documentType: buildSalesDocumentTypeKey({ ...input, priceDisplay }),
 			dispatchId: input.dispatchId ?? null,
 			templateId: printConfig.templateId,
 			forceRefresh: false,
@@ -624,13 +669,15 @@ export async function resolveSalesDocumentHtmlPreviewAccess(
 		baseUrl: input.baseUrl,
 		printConfig,
 		pricingMode: input.pricingMode ?? null,
+		priceDisplay,
 	});
 
 	return {
 		kind: "legacy",
 		generated: false,
 		mode: input.mode,
-		documentType: buildSalesDocumentTypeKey(input),
+		priceDisplay,
+		documentType: buildSalesDocumentTypeKey({ ...input, priceDisplay }),
 		salesOrderId:
 			input.salesIds.length === 1 ? (input.salesIds[0] ?? null) : null,
 		accessToken,
@@ -728,6 +775,7 @@ async function createSalesPdfSnapshot(input: {
 	salesOrderId: number;
 	mode: PrintMode;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	documentType: string;
 	dispatchId?: number | null;
 	templateId?: string | null;
@@ -735,7 +783,9 @@ async function createSalesPdfSnapshot(input: {
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
 }) {
-	const printConfig = resolveSalesPrintConfig(input);
+	const priceDisplay = normalizeSalesPriceDisplay(input.priceDisplay);
+	assertSalesPriceDisplaySupported(input.mode, priceDisplay);
+	const printConfig = resolveSalesPrintConfig({ ...input, priceDisplay });
 	const repository = createSalesDocumentSnapshotRepository(input.db);
 	const latest = await repository.findLatestVersion({
 		salesOrderId: input.salesOrderId,
@@ -762,6 +812,7 @@ async function createSalesPdfSnapshot(input: {
 		meta: {
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 			dispatchId: input.dispatchId ?? null,
 			scopeKey: buildSalesDocumentScopeKey(input),
 			templateId: printConfig.templateId,
@@ -793,6 +844,7 @@ async function createSalesPdfSnapshot(input: {
 			salesOrderId: input.salesOrderId,
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 			documentType: input.documentType,
 			dispatchId: input.dispatchId ?? null,
 			templateId: printConfig.templateId,
@@ -813,6 +865,7 @@ async function createSalesPdfSnapshot(input: {
 			locator: `snapshot:${pending.id}`,
 			templateId: printConfig.templateId,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 		});
 		const renderStart = Date.now();
 		const buffer = await renderSalesPdfBuffer({
@@ -878,6 +931,7 @@ async function createSalesPdfSnapshot(input: {
 				documentType: input.documentType,
 				mode: input.mode,
 				dispatchId: input.dispatchId ?? null,
+				priceDisplay,
 			},
 		});
 
@@ -890,6 +944,8 @@ async function createSalesPdfSnapshot(input: {
 			errorMessage: null,
 			meta: {
 				mode: input.mode,
+				pricingMode: input.pricingMode ?? null,
+				priceDisplay,
 				dispatchId: input.dispatchId ?? null,
 				scopeKey: buildSalesDocumentScopeKey(input),
 				templateId: printConfig.templateId,
@@ -926,7 +982,9 @@ export async function resolveSalesDocumentAccess(
 	if (!input.salesIds.length) {
 		throw new Error("At least one sales order is required.");
 	}
-	const printConfig = resolveSalesPrintConfig(input);
+	const priceDisplay = normalizeSalesPriceDisplay(input.priceDisplay);
+	assertSalesPriceDisplaySupported(input.mode, priceDisplay);
+	const printConfig = resolveSalesPrintConfig({ ...input, priceDisplay });
 
 	if (input.salesIds.length !== 1) {
 		const accessToken = buildLegacySalesPrintToken({
@@ -939,12 +997,14 @@ export async function resolveSalesDocumentAccess(
 			baseUrl: input.baseUrl,
 			printConfig,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 		});
 		return {
 			kind: "legacy",
 			generated: false,
 			mode: input.mode,
-			documentType: buildSalesDocumentTypeKey(input),
+			priceDisplay,
+			documentType: buildSalesDocumentTypeKey({ ...input, priceDisplay }),
 			salesOrderId: null,
 			accessToken,
 			expiresAt: addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
@@ -958,7 +1018,7 @@ export async function resolveSalesDocumentAccess(
 	if (salesOrderId == null) {
 		throw new Error("At least one sales order is required.");
 	}
-	const documentType = buildSalesDocumentTypeKey(input);
+	const documentType = buildSalesDocumentTypeKey({ ...input, priceDisplay });
 
 	if (isSalesPdfSnapshotArtifactsDisabled()) {
 		const accessToken = buildLegacySalesPrintToken({
@@ -971,11 +1031,13 @@ export async function resolveSalesDocumentAccess(
 			baseUrl: input.baseUrl,
 			printConfig,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 		});
 		return {
 			kind: "legacy",
 			generated: false,
 			mode: input.mode,
+			priceDisplay,
 			documentType,
 			salesOrderId,
 			accessToken,
@@ -997,9 +1059,12 @@ export async function resolveSalesDocumentAccess(
 		const snapshotPrintConfig = resolveSalesPrintConfig({
 			templateId: meta.templateId,
 			printConfig: meta.printConfig,
+			priceDisplay: meta.priceDisplay,
 		});
+		const snapshotPriceDisplay = normalizeSalesPriceDisplay(meta.priceDisplay);
 		const printConfigMatches =
-			JSON.stringify(snapshotPrintConfig) === JSON.stringify(printConfig);
+			JSON.stringify(snapshotPrintConfig) === JSON.stringify(printConfig) &&
+			snapshotPriceDisplay === priceDisplay;
 		const storedDocument =
 			current?.storedDocumentId != null
 				? await input.db.storedDocument.findFirst({
@@ -1052,6 +1117,7 @@ export async function resolveSalesDocumentAccess(
 				kind: "snapshot",
 				generated: false,
 				mode: input.mode,
+				priceDisplay: snapshotPriceDisplay,
 				documentType,
 				salesOrderId,
 				snapshotId: current.id,
@@ -1115,6 +1181,7 @@ export async function resolveSalesDocumentAccess(
 		salesOrderId,
 		mode: input.mode,
 		pricingMode: input.pricingMode ?? null,
+		priceDisplay,
 		documentType,
 		dispatchId: input.dispatchId ?? null,
 		printConfig,
@@ -1139,6 +1206,7 @@ export async function resolveSalesDocumentAccess(
 		kind: "snapshot",
 		generated: true,
 		mode: input.mode,
+		priceDisplay,
 		documentType,
 		salesOrderId,
 		snapshotId: created.snapshot.id,
@@ -1342,11 +1410,16 @@ export async function resolveSalesDocumentPreviewData(input: {
 	accessToken?: string | null;
 	snapshotId?: string | null;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	templateId?: string | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
 	baseUrl?: string | null;
 }) {
-	const printConfig = resolveSalesPrintConfig(input);
+	const requestedPriceDisplay = normalizeSalesPriceDisplay(input.priceDisplay);
+	const printConfig = resolveSalesPrintConfig({
+		...input,
+		priceDisplay: requestedPriceDisplay,
+	});
 	const templateId = printConfig.templateId;
 
 	if (input.publicToken) {
@@ -1360,10 +1433,19 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const priceDisplay = normalizeSalesPriceDisplay(meta.priceDisplay);
+		assertSalesPriceDisplaySupported(mode, priceDisplay);
+		const snapshotPrintConfig = resolveSalesPrintConfig({
+			templateId: meta.templateId,
+			printConfig: meta.printConfig,
+			priceDisplay,
+		});
+		const snapshotTemplateId = snapshotPrintConfig.templateId;
 		const documentType = input.pricingMode
 			? buildSalesDocumentTypeKey({
 					mode,
 					pricingMode: input.pricingMode,
+					priceDisplay,
 					dispatchId: meta.dispatchId ?? null,
 				})
 			: snapshot.documentType;
@@ -1376,9 +1458,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 			salesOrderId: snapshot.salesOrderId,
 			mode,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 			documentType,
 			dispatchId: meta.dispatchId ?? null,
-			templateId,
+			templateId: snapshotTemplateId,
 			reason: "html_preview",
 		});
 		const documentData = salesPrintDataToPrintDocumentData(
@@ -1391,7 +1474,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const urls = buildPublicTokenSalesDocumentUrls({
 			publicToken: input.publicToken,
 			baseUrl: input.baseUrl,
-			printConfig,
+			printConfig: snapshotPrintConfig,
 			pricingMode: input.pricingMode ?? null,
 		});
 		const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
@@ -1401,18 +1484,20 @@ export async function resolveSalesDocumentPreviewData(input: {
 			title: documentData.title,
 			expiresAt: meta.expiresAt ?? null,
 			locator: `snapshot:${snapshot.id}`,
-			templateId,
+			templateId: snapshotTemplateId,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 		});
 
 		return {
 			pages: documentData.pages,
 			title: documentData.title,
-			templateId,
+			templateId: snapshotTemplateId,
 			companyAddress: documentData.companyAddress,
 			logoUrl: documentData.logoUrl ?? undefined,
 			watermark: null,
 			mode,
+			priceDisplay,
 			orderNo: documentData.firstOrderId ?? null,
 			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
@@ -1426,7 +1511,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
 			qrCodeDataUrl,
-			printConfig,
+			printConfig: snapshotPrintConfig,
 		} satisfies ResolveSalesDocumentPreviewDataResult;
 	}
 
@@ -1441,10 +1526,19 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const priceDisplay = normalizeSalesPriceDisplay(meta.priceDisplay);
+		assertSalesPriceDisplaySupported(mode, priceDisplay);
+		const snapshotPrintConfig = resolveSalesPrintConfig({
+			templateId: meta.templateId,
+			printConfig: meta.printConfig,
+			priceDisplay,
+		});
+		const snapshotTemplateId = snapshotPrintConfig.templateId;
 		const documentType = input.pricingMode
 			? buildSalesDocumentTypeKey({
 					mode,
 					pricingMode: input.pricingMode,
+					priceDisplay,
 					dispatchId: meta.dispatchId ?? null,
 				})
 			: snapshot.documentType;
@@ -1457,9 +1551,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 			salesOrderId: snapshot.salesOrderId,
 			mode,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 			documentType,
 			dispatchId: meta.dispatchId ?? null,
-			templateId,
+			templateId: snapshotTemplateId,
 			reason: "html_preview",
 		});
 		const documentData = salesPrintDataToPrintDocumentData(
@@ -1475,12 +1570,12 @@ export async function resolveSalesDocumentPreviewData(input: {
 			expiresAt:
 				meta.expiresAt ||
 				addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
-			templateId,
+			templateId: snapshotTemplateId,
 		});
 		const urls = buildPublicTokenSalesDocumentUrls({
 			publicToken: publicToken.token,
 			baseUrl: input.baseUrl,
-			printConfig,
+			printConfig: snapshotPrintConfig,
 			pricingMode: input.pricingMode ?? null,
 		});
 		const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
@@ -1490,18 +1585,20 @@ export async function resolveSalesDocumentPreviewData(input: {
 			title: documentData.title,
 			expiresAt: meta.expiresAt ?? null,
 			locator: `snapshot:${snapshot.id}`,
-			templateId,
+			templateId: snapshotTemplateId,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 		});
 
 		return {
 			pages: documentData.pages,
 			title: documentData.title,
-			templateId,
+			templateId: snapshotTemplateId,
 			companyAddress: documentData.companyAddress,
 			logoUrl: documentData.logoUrl ?? undefined,
 			watermark: null,
 			mode,
+			priceDisplay,
 			orderNo: documentData.firstOrderId ?? null,
 			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
@@ -1515,7 +1612,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
 			qrCodeDataUrl,
-			printConfig,
+			printConfig: snapshotPrintConfig,
 		} satisfies ResolveSalesDocumentPreviewDataResult;
 	}
 
@@ -1531,10 +1628,19 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const priceDisplay = normalizeSalesPriceDisplay(meta.priceDisplay);
+		assertSalesPriceDisplaySupported(mode, priceDisplay);
+		const snapshotPrintConfig = resolveSalesPrintConfig({
+			templateId: meta.templateId,
+			printConfig: meta.printConfig,
+			priceDisplay,
+		});
+		const snapshotTemplateId = snapshotPrintConfig.templateId;
 		const documentType = input.pricingMode
 			? buildSalesDocumentTypeKey({
 					mode,
 					pricingMode: input.pricingMode,
+					priceDisplay,
 					dispatchId: meta.dispatchId ?? null,
 				})
 			: snapshot.documentType;
@@ -1547,9 +1653,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 			salesOrderId: snapshot.salesOrderId,
 			mode,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 			documentType,
 			dispatchId: meta.dispatchId ?? null,
-			templateId,
+			templateId: snapshotTemplateId,
 			reason: "html_preview",
 		});
 		const documentData = salesPrintDataToPrintDocumentData(
@@ -1565,12 +1672,12 @@ export async function resolveSalesDocumentPreviewData(input: {
 			expiresAt:
 				meta.expiresAt ||
 				addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
-			templateId,
+			templateId: snapshotTemplateId,
 		});
 		const urls = buildPublicTokenSalesDocumentUrls({
 			publicToken: publicToken.token,
 			baseUrl: input.baseUrl,
-			printConfig,
+			printConfig: snapshotPrintConfig,
 			pricingMode: input.pricingMode ?? null,
 		});
 		const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
@@ -1580,18 +1687,20 @@ export async function resolveSalesDocumentPreviewData(input: {
 			title: documentData.title,
 			expiresAt: meta.expiresAt ?? null,
 			locator: `snapshot:${snapshot.id}`,
-			templateId,
+			templateId: snapshotTemplateId,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 		});
 
 		return {
 			pages: documentData.pages,
 			title: documentData.title,
-			templateId,
+			templateId: snapshotTemplateId,
 			companyAddress: documentData.companyAddress,
 			logoUrl: documentData.logoUrl ?? undefined,
 			watermark: null,
 			mode,
+			priceDisplay,
 			orderNo: documentData.firstOrderId ?? null,
 			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
@@ -1605,7 +1714,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
 			qrCodeDataUrl,
-			printConfig,
+			printConfig: snapshotPrintConfig,
 		} satisfies ResolveSalesDocumentPreviewDataResult;
 	}
 
@@ -1628,6 +1737,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 							: payload.mode === "production"
 								? "production"
 								: "quote";
+	assertSalesPriceDisplaySupported(mode, requestedPriceDisplay);
 
 	const singleSalesOrderId =
 		payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null;
@@ -1639,9 +1749,11 @@ export async function resolveSalesDocumentPreviewData(input: {
 							salesOrderId: singleSalesOrderId,
 							mode,
 							pricingMode: input.pricingMode ?? null,
+							priceDisplay: requestedPriceDisplay,
 							documentType: buildSalesDocumentTypeKey({
 								mode,
 								pricingMode: input.pricingMode ?? null,
+								priceDisplay: requestedPriceDisplay,
 								dispatchId: payload.dispatchId ?? null,
 							}),
 							dispatchId: payload.dispatchId ?? null,
@@ -1654,9 +1766,11 @@ export async function resolveSalesDocumentPreviewData(input: {
 					salesOrderIds: payload.salesIds,
 					mode,
 					pricingMode: input.pricingMode ?? null,
+					priceDisplay: requestedPriceDisplay,
 					documentType: buildSalesDocumentTypeKey({
 						mode,
 						pricingMode: input.pricingMode ?? null,
+						priceDisplay: requestedPriceDisplay,
 						dispatchId: payload.dispatchId ?? null,
 					}),
 					dispatchId: payload.dispatchId ?? null,
@@ -1672,6 +1786,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 		baseUrl: input.baseUrl,
 		printConfig,
 		pricingMode: input.pricingMode ?? null,
+		priceDisplay: requestedPriceDisplay,
 	});
 	const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
 		db: input.db,
@@ -1682,6 +1797,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 		locator: `legacy:${hashShortLinkValue(urls.previewUrl)}`,
 		templateId,
 		pricingMode: input.pricingMode ?? null,
+		priceDisplay: requestedPriceDisplay,
 	});
 
 	return {
@@ -1692,6 +1808,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 		logoUrl: documentData.logoUrl ?? undefined,
 		watermark: null,
 		mode,
+		priceDisplay: requestedPriceDisplay,
 		orderNo:
 			payload.salesIds.length === 1
 				? (documentData.firstOrderId ?? null)
@@ -1704,6 +1821,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 				? buildSalesDocumentTypeKey({
 						mode,
 						pricingMode: input.pricingMode ?? null,
+						priceDisplay: requestedPriceDisplay,
 						dispatchId: payload.dispatchId ?? null,
 					})
 				: null,

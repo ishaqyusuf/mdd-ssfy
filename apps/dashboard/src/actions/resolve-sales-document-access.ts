@@ -14,6 +14,7 @@ import {
 	prepareSalesDocumentReadiness,
 } from "@gnd/sales/document-readiness";
 import type { PrintMode } from "@gnd/sales/print/types";
+import type { SalesPriceDisplay } from "@gnd/sales/print";
 import {
 	type SalesPrintSettings,
 	getSettingAction,
@@ -113,6 +114,7 @@ export async function resolveSalesDocumentAccessAction(input: {
 	salesIds: number[];
 	mode: PrintMode;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
@@ -131,6 +133,7 @@ export async function resolveSalesDocumentAccessAction(input: {
 		salesIds: input.salesIds,
 		mode: input.mode,
 		pricingMode: input.pricingMode ?? null,
+		priceDisplay: input.priceDisplay ?? null,
 		dispatchId: input.dispatchId ?? null,
 		printConfig,
 		baseUrl: input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
@@ -142,6 +145,7 @@ export async function resolveSalesDocumentHtmlPreviewAccessAction(input: {
 	salesIds: number[];
 	mode: PrintMode;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
@@ -159,6 +163,7 @@ export async function resolveSalesDocumentHtmlPreviewAccessAction(input: {
 		salesIds: input.salesIds,
 		mode: input.mode,
 		pricingMode: input.pricingMode ?? null,
+		priceDisplay: input.priceDisplay ?? null,
 		dispatchId: input.dispatchId ?? null,
 		printConfig,
 		baseUrl: input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,

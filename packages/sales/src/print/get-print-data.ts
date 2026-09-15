@@ -21,6 +21,10 @@ import { parsePrintModes } from "./modes";
 import { applyPersistedFormPrintFallback } from "./persisted-form-fallback";
 import { type PrintSalesData, buildPrintSalesInclude } from "./query";
 import type { PrintSalesV2Input } from "./schema";
+import {
+	normalizeSalesPriceDisplay,
+	type SalesPriceDisplay,
+} from "./price-display";
 import type {
 	PrintMode,
 	PrintPage,
@@ -44,6 +48,7 @@ export async function getPrintData(
 	}) => Promise<PrintSalesData[]>;
 
 	const modes = parsePrintModes(input.mode);
+	const priceDisplay = normalizeSalesPriceDisplay(input.priceDisplay);
 	const [sales, setting] = await Promise.all([
 		findPrintSales({
 			where: { id: { in: input.ids } },
@@ -66,15 +71,20 @@ export async function getPrintData(
 				mode,
 				setting,
 				input.dispatchId,
+				priceDisplay,
 			),
 		),
 	);
 
 	const first = pages[0];
-	const title =
+	const baseTitle =
 		pages.length === 1 && first
 			? `${first.meta.title} ${first.meta.salesNo}`
 			: `Sales Print (${pages.length})`;
+	const title =
+		priceDisplay === "totals-only"
+			? `${baseTitle} Totals Only`
+			: baseTitle;
 
 	return { pages, title, firstOrderId: currentSales[0]?.orderId ?? null };
 }
@@ -85,8 +95,9 @@ async function composePage(
 	mode: PrintMode,
 	setting: SalesSetting | null,
 	dispatchId?: number | null,
+	priceDisplay: SalesPriceDisplay = "detailed",
 ): Promise<PrintPage> {
-	const config = getModeConfig(mode);
+	const config = getModeConfig(mode, priceDisplay);
 	const meta = composeMeta(sale, mode);
 	const { billing, shipping } = composeAddresses(sale, mode);
 	const compositionSale = {

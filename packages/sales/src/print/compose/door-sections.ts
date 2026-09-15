@@ -31,13 +31,15 @@ export function composeDoorSections(
 ): DoorSection[] {
   const sections: DoorSection[] = [];
   const seen = new Set<number>();
+  const isCommercialDocument =
+    config.mode === "invoice" || config.mode === "quote";
 
   for (const [itemIndex, item] of sale.items.entries()) {
     if (!item.housePackageTool) continue;
     if (seen.has(item.id)) continue;
 
     const currentFormSteps = getLatestFormSteps(item, {
-      requireSingleRevision: config.showPrices,
+      requireSingleRevision: isCommercialDocument,
     });
     const currentItem = { ...item, formSteps: currentFormSteps };
     const doorType = getSalesItemType(currentItem);
@@ -129,11 +131,11 @@ export function composeDoorSections(
     let rowNum = 0;
     for (const m of multis) {
       const currentDoors = getCurrentHousePackageDoors(m, {
-        requireReconciliation: config.showPrices,
+        requireReconciliation: isCommercialDocument,
       });
       if (!currentDoors.length) continue;
       const currentMultiFormSteps = getLatestFormSteps(m, {
-        requireSingleRevision: config.showPrices,
+        requireSingleRevision: isCommercialDocument,
       });
       for (const door of currentDoors) {
         rowNum++;
@@ -170,7 +172,7 @@ export function composeDoorSections(
             image: doorImage,
           },
           {
-            value: config.showPrices ? dimIn : door.dimension,
+            value: isCommercialDocument ? dimIn : door.dimension,
             colSpan: 2.5,
             align: "left",
           },

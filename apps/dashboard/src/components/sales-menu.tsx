@@ -46,6 +46,11 @@ import { useSalesPrintController } from "@/modules/sales-print/application/use-s
 import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
+import {
+	ORDER_TOTALS_ONLY_PRINT_OPTION,
+	QUOTE_DOCUMENT_MENU_OPTIONS,
+	buildSalesMenuPrintControllerInput,
+} from "./sales-print-menu-options";
 import { salesFormUrl } from "@/utils/sales-utils";
 import type {
 	BulkFulfillmentResult,
@@ -735,23 +740,25 @@ function useSalesPrintAction() {
 				: null;
 		if (options?.pdf) {
 			actions.closeMenu();
-			await salesPrint.downloadPdf({
+			await salesPrint.downloadPdf(buildSalesMenuPrintControllerInput({
 				salesIds: state.salesIds,
 				mode,
 				dispatchId,
+				priceDisplay: params?.priceDisplay ?? null,
 				salesType: state.type === "quote" ? "quote" : "order",
-			});
+			}));
 			return;
 		}
 
 		actions.closeMenu();
-		await salesPrint.print({
+		await salesPrint.print(buildSalesMenuPrintControllerInput({
 			salesIds: state.salesIds,
 			mode,
 			dispatchId,
+			priceDisplay: params?.priceDisplay ?? null,
 			openInNewTab: options?.openInNewTab,
 			salesType: state.type === "quote" ? "quote" : "order",
-		});
+		}));
 	};
 }
 
@@ -788,23 +795,40 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 
 	if (isQuote) {
 		return (
-			<DropdownMenu.Item
-				disabled={disabled || !state.salesIds.length}
-				onPointerDown={captureShiftClick}
-				onSelect={(e) => {
-					e.preventDefault();
-					void runPrint(
-						{ mode: "quote" },
-						{ pdf: false, openInNewTab: consumeShiftClick() },
-					);
-				}}
-			>
-				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
-				Print
-				<span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-					v2
-				</span>
-			</DropdownMenu.Item>
+			<DropdownMenu.Sub>
+				<DropdownMenu.SubTrigger disabled={disabled || !state.salesIds.length}>
+					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
+					Print
+				</DropdownMenu.SubTrigger>
+				<DropdownMenu.SubContent>
+					<DropdownMenu.Item
+						onPointerDown={captureShiftClick}
+						onSelect={(e) => {
+							e.preventDefault();
+							void runPrint(
+								{ ...QUOTE_DOCUMENT_MENU_OPTIONS[0].params },
+								{ pdf: false, openInNewTab: consumeShiftClick() },
+							);
+						}}
+					>
+						<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
+						{QUOTE_DOCUMENT_MENU_OPTIONS[0].label}
+					</DropdownMenu.Item>
+					<DropdownMenu.Item
+						onPointerDown={captureShiftClick}
+						onSelect={(e) => {
+							e.preventDefault();
+							void runPrint(
+								{ ...QUOTE_DOCUMENT_MENU_OPTIONS[1].params },
+								{ pdf: false, openInNewTab: consumeShiftClick() },
+							);
+						}}
+					>
+						<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
+						{QUOTE_DOCUMENT_MENU_OPTIONS[1].label}
+					</DropdownMenu.Item>
+				</DropdownMenu.SubContent>
+			</DropdownMenu.Sub>
 		);
 	}
 
@@ -846,6 +870,19 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 					onSelect={(e) => {
 						e.preventDefault();
 						void runPrint(
+							{ ...ORDER_TOTALS_ONLY_PRINT_OPTION.params },
+							{ pdf: false, openInNewTab: consumeShiftClick() },
+						);
+					}}
+				>
+					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
+					{ORDER_TOTALS_ONLY_PRINT_OPTION.label}
+				</DropdownMenu.Item>
+				<DropdownMenu.Item
+					onPointerDown={captureShiftClick}
+					onSelect={(e) => {
+						e.preventDefault();
+						void runPrint(
 							{ mode: "packing list" },
 							{ pdf: false, openInNewTab: consumeShiftClick() },
 						);
@@ -879,16 +916,38 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 
 	if (isQuote) {
 		return (
-			<DropdownMenu.Item
-				disabled={disabled || !state.salesIds.length}
-				onSelect={(e) => {
-					e.preventDefault();
-					void runPrint({ mode: "quote" }, { pdf: true });
-				}}
-			>
-				<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
-				PDF
-			</DropdownMenu.Item>
+			<DropdownMenu.Sub>
+				<DropdownMenu.SubTrigger disabled={disabled || !state.salesIds.length}>
+					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
+					PDF
+				</DropdownMenu.SubTrigger>
+				<DropdownMenu.SubContent>
+					<DropdownMenu.Item
+						onSelect={(e) => {
+							e.preventDefault();
+							void runPrint(
+								{ ...QUOTE_DOCUMENT_MENU_OPTIONS[0].params },
+								{ pdf: true },
+							);
+						}}
+					>
+						<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
+						{QUOTE_DOCUMENT_MENU_OPTIONS[0].label}
+					</DropdownMenu.Item>
+					<DropdownMenu.Item
+						onSelect={(e) => {
+							e.preventDefault();
+							void runPrint(
+								{ ...QUOTE_DOCUMENT_MENU_OPTIONS[1].params },
+								{ pdf: true },
+							);
+						}}
+					>
+						<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
+						{QUOTE_DOCUMENT_MENU_OPTIONS[1].label}
+					</DropdownMenu.Item>
+				</DropdownMenu.SubContent>
+			</DropdownMenu.Sub>
 		);
 	}
 

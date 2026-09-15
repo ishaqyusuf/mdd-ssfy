@@ -324,10 +324,10 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.transferSalesRep`: protected owner-only order/quote sales rep transfer mutation that accepts account- or master-password confirmation, changes `SalesOrders.salesRepId`, writes `SalesHistory`, and atomically records master-password transfer usage when applicable
   - `sales.setSalesOrdersArchived`: protected `editOrders` order-only archive or restore command for 1-100 unique order IDs; it returns changed IDs plus structured skips and writes one Sales History event per changed row within the same transaction
 - Sales print routes now include:
-  - `print.salesV2`: canonical sales print data route for invoice, quote, production, packing-slip, and order-packing preview/download payloads, backed by `packages/sales/src/print/*` and `@gnd/pdf/sales-v2`
+  - `print.salesV2`: canonical sales print data route for invoice, quote, production, packing-slip, and order-packing preview/download payloads, backed by `packages/sales/src/print/*` and `@gnd/pdf/sales-v2`; optional `priceDisplay=detailed|totals-only` is returned in diagnostics, with totals-only restricted to invoice/quote and forced to Template 2
   - `/p/sales-document-v2`: canonical signed HTML sales document preview route
   - `/p/sales-invoice-v2`: PDF print viewer route for direct print flows
-  - `/api/download/sales-v2`: canonical sales PDF download/export route
+  - `/api/download/sales-v2`: canonical sales PDF download/export route; legacy/batch totals-only requests round-trip `priceDisplay=totals-only`, while single-order snapshot requests recover the authoritative variant from snapshot metadata
   - `/api/download/sales`: compatibility redirect to `/api/download/sales-v2`; legacy `print.sales` and `sales.printInvoice` tRPC procedures are retired
 - Dealership/dealer-program routes now include:
   - `dealerPortal.updateCustomerOfficeVisibility`: dealer-auth mutation that

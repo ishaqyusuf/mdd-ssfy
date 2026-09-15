@@ -110,6 +110,54 @@ describe("resolveSalesDocumentAccess", () => {
 		).toBe("invoice_pdf:pricing:customer:v3");
 	});
 
+	it("forces Template 2 and isolates totals-only HTML preview data", async () => {
+		const calls: Array<Record<string, unknown>> = [];
+		await expect(
+			resolveSalesDocumentHtmlPreviewAccess(
+				{
+					db: {} as ResolveSalesDocumentAccessInput["db"],
+					salesIds: [25435],
+					mode: "quote",
+					priceDisplay: "totals-only",
+					templateId: "template-1",
+					baseUrl: "https://example.com",
+				},
+				{
+					createOrRefreshPrintData: async (_db, input) => {
+						calls.push(input);
+						throw new Error("stop-after-refresh");
+					},
+				},
+			),
+		).rejects.toThrow("stop-after-refresh");
+
+		expect(calls).toEqual([
+			expect.objectContaining({
+				documentType: "quote_pdf:price-display:totals-only:v1",
+				priceDisplay: "totals-only",
+				templateId: "template-2",
+			}),
+		]);
+	});
+
+	it("round-trips totals-only through legacy batch preview and download URLs", async () => {
+		const result = await resolveSalesDocumentHtmlPreviewAccess({
+			db: {} as ResolveSalesDocumentAccessInput["db"],
+			salesIds: [25435, 25436],
+			mode: "quote",
+			priceDisplay: "totals-only",
+			templateId: "template-1",
+			baseUrl: "https://example.com",
+		});
+
+		expect(result.documentType).toBe(
+			"quote_pdf:price-display:totals-only:v1",
+		);
+		expect(result.priceDisplay).toBe("totals-only");
+		expect(result.previewUrl).toContain("priceDisplay=totals-only");
+		expect(result.downloadUrl).toContain("priceDisplay=totals-only");
+	});
+
 	it("reuses a ready snapshot when source and sale updates are in the same persisted second", async () => {
 		const { db, calls } = createMockDb({
 			snapshot: createSnapshot(),
@@ -126,6 +174,38 @@ describe("resolveSalesDocumentAccess", () => {
 		expect(result.kind).toBe("snapshot");
 		expect(result.generated).toBe(false);
 		expect(result.snapshotId).toBe("snapshot-21438");
+		expect(calls.snapshotCreate).toBe(0);
+	});
+
+	it("reuses totals-only snapshots only for matching totals-only requests", async () => {
+		const documentType = "invoice_pdf:price-display:totals-only:v1";
+		const { db, calls } = createMockDb({
+			snapshot: createSnapshot({
+				documentType,
+				meta: {
+					accessToken: "access-token",
+					expiresAt: "2099-01-01T00:00:00.000Z",
+					templateId: "template-2",
+					priceDisplay: "totals-only",
+				},
+			}),
+			saleUpdatedAt: new Date("2026-05-12T10:00:00.789Z"),
+		});
+
+		const result = await resolveSalesDocumentAccess({
+			db,
+			salesIds: [21438],
+			mode: "invoice",
+			priceDisplay: "totals-only",
+			templateId: "template-1",
+			baseUrl: "https://example.com",
+		});
+
+		expect(result.kind).toBe("snapshot");
+		expect(result.generated).toBe(false);
+		expect(result.documentType).toBe(documentType);
+		expect(result.priceDisplay).toBe("totals-only");
+		expect(result.printConfig?.templateId).toBe("template-2");
 		expect(calls.snapshotCreate).toBe(0);
 	});
 

@@ -3,6 +3,9 @@
 import { openLink } from "@/lib/open-link";
 import { openSalesDocumentReadiness } from "@/store/sales-document-readiness";
 import type { PrintMode } from "@gnd/sales/print/types";
+import type { SalesPriceDisplay } from "@gnd/sales/print";
+import type { SalesPageBreakMode } from "@gnd/pdf/sales-v2";
+import type { SalesPrintSettings } from "@gnd/settings/schema";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,6 +21,7 @@ import {
 	resolveSalesPrintMode,
 } from "./sales-print-service";
 import { getSalesPrintStageToast } from "./sales-print-stage";
+import { buildSalesPrintContinuationRequest } from "./sales-print-continuation";
 
 type ToastUpdateInput = Parameters<ReturnType<typeof toast>["update"]>[0];
 type SalesPrintRegenerateResult = Awaited<
@@ -28,8 +32,12 @@ const PRINT_SUCCESS_TOAST_DURATION = 10000;
 export type SalesPrintControllerActionInput = {
 	salesIds: number[];
 	mode?: SalesPrintRequestMode;
+	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
+	pageBreakMode?: SalesPageBreakMode | null;
+	printConfig?: Partial<SalesPrintSettings> | null;
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
 	openInNewTab?: boolean;
@@ -111,8 +119,12 @@ export function useSalesPrintController() {
 		(input: {
 			mode: PrintMode;
 			salesIds: number[];
+			pricingMode?: "customer" | "internal" | null;
+			priceDisplay?: SalesPriceDisplay | null;
 			dispatchId?: number | null;
 			templateId?: string | null;
+			pageBreakMode?: SalesPageBreakMode | null;
+			printConfig?: Partial<SalesPrintSettings> | null;
 			baseUrl?: string | null;
 			showToast: boolean;
 		}) => {
@@ -158,13 +170,9 @@ export function useSalesPrintController() {
 				} as ToastUpdateInput);
 
 				try {
-					await regenerateSalesPrintDocument({
-						salesIds: input.salesIds,
-						mode: input.mode,
-						dispatchId: input.dispatchId ?? null,
-						templateId: input.templateId ?? null,
-						baseUrl: input.baseUrl ?? null,
-					});
+					await regenerateSalesPrintDocument(
+						buildSalesPrintContinuationRequest(input),
+					);
 					updateToast(
 						{
 							title: "Snapshot re-created",
@@ -217,11 +225,7 @@ export function useSalesPrintController() {
 
 				try {
 					await openSalesPrintDocument({
-						salesIds: input.salesIds,
-						mode: input.mode,
-						dispatchId: input.dispatchId ?? null,
-						templateId: input.templateId ?? null,
-						baseUrl: input.baseUrl ?? null,
+						...buildSalesPrintContinuationRequest(input),
 						openInNewTab: false,
 						onPrintStage,
 						onPrintReady,
@@ -397,8 +401,12 @@ export function useSalesPrintController() {
 			const lifecycle = createPrintLifecycle({
 				mode,
 				salesIds: input.salesIds,
+				pricingMode: input.pricingMode ?? null,
+				priceDisplay: input.priceDisplay ?? null,
 				dispatchId: input.dispatchId ?? null,
 				templateId: input.templateId ?? null,
+				pageBreakMode: input.pageBreakMode ?? null,
+				printConfig: input.printConfig ?? null,
 				baseUrl: input.baseUrl ?? null,
 				showToast: options.showToast ?? !input.openInNewTab,
 			});
@@ -409,8 +417,12 @@ export function useSalesPrintController() {
 					forceHiddenViewer: options.headless ?? false,
 					salesIds: input.salesIds,
 					mode,
+					pricingMode: input.pricingMode ?? null,
+					priceDisplay: input.priceDisplay ?? null,
 					dispatchId: input.dispatchId ?? null,
 					templateId: input.templateId ?? null,
+					pageBreakMode: input.pageBreakMode ?? null,
+					printConfig: input.printConfig ?? null,
 					baseUrl: input.baseUrl ?? null,
 					forceRegenerate: input.forceRegenerate ?? false,
 					openInNewTab: input.openInNewTab,
@@ -449,8 +461,12 @@ export function useSalesPrintController() {
 				await downloadSalesPrintDocument({
 					salesIds: input.salesIds,
 					mode,
+					pricingMode: input.pricingMode ?? null,
+					priceDisplay: input.priceDisplay ?? null,
 					dispatchId: input.dispatchId ?? null,
 					templateId: input.templateId ?? null,
+					pageBreakMode: input.pageBreakMode ?? null,
+					printConfig: input.printConfig ?? null,
 					baseUrl: input.baseUrl ?? null,
 					forceRegenerate: input.forceRegenerate ?? false,
 				});
@@ -502,8 +518,12 @@ export function useSalesPrintController() {
 				const access = await regenerateSalesPrintDocument({
 					salesIds: input.salesIds,
 					mode,
+					pricingMode: input.pricingMode ?? null,
+					priceDisplay: input.priceDisplay ?? null,
 					dispatchId: input.dispatchId ?? null,
 					templateId: input.templateId ?? null,
+					pageBreakMode: input.pageBreakMode ?? null,
+					printConfig: input.printConfig ?? null,
 					baseUrl: input.baseUrl ?? null,
 				});
 				await options.onRegenerated?.(access);

@@ -11,6 +11,7 @@ import { useTRPC } from "@/trpc/client";
 import { PDFViewer } from "@gnd/pdf";
 import { type SalesPageBreakMode, SalesPdfDocument } from "@gnd/pdf/sales-v2";
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
+import type { SalesPriceDisplay } from "@gnd/sales/print";
 import type { SalesPrintSettings } from "@gnd/settings";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import type { ComponentType, ReactNode, SyntheticEvent } from "react";
@@ -50,6 +51,7 @@ export interface RenderedPdfPrintViewerProps {
 	showImages: boolean;
 	headlineFirstPage: boolean;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	className?: string;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
@@ -70,6 +72,7 @@ export function RenderedPdfPrintViewer({
 	showImages,
 	headlineFirstPage,
 	pricingMode,
+	priceDisplay,
 	className,
 	onPrintReady,
 	onPrintError,
@@ -91,6 +94,7 @@ export function RenderedPdfPrintViewer({
 			showImages,
 			headlineFirstPage,
 			pricingMode: pricingMode ?? undefined,
+			priceDisplay: priceDisplay ?? undefined,
 			baseUrl,
 		}),
 	);

@@ -29,6 +29,7 @@ export function SalesPrintViewerPage({
 				showImages: params.showImages,
 				headlineFirstPage: params.headlineFirstPage,
 				pricingMode: params.pricingMode ?? undefined,
+				priceDisplay: params.priceDisplay,
 			}),
 		]);
 	}

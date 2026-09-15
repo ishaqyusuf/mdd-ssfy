@@ -13,6 +13,7 @@ import {
 	buildSalesPdfDownloadUrlFromQuery,
 } from "@/modules/sales-print/application/sales-print-service";
 import type { SalesPageBreakMode } from "@gnd/pdf/sales-v2";
+import type { SalesPriceDisplay } from "@gnd/sales/print";
 import dynamic from "next/dynamic";
 import type { SyntheticEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,6 +42,7 @@ interface PrintSalesV2Props {
 	headlineFirstPage?: boolean;
 	mode?: string;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	className?: string;
 	printRequest?: SalesPrintRequestInfo;
 	onPrintReady?: () => void;
@@ -63,6 +65,7 @@ export function PrintSalesV2({
 	headlineFirstPage,
 	mode,
 	pricingMode,
+	priceDisplay,
 	className,
 	printRequest,
 	onPrintReady,
@@ -94,6 +97,7 @@ export function PrintSalesV2({
 			headlineFirstPage={headlineFirstPage}
 			mode={mode}
 			pricingMode={pricingMode}
+			priceDisplay={priceDisplay}
 			className={className}
 			onPrintReady={onPrintReady}
 			onPrintError={onPrintError}
@@ -114,6 +118,7 @@ function PrintSalesV2FromFilters({
 	headlineFirstPage,
 	mode,
 	pricingMode,
+	priceDisplay,
 	className,
 	onPrintReady,
 	onPrintError,
@@ -132,6 +137,7 @@ function PrintSalesV2FromFilters({
 		headlineFirstPage: headlineFirstPage ?? filters.headlineFirstPage,
 		mode: mode ?? filters.mode,
 		pricingMode: pricingMode ?? filters.pricingMode,
+		priceDisplay: priceDisplay ?? filters.priceDisplay,
 	});
 
 	return (
@@ -196,6 +202,7 @@ function PrintSalesV2Resolved({
 			showImages={params.showImages}
 			headlineFirstPage={params.headlineFirstPage}
 			pricingMode={params.pricingMode}
+			priceDisplay={params.priceDisplay}
 			className={className}
 			onPrintReady={onPrintReady}
 			onPrintError={onPrintError}

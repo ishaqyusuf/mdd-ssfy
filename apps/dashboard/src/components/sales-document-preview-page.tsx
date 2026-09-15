@@ -18,6 +18,7 @@ import {
 	normalizeSalesPageBreakMode,
 } from "@gnd/pdf/sales-v2";
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
+import type { SalesPriceDisplay } from "@gnd/sales/print";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
@@ -50,6 +51,7 @@ export function SalesDocumentPreviewPage({
 	showImages = true,
 	headlineFirstPage = true,
 	pricingMode,
+	priceDisplay,
 	embedded = false,
 	customerEmail,
 	customerName,
@@ -66,6 +68,7 @@ export function SalesDocumentPreviewPage({
 	showImages?: boolean;
 	headlineFirstPage?: boolean;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	embedded?: boolean;
 	customerEmail?: string;
 	customerName?: string;
@@ -100,6 +103,7 @@ export function SalesDocumentPreviewPage({
 				showImages,
 				headlineFirstPage,
 				pricingMode: pricingMode ?? undefined,
+				priceDisplay: priceDisplay ?? undefined,
 				baseUrl,
 			},
 			{
@@ -114,6 +118,7 @@ export function SalesDocumentPreviewPage({
 	);
 
 	const previewPages = (data?.pages ?? []) as PrintPage[];
+	const effectivePriceDisplay = data?.priceDisplay ?? priceDisplay ?? "detailed";
 	const packingSlipPage =
 		previewPages.find((page) => page.config.mode === "packing-slip") || null;
 	const pdfPageQuery = useMemo(() => {
@@ -137,6 +142,7 @@ export function SalesDocumentPreviewPage({
 			printConfig: { showImages, headlineFirstPage },
 			mode: data?.mode,
 			pricingMode,
+			priceDisplay: effectivePriceDisplay,
 			origin: baseUrl,
 		});
 	}, [
@@ -147,6 +153,7 @@ export function SalesDocumentPreviewPage({
 		effectiveToken,
 		headlineFirstPage,
 		pricingMode,
+		effectivePriceDisplay,
 		showImages,
 		templateId,
 		resolvedPageBreakMode,
@@ -173,6 +180,7 @@ export function SalesDocumentPreviewPage({
 			pageBreakMode: resolvedPageBreakMode,
 			printConfig: { showImages, headlineFirstPage },
 			pricingMode,
+			priceDisplay: effectivePriceDisplay,
 			origin: baseUrl,
 		});
 	}, [
@@ -183,6 +191,7 @@ export function SalesDocumentPreviewPage({
 		effectiveToken,
 		headlineFirstPage,
 		pricingMode,
+		effectivePriceDisplay,
 		showImages,
 		templateId,
 		resolvedPageBreakMode,
@@ -226,6 +235,7 @@ export function SalesDocumentPreviewPage({
 				templateId,
 				pageBreakMode: resolvedPageBreakMode,
 				pricingMode,
+				priceDisplay: effectivePriceDisplay,
 				openInNewTab: event?.shiftKey ?? false,
 			});
 			return;
@@ -245,6 +255,7 @@ export function SalesDocumentPreviewPage({
 				templateId,
 				pageBreakMode: resolvedPageBreakMode,
 				pricingMode,
+				priceDisplay: effectivePriceDisplay,
 			});
 			return;
 		}
@@ -279,6 +290,7 @@ export function SalesDocumentPreviewPage({
 				templateId,
 				pageBreakMode: resolvedPageBreakMode,
 				pricingMode,
+				priceDisplay: effectivePriceDisplay,
 				baseUrl,
 			},
 			{

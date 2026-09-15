@@ -21057,3 +21057,22 @@ Limits: maximum10 questionnaire revisions and24,000 characters of answer/reason 
 ### Clarification verification complete
 
 Live exact WM713 missingquantity request showed multi-round questionnaire; confirmed28 opened native draft at28pieces (subtotal215.04). Read-only persistence verified complete session revision3, two answers28/reusefalse, no remaining questions, no reusable guidance and separately retained source. Admin Missing quantities rule saved enabled and survived reload. Focused UI20/106, backend5/21, rules2/10, preview/context15/47 plus admin propagation1/2, quantity/alias2/4 and actual adapter1/1 checks passed. No broad typecheck/build; no sale/payment saved. UI-found canonical component shape, title whitespace, and prevalidation quantity issues fixed. Generic unmatched-product provider schema errors and other complex sample blockers remain. Full details and Brain impact index: plans/2026-09-15-sales-request-clarification-learning.md.
+
+## 2026-09-15 — Template 2 totals-only sales printing
+
+Added a presentation-only `priceDisplay=totals-only` contract for invoice and
+quote documents. It forces Template 2, removes item Rate/Total columns and cells,
+and preserves commercial door reconciliation, customer dimensions, header Balance
+Due, and the unchanged footer calculations. Detailed and totals-only documents use
+distinct cache/snapshot identities, and the variant survives preview, download,
+print, QR, reprint, regeneration, and legacy batch paths.
+
+Quote Print and PDF menus now offer Detailed and Totals only. Order Print adds
+Order (Totals only) immediately after Order; existing order PDF, packing,
+production, messaging, and automatic-print behavior is unchanged. Focused
+validation passed: 75 composition/menu/cache/service/continuation/HTML/PDF tests
+with 288 assertions, plus 8 access/snapshot tests with 28 assertions. Scoped diff
+checks passed; no dev server, browser QA, build, or broad typecheck was run under
+the requested fast Bun discipline. Brain impact: sales PDF feature, API contracts,
+API endpoints, completion task, done index, and this progress entry; no ADR,
+database, permissions, or migration changes were required.

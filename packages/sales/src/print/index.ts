@@ -24,6 +24,14 @@ export {
 export { printSalesV2Schema } from "./schema";
 export type { PrintSalesV2Input } from "./schema";
 export type { PrintPricingMode } from "./dealer-pricing-surface";
+export {
+	SALES_PRICE_DISPLAYS,
+	assertSalesPriceDisplaySupported,
+	normalizeSalesPriceDisplay,
+	resolveSalesPriceDisplayTemplateId,
+	TOTALS_ONLY_SALES_TEMPLATE_ID,
+} from "./price-display";
+export type { SalesPriceDisplay } from "./price-display";
 
 export type {
 	PrintMode,

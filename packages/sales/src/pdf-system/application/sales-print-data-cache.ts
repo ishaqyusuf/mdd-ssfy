@@ -1,6 +1,11 @@
 import { type Db, Prisma } from "@gnd/db";
 import type { PrintPricingMode } from "../../print/dealer-pricing-surface";
 import {
+	assertSalesPriceDisplaySupported,
+	resolveSalesPriceDisplayTemplateId,
+	type SalesPriceDisplay,
+} from "../../print/price-display";
+import {
 	getPrintDocumentData,
 	resolveSalesCompanyAddress,
 } from "../../print/get-print-document-data";
@@ -61,6 +66,7 @@ export type ResolveCurrentSalesPrintDataInput = {
 	salesOrderId: number;
 	mode: PrintMode;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	documentType?: string | null;
@@ -84,12 +90,19 @@ export type ExpireCurrentSalesPrintDataInput = {
 export function buildSalesPrintDocumentTypeKey(input: {
 	mode: PrintMode;
 	pricingMode?: PrintPricingMode | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 }) {
+	if (input.priceDisplay) {
+		assertSalesPriceDisplaySupported(input.mode, input.priceDisplay);
+	}
 	const baseType = SALES_PRINT_DOCUMENT_BASE_TYPES[input.mode];
 	const parts: string[] = [baseType];
 	if (input.pricingMode) {
 		parts.push(`pricing:${input.pricingMode}:${DEALER_PRICING_CACHE_VERSION}`);
+	}
+	if (input.priceDisplay === "totals-only") {
+		parts.push("price-display:totals-only:v1");
 	}
 	if (input.mode === "packing-slip" && input.dispatchId) {
 		parts.push(`dispatch:${input.dispatchId}`);
@@ -184,12 +197,17 @@ export async function resolveCurrentSalesPrintData(
 	db: Db,
 	input: ResolveCurrentSalesPrintDataInput,
 ): Promise<SalesPrintDataRecord | null> {
-	const templateId = input.templateId || DEFAULT_TEMPLATE_ID;
+	const priceDisplay = input.priceDisplay ?? "detailed";
+	assertSalesPriceDisplaySupported(input.mode, priceDisplay);
+	const templateId =
+		resolveSalesPriceDisplayTemplateId(priceDisplay, input.templateId) ||
+		DEFAULT_TEMPLATE_ID;
 	const documentType =
 		input.documentType ||
 		buildSalesPrintDocumentTypeKey({
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 			dispatchId: input.dispatchId ?? null,
 		});
 	const current = await findSalesPrintData(db, {
@@ -221,12 +239,17 @@ export async function createOrRefreshSalesPrintData(
 	generated: boolean;
 	cacheStatus: "hit" | "miss" | "stale" | "failed" | "forced";
 }> {
-	const templateId = input.templateId || DEFAULT_TEMPLATE_ID;
+	const priceDisplay = input.priceDisplay ?? "detailed";
+	assertSalesPriceDisplaySupported(input.mode, priceDisplay);
+	const templateId =
+		resolveSalesPriceDisplayTemplateId(priceDisplay, input.templateId) ||
+		DEFAULT_TEMPLATE_ID;
 	const documentType =
 		input.documentType ||
 		buildSalesPrintDocumentTypeKey({
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? null,
+			priceDisplay,
 			dispatchId: input.dispatchId ?? null,
 		});
 	const current = await findSalesPrintData(db, {
@@ -282,6 +305,7 @@ export async function createOrRefreshSalesPrintData(
 			ids: [input.salesOrderId],
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? undefined,
+			priceDisplay: input.priceDisplay ?? "detailed",
 			dispatchId: input.dispatchId ?? null,
 		};
 		let documentData: Awaited<ReturnType<typeof getPrintDocumentData>>;
@@ -336,9 +360,11 @@ export async function createOrRefreshSalesPrintData(
 			meta: input.meta
 				? ({
 						...input.meta,
+						priceDisplay: input.priceDisplay ?? "detailed",
 						logoUrl: documentData.logoUrl ?? null,
 					} as Prisma.InputJsonValue)
 				: ({
+						priceDisplay: input.priceDisplay ?? "detailed",
 						logoUrl: documentData.logoUrl ?? null,
 					} as Prisma.InputJsonValue),
 			deletedAt: null,

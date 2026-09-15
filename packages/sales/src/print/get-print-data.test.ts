@@ -194,6 +194,56 @@ function lineValue(
 }
 
 describe("getPrintData", () => {
+	it("keeps invoice and quote footer pricing while hiding every line price in totals-only output", async () => {
+		for (const mode of ["invoice", "quote"] as const) {
+			const db = {
+				salesOrders: { findMany: async () => [createSale()] },
+				settings: { findFirst: async () => null },
+			} as unknown as Parameters<typeof getPrintData>[0];
+			const detailed = await getPrintData(db, {
+				ids: [1],
+				mode,
+				dispatchId: null,
+			});
+			const totalsOnly = await getPrintData(db, {
+				ids: [1],
+				mode,
+				dispatchId: null,
+				priceDisplay: "totals-only",
+			});
+			const detailedPage = detailed.pages[0];
+			const totalsOnlyPage = totalsOnly.pages[0];
+
+			expect(detailedPage?.sections.some((section) =>
+				section.headers.some((header) => header.title === "Rate"),
+			)).toBe(true);
+			expect(
+				totalsOnlyPage?.sections.flatMap((section) =>
+					section.headers.map((header) => header.title),
+				),
+			).not.toContain("Rate");
+			expect(
+				totalsOnlyPage?.sections.flatMap((section) =>
+					section.headers.map((header) => header.title),
+				),
+			).not.toContain("Total");
+			expect(
+				totalsOnlyPage?.sections
+					.flatMap((section) => section.rows)
+					.flatMap((row) => row.cells)
+					.some((cell) => String(cell.value ?? "").startsWith("$")),
+			).toBe(false);
+			expect(totalsOnlyPage?.footer).toEqual(detailedPage?.footer);
+			expect(totalsOnlyPage?.meta.balanceDue).toBe(
+				detailedPage?.meta.balanceDue,
+			);
+			expect(totalsOnlyPage?.sections[0]?.rows[0]?.cells[2]?.value).toBe(
+				detailedPage?.sections[0]?.rows[0]?.cells[2]?.value,
+			);
+			expect(totalsOnlyPage?.config.priceDisplay).toBe("totals-only");
+		}
+	});
+
 	it("recovers printable sections from the saved form when relations are empty", async () => {
 		const sale = {
 			...createSale(),

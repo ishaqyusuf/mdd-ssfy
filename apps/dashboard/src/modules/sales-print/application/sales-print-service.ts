@@ -18,6 +18,11 @@ import {
 import type { SalesDocumentReadinessPreflight } from "@gnd/sales/document-readiness";
 import type { PrintMode } from "@gnd/sales/print/types";
 import {
+	normalizeSalesPriceDisplay,
+	resolveSalesPriceDisplayTemplateId,
+	type SalesPriceDisplay,
+} from "@gnd/sales/print";
+import {
 	type SalesPrintSettings,
 	normalizeSalesPrintSettings,
 } from "@gnd/settings/schema";
@@ -42,6 +47,7 @@ export interface SalesPrintRequest {
 	forceHiddenViewer?: boolean;
 	mode?: SalesPrintRequestMode;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	pageBreakMode?: SalesPageBreakMode | null;
@@ -63,6 +69,7 @@ type SalesPrintDependencies = {
 		salesIds: number[];
 		mode: PrintMode;
 		pricingMode?: "customer" | "internal" | null;
+		priceDisplay?: SalesPriceDisplay | null;
 		dispatchId?: number | null;
 		templateId?: string | null;
 		printConfig?: Partial<SalesPrintSettings> | null;
@@ -73,6 +80,7 @@ type SalesPrintDependencies = {
 		salesIds: number[];
 		mode: PrintMode;
 		pricingMode?: "customer" | "internal" | null;
+		priceDisplay?: SalesPriceDisplay | null;
 		dispatchId?: number | null;
 		templateId?: string | null;
 		printConfig?: Partial<SalesPrintSettings> | null;
@@ -170,7 +178,10 @@ export function resolveSalesPrintMode(
 }
 
 function buildSalesPrintViewerUrl(
-	access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
+	access: Pick<
+		ResolveSalesDocumentAccessResult,
+		"accessToken" | "kind" | "priceDisplay"
+	>,
 	options?: {
 		preview?: boolean;
 		templateId?: string | null;
@@ -178,6 +189,7 @@ function buildSalesPrintViewerUrl(
 		printConfig?: Partial<SalesPrintSettings> | null;
 		mode?: string;
 		pricingMode?: "customer" | "internal" | null;
+		priceDisplay?: SalesPriceDisplay | null;
 		origin?: string;
 	},
 ) {
@@ -185,12 +197,16 @@ function buildSalesPrintViewerUrl(
 }
 
 function buildSalesDocumentPreviewUrl(
-	access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
+	access: Pick<
+		ResolveSalesDocumentAccessResult,
+		"accessToken" | "kind" | "priceDisplay"
+	>,
 	options?: {
 		templateId?: string | null;
 		pageBreakMode?: SalesPageBreakMode | null;
 		printConfig?: Partial<SalesPrintSettings> | null;
 		pricingMode?: "customer" | "internal" | null;
+		priceDisplay?: SalesPriceDisplay | null;
 		origin?: string;
 	},
 ) {
@@ -199,6 +215,7 @@ function buildSalesDocumentPreviewUrl(
 		pageBreakMode: options?.pageBreakMode ?? null,
 		printConfig: options?.printConfig,
 		pricingMode: options?.pricingMode ?? null,
+		priceDisplay: options?.priceDisplay ?? null,
 		origin: options?.origin,
 	});
 }
@@ -207,11 +224,17 @@ function resolveRoutePrintConfig(input: {
 	templateId?: string | null;
 	pageBreakMode?: SalesPageBreakMode | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
+	priceDisplay?: SalesPriceDisplay | null;
 }) {
 	const normalized = normalizeSalesPrintSettings(input.printConfig);
+	const priceDisplay = normalizeSalesPriceDisplay(input.priceDisplay);
+	const templateId = resolveSalesPriceDisplayTemplateId(
+		priceDisplay,
+		input.templateId ?? normalized.templateId,
+	);
 	return {
 		...normalized,
-		...(input.templateId ? { templateId: input.templateId } : {}),
+		...(templateId ? { templateId } : {}),
 		...(input.pageBreakMode ? { pageBreakMode: input.pageBreakMode } : {}),
 	};
 }
@@ -228,6 +251,7 @@ export function buildSalesDocumentRouteFromQuery(input: {
 	printConfig?: Partial<SalesPrintSettings> | null;
 	mode?: string;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	origin?: string;
 }) {
 	const path = input.path || PRINT_VIEWER_PATH;
@@ -247,6 +271,9 @@ export function buildSalesDocumentRouteFromQuery(input: {
 	}
 	if (input.pricingMode) {
 		url.searchParams.set("pricingMode", input.pricingMode);
+	}
+	if (input.priceDisplay === "totals-only") {
+		url.searchParams.set("priceDisplay", input.priceDisplay);
 	}
 	const printConfig = resolveRoutePrintConfig(input);
 	if (printConfig.pageBreakMode !== DEFAULT_SALES_PAGE_BREAK_MODE) {
@@ -279,6 +306,7 @@ export function buildSalesPdfDownloadUrlFromQuery(input: {
 	printConfig?: Partial<SalesPrintSettings> | null;
 	mode?: string;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	preview?: boolean;
 	fresh?: boolean;
 	origin?: string;
@@ -306,10 +334,14 @@ export function buildSalesPdfDownloadUrlFromQuery(input: {
 function getSalesPrintConfigOverrides(
 	request: SalesPrintRequest,
 ): Partial<SalesPrintSettings> | null {
-	const templateId =
+	const requestedTemplateId =
 		request.templateId === "template-1" || request.templateId === "template-2"
 			? request.templateId
 			: undefined;
+	const templateId = resolveSalesPriceDisplayTemplateId(
+		normalizeSalesPriceDisplay(request.priceDisplay),
+		requestedTemplateId,
+	);
 	const printConfig: Partial<SalesPrintSettings> = {
 		...(request.printConfig || {}),
 		...(templateId ? { templateId } : {}),
@@ -333,6 +365,7 @@ export async function resolveSalesPrintAccess(
 		baseUrl,
 		forceRegenerate: request.forceRegenerate ?? false,
 		pricingMode: request.pricingMode ?? null,
+		priceDisplay: normalizeSalesPriceDisplay(request.priceDisplay),
 	});
 
 	const inflight = inflightAccessRequests.get(accessKey);
@@ -343,6 +376,7 @@ export async function resolveSalesPrintAccess(
 			salesIds: request.salesIds,
 			mode,
 			pricingMode: request.pricingMode ?? null,
+			priceDisplay: normalizeSalesPriceDisplay(request.priceDisplay),
 			dispatchId: request.dispatchId ?? null,
 			printConfig,
 			baseUrl,
@@ -371,6 +405,7 @@ export async function resolveSalesHtmlPreviewAccess(
 		printConfig,
 		baseUrl,
 		pricingMode: request.pricingMode ?? null,
+		priceDisplay: normalizeSalesPriceDisplay(request.priceDisplay),
 	});
 
 	const inflight = inflightHtmlPreviewRequests.get(accessKey);
@@ -381,6 +416,7 @@ export async function resolveSalesHtmlPreviewAccess(
 			salesIds: request.salesIds,
 			mode,
 			pricingMode: request.pricingMode ?? null,
+			priceDisplay: normalizeSalesPriceDisplay(request.priceDisplay),
 			dispatchId: request.dispatchId ?? null,
 			printConfig,
 			baseUrl,
@@ -435,6 +471,7 @@ export async function openSalesPrintDocument(
 			printConfig: access.printConfig,
 			mode,
 			pricingMode: request.pricingMode ?? null,
+			priceDisplay: access.priceDisplay,
 		});
 
 		if (shouldUseAttachmentOverlay) {
@@ -540,6 +577,7 @@ export async function downloadSalesPrintDocument(
 		mode: resolveSalesPrintMode(request.mode),
 		printConfig: access.printConfig,
 		pricingMode: request.pricingMode ?? null,
+		priceDisplay: access.priceDisplay,
 	});
 	await downloadSalesPdfUrl(href);
 }
@@ -565,6 +603,7 @@ export async function prepareSalesHtmlPreview(
 	return buildSalesDocumentPreviewUrl(access, {
 		printConfig: access.printConfig,
 		pricingMode: request.pricingMode ?? null,
+		priceDisplay: access.priceDisplay,
 	});
 }
 
@@ -578,6 +617,7 @@ export async function prepareSalesPdfPreview(
 		printConfig: access.printConfig,
 		mode: resolveSalesPrintMode(request.mode),
 		pricingMode: request.pricingMode ?? null,
+		priceDisplay: access.priceDisplay,
 	});
 }
 
@@ -591,7 +631,10 @@ export function printProduction(request: Omit<SalesPrintRequest, "mode">) {
 
 function buildSalesDocumentRouteUrl(
 	path: string,
-	access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
+	access: Pick<
+		ResolveSalesDocumentAccessResult,
+		"accessToken" | "kind" | "priceDisplay"
+	>,
 	options?: {
 		preview?: boolean;
 		templateId?: string | null;
@@ -599,6 +642,7 @@ function buildSalesDocumentRouteUrl(
 		printConfig?: Partial<SalesPrintSettings> | null;
 		mode?: string;
 		pricingMode?: "customer" | "internal" | null;
+		priceDisplay?: SalesPriceDisplay | null;
 		origin?: string;
 	},
 ) {
@@ -621,6 +665,12 @@ function buildSalesDocumentRouteUrl(
 	}
 	if (options?.pricingMode) {
 		url.searchParams.set("pricingMode", options.pricingMode);
+	}
+	if (
+		normalizeSalesPriceDisplay(options?.priceDisplay ?? access.priceDisplay) ===
+		"totals-only"
+	) {
+		url.searchParams.set("priceDisplay", "totals-only");
 	}
 	const printConfig = resolveRoutePrintConfig(options || {});
 	if (printConfig.pageBreakMode !== DEFAULT_SALES_PAGE_BREAK_MODE) {

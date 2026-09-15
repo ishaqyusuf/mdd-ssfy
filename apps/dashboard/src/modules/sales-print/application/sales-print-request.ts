@@ -8,6 +8,11 @@ import {
 	parsePrintModes,
 } from "@gnd/sales/print/modes";
 import type { PrintMode } from "@gnd/sales/print/types";
+import {
+	normalizeSalesPriceDisplay,
+	resolveSalesPriceDisplayTemplateId,
+	type SalesPriceDisplay,
+} from "@gnd/sales/print";
 
 export const DEFAULT_SALES_PRINT_TEMPLATE_ID = "template-2";
 
@@ -40,6 +45,7 @@ export interface SalesPrintRequestParams {
 	mode: PrintMode;
 	modes: PrintMode[];
 	pricingMode: "customer" | "internal" | null;
+	priceDisplay: SalesPriceDisplay;
 }
 
 export interface SalesPrintRequestInfo {
@@ -60,6 +66,11 @@ export function normalizeSalesPrintMode(
 export function parseSalesPrintRequest(
 	rawParams: SalesPrintRawParams,
 ): SalesPrintRequestInfo {
+	const priceDisplay = normalizeSalesPriceDisplay(
+		readStringParam(rawParams.priceDisplay),
+	);
+	const requestedTemplateId =
+		readStringParam(rawParams.templateId) || DEFAULT_SALES_PRINT_TEMPLATE_ID;
 	const params: SalesPrintRequestParams = {
 		pt: readStringParam(rawParams.pt),
 		token: readStringParam(rawParams.token),
@@ -67,7 +78,8 @@ export function parseSalesPrintRequest(
 		snapshotId: readStringParam(rawParams.snapshotId),
 		preview: readBooleanParam(rawParams.preview),
 		templateId:
-			readStringParam(rawParams.templateId) || DEFAULT_SALES_PRINT_TEMPLATE_ID,
+			resolveSalesPriceDisplayTemplateId(priceDisplay, requestedTemplateId) ||
+			DEFAULT_SALES_PRINT_TEMPLATE_ID,
 		pageBreakMode: normalizeSalesPageBreakMode(
 			readStringParam(rawParams.pageBreakMode),
 		),
@@ -76,6 +88,7 @@ export function parseSalesPrintRequest(
 		mode: getPrintModeRequestKey(readStringParam(rawParams.mode)),
 		modes: parsePrintModes(readStringParam(rawParams.mode)),
 		pricingMode: normalizePricingMode(readStringParam(rawParams.pricingMode)),
+		priceDisplay,
 	};
 	const locatorTypes = getPresentLocatorTypes(params);
 	const locatorType = locatorTypes[0] ?? "none";

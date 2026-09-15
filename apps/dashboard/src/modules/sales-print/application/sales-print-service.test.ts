@@ -67,6 +67,28 @@ describe("sales print service", () => {
 		).toBe(true);
 	});
 
+	it("normalizes totals-only requests to Template 2 and carries batch URLs", () => {
+		const request = parseSalesPrintRequest({
+			token: "legacy-123",
+			templateId: "template-1",
+			priceDisplay: "totals-only",
+		});
+
+		expect(request.params.priceDisplay).toBe("totals-only");
+		expect(request.params.templateId).toBe("template-2");
+		expect(
+			buildSalesDocumentRouteFromQuery({
+				token: "legacy-123",
+				preview: true,
+				templateId: "template-1",
+				priceDisplay: "totals-only",
+				origin: "https://app.example.com",
+			}),
+		).toBe(
+			"https://app.example.com/p/sales-invoice-v2?token=legacy-123&preview=true&priceDisplay=totals-only",
+		);
+	});
+
 	it("classifies preview access-token links as rendered PDFs", () => {
 		const request = parseSalesPrintRequest({
 			accessToken: "access-123",

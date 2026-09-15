@@ -19,6 +19,7 @@ import {
 } from "@community/generate-print-data";
 import {
 	getInventoryPrintDocumentData,
+	normalizeSalesPriceDisplay,
 	printSalesV2Schema,
 } from "@gnd/sales/print";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
@@ -26,10 +27,12 @@ import z from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
 const requireFromHere = createRequire(import.meta.url);
-const salesInventoryV2Schema = printSalesV2Schema.extend({
-	templateId: z.string().optional().default("template-2"),
-	preview: z.boolean().optional().default(false),
-});
+const salesInventoryV2Schema = printSalesV2Schema
+	.omit({ priceDisplay: true })
+	.extend({
+		templateId: z.string().optional().default("template-2"),
+		preview: z.boolean().optional().default(false),
+	});
 
 function humanizeSlug(value?: string | null) {
 	if (!value) return null;
@@ -105,12 +108,17 @@ export const printRouter = createTRPCRouter({
 				showImages: z.boolean().optional().default(true),
 				headlineFirstPage: z.boolean().optional().default(true),
 				pricingMode: z.enum(["customer", "internal"]).optional(),
+				priceDisplay: z
+					.string()
+					.optional()
+					.transform(normalizeSalesPriceDisplay),
 				baseUrl: z.string().optional(),
 			}),
 		)
 		.query(async (props) => {
 			const startedAt = Date.now();
 			const pricingMode = props.input.pricingMode ?? null;
+			const priceDisplay = props.input.priceDisplay ?? null;
 			console.info("[sales-print] print-data-query-start", {
 				locator: props.input.pt
 					? "public-token"
@@ -124,6 +132,7 @@ export const printRouter = createTRPCRouter({
 				preview: props.input.preview,
 				templateId: props.input.templateId,
 				pricingMode,
+				priceDisplay,
 			});
 			try {
 				const data = await resolveSalesDocumentPreviewData({
@@ -139,6 +148,7 @@ export const printRouter = createTRPCRouter({
 						headlineFirstPage: props.input.headlineFirstPage,
 					},
 					pricingMode,
+					priceDisplay,
 					baseUrl:
 						props.input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
 				});

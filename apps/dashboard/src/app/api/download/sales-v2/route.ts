@@ -21,6 +21,7 @@ import {
 	createOrRefreshBatchSalesPrintData,
 } from "@gnd/sales/pdf-system";
 import type { PrintMode } from "@gnd/sales/print/types";
+import type { SalesPriceDisplay } from "@gnd/sales/print";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { notFound } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
@@ -79,6 +80,7 @@ async function renderSnapshotPdfFallback(input: {
 	showImages?: boolean;
 	headlineFirstPage?: boolean;
 	pricingMode?: "customer" | "internal" | null;
+	priceDisplay?: SalesPriceDisplay | null;
 	publicToken?: string | null;
 	accessToken?: string | null;
 	snapshotId?: string | null;
@@ -95,6 +97,7 @@ async function renderSnapshotPdfFallback(input: {
 			headlineFirstPage: input.headlineFirstPage ?? true,
 		},
 		pricingMode: input.pricingMode ?? null,
+		priceDisplay: input.priceDisplay ?? null,
 		baseUrl: input.requestUrl.origin,
 	});
 	if (!documentData) return null;
@@ -196,6 +199,7 @@ export async function GET(req: NextRequest) {
 			showImages: params.showImages,
 			headlineFirstPage: params.headlineFirstPage,
 			pricingMode: params.pricingMode,
+			priceDisplay: params.priceDisplay,
 			publicToken: params.pt,
 		});
 		if (fallbackResponse) return fallbackResponse;
@@ -226,6 +230,7 @@ export async function GET(req: NextRequest) {
 			showImages: params.showImages,
 			headlineFirstPage: params.headlineFirstPage,
 			pricingMode: params.pricingMode,
+			priceDisplay: params.priceDisplay,
 			accessToken: params.accessToken,
 		});
 		if (fallbackResponse) return fallbackResponse;
@@ -256,6 +261,7 @@ export async function GET(req: NextRequest) {
 			showImages: params.showImages,
 			headlineFirstPage: params.headlineFirstPage,
 			pricingMode: params.pricingMode,
+			priceDisplay: params.priceDisplay,
 			snapshotId: params.snapshotId,
 		});
 		if (fallbackResponse) return fallbackResponse;
@@ -273,9 +279,11 @@ export async function GET(req: NextRequest) {
 		salesOrderIds: payload.salesIds,
 		mode,
 		pricingMode: params.pricingMode,
+		priceDisplay: params.priceDisplay,
 		documentType: buildSalesPrintDocumentTypeKey({
 			mode,
 			pricingMode: params.pricingMode,
+			priceDisplay: params.priceDisplay,
 			dispatchId: payload.dispatchId ?? null,
 		}),
 		dispatchId: payload.dispatchId ?? null,

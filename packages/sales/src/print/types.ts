@@ -1,3 +1,5 @@
+import type { SalesPriceDisplay } from "./price-display";
+
 /**
  * Sales Print V2 — Typed contracts
  *
@@ -68,6 +70,7 @@ export interface AddressBlock {
 
 export interface PrintModeConfig {
 	mode: PrintMode;
+	priceDisplay: SalesPriceDisplay;
 	showPrices: boolean;
 	showFooter: boolean;
 	showPackingCol: boolean;

@@ -983,6 +983,14 @@ Tracks important request/response contracts and shared schema boundaries.
   - Dealer print access accepts `pricingMode: "customer" | "internal"`.
     Explicit modes are part of the print snapshot document identity, so cached
     customer and internal documents cannot collide.
+  - Canonical sales print access accepts optional
+    `priceDisplay: "detailed" | "totals-only"`. Missing or invalid values
+    normalize to `detailed`. `totals-only` is supported only for invoice and
+    quote mode, forces `template-2`, hides item Rate/Total columns without
+    changing any commercial calculation, and is isolated by the versioned
+    `price-display:totals-only:v1` document-key suffix. Snapshot metadata is
+    authoritative for single-order continuation flows; legacy/batch token URLs
+    carry the variant explicitly.
   - Sales order filtering accepts optional
     `salesChannel: "dealership" | "office"`; dealership means
     `dealerAuthId > 0`, while office includes null and legacy zero ownership.

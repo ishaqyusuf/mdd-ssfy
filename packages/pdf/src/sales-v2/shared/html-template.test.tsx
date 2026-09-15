@@ -53,6 +53,7 @@ describe("SalesHtmlTemplatePage", () => {
 			footer: null,
 			config: {
 				mode: "invoice",
+				priceDisplay: "detailed",
 				showPrices: true,
 				showFooter: false,
 				showPackingCol: false,
@@ -98,6 +99,7 @@ describe("SalesHtmlTemplatePage", () => {
 				footer: null,
 				config: {
 					mode: "invoice",
+					priceDisplay: "detailed",
 					showPrices: true,
 					showFooter: false,
 					showPackingCol: false,
@@ -153,6 +155,7 @@ describe("SalesHtmlTemplatePage", () => {
 			footer: null,
 			config: {
 				mode: "packing-slip",
+				priceDisplay: "detailed",
 				showPrices: false,
 				showFooter: false,
 				showPackingCol: true,
@@ -197,6 +200,7 @@ describe("SalesHtmlTemplatePage", () => {
 			footer: null,
 			config: {
 				mode: "invoice",
+				priceDisplay: "detailed",
 				showPrices: true,
 				showFooter: false,
 				showPackingCol: false,
@@ -252,6 +256,7 @@ describe("SalesHtmlTemplatePage", () => {
 			},
 			config: {
 				mode: "invoice",
+				priceDisplay: "detailed",
 				showPrices: true,
 				showFooter: true,
 				showPackingCol: false,
@@ -269,5 +274,72 @@ describe("SalesHtmlTemplatePage", () => {
 		expect(markup).toContain("flex-wrap:wrap");
 		expect(markup).toContain("flex:0 1 320px;width:320px;max-width:100%");
 		expect(markup).toContain("padding:10px 16px");
+	});
+
+	test("renders a Template 2 totals-only commercial page with footer pricing but no line-price columns", () => {
+		const page: PrintPage = {
+			meta: {
+				title: "Quote",
+				salesNo: "Q-42",
+				date: "09/15/2026",
+				status: "pending",
+				total: "$104.08",
+				balanceDue: "$104.08",
+			},
+			billing: null,
+			shipping: null,
+			sections: [
+				{
+					kind: "line-item",
+					index: 0,
+					title: "Products",
+					headers: [
+						{ title: "Qty", key: "qty", colSpan: 1 },
+						{ title: "Description", key: "description", colSpan: 4 },
+					],
+					rows: [
+						{
+							cells: [
+								{ value: 2, colSpan: 1 },
+								{ value: "Shaker door", colSpan: 4 },
+							],
+						},
+					],
+				},
+			],
+			footer: {
+				notes: [],
+				lines: [
+					{ label: "Subtotal", value: "$94.44" },
+					{ label: "Total Due", value: "$104.08", bold: true },
+				],
+			},
+			config: {
+				mode: "quote",
+				priceDisplay: "totals-only",
+				showPrices: false,
+				showFooter: true,
+				showPackingCol: false,
+				showSignature: false,
+				showImages: false,
+			},
+			signing: null,
+			specialOrder: null,
+		};
+
+		const markup = renderToStaticMarkup(
+			<SalesHtmlTemplatePage
+				page={page}
+				companyAddress={companyAddress}
+				variant="template-2"
+			/>,
+		);
+
+		expect(markup).toContain("Balance Due");
+		expect(markup).toContain("Subtotal");
+		expect(markup).toContain("Total Due");
+		expect(markup).toContain("Shaker door");
+		expect(markup).not.toContain(">Rate<");
+		expect(markup).not.toContain(">Total<");
 	});
 });

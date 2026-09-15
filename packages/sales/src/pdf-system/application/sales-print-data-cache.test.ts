@@ -439,4 +439,47 @@ describe("sales print data cache", () => {
 			}),
 		).toBe("invoice_pdf:pricing:internal:v3");
 	});
+
+	it("isolates totals-only invoice and quote data without changing detailed keys", () => {
+		expect(
+			buildSalesPrintDocumentTypeKey({
+				mode: "invoice",
+				priceDisplay: "detailed",
+			}),
+		).toBe("invoice_pdf");
+		expect(
+			buildSalesPrintDocumentTypeKey({
+				mode: "invoice",
+				priceDisplay: "totals-only",
+			}),
+		).toBe("invoice_pdf:price-display:totals-only:v1");
+		expect(
+			buildSalesPrintDocumentTypeKey({
+				mode: "quote",
+				priceDisplay: "totals-only",
+			}),
+		).toBe("quote_pdf:price-display:totals-only:v1");
+	});
+
+	it("forces totals-only cache generation onto Template 2", async () => {
+		const { db, state } = createMockDb();
+		let receivedPriceDisplay: string | undefined;
+
+		await createOrRefreshSalesPrintData(db, {
+			salesOrderId: 10,
+			mode: "invoice",
+			priceDisplay: "totals-only",
+			templateId: "template-1",
+			loadPrintDocumentData: async (_db, input) => {
+				receivedPriceDisplay = input.priceDisplay;
+				return loadPrintDocumentData();
+			},
+		});
+
+		expect(receivedPriceDisplay).toBe("totals-only");
+		expect(state.printData[0]?.templateId).toBe("template-2");
+		expect(state.printData[0]?.documentType).toBe(
+			"invoice_pdf:price-display:totals-only:v1",
+		);
+	});
 });

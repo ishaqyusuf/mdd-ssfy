@@ -33,6 +33,7 @@ export function SalesPrintShellViewer({
 		showImages: url.searchParams.get("showImages") ?? undefined,
 		headlineFirstPage: url.searchParams.get("headlineFirstPage") ?? undefined,
 		mode: url.searchParams.get("mode") ?? undefined,
+		priceDisplay: url.searchParams.get("priceDisplay") ?? undefined,
 	});
 
 	return (

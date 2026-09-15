@@ -39,6 +39,22 @@ recorded evidence. HTML preview and both PDF templates render the same
 `PrintPage` payload and perform no payment math. Sales Overview compatibility
 `costLines` are generated from the same presentation-line adapter.
 
+Template 2 supports a separate `priceDisplay` presentation contract for invoice
+and quote documents. `detailed` is the default and retains item-level Rate and
+Total columns. `totals-only` keeps the commercial invoice/quote behavior,
+quantities, product/configuration detail, customer-facing dimensions, header
+Balance Due, and the unchanged footer pricing breakdown, while removing both
+price columns and their row cells. Totals-only requests are normalized to
+`template-2`; they remain Invoice or Quote documents rather than introducing an
+Estimate document type.
+
+The variant is isolated with the versioned document-key suffix
+`price-display:totals-only:v1` and is persisted in `SalesPrintData` and snapshot
+metadata. Single-order snapshot preview/download flows recover `priceDisplay`
+from snapshot metadata, while legacy and batch token URLs carry the value as a
+query parameter. Prefix-based sales/payment invalidation continues to expire
+both detailed and totals-only records.
+
 New-form `Delivery` and `Labor` extra costs are canonical footer rows. Their
 legacy metadata projections (`deliveryCost` and `labor_cost`) remain printable
 only as fallbacks for records without the matching canonical extra-cost type,
@@ -166,11 +182,16 @@ export function SalesHtmlDocument({ pages, templateId = "template-1", config, ..
 ```
 apps/api/src/trpc/routers/print.route.ts
   └── salesV2 procedure
-       input: { token?, accessToken?, preview?, templateId? }
+       input: { token?, accessToken?, preview?, templateId?, priceDisplay? }
        → validates signed token or snapshot access token
        → resolves shared print payload
        → returns preview metadata plus { pages: PrintPage[], title, templateId, downloadUrl, previewUrl }
 ```
+
+Sales menu labels use `Detailed` and `Totals only`. Quote Print and PDF expose
+both choices. Order Print retains Order & Packing, Order, Packing, and Production
+and adds `Order (Totals only)` immediately after Order; the order PDF submenu is
+unchanged.
 
 ### Client layer
 

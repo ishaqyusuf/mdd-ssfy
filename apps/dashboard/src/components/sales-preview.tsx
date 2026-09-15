@@ -18,6 +18,10 @@ export function SalesPreview({ onClose }: { onClose?: () => void }) {
 				accessToken: url.searchParams.get("accessToken") ?? undefined,
 				snapshotId: url.searchParams.get("snapshotId") ?? undefined,
 				templateId: url.searchParams.get("templateId") ?? "template-2",
+				priceDisplay:
+					url.searchParams.get("priceDisplay") === "totals-only"
+						? ("totals-only" as const)
+						: ("detailed" as const),
 			};
 		} catch {
 			return null;
@@ -62,6 +66,7 @@ export function SalesPreview({ onClose }: { onClose?: () => void }) {
 				accessToken={previewParams.accessToken}
 				snapshotId={previewParams.snapshotId}
 				templateId={previewParams.templateId}
+				priceDisplay={previewParams.priceDisplay}
 				customerEmail={params.salesPreviewCustomerEmail ?? undefined}
 				customerName={params.salesPreviewCustomerName ?? undefined}
 				embedded

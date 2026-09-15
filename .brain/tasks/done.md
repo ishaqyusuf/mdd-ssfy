@@ -1,5 +1,8 @@
 # Done
 
+### [Template 2 Totals-Only Sales Printing](2026-09-15-template-2-totals-only-sales-printing.md)
+- Status: Done — Template 2 commercial quote/invoice output can hide item Rate/Total columns while preserving Balance Due, footer pricing, snapshot isolation, and all continuation paths; quote menus expose Detailed/Totals only and order Print adds Order (Totals only). Focused validation: 83 tests / 316 assertions.
+
 ### [HRM-Managed Mobile Membership And Private Distribution](2026-09-15-hrm-managed-mobile-membership-and-private-distribution.md)
 - Status: Cancelled
 

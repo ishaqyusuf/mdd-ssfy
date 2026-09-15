@@ -18,6 +18,7 @@ export default async function Page(props: {
 		showImages?: string;
 		headlineFirstPage?: string;
 		pricingMode?: string;
+		priceDisplay?: string;
 	}>;
 }) {
 	const searchParams = await props.searchParams;
@@ -37,6 +38,11 @@ export default async function Page(props: {
 				searchParams.pricingMode === "internal"
 					? searchParams.pricingMode
 					: null
+			}
+			priceDisplay={
+				searchParams.priceDisplay === "totals-only"
+					? "totals-only"
+					: "detailed"
 			}
 		/>
 	);

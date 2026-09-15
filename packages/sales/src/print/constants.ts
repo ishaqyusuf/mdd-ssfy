@@ -1,6 +1,13 @@
 import type { PrintMode, PrintModeConfig } from "./types";
+import {
+  assertSalesPriceDisplaySupported,
+  type SalesPriceDisplay,
+} from "./price-display";
 
-export const modeConfigs: Record<PrintMode, Omit<PrintModeConfig, "mode">> = {
+export const modeConfigs: Record<
+  PrintMode,
+  Omit<PrintModeConfig, "mode" | "priceDisplay">
+> = {
   invoice: {
     showPrices: true,
     showFooter: true,
@@ -38,8 +45,17 @@ export const modeConfigs: Record<PrintMode, Omit<PrintModeConfig, "mode">> = {
   },
 };
 
-export function getModeConfig(mode: PrintMode): PrintModeConfig {
-  return { mode, ...modeConfigs[mode] };
+export function getModeConfig(
+  mode: PrintMode,
+  priceDisplay: SalesPriceDisplay = "detailed",
+): PrintModeConfig {
+  assertSalesPriceDisplaySupported(mode, priceDisplay);
+  return {
+    mode,
+    priceDisplay,
+    ...modeConfigs[mode],
+    ...(priceDisplay === "totals-only" ? { showPrices: false } : {}),
+  };
 }
 
 export const salesTaxes = [
