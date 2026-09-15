@@ -56,6 +56,9 @@ The [source-backed metadata draft](../reports/2026-09-15-ios-app-store-metadata-
 provides bounded English (U.S.) description/keywords, review notes, screenshot
 plan, URL candidates and owner-decision fields. It is a review packet, not
 authorization to save listing data or transmit review credentials.
+The [age-rating and content-rights worksheet](../reports/2026-09-15-ios-age-rating-content-rights-readiness.md)
+maps Apple's current live prompts to proposed source-backed answers. It keeps
+the final generated rating and legal rights attestation at explicit save gates.
 
 - Pricing > App Distribution Methods: **Public — Discoverable by anyone** is
   selected as the default. No price schedule or App Availability has been set

@@ -120,6 +120,10 @@ longer release requirements. Public acquisition does not create public accounts.
    separately gated. DSA is currently Active; recheck it immediately before App
    Review without copying contact values, payment details, private evidence or
    credentials into repository documentation or chat.
+   The [age-rating/content-rights worksheet](2026-09-15-ios-age-rating-content-rights-readiness.md)
+   now maps every current questionnaire category to proposed source-backed
+   answers and isolates the third-party-content rights attestation as a legal
+   owner gate; no value was selected or saved.
 5. **Fresh candidate:** set the approved privacy URL in EAS production only
    with confirmation, queue a clean store build with build acknowledgment, and
    inspect its source, Info.plist, privacy manifests, profile, entitlements,

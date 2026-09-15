@@ -89,6 +89,15 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 age-rating/content-rights review: the live Apple dialogs were
+  inspected and cancelled without a selection. Current fields are mapped to
+  proposed answers from reachable mobile routes: no parental/age assurance,
+  unrestricted in-app browser, broad UGC/social, reachable messaging composer,
+  advertising, mature, medical, sexual, violent, gambling, contest or loot-box
+  experience was found. Because operational content can originate from
+  employees, customers, contractors and vendors, the conservative Content
+  Rights proposal is third-party content with necessary rights, gated on legal
+  confirmation. No Apple field was saved.
 - September 15 retention/purge evidence: legacy session and JWT limits,
   Better Auth session lifetimes, Upstash counter TTLs, and the bounded mobile
   analytics queue are now distinguished from physical deletion. Employee

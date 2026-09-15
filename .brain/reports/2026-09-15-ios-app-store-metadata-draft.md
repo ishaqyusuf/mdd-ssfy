@@ -140,6 +140,11 @@ appropriate to infer from source or store in this packet.
 
 ## Age rating and content-rights evidence packet
 
+The [field-by-field readiness worksheet](2026-09-15-ios-age-rating-content-rights-readiness.md)
+records the exact current Apple prompts, maps the release source to proposed
+answers, and recommends the conservative third-party-content choice subject to
+legal rights confirmation. No portal choice has been selected or saved.
+
 Source supports the following review inputs, not final legal answers:
 
 - No game, gambling, loot-box, contest, mature, violence, sexual, drug,
