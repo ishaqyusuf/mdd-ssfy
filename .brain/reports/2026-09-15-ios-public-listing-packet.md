@@ -8,8 +8,12 @@ Status: local draft only; no App Store Connect field was changed or saved.
 Use the existing `GND Millwork` iOS 1.0 record (Apple ID `6811442922`,
 `com.gnd.prodesk`). The owner wants a free, publicly discoverable release in
 All Countries or Regions. The current binary allows sign-in only for existing
-active GND employee/manager accounts. The mobile sign-up route renders only
-`SignUp`; it is not a public onboarding flow. `TODO:` obtain the owner's
+active GND employee/manager accounts. The unfinished one-word mobile sign-up
+route and its driver-app alias were removed; there is no public onboarding flow.
+Apple's cited rules permit a public business app with organization-issued login,
+but App Review must receive an active demo account; see the
+[official-source review report](2026-09-15-ios-public-login-app-review.md).
+`TODO:` obtain the owner's
 explicit choice between public download with company-only login and a separate
 public self-registration product before finalizing copy or Review Information.
 

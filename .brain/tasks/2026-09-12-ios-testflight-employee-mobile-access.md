@@ -116,12 +116,21 @@ approved public registration design exists.
   the UI guard covers both sign-in designs and that production footer. Scoped
   Biome lint on the changed Settings/test files passes. No
   privacy URL was approved or saved.
-- Public-account scope audit: the mobile sign-up route is a one-word
-  placeholder, and `www-mobile-sign-in` resolves only an existing unrevoked,
+- Public-account scope audit: the one-word mobile sign-up route and driver-app
+  alias were removed, and `www-mobile-sign-in` resolves only an existing unrevoked,
   undeleted legacy employee/manager record. The current public binary is
   downloadable worldwide but cannot onboard arbitrary new users. Confirm
   whether public self-registration is desired before App Review; it requires
   a separately approved auth/tenant/privacy design.
+- Official Apple review research confirms that public storefront availability
+  does not itself require public self-registration; existing company-account
+  sign-in is compatible with the cited business-login guidance. App Review
+  still needs an active account with full representative access, and account
+  deletion becomes required if the app adds account creation. Source links and
+  qualifications are in
+  `.brain/reports/2026-09-15-ios-public-login-app-review.md`. A focused iOS
+  release regression now guards both removed placeholder routes; no public
+  signup, portal save, credential, or Apple upload was introduced.
 - Live App Store Connect follow-up: `GND Millwork` iOS 1.0 is Prepare for
   Submission. Public distribution is selected by default, but its free price
   schedule and App Availability are not set up. The Free Apps Agreement is

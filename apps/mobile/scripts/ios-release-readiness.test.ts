@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -45,5 +46,19 @@ describe("iOS public App Store release readiness", () => {
 		expect(productionFooter.indexOf("<PrivacyPolicyLink />")).toBeLessThan(
 			productionFooter.indexOf("auth.onLogout()"),
 		);
+	});
+
+	it("does not expose a placeholder public sign-up route", async () => {
+		const authLayout = await readFile(
+			path.join(import.meta.dir, "../src/app/(auth)/_layout.tsx"),
+			"utf8",
+		);
+		expect(authLayout).not.toContain("name='sign-up'");
+		for (const route of [
+			"../src/app/(auth)/sign-up.tsx",
+			"../src/driver-app/(auth)/sign-up.tsx",
+		]) {
+			expect(existsSync(path.join(import.meta.dir, route))).toBe(false);
+		}
 	});
 });

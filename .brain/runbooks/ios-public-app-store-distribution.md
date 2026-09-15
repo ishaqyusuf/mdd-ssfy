@@ -6,13 +6,17 @@ This is the current operating procedure after the September 15, 2026 decision
 to release `GND Millwork` publicly, with **All Countries or Regions** as the
 target. It supersedes the historical TestFlight runbook and ADR-091 for release
 distribution. Public App Store acquisition is not public account registration:
-the current app signs in with existing GND company accounts, and its mobile
-sign-up route only renders `SignUp`. The mobile sign-in endpoint resolves an
+the current app signs in with existing GND company accounts and exposes no
+public sign-up route. The mobile sign-in endpoint resolves an
 existing legacy user with `accessRevokedAt: null`, `deletedAt: null`, and
 employee/manager account type; it does not create a public customer account.
 If the intended product must let anyone create
 an account, stop and implement/review that separate product and security scope
 before App Review submission.
+Apple's public-distribution and business-login guidance does not require
+public self-registration solely because the binary is publicly downloadable;
+see the [official-source review report](../reports/2026-09-15-ios-public-login-app-review.md).
+App Review still needs an active demo account with full representative access.
 
 - Apple seller/team: ZEROES AND ONE TECH HUB NIG LIMITED / `ZXC78SPCV4`.
 - Apple program: Organization, active; Account Holder role verified.

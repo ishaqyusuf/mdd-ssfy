@@ -47,6 +47,12 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   privacy-complete public-submission binary. The EAS production environment
   must contain the approved URL before the final build; a local sample URL
   check proves only wiring.
+- The public release currently authenticates existing active GND company
+  accounts, not arbitrary new users. The unfinished `/sign-up` route and
+  driver-app alias were removed so the production binary does not expose a
+  one-word placeholder. Public self-registration requires a separately
+  approved account, tenancy, privacy, and deletion design; this removal does
+  not change company-account sign-in.
 - The iOS production build and combined build/upload package scripts run
   `ios:release:preflight` under `with-env:prod` before calling EAS. A missing
   policy URL stops build queueing; Android and preview scripts are unchanged.
@@ -94,10 +100,10 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - `apps/mobile/assets/icons/*`
 - `apps/dashboard/src/components/settings/app-download-support-page.tsx`
 
-## iOS TestFlight production path (2026-09-12)
+## iOS store production path (2026-09-12; public target since 2026-09-15)
 
 - Production iOS builds use `distribution: "store"`; preview stays
-  `distribution: "internal"` and is never used for TestFlight.
+  `distribution: "internal"` and is never used for the public App Store release.
 - Root commands are `bun run eas:build:ios`,
   `bun run eas:submit:ios --id <reviewed-EAS-build-id>`, and
   `bun run eas:build-submit:ios`. Existing Android `eas:build` routing and
@@ -111,5 +117,6 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - `ITSAppUsesNonExemptEncryption` is `false` based on the audited absence of
   app-owned custom cryptography. Re-audit if custom crypto is added.
 - `bun run ios:release:check` enforces the release configuration invariants.
-- The gated release procedure is in
-  `.brain/runbooks/ios-testflight-internal-distribution.md`.
+- The current gated release procedure is in
+  `.brain/runbooks/ios-public-app-store-distribution.md`; the TestFlight
+  runbook is historical.
