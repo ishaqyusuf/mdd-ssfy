@@ -89,6 +89,12 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 source-to-handler regression: a focused API route test now
+  checks that protected `mobileAccess.myRequests` is registered in the app
+  router and exported through the dashboard's internal API handler. This
+  closes a local wiring-check gap but does **not** prove that the observed
+  production deployment has the procedure; its JSON `NOT_FOUND` remains a
+  deployment/installed-build acceptance gate.
 - September 15 credential-free deployed-route observation: the selected
   production apex Base redirects to `www.gndprodesk.com`; generic auth
   `/api/auth/get-session` returns 200 there, whereas `oss.gndprodesk.com`
