@@ -1,10 +1,40 @@
 # API Permissions
 
+## Public web/mobile login abuse boundary (2026-09-15)
+
+- Password-attempt quotas apply before credential lookup; they do not grant
+  employee access, App Store portal membership, or per-platform entitlement.
+- Production uses trusted Vercel client-IP plus hashed account identifiers in
+  an atomic distributed counter, returning 429 when limited or 503 if the
+  protection dependency is unavailable. No process-memory fallback is used
+  for production login. See
+  [mobile auth abuse protection](mobile-auth-abuse-protection.md).
+
+## Shared web/mobile Better Auth session role liveness (2026-09-15)
+
+- Session resolution already rejects deleted or access-revoked legacy users.
+  A shared company-member predicate now requires at least one active
+  `ModelHasRoles` assignment whose referenced role and organization are active;
+  an empty live-role list rejects the mapped user and invalidates the session.
+  Only active role-permission links and permission definitions contribute to
+  capabilities. Explicit `CUSTOMER` users are excluded.
+- This applies to Better Auth web and mobile sessions; it prevents a
+  soft-deleted nested role/grant from becoming a session permission source.
+  It does not add a new per-platform runtime mobile entitlement or change
+  Android artifact/request status rules.
+- Focused query-shape regression and auth utility tests pass. Package
+  typecheck has existing `packages/errors` NodeNext import-extension failures;
+  no changed session-source diagnostic was emitted.
+
 ## Android mobile artifact authorization (2026-09-15)
 
 - `GET /api/download-app` re-checks the web session and active, non-revoked
-  employee. Super Admin bypass requires both an active role assignment and an
-  active referenced role; a soft-deleted `Super Admin` role cannot authorize
+  employee. Explicit `CUSTOMER` users are excluded; employee/manager or
+  legacy null-type users need an active role assignment to an active referenced
+  role and organization even when an older Android request has an
+  invited/accepted/installed status. Super Admin bypass requires an active
+  assignment to an active role and organization; a soft-deleted `Super Admin`
+  role or organization cannot authorize
   APK download. Other employees need an Android access request at Invited,
   Accepted, or Installed. Download URL and filename remain server-owned.
 - The deleted-role route guard failed on the old query and passes after the
@@ -15,13 +45,23 @@
 
 - `mobileAccess.adminList` and `mobileAccess.adminUpdate` use the HRM
   `requireSuperAdmin` guard. It now re-reads an active, non-revoked user and
-  accepts only active assignments to active referenced roles. Super Admin may
-  be any of those active roles, not only the first assignment. A soft-deleted
+  accepts only active assignments to active referenced roles and organizations.
+  Super Admin may be any of those active roles, not only the first assignment. A soft-deleted
   role name or revoked/deleted user cannot authorize status review/changes.
 - `mobileAccess.myRequests` and `mobileAccess.request` continue to require an
   active, non-revoked employee and now require at least one active referenced
-  role as well as an active assignment. Caller IDs/roles remain untrusted;
+  role and organization as well as an active assignment. Caller IDs/roles remain untrusted;
   lifecycle actor IDs come from authenticated context.
+- The employee predicate now excludes explicit `CUSTOMER` type while admitting
+  `EMPLOYEE`, `MANAGER`, and legacy null-type staff with an active role and
+  organization.
+  `adminList` and `adminUpdate` apply the same predicate before their separate
+  Super Admin check. This prevents a customer row with an accidentally
+  assigned employee/admin role from requesting or reviewing mobile access.
+  The same shared live-company-member predicate is now used by sign-in,
+  session resolution, HRM admin authority, request/review, admin-notification
+  recipients, and APK delivery; see
+  [ADR-103](../decisions/ADR-103-shared-live-company-membership-for-public-mobile-access.md).
 
 ## Production Planning Calendar (Ticket 18, local implementation)
 
