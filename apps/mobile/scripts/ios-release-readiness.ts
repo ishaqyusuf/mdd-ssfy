@@ -35,6 +35,10 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		path.join(APP_ROOT, "scripts", "ios-submit-by-id.ts"),
 		"utf8",
 	);
+	const buildGateSource = await readFile(
+		path.join(APP_ROOT, "scripts", "ios-build-gate.ts"),
+		"utf8",
+	);
 	const [trpcRouteSource, authRouteSource] = await Promise.all([
 		readFile(
 			path.join(
@@ -213,10 +217,10 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		check(
 			"iOS build command",
 			scripts["eas-build:ios:prod"]?.startsWith(
-				"bun run ios:release:preflight &&",
+				"bun ./scripts/ios-build-gate.ts && bun run ios:release:preflight &&",
 			) && scripts["eas-build:ios:prod"]?.includes(
 				"eas build -p ios --profile production",
-			),
+			) && buildGateSource.includes('process.env.GND_IOS_BUILD_ACK !== "1"'),
 			scripts["eas-build:ios:prod"] ?? "missing",
 		),
 		check(

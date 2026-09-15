@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 iOS store-build safety follow-up: the root EAS account runner
+  now requires `--acknowledge-build` before authentication for an iOS
+  production build; the direct mobile-package script checks
+  `GND_IOS_BUILD_ACK=1` before release preflight or EAS. Thirteen focused
+  account/build/upload tests pass (83 expectations), and the readiness
+  checker accepts the new guarded build script while failing only the still
+  unapproved privacy-policy URL. Android production and preview build scripts
+  remain unchanged. No EAS build was queued or Apple setting changed.
 - September 15 direct-upload safety follow-up: the reviewed-ID adapter now
   requires `GND_IOS_UPLOAD_ACK=1` for its invocation before spawning EAS;
   the root account runner requires `--acknowledge-upload` after ID validation

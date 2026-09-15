@@ -255,10 +255,16 @@ needed before the production policy URL or App Privacy fields are saved.
 1. Authenticate EAS as authorized `pcruz321` via the existing account runner
    only after the credential gate, and read-only verify `eas project:info`.
 2. If a new clean binary is required: **GATE build**
-   `bun run eas:appstore:build:ios`. Inspect bundle/team/version/build/profile,
+   `bun run eas:appstore:build:ios --acknowledge-build`, only after separate
+   action-time build confirmation. The root runner blocks an iOS production
+   build before EAS authentication without this flag; the direct
+   `apps/mobile` package path requires
+   `GND_IOS_BUILD_ACK=1 bun run eas-build:ios:prod` for that invocation.
+   Never persist the acknowledgment in `.env*` or a shell profile. Inspect
+   bundle/team/version/build/profile,
    production entitlements, release endpoint, and export declaration. The
    combined alias `bun run eas:appstore:build-upload:ios` both queues and uploads;
-   it now requires `--acknowledge-build --acknowledge-auto-upload` before EAS
+   it requires `--acknowledge-build --acknowledge-auto-upload` before EAS
    authentication, and the direct package script has a second guard. Those
    acknowledgments are not substitutes for explicit action-time permission.
    Do not use automatic upload for this first release: build, inspect the

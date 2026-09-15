@@ -125,6 +125,40 @@ describe("EAS account runner release routing", () => {
 		}
 	});
 
+	it("gates iOS store builds before EAS authentication without build acknowledgment", () => {
+		const result = spawnSync(
+			process.execPath,
+			[
+				"./scripts/eas-account-runner.ts",
+				"build",
+				"--prod",
+				"--platform",
+				"ios",
+			],
+			{ cwd: repositoryRoot, encoding: "utf8" },
+		);
+		expect(result.status).not.toBe(0);
+		expect(result.stderr).toContain(
+			"Public iOS store build requires --acknowledge-build before EAS authentication.",
+		);
+		expect(result.stdout).not.toContain("Authenticated EAS session");
+	});
+
+	it("gates a direct mobile-package store build by scoped acknowledgment", () => {
+		for (const [ack, allowed] of [["", false], ["1", true]] as const) {
+			const result = spawnSync(
+				process.execPath,
+				["./apps/mobile/scripts/ios-build-gate.ts"],
+				{
+					cwd: repositoryRoot,
+					encoding: "utf8",
+					env: { ...process.env, GND_IOS_BUILD_ACK: ack },
+				},
+			);
+			expect(result.status === 0).toBe(allowed);
+		}
+	});
+
 	it("gates a valid iOS upload ID on an explicit invocation acknowledgment", () => {
 		const result = spawnSync(
 			process.execPath,

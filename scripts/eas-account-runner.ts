@@ -68,6 +68,17 @@ if (operation === "build-submit" && platform === "ios") {
 	env.GND_IOS_BUILD_ACK = "1";
 	env.GND_IOS_AUTO_UPLOAD_ACK = "1";
 }
+if (operation === "build" && platform === "ios") {
+	if (target !== "prod") {
+		throw new Error("iOS App Store builds require --prod.");
+	}
+	if (!actionArgs.includes("--acknowledge-build")) {
+		throw new Error(
+			"Public iOS store build requires --acknowledge-build before EAS authentication.",
+		);
+	}
+	env.GND_IOS_BUILD_ACK = "1";
+}
 
 const forwardedArgs = getForwardedArgs(actionArgs);
 const buildIdOptions = forwardedArgs.filter(
@@ -397,10 +408,10 @@ function getUsage(): string {
 		"Usage:",
 		"  bun run eas:auth [--account <name>]",
 		"  bun run eas:build <--dev|--preview|--prod> [--account <name>]",
-		"  bun run eas:build:ios [--account <name>]",
+		"  bun run eas:build:ios --acknowledge-build [--account <name>]",
 		"  bun run eas:submit:ios --id <reviewed-EAS-build-id> --acknowledge-upload [--account <name>]",
 		"  bun run eas:build-submit:ios --acknowledge-build --acknowledge-auto-upload [--account <name>]",
-		"  bun run eas:appstore:build:ios [--account <name>]",
+		"  bun run eas:appstore:build:ios --acknowledge-build [--account <name>]",
 		"  bun run eas:appstore:upload:ios --id <reviewed-EAS-build-id> --acknowledge-upload [--account <name>]",
 		"  bun run eas:appstore:build-upload:ios --acknowledge-build --acknowledge-auto-upload [--account <name>]",
 		"  bun run eas:update <--preview|--prod> [--account <name>]",
