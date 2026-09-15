@@ -148,6 +148,12 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    installed-build login. Deploy/revalidate the reviewed backend at the
    approved origin before queueing the fresh privacy-complete public build;
    changing production aliases or deploying remains a separate action gate.
+   Use the [backend rollout review packet](../reports/2026-09-15-ios-backend-rollout-review.md)
+   before that gate: identify the currently deployed Vercel artifact/SHA and
+   review the **full** proposed delta from an immutable Git ref. The shared
+   worktree contains unrelated edits, so a direct dirty-worktree production
+   deploy is not a reviewed mobile-only rollout. Preserve a verified rollback
+   target and obtain confirmation for the exact deployment source/alias.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

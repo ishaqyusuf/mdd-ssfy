@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 backend rollout packet: the clean committed source checkpoint
+  `98fed14defdc35381ef198113dad208f03c41294` is now documented separately
+  from the heavily edited shared worktree. The current Vercel production
+  artifact/SHA and the full proposed delta are not yet verified; no production
+  deployment should be inferred from the source test or attempted from dirty
+  workspace contents. The packet names exact auth/router, limiter, redirect,
+  rollback, and installed-build acceptance evidence for an action-time
+  deployment review. No Vercel/Apple/EAS setting or binary changed.
 - September 15 source-to-handler regression: a focused API route test now
   checks that protected `mobileAccess.myRequests` is registered in the app
   router and exported through the dashboard's internal API handler. This
