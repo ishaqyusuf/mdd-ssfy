@@ -17,6 +17,9 @@ Apple's public-distribution and business-login guidance does not require
 public self-registration solely because the binary is publicly downloadable;
 see the [official-source review report](../reports/2026-09-15-ios-public-login-app-review.md).
 App Review still needs an active demo account with full representative access.
+The [completion audit](../reports/2026-09-15-ios-public-release-completion-audit.md)
+maps every original deliverable and updated public-release acceptance criterion
+to evidence and lists the exact unresolved external gates.
 
 - Apple seller/team: ZEROES AND ONE TECH HUB NIG LIMITED / `ZXC78SPCV4`.
 - Apple program: Organization, active; Account Holder role verified.

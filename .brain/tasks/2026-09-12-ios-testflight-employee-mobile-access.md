@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 completion audit: every original deliverable and updated public
+  App Store acceptance criterion now maps to authoritative source, test,
+  artifact, portal or deployment evidence. The visible iOS 1.0 Build section
+  has no attached build; the TestFlight view failed to render after one reload,
+  so absence of all Apple-side builds is deliberately not claimed. Eight exact
+  remaining gate groups cover privacy/legal, deployment authority, runtime
+  acceptance, Apple form decisions/saves, fresh candidate, upload, review and
+  manual release. No Apple/EAS/Vercel state changed.
 - September 15 accessibility/review inventory: live App Accessibility shows
   Get Started, confirming no accessibility support answers are published, and
   App Review contains no submitted items. A narrow source inventory found
