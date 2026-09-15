@@ -115,24 +115,130 @@ describe("workflow selection actions", () => {
 		expect(result?.activeStepIndex).toBe(1);
 	});
 
-	it("clears a selected single-select custom component when it is clicked again", () => {
+	it("reaffirms a selected custom single-select component and advances once", () => {
+		const customRouteData = {
+			composedRouter: {
+				rootA: {
+					routeSequence: [{ uid: "stepB" }, { uid: "stepC" }, { uid: "stepD" }],
+					route: {
+						rootStep: "stepB",
+						stepB: "stepC",
+						stepC: "stepD",
+					},
+				},
+			},
+			stepsByUid: {
+				rootStep: { id: 1, uid: "rootStep", title: "Item Type" },
+				stepB: { id: 2, uid: "stepB", title: "Door Type" },
+				stepC: { id: 3, uid: "stepC", title: "Height" },
+				stepD: { id: 4, uid: "stepD", title: "Line Item" },
+			},
+			stepsById: {
+				1: "rootStep",
+				2: "stepB",
+				3: "stepC",
+				4: "stepD",
+			},
+			rootStepUid: "rootStep",
+		};
+		const steps = [
+			{
+				stepId: 1,
+				step: { id: 1, uid: "rootStep", title: "Item Type" },
+				componentId: 11,
+				prodUid: "rootA",
+				value: "Door",
+			},
+			{
+				stepId: 2,
+				step: { id: 2, uid: "stepB", title: "Door Type" },
+				componentId: 21,
+				prodUid: "custom-1",
+				value: "QA CUSTOM DOOR TYPE",
+				price: 25,
+				basePrice: 20,
+				meta: {
+					custom: true,
+					selectedProdUids: ["custom-1"],
+					selectedComponents: [
+						{
+							uid: "custom-1",
+							title: "QA CUSTOM DOOR TYPE",
+							custom: true,
+							_metaData: { custom: true, source: "qa" },
+						},
+					],
+				},
+			},
+			{
+				stepId: 3,
+				step: { id: 3, uid: "stepC", title: "Height" },
+				prodUid: "height-80",
+				value: "8-0",
+				meta: { selectedProdUids: ["height-80"] },
+			},
+			{
+				stepId: 4,
+				step: { id: 4, uid: "stepD", title: "Line Item" },
+				prodUid: "configured-line-item",
+				meta: { preserved: true },
+			},
+		];
+		const result = saveWorkflowSelectedComponent({
+			routeData: customRouteData,
+			line: { uid: "line-1", formSteps: steps },
+			steps,
+			currentStepIndex: 1,
+			component: {
+				uid: "custom-1",
+				title: "QA CUSTOM DOOR TYPE",
+				custom: true,
+				_metaData: { custom: true, source: "qa" },
+			},
+			visibleComponents: [],
+			activeStepTitle: "Door Type",
+		});
+
+		expect(result?.linePatch.formSteps).toHaveLength(4);
+		expect(result?.linePatch.formSteps[1]?.prodUid).toBe("custom-1");
+		expect(result?.linePatch.formSteps[1]?.meta).toMatchObject({
+			custom: true,
+			selectedProdUids: ["custom-1"],
+			selectedComponents: [
+				{
+					uid: "custom-1",
+					custom: true,
+					_metaData: { custom: true, source: "qa" },
+				},
+			],
+		});
+		expect(result?.linePatch.formSteps[2]?.prodUid).toBe("height-80");
+		expect(result?.linePatch.formSteps[3]?.meta?.preserved).toBe(true);
+		expect(result?.activeStepIndex).toBe(2);
+	});
+
+	it("toggles off a selected custom component on a multi-select step", () => {
 		const result = saveWorkflowSelectedComponent({
 			routeData,
 			line: { uid: "line-1", formSteps: [] },
 			steps: [
 				{
 					stepId: 2,
-					step: { id: 2, uid: "stepB", title: "Height" },
+					step: { id: 2, uid: "stepB", title: "Door" },
 					componentId: 21,
 					prodUid: "custom-1",
-					value: "CUSTOM HEIGHT",
+					value: "QA CUSTOM DOOR",
 					price: 25,
 					basePrice: 20,
 					meta: {
 						custom: true,
 						selectedProdUids: ["custom-1"],
 						selectedComponents: [
-							{ uid: "custom-1", title: "CUSTOM HEIGHT", custom: true },
+							{
+								uid: "custom-1",
+								title: "QA CUSTOM DOOR",
+								custom: true,
+							},
 						],
 					},
 				},
@@ -143,14 +249,19 @@ describe("workflow selection actions", () => {
 				},
 			],
 			currentStepIndex: 0,
-			component: { uid: "custom-1", title: "CUSTOM HEIGHT", custom: true },
+			component: {
+				uid: "custom-1",
+				title: "QA CUSTOM DOOR",
+				custom: true,
+			},
 			visibleComponents: [],
-			activeStepTitle: "Height",
+			activeStepTitle: "Door",
 		});
 
 		expect(result?.linePatch.formSteps).toHaveLength(1);
 		expect(result?.linePatch.formSteps[0]?.prodUid).toBe("");
 		expect(result?.linePatch.formSteps[0]?.meta?.custom).toBe(false);
+		expect(result?.linePatch.formSteps[0]?.meta?.selectedProdUids).toEqual([]);
 		expect(result?.activeStepIndex).toBe(0);
 	});
 
