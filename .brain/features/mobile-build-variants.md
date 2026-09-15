@@ -64,7 +64,10 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   and Better Auth through `EXPO_PUBLIC_BASE_URL`; development keeps its
   debugger-host routing. The production iOS config guard rejects a missing,
   local, or non-HTTPS base before EAS build queueing. The URL check is
-  structural; installed-build login and backend reachability remain required.
+  structural. Readiness also checks that the dashboard source still exports
+  `/api/trpc` and Better Auth `/api/auth` route handlers; it does not verify
+  their deployment. Installed-build login and backend reachability remain
+  required.
   Bun 1.3.0 reloads mobile `.env*` values when launched from the app root even
   after `env -u`, so the preflight uses a Node wrapper that strips development
   login keys and launches the Bun checker from a neutral temp-directory cwd.

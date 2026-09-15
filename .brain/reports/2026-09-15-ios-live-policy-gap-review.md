@@ -9,6 +9,13 @@ Scope: bounded, read-only comparison of the live first-party policy and reposito
 - The first-party fetch presented the page at that same canonical URL and no redirect was observed in the returned page; the fetch did not expose an HTTP status code, so status is recorded as **unknown**, not asserted as 200.
 - The page title is “Privacy Policy,” but the body calls itself “Privacy and Security Statement” and identifies the covered entity only as “GND Millwork,” “our,” “us,” or “we” ([live policy, About This Statement](https://gndmillwork.com/privacy-policy/)). It describes a Miami retail/e-commerce operation: 13285 SW 131th St, Miami, FL 33186, `(305) 278-6555`, and `support@gndmillwork.com` ([live policy footer](https://gndmillwork.com/privacy-policy/)).
 - The repository’s first-party storefront also brands the service as GND Millwork and uses `https://gndmillwork.com` ([storefront site config](../../apps/storefront/src/config/site.ts)); its terms use the inconsistent names “GND Millwork Corp” and “GND Millwork Corp, Inc.” ([storefront terms source](../../apps/storefront/src/app/%28lobby%29/terms-of-use/page.tsx)). Neither the live page nor inspected repository sources names the requested seller identity **ZEROES AND ONE TECH HUB NIG LIMITED**. That is an unresolved identity/role gap requiring an owner decision; this report does not infer which entity is legally responsible.
+- A September 15 read-only search-index recheck (crawler marked the page as
+  last crawled the prior week) still shows an example referring to **The Home
+  Depot Store** in its advertising section ([indexed policy text](https://gndmillwork.com/privacy-policy/)).
+  This cross-brand copy is additional evidence that the candidate wording
+  needs editorial/legal review. The indexed snapshot is not proof that the
+  site's current live HTML is unchanged; verify the published page directly
+  before approving an exact Apple/EAS URL.
 
 ## Coverage comparison
 
@@ -31,6 +38,9 @@ Scope: bounded, read-only comparison of the live first-party policy and reposito
 3. Name or otherwise accurately describe Logly and Sentry, their roles, data categories, linkage to an employee/account/device, and retention/deletion handling. The policy’s advertising/cross-device language is not evidence that the app performs tracking, and the code’s `sendDefaultPii: false` is not proof that all diagnostics are non-personal.
 4. Describe document storage and lifecycle accurately. The current code proves database tombstones for employee-document deletion, not immediate physical deletion of Vercel Blob bytes; retention and purge timing are not established.
 5. Provide a clearly identified privacy/data-rights request channel and explain deletion/consent choices separately from marketing opt-out. Confirm the in-app link resolves to the same current policy.
+6. Remove or reconcile the cross-brand Home Depot example and other template
+   claims that do not describe GND's actual app practices; legal approval must
+   be based on the exact current published text, not a cached copy.
 
 ## Evidence boundary
 

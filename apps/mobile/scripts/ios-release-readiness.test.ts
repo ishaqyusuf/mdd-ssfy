@@ -16,6 +16,9 @@ describe("iOS public App Store release readiness", () => {
 		expect(policyGate).toBeDefined();
 		expect(policyGate?.ok).toBe(Boolean(appConfig.extra?.privacyPolicyUrl));
 		expect(
+			checks.find((item) => item.label === "Dashboard API/auth route source contract")?.ok,
+		).toBe(true);
+		expect(
 			checks.filter((item) => !item.ok && item.label !== policyGate?.label),
 		).toEqual([]);
 		expect(checks.length).toBeGreaterThanOrEqual(15);
@@ -82,7 +85,7 @@ describe("iOS public App Store release readiness", () => {
 		});
 		expect(result.exitCode).toBe(0);
 		expect(result.stdout.toString()).toContain(
-			"29/29 iOS release-readiness checks passed.",
+			"30/30 iOS release-readiness checks passed.",
 		);
 		expect(result.stdout.toString()).not.toContain("release-secret-sentinel-5927");
 	});

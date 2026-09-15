@@ -123,7 +123,8 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    `EXPO_PUBLIC_BASE_URL` for both `/api/trpc` and `/api/auth`. Verify those
    routes on the approved production origin and complete a real installed
    release-build login with a least-privilege review account before App Review;
-   the origin check alone proves neither backend reachability nor login.
+   the origin and dashboard-route source checks prove neither backend
+   reachability nor login.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

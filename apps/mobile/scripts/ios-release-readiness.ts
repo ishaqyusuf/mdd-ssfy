@@ -35,6 +35,22 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		path.join(APP_ROOT, "scripts", "ios-submit-by-id.ts"),
 		"utf8",
 	);
+	const [trpcRouteSource, authRouteSource] = await Promise.all([
+		readFile(
+			path.join(
+				REPOSITORY_ROOT,
+				"apps/dashboard/src/app/api/trpc/[...trpc]/route.ts",
+			),
+			"utf8",
+		).catch(() => ""),
+		readFile(
+			path.join(
+				REPOSITORY_ROOT,
+				"apps/dashboard/src/app/api/auth/[...auth]/route.ts",
+			),
+			"utf8",
+		).catch(() => ""),
+	]);
 	const sourceFiles = new Bun.Glob("src/**/*.{ts,tsx,js,jsx,mjs,cjs}");
 	let customCryptoImport = false;
 	for await (const relativePath of sourceFiles.scan({ cwd: APP_ROOT })) {
@@ -165,6 +181,13 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			!isProductionIosCheck ||
 				isPublicHttpsOrigin(process.env.EXPO_PUBLIC_BASE_URL),
 			`productionIos=${isProductionIosCheck}; configuredPublicHttpsOrigin=${isPublicHttpsOrigin(process.env.EXPO_PUBLIC_BASE_URL)}`,
+		),
+		check(
+			"Dashboard API/auth route source contract",
+			trpcRouteSource.includes('export * from "@api/internal-api"') &&
+				authRouteSource.includes("toNextJsHandler(webAuth)") &&
+				authRouteSource.includes("GET, POST"),
+			"The dashboard source must serve both /api/trpc and /api/auth on the configured production origin; deployment reachability is separate",
 		),
 		check(
 			"Production telemetry inventory (non-secret local snapshot)",

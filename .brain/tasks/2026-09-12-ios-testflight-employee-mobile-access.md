@@ -89,6 +89,22 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 dashboard route source follow-up: the iOS checker now confirms
+  that dashboard source exports `/api/trpc` and Better Auth `/api/auth` handlers
+  needed by the shared production mobile origin. Nine focused tests pass (66
+  expectations); actual production-profile preflight fails only its still
+  unapproved policy URL gate (29/30), while a one-off synthetic HTTPS policy
+  URL passes 30/30 as configuration proof. The source check does not prove
+  deployed route reachability or installed-build login. A read-only `eas
+  whoami` retry failed at `api.expo.dev` DNS resolution before identity could
+  be observed, not with a login error. No EAS/Apple setting or build changed.
+- September 15 read-only policy recheck: the indexed candidate page still
+  includes a cross-brand Home Depot advertising example; the crawler marked
+  the capture as from the prior week, so exact current HTML is not yet proven.
+  The policy gap report now requires direct published-text verification and
+  legal/editorial cleanup before this URL can be approved. Signed-in Apple
+  record reinspection was unavailable because the Mac was locked; no portal
+  field, credential, EAS variable, build, or upload changed.
 - September 15 production-origin and dotenv follow-up: installed release
   routing now selects the embedded Expo variant and a public HTTPS
   `EXPO_PUBLIC_BASE_URL` for both tRPC and Better Auth; the iOS production
