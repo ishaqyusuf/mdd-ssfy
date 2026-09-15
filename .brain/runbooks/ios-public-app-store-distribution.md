@@ -102,6 +102,12 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    Confirm those booleans again against the exact EAS production build
    environment/artifact before answering App Privacy; a local pass is not
    proof of remote vendor/data handling.
+   The [read-only EAS production inventory](../reports/2026-09-15-ios-eas-production-env-inventory.md)
+   confirms the policy URL is absent at both project and account scope;
+   telemetry variable names exist at project scope but do not prove enablement.
+   **GATE:** after legal approval of the exact policy URL, ask the owner for
+   action-time confirmation before setting it in the EAS project production
+   environment. Do not pull credentials into `.env` files.
    The privacy audit also proves that mobile employee-document deletion
    tombstones database records but does not itself call Blob `del`; legal/data
    operations must approve the retention/purge explanation before the policy

@@ -149,6 +149,14 @@ approved public registration design exists.
   not call Blob `del`. A staged-browser-upload delete route is separate.
   The privacy report now records this distinction and a legal/data-operations
   retention/purge `TODO:`; no user document or Blob was deleted.
+- Read-only EAS production inventory: authenticated `eas whoami` confirms
+  `pcruz321`; the policy URL variable is absent at both project and account
+  production scope. Logly/Sentry variable names exist at project scope, but
+  their effective true/false values remain unverified by the safe probe.
+  `.brain/reports/2026-09-15-ios-eas-production-env-inventory.md` records only
+  name-presence results. The next EAS variable set is an action-time owner
+  gate after exact legal URL approval; no value or credential was printed or
+  saved, and no EAS/Apple setting changed.
 - Live App Store Connect follow-up: `GND Millwork` iOS 1.0 is Prepare for
   Submission. Public distribution is selected by default, but its free price
   schedule and App Availability are not set up. The Free Apps Agreement is

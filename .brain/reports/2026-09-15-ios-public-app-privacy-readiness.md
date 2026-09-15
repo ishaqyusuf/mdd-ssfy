@@ -59,6 +59,11 @@ The local boolean snapshot is not proof that the final EAS environment matches
 it, and neither check answers vendor handling, linkage, tracking, retention,
 or the accurate App Store Connect questionnaire. Those owner/vendor/artifact
 checks remain open.
+Read-only EAS production name checks now prove that
+`EXPO_PUBLIC_PRIVACY_POLICY_URL` is absent at project and account scope;
+Logly/Sentry variable names are present at project scope but their effective
+booleans were not safely verified. See the
+[value-suppressed inventory](2026-09-15-ios-eas-production-env-inventory.md).
 
 ### Server-side employee-document deletion evidence
 
