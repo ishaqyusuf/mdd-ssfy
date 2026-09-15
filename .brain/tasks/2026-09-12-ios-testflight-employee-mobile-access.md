@@ -30,6 +30,12 @@ approved public registration design exists.
   in-app policy link are prepared; final privacy-policy approval and URL,
   Apple listing/compliance,
   upload, review, and release remain gated
+- Local source checkpoint: scoped public-release and mobile-access hardening
+  committed as `56d1d91d7` on September 15. The 26-test / 128-assertion
+  release-and-access subset passes; no fresh privacy-complete IPA, Apple
+  upload, metadata save, App Review submission, or public release occurred.
+  This commit is a reproducible source baseline, not proof that the submitted
+  binary embeds an approved policy URL.
 - Current Checklist: 14/15 — Terms V100 is accepted,
   EAS is authenticated as `pcruz321`, the retained project link is verified, and
   the build-only store release path completed successfully

@@ -33,6 +33,12 @@ before App Review submission.
   in-app privacy link and is **not** a submission candidate; dirty build `5`
   is not one either. Build a new clean candidate after the policy URL is
   approved/configured and repeat artifact inspection.
+- Current local public-release source baseline: commit `56d1d91d7` contains
+  the in-app policy-link wiring, guarded iOS submit path, public guidance, and
+  permission hardening. It has **no new EAS/Apple binary**. After policy
+  approval and EAS production URL configuration, build a fresh candidate from
+  this revision or a later separately reviewed clean revision; do not upload
+  old build `6`.
 
 ### Live App Store Connect inventory, September 15
 
