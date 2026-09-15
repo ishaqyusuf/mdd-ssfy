@@ -55,7 +55,13 @@ longer release requirements. Public acquisition does not create public accounts.
 - Public distribution is selected. Automatic release after approval is selected
   and is a hard submission hold until a separately confirmed manual-release
   choice is saved. Mac/Vision Pro and School Manager options need review.
-- EU Digital Services Act trader status remains incomplete.
+- EU Digital Services Act trader status remains incomplete. On September 15,
+  the signed-in Account Holder dashboard showed Apple's explicit warning that
+  trader status must be provided to submit a new app or update for EU
+  distribution, and that affected apps may be removed from the EU storefront.
+  The Business module remained on a loading spinner after one reload, so the
+  declaration fields were not available for read-only inventory. No
+  declaration was started or submitted.
 - The configured apex backend redirects to `www`; generic auth is reachable,
   but the named mobile-access tRPC procedure returns JSON `NOT_FOUND`.
 - The visible Vercel Hobby team does not expose a GND project. The authoritative
@@ -78,7 +84,9 @@ longer release requirements. Public acquisition does not create public accounts.
    age rating, content rights, free price, worldwide availability, DSA trader
    declaration, platform availability, School Manager option, review contact,
    review credentials and manual release. Each save/legal/credential action is
-   separately gated.
+   separately gated. The Account Holder must retry the Business module when it
+   renders and have the legal/business owner provide the accurate trader facts;
+   do not infer or prefill them from the Apple organization record.
 5. **Fresh candidate:** set the approved privacy URL in EAS production only
    with confirmation, queue a clean store build with build acknowledgment, and
    inspect its source, Info.plist, privacy manifests, profile, entitlements,

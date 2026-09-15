@@ -64,8 +64,12 @@ authorization to save listing data or transmit review credentials.
 - Free Apps Agreement: **Active** for All Countries or Regions through
   September 12, 2027. Paid Apps Agreement: **New/unsigned**; do not sign it
   merely for the planned free release.
-- EU Digital Services Act trader compliance: **incomplete**, with a live
-  Business banner requesting completion.
+- EU Digital Services Act trader compliance: **incomplete**. On September 15,
+  the signed-in Account Holder dashboard warned that trader status must be
+  provided to submit new apps or updates for EU distribution and that affected
+  apps may be removed from the EU storefront. The Business module remained on
+  a loading spinner after one reload, so its declaration fields were not
+  inventoried and no declaration was started or submitted.
 - App Information: name, bundle, SKU, Apple ID, and English (U.S.) are present;
   subtitle, primary category, age-rating answers, and Content Rights setup are
   missing.
@@ -222,7 +226,11 @@ needed before the production policy URL or App Privacy fields are saved.
    so the Account Holder/legal owner must complete accurate trader information
    before global publication. Re-check any country-specific age/content,
    encryption, business, or tax obligations shown in App Store Connect. Do not
-   answer legal questions by inference from the code.
+   answer legal questions by inference from the code or the Apple organization
+   record. If the Business module still remains on a loading spinner, retry in
+   a clean signed-in session or contact App Store Connect support; do not bypass
+   the declaration or remove EU availability merely to clear the submission
+   warning without an explicit product/legal decision.
 4. **GATE listing:** Provide final app name/subtitle, description, keywords,
    primary category, Content Rights, support URL, marketing URL if used,
    copyright, age-rating answers,

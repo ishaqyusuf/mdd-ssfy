@@ -97,6 +97,13 @@ approved public registration design exists.
   remaining gate groups cover privacy/legal, deployment authority, runtime
   acceptance, Apple form decisions/saves, fresh candidate, upload, review and
   manual release. No Apple/EAS/Vercel state changed.
+- September 15 EU trader follow-up: the signed-in Account Holder dashboard
+  explicitly warns that trader status is required for new app/update
+  submissions distributed in the EU and that affected apps may be removed from
+  the EU storefront. The Business module stayed on a loading spinner after one
+  reload, so its fields could not be inventoried. No declaration, portal field,
+  permission or submission changed; accurate DSA trader facts remain an
+  Account Holder plus legal/business-owner gate.
 - September 15 accessibility/review inventory: live App Accessibility shows
   Get Started, confirming no accessibility support answers are published, and
   App Review contains no submitted items. A narrow source inventory found
