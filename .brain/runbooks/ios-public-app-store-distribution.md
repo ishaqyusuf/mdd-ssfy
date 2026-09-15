@@ -75,13 +75,17 @@ read-only. The version is **1.0 Prepare for Submission**. The current page shows
 - App Accessibility support labels are not started. Do not claim VoiceOver,
   larger-text, contrast, or other support without QA evidence; this is separate
   from the app's actual accessibility obligations.
-- Version release currently defaults to **Automatically release after
-  approval**. Prefer a deliberate manual-release choice if the owner wants a
-  controlled first launch; saving that choice is a separate account action.
+- Version release currently selects **Automatically release after approval**.
+  This would publish without a later action-time release confirmation. **GATE:**
+  do not submit the version for App Review while this remains selected. With
+  separate confirmation, change/save it to **Manually release this version**
+  before submission, then confirm public release separately after approval.
 - Pricing also shows Apple silicon Mac and Apple Vision Pro availability
-  checked by default. Validate those experiences or explicitly opt out before
-  global publication; do not assume an iPhone/iPad-only launch from the iOS
-  bundle alone.
+  checked by default; Apple Vision Pro shows version 1.0 as incompatible. The
+  Apple School Manager reduced-price checkbox is also selected. Review these
+  extra surfaces/volume option and validate or explicitly opt out at a saved
+  account-action gate before global publication; do not assume an
+  iPhone/iPad-only launch from the iOS bundle alone.
 
 Every portal save, key/credential action, build queue, Apple binary upload,
 agreement/legal form, App Review submission, or final public release marked

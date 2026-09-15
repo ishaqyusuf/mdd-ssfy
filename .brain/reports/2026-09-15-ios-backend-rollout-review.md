@@ -27,8 +27,13 @@ Status: Prepared locally; no deployment or account setting changed
 
 1. Identify the exact current Vercel production deployment, linked project,
    alias and source commit/build artifact. The observed HTTP responses do not
-   provide its Git SHA. **TODO:** record the authoritative deployment ID/SHA
-   without printing credentials.
+   provide its Git SHA. A September 15 read-only Chrome inventory opened an
+   `ishaqyusufs-projects` Hobby Vercel tab; its project search did not contain
+   GND, and a subsequent team/account interaction led to a Vercel login page.
+   No Google identity or Vercel login was selected. This tab is **not** an
+   authoritative GND deployment view. **TODO:** obtain the correct GND Vercel
+   project/deployment ID/SHA through owner-provided access or an approved
+   credential step, without printing credentials.
 2. Compare that deployment against the proposed immutable source ref, including
    every committed change that would ship, not only mobile-access files.
    The full delta is presently unknown; recent router history also includes

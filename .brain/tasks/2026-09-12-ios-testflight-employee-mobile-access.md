@@ -89,6 +89,20 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 signed-in App Store Connect reinspection: GND Millwork iOS
+  1.0 remains Prepare for Submission. App Privacy URL/questionnaire, price
+  schedule and app-country availability, primary category, age ratings,
+  Content Rights, iPhone screenshots, description/keywords/support URL,
+  copyright, and review account/contact are unset in the inspected views.
+  Public distribution is selected; Mac and Vision Pro availability and the
+  School Manager volume checkbox are selected, though version 1.0 is marked
+  incompatible with Vision Pro. Critically, **Automatically release after
+  approval** is selected. The runbook now hard-gates App Review submission
+  until an explicitly confirmed manual-release setting is saved, preserving
+  a separate post-review public-release gate. A Vercel Hobby team tab did not
+  expose GND and then reached login; no identity was selected. No Apple field,
+  form, agreement, key, binary, review, release, Vercel credential, or
+  deployment changed.
 - September 15 backend rollout packet: the clean committed source checkpoint
   `98fed14defdc35381ef198113dad208f03c41294` is now documented separately
   from the heavily edited shared worktree. The current Vercel production
