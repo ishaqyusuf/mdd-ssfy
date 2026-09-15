@@ -1,0 +1,145 @@
+{"kind":"deck","id":"pr/09mwfd","name":"Deck"}
+{"kind":"layout","layoutId":"98f9ed84-e030-4e3e-bb19-d2a611b75b0a","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"6e6f8366-08fa-463f-be7f-7917d2841ef8","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/k3vp6i","slide":1,"title":"INDUSTRIAL TRAINING","textShapes":5}
+{"kind":"textbox","id":"sh/58ruh07i","slide":1,"text":"INDUSTRIAL TRAINING","textPreview":"INDUSTRIAL TRAINING","textChars":19,"textLines":1,"bbox":[92,92,800,52]}
+{"kind":"textbox","id":"sh/il0bm587","slide":1,"text":"Property practice in a professional setting","textPreview":"Property practice in a professional setting","textChars":43,"textLines":1,"bbox":[92,175,1040,150]}
+{"kind":"textbox","id":"sh/jm9cfaps","slide":1,"text":"Malik Damilola Mistura","textPreview":"Malik Damilola Mistura","textChars":22,"textLines":1,"bbox":[92,420,700,48]}
+{"kind":"textbox","id":"sh/wjitkvq1","slide":1,"text":"400 Level Estate Management\nUniversity of Abuja","textPreview":"400 Level Estate Management | University of Abuja","textChars":47,"textLines":2,"bbox":[92,482,700,72]}
+{"kind":"textbox","id":"sh/hkrud0rm","slide":1,"text":"Lanre Hassan and Company   30 March to 11 September 2026","textPreview":"Lanre Hassan and Company   30 March to 11 September 2026","textChars":56,"textLines":1,"bbox":[92,620,1040,35]}
+{"kind":"notes","id":"nt/k3vp6i","slide":1,"text":"Good day. My name is Malik Damilola Mistura, a 400-level student of Estate Management at the University of Abuja. This presentation summarizes the Industrial Training I completed at Lanre Hassan and Company, Estate Surveyors and Valuers, from 30 March to 11 September 2026."}
+{"kind":"slide","id":"sl/tu0ass","slide":2,"title":"Purpose and scope of SIWES","textShapes":13}
+{"kind":"textbox","id":"sh/k3m147ap","slide":2,"text":"Purpose and scope of SIWES","textPreview":"Purpose and scope of SIWES","textChars":26,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/zid0b2t4","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/yhkj2xsj","slide":2,"text":"SIWES connected classroom principles with the judgement required in real property work.","textPreview":"SIWES connected classroom principles with the judgement required in real property work.","textChars":87,"textLines":1,"bbox":[72,150,1080,120]}
+{"kind":"textbox","id":"sh/98v2hcb6","slide":2,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[80,340,70,40]}
+{"kind":"textbox","id":"sh/87m18ral","slide":2,"text":"Supervised experience","textPreview":"Supervised experience","textChars":21,"textLines":1,"bbox":[170,338,360,40]}
+{"kind":"textbox","id":"sh/76dkfmtg","slide":2,"text":"Learning within an active real estate firm","textPreview":"Learning within an active real estate firm","textChars":42,"textLines":1,"bbox":[550,340,640,42]}
+{"kind":"textbox","id":"sh/m54j6hsv","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[80,430,70,40]}
+{"kind":"textbox","id":"sh/hcf25wbi","slide":2,"text":"Professional exposure","textPreview":"Professional exposure","textChars":21,"textLines":1,"bbox":[170,428,360,40]}
+{"kind":"textbox","id":"sh/wb61crax","slide":2,"text":"Property management, agency and valuation","textPreview":"Property management, agency and valuation","textChars":41,"textLines":1,"bbox":[550,430,640,42]}
+{"kind":"textbox","id":"sh/qhoni9w3","slide":2,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[80,520,70,40]}
+{"kind":"textbox","id":"sh/bihobedo","slide":2,"text":"Practical judgement","textPreview":"Practical judgement","textChars":19,"textLines":1,"bbox":[170,518,360,40]}
+{"kind":"textbox","id":"sh/cjq5kje9","slide":2,"text":"Working with field conditions and incomplete information","textPreview":"Working with field conditions and incomplete information","textChars":56,"textLines":1,"bbox":[550,520,640,42]}
+{"kind":"textbox","id":"sh/xkz6dovu","slide":2,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/tu0ass","slide":2,"text":"SIWES gave me supervised experience in a professional real estate environment and helped me connect classroom principles with actual assignments. My training covered property and facility management, estate agency, and valuation. Practical work often involves incomplete information, field conditions, client needs, and professional judgement."}
+{"kind":"slide","id":"sl/szdwny","slide":3,"title":"Lanre Hassan and Company","textShapes":13}
+{"kind":"textbox","id":"sh/54f2xgba","slide":3,"text":"Lanre Hassan and Company","textPreview":"Lanre Hassan and Company","textChars":24,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/i1oj2lcz","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/32xkvqdk","slide":3,"text":"Estate Surveyors and Valuers","textPreview":"Estate Surveyors and Valuers","textChars":28,"textLines":1,"bbox":[72,145,900,50]}
+{"kind":"textbox","id":"sh/gz610but","slide":3,"text":"Estate agency","textPreview":"Estate agency","textChars":13,"textLines":1,"bbox":[72,235,500,42]}
+{"kind":"textbox","id":"sh/h0f2tgve","slide":3,"text":"Sale, letting, acquisition and market advice","textPreview":"Sale, letting, acquisition and market advice","textChars":44,"textLines":1,"bbox":[72,285,500,58]}
+{"kind":"textbox","id":"sh/uxojy1cn","slide":3,"text":"Property and facility management","textPreview":"Property and facility management","textChars":32,"textLines":1,"bbox":[652,235,500,42]}
+{"kind":"textbox","id":"sh/vyxkr6d8","slide":3,"text":"Administration, inspection, maintenance and rent matters","textPreview":"Administration, inspection, maintenance and rent matters","textChars":56,"textLines":1,"bbox":[652,285,500,58]}
+{"kind":"textbox","id":"sh/0vqlcfux","slide":3,"text":"Property valuation","textPreview":"Property valuation","textChars":18,"textLines":1,"bbox":[72,380,500,42]}
+{"kind":"textbox","id":"sh/1wj250bi","slide":3,"text":"Professional opinions of value for defined purposes","textPreview":"Professional opinions of value for defined purposes","textChars":51,"textLines":1,"bbox":[72,430,500,58]}
+{"kind":"textbox","id":"sh/1kz2hcb2","slide":3,"text":"Property development","textPreview":"Property development","textChars":20,"textLines":1,"bbox":[652,380,500,42]}
+{"kind":"textbox","id":"sh/0jq187uh","slide":3,"text":"Planning and coordination of real estate projects","textPreview":"Planning and coordination of real estate projects","textChars":49,"textLines":1,"bbox":[652,430,500,58]}
+{"kind":"textbox","id":"sh/zixkf2tw","slide":3,"text":"21 Oga Road, Abuja   Close to the Central Bank of Nigeria area","textPreview":"21 Oga Road, Abuja   Close to the Central Bank of Nigeria area","textChars":62,"textLines":1,"bbox":[72,565,1080,40]}
+{"kind":"textbox","id":"sh/ehoj6xcb","slide":3,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/szdwny","slide":3,"text":"Lanre Hassan and Company provides estate agency, property and facility management, valuation, and property development services. It is located at 21 Oga Road, Abuja, close to the Central Bank of Nigeria area. The firm supports property owners, occupiers, and other clients who need professional real estate advice."}
+{"kind":"slide","id":"sl/pwyyn5","slide":4,"title":"Training rotations","textShapes":7}
+{"kind":"textbox","id":"sh/czah8jup","slide":4,"text":"Training rotations","textPreview":"Training rotations","textChars":18,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/by10fetk","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/axsz6tcz","slide":4,"text":"Twenty weeks across three professional units","textPreview":"Twenty weeks across three professional units","textChars":44,"textLines":1,"bbox":[72,125,800,50]}
+{"kind":"textbox","id":"sh/obah4jut","slide":4,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[930,245,160,70]}
+{"kind":"textbox","id":"sh/nahgbet8","slide":4,"text":"weeks in the main rotation","textPreview":"weeks in the main rotation","textChars":26,"textLines":1,"bbox":[900,320,220,60]}
+{"kind":"textbox","id":"sh/298z29cn","slide":4,"text":"The sequence moved from continuing property responsibility to market work and then valuation analysis.","textPreview":"The sequence moved from continuing property responsibility to market work and then valuation analysis.","textChars":102,"textLines":1,"bbox":[885,430,280,120]}
+{"kind":"textbox","id":"sh/18zy94b2","slide":4,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"chart","id":"ch/9wb29gr6","slide":4,"name":"","chartType":"bar","bbox":[82,205,760,365]}
+{"kind":"notes","id":"nt/pwyyn5","slide":4,"text":"I spent twelve weeks in Property and Facility Management, four weeks in Estate Agency, and four weeks in Valuation. The sequence moved from continuing property responsibility to market-facing work and then to structured valuation analysis."}
+{"kind":"slide","id":"sl/rz2caj","slide":5,"title":"Property and Facility Management","textShapes":12}
+{"kind":"textbox","id":"sh/y9gra5wz","slide":5,"text":"Property and Facility Management","textPreview":"Property and Facility Management","textChars":32,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/lc7q50vq","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/kby9cve5","slide":5,"text":"The property manager maintains an informed, continuing view of each asset.","textPreview":"The property manager maintains an informed, continuing view of each asset.","textChars":74,"textLines":1,"bbox":[72,150,1060,100]}
+{"kind":"textbox","id":"sh/b6p8zqdo","slide":5,"text":"INSPECT","textPreview":"INSPECT","textChars":7,"textLines":1,"bbox":[72,315,160,38]}
+{"kind":"textbox","id":"sh/algr6lw3","slide":5,"text":"Observe condition, occupation and visible defects","textPreview":"Observe condition, occupation and visible defects","textChars":49,"textLines":1,"bbox":[72,357,500,65]}
+{"kind":"textbox","id":"sh/x87q10vu","slide":5,"text":"RECORD","textPreview":"RECORD","textChars":6,"textLines":1,"bbox":[652,315,160,38]}
+{"kind":"textbox","id":"sh/c7y98ve9","slide":5,"text":"Document maintenance and repair needs clearly","textPreview":"Document maintenance and repair needs clearly","textChars":45,"textLines":1,"bbox":[652,357,500,65]}
+{"kind":"textbox","id":"sh/v29sbuds","slide":5,"text":"COMMUNICATE","textPreview":"COMMUNICATE","textChars":11,"textLines":1,"bbox":[72,455,160,38]}
+{"kind":"textbox","id":"sh/uh0ripw7","slide":5,"text":"Report findings to the appropriate parties","textPreview":"Report findings to the appropriate parties","textChars":42,"textLines":1,"bbox":[72,497,500,65]}
+{"kind":"textbox","id":"sh/0rmps7e5","slide":5,"text":"FOLLOW UP","textPreview":"FOLLOW UP","textChars":9,"textLines":1,"bbox":[652,455,160,38]}
+{"kind":"textbox","id":"sh/lsf61cfq","slide":5,"text":"Track action and arrange work according to urgency","textPreview":"Track action and arrange work according to urgency","textChars":50,"textLines":1,"bbox":[652,497,500,65]}
+{"kind":"textbox","id":"sh/yp47qxwf","slide":5,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/rz2caj","slide":5,"text":"I learned how professionals manage and inspect properties on behalf of clients. I observed maintenance and repair needs, recorded findings, followed up on assigned matters, and improved my time management. I can explain a simple example without revealing confidential property information."}
+{"kind":"slide","id":"sl/f3lmye","slide":6,"title":"Estate Agency","textShapes":5}
+{"kind":"textbox","id":"sh/gbydofid","slide":6,"text":"Estate Agency","textPreview":"Estate Agency","textChars":13,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/fapwfuhs","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/e9gvmp07","slide":6,"text":"Agency work begins with an accurate understanding of the property and the client's objective.","textPreview":"Agency work begins with an accurate understanding of the property and the client's objective.","textChars":93,"textLines":1,"bbox":[72,145,700,135]}
+{"kind":"textbox","id":"sh/t87edkzm","slide":6,"text":"Sales and letting\nRent collection\nProperty inspection\nMarket survey and comparison","textPreview":"Sales and letting | Rent collection | Property inspection | Market survey and comparison","textChars":82,"textLines":4,"bbox":[72,330,1080,255]}
+{"kind":"textbox","id":"sh/s7edkfi1","slide":6,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/f3lmye","slide":6,"text":"The agency rotation covered property sales, letting, rent collection, and market surveys. I learned to understand the client's instruction, obtain accurate property details, inspect the property, and compare relevant market evidence. Professional agency work requires accurate information and clear communication, not only advertising."}
+{"kind":"slide","id":"sl/0uid3u","slide":7,"title":"Valuation workflow","textShapes":23}
+{"kind":"textbox","id":"sh/8f2donq5","slide":7,"text":"Valuation workflow","textPreview":"Valuation workflow","textChars":18,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/7etwfi90","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/mdkvmd8f","slide":7,"text":"A defined purpose guides the evidence, method and report","textPreview":"A defined purpose guides the evidence, method and report","textChars":56,"textLines":1,"bbox":[72,125,1000,55]}
+{"kind":"textbox","id":"sh/lsred8ru","slide":7,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,220,62,40]}
+{"kind":"textbox","id":"sh/kridk3q9","slide":7,"text":"Brief collection","textPreview":"Brief collection","textChars":16,"textLines":1,"bbox":[150,216,430,48]}
+{"kind":"textbox","id":"sh/zq9wby9o","slide":7,"text":"Understand the instruction and purpose","textPreview":"Understand the instruction and purpose","textChars":38,"textLines":1,"bbox":[150,264,430,42]}
+{"kind":"textbox","id":"sh/yp0vit83","slide":7,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[72,340,62,40]}
+{"kind":"textbox","id":"sh/5ovepcry","slide":7,"text":"Property inspection","textPreview":"Property inspection","textChars":19,"textLines":1,"bbox":[150,336,430,48]}
+{"kind":"textbox","id":"sh/4nmxw7qd","slide":7,"text":"Observe physical and locational details","textPreview":"Observe physical and locational details","textChars":39,"textLines":1,"bbox":[150,384,430,42]}
+{"kind":"textbox","id":"sh/2tgv69gv","slide":7,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[72,460,62,40]}
+{"kind":"textbox","id":"sh/3upczehg","slide":7,"text":"Market survey","textPreview":"Market survey","textChars":13,"textLines":1,"bbox":[150,456,430,48]}
+{"kind":"textbox","id":"sh/4vyd8jyl","slide":7,"text":"Gather relevant comparable evidence","textPreview":"Gather relevant comparable evidence","textChars":35,"textLines":1,"bbox":[150,504,430,42]}
+{"kind":"textbox","id":"sh/pw7u1oz6","slide":7,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[662,220,62,40]}
+{"kind":"textbox","id":"sh/u5wv29gj","slide":7,"text":"Method selection","textPreview":"Method selection","textChars":16,"textLines":1,"bbox":[740,216,430,48]}
+{"kind":"textbox","id":"sh/fqpcveh4","slide":7,"text":"Choose an appropriate valuation approach","textPreview":"Choose an appropriate valuation approach","textChars":40,"textLines":1,"bbox":[740,264,430,42]}
+{"kind":"textbox","id":"sh/gryd4jyp","slide":7,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[662,340,62,40]}
+{"kind":"textbox","id":"sh/hs7uxoza","slide":7,"text":"Analysis","textPreview":"Analysis","textChars":8,"textLines":1,"bbox":[740,336,430,48]}
+{"kind":"textbox","id":"sh/y10vetg3","slide":7,"text":"Review evidence and apply judgement","textPreview":"Review evidence and apply judgement","textChars":35,"textLines":1,"bbox":[740,384,430,42]}
+{"kind":"textbox","id":"sh/zm9w7yho","slide":7,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[662,460,62,40]}
+{"kind":"textbox","id":"sh/bu10j6to","slide":7,"text":"Valuation report","textPreview":"Valuation report","textChars":16,"textLines":1,"bbox":[740,456,430,48]}
+{"kind":"textbox","id":"sh/at8ja1s3","slide":7,"text":"Present the basis, analysis and conclusion","textPreview":"Present the basis, analysis and conclusion","textChars":42,"textLines":1,"bbox":[740,504,430,42]}
+{"kind":"textbox","id":"sh/xwjilgbu","slide":7,"text":"Common purposes include sale, mortgage, acquisition and compensation.","textPreview":"Common purposes include sale, mortgage, acquisition and compensation.","textChars":69,"textLines":1,"bbox":[72,610,1110,34]}
+{"kind":"textbox","id":"sh/wva1cba9","slide":7,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/0uid3u","slide":7,"text":"The valuation process starts with collecting and understanding the client's brief. It continues through property inspection, market survey, method selection, analysis, and preparation of the valuation report. The valuation purpose, such as sale, mortgage, acquisition, or compensation, influences the scope of work. Inspection evidence, market evidence, and professional judgement must remain distinct."}
+{"kind":"slide","id":"sl/wyzvpf","slide":8,"title":"Knowledge and skills acquired","textShapes":8}
+{"kind":"textbox","id":"sh/k7q1kbq5","slide":8,"text":"Knowledge and skills acquired","textPreview":"Knowledge and skills acquired","textChars":29,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/jmh0b69k","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/yl8ji18z","slide":8,"text":"TECHNICAL","textPreview":"TECHNICAL","textChars":9,"textLines":1,"bbox":[72,155,500,40]}
+{"kind":"textbox","id":"sh/tcz2hg7m","slide":8,"text":"Property inspection\nMarket survey\nValuation process\nProfessional reporting","textPreview":"Property inspection | Market survey | Valuation process | Professional reporting","textChars":74,"textLines":4,"bbox":[72,215,500,280]}
+{"kind":"textbox","id":"sh/8bq1obq1","slide":8,"text":"PROFESSIONAL","textPreview":"PROFESSIONAL","textChars":12,"textLines":1,"bbox":[685,155,500,40]}
+{"kind":"textbox","id":"sh/7ahkfqpg","slide":8,"text":"Communication\nProblem solving\nTime management\nResponsible judgement","textPreview":"Communication | Problem solving | Time management | Responsible judgement","textChars":67,"textLines":4,"bbox":[685,215,500,280]}
+{"kind":"textbox","id":"sh/698jml8v","slide":8,"text":"Theory provided the foundation. Field experience developed the judgement to apply it.","textPreview":"Theory provided the foundation. Field experience developed the judgement to apply it.","textChars":85,"textLines":1,"bbox":[72,575,1090,54]}
+{"kind":"textbox","id":"sh/9gfi5wri","slide":8,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/wyzvpf","slide":8,"text":"The training strengthened my property inspection, market survey, valuation, and professional reporting knowledge. It also improved my communication, problem-solving, and time-management skills. These abilities support my future responsibility as an Estate Surveyor and Valuer."}
+{"kind":"slide","id":"sl/qa39u0","slide":9,"title":"Challenges and responses","textShapes":10}
+{"kind":"textbox","id":"sh/ved4f2l0","slide":9,"text":"Challenges and responses","textPreview":"Challenges and responses","textChars":24,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/wf6l872l","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/xgfmhc36","slide":9,"text":"Theory and field practice","textPreview":"Theory and field practice","textChars":25,"textLines":1,"bbox":[72,165,360,70]}
+{"kind":"textbox","id":"sh/iho3axkr","slide":9,"text":"Asked for explanations and clarification","textPreview":"Asked for explanations and clarification","textChars":40,"textLines":1,"bbox":[465,165,700,85]}
+{"kind":"textbox","id":"sh/j2x4j2lc","slide":9,"text":"Transportation costs","textPreview":"Transportation costs","textChars":20,"textLines":1,"bbox":[72,310,360,70]}
+{"kind":"textbox","id":"sh/k36lc72h","slide":9,"text":"Planned movement and budget carefully","textPreview":"Planned movement and budget carefully","textChars":37,"textLines":1,"bbox":[465,310,700,85]}
+{"kind":"textbox","id":"sh/54fmlc32","slide":9,"text":"Limited property information","textPreview":"Limited property information","textChars":28,"textLines":1,"bbox":[72,455,360,70]}
+{"kind":"textbox","id":"sh/ylk3ydk7","slide":9,"text":"Used authorized sources and avoided unsupported assumptions","textPreview":"Used authorized sources and avoided unsupported assumptions","textChars":59,"textLines":1,"bbox":[465,455,700,85]}
+{"kind":"textbox","id":"sh/z6tk7ils","slide":9,"text":"Accuracy and confidentiality remained essential","textPreview":"Accuracy and confidentiality remained essential","textChars":47,"textLines":1,"bbox":[72,600,1050,40]}
+{"kind":"textbox","id":"sh/7q5cny5w","slide":9,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/qa39u0","slide":9,"text":"I encountered differences between classroom procedures and field practice, transportation costs, and difficulty accessing some property information. I responded by asking for guidance, planning my movements and budget, and relying only on authorized information. These challenges reinforced accuracy and confidentiality."}
+{"kind":"slide","id":"sl/6teibc","slide":10,"title":"Recommendations","textShapes":16}
+{"kind":"textbox","id":"sh/vyl0zm9w","slide":10,"text":"Recommendations","textPreview":"Recommendations","textChars":15,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/gjehs7qh","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/hkni1cr2","slide":10,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,150,64,42]}
+{"kind":"textbox","id":"sh/mtczmx8f","slide":10,"text":"University","textPreview":"University","textChars":10,"textLines":1,"bbox":[155,145,320,50]}
+{"kind":"textbox","id":"sh/7ulgv290","slide":10,"text":"Give clear pre-training guidance and support meaningful placements.","textPreview":"Give clear pre-training guidance and support meaningful placements.","textChars":67,"textLines":1,"bbox":[500,150,680,65]}
+{"kind":"textbox","id":"sh/8vuho7ql","slide":10,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[72,268,64,42]}
+{"kind":"textbox","id":"sh/tw3yxcrq","slide":10,"text":"Training organizations","textPreview":"Training organizations","textChars":22,"textLines":1,"bbox":[155,263,320,50]}
+{"kind":"textbox","id":"sh/qpwzy18j","slide":10,"text":"Provide supervised practical exposure and regular feedback.","textPreview":"Provide supervised practical exposure and regular feedback.","textChars":59,"textLines":1,"bbox":[500,268,680,65]}
+{"kind":"textbox","id":"sh/rq507694","slide":10,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[72,386,64,42]}
+{"kind":"textbox","id":"sh/nyh0vm5k","slide":10,"text":"Institutions","textPreview":"Institutions","textChars":12,"textLines":1,"bbox":[155,381,320,50]}
+{"kind":"textbox","id":"sh/2x8j21oz","slide":10,"text":"Consider a stipend or transport allowance for compulsory training.","textPreview":"Consider a stipend or transport allowance for compulsory training.","textChars":66,"textLines":1,"bbox":[500,386,680,65]}
+{"kind":"textbox","id":"sh/p0jixwna","slide":10,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[72,504,64,42]}
+{"kind":"textbox","id":"sh/ozq14r65","slide":10,"text":"Future students","textPreview":"Future students","textChars":15,"textLines":1,"bbox":[155,499,320,50]}
+{"kind":"textbox","id":"sh/b210z65g","slide":10,"text":"Keep records, ask relevant questions and respect confidentiality.","textPreview":"Keep records, ask relevant questions and respect confidentiality.","textChars":65,"textLines":1,"bbox":[500,504,680,65]}
+{"kind":"textbox","id":"sh/a1sj61ov","slide":10,"text":"These recommendations focus on stronger preparation, supervision and access to practical learning.","textPreview":"These recommendations focus on stronger preparation, supervision and access to practical learning.","textChars":98,"textLines":1,"bbox":[72,620,1100,36]}
+{"kind":"textbox","id":"sh/x4ji1gnm","slide":10,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/6teibc","slide":10,"text":"The University should give clear pre-training guidance and continue supporting meaningful placements. Training firms should provide supervised practical exposure and regular feedback. Relevant institutions should consider transport support. Students should keep records, ask questions, and respect confidentiality."}
+{"kind":"slide","id":"sl/s5teps","slide":11,"title":"Conclusion","textShapes":7}
+{"kind":"textbox","id":"sh/8ry1gfux","slide":11,"text":"Conclusion","textPreview":"Conclusion","textChars":10,"textLines":1,"bbox":[72,48,1040,64]}
+{"kind":"textbox","id":"sh/7qp0nadc","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1142,50,70,42]}
+{"kind":"textbox","id":"sh/6pgje5c7","slide":11,"text":"The training broadened my understanding of Estate Management and increased my confidence in professional practice.","textPreview":"The training broadened my understanding of Estate Management and increased my confidence in professional practice.","textChars":114,"textLines":1,"bbox":[115,170,1050,150]}
+{"kind":"textbox","id":"sh/lonil0vm","slide":11,"text":"I gained practical exposure to property and facility management, estate agency and valuation. I did not rotate through Property Development following the demise of ESV Lanre Hassan.","textPreview":"I gained practical exposure to property and facility management, estate agency and valuation. I did not rotate through Property Developme...","textChars":181,"textLines":1,"bbox":[190,370,900,115]}
+{"kind":"textbox","id":"sh/kne1cvu1","slide":11,"text":"Thank you","textPreview":"Thank you","textChars":9,"textLines":1,"bbox":[390,545,500,60]}
+{"kind":"textbox","id":"sh/jm50jqdg","slide":11,"text":"Questions and discussion","textPreview":"Questions and discussion","textChars":24,"textLines":1,"bbox":[390,610,500,32]}
+{"kind":"textbox","id":"sh/y1wjalcv","slide":11,"text":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textPreview":"MALIK DAMILOLA MISTURA   UNIVERSITY OF ABUJA","textChars":44,"textLines":1,"bbox":[72,672,800,22]}
+{"kind":"notes","id":"nt/s5teps","slide":11,"text":"The training gave me practical exposure to major areas of Estate Management and strengthened the link between theory and professional practice. Although I did not rotate through Property Development following the demise of ESV Lanre Hassan, the other rotations broadened my knowledge and confidence. Thank the audience and invite questions."}
