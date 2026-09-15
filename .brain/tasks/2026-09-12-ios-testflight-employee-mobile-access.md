@@ -89,6 +89,13 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 distribution-controls review: live Pricing and Availability
+  confirms no price schedule or country availability is configured; Public is
+  selected, while Mac, Vision Pro and the School Manager discount are checked.
+  Version 1.0 still selects automatic release. The source-backed first-release
+  proposal is Free, All Countries or Regions, Public, iPhone/iPad only, no
+  School Manager discount and Manual release. Pricing and availability dialogs
+  were cancelled; no value was changed or saved.
 - September 15 age-rating/content-rights review: the live Apple dialogs were
   inspected and cancelled without a selection. Current fields are mapped to
   proposed answers from reachable mobile routes: no parental/age assurance,

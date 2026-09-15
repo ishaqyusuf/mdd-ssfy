@@ -124,6 +124,11 @@ longer release requirements. Public acquisition does not create public accounts.
    now maps every current questionnaire category to proposed source-backed
    answers and isolates the third-party-content rights attestation as a legal
    owner gate; no value was selected or saved.
+   The [distribution-controls packet](2026-09-15-ios-distribution-controls-readiness.md)
+   now records the exact live price/availability/device/distribution/release
+   defaults and an atomic proposed action set: Free, All Countries or Regions,
+   Public, iPhone/iPad only, no School Manager discount, and Manual release.
+   No Apple setting was changed or saved.
 5. **Fresh candidate:** set the approved privacy URL in EAS production only
    with confirmation, queue a clean store build with build acknowledgment, and
    inspect its source, Info.plist, privacy manifests, profile, entitlements,

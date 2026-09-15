@@ -112,6 +112,9 @@ the final generated rating and legal rights attestation at explicit save gates.
   extra surfaces/volume option and validate or explicitly opt out at a saved
   account-action gate before global publication; do not assume an
   iPhone/iPad-only launch from the iOS bundle alone.
+  The [distribution-controls readiness packet](../reports/2026-09-15-ios-distribution-controls-readiness.md)
+  proposes opting out of Mac, Vision Pro and the irrelevant free-app education
+  discount for version 1.0, while keeping Public and using Manual release.
 
 Every portal save, key/credential action, build queue, Apple binary upload,
 agreement/legal form, App Review submission, or final public release marked

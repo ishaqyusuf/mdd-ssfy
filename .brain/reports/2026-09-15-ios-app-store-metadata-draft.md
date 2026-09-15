@@ -84,6 +84,12 @@ the GND Millwork name and app assets before saving this field.
   availability, and the selected Apple School Manager reduced-price option.
   Version 1.0 is currently reported incompatible with Vision Pro.
 
+The [distribution-controls readiness packet](2026-09-15-ios-distribution-controls-readiness.md)
+records the live defaults and proposes the exact first-release set: Free, All
+Countries or Regions, Public, no School Manager discount, no Mac/Vision Pro
+compatibility distribution, and Manual release. These values remain unsaved
+until their action-time confirmation.
+
 ## Screenshot capture plan
 
 Capture from the exact release candidate with a purpose-built demo company
