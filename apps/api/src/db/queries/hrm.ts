@@ -6,6 +6,10 @@ import type {
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
 import {
+	activeCompanyRoleAssignmentWhere,
+	getActiveCompanyMemberWhere,
+} from "@gnd/auth/company-member";
+import {
 	USER_PERMISSION_MODEL_TYPE,
 	USER_PERMISSION_MODEL_TYPE_ALIASES,
 	getUserSpecificPermissions,
@@ -85,16 +89,12 @@ export async function requireSuperAdmin(ctx: TRPCContext) {
 	}
 
 	const user = await ctx.db.users.findFirst({
-		where: {
-			id: ctx.userId,
-			deletedAt: null,
-			accessRevokedAt: null,
-		},
+		where: getActiveCompanyMemberWhere({ id: ctx.userId }),
 		select: {
 			id: true,
 			name: true,
 			roles: {
-				where: { deletedAt: null, role: { deletedAt: null } },
+				where: activeCompanyRoleAssignmentWhere,
 				select: {
 					role: {
 						select: {

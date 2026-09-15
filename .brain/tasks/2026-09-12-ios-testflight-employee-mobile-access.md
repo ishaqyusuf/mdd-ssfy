@@ -89,6 +89,19 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 live-membership consistency audit: a shared auth-package
+  predicate now requires active internal/legacy type plus a live role and
+  organization, and is used by legacy sign-in, Better Auth session resolution,
+  HRM Super Admin checks, mobile-access request/review and admin notification
+  recipients, and Android APK authorization. Session resolution denies a
+  mapped account with no live role and deletes its Better Auth token.
+  Twenty-five focused auth/API/APK/HRM tests pass (62 expectations). Auth
+  typecheck still reports only seven existing
+  `packages/errors` NodeNext extension errors; API typecheck now reports one
+  unrelated `packages/sales/src/copy-sales.ts` nullable source-number error,
+  with no changed-file diagnostic. The dashboard broad typecheck previously
+  aborted at its default heap limit. No schema, migration, production data,
+  UI, Apple, Expo, or secret state changed. ADR-103 records the boundary.
 - September 15 employee-type authorization audit: the mobile-access employee
   predicate now excludes explicitly typed `CUSTOMER` rows even if they carry
   an active role, while preserving `EMPLOYEE`, `MANAGER`, and legacy null-type

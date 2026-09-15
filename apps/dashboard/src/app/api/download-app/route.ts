@@ -1,5 +1,9 @@
 import { prisma } from "@/db";
 import { getWebAuthSession } from "@gnd/auth/better-auth/www";
+import {
+	activeCompanyRoleAssignmentWhere,
+	getActiveCompanyMemberWhere,
+} from "@gnd/auth/company-member";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -12,16 +16,10 @@ export async function GET(req: Request) {
 	}
 
 	const employee = await prisma.users.findFirst({
-		where: {
-			id: userId,
-			deletedAt: null,
-			accessRevokedAt: null,
-			OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
-			roles: { some: { deletedAt: null, role: { deletedAt: null } } },
-		},
+		where: getActiveCompanyMemberWhere({ id: userId }),
 		select: {
 			roles: {
-				where: { deletedAt: null, role: { deletedAt: null } },
+				where: activeCompanyRoleAssignmentWhere,
 				select: { role: { select: { name: true } } },
 			},
 			mobileAccessRequests: {

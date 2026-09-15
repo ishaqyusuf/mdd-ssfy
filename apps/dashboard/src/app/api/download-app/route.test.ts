@@ -15,12 +15,9 @@ describe("mobile app download authorization", () => {
 		expect(source).toContain(
 			'status: { in: ["INVITED", "ACCEPTED", "INSTALLED"] }',
 		);
-		expect(source).toContain("accessRevokedAt: null");
+		expect(source).toContain("getActiveCompanyMemberWhere({ id: userId })");
 		expect(source).toContain(
-			'OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }]',
-		);
-		expect(source).toContain(
-			"roles: { some: { deletedAt: null, role: { deletedAt: null } } }",
+			"where: activeCompanyRoleAssignmentWhere",
 		);
 	});
 
@@ -30,8 +27,6 @@ describe("mobile app download authorization", () => {
 	});
 
 	it("does not honor a deleted Super Admin role", () => {
-		expect(source).toContain(
-			"where: { deletedAt: null, role: { deletedAt: null } }",
-		);
+		expect(source).toContain("where: activeCompanyRoleAssignmentWhere");
 	});
 });

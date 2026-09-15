@@ -40,15 +40,13 @@ describe("mobile access permission boundaries", () => {
 	});
 
 	it("checks live account and role authority for admin review", () => {
-		expect(adminGuardSource).toContain("accessRevokedAt: null");
-		expect(adminGuardSource).toContain("role: { deletedAt: null }");
+		expect(adminGuardSource).toContain("getActiveCompanyMemberWhere({ id: ctx.userId })");
+		expect(adminGuardSource).toContain("where: activeCompanyRoleAssignmentWhere");
 		expect(adminGuardSource).toContain("roles.some(");
 		expect(querySource).toContain(
-			"roles: { some: { deletedAt: null, role: { deletedAt: null } } }",
+			"where: getActiveCompanyMemberWhere({ id: ctx.userId })",
 		);
-		expect(querySource).toContain(
-			'OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }]',
-		);
+		expect(querySource).toContain("...activeCompanyRoleAssignmentWhere");
 		const adminList = querySource.split("export async function getMobileAccessRequestsForAdmin")[1]?.split("export async function updateMobileAccessRequest")[0];
 		const adminUpdate = querySource.split("export async function updateMobileAccessRequest")[1];
 		expect(adminList).toContain("await requireActiveEmployee(ctx);");

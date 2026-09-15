@@ -147,7 +147,10 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    removed; any unresolved native/server-only dependency is a blocker. Do not
    queue a new build merely to test a local config label.
 4. Check runtime endpoints, login/session denial for revoked/deleted staff,
-   crash reporting, and update channel. Public distribution does **not** grant
+   accounts without a live role, deleted-organization assignments, and explicit
+   customer rows, plus crash reporting and update channel. A mapped Better
+   Auth user with no live organization role must lose its session on the next
+   protected resolution. Public distribution does **not** grant
    access to protected GND services. The current release is company-login-only
    unless the owner separately approves a public sign-up implementation.
 5. Confirm the exact reviewed EAS build ID and fingerprint. The public upload

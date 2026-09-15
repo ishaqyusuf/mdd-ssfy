@@ -13,8 +13,9 @@ from permission to sign in and use company data.
 - `mobileAccess.myRequests` returns only the authenticated employee's records
   and omits internal notes, invitation provider, and external portal reference.
 - A requester must be an active, non-revoked employee with an active role
-  assignment to an active referenced role; a deleted role assignment alone
-  cannot authorize requests. Explicit `CUSTOMER` accounts are excluded even
+  assignment to an active referenced role and organization; a deleted role
+  assignment or deleted organization cannot authorize requests. Explicit
+  `CUSTOMER` accounts are excluded even
   if they have a role assignment; legacy null-type staff remain eligible only
   through the same active-role check used by existing mobile authentication.
 - `mobileAccess.request` creates or reopens the employee/platform record. An
@@ -22,9 +23,10 @@ from permission to sign in and use company data.
 - Android downloads require either Super Admin or an Android request in
   `INVITED`, `ACCEPTED`, or `INSTALLED`. The endpoint no longer accepts a
   caller-provided download URL or filename. It also requires an active
-  employee/manager or legacy null-type account with an active role assignment;
-  an explicit customer or deleted-only role cannot use the Super Admin bypass
-  or a historical request status to retrieve the APK.
+  employee/manager or legacy null-type account with an active role and
+  organization assignment; an explicit customer, deleted-only role, or
+  deleted-organization assignment cannot use the Super Admin bypass or a
+  historical request status to retrieve the APK.
 - The Android APK endpoint recognizes Super Admin only from an active role
   assignment whose referenced role is also active; a soft-deleted role name
   does not bypass the request-status gate.
@@ -42,8 +44,8 @@ does not grant an unapproved account access. See the
 
 - `mobileAccess.adminList` and `mobileAccess.adminUpdate` require Super Admin.
 - Admin review re-checks current user liveness and at least one active Super
-  Admin role/assignment server-side before listing or changing requests. It
-  also requires the reviewing account to satisfy the employee account-type
+  Admin role/organization assignment server-side before listing or changing
+  requests. It also requires the reviewing account to satisfy the employee account-type
   check; an explicitly typed customer cannot review requests merely by having
   a role named Super Admin.
 - Allowed lifecycle: Requested -> Approved -> Invited -> Accepted -> Installed,
@@ -70,11 +72,12 @@ it does not relabel historical invitations as public guidance. Android retains
 the ordinary **Invited** label.
 No App Store Connect API-key automation is needed for employee access to a
 publicly distributed binary. Backend access remains subject to the existing
-active-account/session checks. The shared Better Auth session resolver now
-excludes deleted role assignments, referenced roles/organizations, and grant
-rows before deriving capabilities; this is not an HRM per-platform access
-toggle. A future explicit mobile-entitlement feature is
+live-company-member/session checks. The shared member predicate also applies
+at web/mobile legacy sign-in, and the Better Auth session resolver refuses a
+mapped user with no live organization role. This is not an HRM per-platform
+access toggle. A future explicit mobile-entitlement feature is
 required if HRM is to control per-platform runtime access independently.
+See [ADR-103](../decisions/ADR-103-shared-live-company-membership-for-public-mobile-access.md).
 
 ## Key files
 

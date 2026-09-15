@@ -10,6 +10,10 @@ import {
 	nextMobileAccessStatuses,
 } from "@api/services/mobile-access-workflow";
 import type { TRPCContext } from "@api/trpc/init";
+import {
+	activeCompanyRoleAssignmentWhere,
+	getActiveCompanyMemberWhere,
+} from "@gnd/auth/company-member";
 import { TRPCError } from "@trpc/server";
 
 import { requireSuperAdmin } from "./hrm";
@@ -24,13 +28,7 @@ async function requireActiveEmployee(ctx: TRPCContext) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	const employee = await ctx.db.users.findFirst({
-		where: {
-			id: ctx.userId,
-			deletedAt: null,
-			accessRevokedAt: null,
-			OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
-			roles: { some: { deletedAt: null, role: { deletedAt: null } } },
-		},
+		where: getActiveCompanyMemberWhere({ id: ctx.userId }),
 		select: { id: true, name: true, email: true },
 	});
 	if (!employee) {
@@ -144,11 +142,10 @@ export async function requestMobileAccess(
 
 		const administrators = await tx.users.findMany({
 			where: {
-				deletedAt: null,
-				accessRevokedAt: null,
+				...getActiveCompanyMemberWhere(),
 				roles: {
 					some: {
-						deletedAt: null,
+						...activeCompanyRoleAssignmentWhere,
 						role: { name: "Super Admin", deletedAt: null },
 					},
 				},

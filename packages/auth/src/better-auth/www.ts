@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { type Prisma, type Users, db } from "@gnd/db";
+import { type Users, db } from "@gnd/db";
 import { compare } from "bcrypt-ts";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -12,6 +12,7 @@ import { setSessionCookie } from "better-auth/cookies";
 import { parseUserOutput } from "better-auth/db";
 import { nextCookies } from "better-auth/next-js";
 import * as z from "zod";
+import { getActiveCompanyMemberWhere } from "../company-member";
 import { recordMasterPasswordUsage } from "../master-password-audit";
 import { isNewLoginDevice, normalizeLoginDevice } from "../new-device-login";
 import { getRequestCountryCode } from "../request-country";
@@ -183,12 +184,7 @@ function hashResetToken(token: string) {
 }
 
 export function getActiveWebLegacyUserWhere(email: string) {
-  return {
-    email: email.trim(),
-    accessRevokedAt: null,
-    deletedAt: null,
-    OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
-  } satisfies Prisma.UsersWhereInput;
+	return getActiveCompanyMemberWhere({ email: email.trim() });
 }
 
 async function findLegacyUser(input: {
