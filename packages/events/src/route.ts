@@ -37,7 +37,10 @@ export function createEventsRoute(surface: "web" | "mobile" = "web") {
 		if (input.ok === false) {
 			return Response.json(
 				{ error: input.status === 413 ? "Batch too large" : "Invalid batch" },
-				{ status: input.status },
+				{
+					status: input.status,
+					headers: { "x-gnd-analytics-stage": "body" },
+				},
 			);
 		}
 		const parsed =
@@ -45,7 +48,10 @@ export function createEventsRoute(surface: "web" | "mobile" = "web") {
 				? nativeAnalyticsBatchSchema.safeParse(input.body)
 				: analyticsBatchSchema.safeParse(input.body);
 		if (!parsed.success) {
-			return Response.json({ error: "Invalid batch" }, { status: 400 });
+			return Response.json(
+				{ error: "Invalid batch" },
+				{ status: 400, headers: { "x-gnd-analytics-stage": "schema" } },
+			);
 		}
 		const project =
 			surface === "mobile"
