@@ -1,13 +1,14 @@
 import { InsuranceStatusAlert } from "@/components/insurance/insurance-status-alert";
+import { PrivacyPolicyLink } from "@/components/privacy-policy-link";
 import {
 	type SettingsSectionKey,
 	type SettingsSectionOption,
 	SettingsSections,
 } from "@/components/settings-sections";
 import { Pressable } from "@/components/ui/pressable";
+import { mobileDispatchPackingCommandsEnabled } from "@/features/dispatch/lib/mobile-dispatch-flags";
 import { useAuthContext } from "@/hooks/use-auth";
 import { useColorScheme } from "@/hooks/use-color";
-import { mobileDispatchPackingCommandsEnabled } from "@/features/dispatch/lib/mobile-dispatch-flags";
 import {
 	type ThemeOverride,
 	getThemeOverride,
@@ -440,6 +441,7 @@ export default function SettingsExampleScreen({
 
 					{/* Logout & Version */}
 					<View className="items-center gap-4 pt-2 pb-6">
+						<PrivacyPolicyLink />
 						<Pressable
 							onPress={(e) => {
 								auth.onLogout();
@@ -601,7 +603,7 @@ function TabItem({
 	label,
 	active = false,
 }: {
-	icon: any;
+	icon: IconKeys;
 	label: string;
 	active?: boolean;
 }) {

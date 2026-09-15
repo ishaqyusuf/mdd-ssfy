@@ -19,7 +19,7 @@ export async function GET(req: Request) {
 		},
 		select: {
 			roles: {
-				where: { deletedAt: null },
+				where: { deletedAt: null, role: { deletedAt: null } },
 				select: { role: { select: { name: true } } },
 			},
 			mobileAccessRequests: {

@@ -18,7 +18,7 @@ export const manualMobileAccessInvitationAdapter: MobileAccessInvitationAdapter 
 			return {
 				invitationProvider:
 					input.platform === "IOS"
-						? "MANUAL_APP_STORE_CONNECT"
+						? "MANUAL_PUBLIC_APP_STORE_GUIDANCE"
 						: "MANUAL_ANDROID_DISTRIBUTION",
 				externalReference: input.externalReference ?? null,
 			};

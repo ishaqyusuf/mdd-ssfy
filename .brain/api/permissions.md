@@ -1,5 +1,28 @@
 # API Permissions
 
+## Android mobile artifact authorization (2026-09-15)
+
+- `GET /api/download-app` re-checks the web session and active, non-revoked
+  employee. Super Admin bypass requires both an active role assignment and an
+  active referenced role; a soft-deleted `Super Admin` role cannot authorize
+  APK download. Other employees need an Android access request at Invited,
+  Accepted, or Installed. Download URL and filename remain server-owned.
+- The deleted-role route guard failed on the old query and passes after the
+  nested active-role filter. This affects APK download eligibility only; it
+  does not create a mobile runtime entitlement or alter iOS public download.
+
+## Employee mobile-access admin authority (2026-09-15)
+
+- `mobileAccess.adminList` and `mobileAccess.adminUpdate` use the HRM
+  `requireSuperAdmin` guard. It now re-reads an active, non-revoked user and
+  accepts only active assignments to active referenced roles. Super Admin may
+  be any of those active roles, not only the first assignment. A soft-deleted
+  role name or revoked/deleted user cannot authorize status review/changes.
+- `mobileAccess.myRequests` and `mobileAccess.request` continue to require an
+  active, non-revoked employee and now require at least one active referenced
+  role as well as an active assignment. Caller IDs/roles remain untrusted;
+  lifecycle actor IDs come from authenticated context.
+
 ## Production Planning Calendar (Ticket 18, local implementation)
 
 - `sales.productionPlanningCalendar` requires `viewOrders`, `editOrders` or

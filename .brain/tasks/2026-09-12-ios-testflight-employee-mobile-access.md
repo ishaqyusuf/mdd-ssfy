@@ -1,7 +1,7 @@
-# Task: iOS TestFlight Internal Distribution And Employee Mobile Access
+# Task: Public iOS App Store Distribution And Employee Mobile Access
 
 ## Status
-In Progress — External Action Gate
+In Progress — Public App Store preparation and external action gates
 
 ## Priority
 High
@@ -10,7 +10,7 @@ High
 2026-09-12
 
 ## Last Updated
-2026-09-14
+2026-09-15
 
 ## Global Ticket
 - Ticket Position: 1/1
@@ -18,12 +18,27 @@ High
 ## Source Context
 Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through TestFlight while preserving Android and the existing EAS project/update linkage. Add an authenticated, auditable employee mobile-access request and admin review lifecycle, complete local validation and documentation, and stop only at an explicit Apple/Expo credential, permission, upload, submission, or invitation gate.
 
+The September 12–14 TestFlight objective is historical. On September 15 the
+product owner changed the target to a public, globally available App Store app
+with no internal TestFlight distribution. The existing request/audit work
+remains; ordinary users need no ASC portal membership to download the public
+binary. Existing company-account authentication remains until a separately
+approved public registration design exists.
+
 ## Implementation Progress
-- Completion: 100% of safe local preparation
-- Current Checklist: 11/11 — Safe local work is complete; Terms V100 is accepted,
+- Completion: 14/15 — the public-release code/build path and conditional
+  in-app policy link are prepared; final privacy-policy approval and URL,
+  Apple listing/compliance,
+  upload, review, and release remain gated
+- Current Checklist: 14/15 — Terms V100 is accepted,
   EAS is authenticated as `pcruz321`, the retained project link is verified, and
   the build-only store release path completed successfully
-- Blocker: EAS now securely stores Apple Distribution certificate `ZDC9NMPYX8`
+- Remaining gate: The Account Holder signed in on September 15 and live
+  App Store Connect readiness was inspected read-only. Worldwide
+  release also requires accurate App Privacy/privacy-policy URL, final listing
+  screenshots and support URL, review account/demo, age rating, EU trader
+  declaration, pricing/availability, and separate binary upload/App Review/
+  public-release confirmations. EAS now securely stores Apple Distribution certificate `ZDC9NMPYX8`
   and App Store profile `6VT956987X`; all temporary exported private material was
   removed. Store build `3f3a6acf-ac06-42b8-ab72-1837480f49cc` completed for
   version `1.0.305` / build `5`. It is validation-only because unrelated dirty
@@ -32,8 +47,23 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
   `40a62218e` and passed independent IPA metadata/profile inspection. Explicit
   upload approval was given, but EAS requires creation of a new App Store Connect
   API key. The submit command was cancelled before key creation or Apple upload;
-  separate action-time confirmation for that key is now required. Processing,
-  tester-group assignment, and invitations remain separately gated.
+  separate action-time confirmation for that key is now required. The old EAS
+  Apple ID prompt was cancelled after the public-direction change; no key or
+  Apple upload was created. TestFlight tester groups/invitations are no longer
+  part of this release.
+  A September 15 source-backed privacy audit found conditional Logly analytics
+  and Sentry diagnostics, authenticated profile/session data, and employee and
+  dispatch document/photo/signature upload paths. The live
+  `gndmillwork.com/privacy-policy/` page is only a candidate for the Apple
+  privacy-policy URL until the legal owner confirms seller/app coverage and
+  accurate data practices. Both sign-in designs and the production signed-in
+  Settings footer now have an accessible in-app link wired to
+  `EXPO_PUBLIC_PRIVACY_POLICY_URL`; it remains hidden until the
+  owner-approved HTTPS URL is supplied. Readiness fails on that missing value,
+  and the iOS store build/combined package scripts now invoke production
+  preflight before queueing EAS.
+  Build `6` is a signed release-path proof, not yet a submission-ready
+  privacy-complete binary.
 
 ## Implementation Checklist
 - [x] Audit Expo/EAS, authentication, permissions, updates, signing assumptions, dependencies, and release docs
@@ -47,8 +77,86 @@ Prepare GND's Expo SDK 54 app for secure employee-only iOS distribution through 
 - [x] Update required Brain feature, API, database, decision, task, and progress documentation
 - [x] Run focused tests, config introspection, package typechecks, UI validation, and final code review
 - [x] Commit the scoped work and stop at the first gated external Apple/Expo action
+- [x] Replace TestFlight release labels/workflow guidance with explicit public App Store build and build-ID upload commands while preserving Android/preview behavior
+- [x] Publish the public App Store runbook and superseding ADR; cancel the private Custom App proposal
+- [x] Validate public-release source/config and dashboard guidance with focused checks
+- [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 public-release delta: 13 focused release/permission/guidance
+  tests passed (75 expectations), including the dashboard public-copy guard,
+  `bun run ios:release:check` passed 21/21, and scoped `git diff --check`
+  reported no whitespace errors. Read-only browser QA of `/support/mobile-app`
+  reached the authenticated login redirect, so the changed employee-only copy
+  was guarded by source test but could not be visually inspected without GND
+  login. Read-only App Store Connect inspection reached Apple Account sign-in;
+  no portal save or submission occurred. The stalled old EAS prompt was
+  interrupted with exit 130 before credential entry, key creation, or upload.
+- September 15 privacy-link delta: 6 focused mobile release/security/UI-guard
+  tests passed (47 assertions). With no policy URL, release readiness passed
+  22/23 and failed only the intentional privacy URL gate. A local synthetic
+  HTTPS URL passed 23/23, proving wiring only; it was not saved or approved as
+  a live policy. Scoped Biome lint passed for the six touched TS/TSX files; the
+  two new/changed test and link files also passed full formatting. Mobile
+  typecheck still fails broadly on existing API/path-alias and mobile errors;
+  the only diagnostics on touched login templates are the unchanged
+  `form.handleSubmit` typing errors at their existing lines. No new component,
+  config, or release-readiness file produced a diagnostic. No new IPA or Apple
+  upload was started. The production-env package preflight likewise stopped at
+  the privacy gate without the URL and passed 23/23 with a one-off synthetic
+  URL; no EAS build command was started.
+- Signed-in reachability follow-up: the shared mobile Settings screen now
+  renders the same link outside its dev-only `Debug` section, before Log Out;
+  the UI guard covers both sign-in designs and that production footer. Scoped
+  Biome lint on the changed Settings/test files passes. No
+  privacy URL was approved or saved.
+- Public-account scope audit: the mobile sign-up route is a one-word
+  placeholder, and `www-mobile-sign-in` resolves only an existing unrevoked,
+  undeleted legacy employee/manager record. The current public binary is
+  downloadable worldwide but cannot onboard arbitrary new users. Confirm
+  whether public self-registration is desired before App Review; it requires
+  a separately approved auth/tenant/privacy design.
+- Live App Store Connect follow-up: `GND Millwork` iOS 1.0 is Prepare for
+  Submission. Public distribution is selected by default, but its free price
+  schedule and App Availability are not set up. The Free Apps Agreement is
+  active; Paid Apps Agreement is unsigned and unnecessary for the planned free
+  first release. EU DSA trader compliance remains incomplete. App Privacy has
+  no policy URL or questionnaire; name/bundle/SKU/Apple ID are present, while
+  subtitle/category/age rating/Content Rights, screenshots, attached build,
+  listing copy/support URL, and review credentials/contact/notes are incomplete.
+  Automatic release after approval, Apple silicon Mac, and Vision Pro
+  availability are selected by default and need owner review. No Apple field
+  was edited or saved.
+  The iPhone 6.5-inch and iPad 13-inch screenshot panels each show zero slots
+  filled; accepted portrait sizes are documented in the public runbook. App
+  Accessibility support labels have not been started, so no claim was made.
+- Local listing preparation packet now captures a bounded draft for the
+  current company-login-only binary, portal field owners, an authentic
+  iPhone/iPad screenshot matrix, and a no-credential Review Information
+  handoff template. Its copy remains provisional until the owner resolves
+  public self-registration and approves each portal save; no account field
+  changed.
+- Release-command hardening: the legacy and public root iOS submit aliases
+  now both require a reviewed build UUID; the account runner rejects missing,
+  malformed, or `--latest` selections before authentication. Direct mobile
+  package submit commands no longer choose the latest build automatically.
+  Android routing, EAS owner/project, and production signing are unchanged;
+  no EAS or Apple upload ran during this check.
+- Current-state access audit found and closed an Android APK authorization
+  edge: an active role assignment to a deleted `Super Admin` role could bypass
+  the approved-request status check. The proxy now filters the referenced role
+  for `deletedAt: null`. Its new regression failed before the fix; the focused
+  route/workflow/invitation/permission suite passes 12 tests / 32 assertions.
+  No external invitation, account permission, or artifact download was made.
+- The same audit tightened the shared HRM Super Admin guard used by mobile
+  access admin review: user deletion/revocation and referenced-role deletion
+  now fail closed; any active Super Admin assignment can authorize review.
+  Employee self-service requires an active referenced role too. The new
+  admin guard regression failed before the fix; a runtime mock-database test
+  now verifies its query shape and decisions. The focused access suite passes
+  16 tests / 41 assertions. API typecheck found only current unrelated
+  Assistant/Sales errors, with no changed guard/query diagnostic. Two permanent
+  Brain bug records capture the authorization lessons.
 - `bun test apps/mobile/scripts/ios-release-readiness.test.ts apps/mobile/src/lib/preview-build-security.test.ts` - 5 passed, 37 assertions.
 - `bun run ios:release:check` - 18/18 readiness checks passed after adding SDK
   dependency and native-resolution invariants.

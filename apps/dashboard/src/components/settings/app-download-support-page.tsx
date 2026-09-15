@@ -30,6 +30,12 @@ const statusLabels = {
 	CANCELLED: "Cancelled",
 } as const;
 
+function statusLabel(status: keyof typeof statusLabels, platform: Platform) {
+	return platform === "IOS" && status === "INVITED"
+		? "Guidance sent"
+		: statusLabels[status];
+}
+
 export function AppDownloadSupportPage() {
 	const auth = useAuth();
 	const trpc = useTRPC();
@@ -111,9 +117,9 @@ export function AppDownloadSupportPage() {
 					<div className="border-b p-4">
 						<h2 className="font-semibold">Employee access requests</h2>
 						<p className="mt-1 text-sm text-muted-foreground">
-							Review requests here, perform invitations manually in the approved
-							platform portal, then record each verified lifecycle step. Never
-							enter Apple passwords or verification codes.
+							Review account access here. For iOS, send public App Store guidance
+							only after release; Android distribution remains admin-managed.
+							Record each verified step. Never enter Apple passwords or codes.
 						</p>
 					</div>
 					<div className="divide-y">
@@ -185,13 +191,15 @@ function PlatformAccessCard({
 						</h2>
 						<p className="mt-1 text-sm text-muted-foreground">
 							{platform === "IOS"
-								? "Access is delivered through Apple's TestFlight app."
+								? "After public release, download GND Millwork from the App Store. A company account is still required to sign in."
 								: "Access is approved and delivered by a GND administrator."}
 						</p>
 					</div>
 				</div>
 				{request ? (
-					<Badge variant="outline">{statusLabels[request.status]}</Badge>
+					<Badge variant="outline">
+						{statusLabel(request.status, platform)}
+					</Badge>
 				) : null}
 			</div>
 			{request?.statusNote ? (
@@ -246,7 +254,9 @@ function AdminRequestRow({
 					<Badge variant="secondary">
 						{request.platform === "IOS" ? "iOS" : "Android"}
 					</Badge>
-					<Badge variant="outline">{statusLabels[request.status]}</Badge>
+					<Badge variant="outline">
+						{statusLabel(request.status, request.platform)}
+					</Badge>
 				</div>
 				<p className="mt-1 text-sm text-muted-foreground">
 					{request.requester.email}
@@ -279,8 +289,8 @@ function AdminRequestRow({
 						onChange={(event) =>
 							onDraftChange({ ...draft, externalReference: event.target.value })
 						}
-						placeholder="Portal reference (optional)"
-						aria-label="External invitation reference"
+						placeholder="Distribution reference (optional)"
+						aria-label="External distribution reference"
 					/>
 				</div>
 				<div className="flex flex-wrap gap-2">
@@ -295,7 +305,7 @@ function AdminRequestRow({
 							}
 							onClick={() => onStatus(status)}
 						>
-							Mark {statusLabels[status]}
+							Mark {statusLabel(status, request.platform)}
 						</Button>
 					))}
 				</div>

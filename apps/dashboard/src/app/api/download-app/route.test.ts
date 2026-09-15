@@ -22,4 +22,10 @@ describe("mobile app download authorization", () => {
 		expect(source).not.toContain('searchParams.get("url")');
 		expect(source).not.toContain('searchParams.get("name")');
 	});
+
+	it("does not honor a deleted Super Admin role", () => {
+		expect(source).toContain(
+			"where: { deletedAt: null, role: { deletedAt: null } }",
+		);
+	});
 });

@@ -1,5 +1,6 @@
 import { shouldUsePasswordMaskTypography } from "@/components/login-password-style";
 import { LoginQuickAccess } from "@/components/login-quick-access";
+import { PrivacyPolicyLink } from "@/components/privacy-policy-link";
 import { SafeArea } from "@/components/safe-area";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -265,6 +266,7 @@ export function LoginTemplate0() {
               </View>
             </View>
           </View>
+          <PrivacyPolicyLink />
         </KeyboardAwareScrollView>
         <LoginQuickAccess
           onSelectCredentials={(credentials) => form.reset(credentials)}

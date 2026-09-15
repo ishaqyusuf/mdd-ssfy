@@ -28,7 +28,7 @@ async function requireActiveEmployee(ctx: TRPCContext) {
 			id: ctx.userId,
 			deletedAt: null,
 			accessRevokedAt: null,
-			roles: { some: { deletedAt: null } },
+			roles: { some: { deletedAt: null, role: { deletedAt: null } } },
 		},
 		select: { id: true, name: true, email: true },
 	});

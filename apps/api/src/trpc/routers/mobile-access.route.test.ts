@@ -9,6 +9,12 @@ const querySource = readFileSync(
 	`${import.meta.dir}/../../db/queries/mobile-access.ts`,
 	"utf8",
 );
+const adminGuardSource = readFileSync(
+	`${import.meta.dir}/../../db/queries/hrm.ts`,
+	"utf8",
+).split("export async function requireSuperAdmin(ctx: TRPCContext)")[1]?.split(
+	"export async function getEmployeePermissionOptions",
+)[0];
 
 describe("mobile access permission boundaries", () => {
 	it("keeps every route authenticated", () => {
@@ -31,5 +37,14 @@ describe("mobile access permission boundaries", () => {
 		);
 		expect(querySource).toContain("mobileAccessRequestEvent.create");
 		expect(querySource).toContain("manualMobileAccessInvitationAdapter");
+	});
+
+	it("checks live account and role authority for admin review", () => {
+		expect(adminGuardSource).toContain("accessRevokedAt: null");
+		expect(adminGuardSource).toContain("role: { deletedAt: null }");
+		expect(adminGuardSource).toContain("roles.some(");
+		expect(querySource).toContain(
+			"roles: { some: { deletedAt: null, role: { deletedAt: null } } }",
+		);
 	});
 });

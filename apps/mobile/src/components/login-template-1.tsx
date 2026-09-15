@@ -1,5 +1,6 @@
 import { shouldUsePasswordMaskTypography } from "@/components/login-password-style";
 import { LoginQuickAccess } from "@/components/login-quick-access";
+import { PrivacyPolicyLink } from "@/components/privacy-policy-link";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { useZodForm } from "@/components/use-zod-form";
@@ -319,6 +320,7 @@ export function LoginTemplate1() {
                   </Text>
                 </View>
               </TouchableOpacity>
+              <PrivacyPolicyLink variant="dark" />
             </View>
           </KeyboardAwareScrollView>
           <LoginQuickAccess

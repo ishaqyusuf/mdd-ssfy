@@ -38,6 +38,23 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   uploads even when an environment wrapper contains production Sentry values.
 - Settings > App Updates is the manual update surface for all installed builds, showing OTA status, check/download/restart actions, and build diagnostics including channel, runtime, running source, update id, created time, and `UPDATE_VERSION`.
 - Production OTA publishing targets the `production` channel/environment and retains production Sentry configuration; production automatic checks remain disabled.
+- Both mobile sign-in designs and the signed-in Settings footer include an
+  accessible Privacy Policy link backed
+  by `extra.privacyPolicyUrl`. App config accepts only an HTTPS value from
+  `EXPO_PUBLIC_PRIVACY_POLICY_URL` when supplied; the link is hidden while the
+  owner/legal-approved URL is absent. The iOS release-readiness check fails on
+  that missing production URL so a signed store build is not treated as a
+  privacy-complete public-submission binary. The EAS production environment
+  must contain the approved URL before the final build; a local sample URL
+  check proves only wiring.
+- The iOS production build and combined build/upload package scripts run
+  `ios:release:preflight` under `with-env:prod` before calling EAS. A missing
+  policy URL stops build queueing; Android and preview scripts are unchanged.
+- Both root iOS submit aliases require an explicit reviewed EAS build UUID.
+  The account runner rejects absent/malformed IDs and `--latest` before EAS
+  account authentication; the app package's submit scripts no longer select
+  the latest build automatically. The combined build/upload command still
+  needs separate confirmation for both external actions.
 - Support > Mobile App opens a download-only web support page whose only action is the `/api/download-app` APK download button; the former Super Admin Settings > App Download page has been removed while the download endpoint remains live.
 - Android edge-to-edge is disabled in native config because the Expo/RN Android edge-to-edge container was crashing during mobile invoice customer selection with `EdgeToEdgeReactViewGroup contains null child`. This requires a fresh Android EAS/dev build to take effect; OTA updates and Metro reloads cannot change the installed native container.
 - Metro singleton resolution keeps bare imports pinned to the app-owned package,
@@ -72,6 +89,7 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - `apps/mobile/src/screens/updates-screen.tsx`
 - `apps/mobile/src/lib/launch-auto-update.test.ts`
 - `apps/mobile/src/lib/preview-build-security.test.ts`
+- `apps/mobile/src/components/privacy-policy-link.tsx`
 - `apps/mobile/scripts/eas-update.mjs`
 - `apps/mobile/assets/icons/*`
 - `apps/dashboard/src/components/settings/app-download-support-page.tsx`
@@ -80,7 +98,8 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 
 - Production iOS builds use `distribution: "store"`; preview stays
   `distribution: "internal"` and is never used for TestFlight.
-- Root commands are `bun run eas:build:ios`, `bun run eas:submit:ios`, and
+- Root commands are `bun run eas:build:ios`,
+  `bun run eas:submit:ios --id <reviewed-EAS-build-id>`, and
   `bun run eas:build-submit:ios`. Existing Android `eas:build` routing and
   mobile Android scripts are unchanged.
 - `bun run eas:auth` switches to the configured EAS account and verifies it with

@@ -54,8 +54,23 @@ const platform =
 const env = { ...Bun.env };
 env.EXPO_TOKEN = undefined;
 
-const account = resolveAccount(action, env, actionArgs);
 const forwardedArgs = getForwardedArgs(actionArgs);
+const buildIdOptions = forwardedArgs.filter(
+	(arg) => arg === "--id" || arg.startsWith("--id="),
+);
+const requestedBuildId = getRequestedBuildId(forwardedArgs);
+if (
+	operation === "submit" &&
+	(buildIdOptions.length !== 1 ||
+		!requestedBuildId ||
+		!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(requestedBuildId) ||
+		forwardedArgs.some(
+			(arg) => arg === "--latest" || arg.startsWith("--latest="),
+		))
+) {
+	throw new Error("Public App Store upload requires --id <reviewed-EAS-build-id>.");
+}
+const account = resolveAccount(action, env, actionArgs);
 
 const desiredIdentifiers = new Set(
 	[account.login.toLowerCase(), account.username?.toLowerCase()].filter(
@@ -111,6 +126,14 @@ function getRunnerCommand(
 
 	if (!targetValue || !platformValue) {
 		throw new Error("A release operation requires a target and platform.");
+	}
+	if (
+		operationValue === "submit" &&
+		forwardedArguments.some(
+			(arg) => arg === "--id" || arg.startsWith("--id="),
+		)
+	) {
+		return ["bun", "run", "eas-submit:ios:by-id", ...forwardedArguments];
 	}
 
 	return [
@@ -240,7 +263,7 @@ function getActionCommand(
 	if (operation === "build") {
 		if (platform === "ios") {
 			if (target !== "prod") {
-				throw new Error("iOS TestFlight builds require --prod.");
+				throw new Error("iOS App Store builds require --prod.");
 			}
 			return ["bun", "run", "eas-build:ios:prod"];
 		}
@@ -301,11 +324,22 @@ function getForwardedArgs(args: string[]): string[] {
 		if (arg.startsWith("--platform=")) {
 			continue;
 		}
+		if (arg === "--require-id") {
+			continue;
+		}
 
 		forwardedArgs.push(arg);
 	}
 
 	return forwardedArgs;
+}
+
+function getRequestedBuildId(args: string[]): string | null {
+	const index = args.indexOf("--id");
+	const equalsArg = args.find((arg) => arg.startsWith("--id="));
+	return index >= 0
+		? args[index + 1] ?? null
+		: equalsArg?.slice("--id=".length) ?? null;
 }
 
 function getFirstEnv(
@@ -334,8 +368,11 @@ function getUsage(): string {
 		"  bun run eas:auth [--account <name>]",
 		"  bun run eas:build <--dev|--preview|--prod> [--account <name>]",
 		"  bun run eas:build:ios [--account <name>]",
-		"  bun run eas:submit:ios [--account <name>]",
+		"  bun run eas:submit:ios --id <reviewed-EAS-build-id> [--account <name>]",
 		"  bun run eas:build-submit:ios [--account <name>]",
+		"  bun run eas:appstore:build:ios [--account <name>]",
+		"  bun run eas:appstore:upload:ios --id <reviewed-EAS-build-id> [--account <name>]",
+		"  bun run eas:appstore:build-upload:ios [--account <name>]",
 		"  bun run eas:update <--preview|--prod> [--account <name>]",
 		"",
 		"Default credentials:",

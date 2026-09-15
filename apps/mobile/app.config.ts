@@ -23,6 +23,20 @@ const exposedDevCredentialKeys = [
   "EXPO_PUBLIC_EMAIL",
   "EXPO_PUBLIC_TOK",
 ].filter((key) => process.env[key]);
+const privacyPolicyUrl =
+  process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL?.trim() ?? "";
+
+if (privacyPolicyUrl) {
+  const parsedPrivacyPolicyUrl = new URL(privacyPolicyUrl);
+  if (
+    parsedPrivacyPolicyUrl.protocol !== "https:" ||
+    !parsedPrivacyPolicyUrl.hostname ||
+    parsedPrivacyPolicyUrl.username ||
+    parsedPrivacyPolicyUrl.password
+  ) {
+    throw new Error("EXPO_PUBLIC_PRIVACY_POLICY_URL must be an HTTPS URL.");
+  }
+}
 
 if (isExplicitReleaseBuild && exposedDevCredentialKeys.length > 0) {
   throw new Error(
@@ -153,6 +167,7 @@ const config: ExpoConfig = {
 
   extra: {
     appVariant: normalizedAppVariant,
+    privacyPolicyUrl,
     devQuickLoginPassword: isExplicitReleaseBuild
       ? ""
       : process.env.EXPO_PUBLIC_TOK ?? "",

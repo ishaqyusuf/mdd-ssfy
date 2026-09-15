@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -46,10 +47,55 @@ describe("EAS account runner release routing", () => {
 			"build --prod --platform ios",
 		);
 		expect(rootPackage.scripts["eas:submit:ios"]).toContain(
-			"submit --prod --platform ios",
+			"submit --prod --platform ios --require-id",
 		);
 		expect(rootPackage.scripts["eas:build-submit:ios"]).toContain(
 			"build-submit --prod --platform ios",
 		);
+		expect(rootPackage.scripts["eas:appstore:build:ios"]).toBe(
+			rootPackage.scripts["eas:build:ios"],
+		);
+		expect(rootPackage.scripts["eas:appstore:upload:ios"]).toBe(
+			rootPackage.scripts["eas:submit:ios"],
+		);
+		expect(rootPackage.scripts["eas:appstore:build-upload:ios"]).toBe(
+			rootPackage.scripts["eas:build-submit:ios"],
+		);
+		expect(source).toContain("iOS App Store builds require --prod.");
+		expect(source).toContain('return ["bun", "run", "eas-submit:ios:by-id", ...forwardedArguments]');
+		expect(source).toContain("Public App Store upload requires --id <reviewed-EAS-build-id>.");
+	});
+
+	it("rejects an unreviewed iOS build before account authentication", () => {
+		for (const args of [
+			[],
+			["--id", "not-a-build-id"],
+			["--id", "f3985128-844d-432c-bbc3-e0e4c93e37ac", "--latest"],
+			["--id", "f3985128-844d-432c-bbc3-e0e4c93e37ac", "--latest=true"],
+			[
+				"--id",
+				"f3985128-844d-432c-bbc3-e0e4c93e37ac",
+				"--id",
+				"3f3a6acf-ac06-42b8-ab72-1837480f49cc",
+			],
+		]) {
+			const result = spawnSync(
+				process.execPath,
+				[
+					"./scripts/eas-account-runner.ts",
+					"submit",
+					"--prod",
+					"--platform",
+					"ios",
+					...args,
+				],
+				{ cwd: repositoryRoot, encoding: "utf8" },
+			);
+			expect(result.status).not.toBe(0);
+			expect(result.stderr).toContain(
+				"Public App Store upload requires --id <reviewed-EAS-build-id>.",
+			);
+			expect(result.stdout).not.toContain("Authenticated EAS session");
+		}
 	});
 });

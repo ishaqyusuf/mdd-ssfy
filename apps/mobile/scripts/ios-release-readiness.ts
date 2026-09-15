@@ -6,6 +6,7 @@ import appConfig from "../app.config";
 type Check = { label: string; ok: boolean; detail: string };
 
 const APP_ROOT = path.join(import.meta.dir, "..");
+const REPOSITORY_ROOT = path.join(APP_ROOT, "..", "..");
 const EXPECTED_PROJECT_ID = "8ea2eecb-4109-453c-827f-9b2de2e3a9aa";
 const EXPECTED_TEAM_ID = "ZXC78SPCV4";
 const EXPECTED_ASC_APP_ID = "6811442922";
@@ -26,6 +27,9 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	const pkg = JSON.parse(
 		await readFile(path.join(APP_ROOT, "package.json"), "utf8"),
 	);
+	const rootPkg = JSON.parse(
+		await readFile(path.join(REPOSITORY_ROOT, "package.json"), "utf8"),
+	);
 	const sourceFiles = new Bun.Glob("src/**/*.{ts,tsx,js,jsx,mjs,cjs}");
 	let customCryptoImport = false;
 	for await (const relativePath of sourceFiles.scan({ cwd: APP_ROOT })) {
@@ -37,6 +41,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	}
 
 	const scripts = pkg.scripts as Record<string, string>;
+	const rootScripts = rootPkg.scripts as Record<string, string>;
 	const dependencies = pkg.dependencies as Record<string, string>;
 	const dependencyVersionsMatch = Object.entries(
 		EXPECTED_SDK_DEPENDENCIES,
@@ -91,12 +96,12 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			String(eas.build?.production?.channel),
 		),
 		check(
-			"TestFlight store distribution",
+			"Public App Store store distribution",
 			eas.build?.production?.distribution === "store",
 			String(eas.build?.production?.distribution),
 		),
 		check(
-			"Preview remains internal",
+			"Preview remains development-only internal distribution",
 			eas.build?.preview?.distribution === "internal",
 			String(eas.build?.preview?.distribution),
 		),
@@ -129,31 +134,62 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			String(infoPlist?.NSPhotoLibraryUsageDescription),
 		),
 		check(
+			"Configured public privacy-policy URL",
+			typeof appConfig.extra?.privacyPolicyUrl === "string" &&
+				appConfig.extra.privacyPolicyUrl.startsWith("https://"),
+			appConfig.extra?.privacyPolicyUrl
+				? String(appConfig.extra.privacyPolicyUrl)
+				: "Missing EXPO_PUBLIC_PRIVACY_POLICY_URL; owner/legal approval required before a public build",
+		),
+		check(
 			"iOS build command",
-			scripts["eas-build:ios:prod"]?.includes(
+			scripts["eas-build:ios:prod"]?.startsWith(
+				"bun run ios:release:preflight &&",
+			) && scripts["eas-build:ios:prod"]?.includes(
 				"eas build -p ios --profile production",
 			),
 			scripts["eas-build:ios:prod"] ?? "missing",
 		),
 		check(
 			"iOS submit command",
-			scripts["eas-submit:ios:prod"]?.includes(
-				"eas submit -p ios --profile production --latest",
-			),
+			scripts["eas-submit:ios:prod"] ===
+				scripts["eas-submit:ios:by-id"] &&
+				!scripts["eas-submit:ios:prod"]?.includes("--latest"),
 			scripts["eas-submit:ios:prod"] ?? "missing",
 		),
 		check(
 			"iOS combined command",
-			scripts["eas-build-submit:ios:prod"]?.includes(
+			scripts["eas-build-submit:ios:prod"]?.startsWith(
+				"bun run ios:release:preflight &&",
+			) && scripts["eas-build-submit:ios:prod"]?.includes(
 				"--auto-submit-with-profile production",
 			),
 			scripts["eas-build-submit:ios:prod"] ?? "missing",
+		),
+		check(
+			"Explicit public App Store commands",
+			rootScripts["eas:appstore:build:ios"] ===
+				rootScripts["eas:build:ios"] &&
+				rootScripts["eas:appstore:upload:ios"] ===
+					rootScripts["eas:submit:ios"] &&
+				rootScripts["eas:submit:ios"]?.endsWith("--require-id") &&
+				rootScripts["eas:appstore:build-upload:ios"] ===
+					rootScripts["eas:build-submit:ios"],
+			"Public aliases must use the verified production iOS store profile and upload by build ID",
+		),
+		check(
+			"Build-ID upload command",
+			scripts["eas-submit:ios:by-id"]?.includes(
+				"eas submit -p ios --profile production",
+			) && !scripts["eas-submit:ios:by-id"]?.includes("--latest"),
+			scripts["eas-submit:ios:by-id"] ?? "missing",
 		),
 		check(
 			"Release scripts strip dev credentials",
 			[
 				"eas-build:ios:prod",
 				"eas-submit:ios:prod",
+				"eas-submit:ios:by-id",
 				"eas-build-submit:ios:prod",
 			].every(
 				(name) =>
@@ -162,6 +198,15 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 					) && scripts[name]?.includes("EXPO_NO_DOTENV=1"),
 			),
 			"All iOS release operations must strip development login values",
+		),
+		check(
+			"iOS store preflight loads production configuration",
+			scripts["ios:release:preflight"]?.includes("with-env:prod") &&
+				scripts["ios:release:preflight"]?.includes("EXPO_NO_DOTENV=1") &&
+				scripts["ios:release:preflight"]?.includes(
+					"bun ./scripts/ios-release-readiness.ts",
+				),
+			scripts["ios:release:preflight"] ?? "missing",
 		),
 	];
 }

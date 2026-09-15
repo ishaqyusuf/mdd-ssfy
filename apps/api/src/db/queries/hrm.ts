@@ -87,14 +87,14 @@ export async function requireSuperAdmin(ctx: TRPCContext) {
 	const user = await ctx.db.users.findFirst({
 		where: {
 			id: ctx.userId,
+			deletedAt: null,
+			accessRevokedAt: null,
 		},
 		select: {
 			id: true,
 			name: true,
 			roles: {
-				where: {
-					deletedAt: null,
-				},
+				where: { deletedAt: null, role: { deletedAt: null } },
 				select: {
 					role: {
 						select: {
@@ -113,8 +113,10 @@ export async function requireSuperAdmin(ctx: TRPCContext) {
 		});
 	}
 
-	const role = user?.roles?.[0]?.role?.name;
-	if (role?.toLowerCase() !== "super admin") {
+	const isSuperAdmin = user.roles.some(
+		({ role }) => role.name.toLowerCase() === "super admin",
+	);
+	if (!isSuperAdmin) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
 			message: "Only Super Admin can manage employee access.",
