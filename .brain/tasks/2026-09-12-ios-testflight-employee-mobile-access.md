@@ -89,6 +89,19 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 credential-free deployed-route observation: the selected
+  production apex Base redirects to `www.gndprodesk.com`; generic auth
+  `/api/auth/get-session` returns 200 there, whereas `oss.gndprodesk.com`
+  returns 404. The new `mobileAccess.myRequests` tRPC path returns JSON
+  `NOT_FOUND` (404) on the apex/`www` route despite being registered in
+  current source. Current deployment therefore does not prove employee-access
+  workflow availability; a reviewed backend deployment and installed-build
+  auth/API acceptance remain gates before a fresh public IPA. No credential,
+  cookie, production configuration, build, Apple/EAS setting, or write request
+  was used. The indexed capture of the existing GND Millwork policy page
+  mentions apps but also carries broad retail/tracking claims and a Home Depot
+  example, so its URL
+  remains a legal-owner decision, not an approved release value.
 - September 15 live-membership consistency audit: a shared auth-package
   predicate now requires active internal/legacy type plus a live role and
   organization, and is used by legacy sign-in, Better Auth session resolution,

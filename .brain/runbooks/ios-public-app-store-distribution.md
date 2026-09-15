@@ -139,6 +139,15 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    routing or an explicitly configured, approved separate auth origin is
    proven. Never embed the current local-HTTP mobile web URL or derive a host
    name by assumption.
+   A September 15 [credential-free route observation](../reports/2026-09-15-ios-production-origin-consistency.md)
+   found that the configured apex Base redirects to `www.gndprodesk.com`,
+   where generic `/api/auth/get-session` answers 200, but the newly registered
+   `mobileAccess.myRequests` tRPC procedure answers JSON `NOT_FOUND` (404).
+   Treat the current deployed workflow as absent. A generic auth 200 and a
+   bare tRPC 404 do not prove custom mobile sign-in, redirect safety, or
+   installed-build login. Deploy/revalidate the reviewed backend at the
+   approved origin before queueing the fresh privacy-complete public build;
+   changing production aliases or deploying remains a separate action gate.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a

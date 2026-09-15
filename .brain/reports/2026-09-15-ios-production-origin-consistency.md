@@ -1,9 +1,9 @@
 # Public iOS production origin consistency audit
 
 Date: 2026-09-15
-Scope: read-only selected local production-profile configuration and route
-source. No credentials, cookies, Apple/EAS setting, or live route probe were
-used.
+Scope: selected local production-profile configuration, route source, and a
+September 15 unauthenticated public-route observation. No credentials,
+cookies, Apple/EAS setting, or write request were used.
 
 ## Observed configuration
 
@@ -57,6 +57,28 @@ deployment evidence. An explicit separate public auth origin is an alternative
 only after the owner confirms the correct deployed host and the EAS production
 value; do not infer one by prefixing `oss.` or silently use the local web URL.
 
-The read-only EAS `whoami` retry still fails at `api.expo.dev` DNS resolution,
-so the current cloud environment/identity cannot be freshly attested. A
-separately requested unauthenticated route probe is awaiting owner approval.
+## September 15 unauthenticated reachability observation
+
+Credential-free GET requests returned these HTTP status/effective-host pairs:
+
+| Requested URL | Status | Effective host | Interpretation |
+| --- | ---: | --- | --- |
+| `gndprodesk.com/api/auth/get-session` | 200 JSON | `www.gndprodesk.com` | Apex redirects to `www`; generic auth route exists there. This does not test mobile sign-in or cookie/session semantics. |
+| `www.gndprodesk.com/api/auth/get-session` | 200 JSON | `www.gndprodesk.com` | Generic auth route exists on `www`. |
+| `oss.gndprodesk.com/api/auth/get-session` | 404 text | `oss.gndprodesk.com` | The selected dashboard-web hostname did not expose that route in this observation. |
+| `gndprodesk.com/api/trpc` | 404 HTML | `www.gndprodesk.com` | Bare tRPC URL is not a valid-procedure health test. |
+| `gndprodesk.com/api/trpc/mobileAccess.myRequests` | 404 JSON `NOT_FOUND` | `www.gndprodesk.com` | The deployed route did not recognize the new employee-access procedure, despite source registration in `_app.ts`. This is evidence of a deployed-version/routing mismatch, not a healthy workflow. |
+
+The route responses are a one-time public observation, not an authenticated
+installed-build acceptance test or a guarantee of future deploy state. The
+current source still sends mobile auth and tRPC to the apex Base origin, which
+redirects to `www`; no release-candidate build should rely on that redirect
+without confirming the custom mobile endpoints, request method/body and
+session behavior on an installed production build. Deploy the reviewed
+dashboard/API workflow through the normal separately approved production
+process, then revalidate the exact approved host before queueing a fresh IPA.
+Do not silently rewrite EAS production Base to `www` or `oss` from this probe.
+
+The read-only EAS `whoami` retry previously failed at `api.expo.dev` DNS
+resolution; this route observation does not freshly attest the EAS cloud
+environment or identity.
