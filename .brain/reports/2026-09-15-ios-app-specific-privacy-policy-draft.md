@@ -20,6 +20,9 @@ evidence. Do not publish this draft with placeholders.
 3. **Production telemetry:** whether Logly analytics and Sentry diagnostics are
    enabled in the exact public iOS build; identify their operators, processing
    locations, retention, deletion and subprocessors.
+   Use the [provider/data-flow matrix](2026-09-15-ios-release-provider-data-flow-matrix.md)
+   to collect the same evidence for Vercel, the production database, Upstash,
+   Expo/EAS and Apple without exposing account secrets.
 4. **Operational processors:** confirm the hosting, database and file-storage
    providers used by the release environment, including Vercel Blob for
    employee documents and dispatch evidence.

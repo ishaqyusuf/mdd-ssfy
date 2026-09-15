@@ -44,6 +44,9 @@ see the [live-page gap review](2026-09-15-ios-live-policy-gap-review.md).
    enabled/disabled answer. Include Vercel Blob and any relevant backend
    subprocessors for uploaded material; see the [source audit](2026-09-15-ios-public-app-privacy-readiness.md)
    and [value-suppressed EAS inventory](2026-09-15-ios-eas-production-env-inventory.md).
+   The [provider/data-flow matrix](2026-09-15-ios-release-provider-data-flow-matrix.md)
+   separates source-proven flows from the contract, region, retention and
+   linkage evidence still required for every release provider.
 5. **Retention and deletion.** Set the legally/operationally correct schedules
    for employee documents, dispatch proofs, session/profile data, and
    diagnostics. The inspected `user.deleteDocument` operation tombstones

@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 provider/data-flow matrix: source-backed paths now separate
+  Vercel/dashboard/API and Blob storage, the production database, Upstash login
+  limiting, conditional Logly analytics, conditional Sentry diagnostics,
+  Expo/EAS build handling and Apple distribution. The matrix identifies exact
+  contract, region, retention, deletion, linkage, tracking and final-candidate
+  evidence still required, without exposing a value or changing a vendor
+  account. It also rules out an Apple **Data Not Collected** answer because
+  authenticated service and upload flows exist independently of telemetry.
 - September 15 controller-identity trace: first-party source consistently ties
   the operational system and Miami contacts to GND Millwork, while Apple ties
   the app seller to ZEROES AND ONE TECH HUB NIG LIMITED. Storefront terms are
