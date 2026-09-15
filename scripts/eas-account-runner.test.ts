@@ -125,6 +125,27 @@ describe("EAS account runner release routing", () => {
 		}
 	});
 
+	it("gates a valid iOS upload ID on an explicit invocation acknowledgment", () => {
+		const result = spawnSync(
+			process.execPath,
+			[
+				"./scripts/eas-account-runner.ts",
+				"submit",
+				"--prod",
+				"--platform",
+				"ios",
+				"--id",
+				"11111111-2222-4333-8444-555555555555",
+			],
+			{ cwd: repositoryRoot, encoding: "utf8" },
+		);
+		expect(result.status).not.toBe(0);
+		expect(result.stderr).toContain(
+			"Public iOS binary upload requires --acknowledge-upload before EAS authentication.",
+		);
+		expect(result.stdout).not.toContain("Authenticated EAS session");
+	});
+
 	it("gates direct mobile-package auto-submit without either acknowledgment", () => {
 		for (const [buildAck, uploadAck, allowed] of [
 			["", "", false],

@@ -248,6 +248,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		check(
 			"Build-ID upload command",
 			submitByIdSource.includes("parseReviewedBuildId(process.argv.slice(2))") &&
+				submitByIdSource.includes('process.env.GND_IOS_UPLOAD_ACK !== "1"') &&
 				submitByIdSource.includes('"submit"') &&
 				submitByIdSource.includes('"--profile"') &&
 				submitByIdSource.includes('"production"') &&

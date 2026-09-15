@@ -85,6 +85,14 @@ if (
 ) {
 	throw new Error("Public App Store upload requires --id <reviewed-EAS-build-id>.");
 }
+if (operation === "submit" && platform === "ios") {
+	if (!actionArgs.includes("--acknowledge-upload")) {
+		throw new Error(
+			"Public iOS binary upload requires --acknowledge-upload before EAS authentication.",
+		);
+	}
+	env.GND_IOS_UPLOAD_ACK = "1";
+}
 const account = resolveAccount(action, env, actionArgs);
 
 const desiredIdentifiers = new Set(
@@ -342,7 +350,11 @@ function getForwardedArgs(args: string[]): string[] {
 		if (arg === "--require-id") {
 			continue;
 		}
-		if (arg === "--acknowledge-build" || arg === "--acknowledge-auto-upload") {
+		if (
+			arg === "--acknowledge-build" ||
+			arg === "--acknowledge-auto-upload" ||
+			arg === "--acknowledge-upload"
+		) {
 			continue;
 		}
 
@@ -386,10 +398,10 @@ function getUsage(): string {
 		"  bun run eas:auth [--account <name>]",
 		"  bun run eas:build <--dev|--preview|--prod> [--account <name>]",
 		"  bun run eas:build:ios [--account <name>]",
-		"  bun run eas:submit:ios --id <reviewed-EAS-build-id> [--account <name>]",
+		"  bun run eas:submit:ios --id <reviewed-EAS-build-id> --acknowledge-upload [--account <name>]",
 		"  bun run eas:build-submit:ios --acknowledge-build --acknowledge-auto-upload [--account <name>]",
 		"  bun run eas:appstore:build:ios [--account <name>]",
-		"  bun run eas:appstore:upload:ios --id <reviewed-EAS-build-id> [--account <name>]",
+		"  bun run eas:appstore:upload:ios --id <reviewed-EAS-build-id> --acknowledge-upload [--account <name>]",
 		"  bun run eas:appstore:build-upload:ios --acknowledge-build --acknowledge-auto-upload [--account <name>]",
 		"  bun run eas:update <--preview|--prod> [--account <name>]",
 		"",

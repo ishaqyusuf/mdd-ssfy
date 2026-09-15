@@ -39,4 +39,19 @@ describe("public iOS upload build selector", () => {
 			expect(result.stdout.toString()).not.toContain("eas submit");
 		}
 	});
+
+	it("blocks a valid reviewed ID without a per-invocation upload acknowledgment", () => {
+		const result = Bun.spawnSync({
+			cmd: [process.execPath, "./scripts/ios-submit-by-id.ts", "--id", REVIEWED_ID],
+			cwd: path.join(import.meta.dir, ".."),
+			env: {
+				...process.env,
+				EXPO_NO_DOTENV: "1",
+				GND_IOS_UPLOAD_ACK: "",
+			},
+		});
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stderr.toString()).toContain("GND_IOS_UPLOAD_ACK=1");
+		expect(result.stdout.toString()).not.toContain("eas submit");
+	});
 });

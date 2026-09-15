@@ -89,6 +89,16 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 direct-upload safety follow-up: the reviewed-ID adapter now
+  requires `GND_IOS_UPLOAD_ACK=1` for its invocation before spawning EAS;
+  the root account runner requires `--acknowledge-upload` after ID validation
+  and before account authentication, forwarding only a scoped local guard.
+  Eleven focused account-runner/adapter tests pass (78 expectations), including
+  a valid-ID/no-ack denial without EAS interaction. The iOS readiness checker
+  still fails only on the missing approved privacy-policy URL. Android
+  commands and EAS project/update linkage are unchanged; no Apple build,
+  binary upload, credential, or portal action occurred. These local guards do
+  not substitute for explicit action-time user confirmation.
 - September 15 public-login abuse boundary: the custom Better Auth mobile
   and legacy password endpoints now consume an atomic Upstash attempt quota
   before legacy-user lookup on production Vercel. IP/account key subjects are

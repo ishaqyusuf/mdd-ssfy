@@ -30,6 +30,12 @@ if (import.meta.main) {
 		console.error(error instanceof Error ? error.message : "Invalid iOS build ID.");
 		process.exit(1);
 	}
+	if (process.env.GND_IOS_UPLOAD_ACK !== "1") {
+		console.error(
+			"Public iOS binary upload requires GND_IOS_UPLOAD_ACK=1 for this invocation.",
+		);
+		process.exit(1);
+	}
 
 	const child = Bun.spawn([
 		"bun",

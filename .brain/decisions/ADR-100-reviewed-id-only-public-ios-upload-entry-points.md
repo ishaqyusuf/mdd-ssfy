@@ -17,11 +17,15 @@ builds `5` and `6` are not public-release candidates.
 Both direct mobile-package submit aliases call one fail-closed adapter. It
 accepts only one valid `--id` UUID, rejects every alternate selector/flag and
 the two retired candidate IDs, then invokes EAS Submit with fixed iOS platform
-and production profile. The adapter strips development login variables and
-disables Expo dotenv loading. The root account runner remains an independent
-pre-authentication ID guard. A reviewed ID is an accident-prevention condition,
-not permission to upload; every actual Apple binary upload still needs
-explicit action-time owner confirmation.
+and production profile. The adapter also requires
+`GND_IOS_UPLOAD_ACK=1` for that invocation. The root account runner requires
+`--acknowledge-upload` after validating the ID and before EAS authentication,
+then passes the scoped acknowledgment to the direct adapter. The adapter strips
+development login variables and disables Expo dotenv loading. A reviewed ID
+and a local acknowledgment are accident-prevention conditions, not permission
+to upload; every actual Apple binary upload still needs explicit action-time
+owner confirmation. Do not persist the acknowledgment in an `.env` file or
+shell profile.
 
 ## Alternatives
 
@@ -35,7 +39,8 @@ explicit action-time owner confirmation.
 ## Consequences
 
 Accidental latest-build or old-build upload through repository scripts fails
-before EAS runs. Operators must supply a reviewed build ID, and the adapter
+before EAS runs. A valid ID without the scoped upload acknowledgment also
+fails before EAS runs. Operators must supply a reviewed build ID, and the adapter
 intentionally does not forward EAS options that can change platform, profile,
 source, or tester distribution. Out-of-repository EAS or Transporter commands
 are not governed by this adapter; the runbook and action-time gates remain

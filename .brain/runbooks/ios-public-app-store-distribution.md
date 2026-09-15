@@ -153,8 +153,10 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
 5. Confirm the exact reviewed EAS build ID and fingerprint. The public upload
    alias and older `eas:submit:ios` alias both require `--id`; their runner
    rejects absent/malformed IDs and `--latest` before account authentication.
-   Direct app-package submit scripts likewise no longer auto-select the latest
-   binary. Do not infer approval to upload from selecting an ID.
+   Both root aliases also require `--acknowledge-upload`, while direct
+   app-package submit scripts require `GND_IOS_UPLOAD_ACK=1` for that invocation.
+   The direct scripts likewise no longer auto-select the latest binary.
+   Do not infer approval to upload from selecting an ID or acknowledgment.
 
 ## 2. App Store Connect listing and legal readiness
 
@@ -285,14 +287,18 @@ needed before the production policy URL or App Privacy fields are saved.
    instead, inspect the exact IPA and obtain separate upload confirmation; do
    not downgrade signing or relink the project.
 4. **GATE Apple binary upload:**
-   `bun run eas:appstore:upload:ios --id REVIEWED_BUILD_UUID` (replace the
-   placeholder with the inspected new EAS build ID).
+   `bun run eas:appstore:upload:ios --id REVIEWED_BUILD_UUID --acknowledge-upload`
+   (replace the placeholder with the inspected new EAS build ID, and add the
+   acknowledgment only after explicit action-time upload confirmation).
    Both root and direct mobile-package upload aliases require exactly one
    reviewed UUID; the direct package command is
-   `bun run eas-submit:ios:by-id --id REVIEWED_BUILD_UUID` from `apps/mobile`.
+   `GND_IOS_UPLOAD_ACK=1 bun run eas-submit:ios:by-id --id REVIEWED_BUILD_UUID`
+   from `apps/mobile`, again only for the confirmed invocation. Never persist
+   either acknowledgment in `.env*` or a shell profile.
    They reject missing/alternate selectors and the retired build `5`/`6`
-   IDs before invoking EAS. This protects against interactive latest-build
-   selection but does not replace action-time upload confirmation.
+   IDs, and block a valid ID without acknowledgment, before invoking EAS.
+   These guards protect against accidental upload but do not replace
+   action-time upload confirmation.
    This EAS operation uploads the selected IPA to App Store Connect. It does
    **not** send the app to App Review or make it publicly available. Record the
    EAS job, Apple build number, processing result, and exact uploaded build ID.
