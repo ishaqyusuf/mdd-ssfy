@@ -25,6 +25,14 @@ from permission to sign in and use company data.
   does not bypass the request-status gate.
 - The UI never asks for Apple passwords, one-time codes, or credentials.
 
+Public availability of the iOS binary also makes the existing mobile password
+route reachable by non-employees. Production custom web/mobile sign-in routes
+now consume distributed, hashed IP/account attempt quotas before legacy-user
+lookup; a limited request returns 429 and an unavailable protection service
+returns 503. This is separate from the employee request/status workflow and
+does not grant an unapproved account access. See the
+[auth abuse contract](../api/mobile-auth-abuse-protection.md).
+
 ## Admin behavior
 
 - `mobileAccess.adminList` and `mobileAccess.adminUpdate` require Super Admin.

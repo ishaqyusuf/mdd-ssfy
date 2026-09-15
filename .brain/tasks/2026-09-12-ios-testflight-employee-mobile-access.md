@@ -89,6 +89,17 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 public-login abuse boundary: the custom Better Auth mobile
+  and legacy password endpoints now consume an atomic Upstash attempt quota
+  before legacy-user lookup on production Vercel. IP/account key subjects are
+  HMAC-hashed, over-quota requests return 429/Retry-After, and missing trusted
+  proxy/config or Redis failure returns 503 without a memory fallback. Six
+  fake-command tests passed (32 expectations); focused Biome passed. The auth
+  package typecheck still emits only seven pre-existing `packages/errors`
+  NodeNext import-extension errors. Local production-profile variable
+  presence is not remote deployment proof; do not deploy/submit until the
+  deployed environment and installed-build login are verified. No live Redis,
+  credential, Apple portal, EAS build, or upload action occurred.
 - September 15 dashboard route source follow-up: the iOS checker now confirms
   that dashboard source exports `/api/trpc` and Better Auth `/api/auth` handlers
   needed by the shared production mobile origin. Nine focused tests pass (66

@@ -25,6 +25,7 @@
 	},
 	"dependencies": {
 		"@better-auth/prisma-adapter": "^1.4.0",
+		"@gnd/cache": "workspace:*",
 		"@gnd/db": "workspace:*",
 		"@gnd/utils": "workspace:*",
 		"@next-auth/prisma-adapter": "^1.0.7",
