@@ -98,6 +98,15 @@ approved public registration design exists.
   deployed route reachability or installed-build login. A read-only `eas
   whoami` retry failed at `api.expo.dev` DNS resolution before identity could
   be observed, not with a login error. No EAS/Apple setting or build changed.
+- September 15 production-origin audit: the selected local production profile
+  has distinct public HTTPS mobile Base (`gndprodesk.com`) and dashboard-web
+  (`oss.gndprodesk.com`) hosts; its separate mobile web URL is local HTTP.
+  The custom mobile auth route is hosted by dashboard source, not the
+  inspected standalone API app source. This does **not** prove Base-host
+  auth failure or a deployment alias; no unauthenticated route probe has
+  been approved/performed. The public runbook now gates a new candidate on
+  deployed route evidence or an explicitly approved auth origin, in addition
+  to the privacy-policy gate. No URL was guessed into code/EAS.
 - September 15 read-only policy recheck: the indexed candidate page still
   includes a cross-brand Home Depot advertising example; the crawler marked
   the capture as from the prior week, so exact current HTML is not yet proven.

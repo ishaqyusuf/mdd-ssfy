@@ -68,6 +68,11 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   `/api/trpc` and Better Auth `/api/auth` route handlers; it does not verify
   their deployment. Installed-build login and backend reachability remain
   required.
+  The selected local production profile currently has different public HTTPS
+  mobile Base and dashboard-web origins; its mobile web URL is local HTTP.
+  The [origin consistency audit](../reports/2026-09-15-ios-production-origin-consistency.md)
+  leaves deployed Base-host authentication unverified, so a fresh public
+  candidate is gated on route evidence or an explicitly approved auth origin.
   Bun 1.3.0 reloads mobile `.env*` values when launched from the app root even
   after `env -u`, so the preflight uses a Node wrapper that strips development
   login keys and launches the Bun checker from a neutral temp-directory cwd.

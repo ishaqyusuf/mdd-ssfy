@@ -125,6 +125,12 @@ material, issuer/key IDs, or API credentials into GND, Brain, or chat.
    release-build login with a least-privilege review account before App Review;
    the origin and dashboard-route source checks prove neither backend
    reachability nor login.
+   The [production-origin consistency audit](../reports/2026-09-15-ios-production-origin-consistency.md)
+   found distinct local public HTTPS Base and dashboard-web origins. **GATE:**
+   do not queue a new public binary until the actual Base host's auth/tRPC
+   routing or an explicitly configured, approved separate auth origin is
+   proven. Never embed the current local-HTTP mobile web URL or derive a host
+   name by assumption.
 2. Run the SDK dependency check and Expo Doctor after any dependency change.
    The last known Doctor result was 17/18 due to Bun isolated-peer duplicates;
    `autolinkingModuleResolution` was enabled and verified. Any new failure is a
