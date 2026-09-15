@@ -54,7 +54,10 @@ it does not relabel historical invitations as public guidance. Android retains
 the ordinary **Invited** label.
 No App Store Connect API-key automation is needed for employee access to a
 publicly distributed binary. Backend access remains subject to the existing
-active-account/session checks; a future explicit mobile-entitlement feature is
+active-account/session checks. The shared Better Auth session resolver now
+excludes deleted role assignments, referenced roles/organizations, and grant
+rows before deriving capabilities; this is not an HRM per-platform access
+toggle. A future explicit mobile-entitlement feature is
 required if HRM is to control per-platform runtime access independently.
 
 ## Key files

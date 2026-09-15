@@ -60,10 +60,13 @@ export function toMobileAuthSession(
   };
 }
 
-async function buildPermissions(user: Users & { roles: Array<any> }) {
+async function buildPermissions(
+  user: NonNullable<Awaited<ReturnType<typeof getLegacyUserByAuthUserId>>>,
+) {
   const _role = user.roles[0]?.role;
   const rolePermissions = await db.permissions.findMany({
     where: {
+      deletedAt: null,
       id: {
         in: (_role?.RoleHasPermissions ?? []).map((item) => item.permissionId),
       },
@@ -88,15 +91,18 @@ async function buildPermissions(user: Users & { roles: Array<any> }) {
   };
 }
 
-export async function getLegacyUserByAuthUserId(authUserId: string) {
-  const authUser = await db.webAuthUser.findUnique({
+export async function getLegacyUserByAuthUserId(
+  authUserId: string,
+  sourceDb: Pick<typeof db, "webAuthUser" | "users"> = db,
+) {
+  const authUser = await sourceDb.webAuthUser.findUnique({
     where: { id: authUserId },
     select: { legacyUserId: true },
   });
 
   if (!authUser) return null;
 
-  return db.users.findFirst({
+  return sourceDb.users.findFirst({
     where: {
       id: authUser.legacyUserId,
       accessRevokedAt: null,
@@ -104,10 +110,15 @@ export async function getLegacyUserByAuthUserId(authUserId: string) {
     },
     include: {
       roles: {
+        where: {
+          deletedAt: null,
+          role: { deletedAt: null },
+          organization: { deletedAt: null },
+        },
         include: {
           role: {
             include: {
-              RoleHasPermissions: true,
+              RoleHasPermissions: { where: { deletedAt: null } },
             },
           },
         },

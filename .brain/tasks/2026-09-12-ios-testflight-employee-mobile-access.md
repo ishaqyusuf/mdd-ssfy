@@ -228,6 +228,15 @@ approved public registration design exists.
   16 tests / 41 assertions. API typecheck found only current unrelated
   Assistant/Sales errors, with no changed guard/query diagnostic. Two permanent
   Brain bug records capture the authorization lessons.
+- Shared session permission follow-up: the Better Auth web/mobile resolver
+  previously loaded soft-deleted role assignments, referenced roles/offices,
+  and role-permission links before selecting the first role. It now filters
+  all those rows and deleted permission definitions. The focused auth tests
+  pass 18/18; scoped Biome is clean. Auth-package typecheck remains red only
+  on existing `packages/errors` NodeNext import-extension diagnostics after
+  fixing the new test's matcher typing. No account, role, or external
+  permission was changed. Bug memory records the source-level risk; no live
+  exploit was observed.
 - Final scoped UI review found that iOS `INVITED` was displayed as
   **Guidance sent** even for historical manual Apple invitations. The shared
   label is now **Access details sent**, which covers both old invitation
