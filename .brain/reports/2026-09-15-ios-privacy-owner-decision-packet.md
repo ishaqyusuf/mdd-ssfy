@@ -58,6 +58,10 @@ see the [live-page gap review](2026-09-15-ios-live-policy-gap-review.md).
    third-party practices. Do not answer “no data collected” or infer tracking
    solely from the retail page's advertising language. Verify embedded
    privacy manifests and any aggregate Xcode report from a matching archive.
+   Use the [questionnaire mapping](2026-09-15-ios-app-privacy-questionnaire-mapping.md)
+   as the field-by-field worksheet: it supports a provisional **Yes** to data
+   collection and core account/upload categories while keeping telemetry,
+   linkage, tracking and ambiguous content categories gated.
 
 ## Evidence required to clear the local build gate
 

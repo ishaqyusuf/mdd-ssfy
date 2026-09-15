@@ -97,6 +97,10 @@ longer release requirements. Public acquisition does not create public accounts.
    A [release-provider data-flow matrix](2026-09-15-ios-release-provider-data-flow-matrix.md)
    now identifies Vercel/Blob, database, Upstash, Logly, Sentry, Expo/EAS and
    Apple boundaries and the exact vendor evidence still missing.
+   An [App Privacy questionnaire mapping](2026-09-15-ios-app-privacy-questionnaire-mapping.md)
+   now maps source-proven core types, purposes and linkage to Apple's taxonomy,
+   rules out **Data Not Collected**, and leaves telemetry, tracking and
+   ambiguous content categories at explicit evidence gates.
 2. **Deployment authority:** regain access to the known `gndprodesk` Vercel
    project, identify the deployed SHA/full proposed delta/rollback target, confirm
    required limiter variable presence without exposing values, and approve the

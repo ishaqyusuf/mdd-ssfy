@@ -89,6 +89,14 @@ approved public registration design exists.
 - [ ] Complete Apple listing, privacy/legal, review access, worldwide availability, binary upload, App Review, and public release only at separate action-time gates
 
 ## Validation Evidence
+- September 15 App Privacy mapping: official Apple taxonomy is now mapped to
+  the source-backed GND flows. **Yes, data is collected** is the provisional
+  direction; Name, Email, Phone, User ID, Photos/Videos, Other User Content and
+  Other Data Types have evidence-backed provisional mappings. Logly Device ID
+  and Product Interaction plus Sentry diagnostics remain conditional on the
+  exact candidate; telemetry linkage and every tracking answer require
+  owner/vendor evidence. Sensitive, financial and purchase classifications
+  remain gated. Nothing was entered, saved or published in App Store Connect.
 - September 15 provider/data-flow matrix: source-backed paths now separate
   Vercel/dashboard/API and Blob storage, the production database, Upstash login
   limiting, conditional Logly analytics, conditional Sentry diagnostics,

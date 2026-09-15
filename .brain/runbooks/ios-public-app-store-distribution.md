@@ -308,6 +308,10 @@ needed before the production policy URL or App Privacy fields are saved.
    Use the [app-specific privacy-policy draft](../reports/2026-09-15-ios-app-specific-privacy-policy-draft.md)
    as the legal/data-owner review starting point. Every bracketed item is a
    blocking fact, not publication-ready copy.
+   Use the [App Privacy questionnaire mapping](../reports/2026-09-15-ios-app-privacy-questionnaire-mapping.md)
+   for the Apple taxonomy. It rules out **Data Not Collected**, but its
+   provisional selections are not authorized portal answers until reconciled
+   with the exact release binary and owner/vendor facts.
 6. **GATE review access:** Apple requires an active demo account or approved
    fully featured demo mode for account-based features. Arrange a least-
    privilege, non-production-data review account and clear Review Notes that
