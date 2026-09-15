@@ -66,9 +66,12 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
   vendor retention, tracking, or final App Privacy answers.
 - Both root iOS submit aliases require an explicit reviewed EAS build UUID.
   The account runner rejects absent/malformed IDs and `--latest` before EAS
-  account authentication; the app package's submit scripts no longer select
-  the latest build automatically. The combined build/upload command still
-  needs separate confirmation for both external actions.
+  account authentication. Both direct mobile-package submit aliases now run
+  the same reviewed-ID-only adapter, which rejects missing/duplicate/invalid
+  IDs, alternate selectors, and known retired public candidates before EAS
+  runs. No direct script may open EAS's interactive build selector. The
+  combined build/upload command still needs separate confirmation for both
+  external actions.
 - The combined iOS build/automatic-upload root route rejects missing
   `--acknowledge-build` or `--acknowledge-auto-upload` before EAS login, and
   the direct mobile-package script rejects missing corresponding guard values

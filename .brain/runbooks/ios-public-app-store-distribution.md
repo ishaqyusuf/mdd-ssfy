@@ -251,6 +251,12 @@ approved metadata and must not be pasted into App Store Connect unchanged.
 4. **GATE Apple binary upload:**
    `bun run eas:appstore:upload:ios --id REVIEWED_BUILD_UUID` (replace the
    placeholder with the inspected new EAS build ID).
+   Both root and direct mobile-package upload aliases require exactly one
+   reviewed UUID; the direct package command is
+   `bun run eas-submit:ios:by-id --id REVIEWED_BUILD_UUID` from `apps/mobile`.
+   They reject missing/alternate selectors and the retired build `5`/`6`
+   IDs before invoking EAS. This protects against interactive latest-build
+   selection but does not replace action-time upload confirmation.
    This EAS operation uploads the selected IPA to App Store Connect. It does
    **not** send the app to App Review or make it publicly available. Record the
    EAS job, Apple build number, processing result, and exact uploaded build ID.

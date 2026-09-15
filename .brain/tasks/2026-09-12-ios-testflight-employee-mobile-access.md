@@ -197,8 +197,11 @@ approved public registration design exists.
   changed.
 - Release-command hardening: the legacy and public root iOS submit aliases
   now both require a reviewed build UUID; the account runner rejects missing,
-  malformed, or `--latest` selections before authentication. Direct mobile
-  package submit commands no longer choose the latest build automatically.
+  malformed, or `--latest` selections before authentication. Both direct mobile
+  package submit commands now use a reviewed-ID-only adapter; missing,
+  duplicate, invalid, alternate, or retired build `5`/`6` IDs fail before EAS.
+  The 13-test focused runner/readiness/adapter set passes (97 assertions),
+  with scoped Biome clean. ADR-100 records the fail-closed boundary.
   Android routing, EAS owner/project, and production signing are unchanged;
   no EAS or Apple upload ran during this check.
 - Current-state access audit found and closed an Android APK authorization

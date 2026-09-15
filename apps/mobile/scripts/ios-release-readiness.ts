@@ -30,6 +30,10 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	const rootPkg = JSON.parse(
 		await readFile(path.join(REPOSITORY_ROOT, "package.json"), "utf8"),
 	);
+	const submitByIdSource = await readFile(
+		path.join(APP_ROOT, "scripts", "ios-submit-by-id.ts"),
+		"utf8",
+	);
 	const sourceFiles = new Bun.Glob("src/**/*.{ts,tsx,js,jsx,mjs,cjs}");
 	let customCryptoImport = false;
 	for await (const relativePath of sourceFiles.scan({ cwd: APP_ROOT })) {
@@ -184,9 +188,8 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		),
 		check(
 			"iOS submit command",
-			scripts["eas-submit:ios:prod"] ===
-				scripts["eas-submit:ios:by-id"] &&
-				!scripts["eas-submit:ios:prod"]?.includes("--latest"),
+			scripts["eas-submit:ios:prod"] === "bun ./scripts/ios-submit-by-id.ts" &&
+				scripts["eas-submit:ios:by-id"] === scripts["eas-submit:ios:prod"],
 			scripts["eas-submit:ios:prod"] ?? "missing",
 		),
 		check(
@@ -211,24 +214,28 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		),
 		check(
 			"Build-ID upload command",
-			scripts["eas-submit:ios:by-id"]?.includes(
-				"eas submit -p ios --profile production",
-			) && !scripts["eas-submit:ios:by-id"]?.includes("--latest"),
+			submitByIdSource.includes("parseReviewedBuildId(process.argv.slice(2))") &&
+				submitByIdSource.includes('"submit"') &&
+				submitByIdSource.includes('"--profile"') &&
+				submitByIdSource.includes('"production"') &&
+				submitByIdSource.includes('"--id"') &&
+				!submitByIdSource.includes('"--latest"'),
 			scripts["eas-submit:ios:by-id"] ?? "missing",
 		),
 		check(
 			"Release scripts strip dev credentials",
 			[
 				"eas-build:ios:prod",
-				"eas-submit:ios:prod",
-				"eas-submit:ios:by-id",
 				"eas-build-submit:ios:prod",
 			].every(
 				(name) =>
 					scripts[name]?.includes(
 						"env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK",
 					) && scripts[name]?.includes("EXPO_NO_DOTENV=1"),
-			),
+			) &&
+				submitByIdSource.includes('"EXPO_PUBLIC_EMAIL"') &&
+				submitByIdSource.includes('"EXPO_PUBLIC_TOK"') &&
+				submitByIdSource.includes('EXPO_NO_DOTENV: "1"'),
 			"All iOS release operations must strip development login values",
 		),
 		check(
