@@ -4,7 +4,7 @@ import {
 	resolveSalesPrintMode,
 } from "@/modules/sales-print/application/sales-print-service";
 import type { IOrderPrintMode } from "@/types/sales";
-import type { SalesPriceDisplay } from "@gnd/sales/print";
+import type { SalesPriceDisplay } from "@gnd/sales/print/price-display";
 
 interface Props extends SalesPrintProps {}
 export type SalesPrintProps = {

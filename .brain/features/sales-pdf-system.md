@@ -48,6 +48,11 @@ price columns and their row cells. Totals-only requests are normalized to
 `template-2`; they remain Invoice or Quote documents rather than introducing an
 Estimate document type.
 
+Browser-facing print request and controller code imports this contract through
+the client-safe `@gnd/sales/print/price-display` leaf export. It must not import
+runtime helpers from the broad `@gnd/sales/print` barrel, which also exposes
+server print-data functions and therefore reaches the database package.
+
 The variant is isolated with the versioned document-key suffix
 `price-display:totals-only:v1` and is persisted in `SalesPrintData` and snapshot
 metadata. Single-order snapshot preview/download flows recover `priceDisplay`

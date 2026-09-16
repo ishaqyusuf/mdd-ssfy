@@ -21,7 +21,7 @@ import {
 	createOrRefreshBatchSalesPrintData,
 } from "@gnd/sales/pdf-system";
 import type { PrintMode } from "@gnd/sales/print/types";
-import type { SalesPriceDisplay } from "@gnd/sales/print";
+import type { SalesPriceDisplay } from "@gnd/sales/print/price-display";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { notFound } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";

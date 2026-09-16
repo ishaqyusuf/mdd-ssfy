@@ -16,12 +16,12 @@ import {
 	type SalesPageBreakMode,
 } from "@gnd/pdf/sales-v2";
 import type { SalesDocumentReadinessPreflight } from "@gnd/sales/document-readiness";
-import type { PrintMode } from "@gnd/sales/print/types";
 import {
 	normalizeSalesPriceDisplay,
 	resolveSalesPriceDisplayTemplateId,
 	type SalesPriceDisplay,
-} from "@gnd/sales/print";
+} from "@gnd/sales/print/price-display";
+import type { PrintMode } from "@gnd/sales/print/types";
 import {
 	type SalesPrintSettings,
 	normalizeSalesPrintSettings,

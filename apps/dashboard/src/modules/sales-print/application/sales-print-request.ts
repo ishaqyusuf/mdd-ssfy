@@ -7,12 +7,12 @@ import {
 	normalizePrintMode,
 	parsePrintModes,
 } from "@gnd/sales/print/modes";
-import type { PrintMode } from "@gnd/sales/print/types";
 import {
 	normalizeSalesPriceDisplay,
 	resolveSalesPriceDisplayTemplateId,
 	type SalesPriceDisplay,
-} from "@gnd/sales/print";
+} from "@gnd/sales/print/price-display";
+import type { PrintMode } from "@gnd/sales/print/types";
 
 export const DEFAULT_SALES_PRINT_TEMPLATE_ID = "template-2";
 

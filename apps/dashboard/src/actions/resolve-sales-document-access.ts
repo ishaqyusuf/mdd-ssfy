@@ -14,7 +14,7 @@ import {
 	prepareSalesDocumentReadiness,
 } from "@gnd/sales/document-readiness";
 import type { PrintMode } from "@gnd/sales/print/types";
-import type { SalesPriceDisplay } from "@gnd/sales/print";
+import type { SalesPriceDisplay } from "@gnd/sales/print/price-display";
 import {
 	type SalesPrintSettings,
 	getSettingAction,

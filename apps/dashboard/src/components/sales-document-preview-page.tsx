@@ -18,7 +18,7 @@ import {
 	normalizeSalesPageBreakMode,
 } from "@gnd/pdf/sales-v2";
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
-import type { SalesPriceDisplay } from "@gnd/sales/print";
+import type { SalesPriceDisplay } from "@gnd/sales/print/price-display";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery, useQueryClient } from "@gnd/ui/tanstack";

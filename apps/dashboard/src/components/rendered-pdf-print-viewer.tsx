@@ -11,7 +11,7 @@ import { useTRPC } from "@/trpc/client";
 import { PDFViewer } from "@gnd/pdf";
 import { type SalesPageBreakMode, SalesPdfDocument } from "@gnd/pdf/sales-v2";
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
-import type { SalesPriceDisplay } from "@gnd/sales/print";
+import type { SalesPriceDisplay } from "@gnd/sales/print/price-display";
 import type { SalesPrintSettings } from "@gnd/settings";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import type { ComponentType, ReactNode, SyntheticEvent } from "react";

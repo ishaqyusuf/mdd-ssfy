@@ -140,6 +140,7 @@
 		"./document-readiness": "./src/document-readiness/index.ts",
 		"./print/types": "./src/print/types.ts",
 		"./print/modes": "./src/print/modes.ts",
+		"./print/price-display": "./src/print/price-display.ts",
 		"./print/payment-footer-state": "./src/print/compose/payment-footer-state.ts",
 		"./print/customer-name-lines": "./src/print/compose/customer-name-lines.ts",
 		"./print/snapshot-sections": "./src/print/snapshot-sections.ts",

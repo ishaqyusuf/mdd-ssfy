@@ -2,8 +2,8 @@
 
 import { openLink } from "@/lib/open-link";
 import { openSalesDocumentReadiness } from "@/store/sales-document-readiness";
+import type { SalesPriceDisplay } from "@gnd/sales/print/price-display";
 import type { PrintMode } from "@gnd/sales/print/types";
-import type { SalesPriceDisplay } from "@gnd/sales/print";
 import type { SalesPageBreakMode } from "@gnd/pdf/sales-v2";
 import type { SalesPrintSettings } from "@gnd/settings/schema";
 import { ToastAction } from "@gnd/ui/toast";

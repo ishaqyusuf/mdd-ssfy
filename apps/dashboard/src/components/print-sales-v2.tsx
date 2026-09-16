@@ -13,7 +13,7 @@ import {
 	buildSalesPdfDownloadUrlFromQuery,
 } from "@/modules/sales-print/application/sales-print-service";
 import type { SalesPageBreakMode } from "@gnd/pdf/sales-v2";
-import type { SalesPriceDisplay } from "@gnd/sales/print";
+import type { SalesPriceDisplay } from "@gnd/sales/print/price-display";
 import dynamic from "next/dynamic";
 import type { SyntheticEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
