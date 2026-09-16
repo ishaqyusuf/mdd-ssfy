@@ -1,6 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 # *.md
-gemini
 paytime.md
 tasks*.md
 # dependencies
@@ -81,16 +80,17 @@ packages/jobs/src/schema.prisma
 
 android
 ios
-.gstack/
 
-# generated artifacts and visual evidence
+# local AI state, generated artifacts, and visual evidence
+/.brain/
+/.gstack/
+/ai/
+/debug/
+/gemini/
 /outputs/
 /artifacts/
+/test-results/
 **/screenshots/
 
 .scratch
 .local-db-sync
-.gstack
-debug
-artifacts
-.brain
