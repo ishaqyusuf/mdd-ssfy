@@ -21058,6 +21058,40 @@ Limits: maximum10 questionnaire revisions and24,000 characters of answer/reason 
 
 Live exact WM713 missingquantity request showed multi-round questionnaire; confirmed28 opened native draft at28pieces (subtotal215.04). Read-only persistence verified complete session revision3, two answers28/reusefalse, no remaining questions, no reusable guidance and separately retained source. Admin Missing quantities rule saved enabled and survived reload. Focused UI20/106, backend5/21, rules2/10, preview/context15/47 plus admin propagation1/2, quantity/alias2/4 and actual adapter1/1 checks passed. No broad typecheck/build; no sale/payment saved. UI-found canonical component shape, title whitespace, and prevalidation quantity issues fixed. Generic unmatched-product provider schema errors and other complex sample blockers remain. Full details and Brain impact index: plans/2026-09-15-sales-request-clarification-learning.md.
 
+## 2026-09-15 — new sales form Save stays open
+
+Fixed Dashboard Save/final and Save Draft unexpectedly leaving the editor for
+Inventory. The existing inventory resolver now receives the original save intent
+and suppresses ordinary overview navigation for those actions while preserving
+legacy adaptation queueing. Create-to-edit URLs no longer open the general
+Sales Overview sheet. Save & Close/Save & New navigation is preserved.
+Independent subagent diagnosis confirmed the shared continuation as the cause.
+Updated existing continuation regression expectations; scoped diff check only,
+with tests/browser/build/typecheck deferred under the user's fast Bun discipline.
+Brain impact: features/sales-form-system-hardening.md and this progress entry;
+no schema, API, permission, or durable architecture change.
+
+
+## 2026-09-15 — sales form component loading investigation and tickets
+
+Source inspection confirmed that the existing sales workflow Redis cache retains
+components for 24 hours and routing for 6 hours, but the new form picker sends
+fresh:true and bypasses component cache reads/fills. The legacy loader remains
+cache-eligible. The browser component query inherits the 60-second global
+freshness policy. No live Redis health or latency benchmark was performed.
+
+Proposed plan: plans/2026-09-15-feature-sales-form-component-loading-optimization.md.
+Eight detailed tickets cover baseline/writer inventory, a transactional catalog
+revision, versioned Redis reads, browser reuse/revision checks, removing usage
+counts from the picker path, active-workflow loading/prefetch, conditional measured
+render/transport work, and correctness/performance rollout. Companion task:
+tasks/2026-09-15-sales-form-component-loading-optimization.md; roadmap pointer added.
+
+Planning only; no application/schema/API changes or tests run. Existing fresh AI
+apply/replay paths and pricing semantics are explicit constraints. Estimates and
+performance targets are proposed, not measured outcomes. Brain impact: plan, task,
+roadmap and this entry only; implementation docs remain accurate for current code.
+
 ## 2026-09-15 — Template 2 totals-only sales printing
 
 Added a presentation-only `priceDisplay=totals-only` contract for invoice and

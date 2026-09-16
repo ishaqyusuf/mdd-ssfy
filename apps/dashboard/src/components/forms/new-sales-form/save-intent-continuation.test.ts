@@ -176,10 +176,24 @@ describe("new sales form save intent continuation", () => {
 		expect(saveCalls).toBe(0);
 	});
 
-	test("routes a saved order to canonical inventory overview before fallback navigation", () => {
+	test("honors save intent before inventory and fallback navigation", () => {
+		const continuationSource = formSource.slice(
+			formSource.indexOf("const continueToInventoryAfterSave"),
+			formSource.indexOf("async function executeSaveIntent"),
+		);
+		expect(continuationSource).toContain(
+			'skipOrdinaryInventoryContinuation:\n\t\t\t\t\tintent === "draft" ||\n\t\t\t\t\tintent === "final" ||\n\t\t\t\t\tisLegacyPoOnlySaveResponse(resp)',
+		);
+		const editHrefSource = formSource.slice(
+			formSource.indexOf("const buildEditHref"),
+			formSource.indexOf("const clearSelectedCustomerQuery"),
+		);
+		expect(editHrefSource).not.toContain("sales-overview-id");
+		expect(editHrefSource).toContain("/sales-form/edit-order/");
+		expect(editHrefSource).toContain("/sales-form/edit-quote/");
 		const saveIndex = formSource.indexOf("await handlePostSaveSuccess(resp)");
 		const inventoryIndex = formSource.indexOf(
-			"continueToInventoryAfterSave(resp, true)",
+			"continueToInventoryAfterSave(resp, true, intent)",
 			saveIndex,
 		);
 		const inventoryReturnIndex = formSource.indexOf(

@@ -644,23 +644,16 @@ export function NewSalesForm(props: Props) {
     const packingIsCompleted = currentPackingDispatch?.status === "completed";
 
     const buildEditHref = useCallback(
-        (next: { slug?: string | null; orderId?: string | null }) => {
+        (next: { slug?: string | null }) => {
             const slug = next.slug || record?.slug;
-            const orderId = next.orderId || record?.orderId;
-            if (!slug || !orderId) return null;
+            if (!slug) return null;
             const path =
                 props.type === "order"
                     ? `/sales-form/edit-order/${slug}`
                     : `/sales-form/edit-quote/${slug}`;
-            const search = new URLSearchParams({
-                "sales-overview-id": orderId,
-                "sales-type": props.type,
-                mode: props.type === "order" ? "sales" : "quote",
-                salesTab: "general",
-            });
-            return `${path}?${search.toString()}`;
+            return path;
         },
-        [props.type, record?.orderId, record?.slug],
+        [props.type, record?.slug],
     );
 
     const clearSelectedCustomerQuery = useCallback(async () => {
@@ -1221,6 +1214,7 @@ export function NewSalesForm(props: Props) {
 			saveScope?: NewSalesFormSaveScope | null;
 			},
 			afterSuccessfulSave: boolean,
+			intent: SaveIntent,
 		) => {
 			if (!isOrder) return false;
 			const action = resolveLegacyInventoryPostSaveAction({
@@ -1230,7 +1224,10 @@ export function NewSalesForm(props: Props) {
 				inventoryStatus: resp.inventoryStatus,
 				savedOrderUpdatedAt: resp.updatedAt,
 				afterSuccessfulSave,
-				skipOrdinaryInventoryContinuation: isLegacyPoOnlySaveResponse(resp),
+				skipOrdinaryInventoryContinuation:
+					intent === "draft" ||
+					intent === "final" ||
+					isLegacyPoOnlySaveResponse(resp),
 			});
 			if (action.action === "queue_legacy_adaptation") {
 				await legacyInventoryAdaptation.queue(action);
@@ -1669,7 +1666,7 @@ export function NewSalesForm(props: Props) {
                 await handlePostSaveSuccess(resp);
 				await clearSelectedCustomerQuery();
 				const inventoryOverviewOpened =
-					await continueToInventoryAfterSave(resp, true);
+					await continueToInventoryAfterSave(resp, true, intent);
                 toast({
                     title: "Saved",
                     description: `${props.type} ${resp?.orderId} has been finalized.`,
@@ -1718,7 +1715,7 @@ export function NewSalesForm(props: Props) {
             try {
                 await handlePostSaveSuccess(resp);
                 await clearSelectedCustomerQuery();
-                inventoryOverviewOpened = await continueToInventoryAfterSave(resp, true);
+                inventoryOverviewOpened = await continueToInventoryAfterSave(resp, true, intent);
             } catch (error) {
                 const failure = createSaveFailure(error, "Refresh after save", resp.orderId, true);
                 setSaveFailure(failure);
@@ -1740,7 +1737,7 @@ export function NewSalesForm(props: Props) {
 			if (inventoryOverviewOpened) return;
         } else {
 			const inventoryOverviewOpened =
-				await continueToInventoryAfterSave(currentRecord, false);
+				await continueToInventoryAfterSave(currentRecord, false, intent);
 			if (inventoryOverviewOpened) return;
         }
         router.push(

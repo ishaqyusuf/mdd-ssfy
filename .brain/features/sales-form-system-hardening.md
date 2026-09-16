@@ -1,5 +1,17 @@
 # Sales Form System Hardening
 
+## Save keeps the editor open (2026-09-15)
+
+- Dashboard new-form Save (final/Active) and Save Draft keep the editor open.
+  Both pass their save intent into the inventory continuation and suppress
+  ordinary inventory-overview navigation while retaining legacy adaptation jobs.
+- The first save transitions to the saved order/quote edit URL without opening
+  a sales-overview sheet over the editor. Existing-record saves stay in place.
+- Save & Close and Save & New retain their existing navigation. Review and
+  Special Order confirmations resume the originally requested save intent.
+- Scoped diff validation only; focused continuation tests were updated but not
+  run, following the requested fast Bun command discipline. No API/database changes.
+
 ## Retained single-select component navigation (2026-09-15)
 
 - Clicking an already-selected component on a single-select workflow step now
@@ -78,7 +90,7 @@
 - The Fulfillment mode uses the shared shadcn Select and offers Pickup and
   Delivery only. Historical Ship compatibility remains outside order entry.
 - The invoice-summary primary Save action uses the standard final/Active save
-  path and its canonical saved-order navigation. Save Draft remains available
+  path and keeps the editor open (corrected 2026-09-15). Save Draft remains available
   only as the explicitly labeled menu action.
 
 ## Current behavior (2026-08-12)

@@ -26,6 +26,9 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### [Sales Form Component Loading Optimization](2026-09-15-sales-form-component-loading-optimization.md)
+- Status: Roadmap
+
 ### [Assistant shadcn Chat UI Refresh](2026-09-15-assistant-shadcn-chat-ui.md)
 - Status: Roadmap
 
