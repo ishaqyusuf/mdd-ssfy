@@ -195,8 +195,8 @@ apps/api/src/trpc/routers/print.route.ts
 
 Sales menu labels use `Detailed` and `Totals only`. Quote Print and PDF expose
 both choices. Order Print retains Order & Packing, Order, Packing, and Production
-and adds `Order (Totals only)` immediately after Order; the order PDF submenu is
-unchanged.
+and adds `Order (Totals only)` immediately after Order. Order PDF retains its
+existing actions and also adds `Order (Totals only)` immediately after Order.
 
 ### Client layer
 

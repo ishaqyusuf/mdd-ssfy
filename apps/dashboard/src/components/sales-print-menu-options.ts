@@ -16,13 +16,38 @@ export const QUOTE_DOCUMENT_MENU_OPTIONS = [
 	params: SalesPrintProps;
 }>;
 
-export const ORDER_TOTALS_ONLY_PRINT_OPTION = {
-	label: "Order (Totals only)",
-	params: { mode: "order", priceDisplay: "totals-only" },
-} as const satisfies {
+export const ORDER_DOCUMENT_MENU_OPTIONS = [
+	{
+		label: "Order",
+		params: { mode: "order" },
+	},
+	{
+		label: "Order (Totals only)",
+		params: { mode: "order", priceDisplay: "totals-only" },
+	},
+] as const satisfies ReadonlyArray<{
 	label: string;
 	params: SalesPrintProps;
-};
+}>;
+
+export const ORDER_PDF_MENU_OPTIONS = [
+	{
+		label: "Order & Packing",
+		params: { mode: "order-packing", dispatchId: "all" },
+	},
+	...ORDER_DOCUMENT_MENU_OPTIONS,
+	{
+		label: "Packing",
+		params: { mode: "packing list" },
+	},
+	{
+		label: "Production",
+		params: { mode: "production" },
+	},
+] as const satisfies ReadonlyArray<{
+	label: string;
+	params: SalesPrintProps;
+}>;
 
 export function buildSalesMenuPrintControllerInput(input: {
 	salesIds: number[];

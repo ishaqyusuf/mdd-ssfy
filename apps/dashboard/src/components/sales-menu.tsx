@@ -47,7 +47,8 @@ import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import {
-	ORDER_TOTALS_ONLY_PRINT_OPTION,
+	ORDER_DOCUMENT_MENU_OPTIONS,
+	ORDER_PDF_MENU_OPTIONS,
 	QUOTE_DOCUMENT_MENU_OPTIONS,
 	buildSalesMenuPrintControllerInput,
 } from "./sales-print-menu-options";
@@ -870,13 +871,13 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 					onSelect={(e) => {
 						e.preventDefault();
 						void runPrint(
-							{ ...ORDER_TOTALS_ONLY_PRINT_OPTION.params },
+							{ ...ORDER_DOCUMENT_MENU_OPTIONS[1].params },
 							{ pdf: false, openInNewTab: consumeShiftClick() },
 						);
 					}}
 				>
 					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
-					{ORDER_TOTALS_ONLY_PRINT_OPTION.label}
+					{ORDER_DOCUMENT_MENU_OPTIONS[1].label}
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
 					onPointerDown={captureShiftClick}
@@ -958,45 +959,18 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 				PDF
 			</DropdownMenu.SubTrigger>
 			<DropdownMenu.SubContent>
-				<DropdownMenu.Item
-					onSelect={(e) => {
-						e.preventDefault();
-						void runPrint(
-							{ mode: "order-packing", dispatchId: "all" },
-							{ pdf: true },
-						);
-					}}
-				>
-					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
-					Order & Packing
-				</DropdownMenu.Item>
-				<DropdownMenu.Item
-					onSelect={(e) => {
-						e.preventDefault();
-						void runPrint(undefined, { pdf: true });
-					}}
-				>
-					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
-					Order
-				</DropdownMenu.Item>
-				<DropdownMenu.Item
-					onSelect={(e) => {
-						e.preventDefault();
-						void runPrint({ mode: "packing list" }, { pdf: true });
-					}}
-				>
-					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
-					Packing
-				</DropdownMenu.Item>
-				<DropdownMenu.Item
-					onSelect={(e) => {
-						e.preventDefault();
-						void runPrint({ mode: "production" }, { pdf: true });
-					}}
-				>
-					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
-					Production
-				</DropdownMenu.Item>
+				{ORDER_PDF_MENU_OPTIONS.map((option) => (
+					<DropdownMenu.Item
+						key={option.label}
+						onSelect={(e) => {
+							e.preventDefault();
+							void runPrint({ ...option.params }, { pdf: true });
+						}}
+					>
+						<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
+						{option.label}
+					</DropdownMenu.Item>
+				))}
 			</DropdownMenu.SubContent>
 		</DropdownMenu.Sub>
 	);
