@@ -20,19 +20,20 @@ import {
 import {
 	getInventoryPrintDocumentData,
 	normalizeSalesPriceDisplay,
-	printSalesV2Schema,
 } from "@gnd/sales/print";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import z from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
 const requireFromHere = createRequire(import.meta.url);
-const salesInventoryV2Schema = printSalesV2Schema
-	.omit({ priceDisplay: true })
-	.extend({
-		templateId: z.string().optional().default("template-2"),
-		preview: z.boolean().optional().default(false),
-	});
+const salesInventoryV2Schema = z.object({
+	ids: z.array(z.number()).min(1),
+	mode: z.string().min(1),
+	pricingMode: z.enum(["customer", "internal"]).optional(),
+	dispatchId: z.number().optional().nullable(),
+	templateId: z.string().optional().default("template-2"),
+	preview: z.boolean().optional().default(false),
+});
 
 function humanizeSlug(value?: string | null) {
 	if (!value) return null;
