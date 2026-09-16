@@ -1,7 +1,11 @@
 /** @jsxImportSource react */
 import { Text, View } from "@react-pdf/renderer";
 import type { ServiceSection } from "@gnd/sales/print/types";
-import { colWidth, sumColSpans } from "../../../shared/utils";
+import {
+  colWidth,
+  colWidthWithRemainder,
+  sumColSpans,
+} from "../../../shared/utils";
 
 // ─── Design tokens ─────────────────────────────────────────
 const NAVY = "#1a2e4a";
@@ -14,6 +18,9 @@ interface ServiceBlockProps {
 
 export function ServiceBlock({ section }: ServiceBlockProps) {
   const totalSpan = sumColSpans(section.headers);
+  const descriptionIndex = section.headers.findIndex(
+    (header) => header.key === "description",
+  );
 
   return (
     <View
@@ -57,7 +64,10 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
               <View
                 key={i}
                 style={{
-                  width: colWidth(h.colSpan, totalSpan),
+                  width:
+                    i === descriptionIndex
+                      ? colWidthWithRemainder(h.colSpan, totalSpan)
+                      : colWidth(h.colSpan, totalSpan),
                   paddingVertical: 4,
                   paddingHorizontal: 5,
                   borderRightWidth: i < section.headers.length - 1 ? 1 : 0,
@@ -103,7 +113,10 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
                   <View
                     key={ci}
                     style={{
-                      width: colWidth(cell.colSpan, totalSpan),
+                      width:
+                        ci === descriptionIndex
+                          ? colWidthWithRemainder(cell.colSpan, totalSpan)
+                          : colWidth(cell.colSpan, totalSpan),
                       paddingVertical: 3,
                       paddingHorizontal: 5,
                       borderRightWidth: ci < row.cells.length - 1 ? 1 : 0,

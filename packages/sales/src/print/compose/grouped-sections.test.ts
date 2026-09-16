@@ -130,4 +130,43 @@ describe("grouped print sections", () => {
 		expect(sections[1]?.rows).toHaveLength(1);
 		expect(sections[1]?.rows[0]?.cells[1]?.value).toBe("Legacy Install");
 	});
+
+	it("gives service descriptions the remaining PDF width in every price mode", () => {
+		const sale = {
+			items: [
+				{
+					id: 13,
+					description: "Long service description",
+					qty: 2,
+					rate: 60,
+					total: 120,
+					meta: { lineIndex: 1, doorType: "Services" },
+					formSteps: [],
+					housePackageTool: { doorType: "Services" },
+				},
+			],
+		} as unknown as PrintSalesData;
+		const layouts = [
+			{ showPrices: true, showPackingCol: false, descriptionSpan: 12.8 },
+			{ showPrices: false, showPackingCol: false, descriptionSpan: 17.8 },
+			{ showPrices: false, showPackingCol: true, descriptionSpan: 14.8 },
+			{ showPrices: true, showPackingCol: true, descriptionSpan: 9.8 },
+		] as const;
+
+		for (const layout of layouts) {
+			const [section] = composeServiceSections(
+				sale,
+				layout as unknown as PrintModeConfig,
+				null,
+			);
+			const row = section?.rows[0];
+
+			expect(section?.headers.reduce((sum, cell) => sum + cell.colSpan, 0)).toBe(
+				20,
+			);
+			expect(row?.cells.reduce((sum, cell) => sum + cell.colSpan, 0)).toBe(20);
+			expect(section?.headers[1]?.colSpan).toBe(layout.descriptionSpan);
+			expect(row?.cells[1]?.colSpan).toBe(layout.descriptionSpan);
+		}
+	});
 });

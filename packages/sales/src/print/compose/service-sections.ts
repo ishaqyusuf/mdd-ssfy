@@ -17,6 +17,8 @@ import {
 } from "./grouped-item-helpers";
 import { packingInfo } from "./packing";
 
+const PRINT_GRID_SPAN = 20;
+
 export function composeServiceSections(
 	sale: PrintSalesData,
 	config: PrintModeConfig,
@@ -42,10 +44,21 @@ export function composeServiceSections(
 				)
 			: [item];
 		for (const m of multis) seen.add(m.id);
+		const descriptionSpan =
+			PRINT_GRID_SPAN -
+			1 -
+			1.2 -
+			(config.showPrices ? 5 : 0) -
+			(config.showPackingCol ? 3 : 0);
 
 		const headers: CellHeader[] = [
 			{ title: "#", key: null, colSpan: 1, align: "center" },
-			{ title: "Description", key: "description", colSpan: 4, align: "left" },
+			{
+				title: "Description",
+				key: "description",
+				colSpan: descriptionSpan,
+				align: "left",
+			},
 			{ title: "Qty", key: "qty", colSpan: 1.2, align: "center" },
 		];
 		if (config.showPrices) {
@@ -88,7 +101,7 @@ export function composeServiceSections(
 						{ value: rowNum, colSpan: 1, align: "center" },
 						{
 							value: String(row?.service || "").trim() || m.description,
-							colSpan: 4,
+							colSpan: descriptionSpan,
 							align: "left",
 						},
 						{ value: qty, colSpan: 1.2, align: "center" },
@@ -127,7 +140,11 @@ export function composeServiceSections(
 			rowNum++;
 			const cells: RowCell[] = [
 				{ value: rowNum, colSpan: 1, align: "center" },
-				{ value: m.description, colSpan: 4, align: "left" },
+				{
+					value: m.description,
+					colSpan: descriptionSpan,
+					align: "left",
+				},
 				{ value: m.qty, colSpan: 1.2, align: "center" },
 			];
 

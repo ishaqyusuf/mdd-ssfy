@@ -67,6 +67,14 @@ export function colWidth(
   return `${Number(span) * 5}%`;
 }
 
+export function colWidthWithRemainder(
+  span: number | null | undefined,
+  allSpans: number,
+): string {
+  const remainingSpan = Math.max(0, 20 - allSpans);
+  return colWidth(Number(span || 0) + remainingSpan, 20);
+}
+
 export function sumColSpans(cells: { colSpan?: number }[]): number {
   return cells.reduce((a, c) => a + (c.colSpan ?? 0), 0);
 }

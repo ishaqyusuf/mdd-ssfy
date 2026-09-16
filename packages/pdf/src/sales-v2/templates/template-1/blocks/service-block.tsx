@@ -2,7 +2,11 @@
 import { Text, View } from "@react-pdf/renderer";
 import { cn } from "../../../../utils/tw";
 import type { ServiceSection } from "@gnd/sales/print/types";
-import { colWidth, sumColSpans } from "../../../shared/utils";
+import {
+  colWidth,
+  colWidthWithRemainder,
+  sumColSpans,
+} from "../../../shared/utils";
 import { hexToRgba, colorsObject } from "@gnd/utils/colors";
 
 interface ServiceBlockProps {
@@ -12,6 +16,9 @@ const BORDER_COLOR = "#9ca3af";
 
 export function ServiceBlock({ section }: ServiceBlockProps) {
   const totalSpan = sumColSpans(section.headers);
+  const descriptionIndex = section.headers.findIndex(
+    (header) => header.key === "description",
+  );
 
   return (
     <View style={{ ...cn(`flex-col border-x border-t text-sm`), borderColor: BORDER_COLOR }}>
@@ -36,7 +43,10 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
                   ...cn(
                     `p-1 font-semibold uppercase ${i === section.headers.length - 1 ? "" : "border-r"}`,
                   ),
-                  width: colWidth(h.colSpan, totalSpan),
+                  width:
+                    i === descriptionIndex
+                      ? colWidthWithRemainder(h.colSpan, totalSpan)
+                      : colWidth(h.colSpan, totalSpan),
                   backgroundColor: hexToRgba(colorsObject.black, 0.2),
                   borderColor: BORDER_COLOR,
                 }}
@@ -68,7 +78,10 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
                       ...cn(
                         `p-1 ${alignClass} ${cell.bold ? "font-bold" : ""} ${ci === row.cells.length - 1 ? "" : "border-r uppercase"}`,
                       ),
-                      width: colWidth(cell.colSpan, totalSpan),
+                      width:
+                        ci === descriptionIndex
+                          ? colWidthWithRemainder(cell.colSpan, totalSpan)
+                          : colWidth(cell.colSpan, totalSpan),
                       borderColor: BORDER_COLOR,
                     }}
                   >
