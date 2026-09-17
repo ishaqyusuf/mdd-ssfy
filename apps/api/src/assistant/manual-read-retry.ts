@@ -18,6 +18,7 @@ type Dependencies = {
 };
 const defaults: Dependencies = { command: sendAssistantRedisCommand, definitions: getExecutableAssistantDefinitions, execute: executeRegisteredAssistantTool, now: Date.now };
 const key = (id: string) => `assistant:manual-read-retry:${id}`;
+const lockKey = (id: string) => `assistant:manual-read-retry-lock:${id}`;
 const consumeScript = "if redis.call('GET',KEYS[1])==ARGV[1] then redis.call('DEL',KEYS[1]); return 1 end; return 0";
 
 /** Retry data is private, short-lived execution state, never diagnostic metadata. */
@@ -50,6 +51,17 @@ export async function executeAssistantReadRetry(
 		signal: AbortSignal;
 		/** Must verify ownership, scope and a matching failed read in durable history. */
 		authorize: (ticket: Pick<Ticket, "conversationId" | "runId" | "toolCallId" | "toolId" | "version">) => Promise<boolean>;
+		/** Reload entitlement, scope, and grants immediately before redemption. */
+		resolveActor?: () => Promise<AssistantToolActor>;
+		/** Persist the completed read before the ticket is removed. */
+		persist?: (input: {
+			conversationId: string;
+			runId: string;
+			toolCallId: string;
+			toolId: string;
+			version: number;
+			result: unknown;
+		}) => Promise<unknown>;
 	},
 	overrides: Partial<Dependencies> = {},
 ) {
@@ -61,14 +73,31 @@ export async function executeAssistantReadRetry(
 	let ticket: Ticket;
 	try { ticket = ticketSchema.parse(JSON.parse(raw)); } catch { throw new AssistantReadRetryUnavailable(); }
 	if (ticket.expiresAt <= deps.now() || ticket.userId !== actor.userId || ticket.scopeType !== actor.scopeType || ticket.scopeId !== actor.scopeId) throw new AssistantReadRetryUnavailable();
-	const definition = deps.definitions(actor).find(tool => tool.toolId === ticket.toolId && tool.version === ticket.version && tool.effect === "read");
-	if (!definition || !(await options.authorize(ticket))) throw new AssistantReadRetryUnavailable();
+	if (!(await options.authorize(ticket))) throw new AssistantReadRetryUnavailable();
+	const currentActor = options.resolveActor ? await options.resolveActor() : actor;
+	if (currentActor.userId !== ticket.userId || currentActor.scopeType !== ticket.scopeType || currentActor.scopeId !== ticket.scopeId) throw new AssistantReadRetryUnavailable();
+	const definition = deps.definitions(currentActor).find(tool => tool.toolId === ticket.toolId && tool.version === ticket.version && tool.effect === "read");
+	if (!definition) throw new AssistantReadRetryUnavailable();
 	const parsedInput = definition.inputSchema.parse(ticket.input);
 	options.signal.throwIfAborted();
-	if (Number(await deps.command(["EVAL", consumeScript, 1, key(id), raw])) !== 1) throw new AssistantReadRetryUnavailable();
-	options.signal.throwIfAborted();
-	return {
-		conversationId: ticket.conversationId, runId: ticket.runId, toolCallId: ticket.toolCallId, toolId: ticket.toolId,
-		result: await deps.execute(actor, { toolId: ticket.toolId, version: ticket.version, input: parsedInput }, {}, { signal: options.signal }),
-	};
+	const leaseId = randomUUID();
+	if (await deps.command(["SET", lockKey(id), leaseId, "EX", 600, "NX"]) !== "OK") throw new AssistantReadRetryUnavailable();
+	try {
+		const result = await deps.execute(currentActor, { toolId: ticket.toolId, version: ticket.version, input: parsedInput }, {}, { signal: options.signal });
+		options.signal.throwIfAborted();
+		const retried = {
+			conversationId: ticket.conversationId, runId: ticket.runId,
+			toolCallId: ticket.toolCallId, toolId: ticket.toolId,
+			version: ticket.version, result,
+		};
+		const persistence = await options.persist?.(retried);
+		const consumed = await deps.command(["EVAL", consumeScript, 1, key(id), raw]);
+		// Expiry is already a successful consumption. If a transport returns an
+		// unexpected compare result while the key still exists, remove this opaque
+		// one-use handle before reporting the persisted result.
+		if (Number(consumed) !== 1) await deps.command(["DEL", key(id)]);
+		return { ...retried, persistence };
+	} finally {
+		await deps.command(["EVAL", consumeScript, 1, lockKey(id), leaseId]).catch(() => undefined);
+	}
 }

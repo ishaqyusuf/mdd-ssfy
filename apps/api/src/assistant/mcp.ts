@@ -11,8 +11,9 @@ import {
 import { createAssistantReadRecovery } from "./read-recovery";
 
 type CaptureToolFailure = (error: unknown, context: {
-	toolCallId: string; toolId: string; effect: string; outcome: AssistantOutcome["kind"]; attempt?: 1 | 2; retrying?: boolean;
-}) => Promise<{ reference: string }>;
+	toolCallId: string; toolId: string; toolVersion: number; toolInput: unknown;
+	effect: string; outcome: AssistantOutcome["kind"]; attempt?: 1 | 2; retrying?: boolean;
+}) => Promise<{ reference: string; retryId?: string; retryExpiresAt?: string }>;
 
 class AssistantScopeUnavailableError extends Error {
 	readonly code = "FORBIDDEN";
@@ -106,7 +107,7 @@ export function createAssistantMcpServer(
 				try {
 					result = await recoverRead({ effect: definition.effect, signal: extra.signal,
 						onRetry: async error => {
-							firstFailureReference = (await captureFailure?.(error, { toolCallId, toolId: definition.toolId, effect: definition.effect, outcome: "temporary", attempt: 1, retrying: true }))?.reference;
+							firstFailureReference = (await captureFailure?.(error, { toolCallId, toolId: definition.toolId, toolVersion: definition.version, toolInput: input, effect: definition.effect, outcome: "temporary", attempt: 1, retrying: true }))?.reference;
 						},
 						operation: async currentAttempt => {
 						attemptState.count = currentAttempt;
@@ -133,8 +134,15 @@ export function createAssistantMcpServer(
 								? "uncertain"
 								: "temporary";
 					let reference: string | undefined;
+					let retryId: string | undefined;
+					let retryExpiresAt: string | undefined;
 					try {
-						if (kind !== "cancelled") reference = (await captureFailure?.(error, { toolCallId, toolId: definition.toolId, effect: definition.effect, outcome: kind, attempt: attemptState.count }))?.reference;
+						if (kind !== "cancelled") {
+							const captured = await captureFailure?.(error, { toolCallId, toolId: definition.toolId, toolVersion: definition.version, toolInput: input, effect: definition.effect, outcome: kind, attempt: attemptState.count });
+							reference = captured?.reference;
+							retryId = captured?.retryId;
+							retryExpiresAt = captured?.retryExpiresAt;
+						}
 					} catch { /* Capturing diagnostics cannot replace the business outcome. */ }
 					try {
 						await recordExecution?.({
@@ -160,7 +168,13 @@ export function createAssistantMcpServer(
 					return {
 						isError: true,
 						content: [{ type: "text", text: presentAssistantOutcome(outcome).message }],
-						_meta: { assistantOutcome: outcome },
+						_meta: {
+							assistantOutcome: outcome,
+							...(retryId ? { assistantReadRetryId: retryId } : {}),
+							...(retryExpiresAt
+								? { assistantReadRetryExpiresAt: retryExpiresAt }
+								: {}),
+						},
 					};
 				}
 				const status = (result as { status?: unknown }).status;

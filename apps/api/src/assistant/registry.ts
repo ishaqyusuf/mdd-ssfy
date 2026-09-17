@@ -1528,12 +1528,13 @@ const placeholders: AssistantToolDefinition[] = [
 			const input = assistantSalesRequestDraftInputSchema.parse(rawInput);
 			const generated = await services.draftSalesOrderFromRequest(
 				actor,
-				input,
+				{ ...input, text: input.text.trim() },
 				execution?.signal,
 			);
 			const preview = assistantSalesRequestDraftPreviewSchema.parse({
 				...generated,
 				type: input.type,
+				sourceText: input.text,
 				unresolvedCount: generated.seed.unresolved.length,
 			});
 			return assistantResultEnvelope({

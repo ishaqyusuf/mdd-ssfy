@@ -1242,6 +1242,95 @@ describe("assistant runtime", () => {
 		expect(cleaned).toBe(1);
 	});
 
+	test("marks a user cancellation after provider execution starts as attempted usage", async () => {
+		const controller = new AbortController();
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			createAgent: () => ({
+				stream: async () => {
+					controller.abort();
+					throw controller.signal.reason;
+				},
+			}),
+		});
+
+		const result = await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 24,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "stop" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write() {} },
+			signal: controller.signal,
+		});
+
+		expect(result).toMatchObject({
+			status: "cancelled",
+			usage: {
+				providerAttempted: true,
+				provider: "openai",
+				model: "gpt-5-mini",
+			},
+		});
+	});
+
+	test("marks a cancellation before provider execution as releasable usage", async () => {
+		const controller = new AbortController();
+		controller.abort();
+		let providerCalled = false;
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			createAgent: () => ({
+				stream: async () => {
+					providerCalled = true;
+					throw new Error("unreachable");
+				},
+			}),
+		});
+
+		const result = await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 24,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "stop" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write() {} },
+			signal: controller.signal,
+		});
+
+		expect(providerCalled).toBe(false);
+		expect(result).toMatchObject({
+			status: "cancelled",
+			usage: { providerAttempted: false },
+		});
+	});
+
 	test("redacts provider failures and still cleans up once", async () => {
 		let cleaned = 0;
 		const runtime = createAssistantRuntime({

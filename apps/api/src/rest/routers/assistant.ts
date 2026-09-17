@@ -90,6 +90,8 @@ type AssistantStreamData = UIDataTypes & {
 		id: string;
 		name: string;
 		status: "queued" | "running" | "complete" | "failed" | "approval-required";
+		retryId?: string;
+		retryExpiresAt?: string;
 	};
 	warning: { code: string; message: string };
 	"terminal-status": { runId: string; status: string; errorCode?: string };
@@ -149,6 +151,7 @@ type AssistantRouterDependencies = {
 		actor: AssistantStreamActor;
 		runId: string;
 		status: RunOutcome["status"];
+		usage?: Prisma.InputJsonValue;
 	}): Promise<void>;
 	executeRun(input: {
 		actor: AssistantStreamActor;
@@ -597,7 +600,17 @@ const defaultDependencies: AssistantRouterDependencies = {
 				completedAt: new Date(),
 			},
 		});
-		await settleAssistantQuotaReservationFallback(db, { runId: input.runId });
+		const usage =
+			input.usage &&
+			typeof input.usage === "object" &&
+			!Array.isArray(input.usage)
+				? input.usage
+				: null;
+		await settleAssistantQuotaReservationFallback(db, {
+			runId: input.runId,
+			release:
+				input.status === "cancelled" && usage?.providerAttempted === false,
+		});
 	},
 	async executeRun({ actor, reauthorizeActor, request, run, writer, signal }) {
 		const [preferences, memories] = await Promise.all([
@@ -847,7 +860,7 @@ export function createAssistantChatRouter(
 						});
 						outcome = sanitizeRunOutcome(
 							context.req.raw.signal.aborted && !runtimeOutcome.committed
-								? { status: "cancelled" }
+								? { status: "cancelled", usage: runtimeOutcome.usage }
 								: runtimeOutcome,
 						);
 					} catch (runtimeError) {
@@ -894,6 +907,7 @@ export function createAssistantChatRouter(
 									actor,
 									runId: run.runId,
 									status: outcome.status,
+									usage: outcome.usage,
 								})
 								.catch(() => undefined);
 						}
@@ -920,6 +934,7 @@ export function createAssistantChatRouter(
 								actor,
 								runId: run.runId,
 								status: outcome.status,
+								usage: outcome.usage,
 							})
 							.catch(() => undefined);
 						throw finalizationError;
@@ -946,6 +961,17 @@ export function createAssistantChatRouter(
 	});
 
 	router.get("/runs/:runId", async (context) => {
+		// CORS prevents browser JavaScript from reading a response, but it is not
+		// an admission policy. Apply the same origin boundary as chat admission so
+		// credentialed cross-origin reconnects cannot probe run state.
+		if (!isAllowedOrigin(context.req.raw, dependencies.allowedOrigins)) {
+			return context.json(
+				{
+					error: { code: "ORIGIN_FORBIDDEN", message: "Origin is not allowed" },
+				},
+				403,
+			);
+		}
 		const actor = await dependencies.resolveActor(context.req.raw);
 		if (!actor) {
 			return context.json(

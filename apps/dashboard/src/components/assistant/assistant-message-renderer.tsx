@@ -12,6 +12,7 @@ import {
 	FileText,
 	LoaderCircle,
 	LockKeyhole,
+	RefreshCw,
 	Sparkles,
 } from "lucide-react";
 import { memo, useState } from "react";
@@ -56,6 +57,36 @@ function AssistantToolProgress({
   </div>
  );
  return null;
+}
+
+function AssistantReadRetries({
+	tools,
+	onRetry,
+	consumedRetryIds,
+}: {
+	tools: AssistantMessageViewModel["tools"];
+	onRetry?: (tool: AssistantMessageViewModel["tools"][number]) => void;
+	consumedRetryIds?: ReadonlySet<string>;
+}) {
+	if (!onRetry) return null;
+	const retryable = tools.filter(
+		(tool) =>
+			tool.status === "failed" &&
+			tool.retryId &&
+			!consumedRetryIds?.has(tool.retryId) &&
+			tool.retryExpiresAt &&
+			new Date(tool.retryExpiresAt).getTime() > Date.now(),
+	);
+	if (!retryable.length) return null;
+	return (
+		<div className={styles.toolProgress}>
+			{retryable.map((tool) => (
+				<button type="button" key={tool.id} onClick={() => onRetry(tool)}>
+					<RefreshCw size={13} aria-hidden="true" /> Retry {tool.label.toLowerCase()}
+				</button>
+			))}
+		</div>
+	);
 }
 
 function AssistantSources({
@@ -258,6 +289,8 @@ function AssistantMessage({
 	onOpenEntity,
 	onOpenOrderDraft,
 	onCreateDocumentProposal,
+	onRetryRead,
+	consumedRetryIds,
 }: {
 	message: UIMessage;
 	isStreaming: boolean;
@@ -272,6 +305,8 @@ function AssistantMessage({
 	onCreateDocumentProposal?: (
 		action: AssistantMessageViewModel["documentActions"][number],
 	) => void;
+	onRetryRead?: (tool: AssistantMessageViewModel["tools"][number]) => void;
+	consumedRetryIds?: ReadonlySet<string>;
 }) {
 	const [copied, setCopied] = useState(false);
 	const view = normalizeAssistantMessage(message, {
@@ -315,6 +350,13 @@ function AssistantMessage({
 					</div>
 				) : null}
 				{isStreaming ? <AssistantToolProgress tools={view.tools} /> : null}
+				{!isStreaming ? (
+					<AssistantReadRetries
+						tools={view.tools}
+						onRetry={onRetryRead}
+						consumedRetryIds={consumedRetryIds}
+					/>
+				) : null}
 				{view.outcome?.reference ? <AssistantOutcomeHelp reference={view.outcome.reference} /> : null}
 				{view.findings.length ? (
 					<section className="mt-3 space-y-2 rounded-md border p-3 text-sm" aria-label="Completed checks">
@@ -362,7 +404,9 @@ const MemoizedAssistantMessage = memo(AssistantMessage, (previous, next) => {
 		previous.onCardAction === next.onCardAction &&
 		previous.onOpenEntity === next.onOpenEntity &&
 		previous.onOpenOrderDraft === next.onOpenOrderDraft &&
-		previous.onCreateDocumentProposal === next.onCreateDocumentProposal
+		previous.onCreateDocumentProposal === next.onCreateDocumentProposal &&
+		previous.onRetryRead === next.onRetryRead &&
+		previous.consumedRetryIds === next.consumedRetryIds
 	);
 });
 
@@ -380,6 +424,8 @@ export function AssistantMessageRenderer(props: {
 	onCreateDocumentProposal?: (
 		action: AssistantMessageViewModel["documentActions"][number],
 	) => void;
+	onRetryRead?: (tool: AssistantMessageViewModel["tools"][number]) => void;
+	consumedRetryIds?: ReadonlySet<string>;
 }) {
 	if (props.message.role === "user") {
 		return <UserMessage message={props.message} />;

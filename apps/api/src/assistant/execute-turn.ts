@@ -9,6 +9,7 @@ import { get } from "@vercel/blob";
 import type { ModelMessage } from "ai";
 import { getDocument } from "pdfjs-dist/build/pdf.mjs";
 import sharp from "sharp";
+import { z } from "zod";
 import { assistantOutcomeSchema, presentAssistantOutcome } from "./outcomes";
 import { assistantAnalyticsPartSchema } from "./analytics-result-contract";
 import { assistantFindingPartSchema } from "./finding-contract";
@@ -19,6 +20,7 @@ import {
 } from "./contracts";
 import { assistantDocumentProposalActionPartSchema } from "./document-action-contract";
 import { getAssistantComposioTools } from "./integrations";
+import { createAssistantReadRetry } from "./manual-read-retry";
 import { createAssistantMcpExecutionClient } from "./mcp";
 import { captureAssistantDiagnostic } from "./diagnostics";
 import { runAssistantOperation } from "./operation-diagnostics";
@@ -71,6 +73,7 @@ type AssistantTurnOutcome =
 			status: "failed" | "cancelled";
 			errorCode: string;
 			errorMessage: string;
+			usage?: Prisma.InputJsonValue;
 	  };
 
 export function summarizeAssistantToolExecutionResult(result: unknown) {
@@ -148,7 +151,28 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 		const data = part.data as Record<string, unknown>;
 		if (typeof data.id === "string" && data.id.length <= 160 && typeof data.name === "string" && /^[a-z][a-z0-9_]{0,99}$/.test(data.name) &&
 			["running", "complete", "failed", "approval-required"].includes(String(data.status))) {
-			return { type: part.type, id: part.id, data: { id: data.id, name: data.name, status: String(data.status) } };
+			const retryId =
+				typeof data.retryId === "string" &&
+				z.string().uuid().safeParse(data.retryId).success
+					? data.retryId
+					: null;
+			const retryExpiresAt =
+				typeof data.retryExpiresAt === "string" &&
+				z.string().datetime({ offset: true }).safeParse(data.retryExpiresAt).success
+					? data.retryExpiresAt
+					: null;
+			return {
+				type: part.type,
+				id: part.id,
+				data: {
+					id: data.id,
+					name: data.name,
+					status: String(data.status),
+					...(retryId && retryExpiresAt
+						? { retryId, retryExpiresAt }
+						: {}),
+				},
+			};
 		}
 	}
 	if (part.type === "data-assistant-entity") {
@@ -301,13 +325,41 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 							});
 						}
 					: undefined,
-				async (error, failure) => captureAssistantDiagnostic(error, {
-					attempt: failure.attempt, presentation: failure.retrying ? "not-shown" : undefined,
-					stage: "tool", operation: failure.toolId, toolCallId: failure.toolCallId,
-					outcome: failure.outcome, runId, requestId: input.requestId, conversationId: input.conversationId,
-					actorUserId: input.actor.userId, scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
-					provider: input.runtimeSelection?.provider, model: input.runtimeSelection?.model,
-				}),
+				async (error, failure) => {
+					const diagnostic = await captureAssistantDiagnostic(error, {
+						attempt: failure.attempt, presentation: failure.retrying ? "not-shown" : undefined,
+						stage: "tool", operation: failure.toolId, toolCallId: failure.toolCallId,
+						outcome: failure.outcome, runId, requestId: input.requestId, conversationId: input.conversationId,
+						actorUserId: input.actor.userId, scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
+						provider: input.runtimeSelection?.provider, model: input.runtimeSelection?.model,
+					});
+					const retryId =
+						!failure.retrying &&
+						failure.effect === "read" &&
+						failure.outcome === "temporary" &&
+						runId &&
+						input.conversationId
+							? await createAssistantReadRetry(input.actor, {
+									conversationId: input.conversationId,
+									runId,
+									toolCallId: failure.toolCallId,
+									toolId: failure.toolId,
+									version: failure.toolVersion,
+									input: failure.toolInput,
+								})
+							: null;
+					return {
+						reference: diagnostic.reference,
+						...(retryId ? { retryId } : {}),
+						...(retryId
+							? {
+									retryExpiresAt: new Date(
+										Date.now() + 600_000,
+									).toISOString(),
+								}
+							: {}),
+					};
+				},
 			),
 			getAssistantComposioTools(
 				input.actor,
@@ -541,6 +593,14 @@ export async function executeAssistantConversationTurn(
 			}),
 		);
 	} catch (error) {
+		if (input.signal.aborted) {
+			return {
+				status: "cancelled" as const,
+				errorCode: "ASSISTANT_RUN_CANCELLED",
+				errorMessage: "Assistant run cancelled",
+				usage: { providerAttempted: false },
+			};
+		}
 		return stage("attachment", "assistant.prepareAttachments", async () => { throw error; });
 	} finally {
 		clearTimeout(preprocessingTimeout);
@@ -615,6 +675,7 @@ export async function executeAssistantConversationTurn(
 			status: "cancelled" as const,
 			errorCode: "ASSISTANT_RUN_CANCELLED",
 			errorMessage: "Assistant run cancelled",
+			usage: outcome.usage,
 		};
 	}
 	if (outcome.status === "cancelled") return outcome;

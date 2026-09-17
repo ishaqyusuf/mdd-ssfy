@@ -235,6 +235,31 @@ export function estimateAssistantUsageCostMicros(
 	return (numerator + 500_000n) / 1_000_000n;
 }
 
+export function aggregateAssistantUsageEvents(
+	events: Array<{
+		totalTokens: bigint | number | null;
+		estimatedCostMicros: bigint | null;
+	}>,
+) {
+	return {
+		actualTokens:
+			events.length > 0 && events.every((event) => event.totalTokens != null)
+				? events.reduce(
+						(total, event) => total + BigInt(event.totalTokens ?? 0),
+						0n,
+					)
+				: null,
+		actualCostMicros:
+			events.length > 0 &&
+			events.every((event) => event.estimatedCostMicros != null)
+				? events.reduce(
+						(total, event) => total + (event.estimatedCostMicros ?? 0n),
+						0n,
+					)
+				: null,
+	};
+}
+
 async function findAssistantUsagePrice(
 	tx: TransactionClient,
 	usage: Pick<AssistantUsageAmounts, "provider" | "model">,
@@ -1237,6 +1262,14 @@ export async function completeAssistantRun(
 			startedAt: Date | null;
 		},
 	) => {
+		const usageValue = input.usage;
+		const cancelledBeforeProvider =
+			input.status === "cancelled" &&
+			usageValue != null &&
+			typeof usageValue === "object" &&
+			!Array.isArray(usageValue) &&
+			usageValue.providerAttempted === false;
+		if (cancelledBeforeProvider) return;
 		const normalizedCalls = normalizeAssistantProviderUsageCalls(
 			input.usage,
 			current.model,
@@ -1292,22 +1325,30 @@ export async function completeAssistantRun(
 			where: { runId },
 			select: { totalTokens: true, estimatedCostMicros: true },
 		});
-		const actualTokens =
-			usageEvents.length > 0 &&
-			usageEvents.every((event) => event.totalTokens != null)
-				? usageEvents.reduce(
-						(total, event) => total + BigInt(event.totalTokens ?? 0),
-						0n,
-					)
-				: null;
-		const actualCostMicros =
-			usageEvents.length > 0 &&
-			usageEvents.every((event) => event.estimatedCostMicros != null)
-				? usageEvents.reduce(
-						(total, event) => total + (event.estimatedCostMicros ?? 0n),
-						0n,
-					)
-				: null;
+		const { actualTokens, actualCostMicros } =
+			aggregateAssistantUsageEvents(usageEvents);
+		const usageValue = input.usage;
+		const cancelledBeforeProvider =
+			input.status === "cancelled" &&
+			usageValue != null &&
+			typeof usageValue === "object" &&
+			!Array.isArray(usageValue) &&
+			usageValue.providerAttempted === false;
+		if (cancelledBeforeProvider) {
+			// A client disconnect or cancellation before provider work starts must
+			// release the reservation. Missing or attempted-provider markers remain
+			// conservatively settled below for later reconciliation.
+			await tx.assistantQuotaReservation.updateMany({
+				where: { runId, status: "reserved" },
+				data: {
+					status: "released",
+					actualTokens: 0n,
+					actualCostMicros: 0n,
+					settledAt: completedAt,
+				},
+			});
+			return;
+		}
 		await tx.assistantQuotaReservation.updateMany({
 			where: { runId, status: "reserved" },
 			data: {
@@ -1441,7 +1482,7 @@ export async function reconcileAssistantUsageEvent(
 				note: input.note,
 			},
 		});
-		return tx.assistantUsageEvent.update({
+		const reconciled = await tx.assistantUsageEvent.update({
 			where: { id: current.id },
 			data: {
 				...nextUsage,
@@ -1451,6 +1492,25 @@ export async function reconcileAssistantUsageEvent(
 				reconciledAt: new Date(),
 			},
 		});
+		const runUsage = await tx.assistantUsageEvent.findMany({
+			where: { runId: current.runId },
+			select: { totalTokens: true, estimatedCostMicros: true },
+		});
+		const { actualTokens, actualCostMicros } =
+			aggregateAssistantUsageEvents(runUsage);
+		await tx.assistantQuotaReservation.updateMany({
+			where: {
+				runId: current.runId,
+				status: { in: ["reserved", "settled"] },
+			},
+			data: {
+				status: "settled",
+				actualTokens,
+				actualCostMicros,
+				settledAt: new Date(),
+			},
+		});
+		return reconciled;
 	});
 }
 

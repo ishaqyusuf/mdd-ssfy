@@ -8,6 +8,10 @@ import { resolveAssistantActor } from "@api/assistant/actor";
 import { reportAssistantClientFailure } from "@api/assistant/client-diagnostics";
 import { assistantDiagnosticUiState } from "@api/assistant/diagnostic-rollout";
 import { getAssistantCaptureHealth } from "@api/assistant/capture-health";
+import {
+	AssistantReadRetryUnavailable,
+	executeAssistantReadRetry,
+} from "@api/assistant/manual-read-retry";
 import { runAssistantOperation } from "@api/assistant/operation-diagnostics";
 import { assistantClientDiagnosticSchema } from "@api/assistant/diagnostic-contract";
 import {
@@ -62,6 +66,7 @@ import {
 	getAssistantSaveActionEligibility,
 	listAssistantPersonalMemories,
 	listAssistantSavedActions,
+	persistAssistantReadRetryResult,
 	removeAssistantPersonalMemory,
 	removeAssistantSavedAction,
 	reorderAssistantSavedActions,
@@ -469,6 +474,84 @@ export const assistantRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const actor = await actorOrThrow(ctx);
 			return executeAssistantSavedAction(ctx.db, actor, input);
+		}),
+	retryRead: protectedProcedure
+		.input(z.object({ retryId: z.string().uuid() }).strict())
+		.mutation(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			try {
+				const retried = await executeAssistantReadRetry(actor, input.retryId, {
+					signal: AbortSignal.timeout(15_000),
+					resolveActor: () => actorOrThrow(ctx),
+					persist: (completed) =>
+						persistAssistantReadRetryResult(ctx.db, actor, {
+							conversationId: completed.conversationId,
+							retryId: input.retryId,
+							toolId: completed.toolId,
+							toolVersion: completed.version,
+							result: completed.result,
+						}),
+					authorize: async (ticket) => {
+						const [failedRead, consumedRetry] = await Promise.all([
+							ctx.db.assistantToolExecution.findFirst({
+								where: {
+									runId: ticket.runId,
+									toolCallId: ticket.toolCallId,
+									toolId: ticket.toolId,
+									toolVersion: ticket.version,
+									effect: "read",
+									status: "failed",
+									run: {
+										actorUserId: actor.userId,
+										conversation: {
+											id: ticket.conversationId,
+											ownerUserId: actor.userId,
+											scopeType: actor.scopeType,
+											scopeId: actor.scopeId,
+											archivedAt: null,
+											deletedAt: null,
+										},
+									},
+								},
+								select: { id: true },
+							}),
+							ctx.db.assistantRun.findFirst({
+								where: {
+									id: input.retryId,
+									actorUserId: actor.userId,
+									conversation: {
+										id: ticket.conversationId,
+										ownerUserId: actor.userId,
+										scopeType: actor.scopeType,
+										scopeId: actor.scopeId,
+										deletedAt: null,
+									},
+								},
+								select: { id: true },
+							}),
+						]);
+						return Boolean(failedRead) && !consumedRetry;
+					},
+				});
+				const persisted = retried.persistence as Awaited<
+					ReturnType<typeof persistAssistantReadRetryResult>
+				>;
+				return {
+					message: {
+						id: persisted.message.id,
+						role: persisted.message.role,
+						parts: persisted.message.parts,
+					},
+				};
+			} catch (error) {
+				if (error instanceof AssistantReadRetryUnavailable) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: error.message,
+					});
+				}
+				throw error;
+			}
 		}),
 	saveActionFromRun: protectedProcedure
 		.input(assistantSavedActionFromRunSchema)

@@ -4,13 +4,20 @@ import { z } from "zod";
 export const assistantSalesRequestDraftInputSchema = z
 	.object({
 		type: z.enum(["order", "quote"]).default("order"),
-		text: z.string().trim().min(1).max(50_000),
+		text: z
+			.string()
+			.min(1)
+			.max(50_000)
+			.refine((value) => value.trim().length > 0, "Request text is required"),
 	})
 	.strict();
 
 export const assistantSalesRequestDraftPreviewSchema = z
 	.object({
 		type: z.enum(["order", "quote"]),
+		// Retain the exact website request for the reviewed native Sales handoff.
+		// Older persisted Assistant messages remain valid without this field.
+		sourceText: z.string().max(50_000).optional(),
 		generationId: z.string().uuid(),
 		seed: newSalesFormSeedSchema,
 		configurationScope: z.string().min(1).max(191),

@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	evaluateAssistantQuotaUsage,
 	resolveAssistantQuotaWindows,
+	settleAssistantQuotaReservationFallback,
 } from "./assistant-quota";
 
 const now = new Date("2026-09-14T10:30:00.000Z");
@@ -100,5 +101,49 @@ describe("assistant quota evaluation", () => {
 
 		expect(result.exceeded).toBe(true);
 		expect(result.exceededDimension).toBe("daily_requests");
+	});
+
+	test("released cancellation reservations do not consume allowance", () => {
+		const result = evaluateAssistantQuotaUsage({
+			policy: policy({ dailyRequestLimit: 1, dailyTokenLimit: 1_000n }),
+			reservations: [
+				reservation({
+					status: "released",
+					actualTokens: 0n,
+					dayWindowStart: new Date("2026-09-13T23:00:00.000Z"),
+				}),
+			],
+			now,
+		});
+
+		expect(result.exceeded).toBe(false);
+		expect(result.used.dailyRequests).toBe(0);
+		expect(result.used.dailyTokens).toBe(0);
+	});
+});
+
+test("fallback finalization preserves explicit pre-provider release", async () => {
+	const calls: unknown[] = [];
+	const database = {
+		assistantQuotaReservation: {
+			updateMany: async (input: unknown) => {
+				calls.push(input);
+				return { count: 1 };
+			},
+		},
+	};
+	await settleAssistantQuotaReservationFallback(database as never, {
+		runId: "run-before-provider",
+		release: true,
+		now,
+	});
+	expect(calls[0]).toEqual({
+		where: { runId: "run-before-provider", status: "reserved" },
+		data: {
+			status: "released",
+			actualTokens: 0n,
+			actualCostMicros: 0n,
+			settledAt: now,
+		},
 	});
 });

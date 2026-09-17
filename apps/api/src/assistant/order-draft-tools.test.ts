@@ -27,10 +27,11 @@ describe("Assistant Sales request draft tool", () => {
 
 		const raw = await definition.handler(
 			actor,
-			{ type: "order", text: "Two configured doors for delivery." },
+			{ type: "order", text: "  Two configured doors for delivery.  " },
 			{
-				draftSalesOrderFromRequest: async (_actor, _input, serviceSignal) => {
+				draftSalesOrderFromRequest: async (_actor, serviceInput, serviceSignal) => {
 					receivedSignal = serviceSignal;
+					expect(serviceInput.text).toBe("Two configured doors for delivery.");
 					return {
 						type: "quote" as const,
 						generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
@@ -56,6 +57,7 @@ describe("Assistant Sales request draft tool", () => {
 				: "success",
 			data: {
 				type: "order",
+				sourceText: "  Two configured doors for delivery.  ",
 				unresolvedCount: NEW_SALES_FORM_SEED_EXAMPLE.unresolved.length,
 				configurationRevision: "catalog-revision-4",
 				seed: NEW_SALES_FORM_SEED_EXAMPLE,

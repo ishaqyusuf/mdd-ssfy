@@ -423,9 +423,36 @@ async function writeSafeAssistantStream(input: {
 					}
 					const outputMeta =
 						trustedResult && part.output && typeof part.output === "object"
-							? (part.output as { _meta?: { assistantOutcome?: unknown } })
+							? (part.output as {
+									_meta?: {
+										assistantOutcome?: unknown;
+										assistantReadRetryId?: unknown;
+										assistantReadRetryExpiresAt?: unknown;
+									};
+								})
 									._meta
 							: undefined;
+					const retryId = boundedRuntimeString(
+						outputMeta?.assistantReadRetryId,
+						64,
+					);
+					const retryExpiresAt = boundedRuntimeString(
+						outputMeta?.assistantReadRetryExpiresAt,
+						80,
+					);
+					if (id && knownName && retryId && retryExpiresAt) {
+						input.writer.write({
+							type: "data-assistant-tool",
+							id: `tool-${id}`,
+							data: {
+								id,
+								name: knownName,
+								status: "failed",
+								retryId,
+								retryExpiresAt,
+							},
+						});
+					}
 					const captured = assistantOutcomeSchema.safeParse(
 						outputMeta?.assistantOutcome,
 					);
@@ -1067,6 +1094,7 @@ export function createAssistantRuntime(options?: {
 			const textId = randomUUID();
 			let assistantText = "";
 			let writeAttempted = false;
+			let providerAttempted = false;
 			try {
 				const instructions = buildAssistantSystemPrompt({
 					...input.actor,
@@ -1142,6 +1170,8 @@ export function createAssistantRuntime(options?: {
 				const agent =
 					options?.createAgent?.(settings) ??
 					(new ToolLoopAgent(settings as never) as unknown as AssistantAgent);
+				signal.throwIfAborted();
+				providerAttempted = true;
 				const result = await agent.stream({
 					messages: input.modelMessages,
 					abortSignal: signal,
@@ -1282,6 +1312,17 @@ export function createAssistantRuntime(options?: {
 						status: "cancelled" as const,
 						errorCode: "ASSISTANT_RUN_CANCELLED",
 						errorMessage: "Assistant run cancelled",
+						// Once agent.stream is invoked, provider usage may exist even
+						// when the provider cannot return a final receipt after abort.
+						usage: {
+							providerAttempted,
+							...(providerAttempted
+								? {
+										provider: selection.provider,
+										model: selection.model,
+									}
+								: {}),
+						},
 					};
 				}
 				if (input.runId) {

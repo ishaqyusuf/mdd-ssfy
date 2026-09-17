@@ -610,12 +610,19 @@ export async function reserveAssistantQuota(
 
 export function settleAssistantQuotaReservationFallback(
 	db: Database,
-	input: { runId: string; now?: Date },
+	input: { runId: string; release?: boolean; now?: Date },
 ) {
 	const now = input.now ?? new Date();
 	return db.assistantQuotaReservation.updateMany({
 		where: { runId: input.runId, status: "reserved" },
-		data: { status: "settled", settledAt: now },
+		data: input.release
+			? {
+					status: "released",
+					actualTokens: 0n,
+					actualCostMicros: 0n,
+					settledAt: now,
+				}
+			: { status: "settled", settledAt: now },
 	});
 }
 

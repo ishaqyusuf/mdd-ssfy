@@ -191,6 +191,56 @@ describe("AssistantMessageRenderer", () => {
 		expect(html).not.toContain("aria-live");
 	});
 
+	test("renders a selective one-time retry for a failed read", () => {
+		const html = renderToStaticMarkup(
+			<AssistantMessageRenderer
+				message={{
+					id: "message-read-retry",
+					role: "assistant",
+					parts: [{
+						type: "data-assistant-tool",
+						data: {
+							id: "read-1",
+							name: "sales_find_orders",
+							status: "failed",
+							retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210",
+							retryExpiresAt: "2099-01-01T00:00:00.000Z",
+						},
+					}],
+				} as UIMessage}
+				isStreaming={false}
+				isLastMessage={false}
+				onRetryRead={() => {}}
+			/>,
+		);
+
+		expect(html).toContain("Retry searching sales orders");
+		expect(html).toContain("<button");
+		const consumed = renderToStaticMarkup(
+			<AssistantMessageRenderer
+				message={{
+					id: "message-read-retry",
+					role: "assistant",
+					parts: [{
+						type: "data-assistant-tool",
+						data: {
+							id: "read-1",
+							name: "sales_find_orders",
+							status: "failed",
+							retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210",
+							retryExpiresAt: "2099-01-01T00:00:00.000Z",
+						},
+					}],
+				} as UIMessage}
+				isStreaming={false}
+				isLastMessage={false}
+				onRetryRead={() => {}}
+				consumedRetryIds={new Set(["d9428888-122b-11e1-b85c-61cd3cbb3210"])}
+			/>,
+		);
+		expect(consumed).not.toContain("Retry searching sales orders");
+	});
+
 	test("renders typed entity actions only when navigation is provided", () => {
 		const html = renderToStaticMarkup(
 			<AssistantMessageRenderer

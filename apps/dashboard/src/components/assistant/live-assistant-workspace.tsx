@@ -173,6 +173,8 @@ function AssistantConversation(props: {
 	const [approvalBusy, setApprovalBusy] = useState(false);
 	const [approvalNotice, setApprovalNotice] = useState<string | null>(null);
 	const [approvalReference, setApprovalReference] = useState<string | null>(null);
+	const [readRetryBusy, setReadRetryBusy] = useState(false);
+	const [readRetryNotice, setReadRetryNotice] = useState<string | null>(null);
 	const attachmentState = useAssistantAttachments(props.conversation.id);
 	const [requestOutcome, setRequestOutcome] = useState<AssistantOutcome | null>(null);
 	const [requestLimitError, setRequestLimitError] = useState<{
@@ -362,6 +364,27 @@ function AssistantConversation(props: {
 	}, [client, props.onSuccessfulRun, streamState.runId, streamState.status]);
 
 	const latestMessageId = chat.messages.at(-1)?.id;
+	const consumedReadRetryIds = useMemo(() => {
+		const consumed = new Set<string>();
+		for (const message of chat.messages) {
+			for (const part of message.parts) {
+				if (
+					part &&
+					typeof part === "object" &&
+					"type" in part &&
+					part.type === "data-assistant-read-retry" &&
+					"data" in part &&
+					part.data &&
+					typeof part.data === "object" &&
+					"retryId" in part.data &&
+					typeof part.data.retryId === "string"
+				) {
+					consumed.add(part.data.retryId);
+				}
+			}
+		}
+		return consumed;
+	}, [chat.messages]);
 	useEffect(() => {
 		if ((latestMessageId || chat.status) && shouldStickRef.current) {
 			bottomRef.current?.scrollIntoView({
@@ -665,6 +688,56 @@ function AssistantConversation(props: {
 		},
 		[chat, props.onFeatureRequest, streamState.runId],
 	);
+	const retryFailedRead = useCallback(
+		async (tool: AssistantMessageViewModel["tools"][number]) => {
+			if (!tool.retryId || readRetryBusy) return;
+			setReadRetryBusy(true);
+			setReadRetryNotice(null);
+			try {
+				const result = await client.assistant.retryRead.mutate({
+					retryId: tool.retryId,
+				});
+				const retriedMessages = persistedMessagesToUi([result.message]);
+				chat.setMessages((current) => {
+					const withoutConsumedTicket = current.map((message) => ({
+						...message,
+						parts: message.parts.map((part) => {
+							if (!part || typeof part !== "object" || !("data" in part)) {
+								return part;
+							}
+							const data = part.data;
+							if (
+								!data ||
+								typeof data !== "object" ||
+								!("retryId" in data) ||
+								data.retryId !== tool.retryId
+							) {
+								return part;
+							}
+							const { retryId: _consumed, ...nextData } = data;
+							return { ...part, data: nextData } as typeof part;
+						}),
+					}));
+					const existingIds = new Set(
+						withoutConsumedTicket.map((message) => message.id),
+					);
+					return [
+						...withoutConsumedTicket,
+						...retriedMessages.filter((message) => !existingIds.has(message.id)),
+					];
+				});
+				setReadRetryNotice("The failed check was retried with current access.");
+				props.onChanged();
+			} catch {
+				setReadRetryNotice(
+					"This check is no longer available. Please ask again.",
+				);
+			} finally {
+				setReadRetryBusy(false);
+			}
+		},
+		[chat, client, props, readRetryBusy],
+	);
 	const activeRun =
 		props.conversation.latestRun &&
 		activeStatuses.has(props.conversation.latestRun.status);
@@ -708,6 +781,8 @@ function AssistantConversation(props: {
 									onCreateDocumentProposal={(action) => {
 										void createDocumentProposal(action);
 									}}
+									onRetryRead={readRetryBusy ? undefined : retryFailedRead}
+									consumedRetryIds={consumedReadRetryIds}
 								/>
 								</AssistantMessageBoundary>
 							))}
@@ -885,6 +960,9 @@ function AssistantConversation(props: {
 			</Dialog>
 			{approvalNotice && !pendingApproval ? (
 				<output className={styles.liveStatus}>{approvalNotice}</output>
+			) : null}
+			{readRetryNotice ? (
+				<output className={styles.liveStatus}>{readRetryNotice}</output>
 			) : null}
 			{approvalReference && !pendingApproval ? <AssistantOutcomeHelp reference={approvalReference} /> : null}
 		</>

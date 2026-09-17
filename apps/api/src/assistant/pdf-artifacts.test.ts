@@ -73,6 +73,67 @@ describe("Assistant PDF artifact status", () => {
 		expect(result.documentId).toBeNull();
 	});
 
+	test("marks an in-flight snapshot stale when the source revision changes", async () => {
+		const result = await getAssistantSalesPdfStatus(
+			{
+				salesDocumentSnapshot: {
+					findFirst: async () => ({
+						id: "snapshot-running-old",
+						isCurrent: true,
+						storedDocumentId: null,
+						generationStatus: "generating",
+						sourceUpdatedAt: new Date("2026-09-12T10:00:00Z"),
+						generatedAt: null,
+						failedAt: null,
+						updatedAt: new Date("2026-09-12T10:01:00Z"),
+						meta: { sourceRevision: "old-revision" },
+					}),
+				},
+			} as never,
+			{
+				salesOrderId: 42,
+				sourceRevision,
+				mode: "invoice",
+			},
+		);
+		expect(result).toMatchObject({
+			status: "stale",
+			snapshotId: "snapshot-running-old",
+			documentId: null,
+		});
+	});
+
+	test("reconnect status reads preserve a queued snapshot by durable id", async () => {
+		const result = await getAssistantSalesPdfStatus(
+			{
+				salesDocumentSnapshot: {
+					findFirst: async () => ({
+						id: "snapshot-reconnect",
+						isCurrent: true,
+						storedDocumentId: null,
+						generationStatus: "pending",
+						sourceUpdatedAt: new Date("2026-09-12T10:00:00Z"),
+						generatedAt: null,
+						failedAt: null,
+						updatedAt: new Date("2026-09-12T10:01:00Z"),
+						meta: { sourceRevision },
+					}),
+				},
+			} as never,
+			{
+				salesOrderId: 42,
+				sourceRevision,
+				mode: "invoice",
+				snapshotId: "snapshot-reconnect",
+			},
+		);
+		expect(result).toMatchObject({
+			status: "queued",
+			snapshotId: "snapshot-reconnect",
+			documentId: null,
+		});
+	});
+
 	test("retrieves a terminal cancelled job by its durable snapshot id", async () => {
 		const result = await getAssistantSalesPdfStatus(
 			{

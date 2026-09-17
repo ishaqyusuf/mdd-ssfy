@@ -47,13 +47,15 @@ describe("assistant message view model", () => {
 	test("reload restores one terminal tool state and deterministic outcome instead of technical narration", () => {
 		const view = normalizeAssistantMessage({ parts: [
 			{ type: "data-assistant-tool", data: { id: "one", name: "sales_find_orders", status: "running" } },
-			{ type: "data-assistant-tool", data: { id: "one", name: "sales_find_orders", status: "failed" } },
+			{ type: "data-assistant-tool", data: { id: "one", name: "sales_find_orders", status: "failed", retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210", retryExpiresAt: "2099-01-01T00:00:00.000Z" } },
 			{ type: "data-assistant-outcome", data: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" } },
 			{ type: "text", text: "Prisma query failed with private SQL parameters" },
 		] }, { isLastMessage: true, isStreaming: false });
 		expect(view.text).toBe("I couldn't check that right now. Please try again.");
 		expect(view.tools).toHaveLength(1);
 		expect(view.tools[0]?.status).toBe("failed");
+		expect(view.tools[0]?.retryId).toBe("d9428888-122b-11e1-b85c-61cd3cbb3210");
+		expect(view.tools[0]?.retryExpiresAt).toBe("2099-01-01T00:00:00.000Z");
 		expect(view.outcome?.reference).toBe("ERR-ABCDEFGHIJ");
 		expect(JSON.stringify(view)).not.toContain("Prisma");
 	});
@@ -102,6 +104,8 @@ describe("assistant message view model", () => {
 				name: "orders_search",
 				label: "Searching orders",
 				status: "complete",
+				retryId: null,
+				retryExpiresAt: null,
 			},
 		]);
 		expect(view.sources).toEqual([

@@ -211,6 +211,22 @@ describe("assistant chat REST router", () => {
 		expect(response.status).toBe(403);
 	});
 
+	test("rejects cross-origin reconnects before reading run state", async () => {
+		const { router, calls } = createHarness();
+		const response = await router.request("/runs/run-1?afterSequence=0", {
+			headers: {
+				authorization: "Bearer session",
+				origin: "https://attacker.example",
+			},
+		});
+
+		expect(response.status).toBe(403);
+		expect(await response.json()).toEqual({
+			error: { code: "ORIGIN_FORBIDDEN", message: "Origin is not allowed" },
+		});
+		expect(calls).toHaveLength(0);
+	});
+
 	test("rejects oversized bodies before JSON parsing", async () => {
 		const { router, calls } = createHarness();
 		const response = await router.request("/", {

@@ -1,9 +1,25 @@
 import { describe, expect, test } from "bun:test";
 import {
+	aggregateAssistantUsageEvents,
 	estimateAssistantUsageCostMicros,
 	normalizeAssistantProviderUsageCalls,
 	normalizeAssistantUsageReceipt,
 } from "./assistant";
+
+test("aggregates all provider calls before settling run quota", () => {
+	expect(
+		aggregateAssistantUsageEvents([
+			{ totalTokens: 12, estimatedCostMicros: 30n },
+			{ totalTokens: 8, estimatedCostMicros: 20n },
+		]),
+	).toEqual({ actualTokens: 20n, actualCostMicros: 50n });
+	expect(
+		aggregateAssistantUsageEvents([
+			{ totalTokens: 12, estimatedCostMicros: 30n },
+			{ totalTokens: null, estimatedCostMicros: 20n },
+		]),
+	).toEqual({ actualTokens: null, actualCostMicros: 50n });
+});
 
 describe("Assistant usage receipt normalization", () => {
 	test("preserves reported categories and leaves missing categories unknown", () => {

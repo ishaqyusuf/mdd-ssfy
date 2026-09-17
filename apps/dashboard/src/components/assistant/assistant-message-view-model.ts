@@ -21,6 +21,7 @@ const assistantToolLabels: Record<string, string> = {
 	web_search: "Searching the web",
 	COMPOSIO_SEARCH_TOOLS: "Looking up connected apps",
 	orders_search: "Searching orders",
+	sales_find_orders: "Searching Sales orders",
 	orders_get: "Fetching order",
 	orders_create: "Creating order",
 	customers_search: "Searching customers",
@@ -56,6 +57,8 @@ export type AssistantMessageViewModel = {
 		name: string;
 		label: string;
 		status: AssistantToolStatus;
+		retryId: string | null;
+		retryExpiresAt: string | null;
 	}>;
 	sources: Array<{
 		id: string;
@@ -139,6 +142,14 @@ function normalizeAssistantTool(part: Record<string, unknown>) {
 		id,
 		name,
 		label: formatAssistantToolLabel(name),
+		retryId:
+			type === "data-assistant-tool"
+				? boundedString(data?.retryId, 64)
+				: null,
+		retryExpiresAt:
+			type === "data-assistant-tool"
+				? boundedString(data?.retryExpiresAt, 80)
+				: null,
 		status:
 			type === "data-assistant-tool" &&
 			["queued", "running", "complete", "failed", "approval-required"].includes(

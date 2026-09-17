@@ -856,6 +856,15 @@
 .toolGroup {
 	margin-top: 12px;
 }
+.toolProgress button {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	color: var(--foreground);
+}
+.toolProgress button:hover {
+	text-decoration: underline;
+}
 .toolProgress[data-status="failed"],
 .toolGroup [data-status="failed"] {
 	color: var(--destructive);

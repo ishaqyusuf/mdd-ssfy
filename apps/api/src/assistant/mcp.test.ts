@@ -59,7 +59,18 @@ describe("assistant in-memory MCP", () => {
 			{ userId: 42, scopeType: "organization", scopeId: "7", grants: {} },
 			async () => { throw original; },
 			undefined,
-			async (error, context) => { captures.push({ error, context }); return { reference: captures.length === 1 ? "ERR-RETRY00001" : "ERR-ABCDEFGHIJ" }; },
+			async (error, context) => {
+				captures.push({ error, context });
+				return {
+					reference: captures.length === 1 ? "ERR-RETRY00001" : "ERR-ABCDEFGHIJ",
+					...(captures.length === 2
+						? {
+								retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210",
+								retryExpiresAt: "2099-01-01T00:00:00.000Z",
+							}
+						: {}),
+				};
+			},
 		);
 		try {
 			const execute = session.tools.system_search_tools?.execute as (input: unknown, options: unknown) => Promise<unknown>;
@@ -67,8 +78,14 @@ describe("assistant in-memory MCP", () => {
 			expect(captures).toHaveLength(2);
 			expect(captures[0]).toMatchObject({ error: original, context: { toolId: "system_search_tools", outcome: "temporary", effect: "read" } });
 			expect(captures[0]).toMatchObject({ context: { attempt: 1, retrying: true } });
-			expect(captures[1]).toMatchObject({ context: { attempt: 2 } });
-			expect(result).toMatchObject({ isError: true, content: [{ type: "text", text: "I couldn't check that right now. Please try again." }], _meta: { assistantOutcome: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" } } });
+			expect(captures[1]).toMatchObject({
+				context: {
+					attempt: 2,
+					toolVersion: 1,
+					toolInput: { query: "sales" },
+				},
+			});
+			expect(result).toMatchObject({ isError: true, content: [{ type: "text", text: "I couldn't check that right now. Please try again." }], _meta: { assistantOutcome: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" }, assistantReadRetryId: "d9428888-122b-11e1-b85c-61cd3cbb3210", assistantReadRetryExpiresAt: "2099-01-01T00:00:00.000Z" } });
 			for (const secret of ["SQL", "password", "private", "P2024"]) expect(JSON.stringify(result)).not.toContain(secret);
 		} finally { await session.close(); }
 	});

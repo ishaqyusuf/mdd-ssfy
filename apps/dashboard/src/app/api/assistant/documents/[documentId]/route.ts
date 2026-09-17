@@ -1,9 +1,7 @@
 import { getServerAuthSession } from "@/lib/auth/session";
+import { loadAssistantDocumentProxy } from "@/lib/assistant-document-proxy";
 import { resolveAssistantActor } from "@api/assistant/actor";
-import {
-	resolveAssistantDocumentAccess,
-	trustedAssistantPublicBlobUrl,
-} from "@api/assistant/documents";
+import { resolveAssistantDocumentAccess } from "@api/assistant/documents";
 import { db } from "@gnd/db";
 import { get } from "@vercel/blob";
 
@@ -29,33 +27,34 @@ export async function GET(request: Request, context: RouteContext) {
 	if (!document) {
 		return Response.json({ error: "File not found." }, { status: 404 });
 	}
-	const token = process.env.BLOB_READ_WRITE_TOKEN;
-	if (document.access === "private" && !token) {
+	const proxy = await loadAssistantDocumentProxy(
+		document,
+		process.env.BLOB_READ_WRITE_TOKEN,
+		{
+			async getPrivate(pathname, token) {
+				const result = await get(pathname, {
+					access: "private",
+					token,
+					useCache: true,
+				});
+				return result
+					? {
+							statusCode: result.statusCode,
+							stream: result.stream,
+							contentType: result.blob.contentType ?? null,
+						}
+					: null;
+			},
+			fetchPublic: (url) => fetch(url, { cache: "no-store" }),
+		},
+	);
+	if (proxy.status === "storage-unavailable") {
 		return Response.json(
 			{ error: "Private file storage is not configured." },
 			{ status: 503 },
 		);
 	}
-	const result =
-		document.access === "private"
-			? await get(document.pathname, {
-					access: "private",
-					token,
-					useCache: true,
-				})
-			: null;
-	const publicBlobUrl =
-		document.access === "public"
-			? trustedAssistantPublicBlobUrl(document.url)
-			: null;
-	const publicResponse =
-		document.access === "public" && publicBlobUrl
-			? await fetch(publicBlobUrl, { cache: "no-store" })
-			: null;
-	if (
-		(document.access === "private" && (!result || result.statusCode !== 200)) ||
-		(document.access === "public" && !publicResponse?.ok)
-	) {
+	if (proxy.status !== "ready") {
 		return Response.json({ error: "File not found." }, { status: 404 });
 	}
 	const filename = (document.filename || "assistant-document").replace(
@@ -63,13 +62,12 @@ export async function GET(request: Request, context: RouteContext) {
 		"",
 	);
 	return new Response(
-		document.access === "private" ? result?.stream : publicResponse?.body,
+		proxy.body,
 		{
 			headers: {
 				"Content-Type":
 					document.mimeType ||
-					result?.blob.contentType ||
-					publicResponse?.headers.get("content-type") ||
+					proxy.contentType ||
 					"application/octet-stream",
 				"Content-Disposition": `inline; filename="${filename}"`,
 				"Cache-Control": "private, no-store",

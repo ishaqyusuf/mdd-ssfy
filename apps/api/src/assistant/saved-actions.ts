@@ -811,12 +811,15 @@ async function persistSavedActionResult(
 		toolInput: unknown;
 		result: unknown;
 		now: Date;
+		executionSource?: "saved-action" | "manual-read-retry";
+		idempotencyKey?: string;
 	},
 ) {
 	const scope = actionScope(actor);
-	const runId = randomUUID();
-	const requestId = randomUUID();
+	const runId = input.idempotencyKey ?? randomUUID();
+	const requestId = input.idempotencyKey ?? randomUUID();
 	const toolCallId = randomUUID();
+	const executionSource = input.executionSource ?? "saved-action";
 	const envelope = input.result as {
 		status: string;
 		sources?: unknown[];
@@ -825,6 +828,22 @@ async function persistSavedActionResult(
 	const { completed, reusable } = classifyAssistantSavedActionResultStatus(
 		envelope.status,
 	);
+	if (input.idempotencyKey) {
+		const existing = await db.assistantMessage.findFirst({
+			where: {
+				generatedRunId: runId,
+				conversation: { ...scope, deletedAt: null },
+			},
+		});
+		if (existing) {
+			return {
+				message: existing,
+				completed,
+				reusable,
+				resultStatus: envelope.status,
+			};
+		}
+	}
 	return db.$transaction(
 		async (tx) => {
 			const allocation = await tx.assistantConversation.updateMany({
@@ -850,8 +869,8 @@ async function persistSavedActionResult(
 					requestId,
 					requestFingerprint: hash({ actionId: input.actionId, requestId }),
 					catalogVersion: ASSISTANT_TOOL_CATALOG_VERSION,
-					model: "saved-action",
-					promptVersion: "saved-action-v1",
+					model: executionSource,
+					promptVersion: `${executionSource}-v1`,
 					status: completed ? "succeeded" : "failed",
 					terminalResult: {
 						status: completed ? "succeeded" : "failed",
@@ -882,16 +901,24 @@ async function persistSavedActionResult(
 					completedAt: input.now,
 				},
 			});
+			const resultParts = buildAssistantSavedActionResultParts(
+				input.definition,
+				input.result,
+				toolCallId,
+			);
+			if (executionSource === "manual-read-retry" && input.idempotencyKey) {
+				resultParts.push({
+					type: "data-assistant-read-retry",
+					id: `read-retry-${input.idempotencyKey}`,
+					data: { retryId: input.idempotencyKey, status: "consumed" },
+				});
+			}
 			const message = await tx.assistantMessage.create({
 				data: {
 					conversationId: input.conversationId,
 					sequence: conversation.lastSequence,
 					role: "assistant",
-					parts: buildAssistantSavedActionResultParts(
-						input.definition,
-						input.result,
-						toolCallId,
-					) as Prisma.InputJsonValue,
+					parts: resultParts as Prisma.InputJsonValue,
 					searchText: `${input.definition.title} ${envelope.status}`,
 					requestFingerprint: hash({ runId, result: input.result }),
 					generatedRunId: runId,
@@ -900,6 +927,38 @@ async function persistSavedActionResult(
 			return { message, completed, reusable, resultStatus: envelope.status };
 		},
 		{ isolationLevel: "Serializable" },
+	);
+}
+
+export async function persistAssistantReadRetryResult(
+	db: Database,
+	actor: AssistantToolActor,
+	input: {
+		conversationId: string;
+		retryId: string;
+		toolId: string;
+		toolVersion: number;
+		result: unknown;
+	},
+	now = new Date(),
+) {
+	const definition = getDefinition(input.toolId, input.toolVersion);
+	if (!definition || definition.effect !== "read") {
+		throw new Error("Assistant read retry is unavailable");
+	}
+	return persistSavedActionResult(
+		db,
+		actor,
+		{
+			conversationId: input.conversationId,
+			actionId: `manual-read-retry:${input.retryId}`,
+			definition,
+			toolInput: { retryId: input.retryId },
+			result: input.result,
+			now,
+			executionSource: "manual-read-retry",
+			idempotencyKey: input.retryId,
+		},
 	);
 }
 

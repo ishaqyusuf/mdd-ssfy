@@ -168,20 +168,21 @@ export async function getAssistantSalesPdfStatus(
 		typeof meta.sourceRevision === "string" ? meta.sourceRevision : null;
 	const expiresAt = typeof meta.expiresAt === "string" ? meta.expiresAt : null;
 	const expiry = expiresAt ? new Date(expiresAt).getTime() : null;
+	const mappedStatus = mapStatus(snapshot.generationStatus);
+	const sourceIsStale =
+		input.sourceRevision == null ||
+		storedRevision == null ||
+		storedRevision !== input.sourceRevision;
 	const stale =
-		mapStatus(snapshot.generationStatus) === "ready" &&
-		(input.sourceRevision == null ||
-			storedRevision == null ||
-			storedRevision !== input.sourceRevision ||
-			expiry == null ||
-			Number.isNaN(expiry) ||
-			expiry <= Date.now());
+		["ready", "queued", "running"].includes(mappedStatus) &&
+		(!snapshot.isCurrent ||
+			sourceIsStale ||
+			(mappedStatus === "ready" &&
+				(expiry == null || Number.isNaN(expiry) || expiry <= Date.now())));
 	const status =
-		!snapshot.isCurrent && snapshot.generationStatus === "ready"
+		stale
 			? ("stale" as const)
-			: stale
-				? ("stale" as const)
-				: !document && snapshot.generationStatus === "ready"
+			: !document && snapshot.generationStatus === "ready"
 					? ("failed" as const)
 					: mapStatus(snapshot.generationStatus);
 

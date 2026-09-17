@@ -15,6 +15,7 @@ const draft = {
 	id: "order-draft-1",
 	data: {
 		type: "order" as const,
+		sourceText: "Two configured doors for delivery.",
 		generationId: "88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
 		seed: {
 			...NEW_SALES_FORM_SEED_EXAMPLE,
@@ -47,6 +48,7 @@ describe("assistant order draft canvas", () => {
 		expect(handoff.preview).toMatchObject({
 			generationId: draft.data.generationId,
 			seed: draft.data.seed,
+			sourceText: draft.data.sourceText,
 			clarification: null,
 			userReviewed: true,
 		});
