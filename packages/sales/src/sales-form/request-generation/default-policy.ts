@@ -1,4 +1,5 @@
 import { isComponentVisibleByRules } from "../domain/step-engine";
+import { compareSalesRequestComponents } from "./configuration-serializer";
 
 export type RequestStepInputStatus =
 	| "specified"
@@ -8,6 +9,8 @@ export type RequestStepInputStatus =
 
 export type RequestStepCandidate = {
 	uid: string;
+	title?: string;
+	sortIndex?: number | null;
 	variations?: readonly {
 		rules?: readonly {
 			stepUid?: string | null;
@@ -16,8 +19,29 @@ export type RequestStepCandidate = {
 		}[];
 	}[];
 	isDeleted?: boolean;
+	custom?: boolean;
 	default?: true;
 };
+
+function compareRequestStepCandidates(
+	left: RequestStepCandidate,
+	right: RequestStepCandidate,
+) {
+	return compareSalesRequestComponents(
+		{
+			uid: left.uid,
+			title: left.title || "",
+			sortIndex: left.sortIndex,
+			...(left.default === true ? { default: true as const } : {}),
+		},
+		{
+			uid: right.uid,
+			title: right.title || "",
+			sortIndex: right.sortIndex,
+			...(right.default === true ? { default: true as const } : {}),
+		},
+	);
+}
 
 export type ResolveRequestStepSelectionInput = {
 	stepUid: string;
@@ -128,12 +152,11 @@ export function resolveRequestStepSelection(
 	}
 
 	const resolvedStepUids = new Set(input.resolvedStepUids);
-	const orderedCandidates = [
-		...input.candidates.filter((candidate) => candidate.default === true),
-		...input.candidates.filter((candidate) => candidate.default !== true),
-	];
+	const orderedCandidates = [...input.candidates].sort(
+		compareRequestStepCandidates,
+	);
 	const defaultCandidate = orderedCandidates.find((candidate) => {
-		if (candidate.isDeleted) return false;
+		if (candidate.isDeleted || candidate.custom) return false;
 		if (
 			Array.from(getVariationDependencyStepUids(candidate)).some(
 				(stepUid) => !resolvedStepUids.has(stepUid),

@@ -42,12 +42,19 @@ const componentsByStepId: Record<number, WorkflowComponentRecord[]> = {
 		{ id: 11, uid: "exterior", title: "Exterior Door", basePrice: 0 },
 	],
 	2: [
-		{ id: 20, uid: "primed", title: "Primed Frame", basePrice: 20 },
+		{
+			id: 20,
+			uid: "primed",
+			title: "Primed Frame",
+			basePrice: 20,
+			sortIndex: 0,
+		},
 		{
 			id: 21,
 			uid: "fiberglass",
 			title: "Fiberglass Frame",
 			basePrice: 30,
+			sortIndex: 1,
 		},
 	],
 	3: [

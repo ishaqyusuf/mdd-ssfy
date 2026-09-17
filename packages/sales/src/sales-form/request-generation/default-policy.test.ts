@@ -2,18 +2,21 @@ import { describe, expect, it } from "bun:test";
 import { resolveRequestStepSelection } from "./default-policy";
 
 describe("resolveRequestStepSelection", () => {
-	it("falls back to the first sorted candidate when none is marked", () => {
+	it("uses canonical index order when picker popularity order differs", () => {
 		expect(
 			resolveRequestStepSelection({
 				stepUid: "material",
 				inputStatus: "omitted",
 				requestedComponentUid: null,
-				candidates: [{ uid: "first" }, { uid: "second" }],
+				candidates: [
+					{ uid: "popular", title: "Popular", sortIndex: 20 },
+					{ uid: "canonical-first", title: "Canonical first", sortIndex: 10 },
+				],
 				resolvedStepUids: [],
 			}),
 		).toEqual({
 			status: "selected",
-			componentUid: "first",
+			componentUid: "canonical-first",
 			source: "default",
 		});
 	});
@@ -24,7 +27,15 @@ describe("resolveRequestStepSelection", () => {
 				stepUid: "material",
 				inputStatus: "omitted",
 				requestedComponentUid: null,
-				candidates: [{ uid: "fiberglass", default: true }, { uid: "wood" }],
+				candidates: [
+					{ uid: "wood", title: "Wood", sortIndex: 1 },
+					{
+						uid: "fiberglass",
+						title: "Fiberglass",
+						sortIndex: 99,
+						default: true,
+					},
+				],
 				resolvedStepUids: [],
 			}),
 		).toEqual({
@@ -65,18 +76,38 @@ describe("resolveRequestStepSelection", () => {
 		).toEqual({ status: "unresolved", reason: "input-unreadable" });
 	});
 
-	it("rejects a deleted default", () => {
+	it("skips unusable defaults and custom components before canonical fallback", () => {
 		expect(
 			resolveRequestStepSelection({
 				stepUid: "material",
 				inputStatus: "omitted",
 				requestedComponentUid: null,
-				candidates: [{ uid: "fiberglass", isDeleted: true, default: true }],
+				candidates: [
+					{
+						uid: "archived-default",
+						title: "Archived default",
+						sortIndex: 0,
+						isDeleted: true,
+						default: true,
+					},
+					{
+						uid: "custom-first",
+						title: "Custom first",
+						sortIndex: 1,
+						custom: true,
+					},
+					{
+						uid: "standard-fallback",
+						title: "Standard fallback",
+						sortIndex: 2,
+					},
+				],
 				resolvedStepUids: [],
 			}),
 		).toEqual({
-			status: "unresolved",
-			reason: "default-component-not-configured",
+			status: "selected",
+			componentUid: "standard-fallback",
+			source: "default",
 		});
 	});
 
@@ -205,7 +236,10 @@ describe("resolveRequestStepSelection", () => {
 				stepUid: "style",
 				inputStatus: "specified",
 				requestedComponentUid: "six-panel",
-				candidates: [...candidates, { uid: "flush" }],
+				candidates: [
+					...candidates,
+					{ uid: "flush", title: "Flush", sortIndex: 0, default: true },
+				],
 				selectedByStepUid,
 				selectedProdUidsByStepUid,
 				resolvedStepUids: ["material"],

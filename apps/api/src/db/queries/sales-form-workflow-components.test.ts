@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
 	archiveWorkflowComponentsSchema,
 	createWorkflowComponentSchema,
+	getStepComponents,
 	getStepComponentsSchema,
 	saveWorkflowComponentDetailsSchema,
 	saveWorkflowComponentPricingSchema,
@@ -15,6 +16,88 @@ const repositoryRoot = existsSync(resolve(process.cwd(), "apps/api/src"))
 	: resolve(process.cwd(), "../..");
 
 describe("workflow component mutation contracts", () => {
+	test("orders picker components by recent usage without pinning defaults or sort indexes", async () => {
+		const component = ({
+			id,
+			title,
+			sortIndex,
+			isDefault = false,
+			usage,
+		}: {
+			id: number;
+			title: string;
+			sortIndex: number;
+			isDefault?: boolean;
+			usage: {
+				housePackageTools: number;
+				salesDoors: number;
+				stepForms: number;
+			};
+		}) => ({
+			id,
+			uid: `component-${id}`,
+			name: title,
+			img: null,
+			meta: {},
+			custom: false,
+			deletedAt: null,
+			sortIndex,
+			dykeStepId: 51,
+			productCode: null,
+			redirectUid: null,
+			isDefault,
+			door: null,
+			product: null,
+			step: { id: 51, uid: "material", title: "Material", meta: {} },
+			sorts: [],
+			_count: usage,
+		});
+		const result = await getStepComponents(
+			{
+				db: {
+					dykeStepProducts: {
+						findMany: async () => [
+							component({
+								id: 1,
+								title: "Popular",
+								sortIndex: 99,
+								usage: { housePackageTools: 3, salesDoors: 4, stepForms: 3 },
+							}),
+							component({
+								id: 2,
+								title: "Beta default",
+								sortIndex: 0,
+								isDefault: true,
+								usage: { housePackageTools: 1, salesDoors: 1, stepForms: 0 },
+							}),
+							component({
+								id: 3,
+								title: "Alpha",
+								sortIndex: 50,
+								usage: { housePackageTools: 0, salesDoors: 1, stepForms: 1 },
+							}),
+							component({
+								id: 4,
+								title: "Unused",
+								sortIndex: 1,
+								usage: { housePackageTools: 0, salesDoors: 0, stepForms: 0 },
+							}),
+						],
+					},
+					dykePricingSystem: { findMany: async () => [] },
+				},
+			} as never,
+			{ stepId: 51, fresh: true },
+		);
+
+		expect(result.map(({ title }) => title)).toEqual([
+			"Popular",
+			"Alpha",
+			"Beta default",
+			"Unused",
+		]);
+	});
+
 	test("allows the new sales form to bypass stale workflow component cache", () => {
 		expect(
 			getStepComponentsSchema.parse({ stepId: 51, fresh: true }),

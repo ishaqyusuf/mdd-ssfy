@@ -676,14 +676,8 @@ async function fetchStepComponentsFromDb(
 		dtoStepComponent(stepProduct, pricingByComponentUid),
 	);
 	return result.sort((a, b) => {
-		const aIndex = Number.isFinite(a.sortIndex)
-			? Number(a.sortIndex)
-			: Number.MAX_SAFE_INTEGER;
-		const bIndex = Number.isFinite(b.sortIndex)
-			? Number(b.sortIndex)
-			: Number.MAX_SAFE_INTEGER;
 		return (
-			aIndex - bIndex ||
+			Number(b.statistics || 0) - Number(a.statistics || 0) ||
 			String(a.title || "").localeCompare(String(b.title || "")) ||
 			String(a.uid || "").localeCompare(String(b.uid || ""))
 		);

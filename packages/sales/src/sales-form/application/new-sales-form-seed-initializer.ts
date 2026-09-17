@@ -558,6 +558,13 @@ async function initializeLine(
 				requestedComponentUid: null,
 				candidates: catalog.map((component) => ({
 					uid: String(component.uid || ""),
+					title: String(component.title || ""),
+					sortIndex:
+						typeof component.sortIndex === "number"
+							? component.sortIndex
+							: null,
+					custom:
+						component.custom === true || component._metaData?.custom === true,
 					...(component.default === true ? { default: true as const } : {}),
 					variations: Array.isArray(component.variations)
 						? component.variations
