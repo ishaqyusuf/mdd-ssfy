@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { AssistantAccessDisabledError } from "@api/assistant/access-governance";
 import { AssistantAttachmentInputError } from "@api/assistant/attachment-errors";
 import { runAssistantOperation } from "@api/assistant/operation-diagnostics";
+import { AssistantProviderDisabledError } from "@api/assistant/runtime";
 import { AssistantQuotaExceededError } from "@gnd/db/queries";
 import { readUIMessageStream } from "ai";
 import {
@@ -164,6 +165,29 @@ describe("assistant chat REST router", () => {
 				message: "You don't have access to this information.",
 			},
 			outcome: { kind: "denied" },
+		});
+		expect(calls).toHaveLength(0);
+	});
+
+	test("returns a typed temporary response when the provider is disabled", async () => {
+		const { router, calls } = createHarness({
+			startRun: async () => {
+				throw new AssistantProviderDisabledError();
+			},
+		});
+		const response = await router.request("/", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(requestBody()),
+		});
+
+		expect(response.status).toBe(503);
+		expect(await response.json()).toEqual({
+			error: {
+				code: "ASSISTANT_PROVIDER_DISABLED",
+				message: "I couldn't check that right now. Please try again.",
+			},
+			outcome: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" },
 		});
 		expect(calls).toHaveLength(0);
 	});
@@ -538,7 +562,12 @@ describe("assistant chat REST router", () => {
 		await response.text();
 		expect(captures).toBe(0);
 		expect(calls.some(call => call.persistedFailure)).toBe(false);
-		expect(calls.find(call => call.complete)).toMatchObject({ complete: { status: "cancelled" } });
+		expect(calls.find(call => call.complete)).toMatchObject({
+			complete: { status: "cancelled" },
+		});
+		expect(calls.find(call => call.complete)?.complete).not.toHaveProperty(
+			"usage.providerAttempted",
+		);
 	});
 
 	test("redacts error text returned by a failed runtime outcome", async () => {

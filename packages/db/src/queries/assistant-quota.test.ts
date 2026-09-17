@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
 	evaluateAssistantQuotaUsage,
+	reserveAssistantQuota,
 	resolveAssistantQuotaWindows,
 	settleAssistantQuotaReservationFallback,
 } from "./assistant-quota";
@@ -42,6 +43,23 @@ function reservation(overrides: Record<string, unknown> = {}) {
 		monthWindowStart: new Date("2026-08-31T23:00:00.000Z"),
 		expiresAt: new Date("2026-09-14T10:00:00.000Z"),
 		...overrides,
+	};
+}
+
+function reservationDatabase(
+	row: Record<string, unknown>,
+	runStatus: string,
+) {
+	return {
+		$transaction: async (operation: (tx: unknown) => Promise<unknown>) =>
+			operation({
+				assistantQuotaReservation: {
+					findUnique: async () => row,
+				},
+				assistantRun: {
+					findFirst: async () => ({ status: runStatus }),
+				},
+			}),
 	};
 }
 
@@ -146,4 +164,47 @@ test("fallback finalization preserves explicit pre-provider release", async () =
 			settledAt: now,
 		},
 	});
+});
+
+test("does not replay expired or released reservations for active runs", async () => {
+	for (const status of ["expired", "released"]) {
+		await expect(
+			reserveAssistantQuota(
+				reservationDatabase(
+					reservation({
+						status,
+						expiresAt: new Date("2026-09-14T10:00:00.000Z"),
+					}),
+					"queued",
+				) as never,
+				{
+					runId: `run-${status}`,
+					actorUserId: 42,
+					scopeType: "user",
+					scopeId: "42",
+					modelIdentity: "openai:gpt-5",
+					now,
+				},
+			),
+		).rejects.toMatchObject({ code: "ASSISTANT_QUOTA_UNAVAILABLE" });
+	}
+});
+
+test("allows terminal-run replay without reviving its stale reservation", async () => {
+	const stale = reservation({
+		status: "released",
+		expiresAt: new Date("2026-09-14T10:00:00.000Z"),
+	});
+	const result = await reserveAssistantQuota(
+		reservationDatabase(stale, "succeeded") as never,
+		{
+			runId: "run-complete",
+			actorUserId: 42,
+			scopeType: "user",
+			scopeId: "42",
+			modelIdentity: "openai:gpt-5",
+			now,
+		},
+	);
+	expect(result).toBe(stale);
 });

@@ -3,7 +3,10 @@ import {
 	mergePermissionRecords,
 } from "@gnd/auth/utils";
 import { Prisma, db } from "@gnd/db";
-import { evaluateAssistantAccessState } from "@gnd/db/queries";
+import {
+	evaluateAssistantAccessState,
+	isAssistantPilotRoleAllowed,
+} from "@gnd/db/queries";
 import {
 	type CreateStoredDocumentRecordInput,
 	type StoredDocumentRepository,
@@ -42,6 +45,7 @@ import {
 	assistantPdfFailureState,
 	cleanupAssistantPdfUpload,
 } from "./assistant-pdf-lifecycle";
+import { isAssistantPdfGenerationEnabled } from "./assistant-pdf-controls";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 const DEFAULT_LINK_TTL_DAYS = 7;
@@ -151,9 +155,7 @@ async function resolveAssistantPdfAuthorization(
 	salesOrderId: number,
 	mode: PrintMode,
 ) {
-	const assistantEnabled =
-		process.env.ASSISTANT_ENABLED?.trim().toLowerCase() !== "false";
-	if (!assistantEnabled) return null;
+	if (!isAssistantPdfGenerationEnabled()) return null;
 
 	const [user, specificPermissions, entitlement] = await Promise.all([
 		db.users.findFirst({
@@ -173,7 +175,6 @@ async function resolveAssistantPdfAuthorization(
 						{ organization: { primary: "desc" as const } },
 						{ organizationId: "asc" as const },
 					],
-					take: 1,
 					select: {
 						organizationId: true,
 						role: {
@@ -203,9 +204,16 @@ async function resolveAssistantPdfAuthorization(
 	const access = evaluateAssistantAccessState(
 		entitlement,
 		new Date(),
-		assistantEnabled,
+		true,
 	);
-	if (!user || !access.enabled) return null;
+	if (
+		!user ||
+		!access.enabled ||
+		!isAssistantPilotRoleAllowed(
+			user.roles.map((entry) => entry.role?.name),
+		)
+	)
+		return null;
 	const organizationId = user.roles[0]?.organizationId;
 	const role = user.roles[0]?.role;
 	const currentScope = organizationId

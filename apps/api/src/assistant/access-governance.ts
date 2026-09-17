@@ -1,6 +1,7 @@
 import { type Database, Prisma } from "@gnd/db";
 import {
 	evaluateAssistantAccessState,
+	isAssistantPilotRoleAllowed,
 	type AssistantAccessState,
 } from "@gnd/db/queries";
 import { z } from "zod";
@@ -91,7 +92,17 @@ export async function getAssistantAccessState(
 	const [user, entitlement] = await Promise.all([
 		db.users.findFirst({
 			where: { id: userId, deletedAt: null, accessRevokedAt: null },
-			select: { id: true },
+			select: {
+				id: true,
+				roles: {
+					where: {
+						deletedAt: null,
+						organization: { deletedAt: null },
+						role: { deletedAt: null },
+					},
+					select: { role: { select: { name: true } } },
+				},
+			},
 		}),
 		db.assistantUserEntitlement.findUnique({
 			where: { userId },
@@ -104,7 +115,13 @@ export async function getAssistantAccessState(
 			},
 		}),
 	]);
-	if (!user)
+	if (
+		!user ||
+		!isAssistantPilotRoleAllowed(
+			user.roles.map((entry) => entry.role?.name),
+			environment,
+		)
+	)
 		return { enabled: false, status: "disabled", expiresAt: null, version: 0 };
 	if (
 		entitlement?.enabled &&
@@ -127,9 +144,26 @@ export async function updateAssistantEntitlement(
 	return db.$transaction(async (tx) => {
 		const target = await tx.users.findFirst({
 			where: { id: input.userId, deletedAt: null, accessRevokedAt: null },
-			select: { id: true },
+			select: {
+				id: true,
+				roles: {
+					where: {
+						deletedAt: null,
+						organization: { deletedAt: null },
+						role: { deletedAt: null },
+					},
+					select: { role: { select: { name: true } } },
+				},
+			},
 		});
 		if (!target) throw new Error("Assistant access target is unavailable");
+		if (
+			input.enabled &&
+			!isAssistantPilotRoleAllowed(
+				target.roles.map((entry) => entry.role?.name),
+			)
+		)
+			throw new Error("The Assistant pilot is limited to Super Admin accounts");
 		const current = await tx.assistantUserEntitlement.findUnique({
 			where: { userId: input.userId },
 		});

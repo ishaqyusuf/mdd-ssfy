@@ -4,6 +4,9 @@ export type AssistantStreamState = {
 	title: string | null;
 	runId: string | null;
 	status: string | null;
+	errorCode: string | null;
+	completedAt: string | null;
+	conversationId: string | null;
 	rateLimit: { limit: number; remaining: number; resetAt: string } | null;
 	notice: string | null;
 	sources: Array<{
@@ -13,17 +16,58 @@ export type AssistantStreamState = {
 	}>;
 	messageSequence: number;
 	runSequence: number;
+	toolExecutions: AssistantDurableToolExecution[];
+	actionProposals: AssistantDurableActionProposal[];
+};
+
+export type AssistantDurableToolExecution = {
+	id: string;
+	eventSequence: number;
+	toolId: string;
+	toolVersion: number;
+	effect: string;
+	status: string;
+	result: unknown;
+	errorCode: string | null;
+	durationMs: number | null;
+	completedAt: string | null;
+};
+
+export type AssistantDurableActionProposal = {
+	id: string;
+	eventSequence: number;
+	toolId: string;
+	toolVersion: number;
+	effect: string;
+	status: string;
+	expiresAt: string;
+};
+
+export type AssistantReconnectSnapshot = {
+	runId: string;
+	status: string;
+	lastSequence: number;
+	errorCode: string | null;
+	completedAt: string | null;
+	conversationId: string | null;
+	toolExecutions: AssistantDurableToolExecution[];
+	actionProposals: AssistantDurableActionProposal[];
 };
 
 export const initialAssistantStreamState: AssistantStreamState = {
 	title: null,
 	runId: null,
 	status: null,
+	errorCode: null,
+	completedAt: null,
+	conversationId: null,
 	rateLimit: null,
 	notice: null,
 	sources: [],
 	messageSequence: 0,
 	runSequence: 0,
+	toolExecutions: [],
+	actionProposals: [],
 };
 
 export type AssistantRequestLimit = {
@@ -193,8 +237,13 @@ export function reduceAssistantData(
 			...state,
 			runId: data.runId,
 			status: String(data.status ?? "running"),
+			errorCode: null,
+			completedAt: null,
+			conversationId: null,
 			notice: null,
 			sources: [],
+			toolExecutions: [],
+			actionProposals: [],
 		};
 	}
 	if (part.type === "data-sequence") {
@@ -233,10 +282,52 @@ export function reduceAssistantData(
 		return {
 			...state,
 			status,
+			errorCode:
+				typeof data.errorCode === "string" ? data.errorCode : state.errorCode,
 			notice: status === "succeeded" ? null : state.notice,
 		};
 	}
 	return state;
+}
+
+export function hydrateAssistantReconnectState(
+	state: AssistantStreamState,
+	snapshot: AssistantReconnectSnapshot,
+): AssistantStreamState {
+	const sameRun = state.runId === snapshot.runId;
+	const toolExecutions = new Map(
+		(sameRun ? state.toolExecutions : []).map((execution) => [
+			execution.id,
+			execution,
+		]),
+	);
+	for (const execution of snapshot.toolExecutions)
+		toolExecutions.set(execution.id, execution);
+	const actionProposals = new Map(
+		(sameRun ? state.actionProposals : []).map((proposal) => [
+			proposal.id,
+			proposal,
+		]),
+	);
+	for (const proposal of snapshot.actionProposals)
+		actionProposals.set(proposal.id, proposal);
+	return {
+		...state,
+		runId: snapshot.runId,
+		status: snapshot.status,
+		errorCode: snapshot.errorCode,
+		completedAt: snapshot.completedAt,
+		conversationId: snapshot.conversationId,
+		runSequence: sameRun
+			? Math.max(state.runSequence, snapshot.lastSequence)
+			: snapshot.lastSequence,
+		toolExecutions: [...toolExecutions.values()].sort(
+			(left, right) => left.eventSequence - right.eventSequence,
+		),
+		actionProposals: [...actionProposals.values()].sort(
+			(left, right) => left.eventSequence - right.eventSequence,
+		),
+	};
 }
 
 export function persistedMessagesToUi(

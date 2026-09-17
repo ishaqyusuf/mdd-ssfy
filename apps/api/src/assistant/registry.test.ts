@@ -5,6 +5,7 @@ import {
 	discoverAssistantTools,
 	executeRegisteredAssistantTool,
 	getAssistantToolCatalog,
+	preflightRegisteredAssistantProposal,
 } from "./registry";
 
 const actor = {
@@ -84,6 +85,62 @@ describe("assistant tool registry", () => {
 		expect(findOrders?.capability).toBe("implemented");
 		expect(createOrder).toBeUndefined();
 		expect(catalog.every((tool) => !("handler" in tool))).toBe(true);
+	});
+
+	test("fails closed for disabled tool domains and effects", async () => {
+		const readOnlyEnvironment = {
+			ASSISTANT_DISABLED_TOOL_DOMAINS: "sales, customers",
+			ASSISTANT_DISABLED_TOOL_EFFECTS:
+				"draft, artifact, write, external_send, destructive",
+		};
+		const discovered = discoverAssistantTools(actor, readOnlyEnvironment);
+		const catalog = getAssistantToolCatalog(actor, readOnlyEnvironment);
+		const canaryTools = discoverAssistantTools(actor, {
+			ASSISTANT_READ_ONLY_CANARY: "true",
+		});
+		const canaryCatalog = getAssistantToolCatalog(actor, {
+			ASSISTANT_READ_ONLY_CANARY: "true",
+		});
+
+		expect(discovered.some((tool) => tool.domain === "sales")).toBe(false);
+		expect(canaryTools.every((tool) => tool.effect === "read")).toBe(true);
+		expect(
+			canaryCatalog.find((tool) => tool.toolId === "sales_draft_from_request")
+				?.capability,
+		).toBe("disabled");
+		expect(
+			catalog.find((tool) => tool.toolId === "sales_find_orders")?.capability,
+		).toBe("disabled");
+		await expect(
+			executeRegisteredAssistantTool(
+				actor,
+				{
+					toolId: "sales_find_orders",
+					version: 1,
+					input: { query: "09502PC" },
+				},
+				{},
+				{ signal: new AbortController().signal },
+				readOnlyEnvironment,
+			),
+		).rejects.toThrow("not available");
+		await expect(
+			preflightRegisteredAssistantProposal(
+				actor,
+				{
+					toolId: "documents_generate_pdf",
+					version: 1,
+					input: {
+						orderNo: "09502PC",
+						mode: "invoice",
+						expectedRevision: "revision-1",
+						forceRegenerate: false,
+					},
+				},
+				{},
+				{ ASSISTANT_READ_ONLY_CANARY: "true" },
+			),
+		).rejects.toThrow("not available");
 	});
 
 	test("reauthorizes handlers and validates their typed result envelope", async () => {

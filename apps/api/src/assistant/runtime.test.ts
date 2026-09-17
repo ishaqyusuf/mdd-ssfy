@@ -3,6 +3,7 @@ import { NEW_SALES_FORM_SEED_EXAMPLE } from "@gnd/sales/sales-form-core";
 import { ASSISTANT_ANALYTICS_RESULT_VERSION } from "./analytics-result-contract";
 import {
 	ASSISTANT_MAX_SELECTED_TOOLS,
+	assertAssistantActorContinuation,
 	createAssistantRuntime,
 	getAssistantApiKey,
 	getAssistantProviderRuntimeOptions,
@@ -13,6 +14,33 @@ import {
 } from "./runtime";
 
 describe("assistant runtime", () => {
+	test("stops continuation when scope or granted access changes", () => {
+		const admitted = {
+			userId: 42,
+			scopeType: "organization",
+			scopeId: "7",
+			grants: { viewOrders: true, viewCustomers: true },
+		};
+		expect(() =>
+			assertAssistantActorContinuation(admitted, {
+				...admitted,
+				scopeId: "8",
+			}),
+		).toThrow("Assistant access is disabled");
+		expect(() =>
+			assertAssistantActorContinuation(admitted, {
+				...admitted,
+				grants: { viewOrders: true, viewCustomers: false },
+			}),
+		).toThrow("Assistant access is disabled");
+		expect(() =>
+			assertAssistantActorContinuation(admitted, {
+				...admitted,
+				grants: { ...admitted.grants, editOrders: true },
+			}),
+		).not.toThrow();
+	});
+
 	test("an ambiguous lookup retains choices and emits one neutral prompt", async () => {
 		const chunks: Array<{ type?: string; data?: unknown; delta?: string }> = [];
 		const entities = [
@@ -212,6 +240,65 @@ describe("assistant runtime", () => {
 		});
 	});
 
+	test("fails before model construction when the selected provider is disabled", () => {
+		let modelConstructed = false;
+		expect(() =>
+			createAssistantRuntime({
+				selection: { provider: "openai", model: "gpt-5-mini" },
+				environment: { ASSISTANT_DISABLED_PROVIDERS: "openai" },
+				createModel: () => {
+					modelConstructed = true;
+					return {} as never;
+				},
+			}),
+		).toThrow("provider is disabled");
+		expect(modelConstructed).toBe(false);
+	});
+
+	test("rechecks the provider switch before each model step", async () => {
+		const environment: Record<string, string | undefined> = {};
+		let settings: Record<string, unknown> | undefined;
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			environment,
+			createModel: () => ({}) as never,
+			createAgent: (input) => {
+				settings = input as unknown as Record<string, unknown>;
+				return {
+					stream: async () => ({
+						textStream: (async function* () {})(),
+						totalUsage: Promise.resolve({ totalTokens: 0 }),
+					}),
+				};
+			},
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Check status" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write() {} },
+			signal: new AbortController().signal,
+		});
+
+		environment.ASSISTANT_DISABLED_PROVIDERS = "openai";
+		const prepare = settings?.prepareStep as (input: unknown) => Promise<unknown>;
+		await expect(prepare({ messages: [] })).rejects.toThrow(
+			"provider is disabled",
+		);
+	});
+
 	test("prefers the Assistant DeepSeek credential over the shared Sales Requests fallback", () => {
 		expect(
 			getAssistantApiKey("deepseek", {
@@ -265,6 +352,7 @@ describe("assistant runtime", () => {
 		let cleaned = 0;
 		let settings: Record<string, unknown> | undefined;
 		let prepared = false;
+		let reauthorized = 0;
 		const prepareStep = () => {
 			prepared = true;
 			return undefined;
@@ -315,6 +403,23 @@ describe("assistant runtime", () => {
 			mentionedIntegrations: [],
 			writer: { write: (chunk) => chunks.push(chunk) },
 			signal: new AbortController().signal,
+			reauthorizeActor: async () => {
+				reauthorized += 1;
+				return {
+					userId: 42,
+					scopeType: "organization",
+					scopeId: "7",
+					fullName: "Jordan Lee",
+					teamName: "GND",
+					locale: "en-US",
+					timezone: "UTC",
+					baseCurrency: "USD",
+					dateFormat: null,
+					timeFormat: 12,
+					countryCode: "US",
+					grants: {},
+				};
+			},
 		});
 
 		expect(result).toEqual({
@@ -341,6 +446,7 @@ describe("assistant runtime", () => {
 		) => Promise<unknown>;
 		expect(await prepare({ messages: [] })).toEqual({ messages: [] });
 		expect(prepared).toBe(true);
+		expect(reauthorized).toBe(1);
 		const stopWhen = settings?.stopWhen as
 			| ((input: { steps: unknown[] }) => boolean)
 			| undefined;
@@ -1372,6 +1478,11 @@ describe("assistant runtime", () => {
 			status: "failed",
 			errorCode: "ASSISTANT_PROVIDER_FAILED",
 			errorMessage: "Assistant runtime failed",
+			usage: {
+				providerAttempted: true,
+				provider: "openai",
+				model: "gpt-5-mini",
+			},
 		});
 		expect(JSON.stringify(result)).not.toContain("customer secret");
 		expect(cleaned).toBe(1);

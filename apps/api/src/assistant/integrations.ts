@@ -14,6 +14,27 @@ type AssistantToolkit = {
 	connection?: { isActive?: boolean };
 };
 
+export function isAssistantExternalToolingEnabled(
+	environment: Readonly<Record<string, string | undefined>> = process.env,
+) {
+	const values = (value: string | undefined) =>
+		new Set(
+			(value ?? "")
+				.split(",")
+				.map((entry) => entry.trim().toLowerCase())
+				.filter(Boolean),
+		);
+	const disabledDomains = values(environment.ASSISTANT_DISABLED_TOOL_DOMAINS);
+	return (
+		environment.ASSISTANT_EXTERNAL_TOOLS_ENABLED?.trim().toLowerCase() !==
+			"false" &&
+		environment.ASSISTANT_READ_ONLY_CANARY?.trim().toLowerCase() !== "true" &&
+		!disabledDomains.has("integrations") &&
+		!disabledDomains.has("external") &&
+		!values(environment.ASSISTANT_DISABLED_TOOL_EFFECTS).has("external_send")
+	);
+}
+
 function getConfiguredAssistantProviders(
 	environment: Readonly<Record<string, string | undefined>> = process.env,
 ) {
@@ -57,6 +78,7 @@ export async function getAssistantConnectedApps(
 	environment: Readonly<Record<string, string | undefined>> = process.env,
 	loadToolkits: typeof loadAssistantToolkits = loadAssistantToolkits,
 ) {
+	if (!isAssistantExternalToolingEnabled(environment)) return [];
 	const configured = getConfiguredAssistantProviders(environment);
 	if (!configured.length || !environment.COMPOSIO_API_KEY?.trim()) return [];
 	try {
@@ -99,6 +121,7 @@ export async function getAssistantComposioTools(
 		scopeId: string;
 	}>,
 ) {
+	if (!isAssistantExternalToolingEnabled(environment)) return {};
 	const configured = getConfiguredAssistantProviders(environment);
 	const configuredIds = new Set(configured.map(({ id }) => id));
 	if (

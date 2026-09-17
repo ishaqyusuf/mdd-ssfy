@@ -4,6 +4,7 @@ import {
 	type AssistantProvider,
 	type AssistantRuntimeSelection,
 	getAssistantApiKey,
+	isAssistantProviderEnabled,
 	resolveAssistantRuntimeSelection,
 } from "./runtime";
 
@@ -41,6 +42,10 @@ export function getAssistantProviderOptions(
 		label: PROVIDER_LABELS[id as AssistantProvider],
 		defaultModel: models[0],
 		models: models.map((model) => ({ id: model, label: model })),
+		enabled: isAssistantProviderEnabled(
+			id as AssistantProvider,
+			environment,
+		),
 		configured: Boolean(
 			getAssistantApiKey(id as AssistantProvider, environment),
 		),
@@ -97,6 +102,11 @@ export async function updateAssistantRuntimeSettings(
 	const provider = getAssistantProviderOptions().find(
 		(option) => option.id === selection.provider,
 	);
+	if (provider && !provider.enabled) {
+		throw new Error(
+			`The ${provider.label} Assistant provider is disabled by the server operator.`,
+		);
+	}
 	if (!provider?.configured) {
 		throw new Error(
 			`Configure the ${provider?.label ?? selection.provider} Assistant API key before selecting it.`,

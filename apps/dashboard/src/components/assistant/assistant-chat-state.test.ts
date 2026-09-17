@@ -5,6 +5,7 @@ import {
 	claimAssistantPendingPrompt,
 	getAssistantIntegrationIdsForMessage,
 	getAssistantRequestId,
+	hydrateAssistantReconnectState,
 	initialAssistantStreamState,
 	parseAssistantQuotaLimit,
 	parseAssistantRequestLimit,
@@ -189,6 +190,75 @@ describe("assistant chat state", () => {
 		expect(messages).toEqual([
 			{ id: "2", role: "assistant", parts: [{ type: "text", text: "Ready" }] },
 		]);
+	});
+
+	test("hydrates and merges durable reconnect execution metadata", () => {
+		const first = hydrateAssistantReconnectState(initialAssistantStreamState, {
+			runId: "run-1",
+			status: "waiting_for_approval",
+			lastSequence: 4,
+			errorCode: null,
+			completedAt: null,
+			conversationId: "conversation-1",
+			toolExecutions: [
+				{
+					id: "execution-1",
+					eventSequence: 2,
+					toolId: "orders_get",
+					toolVersion: 1,
+					effect: "read",
+					status: "succeeded",
+					result: { status: "success" },
+					errorCode: null,
+					durationMs: 12,
+					completedAt: "2026-09-17T10:00:00.000Z",
+				},
+			],
+			actionProposals: [
+				{
+					id: "proposal-1",
+					eventSequence: 3,
+					toolId: "documents_create",
+					toolVersion: 1,
+					effect: "artifact",
+					status: "pending",
+					expiresAt: "2026-09-17T10:05:00.000Z",
+				},
+			],
+		});
+		const execution = first.toolExecutions.at(0);
+		if (!execution) throw new Error("Expected the durable tool execution");
+		const second = hydrateAssistantReconnectState(first, {
+			...first,
+			status: "succeeded",
+			lastSequence: 5,
+			errorCode: null,
+			completedAt: "2026-09-17T10:00:05.000Z",
+			toolExecutions: [
+				{
+					...execution,
+					status: "succeeded",
+					eventSequence: 4,
+				},
+			],
+			actionProposals: [],
+		});
+
+		expect(second).toMatchObject({
+			runId: "run-1",
+			status: "succeeded",
+			errorCode: null,
+			completedAt: "2026-09-17T10:00:05.000Z",
+			conversationId: "conversation-1",
+			runSequence: 5,
+		});
+		expect(second.toolExecutions).toHaveLength(1);
+		expect(second.toolExecutions[0]).toMatchObject({
+			id: "execution-1",
+			eventSequence: 4,
+		});
+		expect(second.actionProposals).toHaveLength(1);
+		expect(second.actionProposals[0]?.id).toBe("proposal-1");
 	});
 
 	test("parses a request limit response only when quota fields are complete", () => {

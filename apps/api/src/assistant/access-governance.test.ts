@@ -13,6 +13,10 @@ const entitlement = {
 	expiresAt: null,
 	version: 1,
 };
+const pilotUser = {
+	id: 42,
+	roles: [{ role: { name: "Super Admin" } }],
+};
 
 describe("Assistant individual access", () => {
 	test("fails closed before database access when the global switch is off", async () => {
@@ -38,7 +42,7 @@ describe("Assistant individual access", () => {
 	test("fails closed without an active individual entitlement", async () => {
 		const state = await getAssistantAccessState(
 			{
-				users: { findFirst: mock(async () => ({ id: 42 })) },
+				users: { findFirst: mock(async () => pilotUser) },
 				assistantUserEntitlement: { findUnique: mock(async () => null) },
 			} as never,
 			42,
@@ -52,6 +56,27 @@ describe("Assistant individual access", () => {
 		});
 	});
 
+	test("limits the first pilot to Super Admin unless rollout is explicitly broadened", async () => {
+		const db = {
+			users: {
+				findFirst: mock(async () => ({
+					id: 42,
+					roles: [{ role: { name: "Sales Manager" } }],
+				})),
+			},
+			assistantUserEntitlement: { findUnique: mock(async () => entitlement) },
+		};
+		expect(await getAssistantAccessState(db as never, 42, now)).toMatchObject({
+			enabled: false,
+			status: "disabled",
+		});
+		expect(
+			await getAssistantAccessState(db as never, 42, now, {
+				ASSISTANT_SUPER_ADMIN_ONLY: "false",
+			}),
+		).toMatchObject({ enabled: true, status: "enabled" });
+	});
+
 	test("expires access once and appends an immutable audit event", async () => {
 		const eventCreate = mock(async () => ({}));
 		const expired = {
@@ -59,7 +84,7 @@ describe("Assistant individual access", () => {
 			expiresAt: new Date("2026-09-13T11:59:59.000Z"),
 		};
 		const db = {
-			users: { findFirst: mock(async () => ({ id: 42 })) },
+			users: { findFirst: mock(async () => pilotUser) },
 			assistantUserEntitlement: {
 				findUnique: mock(async () => expired),
 				updateMany: mock(async () => ({ count: 1 })),
@@ -83,7 +108,7 @@ describe("Assistant individual access", () => {
 	test("updates access with optimistic concurrency and one audit event", async () => {
 		const eventCreate = mock(async () => ({}));
 		const db = {
-			users: { findFirst: mock(async () => ({ id: 42 })) },
+			users: { findFirst: mock(async () => pilotUser) },
 			assistantUserEntitlement: {
 				findUnique: mock(async () => entitlement),
 				updateMany: mock(async () => ({ count: 1 })),
@@ -131,5 +156,31 @@ describe("Assistant individual access", () => {
 				now,
 			),
 		).rejects.toBeInstanceOf(AssistantEntitlementConflictError);
+	});
+
+	test("does not enable a non-Super-Admin account during the pilot", async () => {
+		const db: Record<string, unknown> = {
+			users: {
+				findFirst: mock(async () => ({
+					id: 42,
+					roles: [{ role: { name: "Sales Manager" } }],
+				})),
+			},
+		};
+		db.$transaction = async (callback) => callback(db);
+		await expect(
+			updateAssistantEntitlement(
+				db as never,
+				7,
+				{
+					userId: 42,
+					enabled: true,
+					expiresAt: null,
+					reason: "Start pilot access",
+					expectedVersion: 0,
+				},
+				now,
+			),
+		).rejects.toThrow("limited to Super Admin");
 	});
 });

@@ -15,6 +15,7 @@ import {
 	tool,
 } from "ai";
 import { z } from "zod";
+import { AssistantAccessDisabledError } from "./access-governance";
 import { assistantAnalyticsResultSchema } from "./analytics-result-contract";
 import {
 	type AssistantEffect,
@@ -28,6 +29,10 @@ import { assistantDocumentProposalActionSchema } from "./document-action-contrac
 import { assistantOrderFinding } from "./finding-contract";
 import { prepareAssistantSafeStep } from "./model-errors";
 import { assistantSalesRequestDraftPreviewSchema } from "./order-draft-contract";
+import {
+	assertAssistantProviderEnabled,
+	isAssistantProviderEnabled,
+} from "./provider-controls";
 import {
 	type AssistantOutcome,
 	assistantEffectMayCommit,
@@ -66,6 +71,36 @@ export type AssistantRuntimeSelection = {
 	provider: AssistantProvider;
 	model: string;
 };
+
+export function assertAssistantActorContinuation(
+	initial: {
+		userId: number;
+		scopeType: string;
+		scopeId: string;
+		grants: Record<string, boolean>;
+	},
+	current: {
+		userId: number;
+		scopeType: string;
+		scopeId: string;
+		grants: Record<string, boolean>;
+	},
+) {
+	const scopeChanged =
+		initial.userId !== current.userId ||
+		initial.scopeType !== current.scopeType ||
+		initial.scopeId !== current.scopeId;
+	const lostGrant = Object.entries(initial.grants).some(
+		([grant, allowed]) => allowed && current.grants[grant] !== true,
+	);
+	if (scopeChanged || lostGrant) throw new AssistantAccessDisabledError();
+}
+
+export {
+	AssistantProviderDisabledError,
+	assertAssistantProviderEnabled,
+	isAssistantProviderEnabled,
+} from "./provider-controls";
 
 export type AssistantRuntimeToolEntry = {
 	name: string;
@@ -979,6 +1014,7 @@ function requireAssistantApiKey(
 	provider: AssistantProvider,
 	environment: Readonly<Record<string, string | undefined>> = process.env,
 ) {
+	assertAssistantProviderEnabled(provider, environment);
 	const key = getAssistantApiKey(provider, environment);
 	if (!key) throw new Error("The assistant AI provider is not configured");
 	return key;
@@ -1056,6 +1092,7 @@ export function createAssistantRuntime(options?: {
 	const selection =
 		options?.selection ??
 		resolveAssistantRuntimeSelection(options?.environment);
+	assertAssistantProviderEnabled(selection.provider, options?.environment);
 	const model =
 		options?.createModel?.(selection) ??
 		createAssistantModel(selection, options?.environment);
@@ -1148,8 +1185,15 @@ export function createAssistantRuntime(options?: {
 					providerOptions: getAssistantProviderRuntimeOptions(
 						selection.provider,
 					),
-					prepareStep: (stepInput: unknown) =>
-						prepareAssistantSafeStep(
+					prepareStep: async (stepInput: unknown) => {
+						assertAssistantProviderEnabled(
+							selection.provider,
+							options?.environment,
+						);
+						const currentActor = await input.reauthorizeActor?.();
+						if (currentActor)
+							assertAssistantActorContinuation(input.actor, currentActor);
+						return prepareAssistantSafeStep(
 							webSearchApiKey || options?.alwaysActiveTools?.length
 								? (stepInput: unknown) =>
 										retainAlwaysActiveTools(
@@ -1165,7 +1209,8 @@ export function createAssistantRuntime(options?: {
 									? (options.prepareStep as (input: unknown) => unknown)
 									: undefined,
 							stepInput,
-						),
+						);
+					},
 				};
 				const agent =
 					options?.createAgent?.(settings) ??
@@ -1351,12 +1396,24 @@ export function createAssistantRuntime(options?: {
 						status: "failed" as const,
 						errorCode: "ASSISTANT_FOREGROUND_DEADLINE",
 						errorMessage: "Assistant runtime failed",
+						usage: {
+							providerAttempted,
+							...(providerAttempted
+								? { provider: selection.provider, model: selection.model }
+								: {}),
+						},
 					};
 				}
 				return {
 					status: "failed" as const,
 					errorCode: "ASSISTANT_PROVIDER_FAILED",
 					errorMessage: "Assistant runtime failed",
+					usage: {
+						providerAttempted,
+						...(providerAttempted
+							? { provider: selection.provider, model: selection.model }
+							: {}),
+					},
 				};
 			} finally {
 				clearTimeout(timeoutId);

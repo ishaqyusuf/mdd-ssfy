@@ -260,7 +260,7 @@ export function aggregateAssistantUsageEvents(
 	};
 }
 
-async function findAssistantUsagePrice(
+export async function findAssistantUsagePrice(
 	tx: TransactionClient,
 	usage: Pick<AssistantUsageAmounts, "provider" | "model">,
 	at: Date,

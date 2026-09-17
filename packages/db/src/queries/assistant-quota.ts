@@ -2,6 +2,12 @@ import { type Database, Prisma, type TransactionClient } from "..";
 
 const ACTIVE_RESERVATION_STATUSES = ["reserved"] as const;
 const COUNTED_RESERVATION_STATUSES = ["reserved", "settled"] as const;
+const ACTIVE_ASSISTANT_RUN_STATUSES = new Set([
+	"queued",
+	"running",
+	"waiting_for_tool",
+	"waiting_for_approval",
+]);
 const DEFAULT_TOKEN_RESERVATION = 16_000;
 const RESERVATION_LEASE_MS = 2 * 60 * 1000;
 
@@ -530,7 +536,21 @@ export async function reserveAssistantQuota(
 		const existing = await tx.assistantQuotaReservation.findUnique({
 			where: { runId: input.runId },
 		});
-		if (existing) return existing;
+		if (existing) {
+			if (existing.status === "reserved" && existing.expiresAt > now) {
+				return existing;
+			}
+			const run = await tx.assistantRun.findFirst({
+				where: { id: input.runId, actorUserId: input.actorUserId },
+				select: { status: true },
+			});
+			if (!run || ACTIVE_ASSISTANT_RUN_STATUSES.has(run.status)) {
+				throw new AssistantQuotaUnavailableError();
+			}
+			// A terminal run may be replayed to read its existing result, but a
+			// stale reservation must never be admitted for another execution.
+			return existing;
+		}
 		await tx.assistantQuotaReservation.updateMany({
 			where: {
 				actorUserId: input.actorUserId,

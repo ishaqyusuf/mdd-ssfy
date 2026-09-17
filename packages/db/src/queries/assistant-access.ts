@@ -11,6 +11,19 @@ export type AssistantAccessState = {
 	version: number;
 };
 
+export function isAssistantPilotRoleAllowed(
+	roleNames: readonly (string | null | undefined)[],
+	environment: Readonly<Record<string, string | undefined>> = process.env,
+) {
+	if (
+		environment.ASSISTANT_SUPER_ADMIN_ONLY?.trim().toLowerCase() === "false"
+	)
+		return true;
+	return roleNames.some(
+		(roleName) => roleName?.trim().toLowerCase() === "super admin",
+	);
+}
+
 /** Shared fail-closed evaluation for Assistant request and job continuations. */
 export function evaluateAssistantAccessState(
 	entitlement: AssistantEntitlementSnapshot | null,

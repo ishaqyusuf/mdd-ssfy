@@ -35,6 +35,7 @@ import {
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 } from "@gnd/settings";
 import type { AssistantToolActor } from "./registry";
+import { assertAssistantProviderEnabled } from "./provider-controls";
 
 type AssistantDraftDatabase = typeof db & ConfigurationDatabase;
 export type AssistantSalesRequestDraftDependencies = Parameters<
@@ -239,12 +240,17 @@ export async function createAssistantSalesRequestDraft(
 	signal: AbortSignal = new AbortController().signal,
 	database: AssistantDraftDatabase = db as AssistantDraftDatabase,
 	runtime: AssistantDraftRuntime = defaultAssistantDraftRuntime,
+	environment: Readonly<Record<string, string | undefined>> = process.env,
 ) {
 	return executeAssistantSalesRequestDraft(input, signal, {
 		authorize: () => runtime.authorize(actor, input, database),
 		reserveUsage: () => runtime.reserveUsage(actor),
 		readSnapshot: async () => {
 			const authority = await runtime.readAuthoritySnapshot(database);
+			assertAssistantProviderEnabled(
+				authority.context.aiSelection.provider,
+				environment,
+			);
 			requirePublishedDraftCatalog({
 				publication: authority.publication,
 				configurationRevision: authority.context.revision,

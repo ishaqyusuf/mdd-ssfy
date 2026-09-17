@@ -28,6 +28,122 @@ const actor = {
 };
 
 describe("executeAssistantConversationTurn", () => {
+	test("marks cancellation before any provider work starts", async () => {
+		const controller = new AbortController();
+		controller.abort();
+		let loads = 0;
+		const outcome = await executeAssistantConversationTurn(
+			{
+				actor,
+				request: {
+					conversationId: "conversation-1",
+					requestId: "request-cancelled",
+					message: {
+						id: "message-1",
+						role: "user",
+						parts: [{ type: "text", text: "Hello" }],
+					},
+					mentionedIntegrationIds: [],
+				},
+				run: { runId: "run-cancelled" },
+				writer: { write() {} },
+				signal: controller.signal,
+			},
+			{
+				loadHistory: async () => {
+					loads += 1;
+					return [];
+				},
+			},
+		);
+
+		expect(outcome).toMatchObject({
+			status: "cancelled",
+			usage: { providerAttempted: false },
+		});
+		expect(loads).toBe(0);
+	});
+
+	test("reauthorizes before history, attachments, or provider work", async () => {
+		let loads = 0;
+		let executions = 0;
+		await expect(
+			executeAssistantConversationTurn(
+				{
+					actor,
+					request: {
+						conversationId: "conversation-1",
+						requestId: "request-revoked",
+						message: {
+							id: "message-1",
+							role: "user",
+							parts: [{ type: "text", text: "Hello" }],
+						},
+						mentionedIntegrationIds: [],
+					},
+					run: { runId: "run-revoked" },
+					writer: { write() {} },
+					signal: new AbortController().signal,
+					reauthorizeActor: async () => {
+						throw new Error("Assistant access is no longer available");
+					},
+				},
+				{
+					loadHistory: async () => {
+						loads += 1;
+						return [];
+					},
+					loadDocuments: async () => {
+						loads += 1;
+						return [];
+					},
+					executeRuntime: async () => {
+						executions += 1;
+						return { status: "succeeded", assistantText: "unreachable", usage: {} };
+					},
+					captureDiagnostic: async () => ({
+						reference: "ERR-ABCDEFGHIJ",
+						recorded: true,
+					}),
+				},
+			),
+		).rejects.toThrow();
+		expect(loads).toBe(0);
+		expect(executions).toBe(0);
+	});
+
+	test("rejects a reauthorized actor whose admitted scope changed", async () => {
+		let loads = 0;
+		await expect(
+			executeAssistantConversationTurn(
+				{
+					actor,
+					request: {
+						conversationId: "conversation-1",
+						requestId: "request-scope-change",
+						message: {
+							id: "message-1",
+							role: "user",
+							parts: [{ type: "text", text: "Hello" }],
+						},
+						mentionedIntegrationIds: [],
+					},
+					run: { runId: "run-scope-change" },
+					writer: { write() {} },
+					signal: new AbortController().signal,
+					reauthorizeActor: async () => ({ ...actor, scopeId: "other" }),
+				},
+				{
+					loadHistory: async () => {
+						loads += 1;
+						return [];
+					},
+				},
+			),
+		).rejects.toThrow("Assistant access is disabled");
+		expect(loads).toBe(0);
+	});
+
 	test("invalid saved provider settings are captured before loading history or starting the model", async () => {
 		const captures: Array<{ error: unknown; context: unknown }> = [];
 		let loads = 0;

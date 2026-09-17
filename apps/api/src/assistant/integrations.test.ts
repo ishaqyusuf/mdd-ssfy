@@ -3,6 +3,7 @@ import {
 	getAssistantComposioTools,
 	getAssistantConnectedApps,
 	getAssistantConnectorManagementUrl,
+	isAssistantExternalToolingEnabled,
 	resolveAssistantIntegrationIds,
 } from "./integrations";
 
@@ -56,6 +57,25 @@ describe("assistant integrations", () => {
 				throw new Error("provider unavailable");
 			}),
 		).toEqual([]);
+	});
+
+	test("honors read-only and external tool-category operator controls", async () => {
+		for (const control of [
+			{ ASSISTANT_READ_ONLY_CANARY: "true" },
+			{ ASSISTANT_EXTERNAL_TOOLS_ENABLED: "false" },
+			{ ASSISTANT_DISABLED_TOOL_DOMAINS: "integrations" },
+			{ ASSISTANT_DISABLED_TOOL_EFFECTS: "external_send" },
+		]) {
+			const controlled = { ...environment, ...control };
+			expect(isAssistantExternalToolingEnabled(controlled)).toBe(false);
+			expect(
+				await getAssistantConnectedApps(
+					{ userId: 42 },
+					controlled,
+					loadToolkits,
+				),
+			).toEqual([]);
+		}
 	});
 
 	test("loads only the read-only search tool for a mentioned app and reauthorizes execution", async () => {

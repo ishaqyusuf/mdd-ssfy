@@ -201,6 +201,32 @@ describe("Assistant Sales Request orchestration", () => {
 		expect(reserved).toBe(false);
 		expect(providerCalled).toBe(false);
 	});
+
+	test("honors the Assistant provider kill switch before paid draft work", async () => {
+		let reserved = false;
+		let providerCalled = false;
+		const runtime = draftRuntime({
+			reserveUsage: async () => {
+				reserved = true;
+			},
+			createProvider: () => async () => {
+				providerCalled = true;
+				return { output: unresolvedSeed };
+			},
+		});
+		await expect(
+			createAssistantSalesRequestDraft(
+				assistantActor,
+				{ type: "order", text: "Two configured doors for delivery." },
+				new AbortController().signal,
+				{} as never,
+				runtime,
+				{ ASSISTANT_DISABLED_PROVIDERS: "openai" },
+			),
+		).rejects.toThrow("provider is disabled");
+		expect(reserved).toBe(false);
+		expect(providerCalled).toBe(false);
+	});
 });
 
 const assistantActor = {

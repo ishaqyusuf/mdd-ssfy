@@ -26,6 +26,7 @@ describe("assistant runtime settings", () => {
 		const providers = getAssistantProviderOptions({
 			ASSISTANT_OPENAI_API_KEY: "secret-value-that-must-not-leak",
 			SALES_REQUEST_DEEPSEEK_API_KEY: "sales-secret-that-must-not-leak",
+			ASSISTANT_DISABLED_PROVIDERS: "openai, GOOGLE",
 		});
 
 		expect(
@@ -33,6 +34,15 @@ describe("assistant runtime settings", () => {
 		).toBe(true);
 		expect(
 			providers.find((provider) => provider.id === "deepseek")?.configured,
+		).toBe(true);
+		expect(
+			providers.find((provider) => provider.id === "openai")?.enabled,
+		).toBe(false);
+		expect(
+			providers.find((provider) => provider.id === "google")?.enabled,
+		).toBe(false);
+		expect(
+			providers.find((provider) => provider.id === "deepseek")?.enabled,
 		).toBe(true);
 		expect(JSON.stringify(providers)).not.toContain(
 			"secret-value-that-must-not-leak",

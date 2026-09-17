@@ -65,8 +65,18 @@ export function AssistantRuntimeSettings() {
 						Choose the AI provider and model used for new Assistant runs.
 					</p>
 				</div>
-				<Badge variant={provider?.configured ? "default" : "secondary"}>
-					{provider?.configured
+				<Badge
+					variant={
+						provider?.enabled === false
+							? "destructive"
+							: provider?.configured
+								? "default"
+								: "secondary"
+					}
+				>
+					{provider?.enabled === false
+						? "Disabled by server operator"
+						: provider?.configured
 						? "Credential configured"
 						: "Credential missing"}
 				</Badge>
@@ -87,9 +97,17 @@ export function AssistantRuntimeSettings() {
 						</SelectTrigger>
 						<SelectContent>
 							{data.providers.map((item) => (
-								<SelectItem key={item.id} value={item.id}>
+								<SelectItem
+									key={item.id}
+									value={item.id}
+									disabled={!item.enabled}
+								>
 									{item.label}
-									{item.configured ? "" : " · key required"}
+									{!item.enabled
+										? " · disabled"
+										: item.configured
+											? ""
+											: " · key required"}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -135,7 +153,12 @@ export function AssistantRuntimeSettings() {
 						Discard
 					</Button>
 					<Button
-						disabled={!changed || !provider?.configured || update.isPending}
+						disabled={
+							!changed ||
+							!provider?.enabled ||
+							!provider.configured ||
+							update.isPending
+						}
 						onClick={() =>
 							update.mutate({
 								...selection,

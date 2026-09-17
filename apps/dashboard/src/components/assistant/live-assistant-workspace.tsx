@@ -4,6 +4,7 @@ import { useTRPC, useTRPCClient } from "@/trpc/client";
 import { useChat } from "@ai-sdk/react";
 import { assistantErrorReference } from "@api/assistant/diagnostic-contract";
 import { assistantOutcomeSchema, presentAssistantOutcome, type AssistantOutcome } from "@api/assistant/outcomes";
+import { assistantReconnectResponseSchema } from "@api/schemas/assistant";
 import { Button } from "@gnd/ui/button";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@gnd/ui/empty";
 import { PageTitle } from "@gnd/ui/custom/page-title";
@@ -47,6 +48,7 @@ import {
 	claimAssistantPendingPrompt,
 	getAssistantIntegrationIdsForMessage,
 	getAssistantRequestId,
+	hydrateAssistantReconnectState,
 	initialAssistantStreamState,
 	parseAssistantQuotaLimit,
 	parseAssistantRequestLimit,
@@ -498,16 +500,9 @@ function AssistantConversation(props: {
 				);
 				if (!response.ok)
 					throw new Error("Unable to reconnect to this response");
-				const result = (await response.json()) as {
-					status: string;
-					lastSequence: number;
-					messages: Array<{
-						id?: string;
-						role?: string;
-						parts?: unknown;
-						sequence?: number;
-					}>;
-				};
+				const result = assistantReconnectResponseSchema.parse(
+					await response.json(),
+				);
 				const received = persistedMessagesToUi(result.messages);
 				if (received.length) {
 					chat.setMessages((current) => {
@@ -523,12 +518,12 @@ function AssistantConversation(props: {
 					...result.messages.map((message) => message.sequence ?? 0),
 				);
 				runSequence = Math.max(runSequence, result.lastSequence ?? 0);
-				setStreamState((state) => ({
-					...state,
-					status: result.status,
-					messageSequence,
-					runSequence,
-				}));
+				setStreamState((state) =>
+					hydrateAssistantReconnectState(
+						{ ...state, messageSequence, runSequence },
+						result,
+					),
+				);
 				if (!activeStatuses.has(result.status)) break;
 				await new Promise((resolve) => setTimeout(resolve, 1_000));
 			}

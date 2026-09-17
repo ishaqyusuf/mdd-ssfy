@@ -7,7 +7,11 @@ import { AssistantOperationError } from "@api/assistant/operation-diagnostics";
 import { presentAssistantOutcome, type AssistantOutcome } from "@api/assistant/outcomes";
 import { resolveAssistantIntegrationIds } from "@api/assistant/integrations";
 import { getAssistantAllowedOrigins } from "@api/assistant/origins";
-import { getAssistantRuntimeIdentity } from "@api/assistant/runtime";
+import {
+	AssistantProviderDisabledError,
+	assertAssistantProviderEnabled,
+	getAssistantRuntimeIdentity,
+} from "@api/assistant/runtime";
 import { getAssistantRuntimeConfiguration } from "@api/assistant/runtime-settings";
 import {
 	getAssistantPreferences,
@@ -28,13 +32,16 @@ import {
 	AssistantMessageValidationError,
 	AssistantQuotaExceededError,
 	AssistantQuotaUnavailableError,
+	aggregateAssistantUsageEvents,
 	claimAssistantRunForExecution,
 	appendAssistantGeneratedMessage,
 	completeAssistantRun,
 	createOrReuseAssistantRequestRun,
+	estimateAssistantUsageCostMicros,
+	findAssistantUsagePrice,
 	getAssistantRunForReconnect,
+	normalizeAssistantProviderUsageCalls,
 	reserveAssistantQuota,
-	settleAssistantQuotaReservationFallback,
 } from "@gnd/db/queries";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import {
@@ -399,6 +406,9 @@ function publicRequestError(error: unknown) {
 			403,
 		);
 	}
+	if (error instanceof AssistantProviderDisabledError) {
+		return jsonError(error.code, "Assistant service is temporarily disabled", 503);
+	}
 	if (error instanceof AssistantMessageValidationError) {
 		return jsonError(error.code, error.message, 400);
 	}
@@ -516,6 +526,7 @@ const defaultDependencies: AssistantRouterDependencies = {
 	},
 	async startRun(input) {
 		const configuration = await getAssistantRuntimeConfiguration(db);
+		assertAssistantProviderEnabled(configuration.selection.provider);
 		const runtimeIdentity = getAssistantRuntimeIdentity({
 			ASSISTANT_AI_PROVIDER: configuration.selection.provider,
 			ASSISTANT_AI_MODEL: configuration.selection.model,
@@ -581,35 +592,129 @@ const defaultDependencies: AssistantRouterDependencies = {
 		});
 	},
 	async recoverFinalization(input) {
-		await db.assistantRun.updateMany({
-			where: {
-				id: input.runId,
-				actorUserId: input.actor.userId,
-				status: { notIn: ["succeeded", "failed", "cancelled"] },
-				conversation: {
-					ownerUserId: input.actor.userId,
-					scopeType: input.actor.scopeType,
-					scopeId: input.actor.scopeId,
-					deletedAt: null,
-				},
-			},
-			data: {
-				status: input.status,
-				errorCode: "ASSISTANT_FINALIZATION_RECOVERED",
-				errorMessage: "Assistant run finalization required recovery",
-				completedAt: new Date(),
-			},
-		});
 		const usage =
 			input.usage &&
 			typeof input.usage === "object" &&
 			!Array.isArray(input.usage)
 				? input.usage
 				: null;
-		await settleAssistantQuotaReservationFallback(db, {
-			runId: input.runId,
-			release:
-				input.status === "cancelled" && usage?.providerAttempted === false,
+		const completedAt = new Date();
+		await db.$transaction(async (tx) => {
+			const run = await tx.assistantRun.findFirst({
+				where: {
+					id: input.runId,
+					actorUserId: input.actor.userId,
+					conversation: {
+						ownerUserId: input.actor.userId,
+						scopeType: input.actor.scopeType,
+						scopeId: input.actor.scopeId,
+						deletedAt: null,
+					},
+				},
+				select: {
+					id: true,
+					actorUserId: true,
+					model: true,
+					startedAt: true,
+				},
+			});
+			if (!run) return;
+			const recovered = await tx.assistantRun.updateMany({
+				where: {
+					id: run.id,
+					status: { notIn: ["succeeded", "failed", "cancelled"] },
+				},
+				data: {
+					status: input.status,
+					usage: input.usage,
+					errorCode: "ASSISTANT_FINALIZATION_RECOVERED",
+					errorMessage: "Assistant run finalization required recovery",
+					completedAt,
+				},
+			});
+			// If another request finalized the run while primary finalization was
+			// failing, never attach this fallback outcome or settle its quota. The
+			// canonical completion path owns the already-terminal run.
+			if (recovered.count !== 1) return;
+			const cancelledBeforeProvider =
+				input.status === "cancelled" && usage?.providerAttempted === false;
+			const normalizedCalls = cancelledBeforeProvider
+				? []
+				: normalizeAssistantProviderUsageCalls(
+						input.usage,
+						run.model,
+						run.id,
+					);
+			const toolCallCount = normalizedCalls.length
+				? await tx.assistantToolExecution.count({ where: { runId: run.id } })
+				: 0;
+			for (const [index, normalized] of normalizedCalls.entries()) {
+				const price = await findAssistantUsagePrice(
+					tx,
+					normalized,
+					completedAt,
+				);
+				const estimatedCostMicros = estimateAssistantUsageCostMicros(
+					normalized,
+					price,
+				);
+				await tx.assistantUsageEvent.upsert({
+					where: { providerRequestId: normalized.providerRequestId },
+					create: {
+						runId: run.id,
+						providerRequestId: normalized.providerRequestId,
+						actorUserId: run.actorUserId,
+						scopeType: input.actor.scopeType,
+						scopeId: input.actor.scopeId,
+						provider: normalized.provider,
+						model: normalized.model,
+						requestClass: "chat",
+						inputTokens: normalized.inputTokens,
+						cachedInputTokens: normalized.cachedInputTokens,
+						outputTokens: normalized.outputTokens,
+						reasoningTokens: normalized.reasoningTokens,
+						totalTokens: normalized.totalTokens,
+						toolCallCount:
+							normalized.toolCallCount ?? (index === 0 ? toolCallCount : 0),
+						durationMs: run.startedAt
+							? Math.max(0, completedAt.getTime() - run.startedAt.getTime())
+							: null,
+						outcome: input.status,
+						estimatedCostMicros,
+						priceVersion: price?.version ?? null,
+						accountingStatus:
+							normalized.totalTokens === null ? "unknown" : "reported",
+						startedAt: run.startedAt,
+						completedAt,
+					},
+					update: {},
+				});
+			}
+			const usageEvents = await tx.assistantUsageEvent.findMany({
+				where: { runId: run.id },
+				select: { totalTokens: true, estimatedCostMicros: true },
+			});
+			const { actualTokens, actualCostMicros } =
+				aggregateAssistantUsageEvents(usageEvents);
+			await tx.assistantQuotaReservation.updateMany({
+				where: {
+					runId: run.id,
+					status: { in: ["reserved", "expired"] },
+				},
+				data: cancelledBeforeProvider
+					? {
+							status: "released",
+							actualTokens: 0n,
+							actualCostMicros: 0n,
+							settledAt: completedAt,
+						}
+					: {
+							status: "settled",
+							actualTokens,
+							actualCostMicros,
+							settledAt: completedAt,
+						},
+			});
 		});
 	},
 	async executeRun({ actor, reauthorizeActor, request, run, writer, signal }) {
@@ -845,7 +950,7 @@ export function createAssistantChatRouter(
 									context.req.raw,
 								);
 								if (!currentActor) {
-									throw new Error("Assistant access is no longer available");
+									throw new AssistantAccessDisabledError();
 								}
 								return currentActor;
 							},

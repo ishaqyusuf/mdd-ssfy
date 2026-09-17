@@ -129,6 +129,51 @@ export const assistantEffectPolicies = {
 	{ confirmation: "none" | "explicit"; directExecution: boolean }
 >;
 
+type AssistantToolControlTarget = Pick<
+	AssistantToolDefinition,
+	"domain" | "effect"
+>;
+
+function disabledAssistantToolValues(
+	value: string | undefined,
+): ReadonlySet<string> {
+	return new Set(
+		(value ?? "")
+			.split(",")
+			.map((entry) => entry.trim().toLowerCase())
+			.filter(Boolean),
+	);
+}
+
+export function isAssistantToolControlEnabled(
+	tool: AssistantToolControlTarget,
+	environment: Readonly<Record<string, string | undefined>> = process.env,
+) {
+	if (
+		environment.ASSISTANT_READ_ONLY_CANARY?.trim().toLowerCase() === "true" &&
+		tool.effect !== "read"
+	)
+		return false;
+	const disabledDomains = disabledAssistantToolValues(
+		environment.ASSISTANT_DISABLED_TOOL_DOMAINS,
+	);
+	const disabledEffects = disabledAssistantToolValues(
+		environment.ASSISTANT_DISABLED_TOOL_EFFECTS,
+	);
+	return (
+		!disabledDomains.has(tool.domain.toLowerCase()) &&
+		!disabledEffects.has(tool.effect.toLowerCase())
+	);
+}
+
+export function isAssistantReadOnlyCanary(
+	environment: Readonly<Record<string, string | undefined>> = process.env,
+) {
+	return (
+		environment.ASSISTANT_READ_ONLY_CANARY?.trim().toLowerCase() === "true"
+	);
+}
+
 const searchToolsInputSchema = z
 	.object({
 		query: z.string().trim().min(1).max(200),
@@ -2395,11 +2440,15 @@ function isAuthorized(
 	);
 }
 
-export function getExecutableAssistantDefinitions(actor: AssistantToolActor) {
+export function getExecutableAssistantDefinitions(
+	actor: AssistantToolActor,
+	environment?: Readonly<Record<string, string | undefined>>,
+) {
 	return assistantToolRegistry.filter(
 		(tool) =>
 			tool.capability === "implemented" &&
 			assistantEffectPolicies[tool.effect].directExecution &&
+			isAssistantToolControlEnabled(tool, environment) &&
 			isAuthorized(actor, tool) &&
 			tool.handler,
 	);
@@ -2424,14 +2473,19 @@ export function getAssistantPermissionMatrix() {
 	}));
 }
 
-function publicDefinition(definition: AssistantToolDefinition) {
+function publicDefinition(
+	definition: AssistantToolDefinition,
+	environment?: Readonly<Record<string, string | undefined>>,
+) {
 	return {
 		toolId: definition.toolId,
 		version: definition.version,
 		domain: definition.domain,
 		title: definition.title,
 		description: definition.description,
-		capability: definition.capability,
+		capability: isAssistantToolControlEnabled(definition, environment)
+			? definition.capability
+			: ("disabled" as const),
 		effect: definition.effect,
 		presentation: definition.presentation,
 		relatedTools: definition.relatedTools,
@@ -2439,34 +2493,42 @@ function publicDefinition(definition: AssistantToolDefinition) {
 	};
 }
 
-export function discoverAssistantTools(actor: AssistantToolActor) {
+export function discoverAssistantTools(
+	actor: AssistantToolActor,
+	environment?: Readonly<Record<string, string | undefined>>,
+) {
 	return assistantToolRegistry
 		.filter(
 			(tool) =>
 				tool.capability === "implemented" &&
 				assistantEffectPolicies[tool.effect].directExecution &&
+				isAssistantToolControlEnabled(tool, environment) &&
 				isAuthorized(actor, tool),
 		)
-		.map(publicDefinition)
+		.map((definition) => publicDefinition(definition, environment))
 		.sort((left, right) => left.toolId.localeCompare(right.toolId));
 }
 
-export function getAssistantToolCatalog(actor: AssistantToolActor) {
+export function getAssistantToolCatalog(
+	actor: AssistantToolActor,
+	environment?: Readonly<Record<string, string | undefined>>,
+) {
 	return assistantToolRegistry
 		.filter((tool) => isAuthorized(actor, tool))
-		.map(publicDefinition)
+		.map((definition) => publicDefinition(definition, environment))
 		.sort((left, right) => left.toolId.localeCompare(right.toolId));
 }
 
 export function getAssistantRegistryPublicDefinitions() {
 	return assistantToolRegistry
-		.map(publicDefinition)
+		.map((definition) => publicDefinition(definition))
 		.sort((left, right) => left.toolId.localeCompare(right.toolId));
 }
 
 export function getAssistantRegistryKnowledgeDefinitions(options?: {
 	domain?: string;
 	maxSchemaContracts?: number;
+	environment?: Readonly<Record<string, string | undefined>>;
 }) {
 	const contractIds = new Set(
 		assistantToolRegistry
@@ -2482,7 +2544,7 @@ export function getAssistantRegistryKnowledgeDefinitions(options?: {
 	);
 	return assistantToolRegistry
 		.map((definition) => ({
-			...publicDefinition(definition),
+			...publicDefinition(definition, options?.environment),
 			requiredGrants: [...definition.requiredGrants],
 			anyOfGrants: [...(definition.anyOfGrants ?? [])],
 			...(contractIds.has(definition.toolId)
@@ -2545,6 +2607,13 @@ function assistantResultEnvelope<T = never>(input: {
 	};
 	allowedNextActions?: Array<{ toolId: string; toolVersion: number }>;
 }) {
+	const allowedNextActions = (input.allowedNextActions ?? []).filter((action) => {
+		const definition = assistantToolRegistry.find(
+			(tool) =>
+				tool.toolId === action.toolId && tool.version === action.toolVersion,
+		);
+		return definition && isAssistantToolControlEnabled(definition);
+	});
 	return {
 		status: input.status,
 		...(input.data === undefined ? {} : { data: input.data }),
@@ -2555,7 +2624,7 @@ function assistantResultEnvelope<T = never>(input: {
 		...(input.revision ? { revision: input.revision } : {}),
 		...(input.artifact ? { artifact: input.artifact } : {}),
 		...(input.job ? { job: input.job } : {}),
-		allowedNextActions: input.allowedNextActions ?? [],
+		allowedNextActions,
 	};
 }
 
@@ -2570,6 +2639,7 @@ export async function executeRegisteredAssistantTool(
 	execution: AssistantToolExecution = {
 		signal: new AbortController().signal,
 	},
+	environment?: Readonly<Record<string, string | undefined>>,
 ) {
 	const definition = assistantToolRegistry.find(
 		(tool) => tool.toolId === input.toolId && tool.version === input.version,
@@ -2578,6 +2648,7 @@ export async function executeRegisteredAssistantTool(
 		!definition ||
 		definition.capability !== "implemented" ||
 		!assistantEffectPolicies[definition.effect].directExecution ||
+		!isAssistantToolControlEnabled(definition, environment) ||
 		!isAuthorized(actor, definition) ||
 		!definition.handler
 	) {
@@ -2602,6 +2673,7 @@ export async function preflightRegisteredAssistantProposal(
 	actor: AssistantToolActor,
 	input: { toolId: string; version: number; input: unknown },
 	serviceOverrides: Partial<AssistantToolServices> = {},
+	environment?: Readonly<Record<string, string | undefined>>,
 ) {
 	const definition = assistantToolRegistry.find(
 		(tool) => tool.toolId === input.toolId && tool.version === input.version,
@@ -2609,6 +2681,7 @@ export async function preflightRegisteredAssistantProposal(
 	if (
 		!definition ||
 		definition.capability !== "implemented" ||
+		!isAssistantToolControlEnabled(definition, environment) ||
 		!isAuthorized(actor, definition) ||
 		!definition.proposalPreflight
 	) {
@@ -2640,6 +2713,7 @@ export async function executeApprovedAssistantProposal(
 		expectedTargetRevision?: string | null;
 	},
 	serviceOverrides: Partial<AssistantToolServices> = {},
+	environment?: Readonly<Record<string, string | undefined>>,
 ) {
 	const definition = assistantToolRegistry.find(
 		(tool) => tool.toolId === input.toolId && tool.version === input.version,
@@ -2647,6 +2721,7 @@ export async function executeApprovedAssistantProposal(
 	if (
 		!definition ||
 		definition.capability !== "implemented" ||
+		!isAssistantToolControlEnabled(definition, environment) ||
 		assistantEffectPolicies[definition.effect].confirmation !== "explicit" ||
 		!isAuthorized(actor, definition) ||
 		!definition.proposalPreflight ||

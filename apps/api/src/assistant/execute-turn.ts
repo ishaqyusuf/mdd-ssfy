@@ -22,12 +22,15 @@ import { assistantDocumentProposalActionPartSchema } from "./document-action-con
 import { getAssistantComposioTools } from "./integrations";
 import { createAssistantReadRetry } from "./manual-read-retry";
 import { createAssistantMcpExecutionClient } from "./mcp";
+import { isAssistantReadOnlyCanary } from "./registry";
 import { captureAssistantDiagnostic } from "./diagnostics";
 import { runAssistantOperation } from "./operation-diagnostics";
 import type { AssistantDiagnosticStage } from "./diagnostic-contract";
 import { assistantOrderDraftPartSchema } from "./order-draft-contract";
 import {
 	type AssistantRuntimeInput,
+	assertAssistantActorContinuation,
+	assertAssistantProviderEnabled,
 	createAssistantRuntime,
 	getAssistantRuntimeIdentity,
 	resolveAssistantRuntimeSelection,
@@ -361,13 +364,15 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 					};
 				},
 			),
-			getAssistantComposioTools(
-				input.actor,
-				input.mentionedIntegrations.map(({ id }) => id),
-				process.env,
-				undefined,
-				input.reauthorizeActor,
-			),
+			isAssistantReadOnlyCanary()
+				? Promise.resolve({})
+				: getAssistantComposioTools(
+						input.actor,
+						input.mentionedIntegrations.map(({ id }) => id),
+						process.env,
+						undefined,
+						input.reauthorizeActor,
+					),
 		]);
 		try {
 			await warmAssistantToolIndex(input.actor);
@@ -496,25 +501,45 @@ export async function executeAssistantConversationTurn(
 	overrides: Partial<ExecuteAssistantTurnDependencies> = {},
 ) {
 	const dependencies = { ...defaultDependencies, ...overrides };
+	const cancelledBeforeProvider = () => ({
+		status: "cancelled" as const,
+		errorCode: "ASSISTANT_RUN_CANCELLED",
+		errorMessage: "Assistant run cancelled",
+		usage: { providerAttempted: false },
+	});
+	if (input.signal.aborted) return cancelledBeforeProvider();
 	const stage = <T>(name: AssistantDiagnosticStage, operation: string, execute: () => Promise<T>) => runAssistantOperation({
 		stage: name, operation, runId: input.run.runId, conversationId: input.request.conversationId,
 		requestId: input.request.requestId, actorUserId: input.actor.userId,
 		scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
 	}, execute, { capture: dependencies.captureDiagnostic, signal: input.signal });
+	const currentActor = input.reauthorizeActor
+		? await stage(
+				"authentication",
+				"assistant.reauthorizeTurn",
+				input.reauthorizeActor,
+			)
+		: input.actor;
+	assertAssistantActorContinuation(input.actor, currentActor);
+	if (input.signal.aborted) return cancelledBeforeProvider();
 	const [runProvider, runModel] = input.run.modelIdentity?.split(":", 2) ?? [];
-	const runtimeSelection = await stage("provider", "assistant.resolveProvider", async () =>
-		runProvider && runModel
+	const runtimeSelection = await stage("provider", "assistant.resolveProvider", async () => {
+		const selection = runProvider && runModel
 			? resolveAssistantRuntimeSelection({
 					ASSISTANT_AI_PROVIDER: runProvider,
 					ASSISTANT_AI_MODEL: runModel,
 				})
-			: getAssistantRuntimeIdentity());
+			: getAssistantRuntimeIdentity();
+		assertAssistantProviderEnabled(selection.provider);
+		return selection;
+	});
+	if (input.signal.aborted) return cancelledBeforeProvider();
 	const documentIds = input.request.message.parts.flatMap((part) =>
 		part.type === "file" ? [part.documentId] : [],
 	);
 	const [history, documents] = await Promise.all([
 		stage("history", "assistant.loadHistory", () => dependencies.loadHistory({
-			actor: input.actor,
+			actor: currentActor,
 			conversationId: input.request.conversationId,
 		})),
 		stage("attachment", "assistant.loadAttachments", () => dependencies.loadDocuments({
@@ -522,6 +547,7 @@ export async function executeAssistantConversationTurn(
 			documentIds,
 		})),
 	]);
+	if (input.signal.aborted) return cancelledBeforeProvider();
 	const fallbackText =
 		input.request.message.parts
 			.flatMap((part) => (part.type === "text" ? [part.text] : []))
@@ -644,7 +670,7 @@ export async function executeAssistantConversationTurn(
 		runId: input.run.runId,
 		conversationId: input.request.conversationId,
 		requestId: input.request.requestId,
-		actor: input.actor,
+		actor: currentActor,
 		modelMessages,
 		recentUploads: documents.map((document) => ({
 			id: document.id,
@@ -682,7 +708,7 @@ export async function executeAssistantConversationTurn(
 	const persistResponse = async (assistantText: string) => {
 		try {
 			await dependencies.persistAssistantMessage({
-				actor: input.actor, conversationId: input.request.conversationId,
+				actor: currentActor, conversationId: input.request.conversationId,
 				runId: input.run.runId, parentMessageId: input.run.triggerMessageId ?? null,
 				assistantText, assistantParts,
 			});
