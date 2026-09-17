@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { AssistantAccessDisabledError } from "@api/assistant/access-governance";
+import { AssistantAttachmentInputError } from "@api/assistant/attachment-errors";
+import { runAssistantOperation } from "@api/assistant/operation-diagnostics";
 import { AssistantQuotaExceededError } from "@gnd/db/queries";
 import { readUIMessageStream } from "ai";
-import { runAssistantOperation } from "@api/assistant/operation-diagnostics";
-import { AssistantAttachmentInputError } from "@api/assistant/attachment-errors";
 import {
 	AssistantStreamGuard,
 	DistributedAssistantStreamGuard,
@@ -141,6 +142,29 @@ describe("assistant chat REST router", () => {
 
 		expect(response.status).toBe(401);
 		expect(await response.json()).toEqual({ error: { code: "UNAUTHORIZED", message: "Please sign in again to continue." }, outcome: { kind: "signed-out" } });
+		expect(calls).toHaveLength(0);
+	});
+
+	test("returns a typed denial when website access is disabled", async () => {
+		const { router, calls } = createHarness({
+			resolveActor: async () => {
+				throw new AssistantAccessDisabledError();
+			},
+		});
+		const response = await router.request("/", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(requestBody()),
+		});
+
+		expect(response.status).toBe(403);
+		expect(await response.json()).toEqual({
+			error: {
+				code: "ASSISTANT_ACCESS_DISABLED",
+				message: "You don't have access to this information.",
+			},
+			outcome: { kind: "denied" },
+		});
 		expect(calls).toHaveLength(0);
 	});
 

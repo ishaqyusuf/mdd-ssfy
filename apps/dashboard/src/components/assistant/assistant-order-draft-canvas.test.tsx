@@ -6,7 +6,7 @@ import {
 	AssistantOrderDraftPreparationStatus,
 	AssistantOrderDraftPricing,
 	AssistantOrderDraftProvenance,
-	applyAssistantOrderDraftToSalesEditor,
+	createAssistantOrderDraftSalesHandoff,
 	prepareAssistantOrderDraftCanvas,
 	selectAssistantOrderDraftPreparation,
 } from "./assistant-order-draft-canvas";
@@ -39,6 +39,19 @@ const draft = {
 };
 
 describe("assistant order draft canvas", () => {
+	test("hands the reviewed draft to the canonical Sales create route", () => {
+		const handoff = createAssistantOrderDraftSalesHandoff(draft);
+		expect(handoff.href).toBe(
+			"/sales-form/create-order?salesRequestGeneration=88d3cb0f-32b9-4e3d-b5c3-1a1425374a83",
+		);
+		expect(handoff.preview).toMatchObject({
+			generationId: draft.data.generationId,
+			seed: draft.data.seed,
+			clarification: null,
+			userReviewed: true,
+		});
+	});
+
 	test("validates freshness even when unresolved fields block initialization", async () => {
 		let validations = 0;
 		const result = await prepareAssistantOrderDraftCanvas({
@@ -200,50 +213,5 @@ describe("assistant order draft canvas", () => {
 		expect(markup).toContain("$50.00 stated delivery charge");
 		expect(markup).toContain("Line 1 · Size · width");
 		expect(markup).toContain("Choose one width");
-	});
-
-	test("hydrates and applies through the existing Sales proposal transaction", () => {
-		const calls: string[] = [];
-		const baseRecord = { salesId: null, lineItems: [] } as never;
-		const proposal = { proposalId: "proposal-1" } as never;
-		const result = applyAssistantOrderDraftToSalesEditor({
-			baseRecord,
-			preparation: { status: "ready", proposal },
-			currentConfigurationRevision: "catalog-revision-4",
-			store: {
-				hydrate(record) {
-					expect(record).not.toBe(baseRecord);
-					calls.push("hydrate");
-				},
-				applyRequestGenerationProposal(received, revision) {
-					expect(received).toBe(proposal);
-					expect(revision).toBe("catalog-revision-4");
-					calls.push("apply");
-					return { status: "applied" };
-				},
-			},
-		});
-		expect(result.status).toBe("applied");
-		expect(calls).toEqual(["hydrate", "apply"]);
-	});
-
-	test("does not touch Sales form state before a native proposal is ready", () => {
-		let touched = false;
-		const result = applyAssistantOrderDraftToSalesEditor({
-			baseRecord: {} as never,
-			preparation: null,
-			currentConfigurationRevision: "catalog-revision-4",
-			store: {
-				hydrate() {
-					touched = true;
-				},
-				applyRequestGenerationProposal() {
-					touched = true;
-					return { status: "unavailable" };
-				},
-			},
-		});
-		expect(result.status).toBe("unavailable");
-		expect(touched).toBe(false);
 	});
 });

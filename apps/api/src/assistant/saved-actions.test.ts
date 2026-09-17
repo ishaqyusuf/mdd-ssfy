@@ -26,7 +26,7 @@ const actor = {
 };
 
 const currentRevision = (toolId: string, version = 1) =>
-	`assistant-catalog-v7:${toolId}@${version}`;
+	`assistant-catalog-v8:${toolId}@${version}`;
 
 function transactional<T extends object>(store: T) {
 	return Object.assign(store, {

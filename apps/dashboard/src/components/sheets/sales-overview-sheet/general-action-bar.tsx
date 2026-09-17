@@ -1,5 +1,5 @@
-import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
+import { buildAssistantContextUrl } from "@/components/assistant/assistant-context";
 import { AuthGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
@@ -9,25 +9,31 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
+import { useTRPC } from "@/trpc/client";
 import { salesFormUrl } from "@/utils/sales-utils";
-import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/icons";
 import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
-import { useState, useTransition } from "react";
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
+import { Button } from "@gnd/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
-import { SpecialOrderOverviewControls } from "./special-order-overview-card";
+import { Icons } from "@gnd/ui/icons";
+import { useQuery } from "@gnd/ui/tanstack";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useSaleOverview } from "./context";
+import { SpecialOrderOverviewControls } from "./special-order-overview-card";
 type SalesType = "order" | "quote";
 const actionButtonClass =
 	"h-9 w-full min-w-0 items-center justify-center gap-2";
 
 export function GeneralActionBar({ type, salesNo, salesId }) {
+	const router = useRouter();
+	const trpc = useTRPC();
 	const { data } = useSaleOverview() as {
 		data?: {
 			pipeline?: SalesPipelineSnapshot | null;
@@ -66,6 +72,11 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		data?.control?.productionStatus ?? data?.status?.production?.status;
 	const sPreview = useSalesPreview();
 	const auth = useAuth();
+	const assistantAccess = useQuery({
+		...trpc.assistant.bootstrap.queryOptions(),
+		enabled: auth.enabled && Boolean(data?.orderId ?? salesNo),
+		staleTime: 30_000,
+	});
 	const canSendForPacking =
 		Boolean(auth.can?.editOrders) &&
 		auth.roleTitle?.toLowerCase() === "super admin" &&
@@ -150,6 +161,26 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 					customerPhone={data?.customerPhone}
 					customerName={data?.displayName}
 				>
+					{assistantAccess.data?.enabled && (data?.orderId ?? salesNo) ? (
+						<>
+							<SalesMenu.Item
+								onSelect={() => {
+									const orderNo = data?.orderId ?? salesNo;
+									if (!orderNo) return;
+									router.push(
+										buildAssistantContextUrl({
+											entityType: isQuote ? "quote" : "order",
+											entityId: String(orderNo),
+											intent: "status-and-blockers",
+										}),
+									);
+								}}
+							>
+								Ask Assistant
+							</SalesMenu.Item>
+							<SalesMenu.Separator />
+						</>
+					) : null}
 					<SalesMenu.Sub>
 						<SalesMenu.SubTrigger>Send</SalesMenu.SubTrigger>
 						<SalesMenu.SubContent>

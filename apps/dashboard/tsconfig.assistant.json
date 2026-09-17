@@ -1,0 +1,18 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2022"
+	},
+	"include": [
+		"next-env.d.ts",
+		"src/app/(sidebar)/assistant/**/*.ts",
+		"src/app/(sidebar)/assistant/**/*.tsx",
+		"src/app/api/assistant/**/*.ts",
+		"src/components/assistant/**/*.ts",
+		"src/components/assistant/**/*.tsx",
+		"src/components/sheets/assistant-diagnostic-sheet.tsx",
+		"src/components/sheets/sales-overview-sheet/general-action-bar.tsx",
+		"src/hooks/use-assistant-diagnostic-params.ts"
+	],
+	"exclude": ["node_modules", ".next", "**/*.test.ts", "**/*.test.tsx"]
+}

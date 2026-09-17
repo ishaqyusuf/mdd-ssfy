@@ -21,6 +21,7 @@ import {
 	getSalesPipelineSnapshots,
 } from "@gnd/sales/sales-pipeline-order";
 import { z } from "zod";
+import { getAssistantSalesFinanceReceivablesSummary } from "../db/queries/sales-finance";
 import { assistantAnalyticsQueryIntentSchema } from "./analytics-contract";
 import { assistantAnalyticsResultSchema } from "./analytics-result-contract";
 import { runAssistantAnalytics } from "./analytics-service";
@@ -44,7 +45,7 @@ import {
 	queueAssistantSalesPdfJob,
 } from "./pdf-artifacts";
 
-export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v7";
+export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v8";
 
 export const assistantToolDomains = [
 	"system",
@@ -213,6 +214,17 @@ const orderTypeSchema = z.enum(["order", "quote"]);
 const orderSearchInputSchema = pageInputSchema.extend({
 	type: orderTypeSchema.optional(),
 });
+const financeOrderSummaryInputSchema = z
+	.object({
+		query: z.string().trim().min(1).max(120).optional(),
+		from: z.string().date().optional(),
+		to: z.string().date().optional(),
+		agingBuckets: z
+			.array(z.enum(["current", "1_30", "31_60", "61_90", "90_plus"]))
+			.max(5)
+			.optional(),
+	})
+	.strict();
 const orderIdentityInputSchema = z
 	.object({
 		orderNo: z.string().trim().min(1).max(64),
@@ -432,6 +444,24 @@ const orderPageSchema = z
 		nextCursor: z.number().int().positive().nullable(),
 	})
 	.strict();
+const financeOrderSummarySchema = z
+	.object({
+		currency: z.literal("USD"),
+		receivableCount: z.number().int().nonnegative(),
+		customerCount: z.number().int().nonnegative(),
+		totalOutstanding: z.number(),
+		overdueAmount: z.number(),
+		currentAmount: z.number(),
+		unreconciledCount: z.number().int().nonnegative(),
+		bucketAmounts: z.record(z.string(), z.number()),
+		bucketCounts: z.record(z.string(), z.number().int().nonnegative()),
+	})
+	.strict();
+type FinanceOrderSummaryInput = z.infer<typeof financeOrderSummaryInputSchema>;
+type FinanceOrderSummary = Omit<
+	z.infer<typeof financeOrderSummarySchema>,
+	"currency"
+>;
 const customerPageSchema = z
 	.object({
 		items: z.array(customerSchema),
@@ -673,6 +703,10 @@ export type AssistantToolServices = {
 		input: z.infer<typeof assistantAnalyticsQueryIntentSchema>,
 		signal: AbortSignal,
 	) => Promise<z.infer<typeof assistantAnalyticsResultSchema>>;
+	getSalesFinanceSummary: (
+		actor: AssistantToolActor,
+		input: FinanceOrderSummaryInput,
+	) => Promise<FinanceOrderSummary>;
 	findSalesOrders: (
 		actor: AssistantToolActor,
 		input: OrderSearchInput,
@@ -831,6 +865,13 @@ async function loadCanonicalSalesOrders(orders: RawDetailedOrder[]) {
 const defaultAssistantToolServices: AssistantToolServices = {
 	runAnalytics: (actor, input, signal) =>
 		runAssistantAnalytics(db, actor, input, signal),
+	getSalesFinanceSummary: (actor, input) =>
+		getAssistantSalesFinanceReceivablesSummary(db, actor, {
+			q: input.query,
+			from: input.from,
+			to: input.to,
+			agingBuckets: input.agingBuckets,
+		}),
 	findSalesOrders: (actor, input) => findAssistantSalesOrders(db, actor, input),
 	getSalesOrderCandidates: async (actor, input) =>
 		loadCanonicalSalesOrders(
@@ -1976,7 +2017,10 @@ const placeholders: AssistantToolDefinition[] = [
 			const input = salesPdfGenerationInputSchema.parse(rawInput);
 			const resolved = await resolveSalesPdfOrder(actor, input, services);
 			if ("result" in resolved)
-				throw new AssistantProposalPrecommitError("conflict", "Sales PDF target is unavailable");
+				throw new AssistantProposalPrecommitError(
+					"conflict",
+					"Sales PDF target is unavailable",
+				);
 			return { ok: true, targetRevision: resolved.order.revision };
 		},
 		async handler(actor, rawInput, services) {
@@ -2089,7 +2133,10 @@ const placeholders: AssistantToolDefinition[] = [
 			const input = salesPdfCancelInputSchema.parse(rawInput);
 			const resolved = await resolveSalesPdfOrder(actor, input, services);
 			if ("result" in resolved)
-				throw new AssistantProposalPrecommitError("conflict", "Sales PDF target is unavailable");
+				throw new AssistantProposalPrecommitError(
+					"conflict",
+					"Sales PDF target is unavailable",
+				);
 			return { ok: true, targetRevision: resolved.order.revision };
 		},
 		async handler(actor, rawInput, services) {
@@ -2167,17 +2214,40 @@ const placeholders: AssistantToolDefinition[] = [
 		domain: "finance",
 		title: "Summarize sales finance",
 		description:
-			"Summarize authorized order payment, balance, and finance evidence.",
-		capability: "coming_soon",
+			"Summarize canonical authorized receivables, overdue balances, and aging evidence.",
+		capability: "implemented",
 		effect: "read",
-		requiredGrants: ["viewOrderPayment"],
+		requiredGrants: ["viewOrders"],
+		anyOfGrants: ["viewOrderPayment", "editOrderPayment"],
 		presentation: {
 			group: "Finance",
 			resultComponent: "finance-summary",
 			icon: "chart-no-axes-combined",
 		},
-		inputSchema: placeholderInputSchema,
-		outputSchema: placeholderDataSchema,
+		inputSchema: financeOrderSummaryInputSchema,
+		outputSchema: financeOrderSummarySchema,
+		relatedTools: ["sales_find_orders", "analytics_query"],
+		async handler(actor, rawInput, services) {
+			const input = financeOrderSummaryInputSchema.parse(rawInput);
+			const summary = await services.getSalesFinanceSummary(actor, input);
+			return assistantResultEnvelope({
+				status: "success",
+				data: { currency: "USD", ...summary },
+				sources: [
+					{
+						kind: "report",
+						id: "sales-finance-receivables",
+						label: "Sales Finance receivables",
+						href: "/sales-finance",
+					},
+				],
+				warnings:
+					summary.unreconciledCount > 0
+						? ["Some receivable balances need reconciliation review."]
+						: [],
+				allowedNextActions: [{ toolId: "analytics_query", toolVersion: 1 }],
+			});
+		},
 	}),
 	definition({
 		toolId: "employees_find",
@@ -2449,7 +2519,12 @@ function assistantResultEnvelope<T = never>(input: {
 		| "failed"
 		| "not_implemented";
 	data?: T;
-	sources?: Array<{ kind: "record"; id: string; label: string }>;
+	sources?: Array<{
+		kind: "record" | "document" | "report" | "web";
+		id: string;
+		label: string;
+		href?: string;
+	}>;
 	warnings?: string[];
 	entities?: AssistantEntityReference[];
 	revision?: string;
@@ -2536,7 +2611,10 @@ export async function preflightRegisteredAssistantProposal(
 		!isAuthorized(actor, definition) ||
 		!definition.proposalPreflight
 	) {
-		throw new AssistantProposalPrecommitError("denied", "Assistant tool is not available");
+		throw new AssistantProposalPrecommitError(
+			"denied",
+			"Assistant tool is not available",
+		);
 	}
 	const parsedInput = definition.inputSchema.parse(input.input);
 	const result = await definition.proposalPreflight(actor, parsedInput, {

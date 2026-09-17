@@ -1,7 +1,11 @@
 import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
-import { buildOfficeCustomerVisibilityWhere } from "@gnd/db/queries";
+import {
+	type AssistantBusinessActor,
+	assistantSalesScopeWhere,
+	buildOfficeCustomerVisibilityWhere,
+} from "@gnd/db/queries";
 import {
 	SALES_FINANCE_ANALYTICS_MAX_DAYS,
 	type SalesFinanceReceivable,
@@ -1031,6 +1035,7 @@ type ReceivableFilters =
 
 function buildSalesFinanceReceivableWhere(
 	filters: ReceivableFilters,
+	salesScope?: Prisma.SalesOrdersWhereInput,
 ): Prisma.SalesOrdersWhereInput {
 	const from = parseDateOnly(filters.from);
 	const to = parseDateOnly(filters.to);
@@ -1041,6 +1046,7 @@ function buildSalesFinanceReceivableWhere(
 		type: "order",
 		grandTotal: { gt: 0 },
 		AND: [
+			...(salesScope ? [salesScope] : []),
 			{
 				OR: [
 					{ customer: { is: buildOfficeCustomerVisibilityWhere() } },
@@ -1120,12 +1126,13 @@ function sortReceivables(
 }
 
 async function loadSalesFinanceReceivableDataset(
-	ctx: TRPCContext,
+	db: TRPCContext["db"],
 	filters: ReceivableFilters,
+	salesScope?: Prisma.SalesOrdersWhereInput,
 ) {
 	const asOf = new Date();
-	const rows = await ctx.db.salesOrders.findMany({
-		where: buildSalesFinanceReceivableWhere(filters),
+	const rows = await db.salesOrders.findMany({
+		where: buildSalesFinanceReceivableWhere(filters, salesScope),
 		orderBy: [{ paymentDueDate: "asc" }, { id: "desc" }],
 		select: salesFinanceReceivableSelect,
 	});
@@ -1146,7 +1153,7 @@ export async function getSalesFinanceReceivables(
 	input: SalesFinanceReceivablesInput,
 ) {
 	const allRows = sortReceivables(
-		await loadSalesFinanceReceivableDataset(ctx, input),
+		await loadSalesFinanceReceivableDataset(ctx.db, input),
 		input.sort,
 	);
 	const offset = input.cursor || 0;
@@ -1168,7 +1175,21 @@ export async function getSalesFinanceReceivablesSummary(
 	input: SalesFinanceReceivablesSummaryInput,
 ) {
 	return summarizeSalesFinanceReceivables(
-		await loadSalesFinanceReceivableDataset(ctx, input),
+		await loadSalesFinanceReceivableDataset(ctx.db, input),
+	);
+}
+
+export async function getAssistantSalesFinanceReceivablesSummary(
+	db: TRPCContext["db"],
+	actor: AssistantBusinessActor,
+	input: SalesFinanceReceivablesSummaryInput,
+) {
+	return summarizeSalesFinanceReceivables(
+		await loadSalesFinanceReceivableDataset(
+			db,
+			input,
+			assistantSalesScopeWhere(actor),
+		),
 	);
 }
 
@@ -1177,7 +1198,7 @@ export async function getSalesFinanceReceivablesReport(
 	input: SalesFinanceReceivablesReportInput,
 ) {
 	const receivables = sortReceivables(
-		await loadSalesFinanceReceivableDataset(ctx, input),
+		await loadSalesFinanceReceivableDataset(ctx.db, input),
 		["dueAt", "asc"],
 	);
 

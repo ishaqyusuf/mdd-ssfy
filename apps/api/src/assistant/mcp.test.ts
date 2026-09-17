@@ -1,7 +1,20 @@
 import { describe, expect, mock, test } from "bun:test";
+import { AssistantAccessDisabledError } from "./access-governance";
 import { createAssistantMcpExecutionClient } from "./mcp";
 
 describe("assistant in-memory MCP", () => {
+	test("denies tool execution when website access is disabled mid-run", async () => {
+		const actor = { userId: 42, scopeType: "organization", scopeId: "7", grants: {} };
+		const session = await createAssistantMcpExecutionClient(actor, async () => {
+			throw new AssistantAccessDisabledError();
+		});
+		try {
+			const execute = session.tools.system_search_tools?.execute as (input: unknown, options: unknown) => Promise<unknown>;
+			const result = await execute({ query: "sales" }, { toolCallId: "disabled-call", messages: [], abortSignal: new AbortController().signal });
+			expect(result).toMatchObject({ isError: true, _meta: { assistantOutcome: { kind: "denied" } } });
+		} finally { await session.close(); }
+	});
+
 	test("recovery reauthorizes before retry and records the recovered read", async () => {
 		const actor = { userId: 42, scopeType: "organization", scopeId: "7", grants: {} };
 		let checks = 0;
@@ -70,6 +83,7 @@ describe("assistant in-memory MCP", () => {
 		expect(session.definitions.tools.map((tool) => tool.name).sort()).toEqual([
 			"analytics_query",
 			"documents_get_sales_pdf_status",
+			"finance_summarize_orders",
 			"fulfillment_check_status",
 			"fulfillment_explain_exceptions",
 			"sales_explain_blockers",
@@ -83,6 +97,7 @@ describe("assistant in-memory MCP", () => {
 		expect(Object.keys(session.tools).sort()).toEqual([
 			"analytics_query",
 			"documents_get_sales_pdf_status",
+			"finance_summarize_orders",
 			"fulfillment_check_status",
 			"fulfillment_explain_exceptions",
 			"sales_explain_blockers",
@@ -96,6 +111,7 @@ describe("assistant in-memory MCP", () => {
 		expect(session.toolEffects).toEqual({
 			analytics_query: "read",
 			documents_get_sales_pdf_status: "read",
+			finance_summarize_orders: "read",
 			fulfillment_check_status: "read",
 			fulfillment_explain_exceptions: "read",
 			sales_explain_blockers: "read",

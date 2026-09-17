@@ -211,8 +211,7 @@ const durationSummarySchema = z
 	.strict();
 
 /** Strict aggregate-only persistence boundary for pilot review evidence. */
-export const salesRequestPilotEvidenceSchema: z.ZodType<SalesRequestPilotEvidence> =
-	z
+export const salesRequestPilotEvidenceSchema = z
 		.object({
 			version: z.literal(SALES_REQUEST_PILOT_EVIDENCE_VERSION),
 			reviewability: z

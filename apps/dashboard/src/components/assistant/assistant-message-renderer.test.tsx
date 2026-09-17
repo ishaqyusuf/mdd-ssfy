@@ -27,7 +27,7 @@ describe("AssistantMessageRenderer", () => {
 		);
 
 		expect(html).toContain('aria-label="Assistant is thinking"');
-		expect(html).toContain("Reasoning…");
+		expect(html).toContain("Thinking");
 		expect(html).not.toContain("private reasoning");
 	});
 
@@ -146,7 +146,7 @@ describe("AssistantMessageRenderer", () => {
 		expect(html).not.toContain("data:image");
 	});
 
-	test("renders explicit grouped tool states and an actionable recovery card", () => {
+	test("renders an actionable recovery card without completed tool internals", () => {
 		const html = renderToStaticMarkup(
 			<AssistantMessageRenderer
 				message={
@@ -183,9 +183,10 @@ describe("AssistantMessageRenderer", () => {
 			/>,
 		);
 
-		expect(html).toContain("2 tools · 1 approval required");
-		expect(html).toContain("Searching orders — Failed");
-		expect(html).toContain("Creating order — Approval required");
+		expect(html).not.toContain("2 tools");
+		expect(html).not.toContain("Searching orders");
+		expect(html).not.toContain("Creating order");
+		expect(html).toContain("Try again");
 		expect(html).toContain("<button");
 		expect(html).not.toContain("aria-live");
 	});

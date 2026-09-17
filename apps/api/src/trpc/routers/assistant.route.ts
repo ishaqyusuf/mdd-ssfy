@@ -283,7 +283,13 @@ export const assistantRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const adminUserId = await featureAdminOrThrow(ctx);
 			return reconcileAssistantUsageEvent(ctx.db, {
-				...input,
+				usageEventId: input.usageEventId,
+				inputTokens: input.inputTokens ?? null,
+				cachedInputTokens: input.cachedInputTokens ?? null,
+				outputTokens: input.outputTokens ?? null,
+				reasoningTokens: input.reasoningTokens ?? null,
+				totalTokens: input.totalTokens ?? null,
+				note: input.note,
 				actorUserId: adminUserId,
 			});
 		}),

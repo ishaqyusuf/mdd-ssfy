@@ -268,7 +268,16 @@ export function AssistantSavedActionsDialog({
 					proposalId: result.proposalId,
 					approvalToken: result.approvalToken,
 					expiresAt: result.expiresAt,
-					review: result.review,
+					review: {
+						title: result.review.title ?? "Review action",
+						effect: result.review.effect ?? "write",
+						targetRevision: result.review.targetRevision ?? null,
+						parameters: result.review.parameters ?? null,
+						diff: {
+							summary: result.review.diff?.summary ?? "Review this change.",
+							changes: result.review.diff?.changes ?? [],
+						},
+					},
 				});
 				setNotice("A fresh approval proposal was created for this run.");
 			} else if (result.status === "repair_required") {

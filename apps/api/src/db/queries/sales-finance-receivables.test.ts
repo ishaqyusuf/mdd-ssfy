@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { TRPCContext } from "@api/trpc/init";
 
 import {
+	getAssistantSalesFinanceReceivablesSummary,
 	getSalesFinanceReceivableDetail,
 	getSalesFinanceReceivables,
 	getSalesFinanceReceivablesReport,
@@ -155,6 +156,30 @@ describe("Sales Finance receivables queries", () => {
 		expect(summary.totalOutstanding).toBe(600);
 		expect(summary.overdueAmount).toBe(600);
 		expect(summary.bucketAmounts["90_plus"]).toBe(600);
+	});
+
+	it("applies the Assistant actor scope before reading finance rows", async () => {
+		let where: unknown;
+		const db = {
+			salesOrders: {
+				findMany: async (input: { where: unknown }) => {
+					where = input.where;
+					return rows;
+				},
+			},
+		} as unknown as TRPCContext["db"];
+
+		await getAssistantSalesFinanceReceivablesSummary(
+			db,
+			{
+				userId: 42,
+				scopeType: "organization",
+				scopeId: "7",
+			},
+			filters,
+		);
+
+		expect(where).toMatchObject({ AND: expect.arrayContaining([{ orgId: 7 }]) });
 	});
 
 	it("returns invoice and application evidence for the detail sheet", async () => {

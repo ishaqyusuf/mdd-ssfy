@@ -85,7 +85,7 @@ export function useAssistantAttachments(conversationId?: string) {
 						setAttachments((current) => [
 							...current,
 							{
-								id: uploaded.storedDocumentId,
+								id: String(uploaded.storedDocumentId),
 								name: file.name,
 								mimeType: file.type as AssistantAttachmentMimeType,
 								size: uploaded.size ?? file.size,

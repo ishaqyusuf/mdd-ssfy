@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { AssistantAccessDisabledError } from "@api/assistant/access-governance";
 import { resolveAssistantActor } from "@api/assistant/actor";
 import { executeAssistantConversationTurn } from "@api/assistant/execute-turn";
 import { captureAssistantDiagnostic } from "@api/assistant/diagnostics";
@@ -388,6 +389,13 @@ function isAllowedOrigin(request: Request, allowedOrigins: string[]) {
 }
 
 function publicRequestError(error: unknown) {
+	if (error instanceof AssistantAccessDisabledError) {
+		return jsonError(
+			"ASSISTANT_ACCESS_DISABLED",
+			presentAssistantOutcome({ kind: "denied" }).message,
+			403,
+		);
+	}
 	if (error instanceof AssistantMessageValidationError) {
 		return jsonError(error.code, error.message, 400);
 	}
@@ -499,7 +507,9 @@ const defaultDependencies: AssistantRouterDependencies = {
 		} as never;
 		const context = await createTRPCContext(undefined, honoContext);
 		if (!context.userId) return null;
-		return resolveAssistantActor(context.db, context.userId);
+		const actor = await resolveAssistantActor(context.db, context.userId);
+		if (!actor) throw new AssistantAccessDisabledError();
+		return actor;
 	},
 	async startRun(input) {
 		const configuration = await getAssistantRuntimeConfiguration(db);
@@ -646,7 +656,7 @@ export function createAssistantChatRouter(
 	const router = new OpenAPIHono();
 	async function requestFailure(error: unknown, actor?: AssistantStreamActor) {
 		const response = publicRequestError(error);
-		const kind: AssistantOutcome["kind"] = response.status >= 500 ? "temporary" : response.status === 429 ? "limit" : response.status === 409 ? "conflict" : response.status === 404 ? "empty" : "input";
+		const kind: AssistantOutcome["kind"] = response.status >= 500 ? "temporary" : response.status === 429 ? "limit" : response.status === 409 ? "conflict" : response.status === 404 ? "empty" : response.status === 403 ? "denied" : "input";
 		const diagnostic = response.status >= 500 ? await dependencies.captureDiagnostic(error, {
 			stage: "request", operation: "assistant.start", requestId: randomUUID(),
 			actorUserId: actor?.userId, scopeType: actor?.scopeType, scopeId: actor?.scopeId, outcome: kind,

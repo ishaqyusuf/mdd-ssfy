@@ -55,6 +55,7 @@ import {
 	rotateAssistantRequestId,
 	shouldStickToAssistantBottom,
 } from "./assistant-chat-state";
+import { readAssistantContextPrompt } from "./assistant-context";
 import { findAssistantDocumentEntity } from "./assistant-entities";
 import { AssistantFeatureRequestsDialog } from "./assistant-feature-requests-dialog";
 import { AssistantHeader } from "./assistant-header";
@@ -899,6 +900,7 @@ export function LiveAssistantWorkspace() {
 	});
 	const searchParams = useSearchParams();
 	const router = useRouter();
+	const contextualPrompt = readAssistantContextPrompt(searchParams);
 	const [conversationId, setConversationId] = useState(() =>
 		searchParams.get("chat"),
 	);
@@ -963,7 +965,7 @@ export function LiveAssistantWorkspace() {
 	const [loading, setLoading] = useState(Boolean(conversationId));
 	const [error, setError] = useState<string | null>(null);
 	const [actionError, setActionError] = useState<string | null>(null);
-	const [draft, setDraft] = useState("");
+	const [draft, setDraft] = useState(contextualPrompt);
 	const [pendingPrompt, setPendingPrompt] =
 		useState<PendingAssistantPrompt | null>(null);
 	const [creatingPrompt, setCreatingPrompt] =
@@ -982,6 +984,14 @@ export function LiveAssistantWorkspace() {
 		else url.searchParams.delete("chat");
 		window.history.replaceState(null, "", `${url.pathname}${url.search}`);
 	}, []);
+	useEffect(() => {
+		if (!searchParams.has("entityType")) return;
+		const url = new URL(window.location.href);
+		for (const key of ["entityType", "entityId", "intent"]) {
+			url.searchParams.delete(key);
+		}
+		window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+	}, [searchParams]);
 	const closeChat = useCallback(() => {
 		router.replace("/");
 	}, [router]);

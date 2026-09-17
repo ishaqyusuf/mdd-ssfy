@@ -23,9 +23,11 @@ describe("assistant tool registry", () => {
 		});
 		expect(result).toMatchObject({
 			status: "success",
-			data: { tools: expect.arrayContaining([
-				expect.objectContaining({ toolId: "sales_find_orders" }),
-			]) },
+			data: {
+				tools: expect.arrayContaining([
+					expect.objectContaining({ toolId: "sales_find_orders" }),
+				]),
+			},
 		});
 		expect(JSON.stringify(result)).not.toContain('"presentation"');
 		expect(JSON.stringify(result)).not.toContain('"sales_create_order"');
@@ -37,7 +39,7 @@ describe("assistant tool registry", () => {
 		);
 
 		expect(new Set(identities).size).toBe(identities.length);
-		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v7");
+		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v8");
 		for (const tool of assistantToolRegistry) {
 			expect(tool.toolId).toMatch(/^[a-z][a-z0-9]*_[a-z][a-z0-9_]*$/);
 			expect(tool.version).toBeGreaterThan(0);
@@ -53,6 +55,7 @@ describe("assistant tool registry", () => {
 		expect(discovered.map((tool) => tool.toolId)).toEqual([
 			"analytics_query",
 			"documents_get_sales_pdf_status",
+			"finance_summarize_orders",
 			"fulfillment_check_status",
 			"fulfillment_explain_exceptions",
 			"sales_explain_blockers",

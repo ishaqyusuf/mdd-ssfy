@@ -270,6 +270,42 @@ describe("assistant Sales and customer tools", () => {
 		expect(JSON.stringify(result.data)).toContain("payment_due");
 	});
 
+	test("summarizes canonical receivables with explicit currency", async () => {
+		const result = await executeRegisteredAssistantTool(
+			{
+				...actor,
+				grants: { ...actor.grants, editOrderPayment: true },
+			},
+			{
+				toolId: "finance_summarize_orders",
+				version: 1,
+				input: { query: "Ada", agingBuckets: ["current"] },
+			},
+			services({
+				getSalesFinanceSummary: async () => ({
+					receivableCount: 2,
+					customerCount: 1,
+					totalOutstanding: 34.61,
+					overdueAmount: 0,
+					currentAmount: 34.61,
+					unreconciledCount: 0,
+					bucketAmounts: { current: 34.61 },
+					bucketCounts: { current: 2 },
+				}),
+			}),
+		);
+
+		expect(result).toMatchObject({
+			status: "success",
+			data: {
+				currency: "USD",
+				receivableCount: 2,
+				totalOutstanding: 34.61,
+			},
+			sources: [{ kind: "report", id: "sales-finance-receivables" }],
+		});
+	});
+
 	test("returns safe customer summary and scoped order history", async () => {
 		const customer = {
 			id: 9,

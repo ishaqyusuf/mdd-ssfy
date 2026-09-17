@@ -18,6 +18,15 @@ export class AssistantEntitlementConflictError extends Error {
 	}
 }
 
+export class AssistantAccessDisabledError extends Error {
+	readonly code = "FORBIDDEN";
+
+	constructor() {
+		super("Assistant access is disabled");
+		this.name = "AssistantAccessDisabledError";
+	}
+}
+
 type EntitlementRecord = {
 	id: string;
 	userId: number;
@@ -96,7 +105,11 @@ export async function getAssistantAccessState(
 	db: Database,
 	userId: number,
 	now = new Date(),
+	environment: Readonly<Record<string, string | undefined>> = process.env,
 ): Promise<AssistantAccessState> {
+	if (environment.ASSISTANT_ENABLED?.trim().toLowerCase() === "false") {
+		return { enabled: false, status: "disabled", expiresAt: null, version: 0 };
+	}
 	const [user, entitlement] = await Promise.all([
 		db.users.findFirst({
 			where: { id: userId, deletedAt: null, accessRevokedAt: null },

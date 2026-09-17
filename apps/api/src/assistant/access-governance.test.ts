@@ -15,6 +15,26 @@ const entitlement = {
 };
 
 describe("Assistant individual access", () => {
+	test("fails closed before database access when the global switch is off", async () => {
+		const findFirst = mock(async () => ({ id: 42 }));
+		const state = await getAssistantAccessState(
+			{
+				users: { findFirst },
+				assistantUserEntitlement: { findUnique: mock(async () => entitlement) },
+			} as never,
+			42,
+			now,
+			{ ASSISTANT_ENABLED: "false" },
+		);
+		expect(state).toEqual({
+			enabled: false,
+			status: "disabled",
+			expiresAt: null,
+			version: 0,
+		});
+		expect(findFirst).not.toHaveBeenCalled();
+	});
+
 	test("fails closed without an active individual entitlement", async () => {
 		const state = await getAssistantAccessState(
 			{

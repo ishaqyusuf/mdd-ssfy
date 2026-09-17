@@ -1,9 +1,14 @@
 import { createMCPClient } from "@ai-sdk/mcp";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { AssistantAccessDisabledError } from "./access-governance";
 import { createAssistantResultEnvelopeSchema } from "./contracts";
+import {
+	type AssistantOutcome,
+	assistantEffectMayCommit,
+	presentAssistantOutcome,
+} from "./outcomes";
 import { createAssistantReadRecovery } from "./read-recovery";
-import { assistantEffectMayCommit, presentAssistantOutcome, type AssistantOutcome } from "./outcomes";
 
 type CaptureToolFailure = (error: unknown, context: {
 	toolCallId: string; toolId: string; effect: string; outcome: AssistantOutcome["kind"]; attempt?: 1 | 2; retrying?: boolean;
@@ -119,8 +124,14 @@ export function createAssistantMcpServer(
 					);
 					} });
 				} catch (error) {
-					const kind: AssistantOutcome["kind"] = extra.signal.aborted ? "cancelled" : error instanceof AssistantScopeUnavailableError ? "denied" :
-						assistantEffectMayCommit(definition.effect) ? "uncertain" : "temporary";
+					const kind: AssistantOutcome["kind"] = extra.signal.aborted
+						? "cancelled"
+						: error instanceof AssistantScopeUnavailableError ||
+								error instanceof AssistantAccessDisabledError
+							? "denied"
+							: assistantEffectMayCommit(definition.effect)
+								? "uncertain"
+								: "temporary";
 					let reference: string | undefined;
 					try {
 						if (kind !== "cancelled") reference = (await captureFailure?.(error, { toolCallId, toolId: definition.toolId, effect: definition.effect, outcome: kind, attempt: attemptState.count }))?.reference;

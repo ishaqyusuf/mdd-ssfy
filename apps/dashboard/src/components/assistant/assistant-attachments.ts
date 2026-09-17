@@ -8,7 +8,7 @@ export function assistantAttachmentErrorMessage(error: unknown) {
 	if (assistantErrorReference(error)) {
 		const message = (error as { data?: { appError?: { message?: unknown } } }).data?.appError?.message;
 		for (const kind of ["attachment-too-large", "attachment-unreadable", "attachment-unsupported", "upload-failed"] as const) {
-			if (message === presentAssistantOutcome({ kind }).message) return message;
+			if (message === presentAssistantOutcome({ kind }).message) return String(message);
 		}
 	}
 	return error instanceof AssistantAttachmentValidationError ? error.message : presentAssistantOutcome({ kind: "upload-failed" }).message;

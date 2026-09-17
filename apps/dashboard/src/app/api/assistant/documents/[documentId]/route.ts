@@ -44,7 +44,10 @@ export async function GET(request: Request, context: RouteContext) {
 					useCache: true,
 				})
 			: null;
-	const publicBlobUrl = trustedAssistantPublicBlobUrl(document.url);
+	const publicBlobUrl =
+		document.access === "public"
+			? trustedAssistantPublicBlobUrl(document.url)
+			: null;
 	const publicResponse =
 		document.access === "public" && publicBlobUrl
 			? await fetch(publicBlobUrl, { cache: "no-store" })

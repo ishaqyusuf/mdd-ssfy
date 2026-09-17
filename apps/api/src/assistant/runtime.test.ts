@@ -207,7 +207,7 @@ describe("assistant runtime", () => {
 			provider: "openai",
 			model: "gpt-5-mini",
 			modelIdentity: "openai:gpt-5-mini",
-			catalogVersion: "assistant-catalog-v7",
+			catalogVersion: "assistant-catalog-v8",
 			promptVersion: "gnd-assistant-prompt-v2",
 		});
 	});
