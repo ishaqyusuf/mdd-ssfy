@@ -1,11 +1,6 @@
 import { z } from "zod";
+import { assistantSalesPdfModeSchema } from "./pdf-contract";
 
-const documentModeSchema = z.enum([
-	"invoice",
-	"quote",
-	"packing",
-	"production",
-]);
 const documentActionBase = {
 	toolVersion: z.literal(1),
 	label: z.string().trim().min(1).max(100),
@@ -21,7 +16,7 @@ export const assistantDocumentProposalActionSchema = z.discriminatedUnion(
 				input: z
 					.object({
 						orderNo: z.string().trim().min(1).max(100),
-						mode: documentModeSchema,
+						mode: assistantSalesPdfModeSchema,
 						expectedRevision: z.string().trim().min(1).max(191),
 						forceRegenerate: z.boolean(),
 					})
@@ -35,7 +30,7 @@ export const assistantDocumentProposalActionSchema = z.discriminatedUnion(
 				input: z
 					.object({
 						orderNo: z.string().trim().min(1).max(100),
-						mode: documentModeSchema,
+						mode: assistantSalesPdfModeSchema,
 						snapshotId: z.string().trim().min(1).max(191),
 						expectedRevision: z.string().trim().min(1).max(191),
 					})

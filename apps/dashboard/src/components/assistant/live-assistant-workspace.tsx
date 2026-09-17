@@ -1349,13 +1349,7 @@ export function LiveAssistantWorkspace() {
 			<>
 					<AssistantHeader
 						title={conversation?.title || "New chat"}
-						quotaLabel={
-							assistantBootstrap.data?.quota.configured
-								? assistantBootstrap.data.quota.remaining.requests == null
-									? "Unlimited requests"
-									: `${assistantBootstrap.data.quota.remaining.requests.toLocaleString()} requests left`
-								: null
-						}
+						quota={assistantBootstrap.data?.quota ?? null}
 						onBack={closeChat}
 						onNewChat={newChat}
 						onFavorites={() => setFavoritesOpen(true)}

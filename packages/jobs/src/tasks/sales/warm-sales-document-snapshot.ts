@@ -3,6 +3,7 @@ import {
 	mergePermissionRecords,
 } from "@gnd/auth/utils";
 import { Prisma, db } from "@gnd/db";
+import { evaluateAssistantAccessState } from "@gnd/db/queries";
 import {
 	type CreateStoredDocumentRecordInput,
 	type StoredDocumentRepository,
@@ -150,7 +151,11 @@ async function resolveAssistantPdfAuthorization(
 	salesOrderId: number,
 	mode: PrintMode,
 ) {
-	const [user, specificPermissions] = await Promise.all([
+	const assistantEnabled =
+		process.env.ASSISTANT_ENABLED?.trim().toLowerCase() !== "false";
+	if (!assistantEnabled) return null;
+
+	const [user, specificPermissions, entitlement] = await Promise.all([
 		db.users.findFirst({
 			where: {
 				id: request.userId,
@@ -190,8 +195,17 @@ async function resolveAssistantPdfAuthorization(
 			},
 		}),
 		getUserSpecificPermissions(db, request.userId),
+		db.assistantUserEntitlement.findUnique({
+			where: { userId: request.userId },
+			select: { enabled: true, expiresAt: true, version: true },
+		}),
 	]);
-	if (!user) return null;
+	const access = evaluateAssistantAccessState(
+		entitlement,
+		new Date(),
+		assistantEnabled,
+	);
+	if (!user || !access.enabled) return null;
 	const organizationId = user.roles[0]?.organizationId;
 	const role = user.roles[0]?.role;
 	const currentScope = organizationId

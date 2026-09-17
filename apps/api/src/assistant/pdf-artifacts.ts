@@ -3,16 +3,17 @@ import { buildSalesDocumentTypeKey } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmup } from "@api/utils/sales-document-warm";
 import type { Database } from "@gnd/db";
 import { runs } from "@trigger.dev/sdk/v3";
+import {
+	assistantSalesPdfModeSchema,
+	assistantSalesPdfModes,
+	type AssistantSalesPdfMode,
+} from "./pdf-contract";
 
-export const assistantSalesPdfModes = [
-	"invoice",
-	"quote",
-	"packing-slip",
-	"production",
-	"order-packing",
-] as const;
-
-export type AssistantSalesPdfMode = (typeof assistantSalesPdfModes)[number];
+export {
+	assistantSalesPdfModeSchema,
+	assistantSalesPdfModes,
+	type AssistantSalesPdfMode,
+};
 
 type QueuePdfTrigger = typeof queueSalesDocumentSnapshotWarmup;
 const DISPATCH_CLAIM_LEASE_MS = 2 * 60 * 1000;

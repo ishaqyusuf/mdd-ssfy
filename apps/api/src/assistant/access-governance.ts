@@ -1,4 +1,8 @@
 import { type Database, Prisma } from "@gnd/db";
+import {
+	evaluateAssistantAccessState,
+	type AssistantAccessState,
+} from "@gnd/db/queries";
 import { z } from "zod";
 
 export const assistantEntitlementUpdateSchema = z
@@ -35,33 +39,7 @@ type EntitlementRecord = {
 	version: number;
 };
 
-export type AssistantAccessState = {
-	enabled: boolean;
-	status: "enabled" | "disabled" | "expired";
-	expiresAt: Date | null;
-	version: number;
-};
-
-function accessState(
-	entitlement: EntitlementRecord | null,
-	now: Date,
-): AssistantAccessState {
-	if (!entitlement)
-		return { enabled: false, status: "disabled", expiresAt: null, version: 0 };
-	if (entitlement.expiresAt && entitlement.expiresAt <= now)
-		return {
-			enabled: false,
-			status: "expired",
-			expiresAt: entitlement.expiresAt,
-			version: entitlement.version,
-		};
-	return {
-		enabled: entitlement.enabled,
-		status: entitlement.enabled ? "enabled" : "disabled",
-		expiresAt: entitlement.expiresAt,
-		version: entitlement.version,
-	};
-}
+export type { AssistantAccessState };
 
 async function recordLazyExpiry(
 	db: Database,
@@ -108,7 +86,7 @@ export async function getAssistantAccessState(
 	environment: Readonly<Record<string, string | undefined>> = process.env,
 ): Promise<AssistantAccessState> {
 	if (environment.ASSISTANT_ENABLED?.trim().toLowerCase() === "false") {
-		return { enabled: false, status: "disabled", expiresAt: null, version: 0 };
+		return evaluateAssistantAccessState(null, now, false);
 	}
 	const [user, entitlement] = await Promise.all([
 		db.users.findFirst({
@@ -134,7 +112,7 @@ export async function getAssistantAccessState(
 		entitlement.expiresAt <= now
 	)
 		await recordLazyExpiry(db, entitlement, now);
-	return accessState(entitlement, now);
+	return evaluateAssistantAccessState(entitlement, now);
 }
 
 export async function updateAssistantEntitlement(
@@ -206,7 +184,7 @@ export async function updateAssistantEntitlement(
 				entitlementVersion: nextVersion,
 			},
 		});
-		return accessState(entitlement, now);
+		return evaluateAssistantAccessState(entitlement, now);
 	});
 }
 

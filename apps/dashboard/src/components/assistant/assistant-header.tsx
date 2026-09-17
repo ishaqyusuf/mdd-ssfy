@@ -9,6 +9,7 @@ import {
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import {
+	AlertTriangle,
 	Archive,
 	ArrowLeft,
 	BookmarkPlus,
@@ -22,9 +23,14 @@ import {
 	Trash2,
 } from "lucide-react";
 
+import {
+	formatAssistantQuotaSummary,
+	type AssistantQuotaSummaryInput,
+} from "./assistant-quota-summary";
+
 type AssistantHeaderProps = {
 	title: string;
-	quotaLabel?: string | null;
+	quota?: AssistantQuotaSummaryInput | null;
 	onBack: () => void;
 	onNewChat: () => void;
 	onFavorites: () => void;
@@ -38,6 +44,10 @@ type AssistantHeaderProps = {
 };
 
 export function AssistantHeader(props: AssistantHeaderProps) {
+	const quota = props.quota
+		? formatAssistantQuotaSummary(props.quota)
+		: null;
+
 	return (
 		<header className="flex items-center gap-3 border-b px-4 py-3 md:px-6">
 			<Button
@@ -51,10 +61,30 @@ export function AssistantHeader(props: AssistantHeaderProps) {
 			</Button>
 			<div className="min-w-0 flex-1">
 				<p className="truncate text-sm font-medium">{props.title}</p>
-				{props.quotaLabel ? (
-					<p className="truncate text-[10px] text-muted-foreground">
-						{props.quotaLabel}
-					</p>
+				{quota ? (
+					<div
+						className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-[10px] text-muted-foreground"
+						aria-label="Assistant allowance"
+					>
+						<span>{quota.requests}</span>
+						<span aria-hidden="true">·</span>
+						<span>{quota.tokens}</span>
+						{quota.reset ? (
+							<>
+								<span aria-hidden="true">·</span>
+								<span>{quota.reset}</span>
+							</>
+						) : null}
+						{quota.warning ? (
+							<span
+								className="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400"
+								role="status"
+							>
+								<AlertTriangle className="size-3" aria-hidden="true" />
+								Usage warning
+							</span>
+						) : null}
+					</div>
 				) : null}
 			</div>
 			<DropdownMenu>
