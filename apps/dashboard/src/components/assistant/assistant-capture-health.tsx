@@ -10,6 +10,13 @@ export function AssistantCaptureHealth() {
 	}));
 	return <section aria-label="Capture health" className="border-b px-5 py-4 text-sm">
 		<h3 className="font-medium">Capture health</h3>
+		{query.data ? (
+			<p className="mt-2 text-xs text-muted-foreground" role="status">
+				Conversation retention: {query.data.conversationRetention.configured
+					? `${query.data.conversationRetention.days} days`
+					: "not configured; deleted conversations remain tombstoned"}
+			</p>
+		) : null}
 		{query.isPending ? <p role="status" className="mt-2 text-muted-foreground">Loading capture counts…</p>
 			: query.isError || !query.data?.available ? <p className="mt-2 text-muted-foreground">Capture counts are unavailable. Check the server logs for capture failures.</p>
 			: <>

@@ -1153,6 +1153,43 @@
 	border-radius: 8px;
 	background: var(--muted);
 }
+.reconnectActivity {
+	margin: 12px 0;
+	padding: 10px 12px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	font-size: 12px;
+}
+.reconnectActivity > strong {
+	display: block;
+	margin-bottom: 6px;
+}
+.reconnectActivity ul {
+	display: grid;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.reconnectActivity li {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted-foreground);
+}
+.reconnectActivity li[data-status="failed"],
+.reconnectActivity li[data-status="cancelled"],
+.reconnectActivity li[data-status="unknown"] {
+	color: var(--destructive);
+}
+.reconnectActivity small {
+	white-space: nowrap;
+}
+.reconnectActivity p {
+	margin: 7px 0 0;
+	color: var(--muted-foreground);
+}
 .shellState {
 	flex: 1;
 	justify-content: center;

@@ -144,6 +144,26 @@ export function normalizeNewSalesFormSeed(
 					),
 				) === index,
 		);
+	const interpretations = (seed.interpretations ?? [])
+		.map((entry) => ({
+			...entry,
+			lineUid: uidRemap.get(entry.lineUid) || entry.lineUid,
+		}))
+		.filter(
+			(entry, index, all) =>
+				all.findIndex((candidate) =>
+					Object.keys(entry).every(
+						(key) =>
+							candidate[key as keyof typeof candidate] ===
+							entry[key as keyof typeof entry],
+					),
+				) === index,
+		);
 
-	return { ...seed, lineItems, unresolved } as NewSalesFormSeed;
+	return {
+		...seed,
+		lineItems,
+		unresolved,
+		...(seed.interpretations ? { interpretations } : {}),
+	} as NewSalesFormSeed;
 }

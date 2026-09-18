@@ -64,6 +64,7 @@ import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import {
     useNewSalesFormBootstrapQuery,
     useNewSalesFormGetQuery,
+	useSalesRequestInterpretationWarningGuidanceMutation,
 	useSalesRequestPilotAccessQuery,
     useSaveFinalNewSalesFormMutation,
 } from "./api";
@@ -555,6 +556,8 @@ export function NewSalesForm(props: Props) {
 		requestGenerationPilotAccess.status === "ready" &&
 		requestGenerationPilotAccess.eligible;
 	const requestGenerationOutcome = useSalesRequestGenerationOutcome();
+	const interpretationWarningGuidance =
+		useSalesRequestInterpretationWarningGuidanceMutation();
 	const requestGenerationSaveAttributionRef = useRef<
 		ReturnType<typeof requestGenerationOutcome.captureSave>
 	>(null);
@@ -2719,6 +2722,24 @@ export function NewSalesForm(props: Props) {
                                 )
                             }
 							onRemoveSpecialOrderClassification={removeSpecialOrderFromForm}
+							onDismissSalesRequestInterpretation={async (warning) => {
+								try {
+									await interpretationWarningGuidance.mutateAsync({
+										active: true,
+										warning,
+									});
+								} catch (error) {
+									toast({
+										title: "Could not hide this interpretation",
+										description:
+											error instanceof Error
+												? error.message
+												: "Please try again.",
+										variant: "destructive",
+									});
+									throw error;
+								}
+							}}
                             mode={props.mode}
                             type={props.type}
                         />

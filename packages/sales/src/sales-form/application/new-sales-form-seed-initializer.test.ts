@@ -127,6 +127,29 @@ function initialize(seed: NewSalesFormSeed) {
 }
 
 describe("initializeNewSalesFormSeed", () => {
+	it("persists generated interpretations in native line metadata", async () => {
+		const seed = seedLine("interior", "primed");
+		seed.interpretations = [
+			{
+				lineUid: "interior-line",
+				stepId: 3,
+				field: "door",
+				sourceText: "smooth solid-core door slab",
+				selectedProdUid: "panel",
+				selectedTitle: "Panel Door",
+				reason: "The selected component is the closest compatible option.",
+			},
+		];
+
+		const result = await initialize(seed);
+		const saved = toSalesFormSaveDraftPayload(result.record);
+		const reopened = hydrateSalesFormRecord(saved);
+
+		expect(reopened.lineItems[0]?.meta?.salesRequestInterpretations).toEqual(
+			seed.interpretations,
+		);
+	});
+
 	it.each([
 		["interior", "primed", 340],
 		["exterior", "fiberglass", 360],
@@ -268,6 +291,42 @@ describe("initializeNewSalesFormSeed", () => {
 			}),
 		);
 		expect(result.record.lineItems[0]?.housePackageTool).toBeNull();
+	});
+
+	it("keeps an unpriced HPT Door size reviewable without blocking the draft", async () => {
+		const seed = seedLine("interior", "primed");
+		const seedItem = seed.lineItems[0];
+		if (!seedItem) throw new Error("Expected seed fixture line");
+		seedItem.housePackageTool = {
+			doors: [
+				{ dimension: "3-0 x 6-8", swing: "", lhQty: 1, rhQty: 0 },
+			],
+		};
+		const unpricedDoorComponents = structuredClone(componentsByStepId);
+		const panel = unpricedDoorComponents[3]?.find(
+			(component) => component.uid === "panel",
+		);
+		if (!panel) throw new Error("Expected panel component");
+		panel.basePrice = null;
+		panel.salesPrice = null;
+		panel.pricing = { "3-0 x 6-8": {} };
+
+		const result = await initializeNewSalesFormSeed({
+			seed,
+			baseRecord,
+			routeData,
+			pricing: { profileCoefficient: 0.5 },
+			resolveComponents: ({ step }) =>
+				unpricedDoorComponents[Number(step.id)] || [],
+		});
+
+		expect(result.issues).toEqual([]);
+		expect(result.record.lineItems[0]?.housePackageTool?.doors?.[0]).toMatchObject(
+			{
+				dimension: "3-0 x 6-8",
+				meta: expect.objectContaining({ priceMissing: true }),
+			},
+		);
 	});
 
 	it("prices HPT door tiers in dealer view like ordinary workflow components", async () => {
@@ -507,18 +566,7 @@ describe("initializeNewSalesFormSeed", () => {
 		});
 		const line = result.record.lineItems[0];
 
-		expect(result.issues).toEqual([
-			{
-				lineUid: "service-line",
-				stepId: 1,
-				reason: "service-price-missing",
-			},
-			{
-				lineUid: "service-line",
-				stepId: 1,
-				reason: "service-price-missing",
-			},
-		]);
+		expect(result.issues).toEqual([]);
 		expect(line).toMatchObject({
 			title: "Services",
 			description: "FIELD INSTALL | CLEANUP",
@@ -567,11 +615,7 @@ describe("initializeNewSalesFormSeed", () => {
 
 		const result = await initialize(seed);
 
-		expect(result.issues).toContainEqual({
-			lineUid: null,
-			stepId: null,
-			reason: "delivery-price-missing",
-		});
+		expect(result.issues).toEqual([]);
 		expect(result.record.extraCosts).toContainEqual({
 			id: null,
 			label: "Delivery",
@@ -950,7 +994,7 @@ describe("initializeNewSalesFormSeed", () => {
 		expect(result.record.lineItems[0]?.formSteps?.[2]?.prodUid).toBe("");
 	});
 
-	it("keeps an unpriced selection reviewable but reports a blocking issue", async () => {
+	it("keeps an unpriced configuration selection without blocking the draft", async () => {
 		const frameComponents = componentsByStepId[2];
 		if (!frameComponents) throw new Error("Expected frame component fixtures");
 		const unpricedComponents: Record<number, WorkflowComponentRecord[]> = {
@@ -970,12 +1014,7 @@ describe("initializeNewSalesFormSeed", () => {
 				unpricedComponents[Number(step.id)] || [],
 		});
 
-		expect(result.issues).toContainEqual({
-			lineUid: "exterior-line",
-			stepId: 2,
-			reason: "component-price-missing",
-			componentUid: "fiberglass",
-		});
+		expect(result.issues).toEqual([]);
 		expect(result.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe(
 			"fiberglass",
 		);

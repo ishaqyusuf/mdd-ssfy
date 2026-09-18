@@ -33,6 +33,10 @@ export type NewSalesRequestRecordOutcomeInput = Exclude<
 	RouterInputs["salesRequest"]["recordOutcome"],
 	void
 >;
+export type SalesRequestInterpretationWarningGuidanceInput = Exclude<
+	RouterInputs["salesRequest"]["setInterpretationWarningGuidance"],
+	void
+>;
 export type NewSalesRequestPilotSurface = "order" | "quote";
 
 export function createSalesRequestGeneratePreviewInput(
@@ -86,6 +90,13 @@ export function useSalesRequestValidatePreviewMutation() {
 export function useSalesRequestRecordOutcomeMutation() {
 	const trpc = useTRPC();
 	return useMutation(trpc.salesRequest.recordOutcome.mutationOptions());
+}
+
+export function useSalesRequestInterpretationWarningGuidanceMutation() {
+	const trpc = useTRPC();
+	return useMutation(
+		trpc.salesRequest.setInterpretationWarningGuidance.mutationOptions(),
+	);
 }
 
 export function useNewSalesFormBootstrapQuery(

@@ -1,23 +1,4 @@
 import {
-	answerSalesRequestClarificationSchema,
-	salesRequestClarificationSessionSchema,
-	setSalesRequestGuidanceSchema,
-} from "@api/schemas/sales-request";
-import {
-	beginSalesRequestClarification,
-	answerSalesRequestClarification,
-	ownedClarification,
-	cancelSalesRequestClarification,
-	listSalesRequestClarificationGuidance,
-	setSalesRequestClarificationGuidance,
-	type ClarificationDatabase,
-} from "@api/services/sales-request-clarification";
-import {
-	getSalesRequestAIRules,
-	updateSalesRequestAIRules,
-	salesRequestAIRulesInputSchema,
-} from "@gnd/settings";
-import {
 	type ConfigurationDatabase,
 	getSalesRequestConfigurationStructuralRevision,
 } from "@api/db/queries/sales-request-configuration";
@@ -37,6 +18,13 @@ import {
 	recordSalesRequestGenerationOutcome,
 } from "@api/db/queries/sales-request-telemetry";
 import {
+	answerSalesRequestClarificationSchema,
+	salesRequestClarificationSessionSchema,
+	setSalesRequestGuidanceSchema,
+	setSalesRequestInterpretationWarningGuidanceByKeySchema,
+	setSalesRequestInterpretationWarningGuidanceSchema,
+} from "@api/schemas/sales-request";
+import {
 	generateSalesRequestPreviewSchema,
 	listSalesRequestFinalSaveExceptionsSchema,
 	recordSalesRequestGenerationOutcomeSchema,
@@ -51,6 +39,17 @@ import {
 	setSalesRequestProviderBenchmarkApprovalSchema,
 	validateSalesRequestPreviewSchema,
 } from "@api/schemas/sales-request";
+import {
+	type ClarificationDatabase,
+	answerSalesRequestClarification,
+	beginSalesRequestClarification,
+	cancelSalesRequestClarification,
+	listSalesRequestClarificationGuidance,
+	listSalesRequestInterpretationWarnings,
+	ownedClarification,
+	setSalesRequestClarificationGuidance,
+	setSalesRequestInterpretationWarningGuidance,
+} from "@api/services/sales-request-clarification";
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
 import {
 	SALES_REQUEST_AI_CREDENTIAL_ENV_BY_PROVIDER,
@@ -77,11 +76,17 @@ import { createSalesRequestPreviewDependencies } from "@api/services/sales-reque
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { requireStorefrontQuoteCreationPermission } from "@api/utils/storefront-permissions";
 import { salesRequestConfigurationCache } from "@gnd/cache/sales-request-configuration-cache";
+import type { Database } from "@gnd/db";
 import { AppError } from "@gnd/errors";
 import {
 	SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
 	SALES_REQUEST_PROMPT_VERSION,
 } from "@gnd/sales/sales-form/request-generation";
+import {
+	getSalesRequestAIRules,
+	salesRequestAIRulesInputSchema,
+	updateSalesRequestAIRules,
+} from "@gnd/settings";
 import {
 	SALES_REQUEST_AI_PROVIDER_CATALOG,
 	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
@@ -149,6 +154,25 @@ function isUniqueConstraintError(error: unknown) {
 		"code" in error &&
 		(error as { code?: unknown }).code === "P2002"
 	);
+}
+
+async function readCurrentSalesRequestConfiguration(db: Database) {
+	return db.$transaction(
+		async (tx) => {
+			const rows = await tx.settings.findMany({
+				where: { type: "sales-settings", deletedAt: null },
+				select: { id: true },
+			});
+			return getSalesRequestConfigurationContext(tx, {
+				settingId: selectSalesRequestSettingId(rows.map((row) => row.id)),
+			});
+		},
+		{ isolationLevel: "RepeatableRead" },
+	);
+}
+
+function sameCatalogTitle(left: string, right: string) {
+	return left.trim().toLowerCase() === right.trim().toLowerCase();
 }
 
 async function readAISettingsSurface(
@@ -578,6 +602,143 @@ export const salesRequestRouter = createTRPCRouter({
 				input,
 			),
 		),
+	listInterpretationWarnings: protectedProcedure.query(async ({ ctx }) => {
+		await requireSalesRequestSettingsAdmin(ctx);
+		const current = await readCurrentSalesRequestConfiguration(ctx.db);
+		const rules = await getSalesRequestAIRules(ctx.db, current.settingId);
+		const activeGlobalWarningKeys = new Set(
+			rules.rules
+				.filter(
+					(rule) =>
+						rule.enabled && rule.id.startsWith("interpretation-warning:"),
+				)
+				.map((rule) => rule.id.slice("interpretation-warning:".length)),
+		);
+		return listSalesRequestInterpretationWarnings(
+			ctx.db as unknown as ClarificationDatabase,
+			null,
+			{ scope: current.scope, configurationRevision: current.revision },
+			activeGlobalWarningKeys,
+		);
+	}),
+	setInterpretationWarningGuidanceByKey: protectedProcedure
+		.input(setSalesRequestInterpretationWarningGuidanceByKeySchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSalesRequestSettingsAdmin(ctx);
+			const current = await readCurrentSalesRequestConfiguration(ctx.db);
+			const warnings = await listSalesRequestInterpretationWarnings(
+				ctx.db as unknown as ClarificationDatabase,
+				null,
+				{ scope: current.scope, configurationRevision: current.revision },
+			);
+			const warning = warnings.categories
+				.flatMap((category) => category.warnings)
+				.find((candidate) => candidate.key === input.key);
+			if (!warning)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Interpretation warning not found.",
+				});
+			if (input.active && !warning.eligible)
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Request-specific quantity, dimension, or price warnings cannot become global instructions.",
+				});
+			if (input.active) {
+				const step = current.configuration.steps.find(
+					(candidate) => candidate.id === warning.stepId,
+				);
+				const component = step?.components.find(
+					(candidate) => candidate.uid === warning.selectedProdUid,
+				);
+				if (
+					!component ||
+					!sameCatalogTitle(component.title, warning.selectedTitle)
+				)
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"This interpretation no longer matches the current Sales Request catalog.",
+					});
+			}
+			const saved = await getSalesRequestAIRules(ctx.db, current.settingId);
+			const ruleId = `interpretation-warning:${input.key}`;
+			const existing = saved.rules.find((rule) => rule.id === ruleId);
+			if (!input.active && !existing)
+				return { updated: true, key: input.key, active: false };
+			const title =
+				`Interpret ${warning.sourceText} as ${warning.selectedTitle}`.slice(
+					0,
+					100,
+				);
+			const instruction = [
+				`When the customer uses “${warning.sourceText}” for ${warning.field}, select catalog component ${warning.selectedTitle} (${warning.selectedProdUid}).`,
+				"Apply this only when it does not conflict with explicit current request facts or the current catalog.",
+				"Do not emit the same interpretation warning again. Never reuse quantities, dimensions, or prices from another request.",
+			]
+				.join(" ")
+				.slice(0, 1000);
+			const nextRule = {
+				id: ruleId,
+				title,
+				instruction,
+				enabled: input.active,
+			};
+			try {
+				await updateSalesRequestAIRules(ctx.db, {
+					settingId: current.settingId,
+					changedBy: ctx.userId,
+					expectedRevision: saved.revision,
+					rules: existing
+						? saved.rules.map((rule) => (rule.id === ruleId ? nextRule : rule))
+						: [...saved.rules, nextRule],
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: error instanceof Error ? error.message : "AI rules changed.",
+				});
+			}
+			return { updated: true, key: input.key, active: input.active };
+		}),
+	setInterpretationWarningGuidance: protectedProcedure
+		.input(setSalesRequestInterpretationWarningGuidanceSchema)
+		.mutation(async ({ ctx, input }) => {
+			if ("key" in input) {
+				return setSalesRequestInterpretationWarningGuidance(
+					ctx.db as unknown as ClarificationDatabase,
+					ctx.userId,
+					input,
+				);
+			}
+			const current = await readCurrentSalesRequestConfiguration(ctx.db);
+			const step = current.configuration.steps.find(
+				(candidate) => candidate.id === input.warning.stepId,
+			);
+			const component = step?.components.find(
+				(candidate) => candidate.uid === input.warning.selectedProdUid,
+			);
+			if (
+				!component ||
+				!sameCatalogTitle(component.title, input.warning.selectedTitle)
+			) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"This interpretation no longer matches the current Sales Request catalog.",
+				});
+			}
+			return setSalesRequestInterpretationWarningGuidance(
+				ctx.db as unknown as ClarificationDatabase,
+				ctx.userId,
+				{
+					...input,
+					scope: current.scope,
+					configurationRevision: current.revision,
+				},
+			);
+		}),
 	validatePreview: protectedProcedure
 		.input(validateSalesRequestPreviewSchema)
 		.mutation(async ({ ctx, input }) => {

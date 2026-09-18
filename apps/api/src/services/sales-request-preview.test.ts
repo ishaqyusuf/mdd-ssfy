@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { interpretationWarningKey } from "./sales-request-interpretation-warning";
 import {
 	createSalesRequestPreview,
 	selectSalesRequestSettingId,
@@ -279,6 +280,44 @@ test("successful resolved preview records only its coarse request shape", async 
 	});
 	expect(JSON.stringify(events.at(-1))).not.toMatch(
 		/line-1|exterior|pvc|panel|one door/i,
+	);
+});
+
+test("enabled global interpretation rule suppresses its validated warning", async () => {
+	const warning = {
+		lineUid: "line-1",
+		stepId: 3,
+		field: "door product",
+		sourceText: "door",
+		selectedProdUid: "panel",
+		selectedTitle: "Panel",
+		reason: "Matched the only compatible panel.",
+	};
+	const result = await createSalesRequestPreview(source, {
+		authorize: async () => {},
+		reserveUsage: async () => {},
+		readSnapshot: async () => ({
+			...snapshot,
+			configuration: resolvedConfiguration,
+			configurationJson: JSON.stringify(resolvedConfiguration),
+			adminRulesRevision: 2,
+			adminRules: [
+				{
+					id: `interpretation-warning:${interpretationWarningKey(warning)}`,
+					title: "Approved door mapping",
+					instruction: "Use Panel for door.",
+					suppressWarning: true,
+				},
+			],
+		}),
+		createProvider: () => async () => ({
+			output: { ...resolvedOutput, interpretations: [warning] },
+		}),
+		telemetry,
+	});
+	expect(result.seed.interpretations).toEqual([]);
+	expect(result.seed.lineItems[0]?.formSteps).toEqual(
+		resolvedOutput.lineItems[0]?.formSteps,
 	);
 });
 

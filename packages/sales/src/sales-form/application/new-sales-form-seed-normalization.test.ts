@@ -45,7 +45,7 @@ describe("normalizeNewSalesFormSeed", () => {
 		});
 	});
 
-	it("groups identical HPT configurations and remaps unresolved entries", () => {
+	it("groups identical HPT configurations and remaps review annotations", () => {
 		const seed: NewSalesFormSeed = {
 			schemaVersion: 2,
 			lineItems: [
@@ -81,6 +81,17 @@ describe("normalizeNewSalesFormSeed", () => {
 					reason: "Finish needs review",
 				},
 			],
+			interpretations: [
+				{
+					lineUid: "line-36",
+					stepId: 2,
+					field: "height",
+					sourceText: "standard height",
+					selectedProdUid: "six-eight",
+					selectedTitle: "6-8",
+					reason: "Mapped standard height to the configured option.",
+				},
+			],
 		};
 
 		expect(normalizeNewSalesFormSeed(seed)).toEqual({
@@ -108,6 +119,17 @@ describe("normalizeNewSalesFormSeed", () => {
 					field: "finish",
 					status: "ambiguous",
 					reason: "Finish needs review",
+				},
+			],
+			interpretations: [
+				{
+					lineUid: "line-34",
+					stepId: 2,
+					field: "height",
+					sourceText: "standard height",
+					selectedProdUid: "six-eight",
+					selectedTitle: "6-8",
+					reason: "Mapped standard height to the configured option.",
 				},
 			],
 		});

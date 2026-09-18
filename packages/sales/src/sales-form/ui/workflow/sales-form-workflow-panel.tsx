@@ -50,6 +50,7 @@ import {
 	isComponentVisibleByRules,
 	isMouldingItem,
 	normalizeSalesFormTitle as normalizeTitle,
+	reconcileSalesRequestInterpretations,
 	resolveComponentPriceByDeps,
 	resolveConfiguredRouteStepsForLine,
 	summarizeDoors,
@@ -645,7 +646,10 @@ export function SalesFormWorkflowPanel<
 	function updateLine(line: TLine, patch: Partial<TLine>) {
 		const uid = String(line.uid || "");
 		if (!uid) return;
-		actions.updateLineItem(uid, patch);
+		actions.updateLineItem(
+			uid,
+			reconcileSalesRequestInterpretations(line, patch) as Partial<TLine>,
+		);
 	}
 
 	function openDoorSizeModal(line: TLine, component: WorkflowComponentRecord) {

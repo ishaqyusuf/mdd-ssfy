@@ -43,6 +43,7 @@ import {
 	assistantAttachmentParts,
 } from "./assistant-attachments";
 import {
+	activateAssistantRunState,
 	assistantScrollBehavior,
 	buildAssistantChatRequest,
 	claimAssistantPendingPrompt,
@@ -69,6 +70,7 @@ import { AssistantMessageRenderer } from "./assistant-message-renderer";
 import { AssistantMessageBoundary } from "./assistant-message-boundary";
 import { normalizeAssistantMessage, type AssistantMessageViewModel } from "./assistant-message-view-model";
 import { AssistantOutcomeHelp } from "./assistant-outcome-help";
+import { AssistantReconnectActivity } from "./assistant-reconnect-activity";
 import {
 	type AssistantOrderDraft,
 	AssistantOrderDraftCanvas,
@@ -339,12 +341,7 @@ function AssistantConversation(props: {
 	useEffect(() => {
 		const latestRun = props.conversation.latestRun;
 		if (!latestRun) return;
-		setStreamState((state) => ({
-			...state,
-			runId: latestRun.id,
-			status: latestRun.status,
-			runSequence: latestRun.lastSequence,
-		}));
+		setStreamState((state) => activateAssistantRunState(state, latestRun));
 	}, [props.conversation.latestRun]);
 	useEffect(() => {
 		if (streamState.status === "succeeded" && streamState.runId) {
@@ -482,9 +479,9 @@ function AssistantConversation(props: {
 	}, [chat]);
 
 	const reconnect = async () => {
-		const run = streamState.runId
-			? { id: streamState.runId }
-			: props.conversation.latestRun;
+		const run =
+			props.conversation.latestRun ??
+			(streamState.runId ? { id: streamState.runId } : null);
 		if (!run) return;
 		setReconnecting(true);
 		try {
@@ -783,6 +780,7 @@ function AssistantConversation(props: {
 							))}
 							<div ref={bottomRef} />
 						</div>
+						<AssistantReconnectActivity state={streamState} />
 						{busy ? (
 							<output className={styles.liveStatus}>
 								<LoaderCircle className={styles.spin} size={14} />{" "}

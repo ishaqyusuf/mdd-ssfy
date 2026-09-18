@@ -8,6 +8,37 @@ export const ASSISTANT_MAX_TEXT_CHARS = 32_000;
 export const ASSISTANT_MAX_TEXT_BYTES = 60_000;
 export const ASSISTANT_MAX_ATTACHMENT_BYTES = 8_000_000;
 export const ASSISTANT_MAX_ATTACHMENT_TOTAL_BYTES = 16_000_000;
+export const ASSISTANT_CONVERSATION_RETENTION_MIN_DAYS = 1;
+export const ASSISTANT_CONVERSATION_RETENTION_MAX_DAYS = 3_650;
+
+export function getAssistantConversationRetentionPolicy(
+	environment: Record<string, string | undefined> = process.env,
+) {
+	const rawDays = environment.ASSISTANT_CONVERSATION_RETENTION_DAYS?.trim();
+	if (!rawDays || !/^\d+$/.test(rawDays)) {
+		return { configured: false as const, days: null };
+	}
+	const days = Number(rawDays);
+	if (
+		!Number.isSafeInteger(days) ||
+		days < ASSISTANT_CONVERSATION_RETENTION_MIN_DAYS ||
+		days > ASSISTANT_CONVERSATION_RETENTION_MAX_DAYS
+	) {
+		return { configured: false as const, days: null };
+	}
+	return { configured: true as const, days };
+}
+
+export function assistantConversationRetentionUntil(
+	deletedAt: Date,
+	environment: Record<string, string | undefined> = process.env,
+) {
+	const policy = getAssistantConversationRetentionPolicy(environment);
+	if (!policy.configured) return null;
+	return new Date(
+		deletedAt.getTime() + policy.days * 24 * 60 * 60 * 1_000,
+	);
+}
 
 export class AssistantConversationAccessError extends Error {
 	readonly code = "ASSISTANT_CONVERSATION_NOT_FOUND";
@@ -101,17 +132,23 @@ function fingerprint(value: unknown) {
 		.digest("hex");
 }
 
-const TERMINAL_ASSISTANT_RUN_STATUSES = new Set([
+const TERMINAL_ASSISTANT_RUN_STATUS_VALUES = [
 	"succeeded",
 	"failed",
 	"cancelled",
-]);
-const ACTIVE_ASSISTANT_RUN_STATUSES = new Set([
+] as const;
+const TERMINAL_ASSISTANT_RUN_STATUSES = new Set<string>(
+	TERMINAL_ASSISTANT_RUN_STATUS_VALUES,
+);
+const ACTIVE_ASSISTANT_RUN_STATUS_VALUES = [
 	"queued",
 	"running",
 	"waiting_for_tool",
 	"waiting_for_approval",
-]);
+] as const;
+const ACTIVE_ASSISTANT_RUN_STATUSES = new Set<string>(
+	ACTIVE_ASSISTANT_RUN_STATUS_VALUES,
+);
 const ASSISTANT_CHECKPOINT_STATUSES = new Set([
 	"running",
 	"waiting_for_tool",
@@ -742,12 +779,24 @@ export async function softDeleteAssistantConversation(
 ) {
 	const scope = resolveActorScope(input);
 	const deletedAt = new Date();
+	const configuredRetentionUntil = assistantConversationRetentionUntil(deletedAt);
 	const result = await db.$transaction(async (tx) => {
 		const conversation = await tx.assistantConversation.updateMany({
 			where: { id: input.conversationId, ...scope, deletedAt: null },
 			data: { deletedAt },
 		});
 		if (conversation.count !== 1) return conversation;
+		if (configuredRetentionUntil) {
+			await tx.assistantConversation.updateMany({
+				where: {
+					id: input.conversationId,
+					...scope,
+					deletedAt: { not: null },
+					retentionUntil: null,
+				},
+				data: { retentionUntil: configuredRetentionUntil },
+			});
+		}
 		await tx.storedDocument.updateMany({
 			where: {
 				ownerType: ASSISTANT_ATTACHMENT_OWNER_TYPE,
@@ -1676,9 +1725,157 @@ export function listAssistantConversationsDueForRetention(
 		where: {
 			retentionUntil: { lte: input.before ?? new Date() },
 			deletedAt: { not: null },
+			runs: {
+				none: { status: { notIn: [...TERMINAL_ASSISTANT_RUN_STATUS_VALUES] } },
+			},
 		},
 		select: { id: true, ownerUserId: true, scopeType: true, scopeId: true },
 		orderBy: [{ retentionUntil: "asc" }, { id: "asc" }],
 		take: Math.min(Math.max(input.take ?? 100, 1), 500),
+	});
+}
+
+export async function listAssistantConversationDocumentsForRetention(
+	db: Database,
+	input: { conversationId: string; before?: Date },
+) {
+	const before = input.before ?? new Date();
+	const conversation = await db.assistantConversation.findFirst({
+		where: {
+			id: input.conversationId,
+			deletedAt: { not: null },
+			retentionUntil: { lte: before },
+			runs: {
+				none: { status: { notIn: [...TERMINAL_ASSISTANT_RUN_STATUS_VALUES] } },
+			},
+		},
+		select: { id: true },
+	});
+	if (!conversation) return [];
+	return db.storedDocument.findMany({
+		where: {
+			ownerType: ASSISTANT_ATTACHMENT_OWNER_TYPE,
+			ownerId: input.conversationId,
+			// Retention must include the tombstoned rows hidden by the normal
+			// StoredDocument read filter so their backing Blobs are removed first.
+			deletedAt: undefined,
+		},
+		select: { id: true, provider: true, pathname: true },
+		orderBy: { id: "asc" },
+	});
+}
+
+export async function isAssistantConversationDocumentPathShared(
+	db: Database,
+	input: {
+		conversationId: string;
+		documentId: string;
+		provider: string;
+		pathname: string;
+	},
+) {
+	const other = await db.storedDocument.findFirst({
+		where: {
+			id: { not: input.documentId },
+			provider: input.provider,
+			pathname: input.pathname,
+			NOT: {
+				ownerType: ASSISTANT_ATTACHMENT_OWNER_TYPE,
+				ownerId: input.conversationId,
+			},
+			deletedAt: undefined,
+		},
+		select: { id: true },
+	});
+	return Boolean(other);
+}
+
+export async function purgeAssistantConversationDueForRetention(
+	db: Database,
+	input: { conversationId: string; before?: Date },
+) {
+	const before = input.before ?? new Date();
+	return db.$transaction(async (tx) => {
+		const conversation = await tx.assistantConversation.findFirst({
+			where: {
+				id: input.conversationId,
+				deletedAt: { not: null },
+				retentionUntil: { lte: before },
+				runs: {
+					none: {
+						status: { notIn: [...TERMINAL_ASSISTANT_RUN_STATUS_VALUES] },
+					},
+				},
+			},
+			select: { id: true },
+		});
+		if (!conversation) return { purged: false as const };
+
+		const runs = await tx.assistantRun.findMany({
+			where: { conversationId: input.conversationId },
+			select: { id: true },
+		});
+		const runIds = runs.map(({ id }) => id);
+		const usageEvents = runIds.length
+			? await tx.assistantUsageEvent.findMany({
+					where: { runId: { in: runIds } },
+					select: { id: true },
+				})
+			: [];
+		const usageEventIds = usageEvents.map(({ id }) => id);
+
+		await tx.assistantFeatureRequest.updateMany({
+			where: { conversationId: input.conversationId },
+			data: { conversationId: null },
+		});
+		if (usageEventIds.length) {
+			await tx.assistantUsageReconciliation.deleteMany({
+				where: { usageEventId: { in: usageEventIds } },
+			});
+		}
+		if (runIds.length) {
+			await tx.assistantUsageEvent.deleteMany({
+				where: { runId: { in: runIds } },
+			});
+			await tx.assistantActionProposal.deleteMany({
+				where: { runId: { in: runIds } },
+			});
+			await tx.assistantToolExecution.deleteMany({
+				where: { runId: { in: runIds } },
+			});
+			await tx.assistantQuotaReservation.deleteMany({
+				where: { runId: { in: runIds } },
+			});
+			await tx.assistantRun.deleteMany({
+				where: { id: { in: runIds } },
+			});
+		}
+		await tx.assistantMessage.updateMany({
+			where: { conversationId: input.conversationId },
+			data: { parentMessageId: null },
+		});
+		await tx.assistantMessage.deleteMany({
+			where: { conversationId: input.conversationId },
+		});
+		const documents = await tx.storedDocument.deleteMany({
+			where: {
+				ownerType: ASSISTANT_ATTACHMENT_OWNER_TYPE,
+				ownerId: input.conversationId,
+			},
+		});
+		const deleted = await tx.assistantConversation.deleteMany({
+			where: {
+				id: input.conversationId,
+				deletedAt: { not: null },
+				retentionUntil: { lte: before },
+			},
+		});
+		if (deleted.count !== 1) throw new AssistantConversationAccessError();
+		return {
+			purged: true as const,
+			documentCount: documents.count,
+			runCount: runIds.length,
+			usageEventCount: usageEventIds.length,
+		};
 	});
 }

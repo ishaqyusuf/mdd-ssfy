@@ -74,6 +74,277 @@ function comparableSourceText(value: string) {
 		.trim();
 }
 
+function comparableCatalogTitle(value: string) {
+	return value
+		.normalize("NFKC")
+		.trim()
+		.replace(/\s+/g, " ")
+		.toLocaleUpperCase();
+}
+
+function hasOneAndThreeEighths(value: string) {
+	return /\b1\s*(?:-|\s)\s*3\s*\/\s*8\b/.test(value.normalize("NFKC"));
+}
+
+/** Conservative terminology bridge used only to request a corrected model selection. */
+function isCompatibleDoorInterpretation(sourceText: string, title: string) {
+	const source = comparableSourceText(sourceText);
+	const candidate = comparableSourceText(title);
+	let statedProperties = 0;
+	const requires = (stated: boolean, compatible: boolean) => {
+		if (!stated) return true;
+		statedProperties += 1;
+		return compatible;
+	};
+	const sourceSolid = /\bSOLID CORE\b/.test(source);
+	const sourceHollow = /\bHOLLOW CORE\b/.test(source);
+	const candidateSolid = /\b(?:SOLID CORE|SC|S C)\b/.test(candidate);
+	const candidateHollow = /\b(?:HOLLOW CORE|HC|H C)\b/.test(candidate);
+	const sourceFireRated = /\bFIRE(?: RATED)?\b/.test(source);
+	const sourceImpactRated = /\bIMPACT(?: RATED)?\b/.test(source);
+	const candidateFireRated = /\bFIRE(?: RATED)?\b/.test(candidate);
+	const candidateImpactRated = /\bIMPACT(?: RATED)?\b/.test(candidate);
+	if (candidateFireRated && !sourceFireRated) return false;
+	if (candidateImpactRated && !sourceImpactRated) return false;
+	if (!requires(sourceSolid, candidateSolid && !candidateHollow)) return false;
+	if (!requires(sourceHollow, candidateHollow && !candidateSolid)) return false;
+	if (
+		!requires(
+			/\bSMOOTH\b/.test(source) && /\bSLABS?\b/.test(source),
+			/\b(?:SMOOTH|FLUSH|HARDBOARD FLUSH)\b/.test(candidate) &&
+				!/\bMOLDED\b/.test(candidate),
+		)
+	)
+		return false;
+	if (
+		!requires(
+			/\bENGINEERED\b/.test(source),
+			/\b(?:ENGINEERED|HAR(?:D)?BOARD)\b/.test(candidate),
+		)
+	)
+		return false;
+	if (
+		!requires(
+			/\b(?:WHITE PRIMED|PRIMED)\b/.test(source),
+			/\bPRIMED\b/.test(candidate),
+		)
+	)
+		return false;
+	if (
+		!requires(
+			/\bFLUSH\b/.test(source),
+			/\bFLUSH\b/.test(candidate) && !/\bMOLDED\b/.test(candidate),
+		)
+	)
+		return false;
+	if (
+		!requires(hasOneAndThreeEighths(sourceText), hasOneAndThreeEighths(title))
+	)
+		return false;
+	if (!requires(sourceFireRated, candidateFireRated)) return false;
+	if (!requires(sourceImpactRated, candidateImpactRated)) return false;
+	if (
+		!requires(
+			/\bMOLDED\b/.test(source) && !/\bFLUSH\b/.test(source),
+			/\bMOLDED\b/.test(candidate) && !/\bFLUSH\b/.test(candidate),
+		)
+	)
+		return false;
+	return statedProperties > 0;
+}
+
+function shortestCompatibleDoorSourceSegment(
+	sourceText: string,
+	title: string,
+) {
+	const segments = sourceText
+		.split(/\r?\n|;|(?<=[.!?])\s+/)
+		.map((segment) => segment.trim())
+		.filter(
+			(segment) =>
+				segment.length > 0 &&
+				segment.length <= 1000 &&
+				isCompatibleDoorInterpretation(segment, title),
+		)
+		.sort((left, right) => left.length - right.length);
+	return (segments[0] ?? sourceText.trim().slice(0, 1000)).trim();
+}
+
+function isCompatibleDoorPrerequisite(sourceText: string, title: string) {
+	const source = comparableSourceText(sourceText);
+	const candidate = comparableSourceText(title);
+	let statedProperties = 0;
+	const requires = (stated: boolean, compatible: boolean) => {
+		if (!stated) return true;
+		statedProperties += 1;
+		return compatible;
+	};
+	const sourceSolid = /\bSOLID CORE\b/.test(source);
+	const sourceHollow = /\bHOLLOW CORE\b/.test(source);
+	const sourceFlush = /\b(?:SMOOTH|FLUSH)\b/.test(source);
+	const sourceMolded = /\bMOLDED\b/.test(source) && !sourceFlush;
+	const candidateSolid = /\b(?:SOLID CORE|SC|S C)\b/.test(candidate);
+	const candidateHollow = /\b(?:HOLLOW CORE|HC|H C)\b/.test(candidate);
+	const candidateFlush = /\bFLUSH\b/.test(candidate);
+	const candidateMolded = /\bMOLDED\b/.test(candidate);
+	if (!requires(sourceSolid, candidateSolid && !candidateHollow)) return false;
+	if (!requires(sourceHollow, candidateHollow && !candidateSolid)) return false;
+	if (!requires(sourceFlush, candidateFlush && !candidateMolded)) return false;
+	if (!requires(sourceMolded, candidateMolded && !candidateFlush)) return false;
+	return statedProperties > 0;
+}
+
+function shortestCompatiblePrerequisiteSourceSegment(
+	sourceText: string,
+	title: string,
+) {
+	const segments = sourceText
+		.split(/\r?\n|;|(?<=[.!?])\s+/)
+		.map((segment) => segment.trim())
+		.filter(
+			(segment) =>
+				segment.length > 0 &&
+				segment.length <= 1000 &&
+				isCompatibleDoorPrerequisite(segment, title),
+		)
+		.sort((left, right) => left.length - right.length);
+	return (segments[0] ?? sourceText.trim().slice(0, 1000)).trim();
+}
+
+function singleCompatibleDoorPrerequisite(input: {
+	visibility: unknown;
+	configuration: ModelConfiguration;
+	allowedStepIds: ReadonlySet<number>;
+	selectedByStepUid: Record<string, string>;
+	selectedProdUidsByStepUid: Record<string, string[]>;
+	sourceText: string;
+}) {
+	if (!input.visibility || typeof input.visibility !== "object") return null;
+	const variations = (input.visibility as { variations?: unknown }).variations;
+	if (!Array.isArray(variations)) return null;
+	const corrections = variations.flatMap((variation) => {
+		if (!variation || typeof variation !== "object") return [];
+		const rules = (variation as { rules?: unknown }).rules;
+		if (!Array.isArray(rules) || rules.length === 0) return [];
+		const unmet = rules.filter(
+			(rule) =>
+				!isComponentVisibleByRules(
+					{ variations: [{ rules: [rule] }] },
+					input.selectedByStepUid,
+					input.selectedProdUidsByStepUid,
+				),
+		);
+		if (unmet.length !== 1) return [];
+		const rule = unmet[0] as {
+			stepUid?: unknown;
+			operator?: unknown;
+			componentsUid?: unknown;
+		};
+		if (rule.operator !== "is" || !Array.isArray(rule.componentsUid)) return [];
+		const requiredUids = rule.componentsUid.map(String);
+		if (requiredUids.length !== 1) return [];
+		const stepUid = String(rule.stepUid || "");
+		const step = input.configuration.steps.find(
+			(candidate) =>
+				candidate.uid === stepUid && input.allowedStepIds.has(candidate.id),
+		);
+		const uid = requiredUids[0]!;
+		const title = step?.components.find(
+			([componentUid]) => componentUid === uid,
+		)?.[1];
+		if (
+			!step ||
+			!title ||
+			!isCompatibleDoorPrerequisite(input.sourceText, title)
+		)
+			return [];
+		const selectedByStepUid = {
+			...input.selectedByStepUid,
+			[step.uid]: uid,
+		};
+		const selectedProdUidsByStepUid = {
+			...input.selectedProdUidsByStepUid,
+			[step.uid]: [uid],
+		};
+		if (
+			!isComponentVisibleByRules(
+				input.visibility,
+				selectedByStepUid,
+				selectedProdUidsByStepUid,
+			)
+		)
+			return [];
+		return [
+			{
+				step,
+				uid,
+				title,
+				selectedByStepUid,
+				selectedProdUidsByStepUid,
+			},
+		];
+	});
+	const unique = new Map(
+		corrections.map((correction) => [
+			`${correction.step.id}:${correction.uid}`,
+			correction,
+		]),
+	);
+	return unique.size === 1 ? [...unique.values()][0]! : null;
+}
+
+function hasSourceCompatibleVisibleDoorPrerequisitePath(input: {
+	visibility: unknown;
+	configuration: ModelConfiguration;
+	selectedByStepUid: Record<string, string>;
+	selectedProdUidsByStepUid: Record<string, string[]>;
+	sourceText: string;
+}) {
+	if (!input.visibility || typeof input.visibility !== "object") return true;
+	const variations = (input.visibility as { variations?: unknown }).variations;
+	if (!Array.isArray(variations) || variations.length === 0) return true;
+	return variations.some((variation) => {
+		if (!variation || typeof variation !== "object") return false;
+		const rules = (variation as { rules?: unknown }).rules;
+		if (!Array.isArray(rules) || rules.length === 0) return false;
+		if (
+			!isComponentVisibleByRules(
+				{ variations: [{ rules }] },
+				input.selectedByStepUid,
+				input.selectedProdUidsByStepUid,
+			)
+		)
+			return false;
+		return rules.every((rule) => {
+			if (!rule || typeof rule !== "object") return true;
+			const candidate = rule as {
+				stepUid?: unknown;
+				operator?: unknown;
+				componentsUid?: unknown;
+			};
+			if (
+				candidate.operator !== "is" ||
+				!Array.isArray(candidate.componentsUid)
+			)
+				return true;
+			const componentUids = candidate.componentsUid.map(String);
+			if (componentUids.length !== 1) return true;
+			const step = input.configuration.steps.find(
+				(configuredStep) =>
+					configuredStep.uid === String(candidate.stepUid || ""),
+			);
+			if (!step || !/^door\s*type$/i.test(step.title?.trim() || ""))
+				return true;
+			const title = step.components.find(
+				([uid]) => uid === componentUids[0],
+			)?.[1];
+			return Boolean(
+				title && isCompatibleDoorPrerequisite(input.sourceText, title),
+			);
+		});
+	});
+}
+
 function requireSourceGrounding(
 	sourceText: string,
 	value: string,
@@ -285,6 +556,7 @@ export function validateNewSalesFormSeedConfiguration(
 	const stepsByUid = new Map(
 		configuration.steps.map((step) => [step.uid, step]),
 	);
+	const interpretations = normalizedSeed.interpretations ?? [];
 
 	// A valid subset is not a complete conversion: explicitly counted, exact-match
 	// standalone mouldings must remain selected, even when quantity needs review.
@@ -433,6 +705,38 @@ export function validateNewSalesFormSeedConfiguration(
 		const selectionByStepId = new Map(
 			formSteps.map((selection) => [selection.stepId, selection] as const),
 		);
+		const lineInterpretations = interpretations.filter(
+			(interpretation) => interpretation.lineUid === line.uid,
+		);
+		for (const interpretation of lineInterpretations) {
+			if (!allowedStepIds.has(interpretation.stepId)) {
+				throw new Error(
+					`Line ${line.uid} interpretation references a step outside its configured route.`,
+				);
+			}
+			const step = stepsById.get(interpretation.stepId);
+			const configuredTitle = step?.components.find(
+				([uid]) => uid === interpretation.selectedProdUid,
+			)?.[1];
+			if (
+				!configuredTitle ||
+				comparableCatalogTitle(configuredTitle) !==
+					comparableCatalogTitle(interpretation.selectedTitle)
+			) {
+				throw new Error(
+					`Line ${line.uid} interpretation must use the current configured component title.`,
+				);
+			}
+			if (
+				!comparableSourceText(sourceText).includes(
+					comparableSourceText(interpretation.sourceText),
+				)
+			) {
+				throw new Error(
+					`Line ${line.uid} interpretation source text must be quoted from the customer request.`,
+				);
+			}
+		}
 		const mouldingRows =
 			seed.schemaVersion === 2 && "meta" in line
 				? line.meta?.mouldingRows
@@ -480,6 +784,22 @@ export function validateNewSalesFormSeedConfiguration(
 						`Line ${line.uid} references an unavailable Moulding component.`,
 					);
 				}
+				const interpretedSource = lineInterpretations.reduce(
+					(text, interpretation) => {
+						if (
+							interpretation.stepId !== mouldingStep.id ||
+							interpretation.selectedProdUid !== row.uid
+						)
+							return text;
+						const offset = text
+							.toLowerCase()
+							.indexOf(interpretation.sourceText.toLowerCase());
+						return offset < 0
+							? text
+							: `${text.slice(0, offset)}${title}${text.slice(offset + interpretation.sourceText.length)}`;
+					},
+					sourceText,
+				);
 				const identitySource = identityGuidance.reduce((text, guidance) => {
 					// A reviewed alias may identify a current product, never contribute
 					// a historic quantity or dimension to the numeric source checks.
@@ -502,7 +822,7 @@ export function validateNewSalesFormSeedConfiguration(
 					return offset < 0
 						? text
 						: `${text.slice(0, offset)}${title}${text.slice(offset + phrase.length)}`;
-				}, sourceText);
+				}, interpretedSource);
 				const rowSourceText = mouldingSourceSegments(
 					identitySource,
 					title,
@@ -646,17 +966,14 @@ export function validateNewSalesFormSeedConfiguration(
 			if (first) selectedByStepUid[step.uid] = first;
 		}
 		if (line.housePackageTool) {
-			const doorStepIds = new Set(
-				configuration.steps
-					.filter(
-						(step) =>
-							allowedStepIds.has(step.id) &&
-							String(step.title || "")
-								.trim()
-								.toLowerCase() === "door",
-					)
-					.map((step) => step.id),
+			const doorSteps = configuration.steps.filter(
+				(step) =>
+					allowedStepIds.has(step.id) &&
+					String(step.title || "")
+						.trim()
+						.toLowerCase() === "door",
 			);
+			const doorStepIds = new Set(doorSteps.map((step) => step.id));
 			const doorSelections = formSteps.flatMap((selection) => {
 				const step = stepsById.get(selection.stepId);
 				if (
@@ -678,6 +995,176 @@ export function validateNewSalesFormSeedConfiguration(
 					doorStepIds.has(entry.stepId) &&
 					entry.field.trim().toLowerCase() === "door",
 			);
+			if (doorSelections.length === 0) {
+				const visibleCompatibleCandidates = doorSteps.flatMap((doorStep) =>
+					doorStep.components.flatMap(([uid, title]) => {
+						if (!isCompatibleDoorInterpretation(sourceText, title)) return [];
+						const visibility = configuration.visibilityByComponentUid[uid];
+						const prerequisite =
+							visibility &&
+							!isComponentVisibleByRules(
+								visibility,
+								selectedByStepUid,
+								selectedProdUidsByStepUid,
+							)
+								? singleCompatibleDoorPrerequisite({
+										visibility,
+										configuration,
+										allowedStepIds,
+										selectedByStepUid,
+										selectedProdUidsByStepUid,
+										sourceText,
+									})
+								: null;
+						if (
+							visibility &&
+							!prerequisite &&
+							!isComponentVisibleByRules(
+								visibility,
+								selectedByStepUid,
+								selectedProdUidsByStepUid,
+							)
+						)
+							return [];
+						const completedSelectedByStepUid = {
+							...(prerequisite?.selectedByStepUid ?? selectedByStepUid),
+							[doorStep.uid]: uid,
+						};
+						const completedSelectedProdUidsByStepUid = {
+							...(prerequisite?.selectedProdUidsByStepUid ??
+								selectedProdUidsByStepUid),
+							[doorStep.uid]: [uid],
+						};
+						if (
+							visibility &&
+							!isComponentVisibleByRules(
+								visibility,
+								completedSelectedByStepUid,
+								completedSelectedProdUidsByStepUid,
+							)
+						)
+							return [];
+						if (
+							visibility &&
+							!hasSourceCompatibleVisibleDoorPrerequisitePath({
+								visibility,
+								configuration,
+								selectedByStepUid: completedSelectedByStepUid,
+								selectedProdUidsByStepUid: completedSelectedProdUidsByStepUid,
+								sourceText,
+							})
+						)
+							return [];
+						const completedCombinationVisible = formSteps.every((selection) => {
+							if (selection.stepId === prerequisite?.step.id) return true;
+							if ("value" in selection) return true;
+							const selectedProdUids =
+								"prodUid" in selection
+									? [selection.prodUid]
+									: selection.meta.selectedProdUids;
+							return selectedProdUids.every((selectedUid) => {
+								const selectedVisibility =
+									configuration.visibilityByComponentUid[selectedUid];
+								return (
+									!selectedVisibility ||
+									isComponentVisibleByRules(
+										selectedVisibility,
+										completedSelectedByStepUid,
+										completedSelectedProdUidsByStepUid,
+									)
+								);
+							});
+						});
+						if (!completedCombinationVisible) return [];
+						return [{ stepId: doorStep.id, uid, title, prerequisite }];
+					}),
+				);
+				if (visibleCompatibleCandidates.length === 1) {
+					const [candidate] = visibleCompatibleCandidates;
+					const prerequisite = candidate!.prerequisite;
+					const newInterpretations: NonNullable<
+						NewSalesFormSeed["interpretations"]
+					> = [];
+					if (prerequisite) {
+						const prerequisiteSelection =
+							prerequisite.step.selectionMode === "multiple"
+								? {
+										stepId: prerequisite.step.id,
+										meta: { selectedProdUids: [prerequisite.uid] },
+									}
+								: { stepId: prerequisite.step.id, prodUid: prerequisite.uid };
+						const existingIndex = formSteps.findIndex(
+							(selection) => selection.stepId === prerequisite.step.id,
+						);
+						if (existingIndex >= 0)
+							formSteps[existingIndex] = prerequisiteSelection;
+						else formSteps.push(prerequisiteSelection);
+						selectionByStepId.set(prerequisite.step.id, prerequisiteSelection);
+						selectedByStepUid[prerequisite.step.uid] = prerequisite.uid;
+						selectedProdUidsByStepUid[prerequisite.step.uid] = [
+							prerequisite.uid,
+						];
+						newInterpretations.push({
+							lineUid: line.uid,
+							stepId: prerequisite.step.id,
+							field: prerequisite.step.title || "door type",
+							sourceText: shortestCompatiblePrerequisiteSourceSegment(
+								sourceText,
+								prerequisite.title,
+							),
+							selectedProdUid: prerequisite.uid,
+							selectedTitle: prerequisite.title.trim(),
+							reason:
+								"Corrected the prerequisite selection to the only source-compatible option required by the Door component.",
+						});
+					}
+					const doorStep = stepsById.get(candidate!.stepId)!;
+					const selection =
+						doorStep.selectionMode === "multiple"
+							? {
+									stepId: candidate!.stepId,
+									meta: { selectedProdUids: [candidate!.uid] },
+								}
+							: { stepId: candidate!.stepId, prodUid: candidate!.uid };
+					formSteps.push(selection);
+					selectionByStepId.set(candidate!.stepId, selection);
+					selectedByStepUid[doorStep.uid] = candidate!.uid;
+					selectedProdUidsByStepUid[doorStep.uid] = [candidate!.uid];
+					doorSelections.push(candidate!.uid);
+					normalizedSeed.unresolved = normalizedSeed.unresolved.filter(
+						(entry) =>
+							!(
+								entry.lineUid === line.uid &&
+								entry.stepId === candidate!.stepId &&
+								entry.field.trim().toLowerCase() === "door"
+							),
+					);
+					newInterpretations.push({
+						lineUid: line.uid,
+						stepId: candidate!.stepId,
+						field: "door",
+						sourceText: shortestCompatibleDoorSourceSegment(
+							sourceText,
+							candidate!.title,
+						),
+						selectedProdUid: candidate!.uid,
+						selectedTitle: candidate!.title.trim(),
+						reason:
+							"Mapped the customer Door description to the only compatible visible configured component.",
+					});
+					normalizedSeed.interpretations = [
+						...(normalizedSeed.interpretations ?? []).filter(
+							(interpretation) =>
+								!(
+									prerequisite &&
+									interpretation.lineUid === line.uid &&
+									interpretation.stepId === prerequisite.step.id
+								),
+						),
+						...newInterpretations,
+					];
+				}
+			}
 			if (
 				doorSelections.length > 1 ||
 				(doorSelections.length === 0 && !hasUnresolvedDoor)
@@ -942,7 +1429,12 @@ export async function generateNewSalesFormSeed(
 			clarifications: input.clarifications,
 			guidance: input.guidance,
 			adminRules: input.adminRules,
-			prepareSeed: (seed) => applyConfirmedMouldingQuantities(seed, input.configurationJson, input.clarifications),
+			prepareSeed: (seed) =>
+				applyConfirmedMouldingQuantities(
+					seed,
+					input.configurationJson,
+					input.clarifications,
+				),
 			validateSeed: (seed) => {
 				validateNewSalesFormSeedConfiguration(
 					applyConfirmedMouldingQuantities(

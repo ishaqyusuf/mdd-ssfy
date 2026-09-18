@@ -26,12 +26,12 @@ import {
 import {
 	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
 	SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
-	getSalesRequestAISettings,
 	getSalesRequestAIRules,
-	getSalesRequestPilotSettings,
+	getSalesRequestAISettings,
 	getSalesRequestCatalogSettings,
-	isSalesRequestCatalogPublicationCurrent,
+	getSalesRequestPilotSettings,
 	getSalesRequestProviderBenchmarkApproval,
+	isSalesRequestCatalogPublicationCurrent,
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 } from "@gnd/settings";
 import { TRPCError } from "@trpc/server";
@@ -160,7 +160,14 @@ export function createSalesRequestPreviewDependencies(input: {
 						...snapshot,
 						adminRules: adminRules.rules
 							.filter((rule) => rule.enabled)
-							.map(({ title, instruction }) => ({ title, instruction })),
+							.map(({ id, title, instruction }) => ({
+								id,
+								title,
+								instruction,
+								...(id.startsWith("interpretation-warning:")
+									? { suppressWarning: true }
+									: {}),
+							})),
 						adminRulesRevision: adminRules.revision,
 						aiSelection: aiSettings.selection,
 						pilotSettingsRevision: pilot.settings.revision,

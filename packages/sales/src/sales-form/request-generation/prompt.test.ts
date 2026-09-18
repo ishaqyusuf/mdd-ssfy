@@ -20,7 +20,22 @@ test("prompt uses the native door shell and forbids opening-to-leaf inference", 
 	expect(instructions).toContain("structural and has no selectable component");
 	expect(instructions).toContain('"qty":14');
 	expect(instructions).toContain("Never infer leaf count");
-	expect(instructions).toContain("Never select a closest-match component");
+	expect(instructions).toContain("Prefer a defensible current catalog match");
+	expect(instructions).toContain(
+		"Deterministic server validation is the authority for component visibility",
+	);
+	expect(instructions).toContain("complete planned route selections");
+	expect(instructions).toContain(
+		"Do not omit or describe a compatible configured component as hidden",
+	);
+	expect(instructions).toContain("compatible catalog shorthand");
+	expect(instructions).toContain(
+		"smooth white-primed engineered solid-core slab",
+	);
+	expect(instructions).toContain("interpretations entry");
+	expect(instructions).toContain("materially plausible candidates remain");
+	expect(instructions).toContain("merely offers to provide more information");
+	expect(instructions).toContain("must not create a Bore question");
 	expect(instructions).toContain("lineUid:null must also use stepId:null");
 	expect(instructions).toContain("Repeat line-specific uncertainty");
 	expect(instructions).toContain("custom:true");
@@ -31,9 +46,11 @@ test("prompt uses the native door shell and forbids opening-to-leaf inference", 
 	expect(instructions).toContain("same product");
 	expect(instructions).toContain("ceil(linearFeet*");
 	expect(instructions).toContain("include wastePercentage when");
-	expect(instructions).toContain("Only linear-foot conversion requires a catalog length");
+	expect(instructions).toContain(
+		"Only linear-foot conversion requires a catalog length",
+	);
 	expect(instructions).toContain("Generic wording such as baseboard");
-	expect(instructions).toContain("never choose the first or closest profile");
+	expect(instructions).toContain("clearly stronger semantic fit");
 	expect(instructions).toContain("Brick moulding or trim");
 	expect(instructions).toContain('"linearFeet":400');
 	expect(instructions).toContain('"pieceLength":16');

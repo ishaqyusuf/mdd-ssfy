@@ -186,11 +186,27 @@ export const newSalesFormSeedUnresolvedSchema = z
 	})
 	.strict();
 
+export const newSalesFormSeedInterpretationSchema = z
+	.object({
+		lineUid,
+		stepId,
+		field: z.string().trim().min(1).max(128),
+		sourceText: z.string().trim().min(1).max(1000),
+		selectedProdUid: z.string().trim().min(1).max(128),
+		selectedTitle: z.string().trim().min(1).max(256),
+		reason: z.string().trim().min(1).max(1000),
+	})
+	.strict();
+
 export const newSalesFormSeedV1Schema = z
 	.object({
 		schemaVersion: z.literal(1),
 		lineItems: z.array(newSalesFormSeedV1LineSchema).max(100),
 		unresolved: z.array(newSalesFormSeedUnresolvedSchema).max(300),
+		interpretations: z
+			.array(newSalesFormSeedInterpretationSchema)
+			.max(300)
+			.optional(),
 	})
 	.strict();
 
@@ -201,6 +217,10 @@ export const newSalesFormSeedV2Schema = z
 		form: newSalesFormSeedFormSchema.optional(),
 		extraCosts: z.array(newSalesFormSeedDeliveryCostSchema).max(1).optional(),
 		unresolved: z.array(newSalesFormSeedUnresolvedSchema).max(300),
+		interpretations: z
+			.array(newSalesFormSeedInterpretationSchema)
+			.max(300)
+			.optional(),
 	})
 	.strict();
 
@@ -227,17 +247,26 @@ export const newSalesFormSeedSchema = z
 				});
 			}
 			lineUids.add(line.uid);
-			const pendingMouldingRows = "meta" in line
-				? line.meta?.mouldingRows?.filter((row) => "qty" in row && row.qty === 0) || []
-				: [];
-			const hasQuantityReview = seed.unresolved.some((entry) =>
-				entry.lineUid === line.uid && entry.stepId === null && entry.field === "quantity",
+			const pendingMouldingRows =
+				"meta" in line
+					? line.meta?.mouldingRows?.filter(
+							(row) => "qty" in row && row.qty === 0,
+						) || []
+					: [];
+			const hasQuantityReview = seed.unresolved.some(
+				(entry) =>
+					entry.lineUid === line.uid &&
+					entry.stepId === null &&
+					entry.field === "quantity",
 			);
-			if ((line.qty === 0 && pendingMouldingRows.length === 0) ||
-				(pendingMouldingRows.length > 0 && !hasQuantityReview)) {
+			if (
+				(line.qty === 0 && pendingMouldingRows.length === 0) ||
+				(pendingMouldingRows.length > 0 && !hasQuantityReview)
+			) {
 				context.addIssue({
 					code: "custom",
-					message: "Zero quantities require selected moulding rows and an explicit quantity review",
+					message:
+						"Zero quantities require selected moulding rows and an explicit quantity review",
 					path: ["lineItems", lineIndex, "qty"],
 				});
 			}
@@ -391,6 +420,39 @@ export const newSalesFormSeedSchema = z
 					code: "custom",
 					message: "A form step cannot be selected and unresolved",
 					path: ["unresolved", index, "stepId"],
+				});
+			}
+		}
+
+		for (const [index, interpretation] of (
+			seed.interpretations ?? []
+		).entries()) {
+			const line = seed.lineItems.find(
+				(candidate) => candidate.uid === interpretation.lineUid,
+			);
+			if (!line) {
+				context.addIssue({
+					code: "custom",
+					message: "Interpretation references an unknown line UID",
+					path: ["interpretations", index, "lineUid"],
+				});
+				continue;
+			}
+			const selection = line.formSteps.find(
+				(step) => step.stepId === interpretation.stepId,
+			);
+			const selectedProdUids = !selection
+				? []
+				: "prodUid" in selection
+					? [selection.prodUid]
+					: "meta" in selection
+						? selection.meta.selectedProdUids
+						: [];
+			if (!selectedProdUids.includes(interpretation.selectedProdUid)) {
+				context.addIssue({
+					code: "custom",
+					message: "Interpretation must reference its selected component",
+					path: ["interpretations", index, "selectedProdUid"],
 				});
 			}
 		}

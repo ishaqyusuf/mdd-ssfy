@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	activateAssistantRunState,
 	assistantScrollBehavior,
 	buildAssistantChatRequest,
 	claimAssistantPendingPrompt,
@@ -259,6 +260,44 @@ describe("assistant chat state", () => {
 		});
 		expect(second.actionProposals).toHaveLength(1);
 		expect(second.actionProposals[0]?.id).toBe("proposal-1");
+	});
+
+	test("clears run-scoped recovery state when the latest run changes", () => {
+		const next = activateAssistantRunState(
+			{
+				...initialAssistantStreamState,
+				runId: "run-1",
+				status: "failed",
+				errorCode: "PRIVATE_CODE",
+				completedAt: "2026-09-17T12:00:00.000Z",
+				runSequence: 8,
+				toolExecutions: [
+					{
+						id: "execution-1",
+						eventSequence: 8,
+						toolId: "orders_get",
+						toolVersion: 1,
+						effect: "read",
+						status: "failed",
+						result: null,
+						errorCode: "PRIVATE_CODE",
+						durationMs: null,
+						completedAt: null,
+					},
+				],
+			},
+			{ id: "run-2", status: "running", lastSequence: 1 },
+		);
+
+		expect(next).toMatchObject({
+			runId: "run-2",
+			status: "running",
+			errorCode: null,
+			completedAt: null,
+			runSequence: 1,
+			toolExecutions: [],
+			actionProposals: [],
+		});
 	});
 
 	test("parses a request limit response only when quota fields are complete", () => {

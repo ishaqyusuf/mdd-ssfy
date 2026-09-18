@@ -20,6 +20,8 @@ import { Spinner } from "@gnd/ui/spinner";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useState } from "react";
+import { SalesRequestAIRulesSection } from "./sales-request-ai-rules-section";
+import { SalesRequestInterpretationWarningsSection } from "./sales-request-interpretation-warnings-section";
 import {
 	type SalesRequestMailboxPolicyDraft,
 	SalesRequestMailboxSettingsSection,
@@ -28,7 +30,6 @@ import {
 	type SalesRequestPilotDraft,
 	SalesRequestPilotSettingsSection,
 } from "./sales-request-pilot-settings-section";
-import { SalesRequestAIRulesSection } from "./sales-request-ai-rules-section";
 import { SalesRequestProviderDiagnosticsSection } from "./sales-request-provider-diagnostics-section";
 import { SalesSettingsRouteSkeleton } from "./sales-settings-route-skeleton";
 import { SettingsCard } from "./settings-card";
@@ -349,7 +350,11 @@ export function SalesRequestGenerationSettingsPage() {
 			</SettingsCard>
 
 			<SalesRequestAIRulesSection />
-			<SettingsCard title="Saved request guidance" description="Manage your reusable answers to sales request questions.">
+			<SalesRequestInterpretationWarningsSection />
+			<SettingsCard
+				title="Saved request guidance"
+				description="Manage your reusable answers to sales request questions."
+			>
 				<SalesRequestGuidanceSection />
 			</SettingsCard>
 

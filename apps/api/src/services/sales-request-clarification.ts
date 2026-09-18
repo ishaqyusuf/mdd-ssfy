@@ -1,6 +1,20 @@
 import { randomUUID } from "node:crypto";
+import type { NewSalesFormSeed } from "@gnd/sales/sales-form";
 import { TRPCError } from "@trpc/server";
+import {
+	type InterpretationWarningCategory,
+	SALES_REQUEST_INTERPRETATION_WARNING_CATEGORIES,
+	interpretationWarningCategory,
+	interpretationWarningKey,
+	reusableInterpretationField,
+} from "./sales-request-interpretation-warning";
 import { createSalesRequestPreview } from "./sales-request-preview";
+
+export {
+	SALES_REQUEST_INTERPRETATION_WARNING_CATEGORIES,
+	interpretationWarningCategory,
+	interpretationWarningKey,
+} from "./sales-request-interpretation-warning";
 
 type Preview = Awaited<ReturnType<typeof createSalesRequestPreview>>;
 type Dependencies = Parameters<typeof createSalesRequestPreview>[1];
@@ -18,6 +32,12 @@ type Answer = {
 	reuse: boolean;
 	active: boolean;
 	question: ClarificationQuestion;
+	origin?: "clarification" | "interpretation-warning";
+	warningKey?: string;
+	warningCategory?: InterpretationWarningCategory;
+	selectedProdUid?: string;
+	selectedTitle?: string;
+	stepId?: number;
 };
 type Session = {
 	id: string;
@@ -30,7 +50,14 @@ type Session = {
 	status: string;
 	questions: unknown;
 	answers: unknown;
+	createdAt?: Date | string;
+	updatedAt?: Date | string;
 };
+
+type SalesRequestInterpretation = NonNullable<
+	NewSalesFormSeed["interpretations"]
+>[number];
+
 export type ClarificationDatabase = {
 	salesRequestClarificationSession: {
 		create(args: { data: Record<string, unknown> }): Promise<Session>;
@@ -55,7 +82,8 @@ export function clarificationSourceReference(
 	productTitles: readonly string[] = [],
 ) {
 	const quoted = [...reason.matchAll(/["“]([^"”]{4,160})["”]/g)]
-		.map((match) => match[1]!)
+		.map((match) => match[1] ?? "")
+		.filter(Boolean)
 		.find((phrase) => sourceText.toLowerCase().includes(phrase.toLowerCase()));
 	const title =
 		quoted ??
@@ -159,7 +187,7 @@ export async function readClarificationGuidance(
 			status: "complete",
 		},
 		orderBy: { updatedAt: "desc" },
-		take: 50,
+		take: 200,
 	});
 	const candidates = sessions
 		.flatMap((session) =>
@@ -172,6 +200,9 @@ export async function readClarificationGuidance(
 					answer: answer.answer,
 					field: answer.question.field,
 					sourceText: answer.question.sourceText,
+					...(answer.origin === "interpretation-warning"
+						? { suppressWarning: true }
+						: {}),
 				})),
 		)
 		.slice(0, 50);
@@ -194,6 +225,128 @@ export async function readClarificationGuidance(
 		)
 		.slice(0, 12);
 }
+
+function warningAnswer(
+	warning: SalesRequestInterpretation,
+	active: boolean,
+): Answer & { warningKey: string } {
+	const key = interpretationWarningKey(warning);
+	const eligible = reusableInterpretationField(warning.field);
+	return {
+		questionId: randomUUID(),
+		answer: warning.selectedTitle,
+		reuse: eligible,
+		active: eligible && active,
+		origin: "interpretation-warning",
+		warningKey: key,
+		warningCategory: interpretationWarningCategory(warning.field),
+		selectedProdUid: warning.selectedProdUid,
+		selectedTitle: warning.selectedTitle,
+		stepId: warning.stepId,
+		question: {
+			id: randomUUID(),
+			lineUid: warning.lineUid,
+			field: warning.field,
+			question: `Interpret “${warning.sourceText}” as ${warning.selectedTitle}.`,
+			sourceText: warning.sourceText,
+			reason: warning.reason,
+		},
+	};
+}
+
+function interpretationAnswers(rows: Session[]) {
+	return rows.flatMap((row) =>
+		(row.answers as Answer[]).flatMap((answer) =>
+			answer.origin === "interpretation-warning" && answer.warningKey
+				? [
+						{
+							row,
+							answer: answer as Answer & { warningKey: string },
+						},
+					]
+				: [],
+		),
+	);
+}
+
+export async function recordSalesRequestInterpretationWarnings(
+	db: ClarificationDatabase,
+	input: {
+		actorUserId: number;
+		saleType: "order" | "quote";
+		scope: string;
+		configurationRevision: string;
+		sourceText: string;
+		interpretations: readonly SalesRequestInterpretation[];
+	},
+) {
+	if (!input.interpretations.length) return [];
+	const previous = await db.salesRequestClarificationSession.findMany({
+		where: {
+			actorUserId: input.actorUserId,
+			scope: input.scope,
+			configurationRevision: input.configurationRevision,
+			status: "complete",
+		},
+		orderBy: { updatedAt: "desc" },
+		take: 200,
+	});
+	const activeKeys = new Set(
+		interpretationAnswers(previous)
+			.filter(({ answer }) => answer.active)
+			.map(({ answer }) => answer.warningKey),
+	);
+	const answers = input.interpretations.map((warning) =>
+		warningAnswer(warning, activeKeys.has(interpretationWarningKey(warning))),
+	);
+	await db.salesRequestClarificationSession.create({
+		data: {
+			id: randomUUID(),
+			actorUserId: input.actorUserId,
+			saleType: input.saleType,
+			scope: input.scope,
+			configurationRevision: input.configurationRevision,
+			sourceText: input.sourceText,
+			revision: 1,
+			status: "complete",
+			questions: [],
+			answers,
+		},
+	});
+	return answers.map((answer) => ({
+		key: answer.warningKey,
+		active: answer.active,
+	}));
+}
+
+function suppressApprovedInterpretationWarnings<
+	TExtendsPreview extends Preview,
+>(
+	preview: TExtendsPreview,
+	guidance: Awaited<ReturnType<typeof readClarificationGuidance>>,
+): TExtendsPreview {
+	const suppressed = guidance.filter((item) => item.suppressWarning);
+	if (!suppressed.length || !preview.seed.interpretations?.length)
+		return preview;
+	return {
+		...preview,
+		seed: {
+			...preview.seed,
+			interpretations: preview.seed.interpretations.filter(
+				(warning) =>
+					!suppressed.some(
+						(item) =>
+							item.field?.trim().toLowerCase() ===
+								warning.field.trim().toLowerCase() &&
+							item.sourceText?.trim().toLowerCase() ===
+								warning.sourceText.trim().toLowerCase() &&
+							item.answer.trim().toLowerCase() ===
+								warning.selectedTitle.trim().toLowerCase(),
+					),
+			),
+		},
+	} as TExtendsPreview;
+}
 export async function beginSalesRequestClarification(input: {
 	db: ClarificationDatabase;
 	actorUserId: number;
@@ -213,9 +366,13 @@ export async function beginSalesRequestClarification(input: {
 			step.components.map((component) => component.title),
 		),
 	});
-	const preview = await createSalesRequestPreview(
+	const generatedPreview = await createSalesRequestPreview(
 		{ text: input.text, images: [], signal: input.signal, guidance },
 		input.dependencies,
+	);
+	const preview = suppressApprovedInterpretationWarnings(
+		generatedPreview,
+		guidance,
 	);
 	input.signal.throwIfAborted();
 	const questions = questionsFor(
@@ -225,7 +382,17 @@ export async function beginSalesRequestClarification(input: {
 			step.components.map((component) => component.title),
 		),
 	);
-	if (!questions.length) return { ...preview, clarification: null };
+	if (!questions.length) {
+		await recordSalesRequestInterpretationWarnings(input.db, {
+			actorUserId: input.actorUserId,
+			saleType: input.type,
+			scope: preview.configurationScope,
+			configurationRevision: preview.configurationRevision,
+			sourceText: input.text,
+			interpretations: preview.seed.interpretations ?? [],
+		});
+		return { ...preview, clarification: null };
+	}
 	const session = await input.db.salesRequestClarificationSession.create({
 		data: {
 			id: randomUUID(),
@@ -311,7 +478,12 @@ export async function answerSalesRequestClarification(input: {
 				answer: answer.answer.trim(),
 				active: answer.reuse,
 				question: (() => {
-					const question = questions.find((q) => q.id === answer.questionId)!;
+					const question = questions.find((q) => q.id === answer.questionId);
+					if (!question)
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Answer every current question once.",
+						});
 					return {
 						...question,
 						sourceText:
@@ -346,7 +518,7 @@ export async function answerSalesRequestClarification(input: {
 				"The clarification history is too long. Start a smaller request or complete the sales form manually.",
 			);
 		}
-		const preview = await createSalesRequestPreview(
+		const generatedPreview = await createSalesRequestPreview(
 			{
 				text: session.sourceText,
 				images: [],
@@ -369,6 +541,10 @@ export async function answerSalesRequestClarification(input: {
 			},
 			input.dependencies,
 		);
+		const preview = suppressApprovedInterpretationWarnings(
+			generatedPreview,
+			guidance,
+		);
 		input.signal.throwIfAborted();
 		const nextQuestions = questionsFor(
 			preview,
@@ -388,6 +564,16 @@ export async function answerSalesRequestClarification(input: {
 		});
 		if (updated.count !== 1)
 			conflict("This request was cancelled before the answers were applied.");
+		if (!nextQuestions.length) {
+			await recordSalesRequestInterpretationWarnings(input.db, {
+				actorUserId: input.actorUserId,
+				saleType: session.saleType as "order" | "quote",
+				scope: session.scope,
+				configurationRevision: session.configurationRevision,
+				sourceText: session.sourceText,
+				interpretations: preview.seed.interpretations ?? [],
+			});
+		}
 		return {
 			...preview,
 			clarification: surface(
@@ -416,6 +602,281 @@ export async function cancelSalesRequestClarification(
 	});
 	return { cancelled: true };
 }
+
+export async function listSalesRequestInterpretationWarnings(
+	db: ClarificationDatabase,
+	actorUserId: number | null,
+	effective?: { scope: string; configurationRevision: string },
+	activeGlobalWarningKeys: ReadonlySet<string> = new Set(),
+) {
+	const rows = await db.salesRequestClarificationSession.findMany({
+		where: {
+			status: "complete",
+			...(actorUserId == null ? {} : { actorUserId }),
+		},
+		orderBy: { updatedAt: "desc" },
+		take: 200,
+	});
+	type WarningRow = {
+		key: string;
+		category: InterpretationWarningCategory;
+		stepId: number;
+		field: string;
+		sourceText: string;
+		selectedProdUid: string;
+		selectedTitle: string;
+		reason: string;
+		occurrenceCount: number;
+		doNotShow: boolean;
+		eligible: boolean;
+		lastSeenAt: string | null;
+	};
+	const byKey = new Map<string, WarningRow>();
+	for (const { row, answer } of interpretationAnswers(rows)) {
+		const key = answer.warningKey;
+		const existing = byKey.get(key);
+		if (existing) {
+			existing.occurrenceCount += 1;
+			if (
+				activeGlobalWarningKeys.has(key) ||
+				(answer.active &&
+					(!effective ||
+						(row.scope === effective.scope &&
+							row.configurationRevision === effective.configurationRevision)))
+			)
+				existing.doNotShow = true;
+			continue;
+		}
+		const effectiveForCurrent =
+			!effective ||
+			(row.scope === effective.scope &&
+				row.configurationRevision === effective.configurationRevision);
+		byKey.set(key, {
+			key,
+			category:
+				answer.warningCategory ??
+				interpretationWarningCategory(answer.question.field),
+			stepId: answer.stepId ?? 0,
+			field: answer.question.field,
+			sourceText: answer.question.sourceText ?? "",
+			selectedProdUid: answer.selectedProdUid ?? "",
+			selectedTitle: answer.selectedTitle ?? answer.answer,
+			reason: answer.question.reason,
+			occurrenceCount: 1,
+			doNotShow:
+				activeGlobalWarningKeys.has(key) ||
+				(effectiveForCurrent && answer.active),
+			eligible:
+				answer.reuse && reusableInterpretationField(answer.question.field),
+			lastSeenAt:
+				row.updatedAt instanceof Date
+					? row.updatedAt.toISOString()
+					: typeof row.updatedAt === "string"
+						? row.updatedAt
+						: null,
+		});
+	}
+	const warnings = [...byKey.values()];
+	const categories = SALES_REQUEST_INTERPRETATION_WARNING_CATEGORIES.map(
+		(category) => {
+			const categoryWarnings = warnings.filter(
+				(warning) => warning.category === category,
+			);
+			return {
+				category,
+				occurrenceCount: categoryWarnings.reduce(
+					(total, warning) => total + warning.occurrenceCount,
+					0,
+				),
+				warningCount: categoryWarnings.length,
+				doNotShowCount: categoryWarnings.filter((warning) => warning.doNotShow)
+					.length,
+				warnings: categoryWarnings,
+			};
+		},
+	).filter((category) => category.warningCount > 0);
+	return {
+		summary: {
+			occurrenceCount: warnings.reduce(
+				(total, warning) => total + warning.occurrenceCount,
+				0,
+			),
+			warningCount: warnings.length,
+			doNotShowCount: warnings.filter((warning) => warning.doNotShow).length,
+		},
+		categories,
+	};
+}
+
+async function updateInterpretationWarningAnswer(
+	db: ClarificationDatabase,
+	row: Session,
+	key: string,
+	active: boolean,
+) {
+	const answers = row.answers as Answer[];
+	if (!answers.some((answer) => answer.warningKey === key)) return false;
+	const updated = await db.salesRequestClarificationSession.updateMany({
+		where: { id: row.id, actorUserId: row.actorUserId, revision: row.revision },
+		data: {
+			revision: row.revision + 1,
+			answers: answers.map((answer) =>
+				answer.warningKey === key ? { ...answer, active } : answer,
+			),
+		},
+	});
+	if (updated.count !== 1)
+		conflict("Warning guidance changed. Reload before editing.");
+	return true;
+}
+
+export async function setSalesRequestInterpretationWarningGuidance(
+	db: ClarificationDatabase,
+	actorUserId: number,
+	input:
+		| {
+				key: string;
+				active: boolean;
+				scope?: string;
+				configurationRevision?: string;
+				isCurrentComponent?: (
+					stepId: number,
+					prodUid: string,
+					title: string,
+				) => boolean;
+		  }
+		| {
+				warning: SalesRequestInterpretation;
+				active: boolean;
+				scope: string;
+				configurationRevision: string;
+		  },
+) {
+	const key =
+		"key" in input ? input.key : interpretationWarningKey(input.warning);
+	const rows = await db.salesRequestClarificationSession.findMany({
+		where: {
+			actorUserId,
+			status: "complete",
+			...("warning" in input
+				? {
+						scope: input.scope,
+						configurationRevision: input.configurationRevision,
+					}
+				: {}),
+		},
+		orderBy: { updatedAt: "desc" },
+		take: 200,
+	});
+	const matching = rows.filter((row) =>
+		(row.answers as Answer[]).some(
+			(answer) =>
+				answer.origin === "interpretation-warning" && answer.warningKey === key,
+		),
+	);
+	if (input.active) {
+		const target = matching.find(
+			(row) =>
+				(!("key" in input) ||
+					!input.scope ||
+					(row.scope === input.scope &&
+						row.configurationRevision === input.configurationRevision)) &&
+				(row.answers as Answer[]).some(
+					(answer) => answer.warningKey === key && answer.reuse,
+				),
+		);
+		if (target) {
+			await updateInterpretationWarningAnswer(db, target, key, true);
+		} else if ("key" in input && input.scope && input.configurationRevision) {
+			const observed = matching
+				.flatMap((row) => row.answers as Answer[])
+				.find(
+					(
+						answer,
+					): answer is Answer & {
+						stepId: number;
+						selectedProdUid: string;
+						selectedTitle: string;
+					} =>
+						Boolean(
+							answer.warningKey === key &&
+								answer.reuse &&
+								answer.stepId != null &&
+								answer.selectedProdUid &&
+								answer.selectedTitle,
+						),
+				);
+			if (!observed)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Interpretation warning not found.",
+				});
+			if (
+				input.isCurrentComponent &&
+				!input.isCurrentComponent(
+					observed.stepId,
+					observed.selectedProdUid,
+					observed.selectedTitle,
+				)
+			)
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"This interpretation no longer matches the current Sales Request catalog.",
+				});
+			await db.salesRequestClarificationSession.create({
+				data: {
+					id: randomUUID(),
+					actorUserId,
+					saleType: "guidance",
+					scope: input.scope,
+					configurationRevision: input.configurationRevision,
+					sourceText: observed.question.sourceText ?? "",
+					revision: 1,
+					status: "complete",
+					questions: [],
+					answers: [{ ...observed, questionId: randomUUID(), active: true }],
+				},
+			});
+		} else if ("warning" in input) {
+			if (!reusableInterpretationField(input.warning.field))
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Quantity, dimension, price, and other request-specific warnings cannot become reusable guidance.",
+				});
+			await db.salesRequestClarificationSession.create({
+				data: {
+					id: randomUUID(),
+					actorUserId,
+					saleType: "guidance",
+					scope: input.scope,
+					configurationRevision: input.configurationRevision,
+					sourceText: input.warning.sourceText,
+					revision: 1,
+					status: "complete",
+					questions: [],
+					answers: [warningAnswer(input.warning, true)],
+				},
+			});
+		} else {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Interpretation warning not found.",
+			});
+		}
+	} else {
+		for (const row of matching.filter((candidate) =>
+			(candidate.answers as Answer[]).some(
+				(answer) => answer.warningKey === key && answer.active,
+			),
+		)) {
+			await updateInterpretationWarningAnswer(db, row, key, false);
+		}
+	}
+	return { updated: true, key, active: input.active };
+}
+
 export async function listSalesRequestClarificationGuidance(
 	db: ClarificationDatabase,
 	actorUserId: number,
@@ -427,7 +888,9 @@ export async function listSalesRequestClarificationGuidance(
 	});
 	return rows.flatMap((row) =>
 		(row.answers as Answer[])
-			.filter((answer) => answer.reuse)
+			.filter(
+				(answer) => answer.reuse && answer.origin !== "interpretation-warning",
+			)
 			.map((answer) => ({ ...answer, sessionId: row.id, scope: row.scope })),
 	);
 }

@@ -10,6 +10,14 @@ export {
 	readSalesFormObjectMetadata,
 } from "./metadata";
 export {
+	getActiveSalesRequestInterpretations,
+	reconcileSalesRequestInterpretations,
+	readSalesRequestInterpretations,
+	removeSalesRequestInterpretationFromMeta,
+	SALES_REQUEST_INTERPRETATIONS_META_KEY,
+	type SalesRequestInterpretation,
+} from "./sales-request-interpretations";
+export {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
 	customNextStepTitle,

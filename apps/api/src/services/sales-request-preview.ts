@@ -1,7 +1,3 @@
-import {
-	salesRequestGroundingText,
-	type SalesRequestGenerationContext,
-} from "./sales-request-context";
 import { randomUUID } from "node:crypto";
 import {
 	SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
@@ -10,11 +6,16 @@ import {
 import type { SalesRequestAISelection } from "@gnd/settings";
 import type { getSalesRequestConfigurationSnapshot } from "../db/queries/sales-request-configuration";
 import {
+	type SalesRequestGenerationContext,
+	salesRequestGroundingText,
+} from "./sales-request-context";
+import {
 	type SalesRequestProvider,
 	type SalesRequestProviderFailureDiagnostic,
 	generateNewSalesFormSeed,
 } from "./sales-request-generation";
 import type { SalesRequestImage } from "./sales-request-images";
+import { interpretationWarningKey } from "./sales-request-interpretation-warning";
 import { deriveSalesRequestComplexity } from "./sales-request-request-shape";
 import {
 	type SalesRequestGenerationCompleteEvent,
@@ -203,13 +204,37 @@ export async function createSalesRequestPreview(
 		const current = await dependencies.readSnapshot();
 		input.signal.throwIfAborted();
 		assertCurrentSnapshot(snapshot, current);
-		const requestComplexity = deriveSalesRequestComplexity(result.seed);
+		const suppressedWarningKeys = new Set(
+			(snapshot.adminRules ?? [])
+				.filter((rule) => rule.suppressWarning)
+				.flatMap((rule) => {
+					const key = rule.id?.startsWith("interpretation-warning:")
+						? rule.id.slice("interpretation-warning:".length)
+						: "";
+					return key ? [key] : [];
+				}),
+		);
+		const effectiveResult = suppressedWarningKeys.size
+			? {
+					...result,
+					seed: {
+						...result.seed,
+						interpretations: result.seed.interpretations?.filter(
+							(warning) =>
+								!suppressedWarningKeys.has(interpretationWarningKey(warning)),
+						),
+					},
+				}
+			: result;
+		const requestComplexity = deriveSalesRequestComplexity(
+			effectiveResult.seed,
+		);
 		await complete({
 			status: "succeeded",
-			provider: result.provider ?? snapshot.aiSelection.provider,
-			model: result.model ?? snapshot.aiSelection.model,
-			promptVersion: result.promptVersion,
-			schemaVersion: result.seed.schemaVersion,
+			provider: effectiveResult.provider ?? snapshot.aiSelection.provider,
+			model: effectiveResult.model ?? snapshot.aiSelection.model,
+			promptVersion: effectiveResult.promptVersion,
+			schemaVersion: effectiveResult.seed.schemaVersion,
 			...(requestComplexity
 				? {
 						requestComplexityVersion: requestComplexity.version,
@@ -217,21 +242,21 @@ export async function createSalesRequestPreview(
 					}
 				: {}),
 			seedDigest: createSalesRequestSeedDigest({
-				seed: result.seed,
+				seed: effectiveResult.seed,
 				generationId,
 				configurationScope: snapshot.scope,
 				configurationRevision: snapshot.revision,
 			}),
-			...(result.usage.inputTokens !== undefined
-				? { inputTokens: result.usage.inputTokens }
+			...(effectiveResult.usage.inputTokens !== undefined
+				? { inputTokens: effectiveResult.usage.inputTokens }
 				: {}),
-			...(result.usage.outputTokens !== undefined
-				? { outputTokens: result.usage.outputTokens }
+			...(effectiveResult.usage.outputTokens !== undefined
+				? { outputTokens: effectiveResult.usage.outputTokens }
 				: {}),
-			issueCounts: countSalesRequestGenerationIssues(result.seed),
+			issueCounts: countSalesRequestGenerationIssues(effectiveResult.seed),
 		});
 		return {
-			...result,
+			...effectiveResult,
 			generationId,
 			configurationScope: snapshot.scope,
 		};

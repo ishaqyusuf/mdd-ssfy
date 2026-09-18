@@ -19,6 +19,7 @@ import {
 	resolveSalesFormOverviewSummary,
 	normalizeSalesFormPaymentTerm,
 	normalizeSalesFormTaxOptions,
+	removeSalesRequestInterpretationFromMeta,
 	resolveSalesFormProfilePaymentTerm,
 	resolveSalesFormTaxRateByCode,
 	salesFormDeliveryOptions,
@@ -51,6 +52,10 @@ import {
 } from "./customer-resolution";
 import { CustomerSelectorDialog } from "./customer-selector-dialog";
 import { CustomerRequestText } from "./customer-request-text";
+import {
+	CustomerRequestInterpretations,
+	type DismissSalesRequestInterpretation,
+} from "./customer-request-interpretations";
 import { SpecialOrderDeclarationControl } from "./special-order-declaration-control";
 
 interface Props {
@@ -68,6 +73,7 @@ interface Props {
 	onRemoveSpecialOrderClassification?: (
 		reason?: string | null,
 	) => Promise<void>;
+	onDismissSalesRequestInterpretation?: DismissSalesRequestInterpretation;
 }
 
 function formDateValue(value: string | null) {
@@ -89,6 +95,7 @@ export function InvoiceOverviewPanel(props: Props) {
 	const setSpecialOrder = useNewSalesFormStore((s) => s.setSpecialOrder);
 	const upsertExtraCost = useNewSalesFormStore((s) => s.upsertExtraCost);
 	const removeExtraCost = useNewSalesFormStore((s) => s.removeExtraCost);
+	const updateLineItem = useNewSalesFormStore((s) => s.updateLineItem);
 	const lastProfileCoefficientRef = useRef<number | null | undefined>(
 		undefined,
 	);
@@ -721,6 +728,22 @@ export function InvoiceOverviewPanel(props: Props) {
 			/>
 
 			<CustomerRequestText text={record.form.customerRequestText} />
+			<CustomerRequestInterpretations
+				lineItems={record.lineItems}
+				onDismiss={async (interpretation) => {
+					await props.onDismissSalesRequestInterpretation?.(interpretation);
+					const line = record.lineItems.find(
+						(candidate) => candidate.uid === interpretation.lineUid,
+					);
+					if (!line) return;
+					updateLineItem(interpretation.lineUid, {
+						meta: removeSalesRequestInterpretationFromMeta(
+							line.meta,
+							interpretation,
+						),
+					});
+				}}
+			/>
 
 			<SalesFormInvoiceDetailsPanel
 				type={props.type}

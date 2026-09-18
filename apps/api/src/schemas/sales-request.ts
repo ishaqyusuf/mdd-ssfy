@@ -4,6 +4,7 @@ import {
 } from "@api/services/sales-request-feedback";
 import { salesRequestPilotReviewDecisionInputSchema } from "@api/services/sales-request-pilot-review";
 import { salesRequestMailboxPolicyInputSchema } from "@gnd/sales-request-mailbox";
+import { newSalesFormSeedInterpretationSchema } from "@gnd/sales/sales-form";
 import {
 	salesRequestAISelectionSchema,
 	salesRequestCatalogPolicySchema,
@@ -169,3 +170,20 @@ export const setSalesRequestGuidanceSchema = z
 		answer: z.string().trim().min(1).max(2000).optional(),
 	})
 	.strict();
+
+export const setSalesRequestInterpretationWarningGuidanceByKeySchema = z
+	.object({
+		key: z.string().regex(/^[a-f0-9]{32}$/),
+		active: z.boolean(),
+	})
+	.strict();
+
+export const setSalesRequestInterpretationWarningGuidanceSchema = z.union([
+	setSalesRequestInterpretationWarningGuidanceByKeySchema,
+	z
+		.object({
+			warning: newSalesFormSeedInterpretationSchema,
+			active: z.boolean(),
+		})
+		.strict(),
+]);

@@ -330,6 +330,32 @@ export function hydrateAssistantReconnectState(
 	};
 }
 
+export function activateAssistantRunState(
+	state: AssistantStreamState,
+	run: { id: string; status: string; lastSequence: number },
+): AssistantStreamState {
+	if (state.runId === run.id) {
+		return {
+			...state,
+			status: run.status,
+			runSequence: Math.max(state.runSequence, run.lastSequence),
+		};
+	}
+	return {
+		...state,
+		runId: run.id,
+		status: run.status,
+		errorCode: null,
+		completedAt: null,
+		conversationId: null,
+		notice: null,
+		sources: [],
+		runSequence: run.lastSequence,
+		toolExecutions: [],
+		actionProposals: [],
+	};
+}
+
 export function persistedMessagesToUi(
 	messages: Array<{ id?: string; role?: string; parts?: unknown }>,
 ): UIMessage[] {

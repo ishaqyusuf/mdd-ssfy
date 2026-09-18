@@ -6,6 +6,9 @@ import {
 	clarificationSourceReference,
 	reusableClarification,
 	readClarificationGuidance,
+	recordSalesRequestInterpretationWarnings,
+	listSalesRequestInterpretationWarnings,
+	setSalesRequestInterpretationWarningGuidance,
 	type ClarificationDatabase,
 } from "./sales-request-clarification";
 function memoryDb() {
@@ -360,4 +363,135 @@ test("unquoted source reference requires an actual catalog title in both request
 			["BASEBOARD WM713"],
 		),
 	).toBeNull();
+});
+
+test("interpretation warnings are counted, owner-scoped, and become reusable guidance only after opt out", async () => {
+	const { db } = memoryDb();
+	const warning = {
+		lineUid: "line-1",
+		stepId: 1,
+		field: "door product",
+		sourceText: "smooth solid-core slab",
+		selectedProdUid: "door",
+		selectedTitle: "Door",
+		reason: "The catalog has one compatible solid-core slab.",
+	};
+	await recordSalesRequestInterpretationWarnings(db, {
+		actorUserId: 7,
+		saleType: "order",
+		scope: snapshot.scope,
+		configurationRevision: snapshot.revision,
+		sourceText: "Quote one smooth solid-core slab",
+		interpretations: [warning],
+	});
+	await recordSalesRequestInterpretationWarnings(db, {
+		actorUserId: 7,
+		saleType: "quote",
+		scope: snapshot.scope,
+		configurationRevision: snapshot.revision,
+		sourceText: "Price a smooth solid-core slab",
+		interpretations: [{ ...warning, lineUid: "another-line" }],
+	});
+	const before = await listSalesRequestInterpretationWarnings(db, 7);
+	expect(before.summary).toEqual({
+		occurrenceCount: 2,
+		warningCount: 1,
+		doNotShowCount: 0,
+	});
+	expect(before.categories[0]?.warnings[0]).toMatchObject({
+		category: "product",
+		occurrenceCount: 2,
+		doNotShow: false,
+		eligible: true,
+	});
+	expect(
+		(await listSalesRequestInterpretationWarnings(db, 8)).summary.warningCount,
+	).toBe(0);
+
+	await setSalesRequestInterpretationWarningGuidance(db, 7, {
+		warning,
+		active: true,
+		scope: snapshot.scope,
+		configurationRevision: snapshot.revision,
+	});
+	const guidance = await readClarificationGuidance(db, {
+		actorUserId: 7,
+		scope: snapshot.scope,
+		configurationRevision: snapshot.revision,
+		text: "Another smooth solid-core slab",
+		productTitles: ["Door"],
+	});
+	expect(guidance).toHaveLength(1);
+	expect(guidance[0]).toMatchObject({
+		answer: "Door",
+		suppressWarning: true,
+	});
+	const active = await listSalesRequestInterpretationWarnings(db, 7);
+	expect(active.summary.doNotShowCount).toBe(1);
+	await setSalesRequestInterpretationWarningGuidance(db, 7, {
+		key: active.categories[0]!.warnings[0]!.key,
+		active: false,
+	});
+	expect(
+		(await listSalesRequestInterpretationWarnings(db, 7)).summary
+			.doNotShowCount,
+	).toBe(0);
+	await setSalesRequestInterpretationWarningGuidance(db, 7, {
+		key: active.categories[0]!.warnings[0]!.key,
+		active: true,
+		scope: snapshot.scope,
+		configurationRevision: "two",
+		isCurrentComponent: (stepId, prodUid, title) =>
+			stepId === 1 && prodUid === "door" && title === "Door",
+	});
+	expect(
+		(
+			await listSalesRequestInterpretationWarnings(db, 7, {
+				scope: snapshot.scope,
+				configurationRevision: "two",
+			})
+		).summary.doNotShowCount,
+	).toBe(1);
+	expect(
+		await readClarificationGuidance(db, {
+			actorUserId: 7,
+			scope: snapshot.scope,
+			configurationRevision: "two",
+			text: "smooth solid-core slab",
+			productTitles: ["Door"],
+		}),
+	).toHaveLength(1);
+});
+
+test("request-specific numeric warnings are recorded but cannot become guidance", async () => {
+	const { db } = memoryDb();
+	const warning = {
+		lineUid: "line-1",
+		stepId: 1,
+		field: "quantity",
+		sourceText: "eleven doors",
+		selectedProdUid: "door",
+		selectedTitle: "Door",
+		reason: "Mapped the written quantity.",
+	};
+	await recordSalesRequestInterpretationWarnings(db, {
+		actorUserId: 7,
+		saleType: "order",
+		scope: snapshot.scope,
+		configurationRevision: snapshot.revision,
+		sourceText: "eleven doors",
+		interpretations: [warning],
+	});
+	expect(
+		(await listSalesRequestInterpretationWarnings(db, 7)).categories[0]
+			?.warnings[0]?.eligible,
+	).toBe(false);
+	await expect(
+		setSalesRequestInterpretationWarningGuidance(db, 7, {
+			warning,
+			active: true,
+			scope: snapshot.scope,
+			configurationRevision: snapshot.revision,
+		}),
+	).rejects.toThrow("cannot become reusable guidance");
 });

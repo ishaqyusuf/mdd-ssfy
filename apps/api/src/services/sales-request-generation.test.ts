@@ -314,7 +314,40 @@ test("rejects moulding calculator facts absent from the request or component", a
 	).rejects.toThrow("piece length must match");
 });
 
-test("rejects an exact moulding profile guessed from generic category wording", async () => {
+test("accepts a defensible moulding interpretation and still rejects an unexplained guess", async () => {
+	const configurationWithCatalogWhitespace = structuredClone(
+		mouldingConfiguration,
+	);
+	configurationWithCatalogWhitespace.steps[1]!.components[0]![1] =
+		"BASEBOARD WM713 3-1/4 X 9/16 X 16  ";
+	const interpreted = {
+		...mouldingLinearFeetSeed,
+		interpretations: [
+			{
+				lineUid: "moulding-line",
+				stepId: 215,
+				field: "moulding",
+				sourceText: "baseboard",
+				selectedProdUid: "baseboard-16",
+				selectedTitle: "BASEBOARD WM713 3-1/4 X 9/16 X 16",
+				reason:
+					"The configured baseboard is the only compatible visible profile.",
+			},
+		],
+	};
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "400 linear feet for baseboard with 10% waste",
+				configurationJson: JSON.stringify(configurationWithCatalogWhitespace),
+			},
+			async () => ({ output: interpreted }),
+		),
+	).resolves.toMatchObject({
+		seed: { interpretations: interpreted.interpretations },
+	});
+
 	await expect(
 		generateNewSalesFormSeed(
 			{
@@ -325,6 +358,46 @@ test("rejects an exact moulding profile guessed from generic category wording", 
 			async () => ({ output: mouldingLinearFeetSeed }),
 		),
 	).rejects.toThrow("Moulding component");
+});
+
+test("rejects interpretation provenance that is not current source and catalog data", async () => {
+	const interpreted = {
+		...mouldingLinearFeetSeed,
+		interpretations: [
+			{
+				lineUid: "moulding-line",
+				stepId: 215,
+				field: "moulding",
+				sourceText: "invented phrase",
+				selectedProdUid: "baseboard-16",
+				selectedTitle: "BASEBOARD WM713 3-1/4 X 9/16 X 16",
+				reason: "Closest configured option.",
+			},
+		],
+	};
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "400 linear feet for baseboard with 10% waste",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: interpreted }),
+		),
+	).rejects.toThrow("source text must be quoted");
+
+	interpreted.interpretations[0]!.sourceText = "baseboard";
+	interpreted.interpretations[0]!.selectedTitle = "STALE TITLE";
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text: "400 linear feet for baseboard with 10% waste",
+				configurationJson: JSON.stringify(mouldingConfiguration),
+			},
+			async () => ({ output: interpreted }),
+		),
+	).rejects.toThrow("current configured component title");
 });
 
 test("does not mistake a moulding title dimension for a direct piece quantity", async () => {
@@ -795,6 +868,382 @@ test("keeps source-grounded HPT rows when the one missing Door is explicitly unr
 	await expect(
 		generateNewSalesFormSeed(input, async () => ({ output: seed })),
 	).resolves.toMatchObject({ seed });
+});
+
+test("applies one visible domain-compatible unresolved Door and preserves true ambiguity", async () => {
+	const doorConfiguration = structuredClone(configuration);
+	const doorStep = doorConfiguration.steps.find((step) => step.id === 3)!;
+	doorStep.components = [
+		["D9xpD", "s.c harboard flush primed door 1-3/8"],
+		["molded", "1-3/8 S.C. Molded Primed"],
+		["OdAMw", "1-3/8 S.C. Hardboard Flush Primed Fire Rated"],
+	];
+	doorConfiguration.visibilityByComponentUid.D9xpD =
+		doorConfiguration.visibilityByComponentUid.lite;
+	doorConfiguration.visibilityByComponentUid.molded =
+		doorConfiguration.visibilityByComponentUid.lite;
+	doorConfiguration.visibilityByComponentUid.OdAMw =
+		doorConfiguration.visibilityByComponentUid.lite;
+	const unresolvedSeed = {
+		...validSeed,
+		lineItems: [
+			{
+				...validSeed.lineItems[0],
+				formSteps: validSeed.lineItems[0].formSteps.filter(
+					(step) => step.stepId !== 3,
+				),
+			},
+		],
+		unresolved: [
+			{
+				lineUid: "line-1",
+				stepId: 3,
+				field: "door",
+				status: "unsupported",
+				reason: "No exact Door product title matches the request.",
+			},
+		],
+	};
+	const text =
+		"One 36 x 1-3/8 x 80 smooth white-primed engineered solid-core flush interior door slab, flush as opposed to molded";
+
+	const corrected = await generateNewSalesFormSeed(
+		{
+			...input,
+			text,
+			configurationJson: JSON.stringify(doorConfiguration),
+		},
+		async () => ({ output: unresolvedSeed }),
+	);
+	expect(corrected.seed.lineItems[0]?.formSteps).toContainEqual({
+		stepId: 3,
+		meta: { selectedProdUids: ["D9xpD"] },
+	});
+	expect(corrected.seed.unresolved).toEqual([]);
+	expect(corrected.seed.interpretations).toEqual([
+		{
+			lineUid: "line-1",
+			stepId: 3,
+			field: "door",
+			sourceText: text,
+			selectedProdUid: "D9xpD",
+			selectedTitle: "s.c harboard flush primed door 1-3/8",
+			reason:
+				"Mapped the customer Door description to the only compatible visible configured component.",
+		},
+	]);
+
+	const ambiguousConfiguration = structuredClone(doorConfiguration);
+	ambiguousConfiguration.steps
+		.find((step) => step.id === 3)!
+		.components.push(["second-flush", "1-3/8 SC Engineered Flush Primed"]);
+	ambiguousConfiguration.visibilityByComponentUid["second-flush"] =
+		doorConfiguration.visibilityByComponentUid.lite;
+	await expect(
+		generateNewSalesFormSeed(
+			{
+				...input,
+				text,
+				configurationJson: JSON.stringify(ambiguousConfiguration),
+			},
+			async () => ({ output: unresolvedSeed }),
+		),
+	).resolves.toMatchObject({ seed: unresolvedSeed });
+});
+
+test("corrects one source-compatible Door prerequisite using real catalog visibility shape", async () => {
+	const realCatalogConfiguration = {
+		componentColumns: ["uid", "title"],
+		routes: [
+			{
+				itemTypeUid: "2oWEo",
+				rootStepId: 1,
+				stepUids: ["wUGhI", "door"],
+			},
+		],
+		schemaVersion: 1,
+		steps: [
+			{
+				id: 1,
+				uid: "type",
+				title: "Item Type",
+				selectionMode: "single",
+				components: [["2oWEo", "Door Slabs Only"]],
+			},
+			{
+				id: 41,
+				uid: "wUGhI",
+				title: "Door Type",
+				selectionMode: "single",
+				components: [
+					["fUJc7", "SC Molded"],
+					["owVLr", "SC Flush"],
+				],
+			},
+			{
+				id: 3,
+				uid: "door",
+				title: "Door",
+				selectionMode: "multiple",
+				components: [
+					["D9xpD", "s.c harboard flush primed door 1-3/8"],
+					["tlWbz", "S.C FLUSH hardboard DOOR PRIMED 1-3/8"],
+					["OdAMw", "s.c harboard flush primed fire rated door 1-3/8"],
+				],
+			},
+		],
+		visibilityByComponentUid: {
+			"2oWEo": { variations: [] },
+			fUJc7: { variations: [] },
+			owVLr: { variations: [] },
+			D9xpD: {
+				variations: [
+					{
+						rules: [
+							{
+								stepUid: "wUGhI",
+								operator: "is",
+								componentsUid: ["owVLr"],
+							},
+						],
+					},
+				],
+			},
+			tlWbz: {
+				variations: [
+					{
+						rules: [
+							{
+								stepUid: "wUGhI",
+								operator: "is",
+								componentsUid: ["fUJc7"],
+							},
+						],
+					},
+				],
+			},
+			OdAMw: {
+				variations: [
+					{
+						rules: [
+							{
+								stepUid: "wUGhI",
+								operator: "is",
+								componentsUid: ["owVLr"],
+							},
+						],
+					},
+				],
+			},
+		},
+	};
+	const text =
+		"One 36 x 1-3/8 x 80 smooth, white-primed, engineered solid-core interior door slab.";
+	const seed = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "slab-line",
+				qty: 1,
+				formSteps: [
+					{ stepId: 1, prodUid: "2oWEo" },
+					{ stepId: 41, prodUid: "fUJc7" },
+				],
+				housePackageTool: {
+					doors: [{ dimension: "3-0 x 6-8", lhQty: 1, rhQty: 0 }],
+				},
+			},
+		],
+		unresolved: [
+			{
+				lineUid: "slab-line",
+				stepId: 3,
+				field: "door",
+				status: "unsupported",
+				reason: "No listed Door matches the description.",
+			},
+		],
+	};
+	const result = await generateNewSalesFormSeed(
+		{
+			...input,
+			text,
+			configurationJson: JSON.stringify(realCatalogConfiguration),
+		},
+		async () => ({ output: seed }),
+	);
+
+	expect(result.seed.lineItems[0]?.formSteps).toEqual([
+		{ stepId: 1, prodUid: "2oWEo" },
+		{ stepId: 41, prodUid: "owVLr" },
+		{ stepId: 3, meta: { selectedProdUids: ["D9xpD"] } },
+	]);
+	expect(result.seed.lineItems[0]?.formSteps).not.toContainEqual({
+		stepId: 3,
+		meta: { selectedProdUids: ["tlWbz"] },
+	});
+	expect(result.seed.unresolved).toEqual([]);
+	expect(result.seed.interpretations).toMatchObject([
+		{
+			stepId: 41,
+			selectedProdUid: "owVLr",
+			selectedTitle: "SC Flush",
+			sourceText: text,
+		},
+		{
+			stepId: 3,
+			selectedProdUid: "D9xpD",
+			selectedTitle: "s.c harboard flush primed door 1-3/8",
+			sourceText: text,
+		},
+	]);
+});
+
+test("resolves the exact compact slab configuration without a Door unresolved marker", async () => {
+	const exactConfiguration = {
+		componentColumns: ["uid", "title"],
+		routes: [
+			{
+				itemTypeUid: "2oWEo",
+				rootStepId: 1,
+				stepUids: ["height", "wUGhI", "door"],
+				config: { noHandle: true, hasSwing: false },
+			},
+		],
+		schemaVersion: 1,
+		steps: [
+			{
+				id: 1,
+				uid: "MtJgR",
+				title: "Item Type",
+				selectionMode: "single",
+				components: [
+					["2oWEo", "Door Slabs Only"],
+					["KmUMM", "Interior Door"],
+				],
+			},
+			{
+				id: 13,
+				uid: "height",
+				title: "Height",
+				selectionMode: "single",
+				components: [["D2Vup", "6-8"]],
+			},
+			{
+				id: 41,
+				uid: "wUGhI",
+				title: "Door Type",
+				selectionMode: "single",
+				components: [
+					["fUJc7", "SC Molded"],
+					["owVLr", "SC Flush"],
+				],
+			},
+			{
+				id: 51,
+				uid: "door",
+				title: "Door",
+				selectionMode: "multiple",
+				components: [
+					["D9xpD", "s.c harboard flush primed door 1-3/8"],
+					["tlWbz", "S.C FLUSH hardboard DOOR PRIMED 1-3/8"],
+				],
+			},
+		],
+		visibilityByComponentUid: {
+			D9xpD: {
+				variations: [
+					{
+						rules: [
+							{
+								stepUid: "MtJgR",
+								operator: "is",
+								componentsUid: ["2oWEo", "KmUMM"],
+							},
+							{
+								stepUid: "wUGhI",
+								operator: "is",
+								componentsUid: ["owVLr"],
+							},
+						],
+					},
+				],
+			},
+			tlWbz: {
+				variations: [
+					{
+						rules: [
+							{
+								stepUid: "MtJgR",
+								operator: "is",
+								componentsUid: ["KmUMM", "2oWEo"],
+							},
+							{
+								stepUid: "wUGhI",
+								operator: "is",
+								componentsUid: ["fUJc7"],
+							},
+						],
+					},
+				],
+			},
+		},
+	};
+	const text =
+		"14 smooth, white-primed, engineered solid-core interior door slabs, 1-3/8 thick: 1 at 28 x 80, 11 at 34 x 80, and 2 at 36 x 80.";
+	const seed = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "slabs",
+				qty: 14,
+				formSteps: [
+					{ stepId: 1, prodUid: "2oWEo" },
+					{ stepId: 13, prodUid: "D2Vup" },
+					{ stepId: 41, prodUid: "fUJc7" },
+				],
+				housePackageTool: {
+					doors: [
+						{ dimension: "2-4 x 6-8", totalQty: 1 },
+						{ dimension: "2-10 x 6-8", totalQty: 11 },
+						{ dimension: "3-0 x 6-8", totalQty: 2 },
+					],
+				},
+			},
+		],
+		unresolved: [],
+		interpretations: [
+			{
+				lineUid: "slabs",
+				stepId: 41,
+				field: "door type",
+				sourceText: "solid-core interior door slabs",
+				selectedProdUid: "fUJc7",
+				selectedTitle: "SC Molded",
+				reason: "Interpreted solid-core as SC Molded.",
+			},
+		],
+	};
+	const result = await generateNewSalesFormSeed(
+		{
+			...input,
+			text,
+			configurationJson: JSON.stringify(exactConfiguration),
+		},
+		async () => ({ output: seed }),
+	);
+
+	expect(result.seed.lineItems[0]?.formSteps).toEqual([
+		{ stepId: 1, prodUid: "2oWEo" },
+		{ stepId: 13, prodUid: "D2Vup" },
+		{ stepId: 41, prodUid: "owVLr" },
+		{ stepId: 51, meta: { selectedProdUids: ["D9xpD"] } },
+	]);
+	expect(result.seed.unresolved).toEqual([]);
+	expect(result.seed.interpretations).toHaveLength(2);
+	expect(
+		result.seed.interpretations?.map((item) => item.selectedProdUid),
+	).toEqual(["owVLr", "D9xpD"]);
 });
 
 test("rejects HPT rows when an unresolved Door belongs to another route", async () => {
@@ -1423,10 +1872,46 @@ test("saved catalog alias reuses identity but requires current request quantitie
 });
 
 test("DeepSeek applies confirmed quantity before cross-field validation", async () => {
- const {createSalesRequestProvider}=await import("./sales-request-provider");
- const title="BASEBOARD WM713 3-1/4 X 9/16 X 16";
- const pending={...mouldingLinearFeetSeed,lineItems:[{...mouldingLinearFeetSeed.lineItems[0],qty:0,meta:{mouldingRows:[{uid:"baseboard-16",qty:28}]}}],unresolved:[]};
- const provider=createSalesRequestProvider({selection:{provider:"deepseek",model:"deepseek-flash"},environment:{SALES_REQUEST_DEEPSEEK_API_KEY:"test"},generateTextImpl:(async()=>({output:pending,text:JSON.stringify(pending),usage:{inputTokens:1,outputTokens:1}})) as any});
- const result=await generateNewSalesFormSeed({...input,text:title,groundingText:`${title} Quantity: 28`,configurationJson:JSON.stringify(mouldingConfiguration),clarifications:[{question:"Quantity?",field:"quantity",sourceText:title,answer:"28"}]},provider);
- expect(result.seed.lineItems[0]?.qty).toBe(28);
+	const { createSalesRequestProvider } = await import(
+		"./sales-request-provider"
+	);
+	const title = "BASEBOARD WM713 3-1/4 X 9/16 X 16";
+	const pending = {
+		...mouldingLinearFeetSeed,
+		lineItems: [
+			{
+				...mouldingLinearFeetSeed.lineItems[0],
+				qty: 0,
+				meta: { mouldingRows: [{ uid: "baseboard-16", qty: 28 }] },
+			},
+		],
+		unresolved: [],
+	};
+	const provider = createSalesRequestProvider({
+		selection: { provider: "deepseek", model: "deepseek-flash" },
+		environment: { SALES_REQUEST_DEEPSEEK_API_KEY: "test" },
+		generateTextImpl: (async () => ({
+			output: pending,
+			text: JSON.stringify(pending),
+			usage: { inputTokens: 1, outputTokens: 1 },
+		})) as any,
+	});
+	const result = await generateNewSalesFormSeed(
+		{
+			...input,
+			text: title,
+			groundingText: `${title} Quantity: 28`,
+			configurationJson: JSON.stringify(mouldingConfiguration),
+			clarifications: [
+				{
+					question: "Quantity?",
+					field: "quantity",
+					sourceText: title,
+					answer: "28",
+				},
+			],
+		},
+		provider,
+	);
+	expect(result.seed.lineItems[0]?.qty).toBe(28);
 });

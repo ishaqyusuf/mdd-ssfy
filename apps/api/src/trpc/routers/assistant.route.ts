@@ -83,6 +83,7 @@ import {
 	archiveAssistantConversation,
 	createAssistantConversation,
 	getAssistantConversation,
+	getAssistantConversationRetentionPolicy,
 	getAssistantDiagnostic,
 	listAssistantDiagnostics,
 	reviewAssistantDiagnostic,
@@ -183,7 +184,11 @@ const assistantQuotaPolicyUpdateSchema = z
 export const assistantRouter = createTRPCRouter({
 	captureHealth: protectedProcedure.query(async ({ ctx }) => {
 		await featureAdminOrThrow(ctx);
-		return getAssistantCaptureHealth();
+		const health = await getAssistantCaptureHealth();
+		return {
+			...health,
+			conversationRetention: getAssistantConversationRetentionPolicy(),
+		};
 	}),
 	reportClientFailure: protectedProcedure.input(assistantClientDiagnosticSchema).mutation(async ({ ctx, input }) => {
 		const actor = await actorOrThrow(ctx);

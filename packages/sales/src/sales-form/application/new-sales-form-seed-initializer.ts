@@ -127,6 +127,7 @@ export type InitializedNewSalesFormSeed<
 		summary: SalesFormSummaryRecord;
 	};
 	unresolved: NewSalesFormSeed["unresolved"];
+	interpretations: NonNullable<NewSalesFormSeed["interpretations"]>;
 	issues: NewSalesFormSeedInitializationIssue[];
 };
 
@@ -360,15 +361,6 @@ function buildHptLine(
 					dealerSalesPercentage,
 				})
 			: 0;
-		if (!tier.hasPrice) {
-			issue(
-				issues,
-				seedLine.uid,
-				Number(doorStep?.stepId) || null,
-				"hpt-door-price-missing",
-				String(component.uid || ""),
-			);
-		}
 		const lhQty = isUnhanded ? 0 : door.lhQty;
 		const rhQty = isUnhanded ? 0 : door.rhQty;
 		const totalQty = isUnhanded ? door.totalQty : lhQty + rhQty;
@@ -637,20 +629,6 @@ async function initializeLine(
 				continue;
 			}
 			selectedComponents.push(status.component);
-			const isHptDoorStep =
-				Boolean(seedLine.housePackageTool) &&
-				String(currentStep.title || "")
-					.trim()
-					.toLowerCase() === "door";
-			if (status.component._metaData?.priceMissing === true && !isHptDoorStep) {
-				issue(
-					issues,
-					seedLine.uid,
-					currentId,
-					"component-price-missing",
-					componentUid,
-				);
-			}
 		}
 		if (!valid) continue;
 		const selectionCatalog = [
@@ -842,9 +820,6 @@ async function initializeLine(
 		if (!isServiceItem(line)) {
 			issue(issues, seedLine.uid, rootId, "service-rows-outside-service-route");
 		} else {
-			for (const _row of serviceRows) {
-				issue(issues, seedLine.uid, rootId, "service-price-missing");
-			}
 			line = {
 				...line,
 				...buildWorkflowServiceRowsPatch({
@@ -859,6 +834,20 @@ async function initializeLine(
 				}),
 			};
 		}
+	}
+	const interpretations = (seed.interpretations ?? []).filter(
+		(entry) => entry.lineUid === seedLine.uid,
+	);
+	if (interpretations.length) {
+		line = {
+			...line,
+			meta: {
+				...(line.meta || {}),
+				salesRequestInterpretations: interpretations.map((entry) => ({
+					...entry,
+				})),
+			},
+		};
 	}
 	return normalizeSalesFormLineItem(line, index);
 }
@@ -917,7 +906,6 @@ export async function initializeNewSalesFormSeed<
 				taxxable: false,
 			},
 		];
-		issue(issues, null, null, "delivery-price-missing");
 	}
 	const record = hydrateSalesFormRecord({
 		...input.baseRecord,
@@ -934,6 +922,9 @@ export async function initializeNewSalesFormSeed<
 	return {
 		record,
 		unresolved: seed.unresolved.map((entry) => ({ ...entry })),
+		interpretations: (seed.interpretations ?? []).map((entry) => ({
+			...entry,
+		})),
 		issues,
 	};
 }
