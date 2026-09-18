@@ -3,6 +3,7 @@ export * from "./assistant";
 export * from "./assistant-access";
 export * from "./assistant-quota";
 export * from "./assistant-sales";
+export * from "./bug-report-delivery";
 export * from "./assistant-operations";
 export * from "./contractor-accounting";
 export * from "./contractor-accounting-workspace";

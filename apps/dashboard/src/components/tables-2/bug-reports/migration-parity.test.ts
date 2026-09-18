@@ -71,9 +71,7 @@ describe("Bug Reports Sales Orders table migration parity", () => {
 			true,
 		);
 		expect(buttonSource.includes("controls")).toBe(true);
-		expect(buttonSource.includes("currentUrl: window.location.href")).toBe(
-			true,
-		);
+		expect(buttonSource.includes("capturePageUrlRef.current")).toBe(true);
 		expect(buttonSource.includes("userAgent: navigator.userAgent")).toBe(true);
 	});
 

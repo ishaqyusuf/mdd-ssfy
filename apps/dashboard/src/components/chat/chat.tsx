@@ -126,6 +126,7 @@ export type ChatProps = {
 	transformSubmitData?: TransformSubmitData;
 	onSubmitData?: (data: ChatSubmitData) => void | Promise<void>;
 	onSent?: () => void;
+	successMessage?: string | false;
 	attachmentName?: string;
 	attachmentType?: "image" | "mixed";
 	multiAttachmentSupport?: boolean;
@@ -828,6 +829,7 @@ function ChatRoot({
 	transformSubmitData,
 	onSubmitData,
 	onSent,
+	successMessage = "Message sent",
 	attachmentName,
 	attachmentType,
 	multiAttachmentSupport,
@@ -1019,7 +1021,7 @@ function ChatRoot({
 				attachments: [],
 			}));
 			onSent?.();
-			toast.success("Message sent");
+			if (successMessage) toast.success(successMessage);
 		} catch (error) {
 			setState((prev) => ({
 				...prev,
@@ -1047,6 +1049,7 @@ function ChatRoot({
 		payload,
 		payloadFieldConfigs,
 		state,
+		successMessage,
 		transformSubmitData,
 	]);
 

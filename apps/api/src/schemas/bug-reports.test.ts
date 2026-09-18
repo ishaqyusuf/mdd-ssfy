@@ -32,6 +32,8 @@ const audioUpload = {
 describe("bug report schemas", () => {
 	test("accepts screenshot reports with optional voice evidence", () => {
 		const parsed = createBugReportSchema.parse({
+			uploadIntentId: "intent-primary",
+			audioUploadIntentId: "intent-audio",
 			captureType: "SCREENSHOT",
 			description: "The button is hidden behind the sheet.",
 			currentUrl: "https://gndprodesk.localhost:3011/inventory",
@@ -51,8 +53,9 @@ describe("bug report schemas", () => {
 		expect(parsed.audio?.transcriptionStatus).toBe("PENDING");
 	});
 
-	test("keeps existing video report payloads compatible", () => {
+	test("accepts video reports with a verified upload intent", () => {
 		const parsed = createBugReportSchema.parse({
+			uploadIntentId: "intent-video",
 			description: "Video repro",
 			currentUrl: "https://gndprodesk.localhost:3011/sales-book/orders",
 			userAgent: "Browser",

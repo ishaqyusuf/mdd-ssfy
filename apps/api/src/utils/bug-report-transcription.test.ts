@@ -66,6 +66,35 @@ describe("bug report transcription helpers", () => {
 		expect((body as FormData).get("file")).toBeInstanceOf(Blob);
 	});
 
+	test("can read private audio through an authenticated storage adapter", async () => {
+		let readPathname: string | null | undefined;
+		const result = await transcribeBugReportAudioDocument(
+			{
+				url: "private-placeholder",
+				pathname: "bug-reports/1/voice.webm",
+				filename: "voice.webm",
+			},
+			{
+				config: {
+					apiKey: "groq-secret",
+					endpoint: "https://groq.example.com/audio/transcriptions",
+					model: "whisper-test",
+					provider: "groq",
+				},
+				readAudio: async (document) => {
+					readPathname = document.pathname;
+					return new Response("private voice", {
+						headers: { "content-type": "audio/webm" },
+					});
+				},
+				fetcher: (async () =>
+					Response.json({ text: "Private transcript" })) as typeof fetch,
+			},
+		);
+		expect(readPathname).toBe("bug-reports/1/voice.webm");
+		expect(result.text).toBe("Private transcript");
+	});
+
 	test("surfaces transcription provider errors", async () => {
 		const fetcher = async (
 			_url: string | URL | Request,

@@ -14,6 +14,7 @@ import { Label } from "@gnd/ui/label";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
 	BUG_REPORT_STATUS_BADGE_CLASS,
@@ -57,11 +58,15 @@ export function BugReportWorkspace({ initialSettings }: Props) {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const router = useRouter();
+	const searchParams = useSearchParams();
 	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
 	const [statusFilter, setStatusFilter] = useState<"ALL" | BugReportStatus>(
 		"ALL",
 	);
-	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [selectedId, setSelectedId] = useState<string | null>(() =>
+		searchParams.get("reportId"),
+	);
 	const [followUp, setFollowUp] = useState("");
 	const listInput = useMemo(
 		() =>
@@ -92,8 +97,31 @@ export function BugReportWorkspace({ initialSettings }: Props) {
 			{ id: selectedId || "" },
 			{
 				enabled: Boolean(selectedId),
+				refetchInterval(query) {
+					const state = query.state.data?.delivery?.state;
+					return state &&
+						["PENDING", "PROCESSING", "RETRY_WAIT", "UNCERTAIN"].includes(state)
+						? 5000
+						: false;
+				},
 			},
 		),
+	);
+	const retryIssue = useMutation(
+		trpc.bugReports.retryIssue.mutationOptions({
+			async onSuccess() {
+				if (selectedId)
+					await invalidateBugReportQueries(queryClient, trpc, selectedId);
+				toast({ title: "GitHub delivery queued", variant: "success" });
+			},
+			onError(error) {
+				toast({
+					title: "Unable to retry delivery",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
 	);
 
 	const updateStatus = useMutation(
@@ -139,14 +167,17 @@ export function BugReportWorkspace({ initialSettings }: Props) {
 	);
 
 	useEffect(() => {
-		if (!reports.length) {
-			setSelectedId(null);
-			return;
-		}
-		if (!selectedId || !reports.some((report) => report.id === selectedId)) {
+		if (!selectedId && reports.length) {
 			setSelectedId(reports[0]?.id ?? null);
 		}
 	}, [reports, selectedId]);
+
+	function selectReport(reportId: string) {
+		setSelectedId(reportId);
+		const params = new URLSearchParams(searchParams.toString());
+		params.set("reportId", reportId);
+		router.replace(`?${params.toString()}`, { scroll: false });
+	}
 
 	return (
 		<div
@@ -194,7 +225,7 @@ export function BugReportWorkspace({ initialSettings }: Props) {
 						isLoading={isLoadingReports}
 						isSuperAdmin={isSuperAdmin}
 						selectedId={selectedId}
-						onSelectReport={(report) => setSelectedId(report.id)}
+						onSelectReport={(report) => selectReport(report.id)}
 					/>
 				</div>
 			</aside>
@@ -316,30 +347,51 @@ export function BugReportWorkspace({ initialSettings }: Props) {
 											</a>
 										</div>
 									) : null}
-									{detail.data?.externalIssueStatus ? (
+									{detail.data?.delivery ? (
 										<div className="rounded-md border p-3 text-sm">
 											<div className="mb-1 flex items-center justify-between gap-2">
-												<span className="font-medium">External issue</span>
+												<span className="font-medium">Developer delivery</span>
 												<Badge variant="outline">
-													{String(detail.data.externalIssueStatus)
+													{String(detail.data.delivery.state)
 														.toLowerCase()
 														.replaceAll("_", " ")}
 												</Badge>
 											</div>
-											{detail.data.externalIssueUrl ? (
+											{detail.data.delivery.issueUrl ? (
 												<a
-													href={detail.data.externalIssueUrl}
+													href={detail.data.delivery.issueUrl}
 													target="_blank"
 													rel="noreferrer"
 													className="break-all text-primary underline-offset-4 hover:underline"
 												>
-													{detail.data.externalIssueProvider || "Issue"}{" "}
-													{detail.data.externalIssueKey || ""}
+													GitHub {detail.data.delivery.issueKey || "issue"}
 												</a>
-											) : detail.data.externalIssueError ? (
+											) : (
 												<p className="text-xs text-muted-foreground">
-													{detail.data.externalIssueError}
+													{detail.data.delivery.state === "UNCERTAIN"
+														? "The report is saved while delivery is reconciled."
+														: detail.data.delivery.state === "FAILED" ||
+																detail.data.delivery.state === "UNCONFIGURED"
+															? "The report is saved; delivery needs administrator attention."
+															: "The report is saved and queued for developers."}
 												</p>
+											)}
+											{isSuperAdmin &&
+											["FAILED", "UNCONFIGURED"].includes(
+												detail.data.delivery.state,
+											) ? (
+												<Button
+													type="button"
+													size="sm"
+													variant="outline"
+													className="mt-3"
+													disabled={retryIssue.isPending}
+													onClick={() =>
+														retryIssue.mutate({ id: detail.data.id })
+													}
+												>
+													Retry delivery
+												</Button>
 											) : null}
 										</div>
 									) : null}

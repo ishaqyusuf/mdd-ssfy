@@ -17,6 +17,7 @@ async function writeGithubEvidence(
 		title: string;
 		evidence: string;
 		attempt?: number;
+		labels?: readonly string[];
 	},
 	request: GithubRequest = fetch,
 	now: () => Date = () => new Date(),
@@ -30,6 +31,11 @@ async function writeGithubEvidence(
 		!Number.isInteger(input.attempt ?? 1) ||
 		(input.attempt ?? 1) < 1 ||
 		(input.attempt ?? 1) > 5 ||
+		(input.labels !== undefined &&
+			(input.labels.length > 10 ||
+				input.labels.some(
+					(label) => !/^[A-Za-z0-9_. -]{1,50}$/.test(label),
+				))) ||
 		!input.token.trim() ||
 		!/^[a-f0-9]{64}$/.test(input.actionKey) ||
 		/<!--\s*reliability-action:/i.test(input.evidence) ||
@@ -53,7 +59,13 @@ async function writeGithubEvidence(
 					"X-GitHub-Api-Version": "2022-11-28",
 				},
 				body: JSON.stringify(
-					issueNumber === undefined ? { title: input.title, body } : { body },
+					issueNumber === undefined
+						? {
+								title: input.title,
+								body,
+								...(input.labels ? { labels: input.labels } : {}),
+							}
+						: { body },
 				),
 			},
 		);

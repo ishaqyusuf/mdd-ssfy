@@ -19,6 +19,29 @@ enum BugReportTranscriptionStatus {
     FAILED
 }
 
+enum BugReportUploadMediaKind {
+    VIDEO
+    SCREENSHOT
+    AUDIO
+}
+
+enum BugReportUploadIntentState {
+    PENDING
+    READY
+    CONSUMED
+    EXPIRED
+}
+
+enum BugReportDeliveryState {
+    PENDING
+    PROCESSING
+    CREATED
+    RETRY_WAIT
+    FAILED
+    UNCONFIGURED
+    UNCERTAIN
+}
+
 model BugReport {
     id                  String          @id @default(cuid())
     createdById         Int
@@ -27,6 +50,8 @@ model BugReport {
     description         String?         @db.Text
     currentUrl          String?         @db.VarChar(2048)
     userAgent           String?         @db.Text
+    submissionId        String?         @db.VarChar(64)
+    submissionFingerprint String?       @db.VarChar(191)
     source              String          @default("web") @db.VarChar(50)
     recordingDocumentId String?         @db.VarChar(191)
     durationMs          Int?
@@ -43,8 +68,11 @@ model BugReport {
     updatedAt           DateTime?       @updatedAt
     deletedAt           DateTime?       @db.Timestamp(0)
     followUps           BugReportFollowUp[]
+    uploadIntents       BugReportUploadIntent[]
+    delivery            BugReportDelivery?
 
     @@index([createdById, createdAt])
+    @@unique([createdById, submissionId])
     @@index([status, createdAt])
     @@index([recordingDocumentId])
     @@index([externalIssueProvider, externalIssueKey])
@@ -72,4 +100,54 @@ model BugReportFollowUp {
     @@index([audioDocumentId])
     @@index([transcriptionStatus, createdAt])
     @@index([deletedAt])
+}
+
+model BugReportUploadIntent {
+    id                  String   @id @default(cuid())
+    createdById         Int
+    mediaKind           BugReportUploadMediaKind
+    pathname            String   @unique @db.VarChar(512)
+    expectedMimeType    String   @db.VarChar(255)
+    expectedSize        Int
+    verifiedMimeType    String?  @db.VarChar(255)
+    verifiedSize        Int?
+    verifiedStorageUrl  String?  @db.VarChar(512)
+    state               BugReportUploadIntentState @default(PENDING)
+    expiresAt           DateTime @db.Timestamp(0)
+    consumedReportId    String?  @db.VarChar(191)
+    createdAt           DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime? @updatedAt
+    report              BugReport? @relation(fields: [consumedReportId], references: [id])
+
+    @@index([createdById, state, expiresAt])
+    @@index([consumedReportId])
+}
+
+model BugReportDelivery {
+    id                  String   @id @default(cuid())
+    reportId           String   @unique @db.VarChar(191)
+    provider           String   @db.VarChar(50)
+    repository          String   @db.VarChar(191)
+    actionKey           String   @unique @db.VarChar(191)
+    state               BugReportDeliveryState @default(PENDING)
+    attempts            Int      @default(0)
+    nextAttemptAt       DateTime? @db.Timestamp(0)
+    leaseId             String?  @db.VarChar(191)
+    leaseExpiresAt      DateTime? @db.Timestamp(0)
+    lastErrorCode       String?  @db.VarChar(100)
+    remoteIssueNumber   Int?
+    remoteIssueKey      String?  @db.VarChar(191)
+    remoteIssueUrl      String?  @db.VarChar(512)
+    scanCursor          String?  @db.VarChar(191)
+    scanCompletedAt     DateTime? @db.Timestamp(0)
+    firstAttemptAt      DateTime? @db.Timestamp(0)
+    lastAttemptAt       DateTime? @db.Timestamp(0)
+    sentAt              DateTime? @db.Timestamp(0)
+    createdAt           DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime? @updatedAt
+    report              BugReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+    @@index([state, nextAttemptAt])
+    @@index([provider, repository])
+    @@index([leaseExpiresAt])
 }

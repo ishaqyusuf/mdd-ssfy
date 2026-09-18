@@ -177,7 +177,7 @@ describe("current tab bug-report capture", () => {
 		});
 	});
 
-	test("excludes bug-report chrome and overlay nodes from captured frames", () => {
+	test("excludes only explicitly marked reporter chrome from captured frames", () => {
 		expect(
 			isBugReportCaptureExcluded(
 				createElementStub({
@@ -197,17 +197,17 @@ describe("current tab bug-report capture", () => {
 					},
 				}),
 			),
-		).toBe(true);
+		).toBe(false);
 		expect(
 			isBugReportCaptureExcluded(createElementStub({ role: "dialog" })),
-		).toBe(true);
+		).toBe(false);
 		expect(
 			isBugReportCaptureExcluded(
 				createElementStub({
 					className: "fixed inset-0 z-50 bg-black/80",
 				}),
 			),
-		).toBe(true);
+		).toBe(false);
 		expect(isBugReportCaptureExcluded(createElementStub({}))).toBe(false);
 	});
 

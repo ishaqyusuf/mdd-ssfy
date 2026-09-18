@@ -18,19 +18,7 @@ export function getCaptureViewport() {
 }
 
 export function isBugReportCaptureExcluded(node: HTMLElement) {
-	if (node.closest('[data-bug-report-ignore="true"]')) return true;
-	if (
-		node.closest("[data-radix-portal]")?.textContent?.includes("Report a bug")
-	) {
-		return true;
-	}
-	if (node.getAttribute("role") === "dialog") return true;
-	const className = typeof node.className === "string" ? node.className : "";
-	return (
-		className.includes("fixed") &&
-		className.includes("z-50") &&
-		className.includes("bg-black")
-	);
+	return Boolean(node.closest('[data-bug-report-ignore="true"]'));
 }
 
 export async function captureCurrentTabCanvas({

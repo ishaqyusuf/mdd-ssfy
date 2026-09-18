@@ -44,6 +44,7 @@
         "@composio/vercel": "^0.6.7",
         "@date-fns/utc": "^2.1.0",
         "@gnd/auth": "workspace:*",
+        "@gnd/bug-reports": "workspace:*",
         "@gnd/cache": "workspace:*",
         "@gnd/community": "workspace:*",
         "@gnd/contractor-accounting": "workspace:*",
@@ -553,6 +554,15 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/bug-reports": {
+      "name": "@gnd/bug-reports",
+      "version": "0.0.1",
+      "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
+        "@types/bun": "^1.2.17",
+        "typescript": "catalog:",
+      },
+    },
     "packages/cache": {
       "name": "@gnd/cache",
       "version": "0.0.1",
@@ -715,6 +725,7 @@
       "dependencies": {
         "@fast-csv/format": "5.0.2",
         "@gnd/auth": "workspace:*",
+        "@gnd/bug-reports": "workspace:*",
         "@gnd/community": "workspace:*",
         "@gnd/contractor-accounting": "workspace:*",
         "@gnd/db": "workspace:*",
@@ -1642,6 +1653,8 @@
     "@gnd/app-store": ["@gnd/app-store@workspace:packages/app-store"],
 
     "@gnd/auth": ["@gnd/auth@workspace:packages/auth"],
+
+    "@gnd/bug-reports": ["@gnd/bug-reports@workspace:packages/bug-reports"],
 
     "@gnd/cache": ["@gnd/cache@workspace:packages/cache"],
 

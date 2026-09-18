@@ -10,11 +10,26 @@ export const BUG_REPORT_STATUSES = [
 ] as const;
 
 export const BUG_REPORT_CAPTURE_TYPES = ["VIDEO", "SCREENSHOT"] as const;
+export const BUG_REPORT_UPLOAD_MEDIA_KINDS = [
+	"VIDEO",
+	"SCREENSHOT",
+	"AUDIO",
+] as const;
 export const BUG_REPORT_TRANSCRIPTION_STATUSES = [
 	"NOT_REQUESTED",
 	"PENDING",
 	"COMPLETED",
 	"FAILED",
+] as const;
+
+export const BUG_REPORT_DELIVERY_STATES = [
+	"PENDING",
+	"PROCESSING",
+	"CREATED",
+	"RETRY_WAIT",
+	"FAILED",
+	"UNCONFIGURED",
+	"UNCERTAIN",
 ] as const;
 
 export const BUG_REPORT_MAX_DURATION_MS = 90_000;
@@ -27,6 +42,16 @@ export const bugReportCaptureTypeSchema = z.enum(BUG_REPORT_CAPTURE_TYPES);
 export const bugReportTranscriptionStatusSchema = z.enum(
 	BUG_REPORT_TRANSCRIPTION_STATUSES,
 );
+export const bugReportDeliveryStateSchema = z.enum(BUG_REPORT_DELIVERY_STATES);
+export const bugReportUploadMediaKindSchema = z.enum(
+	BUG_REPORT_UPLOAD_MEDIA_KINDS,
+);
+
+export const createBugReportUploadIntentSchema = z.object({
+	mediaKind: bugReportUploadMediaKindSchema,
+	contentType: z.string().trim().min(1).max(255),
+	size: z.number().int().positive().max(BUG_REPORT_MAX_UPLOAD_SIZE_BYTES),
+});
 
 export const bugReportUploadSchema = z.object({
 	url: z.string().url(),
@@ -57,6 +82,9 @@ export const bugReportAudioEvidenceSchema = z.object({
 });
 
 export const createBugReportSchema = z.object({
+	submissionId: z.string().uuid().optional().nullable(),
+	uploadIntentId: z.string().min(1),
+	audioUploadIntentId: z.string().min(1).optional().nullable(),
 	captureType: bugReportCaptureTypeSchema.default("VIDEO"),
 	description: z.string().max(5000).optional().nullable(),
 	currentUrl: z.string().max(2048).optional().nullable(),
@@ -90,6 +118,7 @@ export const listBugReportsSchema = z
 export const addBugReportFollowUpSchema = z.object({
 	bugReportId: z.string().min(1),
 	body: z.string().trim().min(1).max(5000),
+	audioUploadIntentId: z.string().min(1).optional().nullable(),
 	audio: bugReportAudioEvidenceSchema.optional().nullable(),
 });
 

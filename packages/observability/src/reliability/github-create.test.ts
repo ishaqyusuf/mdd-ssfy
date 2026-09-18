@@ -157,6 +157,20 @@ it("publishes one marked issue and validates its repository-scoped receipt", asy
 	expect(result).toEqual({ status: "SENT", remoteId: "12" });
 	expect(calls).toBe(1);
 });
+it("includes validated labels when creating an issue", async () => {
+	const result = await createReliabilityGithubIssue(
+		{ ...input, labels: ["bug", "reported-from-gnd"] },
+		async (_url, init) => {
+			const payload = JSON.parse(String(init?.body));
+			expect(payload.labels).toEqual(["bug", "reported-from-gnd"]);
+			return Response.json(
+				{ number: 12, html_url: "https://github.com/gnd/fixture/issues/12" },
+				{ status: 201 },
+			);
+		},
+	);
+	expect(result).toEqual({ status: "SENT", remoteId: "12" });
+});
 it("holds ambiguous creates without retrying or exposing provider details", async () => {
 	for (const response of [
 		new Response("private error", { status: 500 }),

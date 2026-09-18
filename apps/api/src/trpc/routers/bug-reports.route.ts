@@ -1,9 +1,11 @@
 import {
 	addBugReportFollowUp,
 	createBugReport,
+	createBugReportUploadIntent,
 	getAllBugReports,
 	getBugReportById,
 	getMyBugReports,
+	retryBugReportIssue,
 	transcribeBugReportFollowUp,
 	updateBugReportStatus,
 } from "@api/db/queries/bug-reports";
@@ -11,6 +13,7 @@ import {
 	addBugReportFollowUpSchema,
 	bugReportIdSchema,
 	createBugReportSchema,
+	createBugReportUploadIntentSchema,
 	listBugReportsSchema,
 	transcribeBugReportFollowUpSchema,
 	updateBugReportStatusSchema,
@@ -18,6 +21,11 @@ import {
 import { createTRPCRouter, protectedProcedure } from "../init";
 
 export const bugReportsRouter = createTRPCRouter({
+	createUploadIntent: protectedProcedure
+		.input(createBugReportUploadIntentSchema)
+		.mutation((props) => {
+			return createBugReportUploadIntent(props.ctx, props.input);
+		}),
 	create: protectedProcedure.input(createBugReportSchema).mutation((props) => {
 		return createBugReport(props.ctx, props.input);
 	}),
@@ -29,6 +37,9 @@ export const bugReportsRouter = createTRPCRouter({
 	}),
 	byId: protectedProcedure.input(bugReportIdSchema).query((props) => {
 		return getBugReportById(props.ctx, props.input.id);
+	}),
+	retryIssue: protectedProcedure.input(bugReportIdSchema).mutation((props) => {
+		return retryBugReportIssue(props.ctx, props.input.id);
 	}),
 	addFollowUp: protectedProcedure
 		.input(addBugReportFollowUpSchema)

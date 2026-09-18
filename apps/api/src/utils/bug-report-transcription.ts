@@ -7,6 +7,7 @@ export type BugReportTranscriptionConfig = {
 
 export type BugReportAudioDocumentInput = {
 	url: string;
+	pathname?: string | null;
 	filename?: string | null;
 	mimeType?: string | null;
 };
@@ -53,6 +54,7 @@ export async function transcribeBugReportAudioDocument(
 	options?: {
 		config?: BugReportTranscriptionConfig | null;
 		fetcher?: FetchLike;
+		readAudio?: (document: BugReportAudioDocumentInput) => Promise<Response>;
 	},
 ): Promise<BugReportTranscriptionResult> {
 	const config = options?.config ?? getBugReportTranscriptionConfig();
@@ -61,7 +63,9 @@ export async function transcribeBugReportAudioDocument(
 	}
 
 	const fetcher = options?.fetcher ?? fetch;
-	const audioResponse = await fetcher(document.url);
+	const audioResponse = options?.readAudio
+		? await options.readAudio(document)
+		: await fetcher(document.url);
 	if (!audioResponse.ok) {
 		throw new Error("Unable to download bug report voice note.");
 	}
