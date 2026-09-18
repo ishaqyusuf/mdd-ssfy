@@ -86,6 +86,7 @@ export function resolveWorkflowCatalogComponents<
 		)
 		.map((component) => {
 			const override = overrides.get(String(component?.uid || ""));
+			const custom = isWorkflowComponentCustom(component);
 			const overridePricing = {
 				...(override?.pricing || {}),
 				...(component?.pricing || {}),
@@ -102,7 +103,7 @@ export function resolveWorkflowCatalogComponents<
 				supplierVariants: overrideSupplierVariants,
 			};
 			const price = resolveComponentPriceByDeps(
-				effectiveComponent,
+				custom ? effectiveComponent : component,
 				selectedByStepUid,
 				{
 					priceStepDeps: getStepPriceDeps(activeStep || null),
@@ -110,16 +111,16 @@ export function resolveWorkflowCatalogComponents<
 				},
 			);
 			const resolvedBasePrice =
-				override?.basePrice == null
-					? (price.basePrice ??
+				price.basePrice == null
+					? (override?.basePrice ??
 						component?.basePrice ??
 						price.salesPrice ??
 						component?.salesPrice)
-					: override?.basePrice;
+					: price.basePrice;
 			const resolvedSalesPrice =
-				override?.salesPrice == null
-					? (price.salesPrice ?? component?.salesPrice)
-					: override?.salesPrice;
+				price.salesPrice == null
+					? (override?.salesPrice ?? component?.salesPrice)
+					: price.salesPrice;
 			const priceMissing =
 				resolvedBasePrice == null && resolvedSalesPrice == null;
 			const salesPrice = resolveWorkflowSalesPrice({
@@ -130,7 +131,6 @@ export function resolveWorkflowCatalogComponents<
 				dealerSalesPercentage,
 			});
 			const metadata = readSalesFormObjectMetadata(component?._metaData);
-			const custom = isWorkflowComponentCustom(component);
 			const visible = isComponentVisibleByRules(
 				component,
 				selectedByStepUid,

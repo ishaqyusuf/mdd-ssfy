@@ -190,6 +190,80 @@ describe("workflow visible components", () => {
 		});
 	});
 
+	it("uses the current dependency price instead of a retained selection snapshot", () => {
+		const components = resolveWorkflowCatalogComponents({
+			components: [
+				{
+					uid: "jamb-size-4-5-8",
+					title: "4-5/8",
+					pricing: {
+						"interior-prehung-6-8-ph-single": { price: 21.75 },
+					},
+				},
+			],
+			steps: [
+				{
+					step: { uid: "item-type" },
+					prodUid: "interior-prehung",
+				},
+				{
+					step: { uid: "height" },
+					prodUid: "6-8",
+				},
+				{
+					step: { uid: "door-type" },
+					prodUid: "ph-single",
+				},
+			],
+			activeStep: {
+				step: { uid: "jamb-size" },
+				meta: {
+					priceStepDeps: ["item-type", "height", "door-type"],
+				},
+			},
+			overrides: new Map([
+				[
+					"jamb-size-4-5-8",
+					{
+						uid: "jamb-size-4-5-8",
+						basePrice: 42.45,
+						salesPrice: 56.6,
+					},
+				],
+			]),
+			profileCoefficient: 0.75,
+		});
+
+		expect(components[0]?.basePrice).toBe(21.75);
+		expect(components[0]?.salesPrice).toBe(29);
+	});
+
+	it("keeps snapshot pricing as the fallback for missing and custom catalogue prices", () => {
+		const components = resolveWorkflowCatalogComponents({
+			components: [
+				{ uid: "missing-price", title: "Missing Price" },
+				{
+					uid: "custom-price",
+					title: "Custom Price",
+					custom: true,
+					basePrice: 10,
+				},
+			],
+			steps: [],
+			activeStep: null,
+			overrides: new Map([
+				["missing-price", { basePrice: 30 }],
+				["custom-price", { basePrice: 45 }],
+			]),
+			profileCoefficient: 1,
+		});
+
+		expect(components[0]?.basePrice).toBe(30);
+		expect(components[0]?.salesPrice).toBe(30);
+		expect(components[1]?.basePrice).toBe(45);
+		expect(components[1]?.salesPrice).toBe(45);
+	});
+
 	it("hides unselected custom components while keeping the selected custom component visible", () => {
 		const components = resolveWorkflowVisibleComponents({
 			components: [
