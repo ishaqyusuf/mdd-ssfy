@@ -344,8 +344,8 @@ describe("sales request provider factory", () => {
 			structuredOutputCause: "schema-validation",
 			schemaIssues: [
 				{
-					code: "invalid_type",
-					path: "unresolved",
+					code: "custom",
+					path: "$",
 				},
 			],
 		});

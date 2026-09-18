@@ -9,6 +9,31 @@ const fact = {
 	status: "unreadable",
 	reason: "Height is unclear",
 };
+
+test("defaults an omitted unresolved collection without accepting malformed facts", () => {
+	const line = {
+		uid: "line-1",
+		qty: 1,
+		formSteps: [{ stepId: 1, prodUid: "route" }],
+	};
+	const missing = { schemaVersion: 2, lineItems: [line] };
+	expect(
+		newSalesFormSeedSchema.safeParse(
+			normalizeSalesRequestProviderEnvelope(missing),
+		).success,
+	).toBe(true);
+	expect(
+		newSalesFormSeedSchema.safeParse(
+			normalizeSalesRequestProviderEnvelope({ ...missing, unresolved: null }),
+		).success,
+	).toBe(true);
+	expect(
+		newSalesFormSeedSchema.safeParse(
+			normalizeSalesRequestProviderEnvelope({ ...missing, unresolved: {} }),
+		).success,
+	).toBe(false);
+});
+
 function response() {
 	return {
 		schemaVersion: 2,

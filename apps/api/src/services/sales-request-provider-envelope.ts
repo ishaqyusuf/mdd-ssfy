@@ -9,10 +9,12 @@ export function normalizeSalesRequestProviderEnvelope(
 ): unknown {
 	if (
 		!isRecord(value) ||
-		!Array.isArray(value.lineItems) ||
-		!Array.isArray(value.unresolved)
+		!Array.isArray(value.lineItems)
 	)
 		return value;
+	if (value.unresolved == null)
+		value = { ...value, unresolved: [] };
+	if (!Array.isArray(value.unresolved)) return value;
 	const unresolved = [...value.unresolved];
 	const lineItems = value.lineItems.map((line) => {
 		if (!isRecord(line)) return line;
