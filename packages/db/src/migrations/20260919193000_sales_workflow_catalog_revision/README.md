@@ -15,8 +15,8 @@ The normal local `db:migrate` command previously stopped on unrelated
 migration-history drift and requested a destructive reset, which was declined.
 The exact schema changes have already been applied through separately scoped
 and reviewed `db:push` operations to local, preview, and production; read-only
-post-push diffs were empty. This migration is a deployable SQL artifact, not
-evidence that a migration ledger has marked it applied on those targets. Check
-each target's migration history and baseline/resolve according to the project
-rollout procedure before enabling automatic migration application. Do not run
-the CREATE TABLE a second time against a target where the table exists.
+post-push diffs were empty. A read-only check found no `_prisma_migrations`
+table in any of those three databases. This SQL artifact is not an instruction
+to run `migrate deploy` there: that would require a separately reviewed
+baseline of the entire existing migration history. Continue using the scoped
+schema rollout procedure and do not run the CREATE TABLE again where it exists.
