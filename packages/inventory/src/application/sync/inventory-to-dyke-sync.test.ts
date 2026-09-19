@@ -9,6 +9,20 @@ import {
 import { updateVariantStatus } from "../../inventory";
 import type { Db } from "@gnd/db";
 
+function withCatalogTransaction(db: Db): Db {
+  return {
+    ...db,
+    $transaction: async (work: (tx: Db) => Promise<unknown>) =>
+      work({
+        ...db,
+        salesWorkflowCatalogRevision: {
+          createMany: async () => ({ count: 1 }),
+          update: async () => ({ revision: 1 }),
+        },
+      } as Db),
+  } as Db;
+}
+
 // ---- Queue helper tests ----
 
 describe("queueInventoryToDykeSync", () => {
@@ -155,7 +169,7 @@ function matchRecord(record: Record<string, any>, where: Where): boolean {
 
 // ---- Sync service tests (compare mode) ----
 
-describe("syncInventoryToDyke compare mode", () => {
+describe("syncInventoryToDyke category and product basics", () => {
   it("returns compare result without mutating", async () => {
     let writesHappened = false;
 
@@ -181,7 +195,7 @@ describe("syncInventoryToDyke compare mode", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryCategoryId: 1,
       mode: "compare",
       source: "repair",
@@ -211,7 +225,7 @@ describe("syncInventoryToDyke compare mode", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryCategoryId: 1,
       mode: "compare",
       source: "repair",
@@ -247,7 +261,7 @@ describe("syncInventoryToDyke compare mode", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryCategoryId: 1,
       mode: "sync",
       source: "repair",
@@ -256,9 +270,60 @@ describe("syncInventoryToDyke compare mode", () => {
     expect(result.category.archived).toBe(1);
   });
 
+  it("restores an archived Dyke product instead of treating its UID as a new row", async () => {
+    let restored: Record<string, unknown> | null = null;
+    let created = false;
+    const db = {
+      inventory: {
+        findUnique: async () => ({
+          id: 7,
+          uid: "product-7",
+          name: "Current product",
+          status: "published",
+          deletedAt: null,
+          inventoryCategoryId: 3,
+          sourceStepUid: null,
+          sourceComponentUid: null,
+          inventoryCategory: { uid: "step-3", title: "Door" },
+          images: [{ imageGallery: { path: "/current.jpg" } }],
+        }),
+      },
+      dykeSteps: { findFirst: async () => ({ id: 3 }) },
+      dykeStepProducts: {
+        findFirst: async () => ({
+          id: 77,
+          name: "Old product",
+          img: "/old.jpg",
+          deletedAt: new Date(),
+        }),
+        create: async () => {
+          created = true;
+        },
+        update: async ({ data }: { data: Record<string, unknown> }) => {
+          restored = data;
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
+      inventoryId: 7,
+      mode: "sync",
+      source: "repair",
+    });
+
+    expect(result.products).toMatchObject({ created: 0, updated: 1, archived: 0 });
+    expect(restored).toEqual({
+      deletedAt: null,
+      dykeStepId: 3,
+      name: "Current product",
+      img: "/current.jpg",
+    });
+    expect(created).toBe(false);
+  });
+
   it("handles empty payload gracefully", async () => {
     const db = {} as unknown as Db;
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       mode: "compare",
       source: "repair",
     });
@@ -311,7 +376,7 @@ describe("syncInventoryToDyke generic pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",
@@ -360,7 +425,7 @@ describe("syncInventoryToDyke generic pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-price",
@@ -406,7 +471,7 @@ describe("syncInventoryToDyke generic pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",
@@ -457,7 +522,7 @@ describe("syncInventoryToDyke generic pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-price",
@@ -519,7 +584,7 @@ describe("syncInventoryToDyke supplier pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "supplier-variant",
@@ -576,7 +641,7 @@ describe("syncInventoryToDyke supplier pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "supplier-variant",
@@ -631,7 +696,7 @@ describe("syncInventoryToDyke supplier pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "supplier-variant",
@@ -697,7 +762,7 @@ describe("syncInventoryToDyke supplier pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "supplier-variant",
@@ -756,7 +821,7 @@ describe("syncInventoryToDyke supplier pricing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "compare",
       source: "supplier-variant",
@@ -804,7 +869,7 @@ describe("syncInventoryToDyke pricing skip routing", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",
@@ -858,7 +923,7 @@ describe("syncInventoryToDyke variant archive", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "compare",
       source: "repair",
@@ -905,7 +970,7 @@ describe("syncInventoryToDyke variant archive", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",
@@ -951,7 +1016,7 @@ describe("syncInventoryToDyke variant archive", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",
@@ -999,7 +1064,7 @@ describe("syncInventoryToDyke variant archive", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",
@@ -1053,7 +1118,7 @@ describe("syncInventoryToDyke draft variant", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",
@@ -1117,7 +1182,7 @@ describe("syncInventoryToDyke supplier pricing archive", () => {
       },
     } as unknown as Db;
 
-    const result = await syncInventoryToDyke(db, {
+    const result = await syncInventoryToDyke(withCatalogTransaction(db), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "supplier-variant",
@@ -1227,7 +1292,7 @@ describe("syncInventoryToDyke variant archive idempotency", () => {
       },
     } as unknown as Db;
 
-    const firstResult = await syncInventoryToDyke(dbForFirstSync, {
+    const firstResult = await syncInventoryToDyke(withCatalogTransaction(dbForFirstSync), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",
@@ -1270,7 +1335,7 @@ describe("syncInventoryToDyke variant archive idempotency", () => {
       },
     } as unknown as Db;
 
-    const secondResult = await syncInventoryToDyke(dbForSecondSync, {
+    const secondResult = await syncInventoryToDyke(withCatalogTransaction(dbForSecondSync), {
       inventoryVariantId: 10,
       mode: "sync",
       source: "variant-form",

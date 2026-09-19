@@ -47,16 +47,20 @@ export function resolveCacheNamespace(): string {
   return namespace;
 }
 
-async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  timeoutMs: number = COMMAND_TIMEOUT_MS,
+): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(
       () =>
         reject(
-          new Error(`Redis ${label} timed out after ${COMMAND_TIMEOUT_MS}ms`),
+          new Error(`Redis ${label} timed out after ${timeoutMs}ms`),
         ),
-      COMMAND_TIMEOUT_MS,
+      timeoutMs,
     );
   });
 
@@ -116,8 +120,12 @@ export class RedisCache {
     return `${CACHE_KEY_ROOT}:${this.namespace}:${this.prefix}:${key}`;
   }
 
-  async get<T>(key: string): Promise<T | undefined> {
-    if (!this.useRest && !this.isConnected && !(await waitForRedisReady())) {
+  async get<T>(key: string, timeoutMs?: number): Promise<T | undefined> {
+    if (
+      !this.useRest &&
+      !this.isConnected &&
+      !(await waitForRedisReady(timeoutMs ?? COMMAND_TIMEOUT_MS))
+    ) {
       logger.warn("GET skipped: not connected", { prefix: this.prefix, key });
       return undefined;
     }
@@ -128,7 +136,7 @@ export class RedisCache {
       return existing as Promise<T | undefined>;
     }
 
-    const promise = this.executeGet<T>(key, fullKey);
+    const promise = this.executeGet<T>(key, fullKey, timeoutMs);
     this.inflight.set(fullKey, promise);
 
     try {
@@ -141,6 +149,7 @@ export class RedisCache {
   private async executeGet<T>(
     key: string,
     fullKey: string,
+    timeoutMs?: number,
   ): Promise<T | undefined> {
     const start = performance.now();
     try {
@@ -149,6 +158,7 @@ export class RedisCache {
           ? sendUpstashRestCommand<string>(["GET", fullKey])
           : this.redis.get(fullKey),
         "GET",
+        timeoutMs,
       );
       const elapsed = performance.now() - start;
 
@@ -174,8 +184,17 @@ export class RedisCache {
     }
   }
 
-  async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
-    if (!this.useRest && !this.isConnected && !(await waitForRedisReady())) {
+  async set(
+    key: string,
+    value: unknown,
+    ttlSeconds?: number,
+    timeoutMs?: number,
+  ): Promise<void> {
+    if (
+      !this.useRest &&
+      !this.isConnected &&
+      !(await waitForRedisReady(timeoutMs ?? COMMAND_TIMEOUT_MS))
+    ) {
       logger.warn("SET skipped: not connected", { prefix: this.prefix, key });
       return;
     }
@@ -201,6 +220,7 @@ export class RedisCache {
                 serializedValue,
               ]),
           "SETEX",
+          timeoutMs,
         );
       } else {
         await withTimeout(
@@ -208,6 +228,7 @@ export class RedisCache {
             ? sendUpstashRestCommand(["SET", redisKey, serializedValue])
             : this.redis.set(redisKey, serializedValue),
           "SET",
+          timeoutMs,
         );
       }
 

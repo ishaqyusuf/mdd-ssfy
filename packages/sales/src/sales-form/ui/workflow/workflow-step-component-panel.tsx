@@ -58,6 +58,10 @@ export type WorkflowStepComponentPanelProps<
 	loading: boolean;
 	components: TComponent[];
 	catalogComponents?: TComponent[];
+	customSuggestions?: TComponent[];
+	customSearchLoading?: boolean;
+	customSearchError?: boolean;
+	onCatalogTabChange?: (tab: "default" | "custom" | "hidden") => void;
 	filteredComponents: TComponent[];
 	selectedUids: Set<string>;
 	search: string;
@@ -122,7 +126,12 @@ export function WorkflowStepComponentPanel<
 		setArchiveTargets([]);
 		setCatalogTab("default");
 	}, [managementScope]);
-	const catalogComponents = props.catalogComponents || props.components;
+	const catalogComponents = props.customSuggestions
+		? [
+				...(props.catalogComponents || props.components),
+				...props.customSuggestions,
+			]
+		: props.catalogComponents || props.components;
 	const catalogCounts = catalogComponents.reduce(
 		(counts, component) => {
 			if (isWorkflowComponentCustom(component)) counts.custom += 1;
@@ -229,7 +238,7 @@ export function WorkflowStepComponentPanel<
 		: props.filteredComponents;
 	const selectedCustomFallbacks = selectedCustomComponents.filter(
 		(component) =>
-			catalogTab === "default" &&
+			(catalogTab === "default" || catalogTab === "custom") &&
 			!catalogTabComponents.some(
 				(candidate) =>
 					String(candidate?.uid || "") === String(component?.uid || ""),
@@ -255,10 +264,38 @@ export function WorkflowStepComponentPanel<
 		<>
 			<StepComponentPicker
 				loading={props.loading}
-				hasComponents={Boolean(catalogComponents.length)}
+				hasComponents={
+					Boolean(catalogComponents.length) ||
+					(catalogTab === "custom" && !!props.customSuggestions)
+				}
 				filteredComponents={filteredComponents}
 				search={props.search}
-				noticeSlot={props.noticeSlot}
+				emptyMessage={
+					catalogTab === "custom" && props.customSuggestions
+						? props.customSearchLoading
+							? "Finding custom components…"
+							: props.customSearchError
+								? "Could not search custom components. Try again."
+								: props.search.trim().length < 2
+									? "Type at least two characters to search custom components."
+									: `No custom components match "${props.search.trim()}".`
+						: undefined
+				}
+				noticeSlot={
+					<>
+						{props.noticeSlot}
+						{catalogTab === "custom" && props.customSearchLoading ? (
+							<output className="mb-2 block text-sm text-muted-foreground">
+								Finding custom components…
+							</output>
+						) : null}
+						{catalogTab === "custom" && props.customSearchError ? (
+							<p className="mb-2 text-sm text-destructive">
+								Could not search custom components. Try again.
+							</p>
+						) : null}
+					</>
+				}
 				getKey={(component) => String(component.uid || "")}
 				renderComponent={(component) => {
 					const componentUid = String(component.uid || "");
@@ -437,7 +474,11 @@ export function WorkflowStepComponentPanel<
 				toolbarSlot={
 					<WorkflowComponentToolbar
 						count={managementSelection.size || filteredComponents.length}
-						total={catalogComponents.length}
+						total={
+							catalogTab === "custom" && props.customSuggestions
+								? catalogCounts.custom
+								: catalogComponents.length
+						}
 						search={props.search}
 						onSearchChange={props.onSearchChange}
 						menuSlot={
@@ -449,19 +490,31 @@ export function WorkflowStepComponentPanel<
 										SubMenu={[
 											<Menu.Item
 												key="catalog-default"
-												onClick={() => setCatalogTab("default")}
+												onClick={() => {
+													setCatalogTab("default");
+													props.onCatalogTabChange?.("default");
+												}}
 											>
 												Default Components ({catalogCounts.default})
 											</Menu.Item>,
 											<Menu.Item
 												key="catalog-custom"
-												onClick={() => setCatalogTab("custom")}
+												onClick={() => {
+													setCatalogTab("custom");
+													props.onCatalogTabChange?.("custom");
+												}}
 											>
-												Custom Components ({catalogCounts.custom})
+												Custom Components
+												{props.customSuggestions
+													? ""
+													: ` (${catalogCounts.custom})`}
 											</Menu.Item>,
 											<Menu.Item
 												key="catalog-hidden"
-												onClick={() => setCatalogTab("hidden")}
+												onClick={() => {
+													setCatalogTab("hidden");
+													props.onCatalogTabChange?.("hidden");
+												}}
 											>
 												Hidden Components ({catalogCounts.hidden})
 											</Menu.Item>,

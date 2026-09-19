@@ -5,6 +5,7 @@ import { DykeFormStepMeta, StepComponentMeta, StepMeta } from "../../types";
 import { notDeleted } from "../utils/db-utils";
 import { invalidateSalesWorkflowForStep } from "@api/db/queries/sales-form";
 import { queueDykeStepToInventorySync } from "@gnd/inventory";
+import { advanceSalesWorkflowCatalogRevision } from "@gnd/db/queries";
 
 export async function getSalesFormStepByIdDta(id) {
     const step = await prisma.dykeSteps.findUnique({
@@ -103,7 +104,8 @@ export async function getStepsForRoutingDta() {
         });
 }
 export async function deleteStepProductsByUidDta(uids: string[]) {
-    const components = await prisma.dykeStepProducts.findMany({
+    const stepIds = await prisma.$transaction(async (tx) => {
+    const components = await tx.dykeStepProducts.findMany({
         where: {
             uid: {
                 in: uids,
@@ -113,7 +115,7 @@ export async function deleteStepProductsByUidDta(uids: string[]) {
             dykeStepId: true,
         },
     });
-    await prisma.dykeStepProducts.updateMany({
+    const result = await tx.dykeStepProducts.updateMany({
         where: {
             uid: {
                 in: uids,
@@ -123,9 +125,11 @@ export async function deleteStepProductsByUidDta(uids: string[]) {
             deletedAt: new Date(),
         },
     });
-    const stepIds = Array.from(
+    if (result.count) await advanceSalesWorkflowCatalogRevision(tx);
+    return Array.from(
         new Set(components.map((component) => component.dykeStepId)),
     ).filter(Boolean);
+    });
     await Promise.all(
         stepIds.map((stepId) =>
             queueDykeStepToInventorySync({
@@ -157,9 +161,13 @@ export async function getStepComponentsMetaByUidDta(uids: string[]) {
     ).map(({ id, meta }) => ({ id, meta: meta as StepComponentMeta }));
 }
 export async function updateStepComponentMetaDta(id, meta) {
-    const data = await prisma.dykeStepProducts.update({
+    const data = await prisma.$transaction(async (tx) => {
+    const data = await tx.dykeStepProducts.update({
         where: { id },
         data: { meta },
+    });
+    await advanceSalesWorkflowCatalogRevision(tx);
+    return data;
     });
     await queueDykeStepToInventorySync({
         stepId: data.dykeStepId,
@@ -167,9 +175,13 @@ export async function updateStepComponentMetaDta(id, meta) {
     });
 }
 export async function updateStepMetaDta(id, meta) {
-    const data = await prisma.dykeSteps.update({
+    const data = await prisma.$transaction(async (tx) => {
+    const data = await tx.dykeSteps.update({
         where: { id },
         data: { meta },
+    });
+    await advanceSalesWorkflowCatalogRevision(tx);
+    return data;
     });
     await invalidateSalesWorkflowForStep(id);
     return data;

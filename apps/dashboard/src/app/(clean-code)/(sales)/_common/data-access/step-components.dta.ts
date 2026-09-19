@@ -5,6 +5,7 @@ import { StepComponentForm, StepComponentMeta } from "../../types";
 import { revalidatePath } from "next/cache";
 import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
 import { queueDykeStepToInventorySync } from "@gnd/inventory";
+import { advanceSalesWorkflowCatalogRevision } from "@gnd/db/queries";
 
 export interface LoadStepComponentsProps {
     stepId?: number;
@@ -76,11 +77,13 @@ export async function getComponentsDta(props: LoadStepComponentsProps) {
 }
 
 export async function updateStepComponentDta(id, data) {
-    const component = await prisma.dykeStepProducts.update({
-        where: { id },
-        data: {
-            ...data,
-        },
+    const component = await prisma.$transaction(async (tx) => {
+        const updated = await tx.dykeStepProducts.update({
+            where: { id },
+            data: { ...data },
+        });
+        await advanceSalesWorkflowCatalogRevision(tx);
+        return updated;
     });
     await invalidateSalesWorkflowForStepComponent({
         stepId: component.dykeStepId,
@@ -96,8 +99,9 @@ export async function updateStepComponentDta(id, data) {
 }
 export async function createStepComponentDta(data: StepComponentForm) {
     const meta = {} satisfies StepComponentMeta;
-    const component = data.id
-        ? await prisma.dykeStepProducts?.update({
+    const component = await prisma.$transaction(async (tx) => {
+        const updated = data.id
+        ? await tx.dykeStepProducts.update({
               where: { id: data.id },
               data: {
                   img: data.img,
@@ -105,7 +109,7 @@ export async function createStepComponentDta(data: StepComponentForm) {
                   productCode: data.productCode,
               },
           })
-        : await prisma.dykeStepProducts.create({
+        : await tx.dykeStepProducts.create({
               data: {
                   uid: generateRandomString(5),
                   custom: data.custom,
@@ -118,6 +122,9 @@ export async function createStepComponentDta(data: StepComponentForm) {
                   name: data.title,
               },
           });
+        await advanceSalesWorkflowCatalogRevision(tx);
+        return updated;
+    });
     revalidatePath(`step-components-${data?.stepId}`);
     await invalidateSalesWorkflowForStepComponent({
         stepId: data.stepId,

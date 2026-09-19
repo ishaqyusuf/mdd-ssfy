@@ -59,7 +59,10 @@ import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-a
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
 import type { TransactionClient } from "@gnd/db";
-import { assertDealerSaleOfficeAccess } from "@gnd/db/queries";
+import {
+	assertDealerSaleOfficeAccess,
+	lockSalesWorkflowCatalogRevision,
+} from "@gnd/db/queries";
 import { AppError } from "@gnd/errors";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
@@ -116,7 +119,8 @@ import {
 	logNewSalesFormSaveDiagnostic,
 } from "./new-sales-form-debug";
 import { hasUnprojectedApprovedCommercialSnapshot } from "./sales-commercial-consistency";
-import { getStepComponents } from "./sales-form";
+import { getStaticStepComponentCatalog, getStepComponents } from "./sales-form";
+import { getVersionedSalesWorkflowCatalogSnapshot } from "./new-sales-form-catalog";
 import {
 	buildSalesFormUpdateActivity,
 	buildSpecialOrderEnrollmentActivity,
@@ -1177,6 +1181,7 @@ function toBootstrapPayload(
 						id: step.id,
 						stepId: step.stepId,
 						componentId: step.componentId,
+						custom: step.component?.custom === true,
 						prodUid: step.prodUid,
 						value: step.value,
 						qty: Number(step.qty || 0),
@@ -1710,6 +1715,7 @@ export async function getNewSalesForm(
 								id: true,
 								stepId: true,
 								componentId: true,
+								component: { select: { custom: true } },
 								prodUid: true,
 								value: true,
 								qty: true,
@@ -1900,11 +1906,83 @@ export async function getNewSalesFormHistorySnapshot(
 export async function getNewSalesFormStepRouting(
 	ctx: TRPCContext,
 	input: GetNewSalesFormStepRoutingSchema,
+	options: { interactive?: boolean } = {},
 ) {
 	getNewSalesFormStepRoutingSchema.parse(input);
-	return salesWorkflowCache.getOrSetStepRouting(() =>
-		getFreshNewSalesFormStepRouting(ctx),
+	const interactive = options.interactive === true;
+	if (
+		process.env.GND_SALES_CATALOG_CACHE !== "1" &&
+		(process.env.NODE_ENV === "production" ||
+			process.env.GND_SALES_CATALOG_CACHE === "0")
+	) {
+		return salesWorkflowCache.getOrSetStepRouting(() =>
+			getFreshNewSalesFormStepRouting(ctx),
+		);
+	}
+	if (!interactive) {
+		const snapshot = await getVersionedSalesWorkflowCatalogSnapshot(
+			ctx,
+			{},
+			"routing-full",
+			(routingCtx) => getFreshNewSalesFormStepRouting(routingCtx),
+		);
+		return snapshot.data;
+	}
+	const snapshot = await getVersionedSalesWorkflowCatalogSnapshot(
+		ctx,
+		{},
+		"routing",
+		async (routingCtx) => {
+			const routing = projectInteractiveNewSalesFormRouting(
+				await getFreshNewSalesFormStepRouting(routingCtx, {
+					includeCustomComponents: false,
+				}),
+			);
+			const rootStepId = routing.rootStepUid
+				? routing.stepsByUid[routing.rootStepUid]?.id
+				: null;
+			return {
+				...routing,
+				rootCatalogComponents: rootStepId
+					? await getStaticStepComponentCatalog(routingCtx, {
+							stepId: rootStepId,
+							isCustom: false,
+						})
+					: [],
+			};
+		},
 	);
+	return {
+		...snapshot.data,
+		rootCatalog: {
+			revision: snapshot.revision,
+			schemaVersion: snapshot.schemaVersion,
+			components: snapshot.data.rootCatalogComponents,
+		},
+	};
+}
+
+export function projectInteractiveNewSalesFormRouting(
+	routing: Awaited<ReturnType<typeof getFreshNewSalesFormStepRouting>>,
+) {
+	return {
+		...routing,
+		stepsByUid: Object.fromEntries(
+			Object.entries(routing.stepsByUid).map(([uid, step]) => [
+				uid,
+				uid === routing.rootStepUid
+					? step
+					: {
+						...step,
+						components: step.components.map((component) => ({
+							...component,
+							img: null,
+							meta: null,
+						})),
+					},
+			]),
+		),
+	};
 }
 
 /** Read only the current Sales setting fields needed by an in-memory print preview. */
@@ -1924,7 +2002,10 @@ export async function getNewSalesFormPrintContext(ctx: TRPCContext) {
 }
 
 /** Bypass workflow caches for correctness-critical transactional replay. */
-export async function getFreshNewSalesFormStepRouting(ctx: TRPCContext) {
+export async function getFreshNewSalesFormStepRouting(
+	ctx: TRPCContext,
+	options: { includeCustomComponents?: boolean } = {},
+) {
 	const [setting, steps] = await Promise.all([
 		ctx.db.settings.findFirst({
 			where: {
@@ -1949,6 +2030,9 @@ export async function getFreshNewSalesFormStepRouting(ctx: TRPCContext) {
 				stepProducts: {
 					where: {
 						deletedAt: null,
+						...(options.includeCustomComponents === false
+							? { OR: [{ custom: false }, { custom: null }] }
+							: {}),
 					},
 					select: {
 						id: true,
@@ -3239,6 +3323,7 @@ async function saveNewSalesFormInternal(
 		preserveExistingStatus?: boolean;
 	},
 	lowTouchClaim?: SalesRequestLowTouchFinalSaveClaim | null,
+	expectedCatalogRevision?: number,
 ) {
 	const newDraftKey =
 		!payload.salesId &&
@@ -4892,6 +4977,15 @@ async function saveNewSalesFormInternal(
 					authority: lowTouchAuthority,
 				});
 			}
+			if (expectedCatalogRevision !== undefined) {
+				const committedRevision = await lockSalesWorkflowCatalogRevision(tx);
+				if (committedRevision !== expectedCatalogRevision) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "The component catalog changed. Review current components and prices before finalizing.",
+					});
+				}
+			}
 
 			return {
 				salesId: currentId,
@@ -5118,7 +5212,7 @@ export async function saveFinalNewSalesForm(
 	input: SaveFinalNewSalesFormSchema,
 ) {
 	const parsed = saveFinalNewSalesFormSchema.parse(input);
-	const { claim: lowTouchClaim, payload } =
+	const { claim: lowTouchClaim, expectedCatalogRevision, payload } =
 		splitSalesRequestLowTouchFinalSaveClaim(parsed);
 	for (const line of payload.lineItems) {
 		const rows = line.meta?.mouldingRows;
@@ -5160,6 +5254,7 @@ export async function saveFinalNewSalesForm(
 			"Active",
 			undefined,
 			lowTouchClaim,
+			expectedCatalogRevision,
 		);
 	} catch (error) {
 		logNewSalesFormSaveDiagnostic({

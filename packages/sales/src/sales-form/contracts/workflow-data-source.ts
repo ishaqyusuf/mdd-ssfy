@@ -39,10 +39,27 @@ export type SalesFormWorkflowDataSource = {
 	useDoorComponents?: (
 		input: SalesFormWorkflowStepComponentInput,
 	) => SalesFormWorkflowQueryResult<WorkflowComponentRecord[]>;
+	useCustomComponents?: (input: {
+		stepId?: number | null;
+		query: string;
+		selectedUid?: string;
+		enabled: boolean;
+	}) => SalesFormWorkflowQueryResult<{
+		components: WorkflowComponentRecord[];
+		selectedComponent: WorkflowComponentRecord | null;
+		revision: number;
+	}>;
+	verifyCustomComponent?: (input: {
+		stepId: number;
+		uid: string;
+	}) => Promise<WorkflowComponentRecord | null>;
+	prefetchStepComponents?: (
+		input: SalesFormWorkflowStepComponentInput,
+	) => Promise<unknown>;
 	useCustomerProfiles?: () => SalesFormWorkflowQueryResult<
 		CustomerProfileRecord[]
 	>;
-	useShelfCategories?: () => SalesFormWorkflowQueryResult<
+	useShelfCategories?: (input?: { enabled?: boolean }) => SalesFormWorkflowQueryResult<
 		ShelfCategoryRecord[]
 	>;
 	useShelfProducts?: (input: {

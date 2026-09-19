@@ -16,6 +16,8 @@ export * from "./reliability-actions";
 export * from "./reliability-cursor";
 export * from "./reliability-trigger";
 export * from "./sales-tax-report";
+export * from "./sales-workflow-catalog-revision";
+export * from "./legacy-sales-component-pricing";
 export * from "./sales-request-telemetry-retention";
 export * from "./sales-request-mailbox-authority";
 export * from "./sales-request-mailbox-content";

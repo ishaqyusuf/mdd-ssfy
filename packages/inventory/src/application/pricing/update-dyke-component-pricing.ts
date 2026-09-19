@@ -1,8 +1,8 @@
-import type { Db } from "@gnd/db";
+import type { Db, TransactionClient } from "@gnd/db";
 import type { UpdateDykeComponentPricing } from "../../schema";
 
 export async function updateDykeComponentPricing(
-  db: Db,
+  db: Db | TransactionClient,
   input: UpdateDykeComponentPricing,
 ) {
   const updateByPrice: Record<string, number[]> = {};

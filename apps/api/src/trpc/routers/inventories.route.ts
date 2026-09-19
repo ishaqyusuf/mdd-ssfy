@@ -35,6 +35,7 @@ import {
 	upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
 import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
+import { advanceSalesWorkflowCatalogRevision } from "@gnd/db/queries";
 import {
 	getSalesInventoryInboundStatusBackfillPreview,
 	repairSalesInventoryInboundStatusBackfill,
@@ -1208,7 +1209,11 @@ export const inventoriesRouter = createTRPCRouter({
 	saveDykeStepComponent: protectedProcedure
 		.input(dykeStepComponentSchema)
 		.mutation(async (props) => {
-			const result = await saveDykeStepComponent(props.ctx.db, props.input);
+			const result = await props.ctx.db.$transaction(async (tx) => {
+				const saved = await saveDykeStepComponent(tx, props.input);
+				await advanceSalesWorkflowCatalogRevision(tx);
+				return saved;
+			});
 			await invalidateSalesWorkflowForStepComponent({
 				stepId: result.stepId,
 				componentId: result.componentId,
@@ -1226,10 +1231,11 @@ export const inventoriesRouter = createTRPCRouter({
 	upsertDykeCustomStepComponent: protectedProcedure
 		.input(upsertDykeCustomStepComponentSchema)
 		.mutation(async (props) => {
-			const result = await upsertDykeCustomStepComponent(
-				props.ctx.db,
-				props.input,
-			);
+			const result = await props.ctx.db.$transaction(async (tx) => {
+				const saved = await upsertDykeCustomStepComponent(tx, props.input);
+				await advanceSalesWorkflowCatalogRevision(tx);
+				return saved;
+			});
 			await invalidateSalesWorkflowForStepComponent({
 				stepId: result.stepId,
 				componentId: result.componentId,
@@ -1247,10 +1253,11 @@ export const inventoriesRouter = createTRPCRouter({
 	archiveDykeCustomStepComponent: protectedProcedure
 		.input(archiveDykeCustomStepComponentSchema)
 		.mutation(async (props) => {
-			const result = await archiveDykeCustomStepComponent(
-				props.ctx.db,
-				props.input,
-			);
+			const result = await props.ctx.db.$transaction(async (tx) => {
+				const archived = await archiveDykeCustomStepComponent(tx, props.input);
+				await advanceSalesWorkflowCatalogRevision(tx);
+				return archived;
+			});
 			await invalidateSalesWorkflowForStepComponent({
 				stepId: result.stepId,
 				componentId: result.componentId,
@@ -1268,10 +1275,11 @@ export const inventoriesRouter = createTRPCRouter({
 	updateDykeComponentPricing: protectedProcedure
 		.input(updateDykeComponentPricingSchema)
 		.mutation(async (props) => {
-			const result = await updateDykeComponentPricing(
-				props.ctx.db,
-				props.input,
-			);
+			const result = await props.ctx.db.$transaction(async (tx) => {
+				const updated = await updateDykeComponentPricing(tx, props.input);
+				await advanceSalesWorkflowCatalogRevision(tx);
+				return updated;
+			});
 			await invalidateSalesWorkflowForStepComponent({
 				stepId: props.input.stepId,
 				componentUid: props.input.stepProductUid,

@@ -1,6 +1,8 @@
 import { useTRPC, useTRPCClient } from "@/trpc/client";
-import type { RouterInputs } from "@api/trpc/routers/_app";
-import { useMutation, useQuery } from "@gnd/ui/tanstack";
+import type { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { useMemo } from "react";
+import { isSalesCatalogCacheEnabled } from "./catalog-rollout";
 import type { SalesRequestGeneratePreviewVariables } from "./request-generation-controller";
 import type { SalesRequestGeneratePreviewOutput } from "./request-generation-controller";
 import type {
@@ -227,20 +229,125 @@ export function useCustomerTaxProfilesQuery(enabled = true) {
 	});
 }
 
+function mergeComponentsWithUsage(
+	components: RouterOutputs["newSalesForm"]["getComponentCatalog"]["components"],
+	usage: Array<{ id: number; statistics: number }>,
+) {
+	const usageById = new Map(usage.map((row) => [row.id, row.statistics]));
+	return components
+		.map((component) => ({
+			...component,
+			statistics: usageById.get(component.id) ?? 0,
+		}))
+		.sort(
+			(a, b) =>
+				b.statistics - a.statistics ||
+				String(a.title || "").localeCompare(String(b.title || "")) ||
+				String(a.uid || "").localeCompare(String(b.uid || "")),
+		);
+}
+
 export function useSalesStepComponentsQuery(
 	input: { stepId?: number | null; stepTitle?: string | null },
 	enabled = true,
+	initialCatalog?: RouterOutputs["newSalesForm"]["getComponentCatalog"],
 ) {
 	const trpc = useTRPC();
-	return useQuery(
+	const client = useTRPCClient();
+	const queryClient = useQueryClient();
+	const cacheEnabled = isSalesCatalogCacheEnabled();
+	const shouldLoad = enabled && (!!input.stepId || !!input.stepTitle);
+	const selector = {
+		stepId: input.stepId || undefined,
+		stepTitle: input.stepTitle || undefined,
+		isCustom: false as const,
+	};
+	const legacyQuery = useQuery(
 		trpc.sales.getStepComponents.queryOptions(
 			{
-				stepId: input.stepId || undefined,
-				stepTitle: input.stepTitle || undefined,
+				...selector,
 				fresh: true,
 			},
 			{
-				enabled: enabled && (!!input.stepId || !!input.stepTitle),
+				enabled: shouldLoad && !cacheEnabled,
+			},
+		),
+	);
+	const catalogQuery = useQuery(
+		trpc.newSalesForm.getComponentCatalog.queryOptions(selector, {
+			enabled: shouldLoad && cacheEnabled,
+			initialData: initialCatalog,
+			staleTime: 30 * 60 * 1000,
+			gcTime: 60 * 60 * 1000,
+		}),
+	);
+	const usageQuery = useQuery(
+		trpc.newSalesForm.getComponentUsageRanks.queryOptions(selector, {
+			enabled: shouldLoad && cacheEnabled,
+			staleTime: 5 * 60 * 1000,
+			gcTime: 15 * 60 * 1000,
+		}),
+	);
+	const components = useMemo(() => {
+		if (!catalogQuery.data?.components) return undefined;
+		return mergeComponentsWithUsage(
+			catalogQuery.data.components,
+			usageQuery.data || [],
+		);
+	}, [catalogQuery.data?.components, usageQuery.data]);
+	if (!cacheEnabled) return legacyQuery;
+	return {
+		...catalogQuery,
+		data: components,
+		refetch: async () => {
+			const [fresh, freshUsage] = await Promise.all([
+				client.newSalesForm.getComponentCatalog.query({
+					...selector,
+					fresh: true,
+				}),
+				client.newSalesForm.getComponentUsageRanks.query({
+					...selector,
+					fresh: true,
+				}),
+			]);
+			queryClient.setQueryData(
+				trpc.newSalesForm.getComponentCatalog.queryKey(selector),
+				fresh,
+			);
+			queryClient.setQueryData(
+				trpc.newSalesForm.getComponentUsageRanks.queryKey(selector),
+				freshUsage,
+			);
+			return {
+				...catalogQuery,
+				data: mergeComponentsWithUsage(fresh.components, freshUsage),
+			};
+		},
+	};
+}
+
+/** Custom suggestions stay out of the initial catalog and load on typed demand. */
+export function useSalesCustomComponentSearchQuery(
+	input: { stepId?: number | null; query: string; selectedUid?: string },
+	enabled: boolean,
+) {
+	const trpc = useTRPC();
+	return useQuery(
+		trpc.newSalesForm.searchCustomComponents.queryOptions(
+			{
+				stepId: input.stepId || 0,
+				query: input.query,
+				selectedUid: input.selectedUid,
+			},
+			{
+				enabled:
+					enabled &&
+					Boolean(input.stepId) &&
+					(input.query.trim().length >= 2 || !!input.selectedUid),
+				staleTime: isSalesCatalogCacheEnabled() ? 5 * 60_000 : 60_000,
+				gcTime: 15 * 60_000,
+				refetchOnWindowFocus: "always",
+				refetchOnReconnect: "always",
 			},
 		),
 	);
@@ -316,9 +423,7 @@ export function useArchiveWorkflowComponentsMutation() {
 
 export function useSetWorkflowComponentDefaultMutation() {
 	const trpc = useTRPC();
-	return useMutation(
-		trpc.sales.setWorkflowComponentDefault.mutationOptions(),
-	);
+	return useMutation(trpc.sales.setWorkflowComponentDefault.mutationOptions());
 }
 
 export function useUpdateDykeComponentPricingMutation() {

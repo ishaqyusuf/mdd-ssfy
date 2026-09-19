@@ -84,3 +84,21 @@ describe("Sales Request low-touch final-save claim schema", () => {
 		).toBe(false);
 	});
 });
+
+describe("cached picker final-save revision", () => {
+	test("keeps an optional bounded revision out of persisted sales payloads", () => {
+		const parsed = saveFinalNewSalesFormSchema.parse({
+			...payload,
+			expectedCatalogRevision: 4,
+		});
+		const split = splitSalesRequestLowTouchFinalSaveClaim(parsed);
+		expect(split.expectedCatalogRevision).toBe(4);
+		expect("expectedCatalogRevision" in split.payload).toBe(false);
+		expect(
+			saveFinalNewSalesFormSchema.safeParse({
+				...payload,
+				expectedCatalogRevision: -1,
+			}).success,
+		).toBe(false);
+	});
+});

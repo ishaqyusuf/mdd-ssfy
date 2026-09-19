@@ -86,6 +86,46 @@ export type GetNewSalesFormStepRoutingSchema = z.infer<
 	typeof getNewSalesFormStepRoutingSchema
 >;
 
+export const getNewSalesFormCatalogSchema = z
+	.object({
+		stepId: z.number().int().positive().optional().nullable(),
+		stepTitle: z.string().trim().min(1).max(255).optional().nullable(),
+		stepIds: z.array(z.number().int().positive()).max(100).default([]),
+		isCustom: z.boolean().optional().nullable(),
+		fresh: z.boolean().optional(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.stepId == null && !value.stepTitle && !value.stepIds.length) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["stepTitle"],
+				message: "Provide a step, family, or bounded step ID list.",
+			});
+		}
+	});
+export type GetNewSalesFormCatalogSchema = z.infer<
+	typeof getNewSalesFormCatalogSchema
+>;
+
+export const getNewSalesFormCatalogRevisionSchema = z.object({});
+export type GetNewSalesFormCatalogRevisionSchema = z.infer<
+	typeof getNewSalesFormCatalogRevisionSchema
+>;
+
+export const searchNewSalesFormCustomComponentsSchema = z
+	.object({
+		stepId: z.number().int().positive(),
+		query: z.string().trim().max(100).default(""),
+		selectedUid: z.string().trim().min(1).max(255).optional(),
+	})
+	.refine((input) => input.query.length >= 2 || !!input.selectedUid, {
+		message:
+			"Provide at least two search characters or a selected component UID.",
+	});
+export type SearchNewSalesFormCustomComponentsSchema = z.infer<
+	typeof searchNewSalesFormCustomComponentsSchema
+>;
+
 export const getNewSalesFormShelfCategoriesSchema = z.object({});
 export type GetNewSalesFormShelfCategoriesSchema = z.infer<
 	typeof getNewSalesFormShelfCategoriesSchema
@@ -203,6 +243,8 @@ export type SalesRequestLowTouchFinalSaveClaim = z.infer<
 export const saveFinalNewSalesFormSchema = saveDraftNewSalesFormSchema.extend({
 	autosave: z.boolean().default(false),
 	commitIntent: z.literal("final").default("final"),
+	/** Cached picker snapshot seen when the user reviewed the final lines. */
+	expectedCatalogRevision: z.number().int().nonnegative().optional(),
 	lowTouchClaim: salesRequestLowTouchFinalSaveClaimSchema.optional(),
 });
 export type SaveFinalNewSalesFormSchema = z.infer<
@@ -212,8 +254,8 @@ export type SaveFinalNewSalesFormSchema = z.infer<
 export function splitSalesRequestLowTouchFinalSaveClaim(
 	input: SaveFinalNewSalesFormSchema,
 ) {
-	const { lowTouchClaim, ...payload } = input;
-	return { claim: lowTouchClaim ?? null, payload };
+	const { lowTouchClaim, expectedCatalogRevision, ...payload } = input;
+	return { claim: lowTouchClaim ?? null, expectedCatalogRevision, payload };
 }
 
 export const previewNewSalesFormAdjustmentSchema =
