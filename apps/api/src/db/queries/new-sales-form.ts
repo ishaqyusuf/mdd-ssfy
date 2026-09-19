@@ -973,6 +973,7 @@ function toBootstrapPayload(
 				id: number;
 				stepId: number;
 				componentId: number | null;
+				component: { custom: boolean | null } | null;
 				prodUid: string | null;
 				value: string | null;
 				qty: number | null;
