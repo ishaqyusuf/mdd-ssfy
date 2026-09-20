@@ -136,6 +136,29 @@ test("guides a zero-handed door repair toward a room-scoped question", async () 
 	expect(correction).not.toContain("2-8 x 8-0");
 });
 
+test("guides a zero-quantity placeholder into review without inventing a count", async () => {
+	const invalid = { schemaVersion: 2, lineItems: [{ uid: "private-line", qty: 0,
+		formSteps: [{ stepId: 1, prodUid: "unconfigured" }] }], unresolved: [] };
+	let calls = 0;
+	let correction = "";
+	const provider = createSalesRequestProvider({
+		selection: { provider: "deepseek", model: "deepseek-flash" },
+		environment: credentials, maxRetries: 0, maxOutputRepairs: 1,
+		generateTextImpl: (async (options) => {
+			calls++;
+			if (calls === 2) correction = String(options.messages?.at(-1)?.content ?? "");
+			const output = calls === 1 ? invalid : validEmptyPreview;
+			return { output, text: JSON.stringify(output), usage: {}, finishReason: "stop" };
+		}) as typeof generateText,
+	});
+	await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+		text: "Private request", images: [], signal: new AbortController().signal });
+	expect(calls).toBe(2);
+	expect(correction).toContain("line-scoped unresolved Sales review note");
+	expect(correction).toContain("Do not infer a product, stock length or quantity");
+	expect(correction).not.toContain("private-line");
+});
+
 describe("sales request provider factory", () => {
 	test("accepts the trusted Assistant credential without a Sales Request key", async () => {
 		const provider = createSalesRequestProvider({

@@ -396,6 +396,15 @@ function seedRepairFeedback(
 				};
 			}
 			if (
+				message === "Zero quantities require selected moulding rows and an explicit quantity review" &&
+				path[2] === "qty"
+			) {
+				return {
+					path,
+					message: "Do not leave an unconfigured item as a zero-quantity line. Use a positive quantity only when the source or complete selected rows support it. Otherwise omit that line and keep its stated side, item and quantity in a line-scoped unresolved Sales review note. Do not infer a product, stock length or quantity.",
+				};
+			}
+			if (
 				message !== "Line quantity must equal its HPT door quantity" ||
 				path[2] !== "qty" ||
 				!line?.housePackageTool
