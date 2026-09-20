@@ -112,10 +112,8 @@ function AnimatedStepPanel(props: {
 	const [isVisible, setIsVisible] = useState(isOpen);
 	const latestChildrenRef = useRef(props.children);
 	if (isOpen) latestChildrenRef.current = props.children;
-	const isSwitchingStep = isOpen && renderedPanel.key !== props.panelKey;
-	const panelIsVisible = isVisible && isOpen && !isSwitchingStep;
-	const displayedChildren =
-		isOpen && !isSwitchingStep ? props.children : renderedPanel.children;
+	const panelIsVisible = isVisible && isOpen;
+	const displayedChildren = isOpen ? props.children : renderedPanel.children;
 
 	useEffect(() => {
 		let animationFrame: number | undefined;
@@ -123,10 +121,10 @@ function AnimatedStepPanel(props: {
 
 		if (!isOpen) {
 			setIsVisible(false);
-			setRenderedPanel((current) => ({
-				...current,
+			setRenderedPanel({
 				children: latestChildrenRef.current,
-			}));
+				key: props.panelKey,
+			});
 			timeout = window.setTimeout(
 				() =>
 					setRenderedPanel((current) => ({
@@ -135,12 +133,6 @@ function AnimatedStepPanel(props: {
 					})),
 				STEP_PANEL_ANIMATION_MS,
 			);
-		} else if (renderedPanel.key !== props.panelKey) {
-			setIsVisible(false);
-			setRenderedPanel({
-				children: latestChildrenRef.current,
-				key: props.panelKey,
-			});
 		} else {
 			animationFrame = window.requestAnimationFrame(() => setIsVisible(true));
 		}
@@ -149,7 +141,7 @@ function AnimatedStepPanel(props: {
 			if (animationFrame != null) window.cancelAnimationFrame(animationFrame);
 			if (timeout != null) window.clearTimeout(timeout);
 		};
-	}, [isOpen, props.panelKey, renderedPanel.key]);
+	}, [isOpen, props.panelKey]);
 
 	return (
 		<div
@@ -165,7 +157,7 @@ function AnimatedStepPanel(props: {
 			<div className="min-h-0 overflow-hidden">
 				{displayedChildren != null ? (
 					<div
-						key={renderedPanel.key}
+						key={isOpen ? props.panelKey : renderedPanel.key}
 						className="mt-4 animate-in fade-in-0 slide-in-from-top-1 duration-200 motion-reduce:animate-none"
 					>
 						{displayedChildren}
