@@ -531,7 +531,7 @@ export function NewSalesForm(props: Props) {
         (s) => s.setRequestGenerationPhase,
     );
     const setSpecialOrder = useNewSalesFormStore((s) => s.setSpecialOrder);
-    const activeItem = useNewSalesFormStore((s) => s.editor.activeItem);
+    const editor = useNewSalesFormStore((s) => s.editor);
     const setEditor = useNewSalesFormStore((s) => s.setEditor);
     const setMeta = useNewSalesFormStore((s) => s.setMeta);
     const [recoverySnapshot, setRecoverySnapshot] =
@@ -2863,7 +2863,7 @@ export function NewSalesForm(props: Props) {
                     onOpenPacking={handleOpenPacking}
                     openPackingDisabled={!record.orderId}
                     onOpenSettings={() => setSettingsOpen(true)}
-					activeItem={activeItem || record.lineItems[0]?.uid || null}
+					activeItem={editor.activeItem || record.lineItems[0]?.uid || null}
                     itemOptions={itemOptions}
                     onActiveItemChange={(value) =>
                         setEditor({
