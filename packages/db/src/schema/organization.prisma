@@ -15,4 +15,5 @@ model Organization {
     sales        SalesOrders[]
     userProfiles ModelHasRoles[]
     workOrders   WorkOrders[]
+    messagingConnections MessagingConnection[]
 }

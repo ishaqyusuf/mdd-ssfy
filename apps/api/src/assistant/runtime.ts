@@ -31,8 +31,10 @@ import { prepareAssistantSafeStep } from "./model-errors";
 import { assistantSalesRequestDraftPreviewSchema } from "./order-draft-contract";
 import {
 	assertAssistantProviderEnabled,
+	getAssistantApiKey,
 	isAssistantProviderEnabled,
 } from "./provider-controls";
+export { getAssistantApiKey } from "./provider-controls";
 import {
 	type AssistantOutcome,
 	assistantEffectMayCommit,
@@ -1018,18 +1020,6 @@ function requireAssistantApiKey(
 	const key = getAssistantApiKey(provider, environment);
 	if (!key) throw new Error("The assistant AI provider is not configured");
 	return key;
-}
-
-export function getAssistantApiKey(
-	provider: AssistantProvider,
-	environment: Readonly<Record<string, string | undefined>> = process.env,
-) {
-	return (
-		environment[`ASSISTANT_${provider.toUpperCase()}_API_KEY`]?.trim() ||
-		(provider === "deepseek"
-			? environment.SALES_REQUEST_DEEPSEEK_API_KEY?.trim()
-			: undefined)
-	);
 }
 
 export function createAssistantModel(

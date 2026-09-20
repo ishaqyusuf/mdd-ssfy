@@ -133,6 +133,75 @@ describe("route-engine domain", () => {
     expect(scoped[0]?.meta?.img).toBe("door.png");
   });
 
+  it("keeps a saved custom selection when UI routing omits custom rows", () => {
+    const scoped = resolveConfiguredRouteStepsForLine({
+      routeData: {
+        ...routeData,
+        stepsByUid: {
+          ...routeData.stepsByUid,
+          stepB: { ...routeData.stepsByUid.stepB, components: [] },
+        },
+      },
+      line: {
+        formSteps: [
+          {
+            stepId: 1,
+            prodUid: "rootA",
+            value: "Door",
+            step: { id: 1, uid: "rootStep", title: "Item Type" },
+          },
+          {
+            stepId: 2,
+            prodUid: "saved-custom",
+            value: "Saved custom height",
+            price: 42,
+            meta: {
+              selectedComponents: [{ uid: "saved-custom", title: "Saved custom height", salesPrice: 42 }],
+            },
+            step: { id: 2, uid: "stepB", title: "Height" },
+          },
+        ],
+      },
+    });
+
+    expect(scoped.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+    ]);
+    expect(scoped[1]?.prodUid).toBe("saved-custom");
+    expect(scoped[1]?.price).toBe(42);
+    expect(scoped[1]?.meta?.selectedComponents?.[0]?.uid).toBe("saved-custom");
+  });
+
+  it("rebuilds a configured custom root from its saved uid without a routing card", () => {
+    const scoped = resolveConfiguredRouteStepsForLine({
+      routeData: {
+        ...routeData,
+        composedRouter: {
+          ...routeData.composedRouter,
+          "custom-root": routeData.composedRouter.rootA,
+        },
+      },
+      line: {
+        formSteps: [{
+          stepId: 1,
+          prodUid: "custom-root",
+          value: "Custom root",
+          step: { id: 1, uid: "rootStep", title: "Item Type" },
+        }],
+      },
+    });
+
+    expect(scoped.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+    ]);
+    expect(scoped[0]?.prodUid).toBe("custom-root");
+    expect(scoped[0]?.value).toBe("Custom root");
+  });
+
   it("merges configured series with existing step selections", () => {
     const configured = buildConfiguredRouteSteps(
       routeData,

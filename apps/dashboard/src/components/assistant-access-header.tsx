@@ -14,7 +14,7 @@ export function AssistantAccessHeader({ search, onSearchChange }: Props) {
 			<div>
 				<h2 className="text-lg font-medium">Employee access</h2>
 				<p className="text-sm text-muted-foreground">
-					Enable Assistant for individual employee accounts.
+					Assign Assistant permission directly, or through a role.
 				</p>
 			</div>
 			<div className="relative w-full sm:w-72">

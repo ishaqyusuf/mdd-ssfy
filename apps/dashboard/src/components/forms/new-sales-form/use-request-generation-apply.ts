@@ -29,6 +29,7 @@ import { useNewSalesFormStore } from "./store";
 
 export type UseSalesRequestGenerationApplyOptions = {
 	type: "order" | "quote";
+	validationSource?: "assistant";
 	open: boolean;
 	preview: SalesRequestGeneratePreviewOutput | null;
 	routeData: NewSalesFormStepRouting | null | undefined;
@@ -213,13 +214,19 @@ export function useSalesRequestGenerationApply(
 		if (!preview) return null;
 		const current = await validatePreviewMutation.mutateAsync({
 			type: options.type,
+			...(options.validationSource ? { source: options.validationSource } : {}),
 			configurationScope: preview.configurationScope,
 			configurationRevision: preview.configurationRevision,
 			provider: preview.provider,
 			model: preview.model,
 		});
 		return current.configurationRevision;
-	}, [options.preview, options.type, validatePreviewMutation.mutateAsync]);
+	}, [
+		options.preview,
+		options.type,
+		options.validationSource,
+		validatePreviewMutation.mutateAsync,
+	]);
 	const validateConfigurationRevision =
 		options.validateConfigurationRevision || apiConfigurationValidator;
 	const proposalId = getSalesRequestGenerationProposalId(options.preview);

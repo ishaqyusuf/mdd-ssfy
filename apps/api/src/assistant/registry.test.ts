@@ -4,6 +4,7 @@ import {
 	assistantToolRegistry,
 	discoverAssistantTools,
 	executeRegisteredAssistantTool,
+	getExecutableAssistantDefinitions,
 	getAssistantToolCatalog,
 	preflightRegisteredAssistantProposal,
 } from "./registry";
@@ -16,6 +17,12 @@ const actor = {
 };
 
 describe("assistant tool registry", () => {
+	test("routes customer request drafts through the dedicated Assistant conversation", () => {
+		const salesActor = { ...actor, grants: { ...actor.grants, editOrders: true } };
+		expect(discoverAssistantTools(salesActor).some((tool) => tool.toolId === "sales_draft_from_request")).toBe(false);
+		expect(getExecutableAssistantDefinitions(salesActor).some((tool) => tool.toolId === "sales_draft_from_request")).toBe(false);
+		expect(getAssistantToolCatalog(salesActor).some((tool) => tool.toolId === "sales_draft_from_request")).toBe(true);
+	});
 	test("returns schema-valid discovery results without internal catalog metadata", async () => {
 		const result = await executeRegisteredAssistantTool(actor, {
 			toolId: "system_search_tools",
@@ -107,7 +114,7 @@ describe("assistant tool registry", () => {
 		expect(
 			canaryCatalog.find((tool) => tool.toolId === "sales_draft_from_request")
 				?.capability,
-		).toBe("disabled");
+		).toBeUndefined();
 		expect(
 			catalog.find((tool) => tool.toolId === "sales_find_orders")?.capability,
 		).toBe("disabled");

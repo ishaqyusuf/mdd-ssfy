@@ -32,6 +32,10 @@ export const assistantSalesRequestDraftPreviewSchema = z
 			})
 			.strict(),
 		unresolvedCount: z.number().int().nonnegative(),
+		savedSale: z.object({
+			orderId: z.string().trim().min(1),
+			slug: z.string().trim().min(1),
+		}).strict().optional(),
 	})
 	.strict();
 

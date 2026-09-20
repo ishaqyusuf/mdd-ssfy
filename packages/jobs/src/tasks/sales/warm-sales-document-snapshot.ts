@@ -1,12 +1,9 @@
 import {
+	getAssistantPermissionSource,
 	getUserSpecificPermissions,
 	mergePermissionRecords,
 } from "@gnd/auth/utils";
 import { Prisma, db } from "@gnd/db";
-import {
-	evaluateAssistantAccessState,
-	isAssistantPilotRoleAllowed,
-} from "@gnd/db/queries";
 import {
 	type CreateStoredDocumentRecordInput,
 	type StoredDocumentRepository,
@@ -157,7 +154,7 @@ async function resolveAssistantPdfAuthorization(
 ) {
 	if (!isAssistantPdfGenerationEnabled()) return null;
 
-	const [user, specificPermissions, entitlement] = await Promise.all([
+	const [user, specificPermissions, permissionSource] = await Promise.all([
 		db.users.findFirst({
 			where: {
 				id: request.userId,
@@ -196,23 +193,9 @@ async function resolveAssistantPdfAuthorization(
 			},
 		}),
 		getUserSpecificPermissions(db, request.userId),
-		db.assistantUserEntitlement.findUnique({
-			where: { userId: request.userId },
-			select: { enabled: true, expiresAt: true, version: true },
-		}),
+		getAssistantPermissionSource(db, request.userId),
 	]);
-	const access = evaluateAssistantAccessState(
-		entitlement,
-		new Date(),
-		true,
-	);
-	if (
-		!user ||
-		!access.enabled ||
-		!isAssistantPilotRoleAllowed(
-			user.roles.map((entry) => entry.role?.name),
-		)
-	)
+	if (!user || !permissionSource.enabled)
 		return null;
 	const organizationId = user.roles[0]?.organizationId;
 	const role = user.roles[0]?.role;

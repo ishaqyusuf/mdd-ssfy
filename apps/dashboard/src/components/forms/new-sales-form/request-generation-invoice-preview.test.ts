@@ -396,6 +396,20 @@ describe("Sales Request Generation in-memory invoice preview", () => {
 		expect(record.salesId).toBeNull();
 	});
 
+	it("uses the native configured card rate in the unsaved invoice preview", () => {
+		const record = nativeUnsavedRecord();
+		record.form.paymentMethod = "Credit Card";
+		record.settings = { cccPercentage: 3 };
+		const page = buildApprovedSalesRequestInvoicePreview({
+			record,
+			requestGeneration: appliedGenerationState(record),
+		});
+		const lines = page.footer?.lines ?? [];
+		expect(lines.find((line) => line.label === "Order Due Amount")?.value).toBe("$300.00");
+		expect(lines.find((line) => line.label === "Estimated Card Fee")?.value).toBe("$9.00");
+		expect(lines.find((line) => line.label === "Total if Paying by Card")?.value).toBe("$309.00");
+	});
+
 	it("remains available after crash recovery without persisting undo data", () => {
 		const record = nativeUnsavedRecord();
 		const page = buildApprovedSalesRequestInvoicePreview({

@@ -1,10 +1,18 @@
 import {
-	assistantEntitlementUpdateSchema,
+	assistantDirectPermissionSchema,
 	getAssistantAccessState,
-	listAssistantEntitlements,
-	updateAssistantEntitlement,
+	listAssistantPermissions,
+	setAssistantDirectPermission,
 } from "@api/assistant/access-governance";
 import { resolveAssistantActor } from "@api/assistant/actor";
+import { getAssistantSalesDraftHandoff } from "@api/assistant/sales-draft-handoff";
+import {
+	answerAssistantSalesRequest,
+	answerAssistantSalesRequestSchema,
+	readAssistantSalesRequestSession,
+	startAssistantSalesRequest,
+	startAssistantSalesRequestSchema,
+} from "@api/assistant/sales-request-session";
 import { reportAssistantClientFailure } from "@api/assistant/client-diagnostics";
 import { assistantDiagnosticUiState } from "@api/assistant/diagnostic-rollout";
 import { getAssistantCaptureHealth } from "@api/assistant/capture-health";
@@ -182,6 +190,27 @@ const assistantQuotaPolicyUpdateSchema = z
 	.strict();
 
 export const assistantRouter = createTRPCRouter({
+	salesRequestSession: protectedProcedure
+		.input(z.object({ conversationId: z.string().min(1).max(191) }).strict())
+		.query(async ({ ctx, input }) =>
+			readAssistantSalesRequestSession(ctx.db, await actorOrThrow(ctx), input.conversationId),
+		),
+	startSalesRequest: protectedProcedure
+		.input(startAssistantSalesRequestSchema)
+		.mutation(async ({ ctx, input, signal }) =>
+			startAssistantSalesRequest(
+				ctx.db, await actorOrThrow(ctx), input,
+				signal ?? new AbortController().signal,
+			),
+		),
+	answerSalesRequest: protectedProcedure
+		.input(answerAssistantSalesRequestSchema)
+		.mutation(async ({ ctx, input, signal }) =>
+			answerAssistantSalesRequest(
+				ctx.db, await actorOrThrow(ctx), input,
+				signal ?? new AbortController().signal,
+			),
+		),
 	captureHealth: protectedProcedure.query(async ({ ctx }) => {
 		await featureAdminOrThrow(ctx);
 		const health = await getAssistantCaptureHealth();
@@ -230,7 +259,7 @@ export const assistantRouter = createTRPCRouter({
 		]);
 		return { ...access, quota };
 	}),
-	adminEntitlements: protectedProcedure
+	adminPermissions: protectedProcedure
 		.input(
 			z.object({
 				search: z.string().trim().max(100).optional(),
@@ -239,13 +268,13 @@ export const assistantRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			await featureAdminOrThrow(ctx);
-			return listAssistantEntitlements(ctx.db, input);
+			return listAssistantPermissions(ctx.db, input);
 		}),
-	updateEntitlement: protectedProcedure
-		.input(assistantEntitlementUpdateSchema)
+	updateDirectPermission: protectedProcedure
+		.input(assistantDirectPermissionSchema)
 		.mutation(async ({ ctx, input }) => {
-			const adminUserId = await featureAdminOrThrow(ctx);
-			return updateAssistantEntitlement(ctx.db, adminUserId, input);
+			await featureAdminOrThrow(ctx);
+			return setAssistantDirectPermission(ctx.db, input);
 		}),
 	runtimeSettings: protectedProcedure.query(async ({ ctx }) => {
 		await featureAdminOrThrow(ctx);
@@ -760,5 +789,16 @@ export const assistantRouter = createTRPCRouter({
 			} catch (error) {
 				return notFound(error);
 			}
+		}),
+	getSalesDraftHandoff: protectedProcedure
+		.input(
+			z.object({
+				conversationId: z.string().trim().min(1).max(191),
+				generationId: z.string().uuid(),
+			}).strict(),
+		)
+		.query(async ({ ctx, input }) => {
+			const actor = await actorOrThrow(ctx);
+			return getAssistantSalesDraftHandoff(ctx.db, actor, input);
 		}),
 });

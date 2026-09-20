@@ -224,6 +224,14 @@ model Settings {
     updatedAt DateTime? @updatedAt
 }
 
+// A committed change to the shared sales component/routing catalog advances this
+// revision so caches never rely on best-effort Redis invalidation for freshness.
+model SalesWorkflowCatalogRevision {
+    scope     String   @id @db.VarChar(191)
+    revision  Int      @default(0)
+    updatedAt DateTime @updatedAt
+}
+
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model ProductCategories {
     id         Int       @unique @default(autoincrement())

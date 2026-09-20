@@ -221,12 +221,15 @@ export function assertSalesRequestCorpusConfigurationLock(input: {
 	caseData: SalesRequestCorpusCase;
 	configurationJson: string;
 	configurationRevision: string;
+	/** Historical offline replay only; live evaluations use the current prompt. */
+	archivedPromptVersion?: string;
 }) {
 	const lock = input.caseData.configurationLock;
 	if (
 		lock.configurationRevision !== input.configurationRevision ||
 		lock.configurationSha256 !== sha256(input.configurationJson) ||
-		lock.promptVersion !== SALES_REQUEST_PROMPT_VERSION ||
+		lock.promptVersion !==
+			(input.archivedPromptVersion ?? SALES_REQUEST_PROMPT_VERSION) ||
 		lock.outputContract !== "new-sales-form-seed-v2"
 	) {
 		throw new Error(
@@ -524,12 +527,14 @@ export async function verifySalesRequestCorpusSeedCompatibility(
 			.filter((value) => value !== "")
 			.join(":"),
 	);
-	if (initialized.unresolved.length || issues.length) {
+	if (issues.length || seed.lineItems.length === 0) {
 		return {
 			initializer: "blocked",
 			saveReopen: "blocked",
 			unresolvedCount: initialized.unresolved.length,
-			issues,
+			issues: seed.lineItems.length === 0
+				? [...issues, "empty-native-draft"]
+				: issues,
 		};
 	}
 	const payload = toSalesFormSaveDraftPayload(initialized.record, true);
@@ -549,7 +554,7 @@ export async function verifySalesRequestCorpusSeedCompatibility(
 	return {
 		initializer: "passed",
 		saveReopen: "passed",
-		unresolvedCount: 0,
+		unresolvedCount: initialized.unresolved.length,
 		issues: [],
 	};
 }
@@ -640,6 +645,8 @@ export async function evaluateSalesRequestCorpusCase(input: {
 	configurationJson: string;
 	configurationRevision: string;
 	provider: SalesRequestProvider;
+	/** Historical offline replay against recorded provider output. */
+	archivedPromptVersion?: string;
 }): Promise<SalesRequestCorpusCaseResult> {
 	const startedAt = performance.now();
 	let providerOutput: unknown = null;
@@ -741,6 +748,9 @@ export async function evaluateSalesRequestCorpusCase(input: {
 		];
 		const reviewRequired =
 			qualityIssues.length > 0 ||
+			compatibility.unresolvedCount > 0 ||
+			compatibility.initializer === "blocked" ||
+			compatibility.saveReopen === "blocked" ||
 			providerOracle?.wholeOrderMatch === false ||
 			seedOracle?.wholeOrderMatch === false;
 		return {

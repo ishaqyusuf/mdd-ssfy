@@ -15,6 +15,7 @@ import {
 import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Icons } from "@gnd/ui/icons";
+import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 
 export type CustomComponentOption = {
@@ -177,6 +178,7 @@ export function CustomComponentCombobox({
 	onPriceChange,
 	onSelect,
 	onDeleteOption,
+	inlineSearch = false,
 }: {
 	title: string;
 	price: number | null;
@@ -188,6 +190,7 @@ export function CustomComponentCombobox({
 	onPriceChange: (value: number | null) => void;
 	onSelect?: (option: CustomComponentOption | null) => void;
 	onDeleteOption?: (option: CustomComponentOption) => void;
+	inlineSearch?: boolean;
 }) {
 	const normalizedTitle = normalizeCustomComponentTitleInput(title);
 	const exactOption = findCustomComponentOption(options, title);
@@ -207,94 +210,189 @@ export function CustomComponentCombobox({
 		<div className="grid gap-3">
 			<div className="grid gap-2">
 				<Label>Component</Label>
-				<ComboboxDropdown
-					items={options}
-					selectedItem={selectedItem}
-					placeholder="Search or create custom component"
-					searchPlaceholder="Type custom component title..."
-					disabled={disabled}
-					showCreateWhenMatches={false}
-					normalizeInput={normalizeCustomComponentTitleInput}
-					onSearch={onTitleChange}
-					onCreate={(value) => {
-						onTitleChange(normalizeCustomComponentTitleInput(value));
-						onSelect?.(null);
-					}}
-					renderOnCreate={(value) => (
-						<span className="text-sm">
-							Create "{normalizeCustomComponentTitleInput(value)}"
-						</span>
-					)}
-					renderListItem={({ item }) => (
-						<div className="group flex w-full items-center justify-between gap-3">
-							<span className="truncate text-sm">{item.label}</span>
-							<div className="flex shrink-0 items-center gap-1">
-								{item.price != null ? (
-									<span className="text-xs text-muted-foreground">
-										${Number(item.price).toFixed(2)}
-									</span>
-								) : null}
-								{onDeleteOption ? (
-									<AlertDialog>
-										<AlertDialogTrigger asChild>
-											<Button
-												type="button"
-												size="icon"
-												variant="ghost"
-												className="size-7 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-												aria-label={`Delete ${item.label}`}
-												onMouseDown={(event) => {
-													event.preventDefault();
-													event.stopPropagation();
-												}}
-												onClick={(event) => {
-													event.preventDefault();
-													event.stopPropagation();
-												}}
-											>
-												<Icons.Trash className="size-4" />
-											</Button>
-										</AlertDialogTrigger>
-										<AlertDialogContent size="sm">
-											<AlertDialogHeader>
-												<AlertDialogTitle>Delete custom component?</AlertDialogTitle>
-												<AlertDialogDescription>
-													This hides "{item.label}" from future custom
-													component selection while preserving older sales that
-													already use it.
-												</AlertDialogDescription>
-											</AlertDialogHeader>
-											<AlertDialogFooter>
-												<AlertDialogCancel
-													onClick={(event) => event.stopPropagation()}
-												>
-													Cancel
-												</AlertDialogCancel>
-												<AlertDialogAction
-													variant="destructive"
-													onClick={(event) => {
+				{inlineSearch ? (
+					<>
+						<Input
+							value={title}
+							aria-label="Search custom components"
+							placeholder="Type custom component title..."
+							disabled={disabled}
+							onChange={(event) =>
+								onTitleChange(
+									normalizeCustomComponentTitleInput(event.target.value),
+								)
+							}
+							onKeyDown={(event) => {
+								if (event.key !== "ArrowDown") return;
+								event.preventDefault();
+								event.currentTarget.parentElement
+									?.querySelector<HTMLButtonElement>("[data-custom-suggestion]")
+									?.focus();
+							}}
+						/>
+						{normalizedTitle.trim().length >= 2 && options.length ? (
+							<div
+								className="max-h-56 overflow-y-auto rounded-md border"
+								aria-label="Custom component suggestions"
+							>
+								{options.map((item) => (
+									<div
+										key={item.id}
+										className="flex items-center gap-1 border-b last:border-b-0"
+									>
+										<button
+											data-custom-suggestion
+											type="button"
+											className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-muted focus-visible:bg-muted"
+											onClick={() => {
+												onTitleChange(
+													normalizeCustomComponentTitleInput(item.title),
+												);
+												onPriceChange(item.price);
+												onSelect?.(item);
+											}}
+										>
+											<span className="truncate">{item.label}</span>
+											{item.price != null ? (
+												<span className="shrink-0 text-muted-foreground">
+													${Number(item.price).toFixed(2)}
+												</span>
+											) : null}
+										</button>
+										{onDeleteOption ? (
+											<AlertDialog>
+												<AlertDialogTrigger asChild>
+													<Button
+														type="button"
+														size="icon"
+														variant="ghost"
+														aria-label={`Delete ${item.label}`}
+													>
+														<Icons.Trash className="size-4" />
+													</Button>
+												</AlertDialogTrigger>
+												<AlertDialogContent size="sm">
+													<AlertDialogHeader>
+														<AlertDialogTitle>
+															Delete custom component?
+														</AlertDialogTitle>
+														<AlertDialogDescription>
+															This hides "{item.label}" from future custom
+															component selection while preserving older sales
+															that already use it.
+														</AlertDialogDescription>
+													</AlertDialogHeader>
+													<AlertDialogFooter>
+														<AlertDialogCancel>Cancel</AlertDialogCancel>
+														<AlertDialogAction
+															variant="destructive"
+															onClick={() => onDeleteOption(item)}
+														>
+															Delete
+														</AlertDialogAction>
+													</AlertDialogFooter>
+												</AlertDialogContent>
+											</AlertDialog>
+										) : null}
+									</div>
+								))}
+							</div>
+						) : null}
+					</>
+				) : (
+					<ComboboxDropdown
+						items={options}
+						selectedItem={selectedItem}
+						placeholder="Search or create custom component"
+						searchPlaceholder="Type custom component title..."
+						disabled={disabled}
+						showCreateWhenMatches={false}
+						normalizeInput={normalizeCustomComponentTitleInput}
+						onSearch={onTitleChange}
+						onCreate={(value) => {
+							onTitleChange(normalizeCustomComponentTitleInput(value));
+							onSelect?.(null);
+						}}
+						renderOnCreate={(value) => (
+							<span className="text-sm">
+								Create "{normalizeCustomComponentTitleInput(value)}"
+							</span>
+						)}
+						renderListItem={({ item }) => (
+							<div className="group flex w-full items-center justify-between gap-3">
+								<span className="truncate text-sm">{item.label}</span>
+								<div className="flex shrink-0 items-center gap-1">
+									{item.price != null ? (
+										<span className="text-xs text-muted-foreground">
+											${Number(item.price).toFixed(2)}
+										</span>
+									) : null}
+									{onDeleteOption ? (
+										<AlertDialog>
+											<AlertDialogTrigger asChild>
+												<Button
+													type="button"
+													size="icon"
+													variant="ghost"
+													className="size-7 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+													aria-label={`Delete ${item.label}`}
+													onMouseDown={(event) => {
+														event.preventDefault();
 														event.stopPropagation();
-														onDeleteOption(item);
+													}}
+													onClick={(event) => {
+														event.preventDefault();
+														event.stopPropagation();
 													}}
 												>
-													Delete
-												</AlertDialogAction>
-											</AlertDialogFooter>
-										</AlertDialogContent>
-									</AlertDialog>
-								) : null}
+													<Icons.Trash className="size-4" />
+												</Button>
+											</AlertDialogTrigger>
+											<AlertDialogContent size="sm">
+												<AlertDialogHeader>
+													<AlertDialogTitle>
+														Delete custom component?
+													</AlertDialogTitle>
+													<AlertDialogDescription>
+														This hides "{item.label}" from future custom
+														component selection while preserving older sales
+														that already use it.
+													</AlertDialogDescription>
+												</AlertDialogHeader>
+												<AlertDialogFooter>
+													<AlertDialogCancel
+														onClick={(event) => event.stopPropagation()}
+													>
+														Cancel
+													</AlertDialogCancel>
+													<AlertDialogAction
+														variant="destructive"
+														onClick={(event) => {
+															event.stopPropagation();
+															onDeleteOption(item);
+														}}
+													>
+														Delete
+													</AlertDialogAction>
+												</AlertDialogFooter>
+											</AlertDialogContent>
+										</AlertDialog>
+									) : null}
+								</div>
 							</div>
-						</div>
-					)}
-					emptyResults="No custom component found"
-					onSelect={(option) => {
-						onTitleChange(
-							normalizeCustomComponentTitleInput(option.title || option.label),
-						);
-						onPriceChange(option.price ?? null);
-						onSelect?.(option);
-					}}
-				/>
+						)}
+						emptyResults="No custom component found"
+						onSelect={(option) => {
+							onTitleChange(
+								normalizeCustomComponentTitleInput(
+									option.title || option.label,
+								),
+							);
+							onPriceChange(option.price ?? null);
+							onSelect?.(option);
+						}}
+					/>
+				)}
 			</div>
 			{showPrice ? (
 				<div className="grid justify-items-end gap-2">

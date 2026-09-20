@@ -3,10 +3,13 @@
 import { useTRPC, useTRPCClient } from "@/trpc/client";
 import { useChat } from "@ai-sdk/react";
 import { assistantErrorReference } from "@api/assistant/diagnostic-contract";
-import { assistantOutcomeSchema, presentAssistantOutcome, type AssistantOutcome } from "@api/assistant/outcomes";
+import {
+	type AssistantOutcome,
+	assistantOutcomeSchema,
+	presentAssistantOutcome,
+} from "@api/assistant/outcomes";
 import { assistantReconnectResponseSchema } from "@api/schemas/assistant";
 import { Button } from "@gnd/ui/button";
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@gnd/ui/empty";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import {
 	Dialog,
@@ -15,6 +18,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@gnd/ui/empty";
 import { Input } from "@gnd/ui/input";
 import { useQuery } from "@gnd/ui/tanstack";
 import { DefaultChatTransport, type UIMessage } from "ai";
@@ -28,14 +39,12 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsString, useQueryStates } from "nuqs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
-import { assistantDocumentApprovalSummary, parseAssistantApprovalReview, type AssistantApprovalReview } from "./assistant-approval-review";
+	type AssistantApprovalReview,
+	assistantDocumentApprovalSummary,
+	parseAssistantApprovalReview,
+} from "./assistant-approval-review";
 import { AssistantArtifactCanvas } from "./assistant-artifact-canvas";
 import { useAssistantAttachments } from "./assistant-attachment-picker";
 import {
@@ -66,15 +75,19 @@ import {
 	AssistantInput,
 	type AssistantInputSuggestion,
 } from "./assistant-input";
-import { AssistantMessageRenderer } from "./assistant-message-renderer";
 import { AssistantMessageBoundary } from "./assistant-message-boundary";
-import { normalizeAssistantMessage, type AssistantMessageViewModel } from "./assistant-message-view-model";
-import { AssistantOutcomeHelp } from "./assistant-outcome-help";
-import { AssistantReconnectActivity } from "./assistant-reconnect-activity";
+import { AssistantMessageRenderer } from "./assistant-message-renderer";
+import {
+	type AssistantMessageViewModel,
+	normalizeAssistantMessage,
+} from "./assistant-message-view-model";
 import {
 	type AssistantOrderDraft,
 	AssistantOrderDraftCanvas,
 } from "./assistant-order-draft-canvas";
+import { AssistantOutcomeHelp } from "./assistant-outcome-help";
+import { AssistantReconnectActivity } from "./assistant-reconnect-activity";
+import { AssistantSalesRequestQuestionnaire } from "./assistant-sales-request-questionnaire";
 import { AssistantSavedActionsDialog } from "./assistant-saved-actions-dialog";
 import styles from "./assistant.module.css";
 import { useAssistantEntityNavigation } from "./use-assistant-entity-navigation";
@@ -164,9 +177,19 @@ function AssistantConversation(props: {
 		runId: string | null;
 		messageId: string;
 	}) => void;
+	initialSalesRequestType: "order" | "quote" | null;
 }) {
 	const client = useTRPCClient();
 	const [input, setInput] = useState("");
+	const [salesRequestType, setSalesRequestType] = useState(
+		props.initialSalesRequestType,
+	);
+	const [salesRequestBusy, setSalesRequestBusy] = useState(false);
+	const [salesRequestError, setSalesRequestError] = useState<string | null>(
+		null,
+	);
+	const [salesRequestRefresh, setSalesRequestRefresh] = useState(0);
+	const salesRequestIdRef = useRef<string | null>(null);
 	const [online, setOnline] = useState(
 		() => typeof navigator === "undefined" || navigator.onLine,
 	);
@@ -176,11 +199,15 @@ function AssistantConversation(props: {
 		useState<PendingAssistantApproval | null>(null);
 	const [approvalBusy, setApprovalBusy] = useState(false);
 	const [approvalNotice, setApprovalNotice] = useState<string | null>(null);
-	const [approvalReference, setApprovalReference] = useState<string | null>(null);
+	const [approvalReference, setApprovalReference] = useState<string | null>(
+		null,
+	);
 	const [readRetryBusy, setReadRetryBusy] = useState(false);
 	const [readRetryNotice, setReadRetryNotice] = useState<string | null>(null);
 	const attachmentState = useAssistantAttachments(props.conversation.id);
-	const [requestOutcome, setRequestOutcome] = useState<AssistantOutcome | null>(null);
+	const [requestOutcome, setRequestOutcome] = useState<AssistantOutcome | null>(
+		null,
+	);
 	const [requestLimitError, setRequestLimitError] = useState<{
 		limit: number;
 		remaining: number;
@@ -218,25 +245,47 @@ function AssistantConversation(props: {
 					const submittedText = submittedTextRef.current;
 					setRequestOutcome(null);
 					let response: Response;
-					try { response = await fetch(input, init); }
-					catch (error) {
+					try {
+						response = await fetch(input, init);
+					} catch (error) {
 						if (!init?.signal?.aborted) {
-							void client.assistant.reportClientFailure.mutate({
-								eventId: crypto.randomUUID(), conversationId: props.conversation.id, stage: "transport",
-							}).then(report => {
-								if (mountedRef.current && transportAttemptRef.current === attempt) setRequestOutcome({ kind: "uncertain", reference: report.reference });
-							}).catch(() => undefined);
+							void client.assistant.reportClientFailure
+								.mutate({
+									eventId: crypto.randomUUID(),
+									conversationId: props.conversation.id,
+									stage: "transport",
+								})
+								.then((report) => {
+									if (
+										mountedRef.current &&
+										transportAttemptRef.current === attempt
+									)
+										setRequestOutcome({
+											kind: "uncertain",
+											reference: report.reference,
+										});
+								})
+								.catch(() => undefined);
 						}
 						throw error;
 					}
 					if (!response.ok) {
-						const body = await response.clone().json().catch(() => null);
+						const body = await response
+							.clone()
+							.json()
+							.catch(() => null);
 						const parsed = assistantOutcomeSchema.safeParse(body?.outcome);
 						if (parsed.success) setRequestOutcome(parsed.data);
-						if (response.status === 401 && mountedRef.current && transportAttemptRef.current === attempt) {
-							setRequestOutcome(parsed.success ? parsed.data : { kind: "signed-out" });
+						if (
+							response.status === 401 &&
+							mountedRef.current &&
+							transportAttemptRef.current === attempt
+						) {
+							setRequestOutcome(
+								parsed.success ? parsed.data : { kind: "signed-out" },
+							);
 							// Restore the rejected text without overwriting a newer draft.
-							setInput(current => current || submittedText);
+							setInput((current) => current || submittedText);
 						}
 					}
 					if (response.status === 429) {
@@ -257,7 +306,10 @@ function AssistantConversation(props: {
 					const latestUser = [...messages]
 						.reverse()
 						.find((message) => message.role === "user");
-					submittedTextRef.current = latestUser?.parts.flatMap(part => part.type === "text" ? [part.text] : []).join("\n") ?? "";
+					submittedTextRef.current =
+						latestUser?.parts
+							.flatMap((part) => (part.type === "text" ? [part.text] : []))
+							.join("\n") ?? "";
 					return {
 						body: buildAssistantChatRequest(props.conversation.id, messages, {
 							requestId: latestUser
@@ -442,8 +494,9 @@ function AssistantConversation(props: {
 	]);
 
 	const send = useCallback(
-		(promptOverride?: string) => {
-			const value = (promptOverride ?? input).trim();
+		(promptOverride?: string, forceSalesRequest = false) => {
+			const source = promptOverride ?? input;
+			const value = source.trim();
 			const attachments = promptOverride ? [] : attachmentState.attachments;
 			if (
 				(!value && !attachments.length) ||
@@ -453,6 +506,42 @@ function AssistantConversation(props: {
 				chat.status === "submitted"
 			)
 				return;
+			if (
+				(forceSalesRequest || salesRequestType) &&
+				value &&
+				!attachments.length
+			) {
+				const requestId = salesRequestIdRef.current ?? crypto.randomUUID();
+				salesRequestIdRef.current = requestId;
+				setSalesRequestBusy(true);
+				setSalesRequestError(null);
+				void client.assistant.startSalesRequest
+					.mutate({
+						conversationId: props.conversation.id,
+						requestId,
+						type: salesRequestType ?? "order",
+						text: source,
+					})
+					.then(async () => {
+						setInput("");
+						setSalesRequestType(null);
+						setSalesRequestRefresh((value) => value + 1);
+						const updated = await client.assistant.get.query({
+							conversationId: props.conversation.id,
+						});
+						chat.setMessages(persistedMessagesToUi(updated.messages));
+						props.onChanged();
+					})
+					.catch((cause) => {
+						setSalesRequestError(
+							cause instanceof Error
+								? cause.message
+								: "Sales Request could not be started.",
+						);
+					})
+					.finally(() => setSalesRequestBusy(false));
+				return;
+			}
 			shouldStickRef.current = true;
 			if (!promptOverride) setInput("");
 			setRequestLimitError(null);
@@ -466,7 +555,7 @@ function AssistantConversation(props: {
 			if (!promptOverride) attachmentState.clear();
 			props.onIntegrationsSent();
 		},
-		[chat, input, online, attachmentState, props.onIntegrationsSent],
+		[chat, client, input, online, attachmentState, props, salesRequestType],
 	);
 	const retryLatest = useCallback(() => {
 		const latestUser = [...chat.messages]
@@ -528,9 +617,17 @@ function AssistantConversation(props: {
 		} catch (error) {
 			setStreamState((state) => ({
 				...state,
-				notice: "I couldn't load the latest response. Please check again shortly.",
+				notice:
+					"I couldn't load the latest response. Please check again shortly.",
 			}));
-			void client.assistant.reportClientFailure.mutate({ eventId: crypto.randomUUID(), conversationId: props.conversation.id, runId: run.id, stage: "reconnect" }).catch(() => undefined);
+			void client.assistant.reportClientFailure
+				.mutate({
+					eventId: crypto.randomUUID(),
+					conversationId: props.conversation.id,
+					runId: run.id,
+					stage: "reconnect",
+				})
+				.catch(() => undefined);
 		} finally {
 			setReconnecting(false);
 		}
@@ -538,7 +635,13 @@ function AssistantConversation(props: {
 
 	const busy = chat.status === "streaming" || chat.status === "submitted";
 	const latestMessage = chat.messages.at(-1);
-	const latestOutcome = latestMessage?.role === "assistant" ? normalizeAssistantMessage(latestMessage, { isStreaming: busy, isLastMessage: true }).outcome : null;
+	const latestOutcome =
+		latestMessage?.role === "assistant"
+			? normalizeAssistantMessage(latestMessage, {
+					isStreaming: busy,
+					isLastMessage: true,
+				}).outcome
+			: null;
 	const showTransportError = Boolean(chat.error && !latestOutcome);
 	const createDocumentProposal = useCallback(
 		async (action: AssistantMessageViewModel["documentActions"][number]) => {
@@ -562,7 +665,10 @@ function AssistantConversation(props: {
 					approvalToken: result.approvalToken,
 					expiresAt: result.expiresAt,
 					review: parseAssistantApprovalReview(result.review),
-					summary: assistantDocumentApprovalSummary(result.toolId, parseAssistantApprovalReview(result.review)),
+					summary: assistantDocumentApprovalSummary(
+						result.toolId,
+						parseAssistantApprovalReview(result.review),
+					),
 				});
 			} catch (error) {
 				setApprovalReference(assistantErrorReference(error));
@@ -577,7 +683,12 @@ function AssistantConversation(props: {
 	);
 	const decideDocumentProposal = useCallback(
 		async (decision: "approve" | "reject") => {
-			if (!pendingApproval || pendingApproval.requiresStatusCheck || approvalBusy) return;
+			if (
+				!pendingApproval ||
+				pendingApproval.requiresStatusCheck ||
+				approvalBusy
+			)
+				return;
 			setPendingApproval({ ...pendingApproval, requiresStatusCheck: true });
 			setApprovalReference(null);
 			setApprovalBusy(true);
@@ -589,19 +700,34 @@ function AssistantConversation(props: {
 					confirmationRequestId: pendingApproval.confirmationRequestId,
 					decision,
 				});
-				if (result.errorCode === "AUTHORIZATION_CHANGED" || result.errorCode === "TARGET_CHANGED") {
+				if (
+					result.errorCode === "AUTHORIZATION_CHANGED" ||
+					result.errorCode === "TARGET_CHANGED"
+				) {
 					setPendingApproval(null);
-					setApprovalNotice(presentAssistantOutcome({ kind: result.errorCode === "AUTHORIZATION_CHANGED" ? "denied" : "conflict" }).message);
+					setApprovalNotice(
+						presentAssistantOutcome({
+							kind:
+								result.errorCode === "AUTHORIZATION_CHANGED"
+									? "denied"
+									: "conflict",
+						}).message,
+					);
 					return;
 				}
 				const outcome = assistantOutcomeSchema.safeParse(result.outcome);
-				const publicFailure = outcome.success ? presentAssistantOutcome(outcome.data).message : null;
-				setApprovalReference(outcome.success ? outcome.data.reference ?? null : null);
+				const publicFailure = outcome.success
+					? presentAssistantOutcome(outcome.data).message
+					: null;
+				setApprovalReference(
+					outcome.success ? (outcome.data.reference ?? null) : null,
+				);
 				if (["processing", "unknown"].includes(result.status)) {
 					setApprovalNotice(
-						publicFailure ?? (result.status === "unknown"
-							? "I couldn't confirm whether that started. Check its status before trying again."
-							: "Your document is still being prepared."),
+						publicFailure ??
+							(result.status === "unknown"
+								? "I couldn't confirm whether that started. Check its status before trying again."
+								: "Your document is still being prepared."),
 					);
 					return;
 				}
@@ -611,7 +737,8 @@ function AssistantConversation(props: {
 						? pendingApproval.summary.successMessage
 						: result.status === "rejected"
 							? "PDF generation was declined."
-							: publicFailure ?? "I couldn't finish that document request. Please check its latest status.",
+							: (publicFailure ??
+								"I couldn't finish that document request. Please check its latest status."),
 				);
 				props.onChanged();
 			} catch (error) {
@@ -630,30 +757,68 @@ function AssistantConversation(props: {
 		setApprovalBusy(true);
 		setApprovalReference(null);
 		try {
-			const result = await client.assistant.proposal.query({ proposalId: pendingApproval.proposalId });
+			const result = await client.assistant.proposal.query({
+				proposalId: pendingApproval.proposalId,
+			});
 			const outcome = assistantOutcomeSchema.safeParse(result.outcome);
-				const publicFailure = outcome.success ? presentAssistantOutcome(outcome.data).message : null;
-				setApprovalReference(outcome.success ? outcome.data.reference ?? null : null);
-			if (result.errorCode === "AUTHORIZATION_CHANGED" || result.errorCode === "TARGET_CHANGED") {
+			const publicFailure = outcome.success
+				? presentAssistantOutcome(outcome.data).message
+				: null;
+			setApprovalReference(
+				outcome.success ? (outcome.data.reference ?? null) : null,
+			);
+			if (
+				result.errorCode === "AUTHORIZATION_CHANGED" ||
+				result.errorCode === "TARGET_CHANGED"
+			) {
 				setPendingApproval(null);
-				setApprovalNotice(presentAssistantOutcome({ kind: result.errorCode === "AUTHORIZATION_CHANGED" ? "denied" : "conflict" }).message);
+				setApprovalNotice(
+					presentAssistantOutcome({
+						kind:
+							result.errorCode === "AUTHORIZATION_CHANGED"
+								? "denied"
+								: "conflict",
+					}).message,
+				);
 			} else if (result.status === "pending") {
-				setPendingApproval({ ...pendingApproval, review: parseAssistantApprovalReview(result.review), summary: assistantDocumentApprovalSummary(result.toolId, parseAssistantApprovalReview(result.review)), requiresStatusCheck: false });
-				setApprovalNotice("This request is still waiting for your confirmation.");
-			} else if (["executing", "processing", "unknown"].includes(result.status)) {
-				setApprovalNotice(publicFailure ?? (result.status === "unknown"
-					? "I still couldn't confirm the result. Ask an administrator to check before starting another request."
-					: "Your document is still being prepared. Check again shortly."));
+				setPendingApproval({
+					...pendingApproval,
+					review: parseAssistantApprovalReview(result.review),
+					summary: assistantDocumentApprovalSummary(
+						result.toolId,
+						parseAssistantApprovalReview(result.review),
+					),
+					requiresStatusCheck: false,
+				});
+				setApprovalNotice(
+					"This request is still waiting for your confirmation.",
+				);
+			} else if (
+				["executing", "processing", "unknown"].includes(result.status)
+			) {
+				setApprovalNotice(
+					publicFailure ??
+						(result.status === "unknown"
+							? "I still couldn't confirm the result. Ask an administrator to check before starting another request."
+							: "Your document is still being prepared. Check again shortly."),
+				);
 			} else {
 				setPendingApproval(null);
-				setApprovalNotice(result.status === "succeeded" ? pendingApproval.summary.successMessage
-					: result.status === "rejected" ? "PDF generation was declined."
-					: publicFailure ?? "This document request has ended. Review the document before starting another request.");
+				setApprovalNotice(
+					result.status === "succeeded"
+						? pendingApproval.summary.successMessage
+						: result.status === "rejected"
+							? "PDF generation was declined."
+							: (publicFailure ??
+								"This document request has ended. Review the document before starting another request."),
+				);
 				props.onChanged();
 			}
 		} catch (error) {
 			setApprovalReference(assistantErrorReference(error));
-			setApprovalNotice("I couldn't check the result yet. Please check again shortly.");
+			setApprovalNotice(
+				"I couldn't check the result yet. Please check again shortly.",
+			);
 		} finally {
 			setApprovalBusy(false);
 		}
@@ -715,7 +880,9 @@ function AssistantConversation(props: {
 					);
 					return [
 						...withoutConsumedTicket,
-						...retriedMessages.filter((message) => !existingIds.has(message.id)),
+						...retriedMessages.filter(
+							(message) => !existingIds.has(message.id),
+						),
 					];
 				});
 				setReadRetryNotice("The failed check was retried with current access.");
@@ -753,31 +920,58 @@ function AssistantConversation(props: {
 							role="log"
 							aria-label="Assistant conversation"
 						>
-							{chat.messages.map((message) => (
-								<AssistantMessageBoundary key={message.id} conversationId={props.conversation.id}>
-								<AssistantMessageRenderer
-									key={message.id}
-									message={message}
-									isStreaming={busy}
-									isLastMessage={message.id === latestMessageId}
-									onCardAction={
-										message.id === latestMessageId
-											? (card) => handleCardAction(card, message.id)
-											: undefined
-									}
-									onOpenEntity={openEntity}
-									onOpenOrderDraft={(draft) => {
-										void setArtifactParams({ assistantArtifact: null });
-										setOrderDraft(draft);
-									}}
-									onCreateDocumentProposal={(action) => {
-										void createDocumentProposal(action);
-									}}
-									onRetryRead={readRetryBusy ? undefined : retryFailedRead}
-									consumedRetryIds={consumedReadRetryIds}
-								/>
-								</AssistantMessageBoundary>
-							))}
+							{chat.messages
+								.filter((message) => {
+									const part = message.parts[0];
+									return !(
+										message.role === "assistant" &&
+										message.parts.length === 1 &&
+										part?.type === "text" &&
+										/^I need (?:\d+|a few) details before preparing the Sales draft\. Please answer the questions below\.$/.test(
+											part.text,
+										)
+									);
+								})
+								.map((message) => (
+									<AssistantMessageBoundary
+										key={message.id}
+										conversationId={props.conversation.id}
+									>
+										<AssistantMessageRenderer
+											key={message.id}
+											message={message}
+											isStreaming={busy}
+											isLastMessage={message.id === latestMessageId}
+											onCardAction={
+												message.id === latestMessageId
+													? (card) => handleCardAction(card, message.id)
+													: undefined
+											}
+											onOpenEntity={openEntity}
+											onOpenOrderDraft={(draft) => {
+												void setArtifactParams({ assistantArtifact: null });
+												setOrderDraft(draft);
+											}}
+											onCreateDocumentProposal={(action) => {
+												void createDocumentProposal(action);
+											}}
+											onRetryRead={readRetryBusy ? undefined : retryFailedRead}
+											consumedRetryIds={consumedReadRetryIds}
+										/>
+									</AssistantMessageBoundary>
+								))}
+							<AssistantSalesRequestQuestionnaire
+								conversationId={props.conversation.id}
+								refreshKey={salesRequestRefresh}
+								onChanged={() => {
+									void client.assistant.get
+										.query({ conversationId: props.conversation.id })
+										.then((updated) => {
+											chat.setMessages(persistedMessagesToUi(updated.messages));
+											props.onChanged();
+										});
+								}}
+							/>
 							<div ref={bottomRef} />
 						</div>
 						<AssistantReconnectActivity state={streamState} />
@@ -795,6 +989,7 @@ function AssistantConversation(props: {
 				onDragOver={(event) => event.preventDefault()}
 				onDrop={(event) => {
 					event.preventDefault();
+					if (salesRequestType) setSalesRequestType(null);
 					void attachmentState.addFiles(Array.from(event.dataTransfer.files));
 				}}
 			>
@@ -821,15 +1016,33 @@ function AssistantConversation(props: {
 					</div>
 				) : showTransportError ? (
 					<div className={styles.liveWarning} role="alert">
-						<div><span>{requestOutcome ? presentAssistantOutcome(requestOutcome).message : "The response stopped. Check whether your request completed before sending it again."}</span>
-						{requestOutcome?.reference ? <AssistantOutcomeHelp reference={requestOutcome.reference} /> : null}</div>
-						{requestOutcome?.kind === "temporary" ? <Button size="sm" variant="outline" onClick={() => retryLatest()}>
-							<RefreshCw size={13} /> Retry
-						</Button> : null}
-						{requestOutcome?.kind === "signed-out" ? <Button size="sm" variant="outline" asChild>
-							<a href="/login" target="_blank" rel="noopener noreferrer">Sign in</a>
-						</Button> : null}
-						{requestOutcome?.kind === "signed-out" ? <span>Sign in in the new tab, then return here to send your message.</span> : null}
+						<div>
+							<span>
+								{requestOutcome
+									? presentAssistantOutcome(requestOutcome).message
+									: "The response stopped. Check whether your request completed before sending it again."}
+							</span>
+							{requestOutcome?.reference ? (
+								<AssistantOutcomeHelp reference={requestOutcome.reference} />
+							) : null}
+						</div>
+						{requestOutcome?.kind === "temporary" ? (
+							<Button size="sm" variant="outline" onClick={() => retryLatest()}>
+								<RefreshCw size={13} /> Retry
+							</Button>
+						) : null}
+						{requestOutcome?.kind === "signed-out" ? (
+							<Button size="sm" variant="outline" asChild>
+								<a href="/login" target="_blank" rel="noopener noreferrer">
+									Sign in
+								</a>
+							</Button>
+						) : null}
+						{requestOutcome?.kind === "signed-out" ? (
+							<span>
+								Sign in in the new tab, then return here to send your message.
+							</span>
+						) : null}
 					</div>
 				) : null}
 				{streamState.notice ? (
@@ -855,37 +1068,75 @@ function AssistantConversation(props: {
 						window.
 					</div>
 				) : null}
-				<AssistantInput
-					value={input}
-					onChange={setInput}
-					onSubmit={() => send()}
-					onStop={() => {
-						setStreamState((state) => ({ ...state, status: "cancelling" }));
-						chat.stop();
+				{salesRequestBusy ? (
+					<output className="mx-auto mb-2 block max-w-[680px] text-xs">
+						Preparing request…
+					</output>
+				) : null}
+				{salesRequestError ? (
+					<p
+						className="mx-auto mb-2 max-w-[680px] text-sm text-destructive"
+						role="alert"
+					>
+						{salesRequestError}
+					</p>
+				) : null}
+				<AssistantSalesRequestQuestionnaire
+					conversationId={props.conversation.id}
+					refreshKey={salesRequestRefresh}
+					placement="composer"
+					disabled={!online}
+					onChanged={() => {
+						void client.assistant.get
+							.query({ conversationId: props.conversation.id })
+							.then((updated) => {
+								chat.setMessages(persistedMessagesToUi(updated.messages));
+								props.onChanged();
+							});
 					}}
-					isStreaming={busy}
-					disabled={
-						(!input.trim() && !attachmentState.attachments.length) ||
-						!online ||
-						attachmentState.uploading
-					}
-					autoFocus
-					placeholder={
-						chat.messages.length ? "Reply…" : "How can I help you today?"
-					}
-					attachments={attachmentState.attachments}
-					uploading={attachmentState.uploading}
-					attachmentError={attachmentState.error}
-					attachmentErrorReference={attachmentState.errorReference}
-					onAddFiles={(files) => void attachmentState.addFiles(files)}
-					onRemoveAttachment={attachmentState.remove}
-					suggestions={props.suggestions}
-					onSuggestion={(suggestion) => send(suggestion.prompt)}
-					connectedApps={props.connectedApps}
-					mentionedIntegrationIds={props.mentionedIntegrationIds}
-					onToggleIntegration={props.onToggleIntegration}
-					onOpenSources={props.onOpenProviders}
-				/>
+				>
+					<AssistantInput
+						value={input}
+						onChange={setInput}
+						onSubmit={() => send()}
+						onSalesRequestSubmit={() => send(undefined, true)}
+						onStop={() => {
+							setStreamState((state) => ({ ...state, status: "cancelling" }));
+							chat.stop();
+						}}
+						isStreaming={busy}
+						disabled={
+							(!input.trim() && !attachmentState.attachments.length) ||
+							!online ||
+							attachmentState.uploading ||
+							salesRequestBusy
+						}
+						autoFocus
+						placeholder={
+							salesRequestType
+								? "Paste the customer Sales Request…"
+								: chat.messages.length
+									? "Reply…"
+									: "How can I help you today?"
+						}
+						attachments={attachmentState.attachments}
+						uploading={attachmentState.uploading}
+						attachmentError={attachmentState.error}
+						attachmentErrorReference={attachmentState.errorReference}
+						onAddFiles={(files) => void attachmentState.addFiles(files)}
+						salesRequestMode={Boolean(salesRequestType)}
+						onToggleSalesRequest={() =>
+							setSalesRequestType((current) => (current ? null : "order"))
+						}
+						onRemoveAttachment={attachmentState.remove}
+						suggestions={props.suggestions}
+						onSuggestion={(suggestion) => send(suggestion.prompt)}
+						connectedApps={props.connectedApps}
+						mentionedIntegrationIds={props.mentionedIntegrationIds}
+						onToggleIntegration={props.onToggleIntegration}
+						onOpenSources={props.onOpenProviders}
+					/>
+				</AssistantSalesRequestQuestionnaire>
 				<div className={styles.footerNote}>
 					<span>GND AI can make mistakes. Please double-check responses.</span>
 				</div>
@@ -896,6 +1147,7 @@ function AssistantConversation(props: {
 			/>
 			<AssistantOrderDraftCanvas
 				draft={orderDraft}
+				conversationId={props.conversation.id}
 				onClose={() => setOrderDraft(null)}
 			/>
 			<Dialog
@@ -906,7 +1158,9 @@ function AssistantConversation(props: {
 			>
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
-						<DialogTitle>{pendingApproval?.summary.title ?? "Review document"}</DialogTitle>
+						<DialogTitle>
+							{pendingApproval?.summary.title ?? "Review document"}
+						</DialogTitle>
 						<DialogDescription>
 							{pendingApproval?.summary.description}
 						</DialogDescription>
@@ -914,7 +1168,9 @@ function AssistantConversation(props: {
 					{pendingApproval ? (
 						<div className="space-y-4 text-sm">
 							<dl className="grid gap-2 rounded-md border bg-muted/30 p-3 sm:grid-cols-[8rem_1fr]">
-								<dt className="text-muted-foreground">{pendingApproval.summary.recordLabel}</dt>
+								<dt className="text-muted-foreground">
+									{pendingApproval.summary.recordLabel}
+								</dt>
 								<dd>{pendingApproval.summary.orderNo}</dd>
 								<dt className="text-muted-foreground">Document</dt>
 								<dd>{pendingApproval.summary.document}</dd>
@@ -923,29 +1179,39 @@ function AssistantConversation(props: {
 								Expires {new Date(pendingApproval.expiresAt).toLocaleString()}.
 							</p>
 							{approvalNotice ? <output>{approvalNotice}</output> : null}
-							{approvalReference ? <AssistantOutcomeHelp reference={approvalReference} /> : null}
+							{approvalReference ? (
+								<AssistantOutcomeHelp reference={approvalReference} />
+							) : null}
 							<div className="flex justify-end gap-2">
 								{pendingApproval.requiresStatusCheck ? (
-									<Button type="button" disabled={approvalBusy} onClick={() => void checkDocumentProposal()}>
+									<Button
+										type="button"
+										disabled={approvalBusy}
+										onClick={() => void checkDocumentProposal()}
+									>
 										{approvalBusy ? "Checking…" : "Check status"}
 									</Button>
-								) : <>
-								<Button
-									type="button"
-									variant="outline"
-									disabled={approvalBusy}
-									onClick={() => void decideDocumentProposal("reject")}
-								>
-									Decline
-								</Button>
-								<Button
-									type="button"
-									disabled={approvalBusy}
-									onClick={() => void decideDocumentProposal("approve")}
-								>
-									{approvalBusy ? "Processing…" : pendingApproval.summary.confirmLabel}
-								</Button>
-								</>}
+								) : (
+									<>
+										<Button
+											type="button"
+											variant="outline"
+											disabled={approvalBusy}
+											onClick={() => void decideDocumentProposal("reject")}
+										>
+											Decline
+										</Button>
+										<Button
+											type="button"
+											disabled={approvalBusy}
+											onClick={() => void decideDocumentProposal("approve")}
+										>
+											{approvalBusy
+												? "Processing…"
+												: pendingApproval.summary.confirmLabel}
+										</Button>
+									</>
+								)}
 							</div>
 						</div>
 					) : null}
@@ -957,7 +1223,9 @@ function AssistantConversation(props: {
 			{readRetryNotice ? (
 				<output className={styles.liveStatus}>{readRetryNotice}</output>
 			) : null}
-			{approvalReference && !pendingApproval ? <AssistantOutcomeHelp reference={approvalReference} /> : null}
+			{approvalReference && !pendingApproval ? (
+				<AssistantOutcomeHelp reference={approvalReference} />
+			) : null}
 		</>
 	);
 }
@@ -972,6 +1240,19 @@ export function LiveAssistantWorkspace() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const contextualPrompt = readAssistantContextPrompt(searchParams);
+	const requestedSalesRequestType =
+		searchParams.get("newSalesRequest") === "quote"
+			? "quote"
+			: searchParams.get("newSalesRequest") === "order"
+				? "order"
+				: null;
+	const [newSalesRequestType, setNewSalesRequestType] = useState<
+		"order" | "quote" | null
+	>(requestedSalesRequestType);
+	useEffect(() => {
+		if (requestedSalesRequestType)
+			setNewSalesRequestType(requestedSalesRequestType);
+	}, [requestedSalesRequestType]);
 	const [conversationId, setConversationId] = useState(() =>
 		searchParams.get("chat"),
 	);
@@ -1051,6 +1332,7 @@ export function LiveAssistantWorkspace() {
 	const updateUrl = useCallback((id: string | null) => {
 		const url = new URL(window.location.href);
 		url.searchParams.delete("assistant");
+		if (id) url.searchParams.delete("newSalesRequest");
 		if (id) url.searchParams.set("chat", id);
 		else url.searchParams.delete("chat");
 		window.history.replaceState(null, "", `${url.pathname}${url.search}`);
@@ -1212,12 +1494,17 @@ export function LiveAssistantWorkspace() {
 		setMentionedIntegrationIds([]);
 		attachmentState.discard();
 		setDraft("");
+		setNewSalesRequestType(null);
 		setError(null);
 		setActionError(null);
 		updateUrl(null);
 	};
-	const start = async (promptOverride?: string) => {
-		const prompt = (promptOverride ?? draft).trim();
+	const start = async (promptOverride?: string, forceSalesRequest = false) => {
+		const source = promptOverride ?? draft;
+		const prompt = source.trim();
+		const salesType = forceSalesRequest
+			? (newSalesRequestType ?? "order")
+			: newSalesRequestType;
 		const attachments = promptOverride ? [] : attachmentState.attachments;
 		if (
 			(!prompt && !attachments.length) ||
@@ -1237,11 +1524,28 @@ export function LiveAssistantWorkspace() {
 		setDraft("");
 		setCreatingPrompt(optimisticPrompt);
 		setLoading(false);
+		let createdConversationId: string | null = null;
 		try {
 			const created = await client.assistant.create.mutate({
 				title: (prompt || attachments[0]?.name || "New chat").slice(0, 80),
 			});
+			createdConversationId = created.id;
 			if (request !== startRequestRef.current) return;
+			if (salesType && prompt && !attachments.length) {
+				await client.assistant.startSalesRequest.mutate({
+					conversationId: created.id,
+					requestId: optimisticPrompt.id,
+					type: salesType,
+					text: source,
+				});
+				setNewSalesRequestType(null);
+				setCreatingPrompt(null);
+				setConversationId(created.id);
+				updateUrl(created.id);
+				await loadConversation(created.id);
+				await loadHistory("");
+				return;
+			}
 			setPendingPrompt({
 				id: optimisticPrompt.id,
 				conversationId: created.id,
@@ -1253,11 +1557,24 @@ export function LiveAssistantWorkspace() {
 			setConversationId(created.id);
 			updateUrl(created.id);
 			await loadHistory("");
-		} catch {
+		} catch (cause) {
 			if (request !== startRequestRef.current) return;
-			if (!promptOverride) setDraft(prompt);
+			if (createdConversationId) {
+				setConversationId(createdConversationId);
+				updateUrl(createdConversationId);
+				await loadConversation(createdConversationId);
+				setActionError(
+					cause instanceof Error
+						? cause.message
+						: "The Sales Request could not be started. Start a new chat to retry safely.",
+				);
+			} else if (!promptOverride) setDraft(prompt);
 			setCreatingPrompt(null);
-			setError("A new conversation could not be created.");
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "A new conversation could not be created.",
+			);
 			setLoading(false);
 		} finally {
 			if (request === startRequestRef.current)
@@ -1309,17 +1626,35 @@ export function LiveAssistantWorkspace() {
 				value={draft}
 				onChange={setDraft}
 				onSubmit={() => void start()}
+				onSalesRequestSubmit={() => void start(undefined, true)}
 				disabled={
 					(!draft.trim() && !attachmentState.attachments.length) ||
 					attachmentState.uploading ||
 					Boolean(creatingPrompt)
 				}
-				placeholder="How can I help you today?"
+				placeholder={
+					newSalesRequestType
+						? "Paste the customer Sales Request…"
+						: "How can I help you today?"
+				}
 				attachments={attachmentState.attachments}
 				uploading={attachmentState.uploading}
 				attachmentError={attachmentState.error}
-					attachmentErrorReference={attachmentState.errorReference}
+				attachmentErrorReference={attachmentState.errorReference}
 				onAddFiles={(files) => void attachmentState.addFiles(files)}
+				salesRequestMode={Boolean(newSalesRequestType)}
+				onToggleSalesRequest={() => {
+					if (newSalesRequestType) {
+						const url = new URL(window.location.href);
+						url.searchParams.delete("newSalesRequest");
+						window.history.replaceState(
+							null,
+							"",
+							`${url.pathname}${url.search}`,
+						);
+						setNewSalesRequestType(null);
+					} else setNewSalesRequestType("order");
+				}}
 				onRemoveAttachment={attachmentState.remove}
 				suggestions={suggestions}
 				onSuggestion={(suggestion) => {
@@ -1340,139 +1675,148 @@ export function LiveAssistantWorkspace() {
 		<main className={styles.workspace}>
 			<PageTitle>Chat Assistant</PageTitle>
 			<>
-					<AssistantHeader
-						title={conversation?.title || "New chat"}
-						quota={assistantBootstrap.data?.quota ?? null}
-						onBack={closeChat}
-						onNewChat={newChat}
-						onFavorites={() => setFavoritesOpen(true)}
-						onFeatureRequests={() => {
-							setInitialFeatureRequest(null);
+				<AssistantHeader
+					title={conversation?.title || "New chat"}
+					quota={assistantBootstrap.data?.quota ?? null}
+					onBack={closeChat}
+					onNewChat={newChat}
+					onFavorites={() => setFavoritesOpen(true)}
+					onFeatureRequests={() => {
+						setInitialFeatureRequest(null);
+						setFeatureRequestsOpen(true);
+					}}
+					onHistory={() => {
+						setHistoryOpen(true);
+						void loadHistory(search);
+					}}
+					onSources={() => setProvidersOpen(true)}
+					onPreferences={() => setPreferencesOpen(true)}
+					onSaveAction={
+						suggestedRunId ? () => setFavoritesOpen(true) : undefined
+					}
+					onArchive={conversationId ? () => void remove("archive") : undefined}
+					onDelete={conversationId ? () => void remove("delete") : undefined}
+				/>
+				{actionError ? (
+					<div className={styles.actionError} role="alert">
+						{actionError}
+					</div>
+				) : null}
+				{loading && !pendingPrompt && !creatingPrompt ? (
+					<output className={styles.shellState}>
+						<LoaderCircle className={styles.spin} size={20} /> Loading
+						conversation…
+					</output>
+				) : conversation ? (
+					<AssistantConversation
+						key={`${conversation.id}:${conversationRenderRevision}`}
+						conversation={conversation}
+						pendingPrompt={
+							pendingPrompt?.conversationId === conversation.id
+								? pendingPrompt
+								: null
+						}
+						onPendingSent={() =>
+							setPendingPrompt((pending) =>
+								pending?.conversationId === conversation.id ? null : pending,
+							)
+						}
+						onChanged={() => {
+							void loadConversation(conversation.id, {
+								showLoading: false,
+							});
+							void loadHistory("");
+							void assistantBootstrap.refetch();
+						}}
+						onOpenProviders={() => setProvidersOpen(true)}
+						suggestions={suggestions}
+						connectedApps={providers.connectedApps}
+						mentionedIntegrationIds={mentionedIntegrationIds}
+						onToggleIntegration={toggleIntegration}
+						onIntegrationsSent={() => setMentionedIntegrationIds([])}
+						onSuccessfulRun={setSuggestedRunId}
+						onFeatureRequest={(request) => {
+							setInitialFeatureRequest(request);
 							setFeatureRequestsOpen(true);
 						}}
-						onHistory={() => {
-							setHistoryOpen(true);
-							void loadHistory(search);
-						}}
-						onSources={() => setProvidersOpen(true)}
-						onPreferences={() => setPreferencesOpen(true)}
-						onSaveAction={
-							suggestedRunId ? () => setFavoritesOpen(true) : undefined
-						}
-						onArchive={
-							conversationId ? () => void remove("archive") : undefined
-						}
-						onDelete={conversationId ? () => void remove("delete") : undefined}
+						initialSalesRequestType={requestedSalesRequestType}
 					/>
-					{actionError ? (
-						<div className={styles.actionError} role="alert">
-							{actionError}
-						</div>
-					) : null}
-					{loading && !pendingPrompt && !creatingPrompt ? (
-						<output className={styles.shellState}>
-							<LoaderCircle className={styles.spin} size={20} /> Loading
-							conversation…
-						</output>
-					) : conversation ? (
-						<AssistantConversation
-							key={`${conversation.id}:${conversationRenderRevision}`}
-							conversation={conversation}
-							pendingPrompt={
-								pendingPrompt?.conversationId === conversation.id
-									? pendingPrompt
-									: null
-							}
-							onPendingSent={() =>
-								setPendingPrompt((pending) =>
-									pending?.conversationId === conversation.id ? null : pending,
-								)
-							}
-							onChanged={() => {
-								void loadConversation(conversation.id, {
-									showLoading: false,
-								});
-								void loadHistory("");
-								void assistantBootstrap.refetch();
-							}}
-							onOpenProviders={() => setProvidersOpen(true)}
-							suggestions={suggestions}
-							connectedApps={providers.connectedApps}
-							mentionedIntegrationIds={mentionedIntegrationIds}
-							onToggleIntegration={toggleIntegration}
-							onIntegrationsSent={() => setMentionedIntegrationIds([])}
-							onSuccessfulRun={setSuggestedRunId}
-							onFeatureRequest={(request) => {
-								setInitialFeatureRequest(request);
-								setFeatureRequestsOpen(true);
-							}}
-						/>
-					) : (
-						<>
-							<div className={styles.body}>
-								{creatingPrompt || pendingPrompt ? (
-									<>
-										<div
-											className={styles.messages}
-											role="log"
-											aria-label="Assistant conversation"
-										>
-											<AssistantMessageRenderer
-												message={{
-													id:
-														(creatingPrompt ?? pendingPrompt)?.id ?? "pending",
-													role: "user",
-													parts: [
-														...((creatingPrompt ?? pendingPrompt)?.text
-															? [
-																	{
-																		type: "text" as const,
-																		text:
-																			(creatingPrompt ?? pendingPrompt)?.text ??
-																			"",
-																	},
-																]
-															: []),
-														...assistantAttachmentParts(
-															(creatingPrompt ?? pendingPrompt)?.attachments ??
-																[],
-														),
-													],
-												}}
-												isStreaming
-												isLastMessage
-											/>
-										</div>
-										<output className={styles.liveStatus}>
-											<LoaderCircle className={styles.spin} size={14} />{" "}
-											Connecting…
-										</output>
-									</>
-								) : assistantBootstrap.data?.enabled ? (
-									<Empty>
-										<EmptyHeader>
-											<EmptyMedia variant="icon"><MessageSquare /></EmptyMedia>
-											<EmptyTitle>How can I help?</EmptyTitle>
-											<EmptyDescription>Check an order, find a customer, or ask about your work.</EmptyDescription>
-										</EmptyHeader>
-										<EmptyContent>
-											<div className="flex flex-wrap justify-center gap-2">
-												{suggestions.slice(0, 3).map(suggestion => (
-													<Button key={suggestion.id} variant="outline" size="sm" onClick={() => setDraft(suggestion.prompt)}>{suggestion.title}</Button>
-												))}
-											</div>
-										</EmptyContent>
-									</Empty>
-								) : null}
-								{error ? (
-									<div className={styles.liveWarning} role="alert">
-										{error}
+				) : (
+					<>
+						<div className={styles.body}>
+							{creatingPrompt || pendingPrompt ? (
+								<>
+									<div
+										className={styles.messages}
+										role="log"
+										aria-label="Assistant conversation"
+									>
+										<AssistantMessageRenderer
+											message={{
+												id: (creatingPrompt ?? pendingPrompt)?.id ?? "pending",
+												role: "user",
+												parts: [
+													...((creatingPrompt ?? pendingPrompt)?.text
+														? [
+																{
+																	type: "text" as const,
+																	text:
+																		(creatingPrompt ?? pendingPrompt)?.text ??
+																		"",
+																},
+															]
+														: []),
+													...assistantAttachmentParts(
+														(creatingPrompt ?? pendingPrompt)?.attachments ??
+															[],
+													),
+												],
+											}}
+											isStreaming
+											isLastMessage
+										/>
 									</div>
-								) : null}
-							</div>
-							<footer className={styles.composerArea}>{newChatInput}</footer>
-						</>
-					)}
+									<output className={styles.liveStatus}>
+										<LoaderCircle className={styles.spin} size={14} />{" "}
+										Connecting…
+									</output>
+								</>
+							) : assistantBootstrap.data?.enabled ? (
+								<Empty>
+									<EmptyHeader>
+										<EmptyMedia variant="icon">
+											<MessageSquare />
+										</EmptyMedia>
+										<EmptyTitle>How can I help?</EmptyTitle>
+										<EmptyDescription>
+											Check an order, find a customer, or ask about your work.
+										</EmptyDescription>
+									</EmptyHeader>
+									<EmptyContent>
+										<div className="flex flex-wrap justify-center gap-2">
+											{suggestions.slice(0, 3).map((suggestion) => (
+												<Button
+													key={suggestion.id}
+													variant="outline"
+													size="sm"
+													onClick={() => setDraft(suggestion.prompt)}
+												>
+													{suggestion.title}
+												</Button>
+											))}
+										</div>
+									</EmptyContent>
+								</Empty>
+							) : null}
+							{error ? (
+								<div className={styles.liveWarning} role="alert">
+									{error}
+								</div>
+							) : null}
+						</div>
+						<footer className={styles.composerArea}>{newChatInput}</footer>
+					</>
+				)}
 			</>
 			<AssistantSavedActionsDialog
 				open={favoritesOpen}

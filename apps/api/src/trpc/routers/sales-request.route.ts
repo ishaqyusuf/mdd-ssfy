@@ -1,3 +1,5 @@
+import { getAssistantAccessState } from "@api/assistant/access-governance";
+import { getAssistantRuntimeConfiguration } from "@api/assistant/runtime-settings";
 import {
 	type ConfigurationDatabase,
 	getSalesRequestConfigurationStructuralRevision,
@@ -742,7 +744,12 @@ export const salesRequestRouter = createTRPCRouter({
 	validatePreview: protectedProcedure
 		.input(validateSalesRequestPreviewSchema)
 		.mutation(async ({ ctx, input }) => {
-			if (process.env.SALES_REQUEST_AI_ENABLED !== "true") {
+			if (input.source === "assistant") {
+				const access = await getAssistantAccessState(ctx.db, ctx.userId);
+				if (!access.enabled) {
+					throw new TRPCError({ code: "FORBIDDEN", message: "Assistant access is required." });
+				}
+			} else if (process.env.SALES_REQUEST_AI_ENABLED !== "true") {
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
 					message: "Sales request generation is not enabled.",
@@ -757,6 +764,9 @@ export const salesRequestRouter = createTRPCRouter({
 				db: ctx.db,
 				userId: ctx.userId,
 			});
+			const assistantSelection = input.source === "assistant"
+				? (await getAssistantRuntimeConfiguration(ctx.db)).selection
+				: null;
 			const current = await ctx.db.$transaction(
 				async (tx) => {
 					const rows = await tx.settings.findMany({
@@ -768,7 +778,9 @@ export const salesRequestRouter = createTRPCRouter({
 					);
 					const [snapshot, aiSettings, catalog] = await Promise.all([
 						getSalesRequestConfigurationContext(tx, { settingId }),
-						getSalesRequestAISettings(tx, settingId),
+						assistantSelection
+							? Promise.resolve(null)
+							: getSalesRequestAISettings(tx, settingId),
 						getSalesRequestCatalogSettings(tx, settingId),
 					]);
 					if (
@@ -782,7 +794,7 @@ export const salesRequestRouter = createTRPCRouter({
 							message: "The published Sales Request catalog changed.",
 						});
 					}
-					if (aiSettings.source !== "persisted") {
+					if (!assistantSelection && aiSettings?.source !== "persisted") {
 						throw new TRPCError({
 							code: "PRECONDITION_FAILED",
 							message: "Sales request AI settings need administrator review.",
@@ -791,12 +803,21 @@ export const salesRequestRouter = createTRPCRouter({
 					return {
 						configurationScope: snapshot.scope,
 						configurationRevision: snapshot.revision,
-						provider: aiSettings.selection.provider,
-						model: aiSettings.selection.model,
+						provider: assistantSelection?.provider ?? aiSettings!.selection.provider,
+						model: assistantSelection?.model ?? aiSettings!.selection.model,
 					};
 				},
 				{ isolationLevel: "RepeatableRead" },
 			);
+			if (assistantSelection) {
+				const selectedNow = (await getAssistantRuntimeConfiguration(ctx.db)).selection;
+				if (selectedNow.provider !== assistantSelection.provider || selectedNow.model !== assistantSelection.model) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "Assistant AI configuration changed after generation.",
+					});
+				}
+			}
 			if (
 				current.configurationScope !== input.configurationScope ||
 				current.configurationRevision !== input.configurationRevision ||

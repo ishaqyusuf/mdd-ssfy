@@ -19,6 +19,7 @@ import {
 	getSalesRequestProviderApiKey,
 	getSalesRequestProviderRuntimeOptions,
 	resolveSalesRequestProviderMaxRetries,
+	salesRequestMaxOutputTokens,
 } from "./sales-request-provider";
 
 const credentials = {
@@ -34,8 +35,24 @@ const validEmptyPreview = {
 	unresolved: [{ lineUid: null, stepId: null, field: "request", status: "unsupported", reason: "No order was requested." }],
 };
 
+test("allows complete JSON for a dense named-room schedule without raising ordinary request output", () => {
+	const row = (index: number) => `Bedroom ${index} - 32\" x 96\"`;
+	expect(salesRequestMaxOutputTokens(Array.from({ length: 12 }, (_, index) => row(index + 1)).join("\n")))
+		.toBe(12_000);
+	expect(salesRequestMaxOutputTokens(Array.from({ length: 11 }, (_, index) => row(index + 1)).join("\n")))
+		.toBe(SALES_REQUEST_MAX_OUTPUT_TOKENS);
+});
+
+test("allows a two-sided door schedule to complete without raising short requests", () => {
+	const doors = Array.from({ length: 11 }, (_, index) => `30” LT = BEDROOM ${index + 1}`);
+	const twoSides = ["Left Side", ...doors, "Right Side", "32” RT = MBR BATH"].join("\n");
+	expect(salesRequestMaxOutputTokens(twoSides)).toBe(12_000);
+	expect(salesRequestMaxOutputTokens(["Left Side", ...doors].join("\n"))).toBe(SALES_REQUEST_MAX_OUTPUT_TOKENS);
+	expect(salesRequestMaxOutputTokens(["Left Side", ...doors.slice(0, 10), "Right Side", "32” RT = MBR BATH"].join("\n"))).toBe(SALES_REQUEST_MAX_OUTPUT_TOKENS);
+});
+
 describe("sales request provider credentials", () => {
-	test.each([
+test.each([
 		["openai", "SALES_REQUEST_OPENAI_API_KEY", "openai-secret"],
 		["anthropic", "SALES_REQUEST_ANTHROPIC_API_KEY", "anthropic-secret"],
 		["deepseek", "SALES_REQUEST_DEEPSEEK_API_KEY", "deepseek-secret"],
@@ -75,7 +92,69 @@ describe("sales request provider credentials", () => {
 	});
 });
 
+test("reports zero handed units without exposing the door row", async () => {
+	const output = { schemaVersion: 2, lineItems: [{ uid: "private-room", qty: 1,
+		formSteps: [], housePackageTool: { doors: [{ dimension: "2-8 x 8-0", lhQty: 0, rhQty: 0 }] } }], unresolved: [] };
+	const provider = createSalesRequestProvider({
+		selection: { provider: "deepseek", model: "deepseek-flash" },
+		environment: credentials, maxRetries: 0, maxOutputRepairs: 0,
+		generateTextImpl: (async () => ({
+			output, text: JSON.stringify(output), usage: {}, finishReason: "stop",
+		})) as typeof generateText,
+	});
+	let failure: unknown;
+	try {
+		await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+			text: "private request", images: [], signal: new AbortController().signal });
+	} catch (error) { failure = error; }
+	expect(classifySalesRequestProviderFailure(failure).schemaIssues)
+		.toContainEqual({ code: "custom", path: "lineItems.[].housePackageTool.doors.[]", detail: "zero-handed-units" });
+	expect(JSON.stringify(failure)).not.toContain("private-room");
+});
+
+test("guides a zero-handed door repair toward a room-scoped question", async () => {
+	const invalid = { schemaVersion: 2, lineItems: [{ uid: "private-room", qty: 1,
+		formSteps: [], housePackageTool: { doors: [{ dimension: "2-8 x 8-0", lhQty: 0, rhQty: 0 }] } }], unresolved: [] };
+	let calls = 0;
+	let correction = "";
+	const provider = createSalesRequestProvider({
+		selection: { provider: "deepseek", model: "deepseek-flash" },
+		environment: credentials, maxRetries: 0, maxOutputRepairs: 1,
+		generateTextImpl: (async (options) => {
+			calls++;
+			if (calls === 2) correction = String(options.messages?.at(-1)?.content ?? "");
+			const output = calls === 1 ? invalid : validEmptyPreview;
+			return { output, text: JSON.stringify(output), usage: {}, finishReason: "stop" };
+		}) as typeof generateText,
+	});
+	await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+		text: "Private room request", images: [], signal: new AbortController().signal });
+	expect(calls).toBe(2);
+	expect(correction).toContain("line-scoped ambiguous handing question");
+	expect(correction).toContain("Never invent a split");
+	expect(correction).not.toContain("private-room");
+	expect(correction).not.toContain("2-8 x 8-0");
+});
+
 describe("sales request provider factory", () => {
+	test("accepts the trusted Assistant credential without a Sales Request key", async () => {
+		const provider = createSalesRequestProvider({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			environment: {},
+			apiKey: "assistant-only-key",
+			generateTextImpl: (async () => ({
+				output: validEmptyPreview,
+				text: JSON.stringify(validEmptyPreview),
+				usage: { inputTokens: 3, outputTokens: 4 },
+				finishReason: "stop",
+			})) as typeof generateText,
+		});
+		const result = await provider({
+			configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+			text: "request", images: [], signal: new AbortController().signal,
+		});
+		expect(result).toMatchObject({ provider: "openai", model: "gpt-5-mini", inputTokens: 3, outputTokens: 4 });
+	});
 	test("native catalog correction shares the two-response limit and retains private validation errors locally", async () => {
 		let calls = 0;
 		const provider = createSalesRequestProvider({
@@ -89,8 +168,134 @@ describe("sales request provider factory", () => {
 		let failure: unknown;
 		try { await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }), text: "request", images: [], signal: new AbortController().signal }); } catch (error) { failure = error; }
 		expect(calls).toBe(2);
-		expect(classifySalesRequestProviderFailure(failure)).toMatchObject({ stage: "structured-output", schemaIssues: [{ code: "configuration-validation", path: "seed" }], inputTokens: 20, outputTokens: 40 });
+		expect(classifySalesRequestProviderFailure(failure)).toMatchObject({ stage: "structured-output", configurationIssue: "dimensions", schemaIssues: [{ code: "configuration-validation", path: "seed" }], inputTokens: 20, outputTokens: 40 });
 		expect(String(failure)).not.toContain("Selected height");
+	});
+	test.each([
+		[{ uid: "door", qty: 0, formSteps: [] }, "zero-quantity"],
+		[{ uid: "door", qty: 2, formSteps: [],
+			housePackageTool: { doors: [{ dimension: "2-8 x 8-0", totalQty: 1 }] } },
+			"hpt-quantity-mismatch"],
+	] as const)("reports only a safe line-quantity reason for %s", async (line, detail) => {
+		const output = { schemaVersion: 2, lineItems: [line], unresolved: [] };
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials, maxRetries: 0, maxOutputRepairs: 0,
+			generateTextImpl: (async () => ({
+				output, text: JSON.stringify(output), usage: {}, finishReason: "stop",
+			})) as typeof generateText,
+		});
+		let failure: unknown;
+		try {
+			await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+				text: "private order details", images: [], signal: new AbortController().signal });
+		} catch (error) { failure = error; }
+		expect(classifySalesRequestProviderFailure(failure).schemaIssues)
+			.toContainEqual({ code: "custom", path: "lineItems.[].qty", detail });
+		expect(JSON.stringify(failure)).not.toContain("private order details");
+	});
+	test.each([
+		["missing-line", "interpretations.[].lineUid"],
+		["wrong-component", "interpretations.[].selectedProdUid"],
+	] as const)("reports only the safe interpretation path for %s", async (kind, path) => {
+		const output = {
+			schemaVersion: 2,
+			lineItems: [{ uid: "line-1", qty: 1, formSteps: [{ stepId: 1, prodUid: "actual" }] }],
+			unresolved: [],
+			interpretations: [{
+				lineUid: kind === "missing-line" ? "removed" : "line-1",
+				stepId: 1, field: "product", sourceText: "requested item",
+				selectedProdUid: kind === "wrong-component" ? "other" : "actual",
+				selectedTitle: "Catalog title", reason: "Interpreted shorthand",
+			}],
+		};
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials, maxRetries: 0, maxOutputRepairs: 0,
+			generateTextImpl: (async () => ({
+				output, text: JSON.stringify(output), usage: {}, finishReason: "stop",
+			})) as typeof generateText,
+		});
+		let failure: unknown;
+		try {
+			await provider({
+				configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+				text: "private request", images: [], signal: new AbortController().signal,
+			});
+		} catch (error) { failure = error; }
+		expect(classifySalesRequestProviderFailure(failure).schemaIssues)
+			.toEqual([{ code: "custom", path }]);
+		expect(JSON.stringify(failure)).not.toContain("private request");
+	});
+	test.each([
+		["Delivery option pickup must be stated in the customer request.", "delivery-option-source", "Omit form entirely"],
+		["Moulding component Unknown Profile must be stated in the customer request.", "moulding-product", "Do not substitute a different profile"],
+		["Door dimension 2-6 x 6-8 must be stated in the customer request.", "door-dimension-source", "ask only for the missing or ambiguous measurement"],
+		["The Laundry Entry line uses a different size than the customer request.", "door-dimension-source", "Do not borrow another room's size"],
+		["Line test uses a door dimension outside its selected Height configuration.", "dimensions", "record its exact requested dimension"],
+		["Line room-1 selects an interior route for an exterior-only customer request.", "route", "remove the Interior route"],
+		["Line room-1 must select exactly one configured item route.", "route", "one compatible configured route"],
+		["Line room-1 selects a slabs-only route for a pre-hung customer request.", "route", "Remove the slabs-only line"],
+		["The door schedule has 22 explicit entries, but only 1 selected units and 0 dimension-specific unresolved entries.", "source-coverage", "Count each separate door schedule row"],
+		["The door schedule selects 5 units at 2-8 x 8-0, but only 4 separate source rows explicitly state that size.", "source-coverage", "A bare width followed by a slash height"],
+		["The room door schedule has 22 sized entries, but only 0 configured door sizes and 0 dimension-specific unresolved entries.", "source-coverage", "housePackageTool doors"],
+		["The Cabana Bathroom width 30' must remain an ambiguous question until its unit is confirmed.", "source-coverage", "single apostrophe means feet"],
+		["Line line-1 interpretation references a step outside its configured route.", "interpretation-route", "configured route"],
+		["Line line-1 interpretation must use the current configured component title.", "interpretation-title", "current configured component title"],
+	] as const)("native source grounding safely repairs %s", async (message, category, repairHint) => {
+		let repairInstruction = "";
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" }, environment: credentials,
+			maxRetries: 0, maxOutputRepairs: 1,
+			validateSeed: () => { throw new Error(message); },
+			generateTextImpl: (async (options: { messages?: Array<{ role: string; content: unknown }> }) => {
+				repairInstruction = String(options.messages?.at(-1)?.content ?? "");
+				return { output: validEmptyPreview,
+					text: JSON.stringify(validEmptyPreview), usage: {}, finishReason: "stop" };
+			}) as typeof generateText,
+		});
+		let failure: unknown;
+		try {
+			await provider({ configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+				text: "private sample", images: [], signal: new AbortController().signal });
+		} catch (error) { failure = error; }
+		expect(classifySalesRequestProviderFailure(failure)).toMatchObject({
+			configurationIssue: category, repairAttempted: true,
+		});
+		expect(JSON.stringify(failure)).not.toContain(message);
+		expect(repairInstruction).toContain(repairHint);
+		if (category === "route") {
+			expect(repairInstruction).not.toContain("two exterior double");
+			expect(repairInstruction).not.toContain("four leaves");
+			expect(classifySalesRequestProviderFailure(failure).routeFailureKind).toBe(
+				message.includes("slabs-only") ? "slab-for-prehung" :
+				message.includes("exterior-only") ? "interior-for-exterior" : "missing-root",
+			);
+		}
+	});
+	test("recovers once when DeepSeek returns text but no structured object", async () => {
+		let calls = 0;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials, maxRetries: 0, maxOutputRepairs: 1,
+			generateTextImpl: (async () => {
+				calls++;
+				if (calls === 1) throw new NoObjectGeneratedError({
+					message: "Malformed object", text: '{"schemaVersion":2}',
+					response: {}, usage: { inputTokens: 10, outputTokens: 5 }, finishReason: "stop",
+				} as never);
+				return { output: validEmptyPreview, text: JSON.stringify(validEmptyPreview),
+					usage: { inputTokens: 12, outputTokens: 6 }, finishReason: "stop" };
+			}) as typeof generateText,
+		});
+		const result = await provider({
+			configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+			text: "Synthetic door request", images: [], signal: new AbortController().signal,
+		});
+		expect(calls).toBe(2);
+		expect(result.output).toEqual(validEmptyPreview);
+		expect(result.inputTokens).toBe(22);
+		expect(result.outputTokens).toBe(11);
 	});
 	test.each(["quantity", "selected-unresolved"] as const)("corrects shared semantic validation failure: %s", async (failure) => {
 		const valid = {
@@ -117,6 +322,11 @@ describe("sales request provider factory", () => {
 		expect(result.output).toEqual(valid);
 		expect(result.outputTokens).toBe(40);
 		expect(correction).toContain(failure === "quantity" ? "Line quantity must equal" : "cannot be selected and unresolved");
+		if (failure === "quantity") {
+			expect(correction).toContain('\\"lineQty\\":2');
+			expect(correction).toContain('\\"doorRowTotal\\":1');
+			expect(correction).toContain("compare the door-row total with the customer's request");
+		}
 	});
 	test("the first DeepSeek call receives the strict output contract", async () => {
 		let system = "";
@@ -212,8 +422,9 @@ describe("sales request provider factory", () => {
 				};
 			}) as typeof generateText,
 		});
-		await expect(
-			provider({
+		let failure: unknown;
+		try {
+			await provider({
 				configurationJson: JSON.stringify({
 					routes: [],
 					steps: [],
@@ -222,8 +433,12 @@ describe("sales request provider factory", () => {
 				text: "Hello",
 				images: [],
 				signal: new AbortController().signal,
-			}),
-		).rejects.toBeInstanceOf(SalesRequestProviderExecutionError);
+			});
+		} catch (error) {
+			failure = error;
+		}
+		expect(failure).toBeInstanceOf(SalesRequestProviderExecutionError);
+		expect(classifySalesRequestProviderFailure(failure)).toMatchObject({ repairAttempted: true, finishReason: "stop" });
 		expect(calls).toBe(2);
 	});
 	test("uses bounded non-thinking extraction for DeepSeek only", () => {
@@ -231,7 +446,7 @@ describe("sales request provider factory", () => {
 		expect(SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES).toBe(0);
 		expect(resolveSalesRequestProviderMaxRetries()).toBe(1);
 		expect(resolveSalesRequestProviderMaxRetries(0)).toBe(0);
-		expect(SALES_REQUEST_MAX_OUTPUT_TOKENS).toBe(4_000);
+		expect(SALES_REQUEST_MAX_OUTPUT_TOKENS).toBe(8_000);
 		expect(getSalesRequestProviderRuntimeOptions("deepseek")).toEqual({
 			deepseek: { thinking: { type: "disabled" } },
 		});
@@ -507,6 +722,7 @@ describe("sales request provider factory", () => {
 		expect(error).toBeInstanceOf(SalesRequestProviderExecutionError);
 		expect(classifySalesRequestProviderFailure(error)).toEqual({
 			stage: "structured-output",
+			repairAttempted: false,
 			finishReason: "stop",
 			inputTokens: 321,
 			outputTokens: 45,
@@ -540,6 +756,7 @@ describe("sales request provider factory", () => {
 		expect(diagnostic).toEqual({
 			stage: "structured-output",
 			structuredOutputCause: "json-parse",
+			outputShape: "invalid-json",
 			finishReason: "stop",
 			inputTokens: 10,
 			outputTokens: 4,

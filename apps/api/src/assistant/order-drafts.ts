@@ -27,7 +27,7 @@ import {
 import {
 	SALES_REQUEST_PROVIDER_BENCHMARK_CORPUS_VERSION,
 	SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
-	getSalesRequestAISettings,
+	getSalesRequestAIRules,
 	getSalesRequestCatalogSettings,
 	getSalesRequestPilotSettings,
 	getSalesRequestProviderBenchmarkApproval,
@@ -35,7 +35,8 @@ import {
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 } from "@gnd/settings";
 import type { AssistantToolActor } from "./registry";
-import { assertAssistantProviderEnabled } from "./provider-controls";
+import { assertAssistantProviderEnabled, getAssistantApiKey } from "./provider-controls";
+import type { AssistantRuntimeSelection } from "./runtime";
 
 type AssistantDraftDatabase = typeof db & ConfigurationDatabase;
 export type AssistantSalesRequestDraftDependencies = Parameters<
@@ -50,18 +51,22 @@ type AssistantDraftTelemetry =
 export type AssistantDraftRuntime = {
 	authorize: (
 		actor: AssistantToolActor,
-		input: { type: "order" | "quote"; text: string },
+		input: { type: "order" | "quote" },
 		database: AssistantDraftDatabase,
 	) => Promise<void>;
 	reserveUsage: (actor: AssistantToolActor) => Promise<void>;
-	readAuthoritySnapshot: (database: AssistantDraftDatabase) => Promise<{
+	readAuthoritySnapshot: (database: AssistantDraftDatabase, selection: AssistantRuntimeSelection) => Promise<{
 		context: AssistantDraftPreviewContext;
 		publication: {
 			status: "failed" | "pending" | "published" | "stale";
 			publishedRevision?: string;
 		};
 	}>;
-	createProvider: AssistantSalesRequestDraftDependencies["createProvider"];
+	readAssistantSelection?: (database: AssistantDraftDatabase) => Promise<AssistantRuntimeSelection>;
+	createProvider: (
+		selection: Parameters<AssistantSalesRequestDraftDependencies["createProvider"]>[0],
+		environment?: Readonly<Record<string, string | undefined>>,
+	) => ReturnType<AssistantSalesRequestDraftDependencies["createProvider"]>;
 	telemetry: {
 		beginRun: (
 			database: AssistantDraftDatabase,
@@ -84,8 +89,8 @@ export type AssistantDraftRuntime = {
 	};
 };
 
-function requireCurrentDraftProvider(input: {
-	aiSettings: Awaited<ReturnType<typeof getSalesRequestAISettings>>;
+function currentDraftProviderBenchmarkRevision(input: {
+	selection: AssistantRuntimeSelection;
 	configurationRevision: string;
 	providerBenchmark: Awaited<
 		ReturnType<typeof getSalesRequestProviderBenchmarkApproval>
@@ -94,7 +99,7 @@ function requireCurrentDraftProvider(input: {
 	const current = isSalesRequestProviderBenchmarkApprovalCurrent(
 		input.providerBenchmark.approval,
 		{
-			...input.aiSettings.selection,
+			...input.selection,
 			configurationRevision: input.configurationRevision,
 			promptVersion: SALES_REQUEST_PROMPT_VERSION,
 			schemaVersion: SALES_REQUEST_OUTPUT_SCHEMA_VERSION,
@@ -102,19 +107,9 @@ function requireCurrentDraftProvider(input: {
 			policyVersion: SALES_REQUEST_PROVIDER_BENCHMARK_POLICY_VERSION,
 		},
 	);
-	if (
-		input.aiSettings.source !== "persisted" ||
-		input.providerBenchmark.source !== "persisted" ||
-		!current
-	) {
-		throw new AppError({
-			code: "VALIDATION_FAILED",
-			publicMessage:
-				"The selected Sales Request provider and model need a current benchmark approval before generation.",
-			transportCode: "PRECONDITION_FAILED",
-			reportable: false,
-		});
-	}
+	// A manual draft can be reviewed without approval, as with the standalone
+	// preview. Revision zero prevents automatic finalization from claiming it.
+	return current ? (input.providerBenchmark.approval?.revision ?? 0) : 0;
 }
 
 function requirePublishedDraftCatalog(input: {
@@ -140,6 +135,15 @@ function requirePublishedDraftCatalog(input: {
 	}
 }
 
+function requireAssistantSalesRequestKey(
+	selection: AssistantRuntimeSelection,
+	environment: Readonly<Record<string, string | undefined>> = process.env,
+) {
+	const key = getAssistantApiKey(selection.provider, environment);
+	if (!key) throw new Error("The assistant AI provider is not configured");
+	return key;
+}
+
 const defaultAssistantDraftRuntime: AssistantDraftRuntime = {
 	authorize: async (actor, input, database) => {
 		await requireSalesRequestPilotAccess({
@@ -153,7 +157,11 @@ const defaultAssistantDraftRuntime: AssistantDraftRuntime = {
 		});
 	},
 	reserveUsage: (actor) => requireSalesRequestUsage(actor.userId),
-	readAuthoritySnapshot: (database) =>
+	readAssistantSelection: async (database) => {
+		const { getAssistantRuntimeConfiguration } = await import("./runtime-settings");
+		return (await getAssistantRuntimeConfiguration(database)).selection;
+	},
+	readAuthoritySnapshot: (database, selection) =>
 		database.$transaction(
 			async (transaction) => {
 				const rows = await transaction.settings.findMany({
@@ -163,28 +171,27 @@ const defaultAssistantDraftRuntime: AssistantDraftRuntime = {
 				const settingId = selectSalesRequestSettingId(
 					rows.map((row) => row.id),
 				);
-				const [snapshot, aiSettings, catalog, pilot, providerBenchmark] =
+				const [snapshot, catalog, pilot, providerBenchmark, adminRules] =
 					await Promise.all([
 						getSalesRequestConfigurationContext(
 							transaction,
 							{ settingId },
 							{ cache: salesRequestConfigurationCache },
 						),
-						getSalesRequestAISettings(transaction, settingId),
 						getSalesRequestCatalogSettings(transaction, settingId),
 						getSalesRequestPilotSettings(transaction, settingId),
 						getSalesRequestProviderBenchmarkApproval(transaction, settingId),
+						getSalesRequestAIRules(transaction, settingId),
 					]);
-				requireCurrentDraftProvider({
-					aiSettings,
+				const benchmarkRevision = currentDraftProviderBenchmarkRevision({
+					selection,
 					configurationRevision: snapshot.revision,
 					providerBenchmark,
 				});
 				if (
 					pilot.source !== "persisted" ||
 					!pilot.settings.enabled ||
-					pilot.settings.revision <= 0 ||
-					!providerBenchmark.approval
+					pilot.settings.revision <= 0
 				) {
 					throw new AppError({
 						code: "VALIDATION_FAILED",
@@ -197,20 +204,29 @@ const defaultAssistantDraftRuntime: AssistantDraftRuntime = {
 				return {
 					context: {
 						...snapshot,
-						aiSelection: aiSettings.selection,
+						adminRules: adminRules.rules
+							.filter((rule) => rule.enabled)
+							.map(({ id, title, instruction }) => ({
+								id, title, instruction,
+								...(id.startsWith("interpretation-warning:")
+									? { suppressWarning: true } : {}),
+							})),
+						adminRulesRevision: adminRules.revision,
+						aiSelection: selection,
 						pilotSettingsRevision: pilot.settings.revision,
-						providerBenchmarkApprovalRevision:
-							providerBenchmark.approval.revision,
+						providerBenchmarkApprovalRevision: benchmarkRevision,
 					},
 					publication: catalog.publication,
 				};
 			},
 			{ isolationLevel: "RepeatableRead" },
 		),
-	createProvider: (selection) =>
+	createProvider: (selection, environment) =>
 		createSalesRequestProvider({
 			selection,
+			apiKey: requireAssistantSalesRequestKey(selection, environment),
 			maxRetries: SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES,
+			maxOutputRepairs: 1,
 		}),
 	telemetry: {
 		beginRun: async (database, event) => {
@@ -234,19 +250,30 @@ const defaultAssistantDraftRuntime: AssistantDraftRuntime = {
 	},
 };
 
-export async function createAssistantSalesRequestDraft(
+export function createAssistantSalesRequestPreviewDependencies(
 	actor: AssistantToolActor,
-	input: { type: "order" | "quote"; text: string },
-	signal: AbortSignal = new AbortController().signal,
+	input: { type: "order" | "quote" },
 	database: AssistantDraftDatabase = db as AssistantDraftDatabase,
+	selection?: AssistantRuntimeSelection,
 	runtime: AssistantDraftRuntime = defaultAssistantDraftRuntime,
 	environment: Readonly<Record<string, string | undefined>> = process.env,
-) {
-	return executeAssistantSalesRequestDraft(input, signal, {
+): AssistantSalesRequestDraftDependencies {
+	let runSelection: AssistantRuntimeSelection | undefined = selection;
+	return {
 		authorize: () => runtime.authorize(actor, input, database),
 		reserveUsage: () => runtime.reserveUsage(actor),
 		readSnapshot: async () => {
-			const authority = await runtime.readAuthoritySnapshot(database);
+			const configuredSelection = runtime.readAssistantSelection
+				? await runtime.readAssistantSelection(database)
+				: (await (await import("./runtime-settings")).getAssistantRuntimeConfiguration(database)).selection;
+			if (runSelection && (
+				runSelection.provider !== configuredSelection.provider ||
+				runSelection.model !== configuredSelection.model
+			)) {
+				throw new Error("Assistant AI configuration changed. Generate the preview again.");
+			}
+			runSelection ??= configuredSelection;
+			const authority = await runtime.readAuthoritySnapshot(database, runSelection);
 			assertAssistantProviderEnabled(
 				authority.context.aiSelection.provider,
 				environment,
@@ -257,7 +284,7 @@ export async function createAssistantSalesRequestDraft(
 			});
 			return authority.context;
 		},
-		createProvider: runtime.createProvider,
+		createProvider: (model) => runtime.createProvider(model, environment),
 		telemetry: {
 			beginRun: (event) =>
 				runtime.telemetry.beginRun(database, {
@@ -275,7 +302,20 @@ export async function createAssistantSalesRequestDraft(
 					actorUserId: actor.userId,
 				}),
 		},
-	});
+	};
+}
+
+export async function createAssistantSalesRequestDraft(
+	actor: AssistantToolActor,
+	input: { type: "order" | "quote"; text: string },
+	signal: AbortSignal = new AbortController().signal,
+	database: AssistantDraftDatabase = db as AssistantDraftDatabase,
+	runtime: AssistantDraftRuntime = defaultAssistantDraftRuntime,
+	environment: Readonly<Record<string, string | undefined>> = process.env,
+	selection?: AssistantRuntimeSelection,
+) {
+	return executeAssistantSalesRequestDraft(input, signal,
+		createAssistantSalesRequestPreviewDependencies(actor, input, database, selection, runtime, environment));
 }
 
 export async function executeAssistantSalesRequestDraft(

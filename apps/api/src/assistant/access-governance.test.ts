@@ -1,186 +1,106 @@
 import { describe, expect, mock, test } from "bun:test";
 import {
-	AssistantEntitlementConflictError,
 	getAssistantAccessState,
-	updateAssistantEntitlement,
+	setAssistantDirectPermission,
 } from "./access-governance";
 
-const now = new Date("2026-09-13T12:00:00.000Z");
-const entitlement = {
-	id: "entitlement-1",
-	userId: 42,
-	enabled: true,
-	expiresAt: null,
-	version: 1,
-};
-const pilotUser = {
-	id: 42,
-	roles: [{ role: { name: "Super Admin" } }],
-};
+function database(
+	roleName: string | null,
+	roleGranted = false,
+	directlyGranted = false,
+	revoked = false,
+) {
+	const permission = { id: 5 };
+	let directGrant = directlyGranted;
+	const db = {
+		users: {
+			findFirst: mock(async () =>
+				revoked
+					? null
+					: {
+							id: 42,
+							roles: roleName
+								? [
+										{
+											role: {
+												name: roleName,
+												RoleHasPermissions: roleGranted
+													? [{ permissionId: 5 }]
+													: [],
+											},
+										},
+									]
+								: [],
+						},
+			),
+		},
+		modelHasPermissions: {
+			findFirst: mock(async () => (directGrant ? { permissionId: 5 } : null)),
+			upsert: mock(async () => {
+				directGrant = true;
+				return {};
+			}),
+			deleteMany: mock(async () => {
+				directGrant = false;
+				return { count: 1 };
+			}),
+		},
+		permissions: { findFirst: mock(async () => permission) },
+	};
+	return db;
+}
 
-describe("Assistant individual access", () => {
-	test("fails closed before database access when the global switch is off", async () => {
-		const findFirst = mock(async () => ({ id: 42 }));
-		const state = await getAssistantAccessState(
-			{
-				users: { findFirst },
-				assistantUserEntitlement: { findUnique: mock(async () => entitlement) },
-			} as never,
-			42,
-			now,
-			{ ASSISTANT_ENABLED: "false" },
-		);
-		expect(state).toEqual({
-			enabled: false,
-			status: "disabled",
-			expiresAt: null,
-			version: 0,
-		});
-		expect(findFirst).not.toHaveBeenCalled();
-	});
-
-	test("fails closed without an active individual entitlement", async () => {
-		const state = await getAssistantAccessState(
-			{
-				users: { findFirst: mock(async () => pilotUser) },
-				assistantUserEntitlement: { findUnique: mock(async () => null) },
-			} as never,
-			42,
-			now,
-		);
-		expect(state).toEqual({
-			enabled: false,
-			status: "disabled",
-			expiresAt: null,
-			version: 0,
-		});
-	});
-
-	test("limits the first pilot to Super Admin unless rollout is explicitly broadened", async () => {
-		const db = {
-			users: {
-				findFirst: mock(async () => ({
-					id: 42,
-					roles: [{ role: { name: "Sales Manager" } }],
-				})),
-			},
-			assistantUserEntitlement: { findUnique: mock(async () => entitlement) },
-		};
-		expect(await getAssistantAccessState(db as never, 42, now)).toMatchObject({
-			enabled: false,
-			status: "disabled",
-		});
+describe("Assistant effective permission", () => {
+	test("Super Admin opens without a separate entitlement", async () => {
 		expect(
-			await getAssistantAccessState(db as never, 42, now, {
-				ASSISTANT_SUPER_ADMIN_ONLY: "false",
-			}),
-		).toMatchObject({ enabled: true, status: "enabled" });
+			(await getAssistantAccessState(database("Super Admin") as never, 42))
+				.enabled,
+		).toBe(true);
 	});
-
-	test("expires access once and appends an immutable audit event", async () => {
-		const eventCreate = mock(async () => ({}));
-		const expired = {
-			...entitlement,
-			expiresAt: new Date("2026-09-13T11:59:59.000Z"),
-		};
-		const db = {
-			users: { findFirst: mock(async () => pilotUser) },
-			assistantUserEntitlement: {
-				findUnique: mock(async () => expired),
-				updateMany: mock(async () => ({ count: 1 })),
-			},
-			assistantEntitlementEvent: { create: eventCreate },
-			$transaction: async (callback) => callback(db),
-		};
-		const state = await getAssistantAccessState(db as never, 42, now);
-		expect(state.status).toBe("expired");
-		expect(state.enabled).toBe(false);
-		expect(eventCreate).toHaveBeenCalledWith({
-			data: expect.objectContaining({
-				type: "expired",
-				enabled: false,
-				actorUserId: null,
-				entitlementVersion: 2,
-			}),
-		});
+	test("role and direct employee grants independently admit access", async () => {
+		expect(
+			(await getAssistantAccessState(database("Sales", true) as never, 42))
+				.enabled,
+		).toBe(true);
+		expect(
+			(
+				await getAssistantAccessState(
+					database("Sales", false, true) as never,
+					42,
+				)
+			).enabled,
+		).toBe(true);
 	});
-
-	test("updates access with optimistic concurrency and one audit event", async () => {
-		const eventCreate = mock(async () => ({}));
-		const db = {
-			users: { findFirst: mock(async () => pilotUser) },
-			assistantUserEntitlement: {
-				findUnique: mock(async () => entitlement),
-				updateMany: mock(async () => ({ count: 1 })),
-			},
-			assistantEntitlementEvent: { create: eventCreate },
-			$transaction: async (callback) => callback(db),
-		};
-		const state = await updateAssistantEntitlement(
-			db as never,
-			7,
-			{
-				userId: 42,
-				enabled: false,
-				expiresAt: null,
-				reason: "Pilot access ended",
-				expectedVersion: 1,
-			},
-			now,
-		);
-		expect(state).toMatchObject({
+	test("ungranted or revoked employees cannot open direct URL/API", async () => {
+		expect(
+			(await getAssistantAccessState(database("Sales") as never, 42)).enabled,
+		).toBe(false);
+		expect(
+			(
+				await getAssistantAccessState(
+					database("Super Admin", false, false, true) as never,
+					42,
+				)
+			).enabled,
+		).toBe(false);
+	});
+	test("removing a direct grant leaves role-inherited access intact", async () => {
+		const db = database("Sales", true, true);
+		const source = await setAssistantDirectPermission(db as never, {
+			userId: 42,
 			enabled: false,
-			status: "disabled",
-			version: 2,
 		});
-		expect(eventCreate).toHaveBeenCalledTimes(1);
-		const conflictDb: Record<string, unknown> = {
-			...db,
-			assistantUserEntitlement: {
-				...db.assistantUserEntitlement,
-				findUnique: mock(async () => ({ ...entitlement, version: 2 })),
-			},
-		};
-		conflictDb.$transaction = async (callback) => callback(conflictDb);
-		await expect(
-			updateAssistantEntitlement(
-				conflictDb as never,
-				7,
-				{
-					userId: 42,
-					enabled: true,
-					expiresAt: null,
-					reason: "Restore pilot access",
-					expectedVersion: 1,
-				},
-				now,
-			),
-		).rejects.toBeInstanceOf(AssistantEntitlementConflictError);
+		expect(db.modelHasPermissions.deleteMany).toHaveBeenCalledTimes(1);
+		expect(source.direct).toBe(false);
+		expect(source.inherited).toBe(true);
+		expect(source.enabled).toBe(true);
 	});
-
-	test("does not enable a non-Super-Admin account during the pilot", async () => {
-		const db: Record<string, unknown> = {
-			users: {
-				findFirst: mock(async () => ({
-					id: 42,
-					roles: [{ role: { name: "Sales Manager" } }],
-				})),
-			},
-		};
-		db.$transaction = async (callback) => callback(db);
-		await expect(
-			updateAssistantEntitlement(
-				db as never,
-				7,
-				{
-					userId: 42,
-					enabled: true,
-					expiresAt: null,
-					reason: "Start pilot access",
-					expectedVersion: 0,
-				},
-				now,
-			),
-		).rejects.toThrow("limited to Super Admin");
+	test("removing the only direct grant denies access", async () => {
+		const db = database("Sales", false, true);
+		const source = await setAssistantDirectPermission(db as never, {
+			userId: 42,
+			enabled: false,
+		});
+		expect(source.enabled).toBe(false);
 	});
 });

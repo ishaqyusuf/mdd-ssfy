@@ -4,6 +4,7 @@ import {
 	planComponentDemandState,
 	resolveComponentDemandQty,
 	resolveProjectedInboundDemandStatus,
+	resolveGroupedMouldingCandidate,
 	resolveSalesItemProductionEligibility,
 	selectInventoryParentFormStep,
 	shouldWarnForMissingInventoryMapping,
@@ -230,6 +231,41 @@ describe("sync sales inventory line items", () => {
 		};
 
 		expect(selectInventoryParentFormStep(item)?.prodUid).toBe("flat-board");
+	});
+
+	it("maps every persisted grouped Moulding sibling to its own catalog component and quantity", async () => {
+		const rows = [
+			{ uid: "wm713", qty: 28 },
+			{ uid: "flat-board", qty: 3 },
+			{ uid: "attic-kit", qty: 1 },
+		];
+		const db = { dykeStepProducts: { findUnique: async ({ where }: { where: { uid: string } }) => ({
+			uid: where.uid, name: where.uid, deletedAt: null,
+			step: { uid: "moulding-step", title: "Moulding" },
+		}) } };
+		const candidates = await Promise.all(rows.map((row) => resolveGroupedMouldingCandidate(db as never, {
+			...emptyItem, id: 10 + rows.indexOf(row), qty: row.qty,
+			multiDykeUid: "group-1", meta: { uid: row.uid, meta: { mouldingRows: rows } },
+		})));
+		expect(candidates.map((candidate) => [candidate?.sourceUid, candidate?.qty])).toEqual([
+			["wm713", 28], ["flat-board", 3], ["attic-kit", 1],
+		]);
+		await expect(resolveGroupedMouldingCandidate(db as never, {
+			...emptyItem, multiDykeUid: "group-1", qty: 3,
+			meta: { uid: "unknown", meta: { mouldingRows: rows } },
+		})).resolves.toBeNull();
+		await expect(resolveGroupedMouldingCandidate(db as never, {
+			...emptyItem, multiDykeUid: "group-1", qty: 4,
+			meta: { uid: "flat-board", meta: { mouldingRows: rows } },
+		})).resolves.toBeNull();
+		const wrongCatalog = { dykeStepProducts: { findUnique: async () => ({
+			uid: "flat-board", name: "Flat Board", deletedAt: null,
+			step: { uid: "door-step", title: "Door" },
+		}) } };
+		await expect(resolveGroupedMouldingCandidate(wrongCatalog as never, {
+			...emptyItem, multiDykeUid: "group-1", qty: 3,
+			meta: { uid: "flat-board", meta: { mouldingRows: rows } },
+		})).resolves.toBeNull();
 	});
 
 	it("selects the item type as the parent mapping for HPT lines without a root product", () => {

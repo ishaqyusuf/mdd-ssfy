@@ -69,6 +69,10 @@ test("does not expose a dormant image payload contract during the text pilot", (
 });
 
 test("preview validation accepts only the server-issued configuration identity", () => {
+	expect(validateSalesRequestPreviewSchema.parse({
+		type: "order", source: "assistant", configurationScope: "sales-settings:7",
+		configurationRevision: "a".repeat(64), provider: "openai", model: "gpt-5-mini",
+	}).source).toBe("assistant");
 	expect(
 		validateSalesRequestPreviewSchema.parse({
 			type: "quote",

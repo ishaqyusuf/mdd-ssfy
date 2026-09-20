@@ -174,7 +174,7 @@
 	width: 100%;
 	max-width: 736px;
 	margin: 0 auto;
-	padding: 32px 28px 16px;
+	padding: 32px 28px 8px;
 	flex-shrink: 0;
 	background: linear-gradient(to top, var(--background) 72%, transparent);
 }
@@ -362,6 +362,11 @@
 	width: 100%;
 	max-width: 680px;
 	margin: 0 auto;
+}
+.body > .liveStatus {
+	width: 100%;
+	max-width: 680px;
+	margin-inline: auto;
 }
 .userMessage {
 	margin-left: auto;

@@ -66,10 +66,7 @@ export function composeMeta(sale: PrintSalesData, mode: PrintMode): PageMeta {
           paymentState.recordedCardCharges[0]?.source === "recorded"
         ? paymentState.recordedCardCharges[0]?.customerChargedAmount
         : paymentState.orderTotal;
-  const headerBalanceDue =
-    paymentState.kind === "unpaid-card-estimate"
-      ? paymentState.estimatedDueCharge?.customerChargedAmount
-      : paymentState.amountDue;
+  const headerBalanceDue = paymentState.amountDue;
 
   return {
     title: modeTitles[mode],

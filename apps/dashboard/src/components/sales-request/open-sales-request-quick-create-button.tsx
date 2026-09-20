@@ -1,6 +1,6 @@
 "use client";
 
-import { useSalesRequestQuickCreateStore } from "@/store/sales-request-quick-create";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import {
@@ -9,26 +9,29 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
+import Link from "next/link";
 
 export function OpenSalesRequestQuickCreateButton() {
-	const open = useSalesRequestQuickCreateStore((state) => state.open);
+	const auth = useAuth();
+	if (!auth?.can?.viewAssistant) return null;
 
 	return (
 		<TooltipProvider>
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						type="button"
+						asChild
 						variant="outline"
 						size="icon"
 						className="size-8 rounded-full"
 						aria-label="Create order from customer request"
-						onClick={open}
 					>
-						<Icons.Sparkles className="size-4" />
+						<Link href="/assistant?newSalesRequest=order">
+							<Icons.Sparkles className="size-4" />
+						</Link>
 					</Button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">New request</TooltipContent>
+				<TooltipContent side="bottom">New request in Assistant</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>
 	);

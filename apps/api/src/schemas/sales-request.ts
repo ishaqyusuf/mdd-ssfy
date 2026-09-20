@@ -64,6 +64,7 @@ export const generateSalesRequestPreviewSchema = z
 export const validateSalesRequestPreviewSchema = z
 	.object({
 		type: z.enum(["order", "quote"]),
+		source: z.enum(["assistant"]).optional(),
 		configurationScope: z.string().trim().min(1).max(191),
 		configurationRevision: z.string().trim().min(1).max(128),
 		provider: z.string().trim().min(1).max(32),

@@ -409,14 +409,14 @@ export function SalesRequestReviewContent({
 
 			<ReviewBucket
 				title="Needs review"
-				description="These blocking facts must be resolved before Apply is available."
+				description="Compare these details with the original request and finish uncreated work in Sales."
 				items={model.unresolved}
-				empty="No blocking unresolved items were reported."
+				empty="No unresolved details were reported."
 				renderItem={(item) => <UnresolvedItem item={item} />}
 				getKey={(item) =>
 					`${item.lineLabel}:${item.stepLabel}:${item.field}:${item.reason}`
 				}
-				tone="danger"
+				tone="warning"
 			/>
 			<ReviewBucket
 				title="Warnings"

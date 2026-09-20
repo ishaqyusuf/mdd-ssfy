@@ -104,6 +104,7 @@ export const PERMISSIONS = [
 	"editJobPayment",
 	"viewDashboard",
 	"editDashboard",
+	"viewAssistant",
 	"viewInvoice",
 	"editInvoice",
 	"viewRole",
@@ -271,6 +272,7 @@ export const PERMISSION_NAMES = [
 export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
 type Action = "edit" | "view";
 export const EXTRA_PERMISSION_SCOPES = [
+	"viewAssistant",
 	"submitCustomJob",
 	"submitBugReport",
 	"generateSalesPaymentReport",

@@ -1,10 +1,11 @@
 "use client";
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@gnd/ui/input-group";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@gnd/ui/dropdown-menu";
 import { Field, FieldGroup } from "@gnd/ui/field";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Attachment, AttachmentGroup, AttachmentMedia, AttachmentContent, AttachmentTitle, AttachmentActions, AttachmentAction } from "@gnd/ui/attachment";
-import { ArrowUp, FileText, ImageIcon, LoaderCircle, Plus, Square, X } from "lucide-react";
+import { ArrowUp, FileText, ImageIcon, LoaderCircle, Plus, Square, X, MessageSquareText } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
 import type { AssistantAttachment } from "./assistant-attachments";
 import { assistantAttachmentMimeTypes } from "./assistant-attachments";
@@ -31,6 +32,7 @@ type AssistantInputProps = {
 	value: string;
 	onChange: (value: string) => void;
 	onSubmit: () => void;
+	onSalesRequestSubmit: () => void;
 	onStop?: () => void;
 	isStreaming?: boolean;
 	disabled?: boolean;
@@ -48,13 +50,22 @@ type AssistantInputProps = {
 	mentionedIntegrationIds: string[];
 	onToggleIntegration: (id: string) => void;
 	onOpenSources: () => void;
+	salesRequestMode: boolean;
+	onToggleSalesRequest: () => void;
 };
 
 export function AssistantInput(props: AssistantInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addFiles = (files: File[]) => {
+    if (props.salesRequestMode) props.onToggleSalesRequest();
+    props.onAddFiles(files);
+  };
   const submit = () => {
     if (props.isStreaming) { props.onStop?.(); return; }
-    if (!props.disabled) props.onSubmit();
+    if (!props.disabled) {
+      if (props.salesRequestMode) props.onSalesRequestSubmit();
+      else props.onSubmit();
+    }
   };
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (shouldSubmitAssistantComposerKey({ key: event.key, shiftKey: event.shiftKey, isComposing: event.nativeEvent.isComposing })) {
@@ -66,9 +77,9 @@ export function AssistantInput(props: AssistantInputProps) {
   return (
     <form onSubmit={event => { event.preventDefault(); submit(); }}
       onDragOver={event => event.preventDefault()}
-      onDrop={event => { event.preventDefault(); event.stopPropagation(); if (!props.uploading) props.onAddFiles(Array.from(event.dataTransfer.files)); }}>
+      onDrop={event => { event.preventDefault(); event.stopPropagation(); if (!props.uploading) addFiles(Array.from(event.dataTransfer.files)); }}>
       <input ref={fileInputRef} type="file" hidden multiple accept={assistantAttachmentMimeTypes.join(",")}
-        onChange={event => { props.onAddFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
+        onChange={event => { addFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
       <FieldGroup>
         <Field>
           <InputGroup>
@@ -78,7 +89,7 @@ export function AssistantInput(props: AssistantInputProps) {
               onKeyDown={onKeyDown}
               onPaste={event => {
                 const files = Array.from(event.clipboardData.files);
-                if (files.length) { event.preventDefault(); if (!props.uploading) props.onAddFiles(files); }
+                if (files.length) { event.preventDefault(); if (!props.uploading) addFiles(files); }
               }} />
             {props.attachments.length ? <InputGroupAddon align="block-start">
               <AttachmentGroup className="w-full">
@@ -90,11 +101,32 @@ export function AssistantInput(props: AssistantInputProps) {
               </AttachmentGroup>
             </InputGroupAddon> : null}
             <InputGroupAddon align="block-end">
-              <InputGroupButton type="button" variant="ghost" size="icon-sm" aria-label="Add photos & files"
-                disabled={props.uploading} onClick={() => fileInputRef.current?.click()}>
-                {props.uploading ? <LoaderCircle className="animate-spin" /> : <Plus />}
-              </InputGroupButton>
-              {props.uploading ? <span role="status">Attaching files…</span> : null}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <InputGroupButton type="button" variant="ghost" size="icon-sm" aria-label="Add to message" disabled={props.uploading}>
+                    {props.uploading ? <LoaderCircle className="animate-spin" /> : <Plus />}
+                  </InputGroupButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top" className="w-60">
+                  <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} className="gap-2">
+                    <FileText className="size-4" aria-hidden="true" /> Upload/select image or file
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={props.onToggleSalesRequest} className="gap-2">
+                    <MessageSquareText className="size-4" aria-hidden="true" />
+                    <span>Sales request</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{props.salesRequestMode ? "On" : "Off"}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {props.salesRequestMode ? (
+                <button type="button" className="group inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-foreground transition-colors hover:bg-secondary"
+                  aria-label="Exit Sales request mode" title="Create sales request" onClick={props.onToggleSalesRequest}>
+                  <MessageSquareText className="size-3.5 group-hover:hidden" aria-hidden="true" />
+                  <X className="hidden size-3.5 group-hover:block" aria-hidden="true" />
+                  Sales request
+                </button>
+              ) : null}
+              {props.uploading ? <output>Attaching files…</output> : null}
               <InputGroupButton type={props.isStreaming ? "button" : "submit"} variant="default" size="icon-sm" className="ml-auto"
                 disabled={!props.isStreaming && props.disabled} aria-label={props.isStreaming ? "Stop response" : "Send message"}
                 data-track={props.isStreaming ? "Assistant Stopped" : "Assistant Message Sent"} onClick={props.isStreaming ? props.onStop : undefined}>

@@ -66,6 +66,11 @@ export type SalesRequestProviderFailureTelemetry = Pick<
 	| "providerStatus"
 	| "retryable"
 	| "structuredOutputCause"
+	| "finishReason"
+	| "outputShape"
+	| "repairAttempted"
+	| "configurationIssue"
+	| "routeFailureKind"
 	| "schemaIssues"
 >;
 
@@ -413,6 +418,7 @@ const providerFailureStatusSet = new Set([
 	"UNAUTHENTICATED",
 ]);
 const providerFailureIssueCodeSet = new Set([
+	"configuration-validation",
 	"custom",
 	"invalid_element",
 	"invalid_format",
@@ -453,6 +459,55 @@ export function normalizeSalesRequestProviderFailureTelemetry(value: unknown) {
 			: undefined;
 	const retryable =
 		typeof input.retryable === "boolean" ? input.retryable : undefined;
+	const repairAttempted =
+		typeof input.repairAttempted === "boolean"
+			? input.repairAttempted
+			: undefined;
+	const outputShape =
+		input.outputShape === "object" ||
+		input.outputShape === "array" ||
+		input.outputShape === "primitive" ||
+		input.outputShape === "invalid-json"
+			? input.outputShape
+			: undefined;
+	const configurationIssue =
+		input.configurationIssue === "source" ||
+		input.configurationIssue === "source-coverage" ||
+		input.configurationIssue === "moulding-product" ||
+		input.configurationIssue === "moulding-quantity" ||
+		input.configurationIssue === "interpretation-source" ||
+		input.configurationIssue === "interpretation-route" ||
+		input.configurationIssue === "interpretation-title" ||
+		input.configurationIssue === "custom-source" ||
+		input.configurationIssue === "service-source" ||
+		input.configurationIssue === "door-dimension-source" ||
+		input.configurationIssue === "delivery-option-source" ||
+		input.configurationIssue === "delivery-amount-source" ||
+		input.configurationIssue === "route" ||
+		input.configurationIssue === "catalog" ||
+		input.configurationIssue === "dimensions" ||
+		input.configurationIssue === "mouldings" ||
+		input.configurationIssue === "interpretation" ||
+		input.configurationIssue === "other"
+			? input.configurationIssue
+			: undefined;
+	const routeFailureKind = configurationIssue === "route" && (
+		input.routeFailureKind === "missing-root" ||
+		input.routeFailureKind === "interior-for-exterior" ||
+		input.routeFailureKind === "slab-for-prehung" ||
+		input.routeFailureKind === "outside-step" ||
+		input.routeFailureKind === "service-route" ||
+		input.routeFailureKind === "swing-route"
+	) ? input.routeFailureKind : undefined;
+	const finishReason =
+		input.finishReason === "length" ||
+		input.finishReason === "stop" ||
+		input.finishReason === "content-filter" ||
+		input.finishReason === "error" ||
+		input.finishReason === "other" ||
+		input.finishReason === "unknown"
+			? input.finishReason
+			: undefined;
 	const schemaIssues = Array.isArray(input.schemaIssues)
 		? input.schemaIssues.slice(0, 12).flatMap((issue) => {
 				if (!issue || typeof issue !== "object") return [];
@@ -468,7 +523,14 @@ export function normalizeSalesRequestProviderFailureTelemetry(value: unknown) {
 				) {
 					return [];
 				}
-				return [{ code: candidate.code, path: candidate.path }];
+			const detail = candidate.path === "lineItems.[].qty" &&
+				(candidate.detail === "zero-quantity" ||
+					candidate.detail === "hpt-quantity-mismatch")
+					? candidate.detail : candidate.path === "lineItems.[].housePackageTool.doors.[]" &&
+					candidate.detail === "zero-handed-units"
+						? candidate.detail : undefined;
+				return [{ code: candidate.code, path: candidate.path,
+					...(detail ? { detail } : {}) }];
 			})
 		: [];
 	const normalized: SalesRequestProviderFailureTelemetry = {
@@ -477,6 +539,11 @@ export function normalizeSalesRequestProviderFailureTelemetry(value: unknown) {
 		...(providerCode !== undefined ? { providerCode } : {}),
 		...(providerStatus ? { providerStatus } : {}),
 		...(retryable !== undefined ? { retryable } : {}),
+		...(finishReason ? { finishReason } : {}),
+		...(outputShape ? { outputShape } : {}),
+		...(repairAttempted !== undefined ? { repairAttempted } : {}),
+		...(configurationIssue ? { configurationIssue } : {}),
+		...(routeFailureKind ? { routeFailureKind } : {}),
 		...(schemaIssues.length ? { schemaIssues } : {}),
 	};
 	return Object.keys(normalized).length ? normalized : null;

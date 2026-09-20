@@ -123,6 +123,7 @@ export function buildApprovedSalesRequestInvoicePreview(
 		revisionDate:
 			input.record.updatedAt || input.record.form.createdAt || new Date(0),
 		form: input.record.form,
+		cccPercentage: input.record.settings?.cccPercentage,
 		lineItems: input.record.lineItems,
 		extraCosts: input.record.extraCosts,
 		summary: input.record.summary,

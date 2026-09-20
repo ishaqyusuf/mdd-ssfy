@@ -83,6 +83,7 @@ type SyncComponentCandidate = {
 export type SyncItemLike = {
 	id: number;
 	description: string | null;
+	multiDykeUid?: string | null;
 	qty?: number | null;
 	rate?: number | null;
 	total?: number | null;
@@ -821,6 +822,43 @@ async function ensureInventoryMappingFromCandidate(
 	} satisfies ResolvedInventoryMapping;
 }
 
+/** The native form stores each grouped Moulding row as a separate Sales item.
+ * Only its first sibling has relational form steps, so recover the exact
+ * component from the row UID and verify it against the current catalog. */
+export async function resolveGroupedMouldingCandidate(
+	db: Pick<DbLike, "dykeStepProducts">,
+	item: SyncItemLike,
+): Promise<SyncComponentCandidate | null> {
+	if (!item.multiDykeUid) return null;
+	const itemMeta = asRecord(item.meta);
+	const uid = readString(itemMeta.uid);
+	const rows = metadataArray(asRecord(itemMeta.meta).mouldingRows);
+	const matching = rows.filter((row) => readString(asRecord(row).uid) === uid);
+	const qty = Number(item.qty);
+	if (!uid || matching.length !== 1 || !Number.isFinite(qty) || qty <= 0 ||
+		Number(asRecord(matching[0]).qty) !== qty) return null;
+	const component = await db.dykeStepProducts.findUnique({
+		where: { uid },
+		select: { uid: true, name: true, deletedAt: true, step: { select: { uid: true, title: true } } },
+	});
+	if (!component || component.deletedAt || !component.uid || !component.step?.uid ||
+		!/(moulding|molding)/i.test(component.step.title || "")) return null;
+	const title = component.name || item.description || uid;
+	return {
+		sourceType: "dyke-step-product",
+		sourceUid: uid,
+		title,
+		qty,
+		required: true,
+		inventoryUid: uid,
+		variantUid: uid,
+		inventoryCategoryUid: component.step.uid,
+		inventoryCategoryTitle: component.step.title || "Moulding",
+		inventoryName: title,
+		unitSalesPrice: Number(item.rate || 0),
+	};
+}
+
 export function selectInventoryParentFormStep(item: SyncItemLike) {
 	const formSteps = item.formSteps.length
 		? item.formSteps
@@ -848,6 +886,7 @@ export function selectInventoryParentFormStep(item: SyncItemLike) {
 async function resolveInventoryMappingForItem(
 	db: DbLike,
 	item: SyncItemLike,
+	groupedMouldingCandidate?: SyncComponentCandidate | null,
 ): Promise<ResolvedInventoryMapping | null> {
 	const explicitMapping = extractInventoryMapping(item.meta);
 	if (explicitMapping) {
@@ -864,6 +903,9 @@ async function resolveInventoryMappingForItem(
 			...explicitMapping,
 			inventoryUid: inventory?.uid ?? null,
 		};
+	}
+	if (groupedMouldingCandidate) {
+		return ensureInventoryMappingFromCandidate(db, groupedMouldingCandidate);
 	}
 
 	const housePackageTool =
@@ -2070,10 +2112,11 @@ export async function syncSalesInventoryLineItems(
 			items: {
 				where: {
 					deletedAt: null,
-				},
-				select: {
+			},
+			select: {
 					id: true,
 					description: true,
+					multiDykeUid: true,
 					dykeProduction: true,
 					qty: true,
 					rate: true,
@@ -2211,14 +2254,18 @@ export async function syncSalesInventoryLineItems(
 			),
 		);
 		const itemComponents = new Map<string, SyncComponentCandidate>();
+		const groupedMouldingCandidate = await resolveGroupedMouldingCandidate(db, item);
 
-		for (const candidate of buildInventorySyncComponentCandidatesForItem(item, {
-			profileCoefficient: sale.salesProfile?.coefficient ?? null,
-		})) {
+		const candidates = groupedMouldingCandidate
+			? [groupedMouldingCandidate]
+			: buildInventorySyncComponentCandidatesForItem(item, {
+					profileCoefficient: sale.salesProfile?.coefficient ?? null,
+				});
+		for (const candidate of candidates) {
 			itemComponents.set(makeCandidateKey(candidate), candidate);
 		}
 
-		const mapping = await resolveInventoryMappingForItem(db, item);
+		const mapping = await resolveInventoryMappingForItem(db, item, groupedMouldingCandidate);
 
 		if (!mapping) {
 			skippedCount += 1;

@@ -1,0 +1,323 @@
+// Marketplace messaging is separate from private Assistant conversations.
+// Relation mode is `prisma`: writers must check scope and clean up explicitly.
+model MessagingConnection {
+    id                  String   @id @default(cuid()) @db.VarChar(191)
+    organizationId      Int
+    sourceKind          String   @db.VarChar(40)
+    externalAccountId   String   @db.VarChar(191)
+    externalAccountHash String   @db.Char(64)
+    canonicalInboxUrl   String   @db.Text
+    status              String   @default("disabled") @db.VarChar(30)
+    configRevision      Int      @default(1)
+    rulesetId           String?  @db.VarChar(191)
+    approverIdentityId  String?  @db.VarChar(191)
+    senderReference     String?  @db.VarChar(191)
+    scanIntervalSeconds Int      @default(900)
+    pollIntervalSeconds Int      @default(60)
+    quietWindowSeconds  Int      @default(30)
+    retentionDays       Int?
+    sendPolicy          String   @default("off") @db.VarChar(30)
+    createdAt           DateTime @default(now()) @db.DateTime(3)
+    updatedAt           DateTime @updatedAt @db.DateTime(3)
+
+    organization Organization             @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    devices      MessagingDeviceGrant[]
+    customers    MessagingCustomer[]
+    conversations MessagingConversation[]
+    rulesets     MessagingRuleSetVersion[]
+
+    @@unique([organizationId, sourceKind, externalAccountHash], map: "msg_connection_source_uq")
+    @@unique([id, organizationId], map: "msg_connection_scope_uq")
+    @@index([organizationId, status, updatedAt], map: "msg_connection_status_idx")
+}
+
+model MessagingDevice {
+    id               String    @id @default(cuid()) @db.VarChar(191)
+    employeeId       Int
+    tokenHash        String?   @db.Char(64)
+    extensionVersion String    @db.VarChar(50)
+    lastSeenAt       DateTime? @db.DateTime(3)
+    revokedAt        DateTime? @db.DateTime(3)
+    createdAt        DateTime  @default(now()) @db.DateTime(3)
+    updatedAt        DateTime  @updatedAt @db.DateTime(3)
+    employee         Users     @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    grants           MessagingDeviceGrant[]
+    sendJobs         MessagingSendJob[]
+    sendAttempts     MessagingSendAttempt[]
+
+    @@index([employeeId, revokedAt], map: "msg_device_employee_idx")
+}
+
+model MessagingDeviceGrant {
+    deviceId     String   @db.VarChar(191)
+    connectionId String   @db.VarChar(191)
+    grantedAt    DateTime @default(now()) @db.DateTime(3)
+    revokedAt    DateTime? @db.DateTime(3)
+    device       MessagingDevice @relation(fields: [deviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    connection   MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@id([deviceId, connectionId])
+    @@index([connectionId, revokedAt], map: "msg_device_grant_connection_idx")
+}
+
+model MessagingCustomer {
+    id                     String   @id @default(cuid()) @db.VarChar(191)
+    organizationId         Int
+    connectionId           String   @db.VarChar(191)
+    externalCustomerId     String?  @db.VarChar(191)
+    externalCustomerHash   String?  @db.Char(64)
+    provisionalIdentityKey String?  @db.VarChar(191)
+    provisionalIdentityHash String? @db.Char(64)
+    identityConfidence     String   @db.VarChar(24)
+    displayName            String?  @db.VarChar(255)
+    sourceProfileUrl       String?  @db.Text
+    internalCustomerId     Int?
+    linkRevision           Int      @default(0)
+    retentionUntil         DateTime? @db.DateTime(3)
+    deletedAt              DateTime? @db.DateTime(3)
+    createdAt              DateTime @default(now()) @db.DateTime(3)
+    lastSeenAt             DateTime @default(now()) @db.DateTime(3)
+    connection             MessagingConnection @relation(fields: [connectionId, organizationId], references: [id, organizationId], onDelete: NoAction, onUpdate: NoAction)
+    internalCustomer       Customers? @relation(fields: [internalCustomerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    conversations          MessagingConversation[]
+    linkEvents             MessagingCustomerLinkEvent[]
+
+    @@unique([connectionId, externalCustomerHash], map: "msg_customer_external_uq")
+    @@unique([connectionId, provisionalIdentityHash], map: "msg_customer_provisional_uq")
+    @@unique([id, connectionId], map: "msg_customer_connection_uq")
+    @@index([organizationId, internalCustomerId], map: "msg_customer_crm_idx")
+    @@index([connectionId, lastSeenAt], map: "msg_customer_recent_idx")
+    @@index([retentionUntil, deletedAt], map: "msg_customer_retention_idx")
+}
+
+model MessagingCustomerLinkEvent {
+    id                         String @id @default(cuid()) @db.VarChar(191)
+    messagingCustomerId        String @db.VarChar(191)
+    revision                   Int
+    previousInternalCustomerId Int?
+    newInternalCustomerId      Int?
+    actorId                    Int
+    reason                     String? @db.VarChar(500)
+    occurredAt                 DateTime @default(now()) @db.DateTime(3)
+    customer                   MessagingCustomer @relation(fields: [messagingCustomerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    actor                      Users @relation(fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([messagingCustomerId, revision], map: "msg_customer_link_revision_uq")
+    @@index([actorId, occurredAt], map: "msg_customer_link_actor_idx")
+}
+
+model MessagingConversation {
+    id                  String @id @default(cuid()) @db.VarChar(191)
+    connectionId        String @db.VarChar(191)
+    messagingCustomerId String @db.VarChar(191)
+    externalThreadKey   String @db.VarChar(191)
+    externalThreadHash  String @db.Char(64)
+    sourceThreadUrl     String @db.Text
+    listingId           String? @db.VarChar(191)
+    listingTitle        String? @db.VarChar(500)
+    historyRevision     Int @default(0)
+    latestInboundKey    String? @db.VarChar(191)
+    lastObservedAt      DateTime @default(now()) @db.DateTime(3)
+    retentionUntil      DateTime? @db.DateTime(3)
+    deletedAt           DateTime? @db.DateTime(3)
+    createdAt           DateTime @default(now()) @db.DateTime(3)
+    updatedAt           DateTime @updatedAt @db.DateTime(3)
+    connection          MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    customer            MessagingCustomer @relation(fields: [messagingCustomerId, connectionId], references: [id, connectionId], onDelete: NoAction, onUpdate: NoAction)
+    messages            MessagingMessage[]
+    batches             MessagingBatch[]
+    sendJobs            MessagingSendJob[]
+
+    @@unique([connectionId, externalThreadHash], map: "msg_conversation_thread_uq")
+    @@index([connectionId, lastObservedAt], map: "msg_conversation_inbox_idx")
+    @@index([messagingCustomerId, lastObservedAt], map: "msg_conversation_customer_idx")
+    @@index([retentionUntil, deletedAt], map: "msg_conversation_retention_idx")
+}
+
+model MessagingMessage {
+    id                 String @id @default(cuid()) @db.VarChar(191)
+    conversationId     String @db.VarChar(191)
+    sourceMessageId    String? @db.VarChar(191)
+    sourceMessageHash  String? @db.Char(64)
+    dedupKey           String @db.VarChar(191)
+    dedupHash          String @db.Char(64)
+    identityConfidence String @db.VarChar(24)
+    direction          String @db.VarChar(16)
+    senderExternalId   String? @db.VarChar(191)
+    text               String? @db.LongText
+    attachmentMetadata Json? @db.Json
+    sourceCreatedAt    DateTime? @db.DateTime(3)
+    observedAt         DateTime @default(now()) @db.DateTime(3)
+    orderingAnchor     String @db.VarChar(191)
+    retentionUntil     DateTime? @db.DateTime(3)
+    deletedAt          DateTime? @db.DateTime(3)
+    conversation       MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([conversationId, sourceMessageHash], map: "msg_message_source_uq")
+    @@unique([conversationId, dedupHash], map: "msg_message_dedup_uq")
+    @@index([conversationId, observedAt, id], map: "msg_message_timeline_idx")
+    @@index([retentionUntil, deletedAt], map: "msg_message_retention_idx")
+}
+
+model MessagingBatch {
+    id                String @id @default(cuid()) @db.VarChar(191)
+    conversationId    String @db.VarChar(191)
+    revision          Int
+    orderedMessageIds Json @db.Json
+    contextMessageIds Json @db.Json
+    contextRevision   Int
+    dueAt             DateTime @db.DateTime(3)
+    state             String @db.VarChar(30)
+    supersededById    String? @db.VarChar(191)
+    createdAt         DateTime @default(now()) @db.DateTime(3)
+    updatedAt         DateTime @updatedAt @db.DateTime(3)
+    conversation      MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    drafts            MessagingDraft[]
+    approvalRequests  MessagingApprovalRequest[]
+
+    @@unique([conversationId, revision], map: "msg_batch_revision_uq")
+    @@index([state, dueAt], map: "msg_batch_due_idx")
+}
+
+model MessagingRuleSetVersion {
+    id                 String @id @default(cuid()) @db.VarChar(191)
+    connectionId       String @db.VarChar(191)
+    rulesetId          String @db.VarChar(191)
+    revision           Int
+    validatedRulesJson Json @db.Json
+    publishedBy        Int
+    publishedAt        DateTime @default(now()) @db.DateTime(3)
+    disabledAt         DateTime? @db.DateTime(3)
+    connection         MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    drafts             MessagingDraft[]
+
+    @@unique([connectionId, rulesetId, revision], map: "msg_ruleset_version_uq")
+}
+
+model MessagingDraft {
+    id                String @id @default(cuid()) @db.VarChar(191)
+    batchId           String @db.VarChar(191)
+    version           Int
+    responseText      String @db.LongText
+    textHash          String @db.Char(64)
+    ruleVersionId     String? @db.VarChar(191)
+    modelId           String? @db.VarChar(100)
+    factReferences    Json @db.Json
+    missingInformation Json @db.Json
+    needsHumanReview  Boolean @default(true)
+    createdAt         DateTime @default(now()) @db.DateTime(3)
+    batch             MessagingBatch @relation(fields: [batchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    ruleVersion       MessagingRuleSetVersion? @relation(fields: [ruleVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    approvalRequests  MessagingApprovalRequest[]
+
+    @@unique([batchId, version], map: "msg_draft_version_uq")
+}
+
+model MessagingApprovalRequest {
+    id                        String @id @default(cuid()) @db.VarChar(191)
+    batchId                   String @db.VarChar(191)
+    draftId                   String @db.VarChar(191)
+    expectedContextRevision   Int
+    expectedTextHash          String @db.Char(64)
+    ownerWaId                 String @db.VarChar(191)
+    senderReference           String @db.VarChar(191)
+    requestToken              String @unique(map: "msg_approval_token_uq") @db.VarChar(191)
+    outboundProviderMessageId String? @db.VarChar(191)
+    outboundProviderMessageHash String? @db.Char(64)
+    notificationState         String @default("queued") @db.VarChar(30)
+    approvalState             String @default("pending") @db.VarChar(30)
+    expiresAt                 DateTime @db.DateTime(3)
+    attemptCount              Int @default(0)
+    nextAttemptAt             DateTime? @db.DateTime(3)
+    createdAt                 DateTime @default(now()) @db.DateTime(3)
+    updatedAt                 DateTime @updatedAt @db.DateTime(3)
+    batch                     MessagingBatch @relation(fields: [batchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    draft                     MessagingDraft @relation(fields: [draftId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    decisions                 MessagingApprovalDecision[]
+
+    @@unique([senderReference, outboundProviderMessageHash], map: "msg_approval_outbound_uq")
+    @@index([notificationState, nextAttemptAt], map: "msg_approval_outbox_idx")
+    @@index([batchId, approvalState], map: "msg_approval_batch_idx")
+}
+
+model MessagingApprovalDecision {
+    id                       String @id @default(cuid()) @db.VarChar(191)
+    approvalRequestId        String @db.VarChar(191)
+    inboundProviderMessageId String @db.VarChar(191)
+    inboundProviderMessageHash String @db.Char(64)
+    replyContextId           String @db.VarChar(191)
+    actorWaId                String @db.VarChar(191)
+    command                  String @db.VarChar(24)
+    approvedText             String? @db.LongText
+    approvedTextHash         String? @db.Char(64)
+    decidedAt                DateTime @default(now()) @db.DateTime(3)
+    rejectionReason          String? @db.VarChar(500)
+    request                  MessagingApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    sendJob                  MessagingSendJob?
+
+    @@unique([actorWaId, inboundProviderMessageHash], map: "msg_decision_inbound_uq")
+    @@index([approvalRequestId, decidedAt], map: "msg_decision_request_idx")
+}
+
+model MessagingSendJob {
+    id                      String @id @default(cuid()) @db.VarChar(191)
+    decisionId              String @unique(map: "msg_job_decision_uq") @db.VarChar(191)
+    conversationId          String @db.VarChar(191)
+    expectedContextRevision Int
+    approvedTextHash        String @db.Char(64)
+    state                   String @default("queued") @db.VarChar(30)
+    deviceId                String? @db.VarChar(191)
+    leaseExpiresAt          DateTime? @db.DateTime(3)
+    fence                   Int @default(0)
+    nextAttemptAt           DateTime? @db.DateTime(3)
+    attemptCount            Int @default(0)
+    createdAt               DateTime @default(now()) @db.DateTime(3)
+    updatedAt               DateTime @updatedAt @db.DateTime(3)
+    decision                MessagingApprovalDecision @relation(fields: [decisionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    conversation            MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    device                  MessagingDevice? @relation(fields: [deviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    attempts                MessagingSendAttempt[]
+
+    @@index([state, nextAttemptAt], map: "msg_job_queue_idx")
+    @@index([conversationId, state], map: "msg_job_conversation_idx")
+    @@index([deviceId, leaseExpiresAt], map: "msg_job_lease_idx")
+}
+
+model MessagingSendAttempt {
+    id                      String @id @default(cuid()) @db.VarChar(191)
+    jobId                   String @db.VarChar(191)
+    deviceId                String @db.VarChar(191)
+    fence                   Int
+    preparedAt              DateTime? @db.DateTime(3)
+    submissionStartedAt     DateTime? @db.DateTime(3)
+    completedAt             DateTime? @db.DateTime(3)
+    outcome                 String @db.VarChar(30)
+    observedSourceMessageId String? @db.VarChar(191)
+    evidenceJson            Json? @db.Json
+    errorCode               String? @db.VarChar(100)
+    job                     MessagingSendJob @relation(fields: [jobId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    device                  MessagingDevice @relation(fields: [deviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([jobId, fence], map: "msg_attempt_fence_uq")
+    @@index([deviceId, preparedAt], map: "msg_attempt_device_idx")
+}
+
+model MessagingProviderEvent {
+    id                String @id @default(cuid()) @db.VarChar(191)
+    senderReference   String @db.VarChar(191)
+    eventKey          String @db.VarChar(191)
+    eventKeyHash      String @db.Char(64)
+    eventType         String @db.VarChar(40)
+    providerMessageId String? @db.VarChar(191)
+    contextId         String? @db.VarChar(191)
+    actorWaId         String? @db.VarChar(191)
+    boundedPayload    Json @db.Json
+    receivedAt        DateTime @default(now()) @db.DateTime(3)
+    processedAt       DateTime? @db.DateTime(3)
+    processingState   String @default("queued") @db.VarChar(30)
+    lastError         String? @db.VarChar(500)
+
+    @@unique([senderReference, eventKeyHash], map: "msg_provider_event_uq")
+    @@index([processingState, receivedAt], map: "msg_provider_pending_idx")
+    @@index([senderReference, providerMessageId], map: "msg_provider_message_idx")
+}

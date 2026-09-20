@@ -1,0 +1,29 @@
+{
+  "name": "@gnd/messaging-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "@gnd/messaging": "workspace:*",
+    "@gnd/ui": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.17",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@wxt-dev/module-react": "1.2.2",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "wxt": "0.21.4"
+  }
+}

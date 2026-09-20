@@ -1,6 +1,6 @@
 "use client";
 
-import { useTRPC } from "@/trpc/client";
+import { useTRPC, useTRPCClient } from "@/trpc/client";
 import type {
 	SalesFormWorkflowDataSource,
 	SalesFormWorkflowStepComponentInput,
@@ -16,11 +16,14 @@ import {
 	useNewSalesFormShelfProductsQuery,
 	useNewSalesFormStepRoutingQuery,
 	useSalesStepComponentsQuery,
+	useSalesCustomComponentSearchQuery,
 	useSalesSuppliersQuery,
 } from "../api";
+import { isSalesCatalogCacheEnabled } from "../catalog-rollout";
 
 export function useDashboardSalesFormWorkflowData(): SalesFormWorkflowDataSource {
 	const trpc = useTRPC();
+	const client = useTRPCClient();
 	const queryClient = useQueryClient();
 	const { mutateAsync: mutateShelfProduct } = useMutation(
 		trpc.newSalesForm.updateShelfProduct.mutationOptions(),
@@ -53,10 +56,40 @@ export function useDashboardSalesFormWorkflowData(): SalesFormWorkflowDataSource
 		},
 		[mutateShelfProduct, queryClient, trpc],
 	);
+	const prefetchStepComponents = useCallback(
+		(input: SalesFormWorkflowStepComponentInput) => {
+			if (!isSalesCatalogCacheEnabled() || !input.stepId)
+				return Promise.resolve();
+			return queryClient.prefetchQuery(
+				trpc.newSalesForm.getComponentCatalog.queryOptions(
+					{
+						stepId: input.stepId,
+						stepTitle: input.stepTitle || undefined,
+						isCustom: false,
+					},
+					{ staleTime: 30 * 60 * 1000, gcTime: 60 * 60 * 1000 },
+				),
+			);
+		},
+		[queryClient, trpc],
+	);
 
 	return useMemo(
 		() => ({
 			useStepRouting: () => useNewSalesFormStepRoutingQuery(),
+			prefetchStepComponents,
+			useRootComponents: (input: SalesFormWorkflowStepComponentInput) => {
+				const routing = useNewSalesFormStepRoutingQuery();
+				const initialCatalog =
+					routing.data && "rootCatalog" in routing.data
+						? routing.data.rootCatalog
+						: undefined;
+				return useSalesStepComponentsQuery(
+					{ stepId: input.stepId, stepTitle: input.stepTitle },
+					input.enabled !== false && Boolean(input.stepId),
+					initialCatalog,
+				);
+			},
 			useStepComponents: (input: SalesFormWorkflowStepComponentInput) =>
 				useSalesStepComponentsQuery(
 					{
@@ -73,8 +106,26 @@ export function useDashboardSalesFormWorkflowData(): SalesFormWorkflowDataSource
 					},
 					input.enabled !== false && Boolean(input.stepId || input.stepTitle),
 				),
+			useCustomComponents: (input) =>
+				useSalesCustomComponentSearchQuery(
+					{
+						stepId: input.stepId,
+						query: input.query,
+						selectedUid: input.selectedUid,
+					},
+					input.enabled,
+				),
+			verifyCustomComponent: async ({ stepId, uid }) => {
+				const result = await client.newSalesForm.searchCustomComponents.query({
+					stepId,
+					query: "",
+					selectedUid: uid,
+				});
+				return result.selectedComponent;
+			},
 			useCustomerProfiles: () => useCustomerProfilesQuery(true),
-			useShelfCategories: () => useNewSalesFormShelfCategoriesQuery({}),
+			useShelfCategories: (input) =>
+				useNewSalesFormShelfCategoriesQuery({}, input?.enabled !== false),
 			useShelfProducts: (input) =>
 				useNewSalesFormShelfProductsQuery(
 					{ categoryIds: input.categoryIds },
@@ -107,6 +158,13 @@ export function useDashboardSalesFormWorkflowData(): SalesFormWorkflowDataSource
 				useSalesSuppliersQuery(input?.enabled !== false),
 			resolveImageSrc,
 		}),
-		[queryClient, resolveImageSrc, trpc, updateShelfProduct],
+		[
+			client,
+			prefetchStepComponents,
+			queryClient,
+			resolveImageSrc,
+			trpc,
+			updateShelfProduct,
+		],
 	);
 }

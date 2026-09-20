@@ -51,6 +51,7 @@ export function selectAssistantOrderDraftPreparation(
 
 export function createAssistantOrderDraftSalesHandoff(
 	draft: AssistantOrderDraft,
+	conversationId?: string,
 ) {
 	const preview = {
 		...draft.data,
@@ -59,7 +60,7 @@ export function createAssistantOrderDraftSalesHandoff(
 	} as SalesRequestGeneratePreviewOutput;
 	return {
 		preview,
-		href: `/sales-form/create-${draft.data.type}?${new URLSearchParams({ salesRequestGeneration: draft.data.generationId })}`,
+		href: `/sales-form/create-${draft.data.type}?${new URLSearchParams({ salesRequestGeneration: draft.data.generationId, ...(conversationId ? { assistantChat: conversationId } : {}) })}`,
 	};
 }
 
@@ -293,7 +294,12 @@ export function AssistantOrderDraftPreparationStatus({
 export function AssistantOrderDraftCanvas({
 	draft,
 	onClose,
-}: { draft: AssistantOrderDraft | null; onClose: () => void }) {
+	conversationId,
+}: {
+	draft: AssistantOrderDraft | null;
+	onClose: () => void;
+	conversationId?: string;
+}) {
 	const client = useTRPCClient();
 	const router = useRouter();
 	const canvasRef = useRef<HTMLDialogElement>(null);
@@ -330,6 +336,7 @@ export function AssistantOrderDraftCanvas({
 		const validateConfigurationRevision = async () => {
 			const current = await validatePreview.mutateAsync({
 				type: draft.data.type,
+				source: "assistant",
 				configurationScope: draft.data.configurationScope,
 				configurationRevision: draft.data.configurationRevision,
 				provider: draft.data.provider,
@@ -422,9 +429,11 @@ export function AssistantOrderDraftCanvas({
 				return;
 			}
 			const handoff = createAssistantOrderDraftSalesHandoff(draft);
-			writeSalesRequestGenerationHandoff(handoff.preview);
-			onClose();
-			router.push(handoff.href);
+			if (!conversationId) {
+				writeSalesRequestGenerationHandoff(handoff.preview);
+				onClose();
+				router.push(handoff.href);
+			}
 		} catch {
 			setHandoffError("The current Sales configuration could not be verified.");
 		} finally {
@@ -507,14 +516,33 @@ export function AssistantOrderDraftCanvas({
 				) : null}
 			</div>
 			<footer className="flex items-center justify-end gap-2 border-t p-4">
-				<Button
-					type="button"
-					onClick={() => void continueInSales()}
-					disabled={preparation?.status !== "ready" || handoffPending}
-				>
-					<Pencil className="mr-2" size={16} />{" "}
-					{handoffPending ? "Verifying…" : "Continue in Sales"}
-				</Button>
+				{conversationId && draft ? (
+					<Button asChild disabled={preparation?.status !== "ready"}>
+						<a
+							href={
+								createAssistantOrderDraftSalesHandoff(draft, conversationId)
+									.href
+							}
+							target="_blank"
+							rel="noopener noreferrer"
+							aria-disabled={preparation?.status !== "ready"}
+							onClick={(event) => {
+								if (preparation?.status !== "ready") event.preventDefault();
+							}}
+						>
+							<Pencil className="mr-2" size={16} /> Open draft in new tab
+						</a>
+					</Button>
+				) : (
+					<Button
+						type="button"
+						onClick={() => void continueInSales()}
+						disabled={preparation?.status !== "ready" || handoffPending}
+					>
+						<Pencil className="mr-2" size={16} />{" "}
+						{handoffPending ? "Verifying…" : "Continue in Sales"}
+					</Button>
+				)}
 			</footer>
 		</dialog>
 	);

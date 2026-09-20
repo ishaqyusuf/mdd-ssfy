@@ -131,6 +131,7 @@ import { transformSalesFilterQuery } from "@api/utils/sales";
 import { requireSalesOverviewViewer } from "@api/utils/sales-overview-access";
 import { requireWorkflowComponentEditor } from "@api/utils/workflow-component-access";
 import {
+	advanceSalesWorkflowCatalogRevision,
 	approveDealerOrderRequest,
 	getDealerOrderRequest,
 	getDealerOrderRequestAnalytics,
@@ -939,12 +940,16 @@ export const salesRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			const db = props.ctx.db;
 			const title = props.input.title;
-			return await db.dykeSteps.create({
-				data: {
-					uid: generateRandomString(4),
-					title,
-					meta: {},
-				},
+			return db.$transaction(async (tx) => {
+				const created = await tx.dykeSteps.create({
+					data: {
+						uid: generateRandomString(4),
+						title,
+						meta: {},
+					},
+				});
+				await advanceSalesWorkflowCatalogRevision(tx);
+				return created;
 			});
 			// return createStep(props.ctx, props.input);
 		}),

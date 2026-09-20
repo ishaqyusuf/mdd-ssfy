@@ -9,6 +9,7 @@ export type WorkflowComponentGridProps<TComponent> = {
 	getKey: (component: TComponent, index: number) => string;
 	renderComponent: (component: TComponent, index: number) => ReactNode;
 	leadingSlot?: ReactNode;
+	emptyMessage?: string;
 };
 
 export function WorkflowComponentGrid<TComponent>(
@@ -28,7 +29,8 @@ export function WorkflowComponentGrid<TComponent>(
 			</div>
 			{!props.components.length && !props.leadingSlot ? (
 				<div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
-					No components match "{props.search.trim()}".
+					{props.emptyMessage ??
+						`No components match "${props.search.trim()}".`}
 				</div>
 			) : null}
 		</>

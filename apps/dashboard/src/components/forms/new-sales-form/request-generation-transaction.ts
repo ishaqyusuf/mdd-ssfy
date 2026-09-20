@@ -20,6 +20,7 @@ export type RequestGenerationPhase =
 export type RequestGenerationState = {
 	phase: RequestGenerationPhase;
 	autosaveSuspended: boolean;
+	assistantHandoff: { conversationId: string; generationId: string } | null;
 	/**
 	 * An applied generated proposal must remain an in-memory native form until
 	 * the representative uses an explicit Save Draft or Finalize command.
@@ -144,6 +145,7 @@ export function createInitialRequestGenerationState(): RequestGenerationState {
 	return {
 		phase: "idle",
 		autosaveSuspended: false,
+		assistantHandoff: null,
 		manualSaveRequired: false,
 		lowTouchClaim: null,
 		appliedProposalIds: [],

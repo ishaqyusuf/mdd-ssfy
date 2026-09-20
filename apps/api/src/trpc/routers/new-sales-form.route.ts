@@ -28,6 +28,12 @@ import {
 	respondNewSalesFormAdjustmentApproval,
 } from "@api/db/queries/new-sales-form-adjustments";
 import {
+	getSalesFormCatalog,
+	getSalesFormCatalogRevisionSnapshot,
+	getSalesFormComponentUsageRanks,
+	searchSalesFormCustomComponents,
+} from "@api/db/queries/new-sales-form-catalog";
+import {
 	getSalesFormAdoption,
 	recordSalesFormUsage,
 	resetLegacySalesFormPreferences,
@@ -38,6 +44,8 @@ import {
 	deleteNewSalesFormLineItemSchema,
 	deleteNewSalesFormShelfProductSchema,
 	getNewSalesFormAdjustmentApprovalSchema,
+	getNewSalesFormCatalogRevisionSchema,
+	getNewSalesFormCatalogSchema,
 	getNewSalesFormHistorySnapshotSchema,
 	getNewSalesFormSchema,
 	getNewSalesFormShelfCategoriesSchema,
@@ -52,6 +60,7 @@ import {
 	saveDraftNewSalesFormSchema,
 	saveFinalNewSalesFormSchema,
 	searchNewSalesCustomersSchema,
+	searchNewSalesFormCustomComponentsSchema,
 	searchNewSalesFormServiceSuggestionsSchema,
 	searchNewSalesFormShelfProductsSchema,
 	updateNewSalesFormShelfProductSchema,
@@ -121,7 +130,29 @@ export const newSalesFormRouter = createTRPCRouter({
 	getStepRouting: protectedProcedure
 		.input(getNewSalesFormStepRoutingSchema)
 		.query(async (props) => {
-			return getNewSalesFormStepRouting(props.ctx, props.input);
+			return getNewSalesFormStepRouting(props.ctx, props.input, {
+				interactive: true,
+			});
+		}),
+	getComponentCatalog: protectedProcedure
+		.input(getNewSalesFormCatalogSchema)
+		.query(async (props) => {
+			return getSalesFormCatalog(props.ctx, props.input);
+		}),
+	getComponentUsageRanks: protectedProcedure
+		.input(getNewSalesFormCatalogSchema)
+		.query(async ({ ctx, input }) =>
+			getSalesFormComponentUsageRanks(ctx, input),
+		),
+	getCatalogRevision: protectedProcedure
+		.input(getNewSalesFormCatalogRevisionSchema)
+		.query(async (props) => {
+			return getSalesFormCatalogRevisionSnapshot(props.ctx);
+		}),
+	searchCustomComponents: protectedProcedure
+		.input(searchNewSalesFormCustomComponentsSchema)
+		.query(async (props) => {
+			return searchSalesFormCustomComponents(props.ctx, props.input);
 		}),
 	getPrintContext: protectedProcedure.query(async ({ ctx }) => {
 		return getNewSalesFormPrintContext(ctx);

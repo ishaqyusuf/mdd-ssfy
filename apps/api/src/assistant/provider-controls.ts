@@ -27,3 +27,15 @@ export function assertAssistantProviderEnabled(
 	if (!isAssistantProviderEnabled(provider, environment))
 		throw new AssistantProviderDisabledError();
 }
+
+export function getAssistantApiKey(
+	provider: string,
+	environment: Readonly<Record<string, string | undefined>> = process.env,
+) {
+	return (
+		environment[`ASSISTANT_${provider.toUpperCase()}_API_KEY`]?.trim() ||
+		(provider === "deepseek"
+			? environment.SALES_REQUEST_DEEPSEEK_API_KEY?.trim()
+			: undefined)
+	);
+}

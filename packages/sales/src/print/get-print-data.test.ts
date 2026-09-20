@@ -668,7 +668,7 @@ describe("getPrintData", () => {
 		const footerLines = result.pages[0]?.footer?.lines || [];
 
 		expect(result.pages[0]?.meta.total).toBe("$1,669.68");
-		expect(result.pages[0]?.meta.balanceDue).toBe("$1,669.68");
+		expect(result.pages[0]?.meta.balanceDue).toBe("$1,621.05");
 		expect(lineValue(footerLines, "Estimated Card Fee")).toBe("$48.63");
 		expect(lineValue(footerLines, "Order Due Amount")).toBe("$1,621.05");
 		expect(lineValue(footerLines, "Total if Paying by Card")).toBe("$1,669.68");

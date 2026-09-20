@@ -145,6 +145,7 @@ import {
 	useNewSalesFormShelfProductSearchQuery,
 	useNewSalesFormShelfProductsQuery,
 	useNewSalesFormStepRoutingQuery,
+	useSalesCustomComponentSearchQuery,
 	useSalesDeleteSupplierMutation,
 	useSalesSaveSupplierMutation,
 	useSalesStepComponentsQuery,
@@ -263,6 +264,7 @@ export function ItemWorkflowPanel() {
 		stepIndex: number;
 		title: string;
 		price: number | null;
+		priceEdited: boolean;
 		selectedOption: CustomComponentOption | null;
 	}>({
 		open: false,
@@ -270,6 +272,7 @@ export function ItemWorkflowPanel() {
 		stepIndex: -1,
 		title: "",
 		price: null,
+		priceEdited: false,
 		selectedOption: null,
 	});
 	const [supplierNameInput, setSupplierNameInput] = useState("");
@@ -291,7 +294,6 @@ export function ItemWorkflowPanel() {
 
 	const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
 	const routeData = stepRoutingQuery.data;
-	const suppliersQuery = useSalesSuppliersQuery(true);
 	const customerProfilesQuery = useCustomerProfilesQuery(true);
 	const saveSupplierMutation = useSalesSaveSupplierMutation();
 	const deleteSupplierMutation = useSalesDeleteSupplierMutation();
@@ -336,9 +338,39 @@ export function ItemWorkflowPanel() {
 		resolveActiveStepIndex: resolveInteractiveStepIndex,
 		getItemLabel: lineItemPickerLabel,
 	});
+	const selectedRootUid = String(activeLineSteps[0]?.prodUid || "");
+	const selectedRoot = routeData?.rootComponents?.find(
+		(component) => component.uid === selectedRootUid,
+	);
+	const needsShelfCatalog = Boolean(
+		record.lineItems.some((line) => line.shelfItems?.length) ||
+			String(selectedRoot?.title || activeLineSteps[0]?.value || "")
+				.toLowerCase()
+				.includes("shelf"),
+	);
+	const needsDoorSuppliers = routeScopedLineItems.some((line) =>
+		line.formSteps?.some(
+			(step) => String(step.step?.title || "").toLowerCase() === "door",
+		),
+	);
+	const suppliersQuery = useSalesSuppliersQuery(needsDoorSuppliers);
 	const activeDoorStep = activeLine
 		? findLineStepByTitle(activeLine, "Door")
 		: null;
+	const needsDoorCatalog = Boolean(
+		isDoorStepTitle(activeStep?.step?.title) ||
+		routeScopedLineItems.some(
+			(line) =>
+				Boolean(line.housePackageTool?.doors?.length) ||
+				line.formSteps?.some(
+					(step) =>
+						isDoorStepTitle(step?.step?.title) &&
+						Boolean(
+							step.prodUid || step.meta?.selectedComponents?.length,
+						),
+				),
+		),
+	);
 	const activeSelectedComponentUids = useMemo(
 		() =>
 			new Set(
@@ -399,10 +431,13 @@ export function ItemWorkflowPanel() {
 			),
 		[activeLine?.shelfItems],
 	);
-	const shelfCategoriesQuery = useNewSalesFormShelfCategoriesQuery({}, true);
+	const shelfCategoriesQuery = useNewSalesFormShelfCategoriesQuery(
+		{},
+		needsShelfCatalog,
+	);
 	const shelfProductsQuery = useNewSalesFormShelfProductsQuery(
 		{ categoryIds: shelfCategoryIds },
-		shelfUiVersion === "v1" && shelfCategoryIds.length > 0,
+		needsShelfCatalog && shelfUiVersion === "v1" && shelfCategoryIds.length > 0,
 	);
 	const selectedShelfProductIds = useMemo(
 		() =>
@@ -421,7 +456,7 @@ export function ItemWorkflowPanel() {
 			selectedIds: selectedShelfProductIds,
 			limit: shelfProductSearch.trim() ? 20 : 5,
 		},
-		shelfUiVersion === "v2",
+		needsShelfCatalog && shelfUiVersion === "v2",
 	);
 	const shelfProductsByCategory = useMemo(() => {
 		const bucket = new Map<number, ShelfProductRecord[]>();
@@ -452,6 +487,10 @@ export function ItemWorkflowPanel() {
 		scope: "category" | "section";
 	} | null>(null);
 	const [componentSearch, setComponentSearch] = useState("");
+	const [customCatalogTabScope, setCustomCatalogTabScope] = useState<
+		string | null
+	>(null);
+	const [debouncedCustomSearch, setDebouncedCustomSearch] = useState("");
 	const shelfParentCategories = useMemo(
 		() =>
 			shelfCategories.filter(
@@ -526,6 +565,46 @@ export function ItemWorkflowPanel() {
 		},
 		!!activeStep,
 	);
+	const activeCatalogScope = `${activeLine?.uid || ""}:${activeStepIndex}`;
+	useEffect(() => {
+		setCustomCatalogTabScope((scope) =>
+			scope === activeCatalogScope ? scope : null,
+		);
+	}, [activeCatalogScope]);
+	const customDialogActive =
+		customComponentDialog.open &&
+		customComponentDialog.lineUid === activeLine?.uid &&
+		customComponentDialog.stepIndex === activeStepIndex;
+	const customTabActive = customCatalogTabScope === activeCatalogScope;
+	const customSearchText = customDialogActive
+		? customComponentDialog.title.trim()
+		: customTabActive
+			? componentSearch.trim()
+			: "";
+	const selectedCustomUid = customDialogActive
+		? String(customComponentDialog.selectedOption?.uid || "")
+		: "";
+	useEffect(() => {
+		setDebouncedCustomSearch("");
+		if (customSearchText.length < 2) return;
+		const timer = setTimeout(
+			() => setDebouncedCustomSearch(customSearchText),
+			250,
+		);
+		return () => clearTimeout(timer);
+	}, [customSearchText]);
+	const customSearchReady =
+		customSearchText.length < 2
+			? !!selectedCustomUid
+			: debouncedCustomSearch === customSearchText;
+	const customSearchQuery = useSalesCustomComponentSearchQuery(
+		{
+			stepId: activeStep?.stepId || activeStep?.step?.id,
+			query: debouncedCustomSearch,
+			selectedUid: selectedCustomUid || undefined,
+		},
+		customSearchReady && (customDialogActive || customTabActive),
+	);
 	const rootStepId = routeData?.rootStepUid
 		? routeData?.stepsByUid?.[routeData.rootStepUid]?.id
 		: null;
@@ -535,13 +614,14 @@ export function ItemWorkflowPanel() {
 			stepTitle: null,
 		},
 		!!rootStepId,
+		routeData && "rootCatalog" in routeData ? routeData.rootCatalog : undefined,
 	);
 	const doorStepComponentsQuery = useSalesStepComponentsQuery(
 		{
 			stepId: activeDoorStep?.stepId || activeDoorStep?.step?.id,
 			stepTitle: activeDoorStep?.step?.title || null,
 		},
-		!!activeDoorStep,
+		!!activeDoorStep && needsDoorCatalog,
 	);
 	const activeDoorStepComponentOverrides = useMemo(
 		() => buildStepComponentOverrideMap(activeDoorStep || null),
@@ -579,15 +659,55 @@ export function ItemWorkflowPanel() {
 		activeProfileCoefficient,
 		activeStepComponentOverrides,
 	]);
+	const customSuggestions = useMemo(
+		() =>
+			resolveWorkflowCatalogComponents({
+				components:
+					customSearchReady && customSearchText.length >= 2
+						? customSearchQuery.data?.components || []
+						: [],
+				steps: activeLineSteps,
+				activeStep: activeStep || null,
+				overrides: activeStepComponentOverrides,
+				profileCoefficient: activeProfileCoefficient ?? 1,
+			}),
+		[
+			customSearchReady,
+			customSearchText,
+			customSearchQuery.data?.components,
+			activeLineSteps,
+			activeStep,
+			activeStepComponentOverrides,
+			activeProfileCoefficient,
+		],
+	);
 	const showActiveStepComponentPrices =
 		hasVisibleWorkflowComponentPrice(visibleComponents);
 	const activeStepSupportsComponentPrice = supportsWorkflowComponentPrice(
 		stepComponentsQuery.data || [],
 	);
 	const customComponentOptions = useMemo(
-		() => buildCustomComponentOptions(stepComponentsQuery.data || []),
-		[stepComponentsQuery.data],
+		() => buildCustomComponentOptions(customSuggestions),
+		[customSuggestions],
 	);
+	useEffect(() => {
+		const selected = customSearchQuery.data?.selectedComponent;
+		if (!customDialogActive || !selected || selected.isDeleted) return;
+		setCustomComponentDialog((current) => {
+			if (
+				!current.open ||
+				current.priceEdited ||
+				String(current.selectedOption?.uid || "") !== String(selected.uid || "")
+			)
+				return current;
+			const option = buildCustomComponentOptions([selected])[0];
+			if (!option) return current;
+			const price = firstFiniteNumber(selected.basePrice, selected.salesPrice);
+			if (current.title === option.title && current.price === price)
+				return current;
+			return { ...current, title: option.title, price, selectedOption: option };
+		});
+	}, [customDialogActive, customSearchQuery.data?.selectedComponent]);
 	const selectedCustomComponentOption = useMemo(() => {
 		const title = customComponentDialog.title.trim();
 		return (
@@ -887,6 +1007,7 @@ export function ItemWorkflowPanel() {
 			stepIndex,
 			title: selectedIsCustom ? hydratedSelectedOption?.title || "" : "",
 			price: selectedIsCustom ? (hydratedSelectedOption?.price ?? null) : null,
+			priceEdited: false,
 			selectedOption: hydratedSelectedOption,
 		});
 	}
@@ -897,6 +1018,7 @@ export function ItemWorkflowPanel() {
 			stepIndex: -1,
 			title: "",
 			price: null,
+			priceEdited: false,
 			selectedOption: null,
 		});
 	}
@@ -937,14 +1059,43 @@ export function ItemWorkflowPanel() {
 		const stepId = Number(step?.stepId || step?.step?.id || 0);
 		if (!stepId) return;
 		const selectedOption = getSelectedCustomComponentOption();
+		const latestCustomSearch = selectedOption?.uid
+			? await customSearchQuery.refetch()
+			: null;
+		if (latestCustomSearch?.isError) {
+			toast({
+				title: "Custom component unavailable",
+				description: "Could not verify the latest component price. Try again.",
+				variant: "destructive",
+			});
+			return;
+		}
+		const latestCustomData = latestCustomSearch?.data || customSearchQuery.data;
 		const selectedComponent = selectedOption
-			? (stepComponentsQuery.data || []).find(
+			? [
+					...(latestCustomData?.selectedComponent
+						? [latestCustomData.selectedComponent]
+						: []),
+					...(latestCustomData?.components || []),
+				].find(
 					(component) =>
 						String(component?.uid || "") === String(selectedOption.uid || "") ||
 						Number(component?.id || 0) ===
 							Number(selectedOption.componentId || 0),
 				)
 			: null;
+		if (
+			selectedOption?.uid &&
+			(!selectedComponent || selectedComponent.isDeleted)
+		) {
+			toast({
+				title: "Custom component unavailable",
+				description:
+					"Search for an active custom component before selecting it.",
+				variant: "destructive",
+			});
+			return;
+		}
 
 		if (
 			selectedOption &&
@@ -952,9 +1103,9 @@ export function ItemWorkflowPanel() {
 			!selectedCustomComponentPriceChanged
 		) {
 			const selectedPrice = firstFiniteNumber(
-				selectedOption.price,
 				selectedComponent.basePrice,
 				selectedComponent.salesPrice,
+				selectedOption.price,
 			);
 			const componentForSelection = withCustomSelectionPrice(
 				selectedComponent as WorkflowComponent,
@@ -1004,6 +1155,7 @@ export function ItemWorkflowPanel() {
 			selectedOverride: true,
 		});
 		void stepComponentsQuery.refetch();
+		if (customSearchReady) void customSearchQuery.refetch();
 		resetCustomComponentDialog();
 	}
 	async function archiveCustomComponent(option: CustomComponentOption) {
@@ -1012,6 +1164,7 @@ export function ItemWorkflowPanel() {
 			uid: option.uid || undefined,
 		});
 		await stepComponentsQuery.refetch();
+		if (customSearchReady) await customSearchQuery.refetch();
 		if (
 			selectedCustomComponentOption &&
 			(String(selectedCustomComponentOption.uid || "") ===
@@ -1044,6 +1197,11 @@ export function ItemWorkflowPanel() {
 				title={customComponentDialog.title}
 				price={customComponentDialog.price}
 				options={customComponentOptions}
+				searching={
+					(customSearchText.length >= 2 || !!selectedCustomUid) &&
+					(!customSearchReady || customSearchQuery.isPending)
+				}
+				searchError={customSearchQuery.isError}
 				selectedOption={selectedCustomComponentOption}
 				showPrice={activeStepSupportsComponentPrice}
 				disabled={
@@ -1066,6 +1224,7 @@ export function ItemWorkflowPanel() {
 					setCustomComponentDialog((prev) => ({
 						...prev,
 						price,
+						priceEdited: true,
 					}))
 				}
 				onSelect={(option) =>
@@ -2554,6 +2713,18 @@ export function ItemWorkflowPanel() {
 								loading={stepComponentsQuery.isPending}
 								components={visibleComponents}
 								catalogComponents={catalogComponents}
+								customSuggestions={customSuggestions}
+								customSearchLoading={
+									customTabActive &&
+									customSearchText.length >= 2 &&
+									(!customSearchReady || customSearchQuery.isPending)
+								}
+								customSearchError={customTabActive && customSearchQuery.isError}
+								onCatalogTabChange={(tab) =>
+									setCustomCatalogTabScope(
+										tab === "custom" ? activeCatalogScope : null,
+									)
+								}
 								filteredComponents={filteredVisibleComponents}
 								selectedUids={selectedUids}
 								search={componentSearch}

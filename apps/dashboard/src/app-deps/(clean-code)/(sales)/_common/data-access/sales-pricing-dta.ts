@@ -3,6 +3,7 @@ import { prisma, Prisma } from "@/db";
 
 import { DykeProductMeta } from "../../types";
 import { queueDykeStepToInventorySync } from "@gnd/inventory";
+import { saveLegacyComponentPricings, saveLegacyHarvestedPricings, updateLegacyComponentPricings } from "@gnd/db/queries";
 
 export type GetPricingList = AsyncFnType<typeof getPricingListDta>;
 export async function getPricingListDta(
@@ -27,53 +28,7 @@ export async function getComponentPricingListByUidDta(stepProductUid) {
 export async function updateComponentPricingsDta(
     data: Partial<Prisma.DykePricingSystemCreateManyInput>[],
 ) {
-    const inputStepIds = data
-        .map((item) => Number(item.dykeStepId || 0))
-        .filter(Boolean);
-    const pricingIds = data.map((item) => Number(item.id || 0)).filter(Boolean);
-    const existingPricings = pricingIds.length
-        ? await prisma.dykePricingSystem.findMany({
-              where: {
-                  id: {
-                      in: pricingIds,
-                  },
-              },
-              select: {
-                  dykeStepId: true,
-              },
-          })
-        : [];
-    const updateByPrice: { [price in string]: number[] } = {};
-    const deleteIds = [];
-    data.map((p) => {
-        const k = p.price;
-        if (!k) deleteIds.push(p.id);
-        if (updateByPrice[k]) updateByPrice[k].push(p.id);
-        else updateByPrice[k] = [p.id];
-    });
-    await Promise.all(
-        Object.entries(updateByPrice).map(async ([price, ids]) => {
-            await prisma.dykePricingSystem.updateMany({
-                where: { id: { in: ids } },
-                data: {
-                    price: price == "del" ? null : Number(price),
-                },
-            });
-        }),
-    );
-    if (deleteIds.length)
-        await prisma.dykePricingSystem.updateMany({
-            where: { id: { in: deleteIds } },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
-    const stepIds = Array.from(
-        new Set([
-            ...inputStepIds,
-            ...existingPricings.map((pricing) => pricing.dykeStepId),
-        ]),
-    ).filter(Boolean);
+    const stepIds = await updateLegacyComponentPricings(prisma, data);
     await Promise.all(
         stepIds.map((stepId) =>
             queueDykeStepToInventorySync({
@@ -86,19 +41,7 @@ export async function updateComponentPricingsDta(
 export async function saveComponentPricingsDta(
     data: Prisma.DykePricingSystemCreateManyInput[],
 ) {
-    const newData = data
-        .filter((a) => !a.id && a.price)
-        .map(({ id, ...rest }) => rest);
-
-    if (newData.length) {
-        const resp = await prisma.dykePricingSystem.createMany({
-            data: newData,
-        });
-    }
-    await updateComponentPricingsDta(data.filter((d) => d.id));
-    const stepIds = Array.from(
-        new Set(newData.map((item) => Number(item.dykeStepId || 0))),
-    ).filter(Boolean);
+    const stepIds = await saveLegacyComponentPricings(prisma, data);
     await Promise.all(
         stepIds.map((stepId) =>
             queueDykeStepToInventorySync({
@@ -111,10 +54,8 @@ export async function saveComponentPricingsDta(
         status: "success",
     };
 }
-export async function saveHarvestedDta(ls) {
-    const result = await prisma.dykePricingSystem.createMany({
-        data: ls,
-    });
+export async function saveHarvestedDta(ls: Prisma.DykePricingSystemCreateManyInput[]) {
+    const result = await saveLegacyHarvestedPricings(prisma, ls);
     const stepIds = Array.from(
         new Set(ls.map((item) => Number(item.dykeStepId || 0))),
     ).filter(Boolean);

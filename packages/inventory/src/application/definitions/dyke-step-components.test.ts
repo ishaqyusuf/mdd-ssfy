@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { upsertDykeCustomStepComponent } from "./dyke-step-components";
+import {
+	archiveDykeCustomStepComponent,
+	upsertDykeCustomStepComponent,
+} from "./dyke-step-components";
 
 function customComponentRecord() {
 	return {
@@ -109,5 +112,23 @@ describe("custom Dyke step components", () => {
 		expect(
 			(pricingUpdates[0]?.data as { deletedAt?: unknown }).deletedAt,
 		).toBeInstanceOf(Date);
+	});
+
+	it("archives a custom component in both metadata and the catalog column", async () => {
+		let updated: { data: { deletedAt: Date; meta: { deletedAt: string } } } | null = null;
+		const db = {
+			dykeStepProducts: {
+				findFirst: async () => ({ id: 1, meta: { label: "saved" } }),
+				update: async (input: typeof updated) => {
+					updated = input;
+					return { id: 1, dykeStepId: 2, uid: "custom-1" };
+				},
+			},
+		};
+		await archiveDykeCustomStepComponent(db as never, { id: 1 });
+		expect(updated?.data.deletedAt).toBeInstanceOf(Date);
+		expect(updated?.data.meta.deletedAt).toBe(
+			updated?.data.deletedAt.toISOString(),
+		);
 	});
 });

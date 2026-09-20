@@ -89,7 +89,25 @@ async function captureSalesRequestEvaluationResponse(
 	}
 }
 
-export const SALES_REQUEST_MAX_OUTPUT_TOKENS = 4_000;
+// Dense multi-line requests can exceed 4K before the seed JSON closes.
+export const SALES_REQUEST_MAX_OUTPUT_TOKENS = 8_000;
+const SALES_REQUEST_DENSE_SCHEDULE_MAX_OUTPUT_TOKENS = 12_000;
+
+export function salesRequestMaxOutputTokens(sourceText: string) {
+	const rows = sourceText.split(/\r?\n/).map((row) => row.trim());
+	const roomRows = rows.filter((row) =>
+		/^[^:\n]{2,80}\s+-\s+\d{2,3}\s*["”']?\s*[x×]\s*\d{2,3}/i.test(row));
+	const sideHeadings = new Set(
+		rows.filter((row) => /^(left|right) side$/i.test(row))
+			.map((row) => row.toLowerCase()),
+	);
+	const sideDoorRows = rows.filter((row) =>
+		/^(?:\d+\s*[x×]\s*)?\d{2}\s*["”]\s*(?:LT|RT)?\s*=/.test(row));
+	return roomRows.length >= 12 ||
+		(sideHeadings.size === 2 && sideDoorRows.length >= 12)
+		? SALES_REQUEST_DENSE_SCHEDULE_MAX_OUTPUT_TOKENS
+		: SALES_REQUEST_MAX_OUTPUT_TOKENS;
+}
 export const SALES_REQUEST_DEFAULT_MAX_RETRIES = 1;
 export const SALES_REQUEST_LIVE_EVALUATION_MAX_RETRIES = 0;
 
@@ -143,9 +161,14 @@ export function getSalesRequestProviderRuntimeOptions(
 export type SalesRequestProviderFailureDiagnostic = {
 	stage: "provider-api" | "structured-output" | "aborted" | "unknown";
 	structuredOutputCause?: "json-parse" | "schema-validation";
+	outputShape?: "object" | "array" | "primitive" | "invalid-json";
+	repairAttempted?: boolean;
+	configurationIssue?: "source" | "source-coverage" | "moulding-product" | "moulding-quantity" | "interpretation-source" | "interpretation-route" | "interpretation-title" | "custom-source" | "service-source" | "door-dimension-source" | "delivery-option-source" | "delivery-amount-source" | "route" | "catalog" | "dimensions" | "mouldings" | "interpretation" | "other";
+	routeFailureKind?: "missing-root" | "interior-for-exterior" | "slab-for-prehung" | "outside-step" | "service-route" | "swing-route";
 	schemaIssues?: Array<{
 		code: string;
 		path: string;
+		detail?: "zero-quantity" | "hpt-quantity-mismatch" | "zero-handed-units";
 	}>;
 	statusCode?: number;
 	providerCode?: number;
@@ -241,6 +264,7 @@ const SAFE_SCHEMA_PATH_SEGMENTS = new Set([
 	"formSteps",
 	"housePackageTool",
 	"id",
+	"interpretations",
 	"label",
 	"lhQty",
 	"lineItems",
@@ -255,6 +279,7 @@ const SAFE_SCHEMA_PATH_SEGMENTS = new Set([
 	"rhQty",
 	"schemaVersion",
 	"selectedProdUids",
+	"selectedProdUid",
 	"service",
 	"serviceRows",
 	"status",
@@ -278,7 +303,7 @@ function safeSchemaIssues(error: unknown) {
 		return undefined;
 	}
 	const seen = new Set<string>();
-	const issues: Array<{ code: string; path: string }> = [];
+	const issues: NonNullable<SalesRequestProviderFailureDiagnostic["schemaIssues"]> = [];
 	for (const issue of error.issues) {
 		if (typeof issue !== "object" || issue === null) continue;
 		const code = "code" in issue ? issue.code : undefined;
@@ -306,19 +331,43 @@ function safeSchemaIssues(error: unknown) {
 		const key = `${code}:${path}`;
 		if (seen.has(key)) continue;
 		seen.add(key);
-		issues.push({ code, path });
+		const message = "message" in issue ? issue.message : undefined;
+		const detail = path === "lineItems.[].qty" && code === "custom"
+			? message === "Zero quantities require selected moulding rows and an explicit quantity review"
+				? "zero-quantity" as const
+				: message === "Line quantity must equal its HPT door quantity"
+					? "hpt-quantity-mismatch" as const : undefined
+			: path === "lineItems.[].housePackageTool.doors.[]" &&
+				code === "custom" &&
+				message === "A door row must contain at least one handed unit"
+				? "zero-handed-units" as const : undefined;
+		issues.push({ code, path, ...(detail ? { detail } : {}) });
 		if (issues.length === 12) break;
 	}
 	return issues.length > 0 ? issues : undefined;
 }
 
 function structuredOutputCauseDiagnostic(error: NoObjectGeneratedError) {
+	let outputShape: SalesRequestProviderFailureDiagnostic["outputShape"];
+	if (error.text?.trim()) {
+		try {
+			const parsed: unknown = JSON.parse(error.text);
+			outputShape = Array.isArray(parsed)
+				? "array"
+				: parsed !== null && typeof parsed === "object"
+					? "object"
+					: "primitive";
+		} catch {
+			outputShape = "invalid-json";
+		}
+	}
 	if (JSONParseError.isInstance(error.cause)) {
-		return { structuredOutputCause: "json-parse" as const };
+		return { structuredOutputCause: "json-parse" as const, outputShape };
 	}
 	if (TypeValidationError.isInstance(error.cause)) {
 		return {
 			structuredOutputCause: "schema-validation" as const,
+			outputShape,
 			...(() => {
 				const schemaIssues = safeSchemaIssues(error.cause.cause);
 				return schemaIssues ? { schemaIssues } : {};
@@ -326,6 +375,137 @@ function structuredOutputCauseDiagnostic(error: NoObjectGeneratedError) {
 		};
 	}
 	return {};
+}
+
+function seedRepairFeedback(
+	issues: z.ZodIssue[],
+	seed?: z.infer<typeof newSalesFormSeedV2Schema>,
+) {
+	return JSON.stringify(
+		issues.map(({ path, message }) => {
+			const lineIndex = path[0] === "lineItems" ? path[1] : undefined;
+			const line =
+				typeof lineIndex === "number" ? seed?.lineItems[lineIndex] : undefined;
+			if (
+				message === "A door row must contain at least one handed unit" &&
+				path[2] === "housePackageTool" && path[3] === "doors"
+			) {
+				return {
+					path,
+					message: "A handled door row cannot use zero left and zero right as placeholders. Use a positive side count only when stated or confirmed. Otherwise omit housePackageTool on that line, retain its stated line quantity, and ask a line-scoped ambiguous handing question naming the room and exact stated size. Never invent a split.",
+				};
+			}
+			if (
+				message !== "Line quantity must equal its HPT door quantity" ||
+				path[2] !== "qty" ||
+				!line?.housePackageTool
+			) {
+				return { path, message };
+			}
+			const doorRowTotal = line.housePackageTool.doors.reduce(
+				(total, door) =>
+					total +
+					("totalQty" in door ? door.totalQty : door.lhQty + door.rhQty),
+				0,
+			);
+			return { path, message, lineQty: line.qty, doorRowTotal };
+		}),
+	);
+}
+
+export function safeConfigurationIssue(message: string): SalesRequestProviderFailureDiagnostic["configurationIssue"] {
+	if (/The door schedule has \d+ explicit entries|The door schedule selects \d+ units|The room door schedule has \d+ sized entries|The unsized .+ schedule entry must remain unresolved|width \d+' must remain an ambiguous question|The request includes \d+ (?:door stop|base|casing|crown) pieces|requested pocket door hardware is missing/i.test(message))
+		return "source-coverage";
+	if (/Moulding component .* must be stated|Requested Moulding .* is missing/i.test(message))
+		return "moulding-product";
+	if (/Moulding quantity .* must be stated|Moulding linear feet|Moulding piece length|Moulding waste percentage/i.test(message))
+		return "moulding-quantity";
+	if (/interpretation source text must be quoted/i.test(message))
+		return "interpretation-source";
+	if (/interpretation references a step outside its configured route/i.test(message))
+		return "interpretation-route";
+	if (/interpretation must use the current configured component title/i.test(message))
+		return "interpretation-title";
+	if (/Custom value .* must be stated/i.test(message))
+		return "custom-source";
+	if (/Service .* must be stated/i.test(message))
+		return "service-source";
+	if (/line uses a different size than the customer request/i.test(message))
+		return "door-dimension-source";
+	if (/Door dimension .* must be stated/i.test(message))
+		return "door-dimension-source";
+	if (/Delivery option .* must be stated/i.test(message))
+		return "delivery-option-source";
+	if (/delivery amount must be stated/i.test(message))
+		return "delivery-amount-source";
+	if (/must be stated in the customer request|must be quoted from the customer request/i.test(message))
+		return "source";
+	if (/moulding|linear feet|piece length|waste percentage/i.test(message))
+		return "mouldings";
+	if (/interpretation/i.test(message)) return "interpretation";
+	if (/dimension|height|door sizes|HPT quantity shape/i.test(message))
+		return "dimensions";
+	if (/route|exterior-only/i.test(message)) return "route";
+	if (/component|visibility|hidden|selection shape/i.test(message))
+		return "catalog";
+	return "other";
+}
+
+export function safeRouteFailureKind(message: string): SalesRequestProviderFailureDiagnostic["routeFailureKind"] {
+	if (/must select exactly one configured item route|has no configured item route/i.test(message)) return "missing-root";
+	if (/selects an interior route for an exterior-only customer request/i.test(message)) return "interior-for-exterior";
+	if (/selects a slabs-only route for a pre-hung customer request/i.test(message)) return "slab-for-prehung";
+	if (/selects step .* outside the .* route/i.test(message)) return "outside-step";
+	if (/places service rows outside a Services route/i.test(message)) return "service-route";
+	if (/includes swing on a route that does not support it/i.test(message)) return "swing-route";
+	return undefined;
+}
+
+function configurationRepairFeedback(message: string) {
+	if (/The door schedule has \d+ explicit entries/i.test(message)) {
+		return `${message} Count each separate door schedule row, including repeated sizes, bifolds, pocket doors and garage doors. Keep compatible units with their exact source count; for each unsupported or ambiguous row include its original dimension and descriptor in unresolved. Do not omit rows or increase another line's quantity to hide omissions.`;
+	}
+	if (/The door schedule selects \d+ units/i.test(message)) {
+		return `${message} Count only exact stated architectural dimensions as selected HPT units. A bare width followed by a slash height, such as 28 8/0, needs its own width-unit question; do not use another row's 2/8 size to resolve it.`;
+	}
+	if (/The room door schedule has \d+ sized entries/i.test(message)) {
+		return `${message} For each named room, preserve its source dimensions and unit count in housePackageTool doors when supported. If the width or product is ambiguous, keep the room name and exact source notation in an unresolved review item instead of treating a bare line quantity as a complete door.`;
+	}
+	if (/The unsized .+ schedule entry must remain unresolved/i.test(message)) {
+		return `${message} Keep the exact room name in an unresolved question. Do not assign another room's size or product to this blank entry.`;
+	}
+	if (/width \d+' must remain an ambiguous question/i.test(message)) {
+		return `${message} Ask the customer whether the single apostrophe means feet or was intended as inches. Keep the room name and quoted width in that question; retain the explicit height. Do not select a door width until the customer confirms its unit.`;
+	}
+	if (/The request includes \d+ (?:door stop|base|casing|crown) pieces|requested pocket door hardware is missing/i.test(message)) {
+		return `${message} Keep the stated accessory count and description. Select a catalog component only when it matches; otherwise add a quantity-preserving unresolved fact for that accessory. Do not hide it in another line's quantity.`;
+	}
+	if (/selects a slabs-only route for a pre-hung customer request/i.test(message)) {
+		return `${message} Remove the slabs-only line for the affected pre-hung assembly. Preserve only source-stated unit and leaf counts, with an unresolved review fact if the native route cannot express them. Select a compatible assembly route when available; do not invent a Door product, jamb or handed split.`;
+	}
+	if (/line uses a different size than the customer request/i.test(message)) {
+		return `${message} Compare this named room against its exact source row. Use that room's stated width, height and count only when the selected native route supports them; otherwise remove the conflicting size and keep the room and its exact source dimension in an unresolved Sales review note. Do not borrow another room's size or ask the customer to restate a dimension already supplied.`;
+	}
+	const category = safeConfigurationIssue(message);
+	if (category === "moulding-product") {
+		return `${message} Remove the unsupported Moulding component and its row. Ask for the catalog-identifying profile in unresolved; retain the customer's stated linear feet and piece counts in the question. Do not substitute a different profile.`;
+	}
+	if (category === "door-dimension-source") {
+		return `${message} Remove the unsupported housePackageTool dimension for the affected line. Keep the stated count and any reliable width or height in unresolved; ask only for the missing or ambiguous measurement. A single apostrophe is feet notation, so a value such as 30' cannot silently become 30 inches. Do not invent a replacement size.`;
+	}
+	if (category === "dimensions") {
+		return `${message} Compare each door's requested width and height with the selected route, Door Configuration, Height and available housePackageTool sizes. An 80-inch height is 6-8, not 8-0; 8-0 means 96 inches. Keep compatible requested door rows. For an unavailable size, omit its invalid housePackageTool row and record its exact requested dimension, count and handing as unsupported in unresolved; never substitute another height or width. If a shorthand width is ambiguous, ask for confirmation instead of guessing.`;
+	}
+	if (category === "route") {
+		return `${message} Keep each requested line on one compatible configured route. If the request explicitly says exterior, remove the Interior route. Remove selections outside that route; when no compatible route exists, retain the exact source-stated room, count and product facts in unresolved for Sales review. Do not add slab lines or invent unit, leaf or configuration details.`;
+	}
+	if (category === "delivery-option-source") {
+		return `${message} Omit form entirely until the customer explicitly states pickup or delivery.`;
+	}
+	if (category === "delivery-amount-source") {
+		return `${message} Omit the unstated delivery extra cost; do not invent a charge.`;
+	}
+	return message;
 }
 
 /** Keep only operational fields; never retain prompts, bodies, generated text, or credentials. */
@@ -421,6 +601,8 @@ function createProviderModel(
 export function createSalesRequestProvider(options: {
 	selection: SalesRequestAISelection;
 	environment?: SalesRequestProviderEnvironment;
+	/** Trusted server-side credential override for Assistant-owned runs. */
+	apiKey?: string;
 	maxRetries?: 0 | 1;
 	/** Manual-preview-only correction; evaluation defaults to no output repairs. */
 	maxOutputRepairs?: 0 | 1;
@@ -442,7 +624,7 @@ export function createSalesRequestProvider(options: {
 	if (!modelOption) {
 		throw new Error("The selected sales request AI model is not supported.");
 	}
-	const apiKey = getSalesRequestProviderApiKey(
+	const apiKey = options.apiKey?.trim() || getSalesRequestProviderApiKey(
 		selection.provider,
 		options.environment,
 	);
@@ -516,7 +698,7 @@ export function createSalesRequestProvider(options: {
 								{ role: "assistant" as const, content: repair.text },
 								{
 									role: "user" as const,
-									content: `Correct the previous JSON once. Validation errors: ${repair.feedback}. Return the complete seed JSON. Preserve every source quantity and dimension; never invent facts to satisfy validation. Use unresolved status only ambiguous, unreadable, or unsupported. Omit empty optional arrays. Output contract: ${JSON.stringify(z.toJSONSchema(newSalesFormSeedV2Schema))}`,
+									content: `Correct the previous JSON once. Validation errors: ${repair.feedback}. For a line quantity mismatch, compare the door-row total with the customer's request before changing either number or the rows. Return the complete seed JSON. Preserve every source quantity and dimension; never invent facts to satisfy validation. Use unresolved status only ambiguous, unreadable, or unsupported. Omit empty optional arrays. Output contract: ${JSON.stringify(z.toJSONSchema(newSalesFormSeedV2Schema))}`,
 								},
 							]
 						: []),
@@ -526,7 +708,7 @@ export function createSalesRequestProvider(options: {
 					selection.provider,
 				),
 				maxRetries,
-				maxOutputTokens: SALES_REQUEST_MAX_OUTPUT_TOKENS,
+				maxOutputTokens: salesRequestMaxOutputTokens(input.text),
 			});
 		} catch (error) {
 			if (
@@ -544,9 +726,25 @@ export function createSalesRequestProvider(options: {
 					},
 				);
 			}
-			throw new SalesRequestProviderExecutionError(
-				classifySalesRequestProviderFailure(error),
-			);
+			if (
+				options.maxOutputRepairs === 1 &&
+				!repair &&
+				NoObjectGeneratedError.isInstance(error) &&
+				error.text?.trim() &&
+				error.finishReason !== "length" &&
+				!input.signal.aborted
+			) {
+				return execute(input, {
+					text: error.text,
+					feedback: "The previous response was not a valid seed JSON object.",
+					inputTokens: error.usage?.inputTokens ?? 0,
+					outputTokens: error.usage?.outputTokens ?? 0,
+				});
+			}
+			throw new SalesRequestProviderExecutionError({
+				...classifySalesRequestProviderFailure(error),
+				repairAttempted: Boolean(repair),
+			});
 		}
 
 		const totalInputTokens = repair
@@ -580,7 +778,8 @@ export function createSalesRequestProvider(options: {
 		}
 		if (selection.provider === "deepseek") {
 			const configuration = JSON.parse(input.configurationJson) as {
-				steps?: Array<{ id: number; selectionMode?: string }>;
+				routes?: Array<{ rootStepId: number }>;
+				steps?: Array<{ id: number; title?: string; selectionMode?: string; components?: Array<[string, string]> }>;
 			};
 			const multipleStepIds = new Set(
 				(configuration.steps || [])
@@ -588,7 +787,22 @@ export function createSalesRequestProvider(options: {
 					.map((step) => step.id),
 			);
 			const shape = newSalesFormSeedV2Schema.safeParse(
-				normalizeSalesRequestProviderEnvelope(output, multipleStepIds),
+				normalizeSalesRequestProviderEnvelope(output, multipleStepIds,
+					(() => {
+						const heightStep = configuration.steps?.find((step) =>
+							step.title?.trim().toLowerCase() === "height");
+						const eightyInchUid = heightStep?.components?.find(
+							([, title]) => title.trim() === "6-8")?.[0];
+						return heightStep && eightyInchUid
+							? {
+								sourceText: input.text,
+								heightStepId: heightStep.id,
+								eightyInchUid,
+							}
+							: undefined;
+					})(),
+					new Set(configuration.routes?.map((route) => route.rootStepId)),
+				),
 			);
 			const parsed = shape.success
 				? newSalesFormSeedSchema.safeParse(input.prepareSeed ? input.prepareSeed(shape.data) : shape.data)
@@ -630,22 +844,27 @@ export function createSalesRequestProvider(options: {
 					return execute(input, {
 						text: result.text,
 						feedback:
-							configurationError ||
-							JSON.stringify(
-								(!parsed.success ? parsed.error.issues : []).map(
-									({ path, message }) => ({
-										path,
-										message,
-									}),
-								),
-							),
+							(configurationError && configurationRepairFeedback(configurationError)) ||
+								(!parsed.success
+									? seedRepairFeedback(
+											parsed.error.issues,
+											shape.success ? shape.data : undefined,
+										)
+									: ""),
 						inputTokens: result.usage.inputTokens ?? 0,
 						outputTokens: result.usage.outputTokens ?? 0,
 					});
 				}
+				const routeFailureKind = configurationError
+					? safeRouteFailureKind(configurationError) : undefined;
 				throw new SalesRequestProviderExecutionError({
 					stage: "structured-output",
 					structuredOutputCause: "schema-validation",
+					repairAttempted: Boolean(repair),
+					...(configurationError
+						? { configurationIssue: safeConfigurationIssue(configurationError) }
+						: {}),
+					...(routeFailureKind ? { routeFailureKind } : {}),
 					...(schemaIssues ? { schemaIssues } : {}),
 					...(result.finishReason ? { finishReason: result.finishReason } : {}),
 					...(finiteToken(totalInputTokens) !== undefined

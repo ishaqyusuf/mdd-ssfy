@@ -9,9 +9,36 @@ import {
 	countSalesRequestGenerationIssues,
 	createSalesRequestSeedDigest,
 	getSalesRequestGenerationPilotAuthorityBlockers,
+	normalizeSalesRequestProviderFailureTelemetry,
 } from "./sales-request-telemetry";
 
 describe("sales request telemetry boundaries", () => {
+	test("retains only fixed route diagnostics without customer or row text", () => {
+		expect(normalizeSalesRequestProviderFailureTelemetry({
+			configurationIssue: "route", routeFailureKind: "outside-step",
+		})).toEqual({ configurationIssue: "route", routeFailureKind: "outside-step" });
+		expect(normalizeSalesRequestProviderFailureTelemetry({
+			configurationIssue: "route", routeFailureKind: "room-1 private text",
+		})).toEqual({ configurationIssue: "route" });
+		expect(normalizeSalesRequestProviderFailureTelemetry({
+			configurationIssue: "catalog", routeFailureKind: "outside-step",
+		})).toEqual({ configurationIssue: "catalog" });
+	});
+	test("keeps only allowlisted quantity diagnostics", () => {
+		expect(normalizeSalesRequestProviderFailureTelemetry({
+			schemaIssues: [
+				{ code: "custom", path: "lineItems.[].qty", detail: "zero-quantity" },
+				{ code: "custom", path: "lineItems.[].qty", detail: "private text" },
+				{ code: "custom", path: "lineItems.[].housePackageTool.doors.[]", detail: "zero-handed-units" },
+				{ code: "custom", path: "lineItems.[].housePackageTool.doors.[]", detail: "private text" },
+			],
+		})).toEqual({ schemaIssues: [
+			{ code: "custom", path: "lineItems.[].qty", detail: "zero-quantity" },
+			{ code: "custom", path: "lineItems.[].qty" },
+			{ code: "custom", path: "lineItems.[].housePackageTool.doors.[]", detail: "zero-handed-units" },
+			{ code: "custom", path: "lineItems.[].housePackageTool.doors.[]" },
+		] });
+	});
 	test("aggregates privacy-safe provider failures for the settings chart", () => {
 		const diagnostics = aggregateSalesRequestProviderDiagnostics([
 			{

@@ -64,6 +64,7 @@ import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import {
     useNewSalesFormBootstrapQuery,
     useNewSalesFormGetQuery,
+	useNewSalesFormStepRoutingQuery,
 	useSalesRequestInterpretationWarningGuidanceMutation,
 	useSalesRequestPilotAccessQuery,
     useSaveFinalNewSalesFormMutation,
@@ -113,6 +114,9 @@ import {
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
+import { useSalesCatalogRevision } from "./use-sales-catalog-revision";
+import { useSalesCatalogBrowserTiming } from "./use-sales-catalog-browser-timing";
+import { isSalesCatalogCacheEnabled } from "./catalog-rollout";
 import { useSalesRequestGenerationOutcome } from "./use-request-generation-outcome";
 import { SalesRequestGenerationHandoff } from "./sales-request-generation-handoff";
 
@@ -435,6 +439,7 @@ function NewSalesFormSkeleton({ generated = false }: { generated?: boolean }) {
 }
 
 export function NewSalesForm(props: Props) {
+    useSalesCatalogBrowserTiming();
     const router = useRouter();
     const salesPrint = useSalesPrintController();
     const salesPreview = useSalesPreview();
@@ -442,6 +447,7 @@ export function NewSalesForm(props: Props) {
     const salesQueryClient = useSalesQueryClient();
     const trpc = useTRPC();
     const queryClient = useQueryClient();
+    const catalogRevisionQuery = useSalesCatalogRevision();
     const auth = useAuth();
 	const specialOrderEnrollmentAccess = useQuery(
 		trpc.specialOrder.enrollmentAccess.queryOptions(undefined, {
@@ -574,6 +580,8 @@ export function NewSalesForm(props: Props) {
         },
         props.mode === "create",
     );
+	// Begin the independent route/root-catalog request while bootstrap resolves.
+	useNewSalesFormStepRoutingQuery({});
     const getQuery = useNewSalesFormGetQuery(
         {
             type: props.type,
@@ -738,8 +746,13 @@ export function NewSalesForm(props: Props) {
 
     const payload = useMemo(() => {
         if (!record) return null;
-        return toSaveDraftInput(record, true);
-    }, [record]);
+        return {
+			...toSaveDraftInput(record, true),
+			...(requestGeneration.assistantHandoff && !record.salesId
+				? { assistantHandoff: requestGeneration.assistantHandoff }
+				: {}),
+		};
+    }, [record, requestGeneration.assistantHandoff]);
 	const loadedChangeProtection = (
 		loadData as
 			| {
@@ -1324,7 +1337,10 @@ export function NewSalesForm(props: Props) {
 				extraCosts: recoverySnapshot.payload.extraCosts,
 				summary: recoverySnapshot.payload.summary,
 			} as NewSalesFormRecord,
-			{ manualSaveRequired: recoverySnapshot.manualSaveRequired },
+			{
+				manualSaveRequired: recoverySnapshot.manualSaveRequired,
+				assistantHandoff: recoverySnapshot.payload.assistantHandoff ?? null,
+			},
 		);
         setRecoverySnapshot(null);
         toast({
@@ -1640,6 +1656,28 @@ export function NewSalesForm(props: Props) {
         const currentRecord = recordOverride || record;
         if (!currentRecord) return;
         if (intent === "final") {
+			const expectedCatalogRevision = isSalesCatalogCacheEnabled()
+				? catalogRevisionQuery.formRevision
+				: undefined;
+			if (isSalesCatalogCacheEnabled()) {
+				if (expectedCatalogRevision == null) {
+					toast({ title: "Catalog is loading", description: "Wait for the component catalog check before finalizing.", variant: "destructive" });
+					return;
+				}
+				if (catalogRevisionQuery.data?.revision !== expectedCatalogRevision) {
+					toast({ title: "Catalog changed", description: "Save a draft, then reopen and review current components and prices before finalizing.", variant: "destructive" });
+					return;
+				}
+				const loadedCatalogs = queryClient.getQueriesData<{ revision: number }>({
+					queryKey: trpc.newSalesForm.getComponentCatalog.queryKey(),
+					type: "active",
+				}).map(([, snapshot]) => snapshot).filter(Boolean);
+				if (!loadedCatalogs.length || loadedCatalogs.some((snapshot) =>
+					snapshot?.revision !== expectedCatalogRevision)) {
+					toast({ title: "Catalog needs review", description: "Wait for current components to load, then review the selections before finalizing.", variant: "destructive" });
+					return;
+				}
+			}
             const pendingQuantity = currentRecord.lineItems.some((line) => {
                 const rows = line.meta?.mouldingRows;
                 return Array.isArray(rows) && rows.some((row: { quantityReview?: boolean; qty?: number }) =>
@@ -1660,7 +1698,11 @@ export function NewSalesForm(props: Props) {
             try {
                 const resp = await finalSave.mutateAsync({
                     ...toSaveDraftInput(currentRecord, false, "final"),
+					...(expectedCatalogRevision == null ? {} : { expectedCatalogRevision }),
 					...(lowTouchClaim ? { lowTouchClaim } : {}),
+					...(requestGeneration.assistantHandoff && !currentRecord.salesId
+						? { assistantHandoff: requestGeneration.assistantHandoff }
+						: {}),
                     commitIntent: "final",
                     autosave: false,
                 });
@@ -1700,7 +1742,7 @@ export function NewSalesForm(props: Props) {
             return;
         }
 
-        const mustFlush = intent === "draft" || dirty || Boolean(recordOverride);
+		const mustFlush = intent === "draft" || dirty || Boolean(recordOverride);
         if (mustFlush) {
             setSaveFailure(null);
             markSaving();
@@ -1709,7 +1751,12 @@ export function NewSalesForm(props: Props) {
                 commitIntent: intent,
                 ...(recordOverride
                     ? {
-							payloadOverride: toSaveDraftInput(recordOverride, false, intent),
+							payloadOverride: {
+								...toSaveDraftInput(recordOverride, false, intent),
+								...(requestGeneration.assistantHandoff && !recordOverride.salesId
+									? { assistantHandoff: requestGeneration.assistantHandoff }
+									: {}),
+							},
                       }
                     : {}),
             });
@@ -2641,25 +2688,18 @@ export function NewSalesForm(props: Props) {
                         ) : null,
                     MainPanel: (
 						<div className="space-y-4">
-							{canShowSalesRequestGenerationEntry({
-								mode: props.mode,
-								hasHistoryPreview: Boolean(historyPreview),
-								pilotAccess: requestGenerationPilotAccess,
-							}) ? (
+							{props.mode === "create" && !historyPreview && auth?.can?.viewAssistant ? (
 								<div className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
 									<div className="min-w-0">
 										<p className="font-medium">Start from a customer request</p>
 										<p className="mt-1 text-xs text-muted-foreground">
-											Generate a read-only proposal from pasted text. The form stays unchanged while you review.
+											Describe the customer request in Assistant, then review the unsaved draft here.
 										</p>
 									</div>
 									<Button
 										type="button"
 										variant="outline"
-										aria-haspopup="dialog"
-										onClick={() =>
-											handleRequestGenerationOpenChange(true)
-										}
+										onClick={() => router.push(`/assistant?newSalesRequest=${props.type}`)}
 										disabled={autosave.isSaving}
 										className="shrink-0"
 									>

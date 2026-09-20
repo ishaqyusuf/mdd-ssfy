@@ -62,10 +62,40 @@ model AssistantConversation {
     messages       AssistantMessage[]
     runs           AssistantRun[]
     featureRequests AssistantFeatureRequest[]
+    salesRequestSession AssistantSalesRequestSession?
 
     @@index([ownerUserId, archivedAt, deletedAt, updatedAt], map: "asst_conv_owner_active_idx")
     @@index([ownerUserId, scopeType, scopeId, deletedAt], map: "asst_conv_scope_idx")
     @@index([retentionUntil, deletedAt], map: "asst_conv_retention_idx")
+}
+
+/// Private source, clarification and final preview for one Sales Request conversation.
+model AssistantSalesRequestSession {
+    id                    String                @id @default(cuid()) @db.VarChar(191)
+    conversationId        String                @unique(map: "asst_sales_request_conversation_uq") @db.VarChar(191)
+    ownerUserId           Int
+    scopeType             String                @db.VarChar(50)
+    scopeId               String                @db.VarChar(191)
+    saleType              String                @db.VarChar(16)
+    sourceText            String                @db.LongText
+    sourceFingerprint     String                @db.Char(64)
+    requestId             String                @db.VarChar(191)
+    provider              String                @db.VarChar(40)
+    model                 String                @db.VarChar(100)
+    status                String                @default("processing") @db.VarChar(24)
+    revision              Int                   @default(1)
+    clarificationId       String?               @db.VarChar(36)
+    generationId          String?               @db.VarChar(36)
+    finalPreview          Json?                 @db.Json
+    errorMessage          String?               @db.VarChar(500)
+    completedAt           DateTime?             @db.Timestamp(0)
+    createdAt             DateTime              @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime              @updatedAt
+    conversation          AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([ownerUserId, requestId], map: "asst_sales_request_idempotency_uq")
+    @@index([ownerUserId, scopeType, scopeId, status], map: "asst_sales_request_owner_scope_idx")
+    @@index([generationId, ownerUserId], map: "asst_sales_request_generation_owner_idx")
 }
 
 model AssistantUserEntitlement {

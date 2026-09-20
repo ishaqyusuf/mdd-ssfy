@@ -35,6 +35,19 @@ type PreviewContext = Snapshot & {
 	providerBenchmarkApprovalRevision: number;
 };
 
+export class SalesRequestPreviewNeedsClarification extends Error {
+	constructor(
+		readonly generationId: string,
+		readonly configurationScope: string,
+		readonly configurationRevision: string,
+		readonly provider: string,
+		readonly model: string,
+		readonly usage: { inputTokens?: number; outputTokens?: number },
+	) {
+		super("The request needs more details before a sales draft can be generated.");
+	}
+}
+
 type PreviewPhase =
 	| "authorization"
 	| "snapshot"
@@ -97,6 +110,8 @@ export async function createSalesRequestPreview(
 		text: string;
 		/** Decoded source for grounding when text is a canonical safety envelope. */
 		groundingText?: string;
+		/** Assistant questionnaires may recover a failed structured conversion with source-grounded questions. */
+		allowClarificationFallback?: boolean;
 		images: SalesRequestImage[];
 		signal: AbortSignal;
 	},
@@ -281,8 +296,20 @@ export async function createSalesRequestPreview(
 								...(providerFailure.structuredOutputCause
 									? {
 											structuredOutputCause:
-												providerFailure.structuredOutputCause,
+											providerFailure.structuredOutputCause,
 										}
+									: {}),
+								...(providerFailure.finishReason
+									? { finishReason: providerFailure.finishReason }
+									: {}),
+								...(providerFailure.outputShape
+									? { outputShape: providerFailure.outputShape }
+									: {}),
+								...(providerFailure.repairAttempted !== undefined
+									? { repairAttempted: providerFailure.repairAttempted }
+									: {}),
+								...(providerFailure.configurationIssue
+									? { configurationIssue: providerFailure.configurationIssue }
 									: {}),
 								...(providerFailure.schemaIssues
 									? { schemaIssues: providerFailure.schemaIssues }
@@ -310,6 +337,26 @@ export async function createSalesRequestPreview(
 					}
 				: {}),
 		});
+		if (
+			input.allowClarificationFallback &&
+			!input.signal.aborted &&
+			snapshot &&
+			providerFailure?.stage === "structured-output"
+		) {
+			throw new SalesRequestPreviewNeedsClarification(
+				generationId,
+				snapshot.scope,
+				snapshot.revision,
+				snapshot.aiSelection.provider,
+				snapshot.aiSelection.model,
+				{
+					...(providerFailure.inputTokens !== undefined
+						? { inputTokens: providerFailure.inputTokens } : {}),
+					...(providerFailure.outputTokens !== undefined
+						? { outputTokens: providerFailure.outputTokens } : {}),
+				},
+			);
+		}
 		throw error;
 	}
 }

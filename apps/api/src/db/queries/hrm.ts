@@ -28,6 +28,7 @@ import { TRPCError } from "@trpc/server";
 import { hash } from "bcrypt-ts";
 
 const EMPLOYEE_SPECIFIC_PERMISSION_NAMES = [
+	"view assistant",
 	"submit custom job",
 	"submit bug report",
 	"view mark sales order fulfilled",

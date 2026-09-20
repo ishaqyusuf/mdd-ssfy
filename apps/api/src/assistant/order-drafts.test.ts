@@ -162,6 +162,38 @@ describe("Assistant Sales Request orchestration", () => {
 		expect(actorUserIds).toEqual([42, 42, 42]);
 	});
 
+	test("uses the Assistant model for the native draft and rejects a changed pinned run", async () => {
+		const selected = { provider: "anthropic" as const, model: "claude-sonnet-5" };
+		const calls: string[] = [];
+		const runtime = draftRuntime({
+			readAssistantSelection: async () => selected,
+			readAuthoritySnapshot: async (_db, selection) => {
+				calls.push(`${selection.provider}:${selection.model}`);
+				return {
+					context: { ...previewSnapshot(), aiSelection: selection, providerBenchmarkApprovalRevision: 0 },
+					publication: { status: "published", publishedRevision: "catalog-revision-4" },
+				};
+			},
+			createProvider: (selection) => async () => ({
+				output: unresolvedSeed, provider: selection.provider, model: selection.model,
+			}),
+		});
+		const result = await createAssistantSalesRequestDraft(
+			assistantActor,
+			{ type: "order", text: "Two configured doors for delivery." },
+			new AbortController().signal, {} as never, runtime, {}, selected,
+		);
+		expect(result).toMatchObject(selected);
+		expect(calls).toEqual(["anthropic:claude-sonnet-5", "anthropic:claude-sonnet-5"]);
+		await expect(createAssistantSalesRequestDraft(
+			assistantActor,
+			{ type: "order", text: "Two configured doors for delivery." },
+			new AbortController().signal, {} as never, runtime, {},
+			{ provider: "openai", model: "gpt-5-mini" },
+		)).rejects.toThrow("Assistant AI configuration changed");
+		expect(calls).toHaveLength(2);
+	});
+
 	test("rejects stale or revision-mismatched publication before paid work", async () => {
 		let reserved = false;
 		let providerCalled = false;
@@ -275,6 +307,7 @@ function draftRuntime(
 	return {
 		authorize: async () => {},
 		reserveUsage: async () => {},
+		readAssistantSelection: async () => ({ provider: "openai", model: "gpt-5-mini" }),
 		readAuthoritySnapshot: async () => ({
 			context: previewSnapshot(),
 			publication: {

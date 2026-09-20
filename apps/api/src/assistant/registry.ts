@@ -2446,6 +2446,7 @@ export function getExecutableAssistantDefinitions(
 ) {
 	return assistantToolRegistry.filter(
 		(tool) =>
+			tool.toolId !== "sales_draft_from_request" &&
 			tool.capability === "implemented" &&
 			assistantEffectPolicies[tool.effect].directExecution &&
 			isAssistantToolControlEnabled(tool, environment) &&
@@ -2500,6 +2501,7 @@ export function discoverAssistantTools(
 	return assistantToolRegistry
 		.filter(
 			(tool) =>
+				tool.toolId !== "sales_draft_from_request" &&
 				tool.capability === "implemented" &&
 				assistantEffectPolicies[tool.effect].directExecution &&
 				isAssistantToolControlEnabled(tool, environment) &&

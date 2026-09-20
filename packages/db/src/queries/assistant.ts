@@ -1828,6 +1828,9 @@ export async function purgeAssistantConversationDueForRetention(
 			where: { conversationId: input.conversationId },
 			data: { conversationId: null },
 		});
+		await tx.assistantSalesRequestSession.deleteMany({
+			where: { conversationId: input.conversationId },
+		});
 		if (usageEventIds.length) {
 			await tx.assistantUsageReconciliation.deleteMany({
 				where: { usageEventId: { in: usageEventIds } },

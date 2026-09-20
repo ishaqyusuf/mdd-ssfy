@@ -17,6 +17,7 @@ model Customers {
     createdAt      DateTime?             @default(now()) @db.Timestamp(0)
     updatedAt      DateTime?             @updatedAt
     salesOrders    SalesOrders[]
+    messagingSourceCustomers MessagingCustomer[]
     dealerSales    DealerSales[]
     profile        CustomerTypes?        @relation(fields: [customerTypeId], references: [id])
     addressBooks   AddressBooks[]        @relation(name: "addressBooks")

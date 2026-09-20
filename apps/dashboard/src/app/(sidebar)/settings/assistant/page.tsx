@@ -22,7 +22,7 @@ export default async function AssistantAdministrationPage() {
 	const profile = await getLoggedInProfile();
 	if (profile.role?.toLowerCase() !== "super admin") redirect("/");
 	await batchPrefetch([
-		trpc.assistant.adminEntitlements.queryOptions({ take: 100 }),
+		trpc.assistant.adminPermissions.queryOptions({ take: 100 }),
 		trpc.assistant.runtimeSettings.queryOptions(),
 	]);
 	return (

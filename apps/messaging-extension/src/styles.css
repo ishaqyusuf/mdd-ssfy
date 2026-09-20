@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src/components/button.tsx";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+}
+
+:root {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  --background: #fbfaf8;
+  --foreground: #1c2933;
+  --primary: #18566e;
+  --primary-foreground: #ffffff;
+  --border: #dce3e4;
+  --ring: #528ba0;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 330px; }
+.connection-shell { display: flex; flex-direction: column; gap: 22px; min-height: 100vh; padding: 28px 24px; }
+.connection-shell.compact { min-height: 320px; }
+.shell-header { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { color: var(--primary); font-size: 11px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+h1 { font-size: 23px; line-height: 1.15; letter-spacing: -.04em; margin: 0; }
+p { color: #586973; font-size: 13px; line-height: 1.5; margin: 0; }
+.status-card { border: 1px solid var(--border); border-radius: 12px; background: #ffffff; padding: 17px; display: flex; flex-direction: column; gap: 6px; }
+.status-card strong { font-size: 15px; }
+.status-label { color: var(--primary); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.footnote { font-size: 11px; }

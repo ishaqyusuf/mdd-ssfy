@@ -25,6 +25,50 @@ export const USER_PERMISSION_MODEL_TYPE_ALIASES = [
 	"App\\Models\\User",
 ] as const;
 
+export const ASSISTANT_ACCESS_PERMISSION = "view assistant";
+
+export async function getAssistantPermissionSource(db: Db, userId: number) {
+	const user = await db.users.findFirst({
+		where: { id: userId, deletedAt: null, accessRevokedAt: null },
+		select: {
+			roles: {
+				where: {
+					deletedAt: null,
+					organization: { deletedAt: null },
+					role: { deletedAt: null },
+				},
+				select: {
+					role: {
+						select: {
+							name: true,
+							RoleHasPermissions: {
+								where: {
+									deletedAt: null,
+									permission: { name: ASSISTANT_ACCESS_PERMISSION, deletedAt: null },
+								},
+								select: { permissionId: true },
+							},
+						},
+					},
+				},
+			},
+		},
+	});
+	if (!user) return { enabled: false, inherited: false, direct: false, superAdmin: false };
+	const superAdmin = user.roles.some(({ role }) => role.name.toLowerCase() === "super admin");
+	const inherited = user.roles.some(({ role }) => role.RoleHasPermissions.length > 0);
+	const direct = Boolean(await db.modelHasPermissions.findFirst({
+		where: {
+			modelId: BigInt(userId),
+			modelType: { in: [...USER_PERMISSION_MODEL_TYPE_ALIASES] },
+			deletedAt: null,
+			permissions: { name: ASSISTANT_ACCESS_PERMISSION, deletedAt: null },
+		},
+		select: { permissionId: true },
+	}));
+	return { enabled: superAdmin || inherited || direct, inherited, direct, superAdmin };
+}
+
 export function buildSessionExpiry(from = Date.now()) {
 	return new Date(from + AUTH_SESSION_MAX_AGE_MS);
 }

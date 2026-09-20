@@ -314,6 +314,7 @@ describe("sales request evaluation corpus", () => {
 				issues: [
 					"fact-mismatch:request-unsupported:provider:unresolved[0]",
 					"fact-mismatch:request-unsupported:seed:unresolved[0]",
+					"empty-native-draft",
 				],
 			},
 			seed: output,
@@ -464,6 +465,71 @@ describe("sales request evaluation corpus", () => {
 			unresolvedCount: 0,
 			issues: [],
 		});
+		await expect(
+			verifySalesRequestCorpusSeedCompatibility(
+				{
+					...seed,
+					unresolved: [
+						{
+							lineUid: null,
+							stepId: null,
+							field: "anotherProduct",
+							status: "unsupported",
+							reason: "Sales review needed for an additional product",
+						},
+					],
+				},
+				compatibleConfiguration,
+			),
+		).resolves.toMatchObject({
+			initializer: "passed",
+			saveReopen: "passed",
+			unresolvedCount: 1,
+			issues: [],
+		});
+	});
+
+	test("does not pass a fact-matching seed that cannot open a native draft", async () => {
+		const output = {
+			schemaVersion: 2 as const,
+			lineItems: [],
+			unresolved: [requestFact.provider.value],
+		};
+		const result = await evaluateSalesRequestCorpusCase({
+			caseData: {
+				id: "blocked-native-draft",
+				label: "Blocked native draft",
+				language: "en",
+				sourceType: "email",
+				sanitized: true,
+				text: "one door",
+				inputSha256: "hash",
+				configurationLock,
+				factExpectations: {
+					shelfItemsExcluded: true,
+					facts: [requestFact],
+				},
+				expectedProviderOutput: output,
+				expectedSeed: output,
+			},
+			configurationJson,
+			configurationRevision,
+			provider: async () => ({ output }),
+		});
+
+		expect(result).toMatchObject({
+			status: "review-required",
+			validation: {
+				status: "review-required",
+				facts: "passed",
+				initializer: "blocked",
+				saveReopen: "blocked",
+			},
+			metrics: {
+				providerOracle: { wholeOrderMatch: true },
+				seedOracle: { wholeOrderMatch: true },
+			},
+		});
 	});
 
 	test("replays every supplied email oracle offline through native compatibility", async () => {
@@ -538,20 +604,64 @@ describe("sales request evaluation corpus", () => {
 				caseData,
 				configurationJson: caseConfigurationJson,
 				configurationRevision: caseRevision,
+				archivedPromptVersion: "new-sales-form-seed-v8",
 				provider: async () => ({
 					output: structuredClone(caseData.expectedProviderOutput),
 				}),
 			});
-			expect(result.status, caseData.id).toBe("ok");
-			if (result.status !== "ok") continue;
+			const expectedSeedDrift = [
+				"exterior-impact-door-sidelite",
+				"spanish-carrara-door-package",
+				"spanish-fire-rated-double-doors",
+				"townhouse-multifloor-door-package",
+			].includes(caseData.id);
+			expect(result.status, caseData.id).toBe("review-required");
+			if (result.status === "error") continue;
 			expect(result.metrics.providerOracle?.wholeOrderMatch).toBe(true);
-			expect(result.metrics.seedOracle?.wholeOrderMatch).toBe(true);
+			expect(result.metrics.seedOracle?.wholeOrderMatch, caseData.id).toBe(
+				!expectedSeedDrift,
+			);
+			expect(
+				result.metrics.seedOracle?.mismatches.map(({ path }) => path),
+			).toEqual(expectedSeedDrift ? ["unresolved.lineReferences"] : []);
+			if (expectedSeedDrift) {
+				const lineReferences = result.metrics.seedOracle?.mismatches[0];
+				const expectedFacts = (lineReferences?.expected as { facts: string[] })
+					.facts;
+				const actualFacts = (lineReferences?.actual as { facts: string[] })
+					.facts;
+				const expectedAdditionalReferences: Record<string, string[]> = {
+					"exterior-impact-door-sidelite": [
+						"line:0:61:jambSize:ambiguous",
+						"none::pvcBrickMoulding:ambiguous",
+					],
+					"spanish-fire-rated-double-doors": [
+						"line:0:61:jambSize:ambiguous",
+						"line:0::handing:ambiguous",
+						"line:0::swing:ambiguous",
+					],
+					"spanish-carrara-door-package": [
+						...Array(9).fill("none::doorSchedule:unsupported"),
+						...Array(4).fill("none::moulding:ambiguous"),
+						"none::width:ambiguous",
+					],
+					"townhouse-multifloor-door-package": [
+						...Array(22).fill("none::doorSchedule:unsupported"),
+						"none::width:unsupported",
+					],
+				};
+				expect(actualFacts.filter((fact) => !expectedFacts.includes(fact))).toEqual(
+					expectedAdditionalReferences[caseData.id],
+				);
+			}
 			expect(result.validation).toMatchObject({
 				facts: "passed",
 				normalization: "passed",
-				initializer: "blocked",
-				saveReopen: "blocked",
 			});
+			expect(result.validation.initializer).toBe(result.validation.saveReopen);
+			if (result.seed.lineItems.length > 0 && result.validation.issues.length === 0) {
+				expect(result.validation.initializer, caseData.id).toBe("passed");
+			}
 		}
 
 		const mouldings = cases.find(
@@ -562,13 +672,24 @@ describe("sales request evaluation corpus", () => {
 			caseData: mouldings,
 			configurationJson: currentConfigurationJson,
 			configurationRevision: currentRevision,
+			archivedPromptVersion: "new-sales-form-seed-v8",
 			provider: async () => ({
 				output: structuredClone(mouldings.expectedProviderOutput),
 			}),
 		});
 		expect(control.status).toBe("ok");
-		if (control.status === "ok") {
+		if (control.status !== "error") {
+			expect(control.metrics.factExpectations.provider.all).toMatchObject({ expected: 11, matched: 11 });
+			expect(control.metrics.factExpectations.seed.all).toMatchObject({ expected: 11, matched: 11 });
+			expect(control.metrics.providerOracle?.wholeOrderMatch).toBe(true);
+			expect(control.metrics.seedOracle?.wholeOrderMatch).toBe(true);
+			expect(control.seed).toHaveProperty(
+				"lineItems.0.meta.mouldingRows.0.calculation",
+				{ linearFeet: 400, pieceLength: 16, wastePercentage: 10 },
+			);
 			expect(control.validation).toMatchObject({
+				facts: "passed",
+				issues: [],
 				initializer: "passed",
 				saveReopen: "passed",
 			});
@@ -651,7 +772,8 @@ describe("sales request evaluation corpus", () => {
 		});
 
 		expect(result).toMatchObject({
-			status: "ok",
+			status: "review-required",
+			validation: { initializer: "blocked", saveReopen: "blocked" },
 			providerOutput: seed,
 			seed,
 			metrics: { inputTokens: 10, outputTokens: 20, unresolvedCount: 1 },

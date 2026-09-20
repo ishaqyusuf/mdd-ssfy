@@ -1,19 +1,22 @@
 "use client";
 
-import { toast } from "@gnd/ui/use-toast";
+import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
+import { useQuery } from "@gnd/ui/tanstack";
+import { toast } from "@gnd/ui/use-toast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useNewSalesFormStepRoutingQuery } from "./api";
 import { SalesRequestDoorReview } from "./request-generation-door-review";
-import { resolveSalesRequestDoorProduct } from "./request-generation-review-edit";
-import { SalesRequestReviewContent } from "./request-generation-panel";
-import { buildSalesRequestReviewModel } from "./request-generation-presentation";
+import { useNewSalesFormStore } from "./store";
 import {
 	clearSalesRequestGenerationHandoff,
 	readSalesRequestGenerationHandoff,
 	writeSalesRequestGenerationHandoff,
 } from "./request-generation-handoff";
+import { SalesRequestReviewContent } from "./request-generation-panel";
+import { buildSalesRequestReviewModel } from "./request-generation-presentation";
+import { resolveSalesRequestDoorProduct } from "./request-generation-review-edit";
 import {
 	getSalesRequestGenerationApplyMessage,
 	useSalesRequestGenerationApply,
@@ -25,16 +28,33 @@ export function SalesRequestGenerationHandoff(props: {
 	onBeforeApply?: () => void;
 	loadingFallback?: ReactNode;
 }) {
+	const trpc = useTRPC();
 	const pathname = usePathname();
 	const router = useRouter();
 	const searchParams = useSearchParams();
+	const assistantChat = searchParams.get("assistantChat");
 	const attemptedRef = useRef(false);
+	const setAssistantHandoff = useNewSalesFormStore((state) => state.setAssistantHandoff);
 	const [failure, setFailure] = useState<string | null>(null);
 	const [retryCount, setRetryCount] = useState(0);
 	const [retrying, setRetrying] = useState(false);
 	const [preview, setPreview] = useState(() =>
-		readSalesRequestGenerationHandoff(props.generationId),
+		assistantChat
+			? null
+			: readSalesRequestGenerationHandoff(props.generationId),
 	);
+	const serverHandoff = useQuery(
+		trpc.assistant.getSalesDraftHandoff.queryOptions(
+			{
+				conversationId: assistantChat || "",
+				generationId: props.generationId,
+			},
+			{ enabled: Boolean(assistantChat && !preview), retry: false },
+		),
+	);
+	useEffect(() => {
+		if (serverHandoff.data?.preview) setPreview(serverHandoff.data.preview);
+	}, [serverHandoff.data]);
 	const routing = useNewSalesFormStepRoutingQuery({}, Boolean(preview));
 	const reviewModel = useMemo(
 		() =>
@@ -43,6 +63,7 @@ export function SalesRequestGenerationHandoff(props: {
 	);
 	const apply = useSalesRequestGenerationApply({
 		type: props.type,
+		validationSource: assistantChat ? "assistant" : undefined,
 		open: Boolean(preview),
 		preview,
 		routeData: routing.data,
@@ -54,20 +75,6 @@ export function SalesRequestGenerationHandoff(props: {
 		allowUnresolvedDraft: true,
 		onBeforeApply: props.onBeforeApply,
 	});
-
-	useEffect(() => {
-		if (preview || attemptedRef.current) return;
-		attemptedRef.current = true;
-		const next = new URLSearchParams(searchParams.toString());
-		next.delete("salesRequestGeneration");
-		const query = next.toString();
-		router.replace(query ? `${pathname}?${query}` : pathname);
-		toast({
-			variant: "destructive",
-			title: "Generated draft expired",
-			description: "Paste the request again to create a new draft.",
-		});
-	}, [pathname, preview, router, searchParams]);
 
 	useEffect(() => {
 		if (
@@ -83,9 +90,14 @@ export function SalesRequestGenerationHandoff(props: {
 				result?.status === "applied" ||
 				result?.status === "already-applied"
 			) {
+				if (assistantChat) setAssistantHandoff({
+					conversationId: assistantChat,
+					generationId: props.generationId,
+				});
 				clearSalesRequestGenerationHandoff(props.generationId);
 				const next = new URLSearchParams(searchParams.toString());
 				next.delete("salesRequestGeneration");
+				next.delete("assistantChat");
 				const query = next.toString();
 				router.replace(query ? `${pathname}?${query}` : pathname);
 				toast({
@@ -108,15 +120,48 @@ export function SalesRequestGenerationHandoff(props: {
 		apply.apply,
 		apply.applyDisabled,
 		apply.applyMessage,
+		assistantChat,
 		pathname,
 		preview,
 		props.generationId,
+		setAssistantHandoff,
 		router,
 		searchParams,
 		retryCount,
 	]);
+	const savedSale = serverHandoff.data?.savedSale;
+	if (savedSale) return (
+		<section className="m-4 space-y-3 rounded-lg border p-4" aria-label="Generated request">
+			<h2 className="font-medium">{`${props.type === "order" ? "Order" : "Quote"} ${savedSale.orderId} was already saved.`}</h2>
+			<Button asChild size="sm">
+				<a href={`/sales-form/edit-${props.type}/${encodeURIComponent(savedSale.slug)}`}>Open saved {props.type}</a>
+			</Button>
+		</section>
+	);
 
-	if (!preview) return props.loadingFallback ?? null;
+	if (!preview) {
+		if (assistantChat && serverHandoff.isPending)
+			return props.loadingFallback ?? null;
+		return (
+			<section className="m-4 space-y-3 rounded-lg border p-4" aria-label="Generated request">
+				<h2 className="font-medium">Generated draft unavailable</h2>
+				<p role="alert" className="text-sm text-muted-foreground">
+					{assistantChat
+						? "This draft link expired or you no longer have access. Open the Assistant chat to review the request."
+						: "This draft is no longer available. Start a new request in Assistant."}
+				</p>
+				<Button
+					type="button"
+					size="sm"
+					onClick={() => router.push(assistantChat
+						? `/assistant?chat=${encodeURIComponent(assistantChat)}`
+						: `/assistant?newSalesRequest=${props.type}`)}
+				>
+					{assistantChat ? "Open Assistant chat" : "Start a new request"}
+				</Button>
+			</section>
+		);
+	}
 	const dependencyError =
 		apply.applyDisabledReason === "routing-error" ||
 		apply.applyDisabledReason === "route-unavailable"

@@ -22,6 +22,7 @@ import {
 	Star,
 	Trash2,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import {
 	formatAssistantQuotaSummary,
@@ -44,9 +45,10 @@ type AssistantHeaderProps = {
 };
 
 export function AssistantHeader(props: AssistantHeaderProps) {
-	const quota = props.quota
-		? formatAssistantQuotaSummary(props.quota)
-		: null;
+	const [hydrated, setHydrated] = useState(false);
+	useEffect(() => setHydrated(true), []);
+	const quota =
+		hydrated && props.quota ? formatAssistantQuotaSummary(props.quota) : null;
 
 	return (
 		<header className="flex items-center gap-3 border-b px-4 py-3 md:px-6">

@@ -65,7 +65,10 @@ type NewSalesFormActions = {
 	hydrate: (record: NewSalesFormRecord) => void;
 	restoreLocalDraft: (
 		record: NewSalesFormRecord,
-		options?: { manualSaveRequired?: boolean },
+		options?: {
+			manualSaveRequired?: boolean;
+			assistantHandoff?: RequestGenerationState["assistantHandoff"];
+		},
 	) => void;
 	setMeta: (patch: Partial<NewSalesFormMeta>) => void;
 	setDeliveryOption: (
@@ -104,6 +107,7 @@ type NewSalesFormActions = {
 	clearDirty: () => void;
 	setEditor: (patch: Partial<NewSalesFormEditorState>) => void;
 	setRequestGenerationPhase: (phase: RequestGenerationPhase) => void;
+	setAssistantHandoff: (claim: { conversationId: string; generationId: string }) => void;
 	applyRequestGenerationProposal: (
 		proposal: PreparedRequestGenerationProposal,
 		currentConfigurationRevision: string,
@@ -173,6 +177,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 			requestGeneration: {
 				...state.requestGeneration,
 				lowTouchClaim: null,
+				assistantHandoff: options?.assistantHandoff ?? null,
 				manualSaveRequired:
 					options?.manualSaveRequired ??
 					state.requestGeneration.manualSaveRequired,
@@ -267,6 +272,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 				...state.requestGeneration,
 				manualSaveRequired: false,
 				lowTouchClaim: null,
+				assistantHandoff: null,
 			},
 		})),
 	markError: (message) =>
@@ -285,6 +291,13 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 				phase,
 				autosaveSuspended: phase !== "idle",
 			},
+		})),
+	setAssistantHandoff: (claim) =>
+		set((state) => ({
+			...state,
+			requestGeneration: state.requestGeneration.appliedProposalIds.includes(claim.generationId)
+				? { ...state.requestGeneration, assistantHandoff: claim }
+				: state.requestGeneration,
 		})),
 	applyRequestGenerationProposal: (proposal, currentConfigurationRevision) => {
 		let result: ApplyRequestGenerationProposalResult = {
@@ -339,6 +352,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 				requestGeneration: {
 					phase: "idle",
 					autosaveSuspended: false,
+					assistantHandoff: null,
 					manualSaveRequired: true,
 					lowTouchClaim: proposal.lowTouchClaim
 						? {
@@ -379,6 +393,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 					requestGeneration: {
 						phase: "idle",
 						autosaveSuspended: false,
+						assistantHandoff: null,
 						manualSaveRequired: false,
 						lowTouchClaim: null,
 						appliedProposalIds,
@@ -406,6 +421,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 				requestGeneration: {
 					phase: "idle",
 					autosaveSuspended: false,
+					assistantHandoff: null,
 					manualSaveRequired: selective.retainedLineUids.length > 0,
 					lowTouchClaim: null,
 					appliedProposalIds,

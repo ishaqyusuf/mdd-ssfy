@@ -33,6 +33,7 @@ type InvoicePrintPageSnapshotInput = InvoicePrintSnapshotInput &
 		summary: unknown;
 		extraCosts: unknown;
 		salesperson: unknown;
+		cccPercentage?: number | null;
 	};
 
 function record(value: unknown): Record<string, unknown> {
@@ -179,6 +180,10 @@ export function buildInvoicePrintPageFromSalesFormSnapshot(
 		meta: {
 			po: text(form.po),
 			newSalesForm: { form },
+			...(typeof input.cccPercentage === "number" &&
+			Number.isFinite(input.cccPercentage)
+				? { ccc_percentage: input.cccPercentage }
+				: {}),
 		},
 		extraCosts,
 		subTotal: number(summary.subTotal),

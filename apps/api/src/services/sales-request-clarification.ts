@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { NewSalesFormSeed } from "@gnd/sales/sales-form";
+import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
+import { isComponentVisibleByRules } from "@gnd/sales/sales-form/domain/step-engine";
+import { deriveDoorSizeCandidates } from "@gnd/sales/sales-form/domain/workflow-calculators";
 import { TRPCError } from "@trpc/server";
 import {
 	type InterpretationWarningCategory,
@@ -8,7 +11,10 @@ import {
 	interpretationWarningKey,
 	reusableInterpretationField,
 } from "./sales-request-interpretation-warning";
-import { createSalesRequestPreview } from "./sales-request-preview";
+import {
+	SalesRequestPreviewNeedsClarification,
+	createSalesRequestPreview,
+} from "./sales-request-preview";
 
 export {
 	SALES_REQUEST_INTERPRETATION_WARNING_CATEGORIES,
@@ -18,6 +24,7 @@ export {
 
 type Preview = Awaited<ReturnType<typeof createSalesRequestPreview>>;
 type Dependencies = Parameters<typeof createSalesRequestPreview>[1];
+type Configuration = Awaited<ReturnType<Dependencies["readSnapshot"]>>["configuration"];
 export type ClarificationQuestion = {
 	id: string;
 	lineUid: string | null;
@@ -25,6 +32,8 @@ export type ClarificationQuestion = {
 	question: string;
 	sourceText: string | null;
 	reason: string;
+	options?: Array<{ value: string; label: string }>;
+	canSaveRule?: boolean;
 };
 type Answer = {
 	questionId: string;
@@ -76,6 +85,9 @@ export type ClarificationDatabase = {
 function conflict(message: string): never {
 	throw new TRPCError({ code: "CONFLICT", message });
 }
+function incompleteDimensionReference(text: string) {
+	return /^[x×]\s*\d{1,3}\b/i.test(text.trim());
+}
 export function clarificationSourceReference(
 	reason: string,
 	sourceText: string,
@@ -83,7 +95,7 @@ export function clarificationSourceReference(
 ) {
 	const quoted = [...reason.matchAll(/["“]([^"”]{4,160})["”]/g)]
 		.map((match) => match[1] ?? "")
-		.filter(Boolean)
+		.filter((phrase) => phrase && !incompleteDimensionReference(phrase))
 		.find((phrase) => sourceText.toLowerCase().includes(phrase.toLowerCase()));
 	const title =
 		quoted ??
@@ -101,23 +113,531 @@ export function clarificationSourceReference(
 	const index = sourceText.toLowerCase().indexOf(title.toLowerCase());
 	return sourceText.slice(index, index + title.length);
 }
+function configuredQuestionOptions(
+	item: Preview["seed"]["unresolved"][number],
+	preview: Preview,
+	configuration: Configuration,
+	sourceText: string,
+) {
+	const field = item.field.toLowerCase().replace(/[^a-z0-9]/g, "");
+	if (field === "width" && item.lineUid === null) {
+		const bare = item.reason.match(/"(\d{2})\s+[1-9][-/](?:1[01]|\d)\b[^"\n]*"/);
+		if (bare) {
+			const inches = Number(bare[1]);
+			const feet = Number(bare[1]?.[0]);
+			const remainder = Number(bare[1]?.[1]);
+			if (inches >= 12 && inches <= 96 && feet >= 1 && remainder <= 9)
+				return [
+					{ value: `${inches} inches`, label: `${inches} inches (${Math.floor(inches / 12)}-${inches % 12})` },
+					{ value: `${feet}-${remainder}`, label: `${feet}-${remainder} (${feet * 12 + remainder} inches)` },
+				];
+		}
+	}
+	const line = preview.seed.lineItems.find((candidate) => candidate.uid === item.lineUid);
+	const routeForLine = configuration.routes.find((route) =>
+		line?.formSteps.some((selected) =>
+			selected.stepId === route.rootStepId && selected.prodUid === route.itemTypeUid,
+		),
+	);
+	const rootTitle = (route: Configuration["routes"][number]) =>
+		configuration.steps.find((step) => step.id === route.rootStepId)
+			?.components.find((component) => component.uid === route.itemTypeUid)?.title;
+	const relevantRoutes = configuration.routes.filter((route) => {
+		const title = rootTitle(route)?.trim();
+		return title && sourceText.toLowerCase().includes(title.toLowerCase());
+	});
+	const route = routeForLine ??
+		(relevantRoutes.length === 1 ? relevantRoutes[0] : undefined) ??
+		(configuration.routes.length === 1 ? configuration.routes[0] : undefined);
+	if (!route) return [];
+	const routeTitle = rootTitle(route) ?? "";
+	if ((field === "doorsize" || field === "width") && line) {
+		const nativeSteps = line.formSteps.flatMap((selected) => {
+			const step = configuration.steps.find((candidate) => candidate.id === selected.stepId);
+			if (!step) return [];
+			const prodUid = "prodUid" in selected ? selected.prodUid : "meta" in selected
+				? selected.meta.selectedProdUids[0] : undefined;
+			const title = step.components.find((component) => component.uid === prodUid)?.title ??
+				("value" in selected ? selected.value : "");
+			return [{ stepId: step.id, prodUid, value: title, step: { uid: step.uid, title: step.title } }];
+		});
+		for (const step of configuration.steps) {
+			if (!route.stepUids.includes(step.uid) || !step.doorSizeVariation?.length ||
+				nativeSteps.some((selected) => selected.stepId === step.id)) continue;
+			nativeSteps.push({ stepId: step.id, prodUid: undefined, value: "", step: { uid: step.uid, title: step.title } });
+		}
+		const stepsByUid = Object.fromEntries(configuration.steps
+			.filter((step) => route.stepUids.includes(step.uid))
+			.map((step) => [step.uid, {
+			id: step.id, uid: step.uid, title: step.title,
+			...(step.doorSizeVariation?.length ? { meta: { doorSizeVariation: step.doorSizeVariation } } : {}),
+			}]));
+		const sizes = deriveDoorSizeCandidates({ formSteps: nativeSteps }, {}, { stepsByUid });
+		return sizes.map((size) => ({ value: size, label: size }));
+	}
+	if (field === "swing" && route.config?.hasSwing === true) return [
+		{ value: "In-Swing", label: "In-Swing" },
+		{ value: "Out-Swing", label: "Out-Swing" },
+	];
+	if (field === "handing" && route.config?.noHandle !== true &&
+		line && Number.isSafeInteger(line.qty) && line.qty > 0) return [
+		{ value: `${line.qty} left-hand, 0 right-hand`, label: `All ${line.qty} left-hand` },
+		{ value: `0 left-hand, ${line.qty} right-hand`, label: `All ${line.qty} right-hand` },
+	];
+	const step = configuration.steps.find((candidate) =>
+		candidate.title.toLowerCase().replace(/[^a-z0-9]/g, "") === field ||
+		candidate.uid.toLowerCase().replace(/[^a-z0-9]/g, "") === field,
+	);
+	if (!step || (step.id !== route.rootStepId && !route.stepUids.includes(step.uid)))
+		return [];
+	const components = step.id === route.rootStepId
+		? step.components.filter((component) => component.uid === route.itemTypeUid)
+		: field === "jambsize" && /pre[- ]?hung|^exterior\b|garage door/i.test(routeTitle)
+			? step.components.filter((component) => !/door slab only|no frame/i.test(component.title))
+			: step.components;
+	const selectedByStepUid: Record<string, string> = {};
+	const selectedProdUidsByStepUid: Record<string, string[]> = {};
+	for (const selected of line?.formSteps ?? []) {
+		const selectedStep = configuration.steps.find((candidate) => candidate.id === selected.stepId);
+		if (!selectedStep) continue;
+		const uids = "prodUid" in selected && typeof selected.prodUid === "string"
+			? [selected.prodUid]
+			: "meta" in selected && selected.meta && "selectedProdUids" in selected.meta &&
+				Array.isArray(selected.meta.selectedProdUids)
+				? selected.meta.selectedProdUids.filter((uid): uid is string => typeof uid === "string")
+				: [];
+		if (uids[0]) selectedByStepUid[selectedStep.uid] = uids[0];
+		selectedProdUidsByStepUid[selectedStep.uid] = uids;
+	}
+	const seen = new Set<string>();
+	return components.flatMap((component) => {
+		const visibility = configuration.visibilityByComponentUid[component.uid];
+		if (visibility && !isComponentVisibleByRules(
+			visibility, selectedByStepUid, selectedProdUidsByStepUid,
+		)) return [];
+		const title = component.title.trim();
+		if (!title || title.length > 120 || seen.has(title.toLowerCase())) return [];
+		seen.add(title.toLowerCase());
+		return [{ value: title, label: title }];
+	});
+}
+
+function questionPrompt(
+	field: string,
+	reason: string,
+	sourceReference: string | null,
+	sourceText: string,
+) {
+	const statement = reason.trim()
+		.replace(/\s*\((?:e\.g\.?|for example)[^)]{0,180}\)/gi, "")
+		.replace(/\s+/g, " ");
+	const normalizedField = field.toLowerCase().replace(/[^a-z]/g, "");
+	if (normalizedField === "handingswing" &&
+		/leaf-level left\/right quantities/i.test(reason) &&
+		(/\b(?:four|4)\s+(?:total\s+)?leaves\b/i.test(reason) ||
+			/\bcantidad:\s*4\b/i.test(sourceText)) &&
+		/\b(?:two|2) double-door|dos unidades de doble puerta/i.test(`${reason} ${sourceText}`)) {
+		return "Confirm the left/right leaf counts for the two double-door units (four leaves total).";
+	}
+	if (normalizedField === "doorschedule" && /\bno heights\b/i.test(statement) &&
+		/\bleft side\b/i.test(sourceText) && /\bright side\b/i.test(sourceText))
+		return "What height applies to the listed doors on Left Side and Right Side? If heights differ, list each side, room, and height.";
+	if (normalizedField === "mouldingprofile") {
+		const stockClaim = statement.match(/\b(\d+)(?:[- ]foot|[- ]ft|['’])\s+stock\b/i);
+		if (stockClaim) {
+			const side = statement.match(/\b(left|right) side\b/i)?.[0];
+			const section = side
+				? sourceText.split(new RegExp(`\\b${side}\\b`, "i"))[1]?.split(/\b(?:left|right) side\b/i)[0] ?? ""
+				: sourceText;
+			if (new RegExp(`\\b${stockClaim[1]}(?:[- ]foot|[- ]ft|['’])\\s+stock\\b|\\bstock(?: length)?\\s*(?:of|:)?\\s*${stockClaim[1]}\\b`, "i").test(section))
+				return statement;
+			const feet = section.match(/\b(\d+)\s+linear\s+feet\s+for\s+baseboard\b/i)?.[1];
+			return `Confirm the baseboard profile and stock length${side ? ` for ${side}` : ""}${feet ? `: ${feet} linear feet of baseboard` : ""}.`;
+		}
+		return statement;
+	}
+	if (normalizedField === "boardproduct") return statement;
+	if (/["“‘]\s*[x×]\s*\d{1,3}[^"”’]*["”’]/i.test(statement)) {
+		return `Confirm the ${field.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").toLowerCase()} for this request.`;
+	}
+	if (
+		(normalizedField === "door" && /\b(?:door product|door style|matching door|compatible door)\b/i.test(statement)) ||
+		/\b(?:no compatible door product|provide a matching door style)\b/i.test(statement)
+	) {
+		const sourceSegments = sourceText.split(/\r?\n|;/).map((segment) => segment.trim()).filter(Boolean);
+		const dimensionPattern = /\b\d{1,3}(?:\s*-\s*\d)?\s*[x×]\s*\d{1,3}(?:\s*-\s*\d)?\b/i;
+		const statedDimension = statement.match(dimensionPattern)?.[0]?.replace(/\s+/g, " ");
+		const onlySourceSegment = sourceSegments.length === 1 ? sourceSegments[0] : null;
+		const sourceSegment = statedDimension
+			? onlySourceSegment?.match(dimensionPattern)?.[0]?.replace(/\s+/g, " ") === statedDimension
+				? onlySourceSegment ?? ""
+				: ""
+			: sourceSegments.find((segment) =>
+			dimensionPattern.test(segment) && /\bdoor\b/i.test(segment),
+		) ?? sourceSegments.find((segment) => /\bdoor\b/i.test(segment)) ?? "";
+		const dimension = statedDimension ?? sourceSegment.match(dimensionPattern)?.[0]?.replace(/\s+/g, " ");
+		const hand = /\b(?:left[- ]hand(?:ed)?|LH)\b/i.test(sourceSegment)
+			? "left-hand"
+			: /\b(?:right[- ]hand(?:ed)?|RH)\b/i.test(sourceSegment)
+				? "right-hand" : null;
+		const attributes = [
+			/\bprimed\b/i.test(sourceSegment) ? "primed" : null,
+			/\bwhite\b/i.test(sourceSegment) ? "white" : null,
+			/\binterior\b/i.test(sourceSegment) ? "interior" : null,
+			/\bpre[- ]hung\b/i.test(sourceSegment) ? "pre-hung" : null,
+		].filter(Boolean);
+		const description = [dimension, hand, ...attributes].filter(Boolean).join(" ");
+		return `Confirm the Door product/style for ${description ? `the ${description} door` : "this door"}.`;
+	}
+	if (statement.length <= 180 && /^(?:please\s+)?(?:confirm|which|what|how|specify|provide|choose|select|clarify|identify|state)\b/i.test(statement))
+		return statement;
+	const label = field.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").toLowerCase();
+	return `Confirm the ${label}${sourceReference ? ` for “${sourceReference}”` : " for this request"}.`;
+}
+
+function unspecifiedScheduleFacts(
+	sourceText: string,
+	answered: readonly { field?: string }[] = [],
+) {
+	const rows = sourceText.split(/\r?\n/).map((row) => row.trim());
+	const missingSize = rows.find((row) => /^[^:\n]{3,80}\s+-\s*$/.test(row));
+	const uncertainWidth = rows.find((row) =>
+		/^[^:\n]{3,80}\s+-\s*\d{2,3}'\s*[x×]\s*\d{2,3}["”]/i.test(row),
+	);
+	if (!missingSize || !uncertainWidth) return [];
+	const missingRoom = missingSize.split(/\s+-\s*$/)[0];
+	const uncertainRoom = uncertainWidth.split(/\s+-\s*/)[0];
+	return [
+		{ field: "roomSize", reason: `What size is the ${missingRoom} door?` },
+		{ field: "width", reason: `Confirm the intended width and unit for ${uncertainRoom}: the source says ${uncertainWidth.match(/\d{2,3}'\s*[x×]\s*\d{2,3}["”]/)?.[0]}.` },
+	].filter((item) => !answered.some((answer) =>
+		answer.field?.toLowerCase() === item.field.toLowerCase(),
+	));
+}
+
+function clarifyUnspecifiedScheduleRows<TPreview extends Preview>(
+	preview: TPreview,
+	sourceText: string,
+	answered: readonly Answer[] = [],
+): TPreview {
+	if (!unspecifiedScheduleFacts(sourceText).length) return preview;
+	const questions = unspecifiedScheduleFacts(sourceText,
+		answered.map((answer) => ({ field: answer.question.field })));
+	const broadIssue = preview.seed.unresolved.find((item) =>
+		item.lineUid === null && item.status === "ambiguous" &&
+		item.field.toLowerCase() === "doors" &&
+		/\b(?:door rows|per.room|entire schedule|all listed doors)\b/i.test(item.reason),
+	);
+	if (!broadIssue) return preview;
+	return {
+		...preview,
+		seed: {
+			...preview.seed,
+			unresolved: preview.seed.unresolved.flatMap((item) => item === broadIssue
+				? [
+					{ ...item, status: "unsupported" as const,
+						reason: "Review the remaining door product and assembly matches against the source schedule." },
+					...questions.map((question) => ({ ...item, ...question, status: "ambiguous" as const })),
+				]
+				: [item]),
+		},
+	} as TPreview;
+}
+
+export function reviewDenseArchitecturalSchedule<TPreview extends Preview>(
+	preview: TPreview,
+	sourceText: string,
+	answered: readonly Answer[] = [],
+): TPreview {
+	const sizedRows = sourceText.split(/\r?\n/).filter((row) =>
+		/^(?:(?:bifold|pocket)\s+)?(?:[1-9][-/](?:1[01]|\d)|\d{2})\s+[1-9][-/](?:1[01]|\d)\b/i.test(row.trim()),
+	);
+	if (sizedRows.length < 8) return preview;
+	const sourceSizes = new Set(sizedRows.flatMap((row) => {
+		const size = row.trim().match(/^(?:(?:bifold|pocket)\s+)?([1-9][-/](?:1[01]|\d))\s+([1-9][-/](?:1[01]|\d))\b/i);
+		return size ? [`${size[1]?.replace("/", "-")} x ${size[2]?.replace("/", "-")}`] : [];
+	}));
+	const sourceHeights = new Set([...sourceSizes].map((size) => size.split(" x ")[1]));
+	const reviewFields = new Set([
+		"door", "doorconfiguration", "jambsize", "handing", "swing",
+		"moulding", "mouldingprofile", "pocketdoorhardware", "lineitem",
+	]);
+	const unresolved = preview.seed.unresolved.map((item) => {
+		if (item.status !== "ambiguous") return item;
+		const field = item.field.toLowerCase().replace(/[^a-z]/g, "");
+		const statedSize = [...item.reason.matchAll(/\b([1-9][-/](?:1[01]|\d))\s*[x×]\s*([1-9][-/](?:1[01]|\d))\b/gi)]
+			.some((match) => sourceSizes.has(
+				`${match[1]?.replace("/", "-")} x ${match[2]?.replace("/", "-")}`,
+			));
+		const statedHeight = field === "height" &&
+			[...item.reason.matchAll(/\b([1-9][-/](?:1[01]|\d))\b/g)]
+				.some((match) => sourceHeights.has(match[1]?.replace("/", "-")));
+		const statedAccessoryCount =
+			(field === "doorstopquantity" && /\bdoor\s+stop\s*\(\s*\d+\s*\)/i.test(sourceText)) ||
+			(field === "mouldingquantities" && /\b\d+\s+tiras\s+de\s+(?:base|casing|crown)\b/i.test(sourceText));
+		return reviewFields.has(field) || (field === "doorsize" && statedSize) ||
+			statedHeight || statedAccessoryCount
+			? { ...item, status: "unsupported" as const }
+			: item;
+	});
+	const bareRows = sizedRows.filter((row) => {
+		const match = row.trim().match(/^(\d{2})\s+[1-9][-/](?:1[01]|\d)\b/);
+		if (!match) return false;
+		const inches = Number(match[1]);
+		return inches >= 12 && inches <= 96;
+	});
+	const bare = bareRows.length === 1 ? bareRows[0]?.trim() : undefined;
+	if (bare && !answered.some((answer) => answer.question.field.toLowerCase() === "width") &&
+		!unresolved.some((item) => item.status === "ambiguous" &&
+			item.field.toLowerCase() === "width")) {
+		unresolved.push({
+			lineUid: null, stepId: null, field: "width", status: "ambiguous",
+			reason: `Confirm the width for "${bare}": does ${bare.slice(0, 2)} mean inches or architectural feet/inches?`,
+		});
+	}
+	return {
+		...preview,
+		seed: {
+			...preview.seed,
+			unresolved,
+		},
+	} as TPreview;
+}
+
 function questionsFor(
 	preview: Preview,
 	sourceText: string,
-	productTitles: readonly string[] = [],
+	configuration: Configuration,
+	answered: readonly Answer[] = [],
 ): ClarificationQuestion[] {
-	return preview.seed.unresolved.map((item) => ({
+	const productTitles = configuration.steps.flatMap((step) =>
+		step.components.map((component) => component.title),
+	);
+	const combinedLeafLines = new Set(preview.seed.unresolved
+		.filter((item) => item.lineUid &&
+			item.field.toLowerCase().replace(/[^a-z]/g, "") === "handingswing" &&
+			/leaf-level left\/right quantities/i.test(item.reason) &&
+			(/\b(?:four|4)\s+(?:total\s+)?leaves\b/i.test(item.reason) ||
+				/\bcantidad:\s*4\b/i.test(sourceText)) &&
+			/\b(?:two|2) double-door|dos unidades de doble puerta/i.test(`${item.reason} ${sourceText}`))
+		.map((item) => item.lineUid));
+	const sourceStatesOutSwing = /\b(?:out[- ]?swing|outward)\b|apertura\s+hacia\s+afuera/i.test(sourceText);
+	const unresolved = preview.seed.unresolved
+		.filter((item) =>
+			item.status !== "unsupported" &&
+			!(combinedLeafLines.has(item.lineUid) &&
+				(item.field.toLowerCase() === "handing" ||
+					(item.field.toLowerCase() === "swing" && sourceStatesOutSwing))) &&
+			!answered.some((previous) =>
+				previous.question.lineUid === item.lineUid &&
+				previous.question.field.toLowerCase() === item.field.toLowerCase(),
+			),
+		);
+	const bifoldRows = sourceText.split(/\r?\n/).map((row) => row.trim())
+		.filter((row) => /^Bifold\s+\d+[/\-]\d+\s+\d+[/\-]\d+$/i.test(row));
+	const bifoldQuestions = unresolved.filter((item) => item.lineUid &&
+		item.field.toLowerCase().replace(/[^a-z]/g, "") === "doortype" &&
+		bifoldRows.some((row) => item.reason.includes(row)));
+	const groupedBifold = bifoldQuestions.length > 1 &&
+		bifoldQuestions.every((item) => item.lineUid === bifoldQuestions[0]?.lineUid) &&
+		bifoldQuestions.every((item) => bifoldRows.some((row) => item.reason.includes(row)))
+		? bifoldQuestions : [];
+	const groupedBifoldPrompt = groupedBifold.length
+		? `Which door type applies to the Bifold doors (${[...new Set(bifoldRows)]
+			.filter((row) => groupedBifold.some((item) => item.reason.includes(row)))
+			.map((row) => {
+				const count = bifoldRows.filter((sourceRow) => sourceRow === row).length;
+				return `${count > 1 ? `${count} × ` : ""}${row.slice("Bifold ".length).replace(/\s+/, " × ")}`;
+			}).join(", ")})? If types differ, choose Other and list each size's type.`
+		: null;
+	return unresolved
+		.filter((item) => !groupedBifold.includes(item) || item === groupedBifold[0])
+		.map((item) => {
+			const normalizedField = item.field.toLowerCase().replace(/[^a-z]/g, "");
+			const scheduleRow = item.lineUid === null &&
+				(normalizedField === "roomsize" || normalizedField === "width")
+				? sourceText.split(/\r?\n/).map((row) => row.trim()).find((row) =>
+					/^[^:\n]{3,80}\s+-\s*/.test(row) &&
+					item.reason.includes(row.split(/\s+-\s*/)[0] ?? "\0"),
+				) : null;
+			const sourceReference = scheduleRow ?? (normalizedField === "mouldingprofile" && /\bbaseboard\b/i.test(sourceText)
+				? sourceText.match(/\bbaseboard\b/i)?.[0] ?? null
+				: normalizedField === "boardproduct"
+					? sourceText.match(/12\s*["”]\s*boards\b/i)?.[0] ?? null
+					: clarificationSourceReference(item.reason, sourceText, productTitles));
+			const line = preview.seed.lineItems.find((candidate) => candidate.uid === item.lineUid);
+			const route = configuration.routes.find((candidate) =>
+				line?.formSteps.some((selection) =>
+					selection.stepId === candidate.rootStepId &&
+					"prodUid" in selection && selection.prodUid === candidate.itemTypeUid,
+				),
+			);
+			const routeTitle = route && configuration.steps.find((step) => step.id === route.rootStepId)
+				?.components.find((component) => component.uid === route.itemTypeUid)?.title;
+			const field = item.field.toLowerCase().replace(/[^a-z]/g, "");
+			const threePartDimension = sourceText.match(
+				/\b(\d{1,3})\s*[x×]\s*1\s+3\/4\s*[x×]\s*(\d{1,3})\b/i,
+			);
+			const dimension = preview.seed.lineItems.length === 1
+				? threePartDimension
+					? `${threePartDimension[1]} x ${threePartDimension[2]}`
+					: sourceText.match(/\b\d{1,3}\s*[x×]\s*\d{1,3}\b/i)?.[0]
+				: null;
+			const interpretedRoom = preview.seed.interpretations
+				?.filter((interpretation) => interpretation.lineUid === item.lineUid &&
+					sourceText.includes(interpretation.sourceText))
+				.map((interpretation) => interpretation.sourceText.match(
+					/^([^:\n]{3,80})\s+-\s*\d{2,3}\s*["”']?\s*[x×]/i,
+				)?.[1]?.trim())
+				.find(Boolean);
+			const namedSourceRow = line && sourceText.split(/\r?\n/).map((row) => row.trim())
+				.find((row) => row.toLowerCase().startsWith(
+					`${line.uid.replace(/-/g, " ").toLowerCase()} -`,
+				));
+			const side = line?.uid.match(/(?:^|[-_])(left|right)(?:$|[-_])/i)?.[1];
+			const sideSection = side && sourceText.split(new RegExp(`\\b${side} side\\b`, "i"))[1]
+				?.split(/\b(?:left|right) side\b/i)[0];
+			const room = interpretedRoom ?? namedSourceRow?.split(/\s+-\s*/)[0] ??
+				(sideSection && /\b1\s+attic access\b/i.test(sideSection) &&
+				/\battic[-_ ]access\b/i.test(line?.uid ?? "")
+				? `${side?.toLowerCase() === "left" ? "Left" : "Right"} Side attic access`
+				: null);
+			const label = line && routeTitle
+				? room ?? `${line.qty} ${routeTitle} ${line.qty === 1 ? "door" : "doors"}${dimension ? ` (${dimension})` : ""}`
+				: null;
+			const detailQuestion = label && /pre[- ]?hung|^exterior\b|garage door/i.test(routeTitle ?? "")
+				? field === "jambsize" ? `Confirm the jamb size for ${room ? room : `the ${label}`}.`
+					: field === "handing" ? room
+						? line?.qty === 1 ? `Confirm left-hand or right-hand for ${room}.`
+							: `How many doors in ${room} are left-hand and how many are right-hand?`
+						: `How many of the ${label} are left-hand and how many are right-hand?`
+					: field === "swing" ? `Confirm in-swing or out-swing for ${room ? room : `the ${label}`}.`
+					: null
+				: null;
+			const prompt = item === groupedBifold[0] && groupedBifoldPrompt
+				? groupedBifoldPrompt : detailQuestion ?? (room && field === "door" &&
+				/\b(?:no dimensions|missing size)\b/i.test(item.reason)
+				? `What size is the ${room} door?`
+				: room && field === "width" && /\b\d{2,3}'\s*[x×]\s*\d{2,3}["”]/.test(namedSourceRow ?? "")
+					? `Confirm the intended width and unit for ${room}: the source says ${namedSourceRow?.match(/\d{2,3}'\s*[x×]\s*\d{2,3}["”]/)?.[0]}.`
+					: questionPrompt(item.field, item.reason, sourceReference, sourceText));
+			const question: ClarificationQuestion = {
 		id: randomUUID(),
 		lineUid: item.lineUid,
 		field: item.field,
-		question: `Please clarify ${item.field}.`,
-		sourceText: clarificationSourceReference(
-			item.reason,
-			sourceText,
-			productTitles,
-		),
-		reason: item.reason,
-	}));
+		question: prompt,
+		sourceText: sourceReference,
+				reason: item === groupedBifold[0] && groupedBifoldPrompt
+				? groupedBifoldPrompt : (normalizedField === "mouldingprofile" && /\b\d+(?:[- ]foot|[- ]ft|['’])\s+stock\b/i.test(item.reason)) ||
+				(room && (field === "door" || field === "width") && prompt !== item.reason) ||
+			(normalizedField === "doorschedule" && prompt !== item.reason)
+			? prompt : item.reason,
+			};
+			const options = room && field === "door" &&
+				/\b(?:no dimensions|missing size)\b/i.test(item.reason)
+				? [] : configuredQuestionOptions(item, preview, configuration, sourceText);
+			if (options.length) question.options = options;
+			question.canSaveRule = reusableClarification({
+				questionId: question.id, question, answer: "approved term", reuse: true, active: true,
+			}, sourceText, productTitles);
+			return question;
+		});
+}
+
+function recoverableMissingFacts(
+	sourceText: string,
+	answered: readonly { field?: string }[] = [],
+): NewSalesFormSeed["unresolved"] {
+	const alreadyAnswered = (field: string) => answered.some(
+		(item) => item.field?.toLowerCase() === field.toLowerCase(),
+	);
+	const missing: NewSalesFormSeed["unresolved"] = [];
+	missing.push(...unspecifiedScheduleFacts(sourceText, answered).map((item) => ({
+		lineUid: null, stepId: null, ...item, status: "ambiguous" as const,
+	})));
+	const impactSidelite = /\b(?:hurricane|impact)\b/i.test(sourceText) &&
+		/\bside\s*lite\b/i.test(sourceText) &&
+		/\b(?:total|overall)\s+size\b/i.test(sourceText) &&
+		/\bdoor\s+panel\b/i.test(sourceText);
+	if (
+		/\bdoors?\b/i.test(sourceText) &&
+		/\b\d{2,3}\s*["”]/.test(sourceText) &&
+		!/(?:\b(?:height|tall)\b|\b[6-9]\s*[-/]\s*(?:1[01]|\d)\b|\b\d{2,3}\s*["”]?\s*[x×]\s*\d{2,3}\b)/i.test(sourceText) &&
+		!alreadyAnswered("height")
+	) {
+		missing.push({
+			lineUid: null, stepId: null, field: "height", status: "ambiguous",
+			reason: impactSidelite
+				? "Confirm the door panel height; the stated overall door-and-sidelite frame size is not necessarily the panel size."
+				: "What height applies to the listed doors on the left and right sides? If rooms differ, list each room and height.",
+		});
+	}
+	if (impactSidelite) {
+		for (const item of [
+			{ field: "pvcJamb", requested: /\bpvc\s+frame\b/i.test(sourceText),
+				reason: "Confirm an approved PVC jamb or custom quote path for the stated PVC frame; do not substitute wood or composite." },
+			{ field: "sideliteAssembly", requested: true,
+				reason: "Confirm how to quote the requested sidelite with its stated side and overall assembly size." },
+			{ field: "pvcBrickMoulding", requested: /\bpvc\s+brick\s*mou?ld(?:ing)?\b/i.test(sourceText),
+				reason: "Confirm the PVC brick moulding catalog length and piece quantity for this exterior assembly." },
+		]) {
+			if (item.requested && !alreadyAnswered(item.field))
+				missing.push({ lineUid: null, stepId: null, field: item.field,
+					status: "ambiguous", reason: item.reason });
+		}
+	}
+	if (
+		/\bbaseboard\b/i.test(sourceText) &&
+		!/\b[A-Z]{1,4}\d{3,}\b/i.test(sourceText) &&
+		!alreadyAnswered("mouldingProfile")
+	) {
+		const baseboardFeet = [...sourceText.matchAll(/\b(\d+)\s+linear\s+feet\s+for\s+baseboard\b/gi)]
+			.map((match) => match[1]);
+		const quantities = baseboardFeet.length === 2
+			? ` Left: ${baseboardFeet[0]} LF; right: ${baseboardFeet[1]} LF.`
+			: " Keep each side's stated linear feet.";
+		missing.push({
+			lineUid: null, stepId: null, field: "mouldingProfile", status: "ambiguous",
+			reason: `Which baseboard profile and stock length?${quantities}`,
+		});
+	}
+	if (/\b12\s*["”]\s*boards\b/i.test(sourceText) && !alreadyAnswered("boardProduct")) {
+		const counts = [...sourceText.matchAll(/(?:^|\n)\s*(\d+)\s*=\s*12\s*["”]\s*boards\b/gmi)]
+			.map((match) => match[1]);
+		missing.push({
+			lineUid: null, stepId: null, field: "boardProduct", status: "ambiguous",
+			reason: `Which catalog board product matches the twelve-inch boards?${counts.length === 2
+				? ` Left: ${counts[0]}; right: ${counts[1]}.` : " Keep each side's stated count."}`,
+		});
+	}
+	return missing;
+}
+
+async function createClarifiablePreview(
+	input: Parameters<typeof createSalesRequestPreview>[0],
+	dependencies: Dependencies,
+	answered: readonly { field?: string }[] = [],
+): Promise<Preview> {
+	try {
+		return await createSalesRequestPreview(
+			{ ...input, allowClarificationFallback: true }, dependencies,
+		);
+	} catch (error) {
+		if (!(error instanceof SalesRequestPreviewNeedsClarification)) throw error;
+		const unresolved = recoverableMissingFacts(input.text, answered);
+		if (!unresolved.length)
+			throw new Error("The AI provider could not generate a request preview. Try again.");
+		return {
+			generationId: error.generationId,
+			configurationScope: error.configurationScope,
+			configurationRevision: error.configurationRevision,
+			promptVersion: SALES_REQUEST_PROMPT_VERSION,
+			provider: error.provider,
+			model: error.model,
+			usage: error.usage,
+			seed: { schemaVersion: 2, lineItems: [], unresolved },
+		};
+	}
 }
 function surface(session: Session, questions: ClarificationQuestion[]) {
 	return questions.length
@@ -144,6 +664,12 @@ export async function ownedClarification(
 		});
 	return session;
 }
+export function isOrderSpecificClarificationField(field: string) {
+	return /quantity|qty|dimension|size|height|width|length|count|room|handing|swing|jamb|configuration|price|cost/.test(
+		field.toLowerCase(),
+	);
+}
+
 export function reusableClarification(
 	answer: Answer,
 	sourceText: string,
@@ -156,9 +682,7 @@ export function reusableClarification(
 		answer.reuse &&
 		answer.active &&
 		/product|profile|material|finish|model|species|door/.test(field) &&
-		!/quantity|qty|dimension|height|width|length|count|room|handing/.test(
-			field,
-		) &&
+		!isOrderSpecificClarificationField(field) &&
 		(!/\d/.test(answer.answer) ||
 			productTitles.some(
 				(title) =>
@@ -366,21 +890,22 @@ export async function beginSalesRequestClarification(input: {
 			step.components.map((component) => component.title),
 		),
 	});
-	const generatedPreview = await createSalesRequestPreview(
+	const generatedPreview = await createClarifiablePreview(
 		{ text: input.text, images: [], signal: input.signal, guidance },
 		input.dependencies,
 	);
-	const preview = suppressApprovedInterpretationWarnings(
-		generatedPreview,
-		guidance,
+	const preview = reviewDenseArchitecturalSchedule(
+		clarifyUnspecifiedScheduleRows(
+			suppressApprovedInterpretationWarnings(generatedPreview, guidance),
+			input.text,
+		),
+		input.text,
 	);
 	input.signal.throwIfAborted();
 	const questions = questionsFor(
 		preview,
 		input.text,
-		snapshot.configuration.steps.flatMap((step) =>
-			step.components.map((component) => component.title),
-		),
+		snapshot.configuration,
 	);
 	if (!questions.length) {
 		await recordSalesRequestInterpretationWarnings(input.db, {
@@ -450,14 +975,30 @@ export async function answerSalesRequestClarification(input: {
 		snapshot.revision !== session.configurationRevision
 	)
 		conflict("Sales configuration changed. Start a new request.");
+	const productTitles = snapshot.configuration.steps.flatMap((step) =>
+		step.components.map((component) => component.title),
+	);
+	if (input.answers.some((answer) => {
+		if (!answer.reuse) return false;
+		const question = questions.find((item) => item.id === answer.questionId);
+		return !question?.canSaveRule || !reusableClarification({
+			questionId: answer.questionId,
+			answer: answer.answer.trim(),
+			reuse: true,
+			active: true,
+			question,
+		}, session.sourceText, productTitles);
+	}))
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "This answer cannot be saved as a rule.",
+		});
 	const guidance = await readClarificationGuidance(input.db, {
 		actorUserId: input.actorUserId,
 		scope: session.scope,
 		configurationRevision: session.configurationRevision,
 		text: session.sourceText,
-		productTitles: snapshot.configuration.steps.flatMap((step) =>
-			step.components.map((component) => component.title),
-		),
+		productTitles,
 	});
 	const acquired = await input.db.salesRequestClarificationSession.updateMany({
 		where: {
@@ -518,7 +1059,7 @@ export async function answerSalesRequestClarification(input: {
 				"The clarification history is too long. Start a smaller request or complete the sales form manually.",
 			);
 		}
-		const generatedPreview = await createSalesRequestPreview(
+		const generatedPreview = await createClarifiablePreview(
 			{
 				text: session.sourceText,
 				images: [],
@@ -540,18 +1081,23 @@ export async function answerSalesRequestClarification(input: {
 				})),
 			},
 			input.dependencies,
+			answers.map((answer) => ({ field: answer.question.field })),
 		);
-		const preview = suppressApprovedInterpretationWarnings(
-			generatedPreview,
-			guidance,
+		const preview = reviewDenseArchitecturalSchedule(
+			clarifyUnspecifiedScheduleRows(
+				suppressApprovedInterpretationWarnings(generatedPreview, guidance),
+				session.sourceText,
+				answers,
+			),
+			session.sourceText,
+			answers,
 		);
 		input.signal.throwIfAborted();
 		const nextQuestions = questionsFor(
 			preview,
 			session.sourceText,
-			snapshot.configuration.steps.flatMap((step) =>
-				step.components.map((component) => component.title),
-			),
+			snapshot.configuration,
+			answers,
 		);
 		const updated = await input.db.salesRequestClarificationSession.updateMany({
 			where: { id: session.id, revision: input.revision, status: "processing" },

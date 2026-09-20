@@ -245,8 +245,13 @@ describe("sales request generation telemetry persistence", () => {
 			issueCounts: {
 				providerFailure: {
 					structuredOutputCause: "schema-validation",
+					finishReason: "length",
+					outputShape: "array",
+					repairAttempted: true,
+					configurationIssue: "moulding-quantity",
 					schemaIssues: [
 						{ code: "invalid_type", path: "lineItems.[].formSteps" },
+						{ code: "configuration-validation", path: "seed" },
 						{ code: "private_code", path: "customer.secret" },
 					],
 					providerStatus: "private provider message",
@@ -260,8 +265,13 @@ describe("sales request generation telemetry persistence", () => {
 		expect(data.issueCounts).toEqual({
 			providerFailure: {
 				structuredOutputCause: "schema-validation",
+				finishReason: "length",
+				outputShape: "array",
+				repairAttempted: true,
+				configurationIssue: "moulding-quantity",
 				schemaIssues: [
 					{ code: "invalid_type", path: "lineItems.[].formSteps" },
+					{ code: "configuration-validation", path: "seed" },
 				],
 			},
 		});

@@ -1,5 +1,6 @@
 import { getSalesCustomer } from "@api/db/queries/customer";
 import { consumeSalesRequestGenerationRun } from "@api/db/queries/sales-request-telemetry";
+import { assistantSalesRequestDraftPreviewSchema } from "@api/assistant/order-draft-contract";
 import {
 	type BootstrapNewSalesFormSchema,
 	type DeleteNewSalesFormLineItemSchema,
@@ -58,8 +59,11 @@ import { salesAddressLines } from "@api/utils/sales";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
-import type { TransactionClient } from "@gnd/db";
-import { assertDealerSaleOfficeAccess } from "@gnd/db/queries";
+import type { Prisma, TransactionClient } from "@gnd/db";
+import {
+	assertDealerSaleOfficeAccess,
+	lockSalesWorkflowCatalogRevision,
+} from "@gnd/db/queries";
 import { AppError } from "@gnd/errors";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
@@ -116,7 +120,8 @@ import {
 	logNewSalesFormSaveDiagnostic,
 } from "./new-sales-form-debug";
 import { hasUnprojectedApprovedCommercialSnapshot } from "./sales-commercial-consistency";
-import { getStepComponents } from "./sales-form";
+import { getStaticStepComponentCatalog, getStepComponents } from "./sales-form";
+import { getVersionedSalesWorkflowCatalogSnapshot } from "./new-sales-form-catalog";
 import {
 	buildSalesFormUpdateActivity,
 	buildSpecialOrderEnrollmentActivity,
@@ -337,6 +342,54 @@ export async function persistSalesRequestLowTouchFinalization(
 			},
 		},
 	});
+}
+
+type AssistantHandoffSaveClaim = NonNullable<SaveDraftNewSalesFormSchema["assistantHandoff"]>;
+
+export async function assertAssistantHandoffSaveAuthority(
+	tx: TransactionClient,
+	input: {
+		claim: AssistantHandoffSaveClaim;
+		actorUserId: number;
+		type: "order" | "quote";
+		salesId: number | null;
+	},
+) {
+	const session = await tx.assistantSalesRequestSession.findFirst({
+		where: {
+			conversationId: input.claim.conversationId,
+			generationId: input.claim.generationId,
+			ownerUserId: input.actorUserId,
+			saleType: input.type,
+			status: "ready",
+			conversation: { is: { ownerUserId: input.actorUserId, deletedAt: null } },
+		},
+		select: { id: true, finalPreview: true },
+	});
+	const preview = assistantSalesRequestDraftPreviewSchema.safeParse(session?.finalPreview);
+	const run = session && await tx.salesRequestGenerationRun.findFirst({
+		where: {
+			generationId: input.claim.generationId,
+			actorUserId: input.actorUserId,
+			status: "succeeded",
+			deletedAt: null,
+			retentionUntil: { gt: new Date() },
+		},
+		select: { consumedSalesId: true },
+	});
+	if (!session || !run || !preview.success || preview.data.generationId !== input.claim.generationId) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "This Assistant draft is no longer available. Return to its chat.",
+		});
+	}
+	if (run.consumedSalesId != null && run.consumedSalesId !== input.salesId) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "This Assistant request was already saved. Open the existing sale instead.",
+		});
+	}
+	return { sessionId: session.id, preview: preview.data };
 }
 
 function withoutPo(meta: NewSalesFormMeta) {
@@ -969,6 +1022,7 @@ function toBootstrapPayload(
 				id: number;
 				stepId: number;
 				componentId: number | null;
+				component: { custom: boolean | null } | null;
 				prodUid: string | null;
 				value: string | null;
 				qty: number | null;
@@ -1177,6 +1231,7 @@ function toBootstrapPayload(
 						id: step.id,
 						stepId: step.stepId,
 						componentId: step.componentId,
+						custom: step.component?.custom === true,
 						prodUid: step.prodUid,
 						value: step.value,
 						qty: Number(step.qty || 0),
@@ -1710,6 +1765,7 @@ export async function getNewSalesForm(
 								id: true,
 								stepId: true,
 								componentId: true,
+								component: { select: { custom: true } },
 								prodUid: true,
 								value: true,
 								qty: true,
@@ -1900,11 +1956,83 @@ export async function getNewSalesFormHistorySnapshot(
 export async function getNewSalesFormStepRouting(
 	ctx: TRPCContext,
 	input: GetNewSalesFormStepRoutingSchema,
+	options: { interactive?: boolean } = {},
 ) {
 	getNewSalesFormStepRoutingSchema.parse(input);
-	return salesWorkflowCache.getOrSetStepRouting(() =>
-		getFreshNewSalesFormStepRouting(ctx),
+	const interactive = options.interactive === true;
+	if (
+		process.env.GND_SALES_CATALOG_CACHE !== "1" &&
+		(process.env.NODE_ENV === "production" ||
+			process.env.GND_SALES_CATALOG_CACHE === "0")
+	) {
+		return salesWorkflowCache.getOrSetStepRouting(() =>
+			getFreshNewSalesFormStepRouting(ctx),
+		);
+	}
+	if (!interactive) {
+		const snapshot = await getVersionedSalesWorkflowCatalogSnapshot(
+			ctx,
+			{},
+			"routing-full",
+			(routingCtx) => getFreshNewSalesFormStepRouting(routingCtx),
+		);
+		return snapshot.data;
+	}
+	const snapshot = await getVersionedSalesWorkflowCatalogSnapshot(
+		ctx,
+		{},
+		"routing",
+		async (routingCtx) => {
+			const routing = projectInteractiveNewSalesFormRouting(
+				await getFreshNewSalesFormStepRouting(routingCtx, {
+					includeCustomComponents: false,
+				}),
+			);
+			const rootStepId = routing.rootStepUid
+				? routing.stepsByUid[routing.rootStepUid]?.id
+				: null;
+			return {
+				...routing,
+				rootCatalogComponents: rootStepId
+					? await getStaticStepComponentCatalog(routingCtx, {
+							stepId: rootStepId,
+							isCustom: false,
+						})
+					: [],
+			};
+		},
 	);
+	return {
+		...snapshot.data,
+		rootCatalog: {
+			revision: snapshot.revision,
+			schemaVersion: snapshot.schemaVersion,
+			components: snapshot.data.rootCatalogComponents,
+		},
+	};
+}
+
+export function projectInteractiveNewSalesFormRouting(
+	routing: Awaited<ReturnType<typeof getFreshNewSalesFormStepRouting>>,
+) {
+	return {
+		...routing,
+		stepsByUid: Object.fromEntries(
+			Object.entries(routing.stepsByUid).map(([uid, step]) => [
+				uid,
+				uid === routing.rootStepUid
+					? step
+					: {
+						...step,
+						components: step.components.map((component) => ({
+							...component,
+							img: null,
+							meta: null,
+						})),
+					},
+			]),
+		),
+	};
 }
 
 /** Read only the current Sales setting fields needed by an in-memory print preview. */
@@ -1924,7 +2052,10 @@ export async function getNewSalesFormPrintContext(ctx: TRPCContext) {
 }
 
 /** Bypass workflow caches for correctness-critical transactional replay. */
-export async function getFreshNewSalesFormStepRouting(ctx: TRPCContext) {
+export async function getFreshNewSalesFormStepRouting(
+	ctx: TRPCContext,
+	options: { includeCustomComponents?: boolean } = {},
+) {
 	const [setting, steps] = await Promise.all([
 		ctx.db.settings.findFirst({
 			where: {
@@ -1949,6 +2080,9 @@ export async function getFreshNewSalesFormStepRouting(ctx: TRPCContext) {
 				stepProducts: {
 					where: {
 						deletedAt: null,
+						...(options.includeCustomComponents === false
+							? { OR: [{ custom: false }, { custom: null }] }
+							: {}),
 					},
 					select: {
 						id: true,
@@ -3239,6 +3373,8 @@ async function saveNewSalesFormInternal(
 		preserveExistingStatus?: boolean;
 	},
 	lowTouchClaim?: SalesRequestLowTouchFinalSaveClaim | null,
+	expectedCatalogRevision?: number,
+	assistantHandoff?: AssistantHandoffSaveClaim | null,
 ) {
 	const newDraftKey =
 		!payload.salesId &&
@@ -3431,9 +3567,9 @@ async function saveNewSalesFormInternal(
 	});
 	const transactionResult = await runNewSalesFormTransaction(
 		ctx.db,
-		Boolean(lowTouchClaim),
+		Boolean(lowTouchClaim || assistantHandoff),
 		async (tx) => {
-			if (lowTouchClaim && newDraftKey && !payload.salesId && !payload.slug) {
+			if ((lowTouchClaim || assistantHandoff) && newDraftKey && !payload.salesId && !payload.slug) {
 				const concurrentDraft = await tx.salesOrders.findFirst({
 					where: {
 						type: payload.type,
@@ -3458,6 +3594,16 @@ async function saveNewSalesFormInternal(
 				}
 			}
 			const isNew = !(payload.salesId || payload.slug);
+			let assistantAuthority: Awaited<ReturnType<typeof assertAssistantHandoffSaveAuthority>> | null = null;
+			if (assistantHandoff) {
+				if (!ctx.userId || lowTouchClaim) throw new TRPCError({ code: "UNAUTHORIZED" });
+				assistantAuthority = await assertAssistantHandoffSaveAuthority(tx, {
+					claim: assistantHandoff,
+					actorUserId: ctx.userId,
+					type: payload.type,
+					salesId: payload.salesId ?? null,
+				});
+			}
 			let lowTouchAuthority: SalesRequestLowTouchFinalizeAuthority | null =
 				null;
 			if (lowTouchClaim) {
@@ -4892,6 +5038,52 @@ async function saveNewSalesFormInternal(
 					authority: lowTouchAuthority,
 				});
 			}
+			if (assistantHandoff && assistantAuthority && ctx.userId) {
+				await consumeSalesRequestGenerationRun(
+					tx as unknown as Parameters<typeof consumeSalesRequestGenerationRun>[0],
+					{
+						actorUserId: ctx.userId,
+						generationId: assistantHandoff.generationId,
+						salesId: currentId,
+					},
+				);
+				if (isNew) {
+					const linked = await tx.assistantSalesRequestSession.updateMany({
+						where: {
+							id: assistantAuthority.sessionId,
+							ownerUserId: ctx.userId,
+							generationId: assistantHandoff.generationId,
+							status: "ready",
+						},
+						data: { finalPreview: {
+							...assistantAuthority.preview,
+							savedSale: { orderId: order!.orderId, slug: order!.slug },
+						} as Prisma.InputJsonValue },
+					});
+					if (linked.count !== 1) throw new TRPCError({ code: "CONFLICT" });
+					await tx.salesHistory.create({
+					data: {
+						salesId: currentId,
+						name: "Assistant sales request saved",
+						data: {
+							event: "assistant_sales_request_saved",
+							generationId: assistantHandoff.generationId,
+							conversationId: assistantHandoff.conversationId,
+							actorUserId: ctx.userId,
+						},
+					},
+					});
+				}
+			}
+			if (expectedCatalogRevision !== undefined) {
+				const committedRevision = await lockSalesWorkflowCatalogRevision(tx);
+				if (committedRevision !== expectedCatalogRevision) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "The component catalog changed. Review current components and prices before finalizing.",
+					});
+				}
+			}
 
 			return {
 				salesId: currentId,
@@ -5046,7 +5238,7 @@ export async function saveDraftNewSalesForm(
 	ctx: TRPCContext,
 	input: SaveDraftNewSalesFormSchema,
 ) {
-	const payload = saveDraftNewSalesFormSchema.parse(input);
+	const { assistantHandoff, ...payload } = saveDraftNewSalesFormSchema.parse(input);
 	const startedAt = performance.now();
 	logNewSalesFormSaveDiagnostic({
 		action: "save-draft",
@@ -5074,7 +5266,7 @@ export async function saveDraftNewSalesForm(
 	try {
 		result = await saveNewSalesFormInternal(ctx, payload, "Draft", {
 			preserveExistingStatus: true,
-		});
+		}, null, undefined, assistantHandoff);
 	} catch (error) {
 		logNewSalesFormSaveDiagnostic({
 			action: "save-draft",
@@ -5118,7 +5310,7 @@ export async function saveFinalNewSalesForm(
 	input: SaveFinalNewSalesFormSchema,
 ) {
 	const parsed = saveFinalNewSalesFormSchema.parse(input);
-	const { claim: lowTouchClaim, payload } =
+	const { claim: lowTouchClaim, assistantHandoff, expectedCatalogRevision, payload } =
 		splitSalesRequestLowTouchFinalSaveClaim(parsed);
 	for (const line of payload.lineItems) {
 		const rows = line.meta?.mouldingRows;
@@ -5160,6 +5352,8 @@ export async function saveFinalNewSalesForm(
 			"Active",
 			undefined,
 			lowTouchClaim,
+			expectedCatalogRevision,
+			assistantHandoff,
 		);
 	} catch (error) {
 		logNewSalesFormSaveDiagnostic({
