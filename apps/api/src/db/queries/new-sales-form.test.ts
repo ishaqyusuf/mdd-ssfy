@@ -3770,6 +3770,73 @@ describe("new-sales-form relational parity", () => {
     });
   });
 
+  it("preserves a saved custom component's historical price on ordinary final save", async () => {
+    const { ctx, state } = createMockContext();
+    const payload = {
+      type: "quote",
+      slug: null,
+      salesId: null,
+      version: null,
+      autosave: false,
+      meta: {
+        customerId: 100,
+        customerProfileId: null,
+        billingAddressId: null,
+        shippingAddressId: null,
+        paymentTerm: "None",
+        paymentMethod: "Check",
+        goodUntil: null,
+        po: null,
+        notes: null,
+        deliveryOption: "pickup",
+        taxCode: null,
+      },
+      summary: { subTotal: 25, taxRate: 0, taxTotal: 0, grandTotal: 25 },
+      extraCosts: [],
+      lineItems: [{
+        id: null,
+        uid: "historical-custom-line",
+        title: "Interior pre-hung",
+        description: "",
+        qty: 1,
+        unitPrice: 25,
+        lineTotal: 25,
+        meta: {},
+        formSteps: [{
+          id: null,
+          stepId: 61,
+          componentId: 700,
+          prodUid: "historical-custom-uid",
+          value: "2-6",
+          qty: 1,
+          price: 25,
+          basePrice: 25,
+          meta: { custom: true },
+          step: { id: 61, title: "Jamb Size" },
+        }],
+        shelfItems: [],
+        housePackageTool: null,
+      }],
+    } as any;
+
+    const draft = await saveDraftNewSalesForm(ctx, payload);
+    const reopened = await getNewSalesForm(ctx, { type: "quote", slug: draft.slug! });
+    expect(reopened.lineItems[0]?.formSteps[0]?.price).toBe(25);
+
+    const finalized = await saveFinalNewSalesForm(ctx, {
+      ...payload,
+      slug: draft.slug,
+      salesId: draft.salesId,
+      version: draft.version,
+      lineItems: reopened.lineItems,
+    });
+    const saved = await getNewSalesForm(ctx, { type: "quote", slug: draft.slug! });
+    expect(finalized.lineItems[0]?.formSteps[0]?.price).toBe(25);
+    expect(saved.lineItems[0]?.formSteps[0]?.price).toBe(25);
+    expect(saved.lineItems[0]?.unitPrice).toBe(25);
+    expect(state.orders[0]?.status).toBe("Active");
+  });
+
   it("preserves P.O. compatibility metadata across save and reload", async () => {
     const { ctx, state } = createMockContext();
     const payload = {
