@@ -3,7 +3,7 @@ export { QueryClientProvider, isServer } from "@tanstack/react-query";
 
 export type { QueryClient as QueryClientType } from "@tanstack/react-query";
 export { createTRPCContext } from "@trpc/tanstack-react-query";
-export { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client";
+export { createTRPCClient, httpBatchLink, loggerLink, splitLink } from "@trpc/client";
 export { HydrationBoundary } from "@tanstack/react-query";
 
 export {

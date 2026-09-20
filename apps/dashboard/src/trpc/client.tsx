@@ -4,7 +4,7 @@ import { QueryEventsRuntime } from "@/lib/query-events/runtime";
 import type { AppRouter } from "@gnd/api/trpc/routers/_app";
 import type { QueryClient } from "@gnd/ui/tanstack";
 import { QueryClientProvider, isServer } from "@gnd/ui/tanstack";
-import { createTRPCClient, httpBatchLink, loggerLink } from "@gnd/ui/tanstack";
+import { createTRPCClient, httpBatchLink, loggerLink, splitLink } from "@gnd/ui/tanstack";
 import { useState } from "react";
 import superjson from "superjson";
 import { TRPCProvider } from "./context";
@@ -13,6 +13,13 @@ import { makeQueryClient } from "./query-client";
 export { TRPCProvider, useTRPC, useTRPCClient } from "./context";
 
 let browserQueryClient: QueryClient;
+const salesCatalogProcedures = new Set([
+	"newSalesForm.getStepRouting",
+	"newSalesForm.getComponentCatalog",
+	"newSalesForm.getComponentUsageRanks",
+	"newSalesForm.getCatalogRevision",
+	"newSalesForm.searchCustomComponents",
+]);
 
 function getQueryClient() {
 	if (isServer) {
@@ -39,13 +46,21 @@ export function TRPCReactProvider(
 	const [trpcClient] = useState(() =>
 		createTRPCClient<AppRouter>({
 			links: [
-				httpBatchLink({
-					url: getTrpcUrl(props.serverTrpcUrl),
-					// url:
-					//     process.env.NODE_ENV === "production"
-					//         ? `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`
-					//         : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
-					transformer: superjson as any,
+				splitLink({
+					condition: (operation) =>
+						process.env.NEXT_PUBLIC_SALES_CATALOG_FAST_ROUTE === "1" &&
+						salesCatalogProcedures.has(operation.path),
+					true: httpBatchLink({
+						url: getTrpcUrl(props.serverTrpcUrl).replace(
+							/\/api\/trpc$/,
+							"/api/sales-catalog",
+						),
+						transformer: superjson as any,
+					}),
+					false: httpBatchLink({
+						url: getTrpcUrl(props.serverTrpcUrl),
+						transformer: superjson as any,
+					}),
 				}),
 				loggerLink({
 					enabled: (opts) =>

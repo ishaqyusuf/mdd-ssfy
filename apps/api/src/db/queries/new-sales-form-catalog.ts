@@ -379,11 +379,7 @@ export async function searchSalesFormCustomComponents(
 	});
 }
 
-export async function getSalesFormComponentUsageRanks(
-	ctx: TRPCContext,
-	selector: SalesFormCatalogQueryInput,
-	deps: SalesWorkflowUsageRankDependencies = {},
-) {
+function usageRanksInput(selector: SalesFormCatalogQueryInput) {
 	const normalized = normalizeSalesWorkflowCatalogSelector(selector);
 	const input: SalesWorkflowCatalogCacheInput = {
 		...normalized,
@@ -391,6 +387,32 @@ export async function getSalesFormComponentUsageRanks(
 		scope: SALES_WORKFLOW_CATALOG_SCOPE,
 		revision: 0,
 	};
+	return { normalized, input };
+}
+
+export async function getCachedSalesFormComponentUsageRanks(
+	selector: SalesFormCatalogQueryInput,
+	deps: Pick<SalesWorkflowUsageRankDependencies, "getRanks"> = {},
+) {
+	const { input } = usageRanksInput(selector);
+	try {
+		const ranks = await (deps.getRanks ?? getSalesWorkflowUsageRanks)(input);
+		return Array.isArray(ranks) ? ranks : undefined;
+	} catch (error) {
+		catalogLogger.warn("Usage ranking cache read failed", {
+			error: error instanceof Error ? error.message : String(error),
+			key: buildSalesWorkflowCatalogCacheKey(input),
+		});
+		return undefined;
+	}
+}
+
+export async function getSalesFormComponentUsageRanks(
+	ctx: TRPCContext,
+	selector: SalesFormCatalogQueryInput,
+	deps: SalesWorkflowUsageRankDependencies = {},
+) {
+	const { normalized, input } = usageRanksInput(selector);
 	const ranksQuery = {
 		stepId: normalized.stepId ?? undefined,
 		stepTitle: normalized.stepTitle ?? undefined,

@@ -84,10 +84,15 @@ export function useDashboardSalesFormWorkflowData(): SalesFormWorkflowDataSource
 					routing.data && "rootCatalog" in routing.data
 						? routing.data.rootCatalog
 						: undefined;
+				const initialUsage =
+					routing.data && "rootUsageRanks" in routing.data
+						? routing.data.rootUsageRanks
+						: undefined;
 				return useSalesStepComponentsQuery(
 					{ stepId: input.stepId, stepTitle: input.stepTitle },
 					input.enabled !== false && Boolean(input.stepId),
 					initialCatalog,
+					initialUsage,
 				);
 			},
 			useStepComponents: (input: SalesFormWorkflowStepComponentInput) =>
