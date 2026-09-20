@@ -531,6 +531,11 @@ export function SalesFormWorkflowPanel<
 		() => activeLineSteps.find((step) => isDoorStepTitle(step?.step?.title)),
 		[activeLineSteps],
 	);
+	const pricedDoorStep = activeDoorStep || activeStep || null;
+	const doorStepComponentOverrides = useMemo(
+		() => buildStepComponentOverrideMap(activeDoorStep || null),
+		[activeDoorStep],
+	);
 	const needsDoorCatalog = Boolean(
 		isDoorStepTitle(activeStep?.step?.title) ||
 		routeScopedLineItems.some((line) =>
@@ -701,8 +706,8 @@ export function SalesFormWorkflowPanel<
 			.map((component) =>
 				priceComponent(
 					component,
-					activeDoorStep || activeStep || null,
-					buildStepComponentOverrideMap(activeDoorStep || null),
+					pricedDoorStep,
+					doorStepComponentOverrides,
 					activeSelectionState.selectedByStepUid,
 					activeSelectionState.selectedProdUidsByStepUid,
 					activeProfileCoefficient,
@@ -712,13 +717,13 @@ export function SalesFormWorkflowPanel<
 			);
 	}, [
 		activeDealerSalesPercentage,
-		activeDoorStep,
 		activeProfileCoefficient,
 		activePricingView,
 		activeSelectionState,
 		activeSelectedComponentUids,
-		activeStep,
 		doorComponentsQuery.data,
+		doorStepComponentOverrides,
+		pricedDoorStep,
 	]);
 	const {
 		mouldingSelectionPopover,
