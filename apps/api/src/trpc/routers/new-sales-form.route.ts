@@ -9,7 +9,6 @@ import {
 	getNewSalesFormShelfProductDetails,
 	getNewSalesFormShelfProductIndex,
 	getNewSalesFormShelfProducts,
-	getNewSalesFormStepRouting,
 	recalculateNewSalesForm,
 	resolveNewSalesCustomer,
 	saveDraftNewSalesForm,
@@ -19,6 +18,7 @@ import {
 	searchNewSalesFormShelfProducts,
 	updateNewSalesFormShelfProduct,
 } from "@api/db/queries/new-sales-form";
+import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form-routing";
 import {
 	createNewSalesFormAdjustment,
 	getNewSalesFormAdjustmentApproval,
