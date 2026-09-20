@@ -745,15 +745,17 @@ export function SalesFormWorkflowPanel<
 	});
 
 	function setActiveItem(uid: string | null) {
-		setLocalActiveItem(uid);
+		if (props.editor?.activeItem === undefined) setLocalActiveItem(uid);
 		actions.setActiveItem?.(uid);
 	}
 
 	function setActiveStep(lineUid: string, stepIndex: number) {
-		setLocalActiveStepByLine((prev) => ({
-			...prev,
-			[lineUid]: stepIndex,
-		}));
+		if (!props.editor?.activeStepByLine) {
+			setLocalActiveStepByLine((prev) => ({
+				...prev,
+				[lineUid]: stepIndex,
+			}));
+		}
 		actions.setActiveStep?.(lineUid, stepIndex);
 	}
 
