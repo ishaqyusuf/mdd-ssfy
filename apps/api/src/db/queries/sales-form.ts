@@ -882,32 +882,58 @@ export async function getStepComponentUsageRanks(
 	ctx: TRPCContext,
 	query: GetStepComponentsSchema,
 ) {
-	const whereCount = {
-		where: {
-			deletedAt: null,
-			createdAt: { gte: addDays(new Date(), -30).toISOString() },
-		},
-	};
 	const components = await ctx.db.dykeStepProducts.findMany({
 		where: whereStepComponents(query),
-		select: {
-			id: true,
-			_count: {
-				select: {
-					housePackageTools: whereCount,
-					salesDoors: whereCount,
-					stepForms: whereCount,
-				},
-			},
-		},
+		select: { id: true },
 	});
-	return components.map(({ id, _count }) => ({
+	if (!components.length) return [];
+	const ids = components.map(({ id }) => id);
+	const recent = {
+		deletedAt: null,
+		createdAt: { gte: addDays(new Date(), -30).toISOString() },
+	};
+	const [housePackageTools, salesDoors, stepForms] = await Promise.all([
+		ctx.db.housePackageTools.groupBy({
+			by: ["stepProductId"],
+			where: { stepProductId: { in: ids }, ...recent },
+			_count: { _all: true },
+		}),
+		ctx.db.dykeSalesDoors.groupBy({
+			by: ["stepProductId"],
+			where: { stepProductId: { in: ids }, ...recent },
+			_count: { _all: true },
+		}),
+		ctx.db.dykeStepForm.groupBy({
+			by: ["componentId"],
+			where: { componentId: { in: ids }, ...recent },
+			_count: { _all: true },
+		}),
+	]);
+	const counts = new Map(ids.map((id) => [id, 0]));
+	for (const row of housePackageTools) {
+		if (row.stepProductId !== null)
+			counts.set(
+				row.stepProductId,
+				(counts.get(row.stepProductId) ?? 0) + row._count._all,
+			);
+	}
+	for (const row of salesDoors) {
+		if (row.stepProductId !== null)
+			counts.set(
+				row.stepProductId,
+				(counts.get(row.stepProductId) ?? 0) + row._count._all,
+			);
+	}
+	for (const row of stepForms) {
+		if (row.componentId !== null)
+			counts.set(
+				row.componentId,
+				(counts.get(row.componentId) ?? 0) + row._count._all,
+			);
+	}
+	return components.map(({ id }) => ({
 		id,
-		statistics: sum([
-			_count.housePackageTools,
-			_count.salesDoors,
-			_count.stepForms,
-		]),
+		statistics: counts.get(id) ?? 0,
 	}));
 }
 function whereStepComponents(query: GetStepComponentsSchema) {
