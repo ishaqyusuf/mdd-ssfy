@@ -284,7 +284,9 @@ export function useSalesStepComponentsQuery(
 	);
 	const usageQuery = useQuery(
 		trpc.newSalesForm.getComponentUsageRanks.queryOptions(selector, {
-			enabled: shouldLoad && cacheEnabled,
+			// tRPC batches queries started together; a cold count must not hold
+			// the cached catalog response or its first component render.
+			enabled: shouldLoad && cacheEnabled && !!catalogQuery.data,
 			initialData: initialUsage,
 			staleTime: 5 * 60 * 1000,
 			gcTime: 15 * 60 * 1000,
