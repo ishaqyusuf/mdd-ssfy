@@ -40,6 +40,56 @@ export function useSalesCatalogBrowserTiming() {
 		};
 		const observer = new PerformanceObserver((list) => report(list.getEntries()));
 		observer.observe({ type: "resource", buffered: true });
-		return () => observer.disconnect();
+
+		let pendingFrame = 0;
+		let requestId = 0;
+		const onStepClick = (event: MouseEvent) => {
+			const button = (event.target as Element).closest<HTMLButtonElement>(
+				'nav[aria-label="Item configuration steps"] button[aria-label^="Open "]',
+			);
+			if (!button || button.getAttribute("aria-current") === "step") return;
+			const line = button.closest<HTMLElement>('[id^="sales-form-item-line-"]');
+			if (!line) return;
+			const label = button.getAttribute("aria-label")?.slice(5);
+			if (!label) return;
+			const startedAt = performance.now();
+			const currentRequest = ++requestId;
+			cancelAnimationFrame(pendingFrame);
+
+			const checkCards = () => {
+				if (currentRequest !== requestId || !line.isConnected) return;
+				if (performance.now() - startedAt > 10000) return;
+				const active = line.querySelector<HTMLButtonElement>(
+					'nav[aria-label="Item configuration steps"] button[aria-current="step"]',
+				);
+				const heading = [...line.querySelectorAll("p")].find(
+					(element) => element.textContent?.trim() === `Select Component: ${label}`,
+				);
+				const cards = heading?.parentElement?.parentElement?.querySelectorAll(
+					'[data-workflow-component-boundary="true"] .grid button.w-full.text-left',
+				);
+				if (active === button && cards?.length) {
+					pendingFrame = requestAnimationFrame(() => {
+						if (currentRequest === requestId) {
+							console.info("Sales catalog step timing", JSON.stringify({
+								step: label,
+								cards: cards.length,
+								durationMs: Math.round(performance.now() - startedAt),
+							}));
+						}
+					});
+					return;
+				}
+				pendingFrame = requestAnimationFrame(checkCards);
+			};
+			pendingFrame = requestAnimationFrame(checkCards);
+		};
+		document.addEventListener("click", onStepClick, true);
+		return () => {
+			requestId++;
+			cancelAnimationFrame(pendingFrame);
+			document.removeEventListener("click", onStepClick, true);
+			observer.disconnect();
+		};
 	}, []);
 }
