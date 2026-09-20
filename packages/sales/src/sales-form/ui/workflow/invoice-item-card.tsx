@@ -137,14 +137,10 @@ function AnimatedStepPanel(props: {
 			);
 		} else if (renderedPanel.key !== props.panelKey) {
 			setIsVisible(false);
-			timeout = window.setTimeout(
-				() =>
-					setRenderedPanel({
-						children: latestChildrenRef.current,
-						key: props.panelKey,
-					}),
-				STEP_PANEL_ANIMATION_MS,
-			);
+			setRenderedPanel({
+				children: latestChildrenRef.current,
+				key: props.panelKey,
+			});
 		} else {
 			animationFrame = window.requestAnimationFrame(() => setIsVisible(true));
 		}
