@@ -531,7 +531,16 @@ export function NewSalesForm(props: Props) {
         (s) => s.setRequestGenerationPhase,
     );
     const setSpecialOrder = useNewSalesFormStore((s) => s.setSpecialOrder);
-    const editor = useNewSalesFormStore((s) => s.editor);
+    const activeItem = useNewSalesFormStore((s) => s.editor.activeItem);
+    const autosaveEnabled = useNewSalesFormStore(
+        (s) => s.editor.autosaveEnabled,
+    );
+    const stepDisplayMode = useNewSalesFormStore(
+        (s) => s.editor.stepDisplayMode,
+    );
+    const showMobileSummary = useNewSalesFormStore(
+        (s) => s.editor.showMobileSummary,
+    );
     const setEditor = useNewSalesFormStore((s) => s.setEditor);
     const setMeta = useNewSalesFormStore((s) => s.setMeta);
     const [recoverySnapshot, setRecoverySnapshot] =
@@ -885,7 +894,7 @@ export function NewSalesForm(props: Props) {
 	const autosave = useNewSalesFormAutoSave({
 		enabled:
 			!!record &&
-			editor.autosaveEnabled &&
+			autosaveEnabled &&
 			!draftParams.salesRequestGeneration &&
 			!requestGeneration.autosaveSuspended &&
 			!requestGeneration.manualSaveRequired &&
@@ -2434,7 +2443,6 @@ export function NewSalesForm(props: Props) {
                 record={record}
                 state={{
                     dirty,
-                    editor,
                     lastSavedAt,
                     lastSaveError,
                     saveStatus,
@@ -2456,7 +2464,7 @@ export function NewSalesForm(props: Props) {
                 }
                 isSaved={isSaved}
                 isSaving={isSaveBusy}
-                mobileSummaryOpen={editor.showMobileSummary}
+                mobileSummaryOpen={showMobileSummary}
                 capabilities={salesFormCapabilities}
                 permissions={salesFormPermissions}
                 onSaveDraft={saveDraftNow}
@@ -2812,23 +2820,23 @@ export function NewSalesForm(props: Props) {
                             slug={record.slug || props.slug}
                         />
                     }
-                    autosaveEnabled={editor.autosaveEnabled}
-                    stepDisplayMode={editor.stepDisplayMode}
+                    autosaveEnabled={autosaveEnabled}
+                    stepDisplayMode={stepDisplayMode}
                     onAddItem={handleAddItem}
                     onToggleStepDisplay={() =>
                         setEditor({
                             stepDisplayMode:
-								editor.stepDisplayMode === "extended" ? "compact" : "extended",
+								stepDisplayMode === "extended" ? "compact" : "extended",
                         })
                     }
                     onOpenMobileSummary={() =>
                         setEditor({
-                            showMobileSummary: !editor.showMobileSummary,
+                            showMobileSummary: !showMobileSummary,
                         })
                     }
                     onToggleAutosave={() =>
                         setEditor({
-                            autosaveEnabled: !editor.autosaveEnabled,
+                            autosaveEnabled: !autosaveEnabled,
                         })
                     }
                     onSaveDraft={saveDraftNow}
@@ -2863,7 +2871,7 @@ export function NewSalesForm(props: Props) {
                     onOpenPacking={handleOpenPacking}
                     openPackingDisabled={!record.orderId}
                     onOpenSettings={() => setSettingsOpen(true)}
-					activeItem={editor.activeItem || record.lineItems[0]?.uid || null}
+					activeItem={activeItem || record.lineItems[0]?.uid || null}
                     itemOptions={itemOptions}
                     onActiveItemChange={(value) =>
                         setEditor({
