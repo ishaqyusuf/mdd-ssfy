@@ -19,7 +19,7 @@ import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
 	addMoney,
 	moneyRatio,
@@ -179,6 +179,8 @@ export function SalesFormWorkflowPanel<
 		record.lineItems[0]?.uid ? String(record.lineItems[0].uid) : null,
 	);
 	const [componentSearch, setComponentSearch] = useState("");
+	const [customTabScope, setCustomTabScope] = useState<string | null>(null);
+	const [debouncedCustomSearch, setDebouncedCustomSearch] = useState("");
 	const [shelfUiVersion, setShelfUiVersion] = useState<"v1" | "v2">("v2");
 	const [shelfProductSearch, setShelfProductSearch] = useState("");
 	const deferredShelfProductSearch = useDeferredValue(shelfProductSearch);
@@ -231,6 +233,27 @@ export function SalesFormWorkflowPanel<
 			resolveActiveStepIndex: resolveInteractiveStepIndex,
 			getItemLabel: lineItemPickerLabel,
 		});
+	const rootSelectionUid = String(activeLineSteps[0]?.prodUid || "");
+	const routingRootComponents = Array.isArray(routeData?.rootComponents)
+		? (routeData.rootComponents as Array<{
+				uid?: string | null;
+				title?: string | null;
+			}>)
+		: [];
+	const rootSelection = routingRootComponents.find(
+		(component) => component.uid === rootSelectionUid,
+	);
+	const needsShelfCatalog = Boolean(
+		record.lineItems.some((line) => line.shelfItems?.length) ||
+		String(rootSelection?.title || activeLineSteps[0]?.value || "")
+			.toLowerCase()
+			.includes("shelf"),
+	);
+	const needsDoorSuppliers = routeScopedLineItems.some((line) =>
+		line.formSteps?.some(
+			(step) => String(step.step?.title || "").toLowerCase() === "door",
+		),
+	);
 	const profilesQuery = dataSource.useCustomerProfiles?.();
 	const activeShelfCategoryIds = useMemo(
 		() =>
@@ -251,14 +274,17 @@ export function SalesFormWorkflowPanel<
 			),
 		[activeLine?.shelfItems],
 	);
-	const shelfCategoriesQuery = dataSource.useShelfCategories?.();
+	const shelfCategoriesQuery = dataSource.useShelfCategories?.({
+		enabled: needsShelfCatalog,
+	});
 	const shelfProductsQuery = dataSource.useShelfProducts?.({
 		categoryIds: activeShelfCategoryIds,
-		enabled: shelfUiVersion === "v1" && activeShelfCategoryIds.length > 0,
+		enabled:
+			needsShelfCatalog && shelfUiVersion === "v1" && activeShelfCategoryIds.length > 0,
 	});
 	const hasShelfProductIndex = Boolean(dataSource.useShelfProductIndex);
 	const shelfProductIndexQuery = dataSource.useShelfProductIndex?.({
-		enabled: shelfUiVersion === "v2",
+		enabled: needsShelfCatalog && shelfUiVersion === "v2",
 	});
 	const selectedShelfProductIds = useMemo(
 		() =>
@@ -274,7 +300,7 @@ export function SalesFormWorkflowPanel<
 	const shelfProductSearchQuery = dataSource.useShelfProductSearch?.({
 		query: shelfProductSearch,
 		selectedIds: selectedShelfProductIds,
-		enabled: shelfUiVersion === "v2" && !hasShelfProductIndex,
+		enabled: needsShelfCatalog && shelfUiVersion === "v2" && !hasShelfProductIndex,
 		limit: shelfProductSearch.trim() ? 20 : 5,
 	});
 	const compiledShelfProductIndex = useMemo(
@@ -297,7 +323,7 @@ export function SalesFormWorkflowPanel<
 		[dataSource],
 	);
 	const doorSuppliersQuery = dataSource.useDoorSuppliers?.({
-		enabled: Boolean(dataSource.useDoorSuppliers),
+		enabled: needsDoorSuppliers,
 	});
 	const shelfProductsByCategory = useMemo(() => {
 		const bucket = new Map<number, ShelfProductOption[]>();
@@ -428,6 +454,58 @@ export function SalesFormWorkflowPanel<
 		stepTitle: activeStep?.step?.title || null,
 		enabled: Boolean(activeStep),
 	});
+	const customScope = `${activeLine?.uid || ""}:${activeStepIndex}`;
+	const currentCustomScope = useRef(customScope);
+	currentCustomScope.current = customScope;
+	const customTabActive = customTabScope === customScope;
+	const customSearch = customTabActive ? componentSearch.trim() : "";
+	const customSelectionContext = `${customScope}:${customTabActive}:${customSearch}`;
+	const currentCustomSelectionContext = useRef(customSelectionContext);
+	currentCustomSelectionContext.current = customSelectionContext;
+	const customVerificationSequence = useRef(0);
+	useEffect(() => {
+		setCustomTabScope((scope) => (scope === customScope ? scope : null));
+		setComponentSearch("");
+	}, [customScope]);
+	useEffect(() => {
+		setDebouncedCustomSearch("");
+		if (customSearch.length < 2) return;
+		const timer = setTimeout(() => setDebouncedCustomSearch(customSearch), 250);
+		return () => clearTimeout(timer);
+	}, [customSearch]);
+	const selectedCustomUid = customTabActive && activeStep?.prodUid &&
+		(activeStep.custom === true || activeStep.meta?.custom === true ||
+			activeStep.meta?.selectedComponents?.some((component) =>
+				component.uid === activeStep.prodUid &&
+				(component.custom === true || component._metaData?.custom === true),
+			))
+		? String(activeStep.prodUid)
+		: undefined;
+	const customSearchReady = customSearch.length < 2
+		? Boolean(selectedCustomUid)
+		: debouncedCustomSearch === customSearch;
+	const customComponentsQuery = dataSource.useCustomComponents?.({
+		stepId: activeStep?.stepId || activeStep?.step?.id,
+		query: debouncedCustomSearch,
+		selectedUid: selectedCustomUid,
+		enabled: customTabActive && customSearchReady,
+	});
+	const nextStepIndex = activeStepIndex + 1;
+	const nextStep =
+		activeLineSteps.length > nextStepIndex &&
+		resolveInteractiveStepIndex(activeLineSteps, nextStepIndex) === nextStepIndex
+			? activeLineSteps[nextStepIndex]
+			: null;
+	const nextStepId = nextStep?.stepId || nextStep?.step?.id || null;
+	const nextStepTitle = nextStep?.step?.title || null;
+	useEffect(() => {
+		if (!stepComponentsQuery.data || !nextStepId || !dataSource.prefetchStepComponents)
+			return;
+		void dataSource.prefetchStepComponents({
+			stepId: nextStepId,
+			stepTitle: nextStepTitle,
+		});
+	}, [dataSource.prefetchStepComponents, nextStepId, nextStepTitle, stepComponentsQuery.data]);
 	const activeStepComponentOverrides = useMemo(
 		() => buildStepComponentOverrideMap(activeStep || null),
 		[activeStep],
@@ -453,12 +531,22 @@ export function SalesFormWorkflowPanel<
 		() => activeLineSteps.find((step) => isDoorStepTitle(step?.step?.title)),
 		[activeLineSteps],
 	);
+	const needsDoorCatalog = Boolean(
+		isDoorStepTitle(activeStep?.step?.title) ||
+		routeScopedLineItems.some((line) =>
+			Boolean(line.housePackageTool?.doors?.length) ||
+			line.formSteps?.some((step) =>
+				isDoorStepTitle(step?.step?.title) &&
+				Boolean(step.prodUid || step.componentId || step.meta?.selectedComponents?.length),
+			),
+		),
+	);
 	const doorComponentsQuery = (
 		dataSource.useDoorComponents || dataSource.useStepComponents
 	)({
 		stepId: activeDoorStep?.stepId || activeDoorStep?.step?.id || null,
 		stepTitle: activeDoorStep?.step?.title || "Door",
-		enabled: Boolean(activeDoorStep),
+		enabled: Boolean(activeDoorStep) && needsDoorCatalog,
 	});
 	const activePricingReady =
 		activeProfilePricingReady &&
@@ -572,6 +660,27 @@ export function SalesFormWorkflowPanel<
 			activeStepComponentOverrides,
 			stepComponentsQuery.data,
 		],
+	);
+	const customSuggestions = useMemo(
+		() => {
+			const selected = customComponentsQuery?.data?.selectedComponent;
+			const matches = customTabActive && customSearchReady
+				? customComponentsQuery?.data?.components || [] : [];
+			return resolveWorkflowCatalogComponents({
+			components: selected && !selected.isDeleted && customTabActive && customSearchReady
+				? [selected, ...matches.filter((component) => component.uid !== selected.uid)]
+				: matches,
+			steps: activeLineSteps,
+			activeStep: activeStep || null,
+			overrides: activeStepComponentOverrides,
+			profileCoefficient: activeProfileCoefficient,
+			pricingView: activePricingView,
+			dealerSalesPercentage: activeDealerSalesPercentage,
+			});
+		},
+		[customTabActive, customSearchReady, customComponentsQuery?.data,
+			activeLineSteps, activeStep, activeStepComponentOverrides,
+			activeProfileCoefficient, activePricingView, activeDealerSalesPercentage],
 	);
 	const visibleDoorComponents = useMemo(() => {
 		return (doorComponentsQuery.data || [])
@@ -1245,6 +1354,15 @@ export function SalesFormWorkflowPanel<
 				loading={Boolean(stepComponentsQuery.isPending)}
 				components={visibleComponents}
 				catalogComponents={catalogComponents}
+				customSuggestions={dataSource.useCustomComponents ? customSuggestions : undefined}
+				customSearchLoading={customTabActive && customSearch.length >= 2 &&
+					(!customSearchReady || Boolean(customComponentsQuery?.isPending || customComponentsQuery?.isFetching))}
+				customSearchError={customTabActive && customComponentsQuery?.isError}
+				onCatalogTabChange={dataSource.useCustomComponents ? (tab) => {
+					customVerificationSequence.current += 1;
+					setComponentSearch("");
+					setCustomTabScope(tab === "custom" ? customScope : null);
+				} : undefined}
 				filteredComponents={filteredVisibleComponents}
 				selectedUids={selectedUids}
 				search={componentSearch}
@@ -1298,7 +1416,10 @@ export function SalesFormWorkflowPanel<
 							),
 					})
 				}
-				onSearchChange={setComponentSearch}
+				onSearchChange={(value) => {
+					customVerificationSequence.current += 1;
+					setComponentSearch(value);
+				}}
 				onJumpStep={(stepIndex) =>
 					setActiveStep(String(line.uid || ""), stepIndex)
 				}
@@ -1396,9 +1517,56 @@ export function SalesFormWorkflowPanel<
 								)
 						: undefined
 				}
-				onSelect={(component) =>
-					selectComponent(line, steps, activeIndex, component)
-				}
+				onSelect={(component) => {
+					if (dataSource.useCustomComponents &&
+						(component.custom === true || component._metaData?.custom === true)) {
+						const stepId = Number(activeItemStep?.stepId || activeItemStep?.step?.id || 0);
+						const verifyCustom = dataSource.verifyCustomComponent;
+						if (!customTabActive || !customSearchReady || !stepId ||
+							!component.uid || !verifyCustom) {
+							toast({ title: "Custom component needs review",
+								description: "Search for its current price before selecting it.",
+								variant: "destructive" });
+							return;
+						}
+						const verificationSequence = ++customVerificationSequence.current;
+						void (async () => {
+							try {
+								const current = await verifyCustom({
+									stepId,
+									uid: String(component.uid),
+								});
+								if (currentCustomScope.current !== customScope ||
+									currentCustomSelectionContext.current !== customSelectionContext ||
+									customVerificationSequence.current !== verificationSequence) return;
+								if (!current || current.isDeleted || current._metaData?.deletedAt) {
+									toast({ title: "Custom component unavailable",
+										description: "Search for another active component.",
+										variant: "destructive" });
+									return;
+								}
+								const priced = resolveWorkflowCatalogComponents({
+									components: [current],
+									steps,
+									activeStep: activeItemStep || null,
+									overrides: activeStepComponentOverrides,
+									profileCoefficient: activeProfileCoefficient,
+									pricingView: activePricingView,
+									dealerSalesPercentage: activeDealerSalesPercentage,
+								})[0];
+								if (priced) selectComponent(line, steps, activeIndex, priced, true);
+							} catch {
+								if (customVerificationSequence.current !== verificationSequence ||
+									currentCustomSelectionContext.current !== customSelectionContext) return;
+								toast({ title: "Custom component unavailable",
+									description: "Could not verify its current price. Try again.",
+									variant: "destructive" });
+							}
+						})();
+						return;
+					}
+					selectComponent(line, steps, activeIndex, component);
+				}}
 				onClearRedirect={
 					props.slots?.componentActions?.onClearRedirect
 						? (component) =>

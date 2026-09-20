@@ -238,7 +238,7 @@ describe("workflow visible components", () => {
 		expect(components[0]?.salesPrice).toBe(29);
 	});
 
-	it("keeps snapshot pricing as the fallback for missing and custom catalogue prices", () => {
+	it("uses current custom pricing and falls back to saved prices only when missing", () => {
 		const components = resolveWorkflowCatalogComponents({
 			components: [
 				{ uid: "missing-price", title: "Missing Price" },
@@ -248,20 +248,28 @@ describe("workflow visible components", () => {
 					custom: true,
 					basePrice: 10,
 				},
+				{ uid: "custom-missing", title: "Custom Missing", custom: true },
+				{ uid: "custom-sale", title: "Custom Sale", custom: true, salesPrice: 12 },
 			],
 			steps: [],
 			activeStep: null,
 			overrides: new Map([
 				["missing-price", { basePrice: 30 }],
 				["custom-price", { basePrice: 45 }],
+				["custom-missing", { basePrice: 20 }],
+				["custom-sale", { basePrice: 45 }],
 			]),
 			profileCoefficient: 1,
 		});
 
 		expect(components[0]?.basePrice).toBe(30);
 		expect(components[0]?.salesPrice).toBe(30);
-		expect(components[1]?.basePrice).toBe(45);
-		expect(components[1]?.salesPrice).toBe(45);
+		expect(components[1]?.basePrice).toBe(10);
+		expect(components[1]?.salesPrice).toBe(10);
+		expect(components[2]?.basePrice).toBe(20);
+		expect(components[2]?.salesPrice).toBe(20);
+		expect(components[3]?.basePrice).toBe(12);
+		expect(components[3]?.salesPrice).toBe(12);
 	});
 
 	it("hides unselected custom components while keeping the selected custom component visible", () => {

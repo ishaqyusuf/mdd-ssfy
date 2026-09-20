@@ -1,4 +1,5 @@
-import type { Db } from "@gnd/db";
+import type { Db, TransactionClient } from "@gnd/db";
+import { advanceSalesWorkflowCatalogRevision } from "@gnd/db/queries";
 import {
   buildLegacyDoorSupplierPricingKeys,
   parseDykeSupplierPricingKey,
@@ -24,7 +25,7 @@ function resolveGenericVariantPrice(pricing: {
 }
 
 async function syncCategory(
-  db: Db,
+  db: Db | TransactionClient,
   inventoryCategoryId: number,
   mode: "compare" | "sync",
 ) {
@@ -126,7 +127,7 @@ async function syncCategory(
 }
 
 async function syncProduct(
-  db: Db,
+  db: Db | TransactionClient,
   inventoryId: number,
   mode: "compare" | "sync",
 ) {
@@ -201,11 +202,8 @@ async function syncProduct(
 
   // Match existing Dyke product by uid
   const existingProduct = await db.dykeStepProducts.findFirst({
-    where: {
-      uid: inventory.uid,
-      deletedAt: null,
-    },
-    select: { id: true, name: true, img: true },
+    where: { uid: inventory.uid },
+    select: { id: true, name: true, img: true, deletedAt: true },
   });
 
   const isDeleted = !!inventory.deletedAt || inventory.status === "archived";
@@ -246,19 +244,35 @@ async function syncProduct(
 
   // Existing product - handle archive or update
   if (isDeleted) {
-    if (mode === "sync") {
+    if (mode === "sync" && !existingProduct.deletedAt) {
       await db.dykeStepProducts.updateMany({
         where: { id: existingProduct.id },
         data: { deletedAt: new Date() },
       });
     }
-    archived += 1;
+    if (!existingProduct.deletedAt) archived += 1;
     return { created, updated, archived, skipped };
   }
 
   const nameChanged = inventory.name !== existingProduct.name;
   const imgValue = inventory.images[0]?.imageGallery?.path ?? null;
   const imgChanged = imgValue !== (existingProduct.img ?? null);
+
+  if (existingProduct.deletedAt) {
+    if (mode === "sync") {
+      await db.dykeStepProducts.update({
+        where: { id: existingProduct.id },
+        data: {
+          deletedAt: null,
+          dykeStepId: parentStep.id,
+          name: inventory.name,
+          img: imgValue,
+        },
+      });
+    }
+    updated += 1;
+    return { created, updated, archived, skipped };
+  }
 
   if (nameChanged || imgChanged) {
     if (mode === "sync") {
@@ -277,7 +291,7 @@ async function syncProduct(
 }
 
 async function syncVariantAndPricing(
-  db: Db,
+  db: Db | TransactionClient,
   inventoryVariantId: number,
   mode: "compare" | "sync",
 ) {
@@ -743,11 +757,14 @@ export async function syncInventoryToDyke(
 
   // Category sync
   if (payload.inventoryCategoryId) {
-    const catResult = await syncCategory(
-      db,
-      payload.inventoryCategoryId,
-      mode,
-    );
+    const catResult = mode === "compare"
+      ? await syncCategory(db, payload.inventoryCategoryId, mode)
+      : await db.$transaction(async (tx) => {
+          const batch = await syncCategory(tx, payload.inventoryCategoryId!, mode);
+          if (batch.created + batch.updated + batch.archived > 0)
+            await advanceSalesWorkflowCatalogRevision(tx);
+          return batch;
+        });
     result.category = {
       created: catResult.created,
       updated: catResult.updated,
@@ -758,16 +775,26 @@ export async function syncInventoryToDyke(
 
   // Product sync
   if (payload.inventoryId) {
-    result.products = await syncProduct(db, payload.inventoryId, mode);
+    result.products = mode === "compare"
+      ? await syncProduct(db, payload.inventoryId, mode)
+      : await db.$transaction(async (tx) => {
+          const batch = await syncProduct(tx, payload.inventoryId!, mode);
+          if (batch.created + batch.updated + batch.archived > 0)
+            await advanceSalesWorkflowCatalogRevision(tx);
+          return batch;
+        });
   }
 
   // Variant + pricing sync
   if (payload.inventoryVariantId) {
-    const vpResult = await syncVariantAndPricing(
-      db,
-      payload.inventoryVariantId,
-      mode,
-    );
+    const vpResult = mode === "compare"
+      ? await syncVariantAndPricing(db, payload.inventoryVariantId, mode)
+      : await db.$transaction(async (tx) => {
+          const batch = await syncVariantAndPricing(tx, payload.inventoryVariantId!, mode);
+          if (batch.pricing.created + batch.pricing.updated + batch.pricing.archived > 0)
+            await advanceSalesWorkflowCatalogRevision(tx);
+          return batch;
+        });
     result.variants = {
       ...vpResult.variants,
       skipped: [...result.variants.skipped, ...vpResult.variants.skipped],
@@ -803,9 +830,13 @@ export async function dykeUpdateFromInventory(
     if (!category?.uid) {
       summary.skipped.push("inventory category missing uid");
     } else {
-      const result = await db.dykeSteps.updateMany({
-        where: { uid: category.uid },
-        data: syncTitle ? { title: category.title } : {},
+      const result = await db.$transaction(async (tx) => {
+        const updated = await tx.dykeSteps.updateMany({
+          where: { uid: category.uid },
+          data: syncTitle ? { title: category.title } : {},
+        });
+        if (updated.count) await advanceSalesWorkflowCatalogRevision(tx);
+        return updated;
       });
       summary.categoryUpdated += result.count || 0;
     }
@@ -833,14 +864,18 @@ export async function dykeUpdateFromInventory(
     if (!inventory?.uid) {
       summary.skipped.push("inventory product missing uid");
     } else {
-      const result = await db.dykeStepProducts.updateMany({
-        where: { uid: inventory.uid },
-        data: {
-          ...(syncTitle ? { name: inventory.name } : {}),
-          ...(syncImage
-            ? { img: inventory.images[0]?.imageGallery?.path ?? undefined }
-            : {}),
-        },
+      const result = await db.$transaction(async (tx) => {
+        const updated = await tx.dykeStepProducts.updateMany({
+          where: { uid: inventory.uid },
+          data: {
+            ...(syncTitle ? { name: inventory.name } : {}),
+            ...(syncImage
+              ? { img: inventory.images[0]?.imageGallery?.path ?? undefined }
+              : {}),
+          },
+        });
+        if (updated.count) await advanceSalesWorkflowCatalogRevision(tx);
+        return updated;
       });
       summary.productsUpdated += result.count || 0;
     }

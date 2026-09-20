@@ -96,6 +96,11 @@ function getWebBaseUrl() {
 function getTrustedOrigins() {
   const localAppPort =
     process.env.PORTLESS_APP_PORT || process.env.PORT || "3010";
+  const previewOrigins = process.env.VERCEL_ENV === "preview"
+    ? [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]
+        .filter((host): host is string => Boolean(host))
+        .map((host) => `https://${host}`)
+    : [];
   const localOrigins = [
     "http://localhost:3010",
     "http://127.0.0.1:3010",
@@ -107,6 +112,7 @@ function getTrustedOrigins() {
     new Set(
       [
         getWebBaseUrl(),
+        ...previewOrigins,
         ...localOrigins,
         process.env.PORTLESS_URL,
         process.env.NEXT_PUBLIC_APP_URL,

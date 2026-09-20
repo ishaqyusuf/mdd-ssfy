@@ -2,6 +2,7 @@
 
 import { prisma } from "@/db";
 import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
+import { advanceSalesWorkflowCatalogRevision } from "@gnd/db/queries";
 
 interface Props {
     list: {
@@ -11,10 +12,12 @@ interface Props {
     }[];
 }
 export async function updateComponentsSortingAction(data: Props) {
+    if (!data.list.length) return;
+    await prisma.$transaction(async (tx) => {
     await Promise.all(
         data.list.map(async (ls) => {
             // if(Array.isArray(ls.sortUid))
-            await prisma.productSortIndex.upsert({
+            await tx.productSortIndex.upsert({
                 create: {
                     sortIndex: ls.sortIndex,
                     uid: ls.sortUid,
@@ -32,6 +35,8 @@ export async function updateComponentsSortingAction(data: Props) {
             });
         })
     );
+    await advanceSalesWorkflowCatalogRevision(tx);
+    });
     await Promise.all(
         data.list.map((ls) =>
             invalidateSalesWorkflowForStepComponent({

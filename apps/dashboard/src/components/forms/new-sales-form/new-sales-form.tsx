@@ -64,6 +64,7 @@ import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import {
     useNewSalesFormBootstrapQuery,
     useNewSalesFormGetQuery,
+	useNewSalesFormStepRoutingQuery,
 	useSalesRequestInterpretationWarningGuidanceMutation,
 	useSalesRequestPilotAccessQuery,
     useSaveFinalNewSalesFormMutation,
@@ -113,6 +114,9 @@ import {
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
+import { useSalesCatalogRevision } from "./use-sales-catalog-revision";
+import { useSalesCatalogBrowserTiming } from "./use-sales-catalog-browser-timing";
+import { isSalesCatalogCacheEnabled } from "./catalog-rollout";
 import { useSalesRequestGenerationOutcome } from "./use-request-generation-outcome";
 import { SalesRequestGenerationHandoff } from "./sales-request-generation-handoff";
 
@@ -435,6 +439,7 @@ function NewSalesFormSkeleton({ generated = false }: { generated?: boolean }) {
 }
 
 export function NewSalesForm(props: Props) {
+    useSalesCatalogBrowserTiming();
     const router = useRouter();
     const salesPrint = useSalesPrintController();
     const salesPreview = useSalesPreview();
@@ -442,6 +447,7 @@ export function NewSalesForm(props: Props) {
     const salesQueryClient = useSalesQueryClient();
     const trpc = useTRPC();
     const queryClient = useQueryClient();
+    const catalogRevisionQuery = useSalesCatalogRevision();
     const auth = useAuth();
 	const specialOrderEnrollmentAccess = useQuery(
 		trpc.specialOrder.enrollmentAccess.queryOptions(undefined, {
@@ -574,6 +580,8 @@ export function NewSalesForm(props: Props) {
         },
         props.mode === "create",
     );
+	// Begin the independent route/root-catalog request while bootstrap resolves.
+	useNewSalesFormStepRoutingQuery({});
     const getQuery = useNewSalesFormGetQuery(
         {
             type: props.type,
@@ -1640,6 +1648,28 @@ export function NewSalesForm(props: Props) {
         const currentRecord = recordOverride || record;
         if (!currentRecord) return;
         if (intent === "final") {
+			const expectedCatalogRevision = isSalesCatalogCacheEnabled()
+				? catalogRevisionQuery.formRevision
+				: undefined;
+			if (isSalesCatalogCacheEnabled()) {
+				if (expectedCatalogRevision == null) {
+					toast({ title: "Catalog is loading", description: "Wait for the component catalog check before finalizing.", variant: "destructive" });
+					return;
+				}
+				if (catalogRevisionQuery.data?.revision !== expectedCatalogRevision) {
+					toast({ title: "Catalog changed", description: "Save a draft, then reopen and review current components and prices before finalizing.", variant: "destructive" });
+					return;
+				}
+				const loadedCatalogs = queryClient.getQueriesData<{ revision: number }>({
+					queryKey: trpc.newSalesForm.getComponentCatalog.queryKey(),
+					type: "active",
+				}).map(([, snapshot]) => snapshot).filter(Boolean);
+				if (!loadedCatalogs.length || loadedCatalogs.some((snapshot) =>
+					snapshot?.revision !== expectedCatalogRevision)) {
+					toast({ title: "Catalog needs review", description: "Wait for current components to load, then review the selections before finalizing.", variant: "destructive" });
+					return;
+				}
+			}
             const pendingQuantity = currentRecord.lineItems.some((line) => {
                 const rows = line.meta?.mouldingRows;
                 return Array.isArray(rows) && rows.some((row: { quantityReview?: boolean; qty?: number }) =>
@@ -1660,6 +1690,7 @@ export function NewSalesForm(props: Props) {
             try {
                 const resp = await finalSave.mutateAsync({
                     ...toSaveDraftInput(currentRecord, false, "final"),
+					...(expectedCatalogRevision == null ? {} : { expectedCatalogRevision }),
 					...(lowTouchClaim ? { lowTouchClaim } : {}),
                     commitIntent: "final",
                     autosave: false,

@@ -1253,6 +1253,22 @@ describe("new-sales-form multi-line mixed parity", () => {
 			meta: { flatRate: false },
 			step: { id: 51, uid: "door", title: "Door" },
 		});
+		state.stepForms.push({
+			id: 603,
+			salesId: 6,
+			salesItemId: 60,
+			deletedAt: null,
+			stepId: 52,
+			componentId: 979,
+			component: { custom: true },
+			prodUid: "custom-sill",
+			value: "Custom Sill",
+			qty: 1,
+			price: 25,
+			basePrice: 25,
+			meta: { flatRate: false },
+			step: { id: 52, uid: "sill", title: "Sill Type" },
+		});
 		state.hpts.push({
 			id: 600,
 			salesOrderId: 6,
@@ -1297,6 +1313,16 @@ describe("new-sales-form multi-line mixed parity", () => {
 				img: "carrara.png",
 			}),
 		]);
+		expect(
+			loaded.lineItems[0]?.formSteps?.find(
+				(step) => step.step?.title === "Sill Type",
+			),
+		).toMatchObject({
+			prodUid: "custom-sill",
+			custom: true,
+			price: 25,
+			basePrice: 25,
+		});
 	});
 
 	it("merges db line meta back into stale persisted drafts for moulding edits", async () => {

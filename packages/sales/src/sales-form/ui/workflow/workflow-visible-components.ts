@@ -99,6 +99,13 @@ export function resolveWorkflowCatalogComponents<
 			const effectiveComponent = {
 				...component,
 				...(override || {}),
+				...(custom
+					? {
+						basePrice:
+							component.basePrice ?? component.salesPrice ?? override?.basePrice,
+						salesPrice: component.salesPrice ?? override?.salesPrice,
+					}
+					: {}),
 				pricing: overridePricing,
 				supplierVariants: overrideSupplierVariants,
 			};

@@ -11,6 +11,8 @@ type WorkflowCustomComponentPanelProps = {
 	title: string;
 	price: number | null;
 	options: CustomComponentOption[];
+	searching?: boolean;
+	searchError?: boolean;
 	selectedOption: CustomComponentOption | null;
 	showPrice: boolean;
 	disabled: boolean;
@@ -29,6 +31,7 @@ export function WorkflowCustomComponentPanel(
 		<Alert className="rounded-md bg-background p-3 text-foreground shadow-sm">
 			<AlertTitle className="mb-3">Custom Component</AlertTitle>
 			<CustomComponentCombobox
+				inlineSearch
 				title={props.title}
 				price={props.price}
 				options={props.options}
@@ -40,6 +43,17 @@ export function WorkflowCustomComponentPanel(
 				onSelect={props.onSelect}
 				onDeleteOption={props.onDeleteOption}
 			/>
+			<output className="mt-2 block text-xs text-muted-foreground">
+				{props.searchError
+					? "Could not load custom suggestions. Try typing again."
+					: props.searching
+						? "Finding custom components…"
+						: props.title.trim().length < 2
+							? "Type at least two characters to find an existing custom component."
+							: props.options.length
+								? `${props.options.length} matching custom components`
+								: "No matches. You can create this custom component."}
+			</output>
 			<div className="mt-3 flex flex-wrap justify-end gap-2">
 				<Button
 					type="button"
@@ -52,7 +66,12 @@ export function WorkflowCustomComponentPanel(
 				<Button
 					type="button"
 					size="sm"
-					disabled={props.disabled || !props.title.trim()}
+					disabled={
+						props.disabled ||
+						props.searching ||
+						props.searchError ||
+						!props.title.trim()
+					}
 					onClick={props.onProceed}
 				>
 					Proceed

@@ -185,16 +185,28 @@ class SharedRedisClient {
 let sharedClient: SharedRedisClient | null = null;
 let initialConnectPromise: Promise<void> | null = null;
 
+function connectSharedRedisClient(client: SharedRedisClient): Promise<void> {
+  if (initialConnectPromise) return initialConnectPromise;
+
+  const attempt = client.connect()
+    .catch((error) => {
+      logger.error("Redis connection failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    })
+    .finally(() => {
+      if (initialConnectPromise === attempt) initialConnectPromise = null;
+    });
+  initialConnectPromise = attempt;
+  return attempt;
+}
+
 export function getSharedRedisClient(): SharedRedisClient {
   if (sharedClient) return sharedClient;
 
   logger.info("Creating new Redis client");
   sharedClient = new SharedRedisClient();
-  initialConnectPromise = sharedClient.connect().catch((error) => {
-    logger.error("Initial connection failed", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-  });
+  void connectSharedRedisClient(sharedClient);
 
   return sharedClient;
 }
@@ -204,7 +216,7 @@ export function waitForRedisReady(timeoutMs = 2_000): Promise<boolean> {
   if (client.connected) return Promise.resolve(true);
 
   return Promise.race([
-    (initialConnectPromise ?? client.connect()).then(() => client.connected),
+    connectSharedRedisClient(client).then(() => client.connected),
     new Promise<boolean>((resolve) =>
       setTimeout(() => resolve(false), timeoutMs),
     ),

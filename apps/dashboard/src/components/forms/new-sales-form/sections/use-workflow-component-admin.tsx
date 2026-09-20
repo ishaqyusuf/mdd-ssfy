@@ -144,12 +144,27 @@ export function useWorkflowComponentAdmin(input: {
 	const [dialog, setDialog] = useState<AdminDialogState>({ kind: "closed" });
 
 	async function refreshCatalog() {
+		await queryClient.cancelQueries({
+			queryKey: trpc.newSalesForm.getComponentCatalog.queryKey(),
+		});
+		await queryClient.cancelQueries({
+			queryKey: trpc.newSalesForm.searchCustomComponents.queryKey(),
+		});
 		await Promise.all([
 			queryClient.invalidateQueries({
 				queryKey: trpc.sales.getStepComponents.queryKey(),
 			}),
 			queryClient.invalidateQueries({
 				queryKey: trpc.newSalesForm.getStepRouting.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.newSalesForm.getComponentCatalog.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.newSalesForm.searchCustomComponents.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.newSalesForm.getCatalogRevision.queryKey(),
 			}),
 		]);
 	}

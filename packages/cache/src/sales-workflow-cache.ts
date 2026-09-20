@@ -65,7 +65,7 @@ function stepComponentsKey(input: StepComponentsCacheInput) {
   )}`;
 }
 
-const stepRoutingKey = "step-routing:v1";
+const stepRoutingKey = "step-routing:v3";
 
 function unique(values: string[]) {
   return [...new Set(values.filter(Boolean))];

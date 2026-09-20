@@ -13,6 +13,7 @@ export type StepComponentPickerProps<TComponent> = {
 	noticeSlot?: ReactNode;
 	toolbarSlot: ReactNode;
 	leadingSlot?: ReactNode;
+	emptyMessage?: string;
 	getKey: (component: TComponent, index: number) => string;
 	renderComponent: (component: TComponent, index: number) => ReactNode;
 };
@@ -33,6 +34,7 @@ export function StepComponentPicker<TComponent>(
 				<WorkflowComponentGrid
 					components={props.filteredComponents}
 					search={props.search}
+					emptyMessage={props.emptyMessage}
 					getKey={props.getKey}
 					renderComponent={props.renderComponent}
 					leadingSlot={props.leadingSlot}

@@ -5,15 +5,33 @@ import {
 import type { TRPCContext } from "@api/trpc/init";
 import { txContext } from "@api/utils/db";
 import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
+import { Prisma as DbPrisma } from "@gnd/db";
+import { advanceSalesWorkflowCatalogRevision } from "@gnd/db/queries";
 import {
 	queueDykeStepToInventorySync,
 	updateDykeComponentPricing,
 } from "@gnd/inventory";
+import { createLoggerWithContext } from "@gnd/logger";
 import { type RenturnTypeAsync, generateRandomString, sum } from "@gnd/utils";
 import { composeQuery } from "@gnd/utils/query-response";
 import type { DykeStepMeta, Prisma, StepComponentMeta } from "@sales/types";
 import { addDays } from "date-fns";
 import { z } from "zod";
+
+const catalogLogger = createLoggerWithContext("sales-component-catalog");
+
+function recordCatalogTiming(
+	phase: string,
+	startedAt: number,
+	fields: Record<string, number | string | boolean>,
+) {
+	if (process.env.GND_SALES_CATALOG_TIMING !== "1") return;
+	catalogLogger.info("Component catalog timing", {
+		phase,
+		durationMs: Math.round(performance.now() - startedAt),
+		...fields,
+	});
+}
 
 export const getSuppliersSchema = z.object({});
 export type GetSuppliersSchema = z.infer<typeof getSuppliersSchema>;
@@ -70,13 +88,9 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
 			await tx.$executeRaw`UPDATE DykeStepForm
           SET meta = JSON_SET(meta, '$.supplierName', ${dp.name})
           WHERE JSON_EXTRACT(meta, '$.supplierUid') = ${dp.uid};`;
-			await invalidateSalesWorkflowForStepComponent({
-				stepId: dp.dykeStepId,
-				componentId: dp.id,
-				componentUid: dp.uid,
-				routing: true,
-			});
+			await advanceSalesWorkflowCatalogRevision(tx);
 			return {
+				id: dp.id,
 				uid: dp.uid,
 				name: dp.name,
 				stepId: dp.dykeStepId,
@@ -94,17 +108,19 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
 				},
 			},
 		});
-		await invalidateSalesWorkflowForStepComponent({
-			stepId,
-			componentId: dp.id,
-			componentUid: dp.uid,
-			routing: true,
-		});
+		await advanceSalesWorkflowCatalogRevision(tx);
 		return {
+			id: dp.id,
 			uid: dp.uid,
 			name: dp.name,
 			stepId,
 		};
+	});
+	await invalidateSalesWorkflowForStepComponent({
+		stepId: result.stepId,
+		componentId: result.id,
+		componentUid: result.uid,
+		routing: true,
 	});
 	await queueDykeStepToInventorySync({
 		stepId: result.stepId,
@@ -123,11 +139,13 @@ export async function deleteSupplier(
 	data: DeleteSupplierSchema,
 ) {
 	const { db } = ctx;
-	const dp = await db.dykeStepProducts.update({
-		where: { id: data.id },
-		data: {
-			deletedAt: new Date(),
-		},
+	const dp = await db.$transaction(async (tx) => {
+		const deleted = await tx.dykeStepProducts.update({
+			where: { id: data.id },
+			data: { deletedAt: new Date() },
+		});
+		await advanceSalesWorkflowCatalogRevision(tx);
+		return deleted;
 	});
 	await invalidateSalesWorkflowForStepComponent({
 		stepId: dp.dykeStepId,
@@ -151,19 +169,14 @@ export async function updateStepMeta(
 	ctx: TRPCContext,
 	data: UpdateStepMetaSchema,
 ) {
-	const step = await ctx.db.dykeSteps.update({
-		where: {
-			id: data.stepId,
-		},
-		data: {
-			meta: data.meta as any,
-		},
-		select: {
-			id: true,
-			uid: true,
-			title: true,
-			meta: true,
-		},
+	const step = await ctx.db.$transaction(async (tx) => {
+		const updated = await tx.dykeSteps.update({
+			where: { id: data.stepId },
+			data: { meta: data.meta as any },
+			select: { id: true, uid: true, title: true, meta: true },
+		});
+		await advanceSalesWorkflowCatalogRevision(tx);
+		return updated;
 	});
 	await Promise.all([
 		salesWorkflowCache.invalidateStepComponentsForStep(data.stepId),
@@ -324,13 +337,16 @@ export async function saveWorkflowComponentDetails(
 ) {
 	const [component] = await activeWorkflowComponents(ctx, [input.componentId]);
 	if (!component) throw new Error("Workflow component does not exist.");
-	await ctx.db.dykeStepProducts.update({
-		where: { id: component.id },
-		data: {
-			name: input.title,
-			productCode: input.productCode || null,
-			img: input.img || null,
-		},
+	await ctx.db.$transaction(async (tx) => {
+		await tx.dykeStepProducts.update({
+			where: { id: component.id },
+			data: {
+				name: input.title,
+				productCode: input.productCode || null,
+				img: input.img || null,
+			},
+		});
+		await advanceSalesWorkflowCatalogRevision(tx);
 	});
 	return finishWorkflowComponentMutation({
 		componentIds: [component.id],
@@ -349,16 +365,20 @@ export async function createWorkflowComponent(
 		select: { id: true },
 	});
 	if (!step) throw new Error("Workflow step does not exist.");
-	const component = await ctx.db.dykeStepProducts.create({
-		data: {
-			dykeStepId: step.id,
-			uid: generateRandomString(8),
-			name: input.title,
-			productCode: input.productCode || null,
-			img: input.img || null,
-			meta: {},
-		},
-		select: { id: true, uid: true, dykeStepId: true },
+	const component = await ctx.db.$transaction(async (tx) => {
+		const created = await tx.dykeStepProducts.create({
+			data: {
+				dykeStepId: step.id,
+				uid: generateRandomString(8),
+				name: input.title,
+				productCode: input.productCode || null,
+				img: input.img || null,
+				meta: {},
+			},
+			select: { id: true, uid: true, dykeStepId: true },
+		});
+		await advanceSalesWorkflowCatalogRevision(tx);
+		return created;
 	});
 	return finishWorkflowComponentMutation({
 		componentIds: [component.id],
@@ -412,9 +432,9 @@ export async function saveWorkflowComponentVisibility(
 ) {
 	const components = await activeWorkflowComponents(ctx, input.componentIds);
 	await validateWorkflowVisibilityRules(ctx, input.variations);
-	await ctx.db.$transaction(
-		components.map((component) =>
-			ctx.db.dykeStepProducts.update({
+	await ctx.db.$transaction(async (tx) => {
+		for (const component of components) {
+			await tx.dykeStepProducts.update({
 				where: { id: component.id },
 				data: {
 					meta: {
@@ -422,9 +442,10 @@ export async function saveWorkflowComponentVisibility(
 						variations: input.variations,
 					} as Prisma.InputJsonValue,
 				},
-			}),
-		),
-	);
+			});
+		}
+		await advanceSalesWorkflowCatalogRevision(tx);
+	});
 	return finishWorkflowComponentMutation({
 		componentIds: components.map((component) => component.id),
 		componentUids: components.map((component) => component.uid),
@@ -439,14 +460,17 @@ export async function saveWorkflowComponentSectionOverride(
 ) {
 	const [component] = await activeWorkflowComponents(ctx, [input.componentId]);
 	if (!component) throw new Error("Workflow component does not exist.");
-	await ctx.db.dykeStepProducts.update({
-		where: { id: component.id },
-		data: {
-			meta: {
-				...workflowMeta(component.meta),
-				sectionOverride: input.sectionOverride,
-			} as Prisma.InputJsonValue,
-		},
+	await ctx.db.$transaction(async (tx) => {
+		await tx.dykeStepProducts.update({
+			where: { id: component.id },
+			data: {
+				meta: {
+					...workflowMeta(component.meta),
+					sectionOverride: input.sectionOverride,
+				} as Prisma.InputJsonValue,
+			},
+		});
+		await advanceSalesWorkflowCatalogRevision(tx);
 	});
 	return finishWorkflowComponentMutation({
 		componentIds: [component.id],
@@ -469,9 +493,12 @@ export async function saveWorkflowComponentRedirect(
 		});
 		if (!target) throw new Error("Redirect target is unavailable.");
 	}
-	await ctx.db.dykeStepProducts.update({
-		where: { id: component.id },
-		data: { redirectUid: input.redirectUid },
+	await ctx.db.$transaction(async (tx) => {
+		await tx.dykeStepProducts.update({
+			where: { id: component.id },
+			data: { redirectUid: input.redirectUid },
+		});
+		await advanceSalesWorkflowCatalogRevision(tx);
 	});
 	return finishWorkflowComponentMutation({
 		componentIds: [component.id],
@@ -488,6 +515,7 @@ export async function saveWorkflowComponentPricing(
 	const [component] = await activeWorkflowComponents(ctx, [input.componentId]);
 	if (!component?.uid)
 		throw new Error("Workflow component has no canonical uid.");
+	const componentUid = component.uid;
 	const pricingIds = input.pricings.flatMap((pricing) =>
 		pricing.id ? [pricing.id] : [],
 	);
@@ -503,11 +531,14 @@ export async function saveWorkflowComponentPricing(
 			throw new Error("A pricing row does not belong to this component.");
 		}
 	}
-	await updateDykeComponentPricing(ctx.db, {
-		stepId: component.dykeStepId,
-		stepProductUid: component.uid,
-		pricings: input.pricings,
-		triggerInventorySync: false,
+	await ctx.db.$transaction(async (tx) => {
+		await updateDykeComponentPricing(tx, {
+			stepId: component.dykeStepId,
+			stepProductUid: componentUid,
+			pricings: input.pricings,
+			triggerInventorySync: false,
+		});
+		await advanceSalesWorkflowCatalogRevision(tx);
 	});
 	return finishWorkflowComponentMutation({
 		componentIds: [component.id],
@@ -521,9 +552,12 @@ export async function archiveWorkflowComponents(
 	input: z.infer<typeof archiveWorkflowComponentsSchema>,
 ) {
 	const components = await activeWorkflowComponents(ctx, input.componentIds);
-	await ctx.db.dykeStepProducts.updateMany({
-		where: { id: { in: components.map((component) => component.id) } },
-		data: { deletedAt: new Date(), isDefault: false },
+	await ctx.db.$transaction(async (tx) => {
+		await tx.dykeStepProducts.updateMany({
+			where: { id: { in: components.map((component) => component.id) } },
+			data: { deletedAt: new Date(), isDefault: false },
+		});
+		await advanceSalesWorkflowCatalogRevision(tx);
 	});
 	return finishWorkflowComponentMutation({
 		componentIds: components.map((component) => component.id),
@@ -563,6 +597,7 @@ export async function setWorkflowComponentDefault(
 				data: { isDefault: true },
 			});
 		}
+		await advanceSalesWorkflowCatalogRevision(tx);
 		return target;
 	});
 
@@ -595,13 +630,31 @@ export async function getStepComponents(
 	ctx: TRPCContext,
 	query: GetStepComponentsSchema,
 ) {
-	if (query.fresh) return fetchStepComponentsFromDb(ctx, query);
+	const startedAt = performance.now();
+	if (query.fresh) {
+		const result = await fetchStepComponentsFromDb(ctx, query);
+		recordCatalogTiming("total", startedAt, {
+			mode: "fresh",
+			rows: result.length,
+		});
+		return result;
+	}
 	const cached =
 		await salesWorkflowCache.getStepComponents<StepComponentData[]>(query);
-	if (cached) return cached;
+	if (cached) {
+		recordCatalogTiming("total", startedAt, {
+			mode: "redis-hit",
+			rows: cached.length,
+		});
+		return cached;
+	}
 
 	const result = await fetchStepComponentsFromDb(ctx, query);
 	await salesWorkflowCache.setStepComponents(query, result);
+	recordCatalogTiming("total", startedAt, {
+		mode: "redis-miss",
+		rows: result.length,
+	});
 	return result;
 }
 
@@ -619,6 +672,7 @@ async function fetchStepComponentsFromDb(
 	};
 	const where = whereStepComponents(query);
 	const { db } = ctx;
+	const startedAt = performance.now();
 	const stepProducts = await db.dykeStepProducts.findMany({
 		where,
 		include: {
@@ -642,13 +696,35 @@ async function fetchStepComponentsFromDb(
 			},
 		},
 	});
+	recordCatalogTiming("components-and-counts", startedAt, {
+		rows: stepProducts.length,
+	});
+	const pricingByComponentUid = await loadStepComponentPricing(
+		db,
+		stepProducts.map((sp) => sp.uid),
+	);
+	const result = stepProducts.map((stepProduct) =>
+		dtoStepComponent(stepProduct, pricingByComponentUid),
+	);
+	return result.sort((a, b) => {
+		return (
+			Number(b.statistics || 0) - Number(a.statistics || 0) ||
+			String(a.title || "").localeCompare(String(b.title || "")) ||
+			String(a.uid || "").localeCompare(String(b.uid || ""))
+		);
+	});
+}
+
+async function loadStepComponentPricing(
+	db: TRPCContext["db"],
+	uids: Array<string | null>,
+) {
+	const pricingStartedAt = performance.now();
 	const pricingRows = await db.dykePricingSystem.findMany({
 		where: {
 			deletedAt: null,
 			stepProductUid: {
-				in: stepProducts
-					.map((sp) => sp.uid)
-					.filter((uid): uid is string => Boolean(uid)),
+				in: uids.filter((uid): uid is string => Boolean(uid)),
 			},
 		},
 		select: {
@@ -657,6 +733,9 @@ async function fetchStepComponentsFromDb(
 			dependenciesUid: true,
 			price: true,
 		},
+	});
+	recordCatalogTiming("pricing", pricingStartedAt, {
+		rows: pricingRows.length,
 	});
 	const pricingByComponentUid: Record<
 		string,
@@ -672,20 +751,164 @@ async function fetchStepComponentsFromDb(
 			price: row.price,
 		};
 	});
-	const result = stepProducts.map((stepProduct) =>
-		dtoStepComponent(stepProduct, pricingByComponentUid),
-	);
-	return result.sort((a, b) => {
-		return (
-			Number(b.statistics || 0) - Number(a.statistics || 0) ||
-			String(a.title || "").localeCompare(String(b.title || "")) ||
-			String(a.uid || "").localeCompare(String(b.uid || ""))
-		);
+	return pricingByComponentUid;
+}
+
+/** Stable picker fields; popularity is fetched separately from the catalog. */
+export async function getStaticStepComponentCatalog(
+	ctx: TRPCContext,
+	query: GetStepComponentsSchema,
+	options: {
+		search?: string;
+		prefix?: boolean;
+		limit?: number;
+		selectedUid?: string;
+		includeArchived?: boolean;
+	} = {},
+) {
+	const startedAt = performance.now();
+	const components = await ctx.db.dykeStepProducts.findMany({
+		where: {
+			AND: [
+				whereStepComponents(query) ?? {},
+				...(options.includeArchived ? [] : [{ deletedAt: null }]),
+				...(!options.includeArchived
+					? [{ NOT: { meta: { path: "$.deletedAt", not: DbPrisma.DbNull } } }]
+					: []),
+				...(options.search
+					? [
+							{
+								name: options.prefix
+									? { startsWith: options.search }
+									: { contains: options.search },
+							},
+						]
+					: []),
+				...(options.selectedUid ? [{ uid: options.selectedUid }] : []),
+			],
+		},
+		take: options.limit,
+		orderBy: options.limit
+			? [{ name: "asc" as const }, { id: "asc" as const }]
+			: undefined,
+		select: {
+			id: true,
+			uid: true,
+			name: true,
+			img: true,
+			productCode: true,
+			dykeStepId: true,
+			meta: true,
+			sortIndex: true,
+			custom: true,
+			deletedAt: true,
+			isDefault: true,
+			redirectUid: true,
+			door: { select: { id: true, title: true, img: true } },
+			product: { select: { id: true, title: true, img: true } },
+			step: { select: { uid: true, meta: true } },
+			sorts: { select: { sortIndex: true, stepComponentId: true, uid: true } },
+		},
 	});
-	// return stepProducts.map((s) => ({
-	//   ...s,
-	//   meta: s.meta as any as StepComponentMeta,
-	// }));
+	recordCatalogTiming("static-components", startedAt, {
+		rows: components.length,
+	});
+	const pricing = await loadStepComponentPricing(
+		ctx.db,
+		components.map((component) => component.uid),
+	);
+	return components
+		.map((component) => {
+			const metaRecord = (component.meta || {}) as Record<string, unknown>;
+			const meta = metaRecord as StepComponentMeta;
+			const stepMeta = (component.step?.meta || {}) as Record<string, unknown>;
+			const priceStepDeps = Array.isArray(stepMeta.priceStepDeps)
+				? stepMeta.priceStepDeps
+						.map((value: unknown) => String(value || ""))
+						.filter(Boolean)
+				: [];
+			const uid = component.uid || "";
+			const componentPricing = pricing[uid] || {};
+			const defaultPrice = Number(componentPricing[uid]?.price);
+			return {
+				uid,
+				sortIndex: component.sortIndex,
+				id: component.id,
+				title:
+					component.name || component.door?.title || component.product?.title,
+				img: component.img || component.product?.img || component.door?.img,
+				productId: component.product?.id || component.door?.id,
+				variations: meta?.variations || [],
+				sectionOverride: meta?.sectionOverride,
+				salesPrice: Number.isFinite(defaultPrice) ? defaultPrice : null,
+				basePrice: Number.isFinite(defaultPrice) ? defaultPrice : null,
+				stepId: component.dykeStepId,
+				stepUid: component.step?.uid || null,
+				priceStepDeps,
+				pricing: componentPricing,
+				productCode: component.productCode,
+				redirectUid: component.redirectUid,
+				...(component.isDefault ? { default: true as const } : {}),
+				_metaData: {
+					sorts: component.sorts.map(({ sortIndex, stepComponentId, uid }) => ({
+						sortIndex,
+						stepComponentId,
+						uid,
+					})),
+					custom: component.custom,
+					deletedAt:
+						typeof metaRecord.deletedAt === "string"
+							? metaRecord.deletedAt
+							: null,
+					visible: false,
+					priceId: null,
+					sortId: null,
+					sortIndex: null,
+					sortUid: null,
+				},
+				isDeleted: !!component.deletedAt || Boolean(metaRecord.deletedAt),
+				statistics: 0,
+			};
+		})
+		.sort(
+			(a, b) =>
+				String(a.title || "").localeCompare(String(b.title || "")) ||
+				String(a.uid || "").localeCompare(String(b.uid || "")),
+		);
+}
+
+/** Short-lived usage ranking; sales activity does not advance catalog revision. */
+export async function getStepComponentUsageRanks(
+	ctx: TRPCContext,
+	query: GetStepComponentsSchema,
+) {
+	const whereCount = {
+		where: {
+			deletedAt: null,
+			createdAt: { gte: addDays(new Date(), -30).toISOString() },
+		},
+	};
+	const components = await ctx.db.dykeStepProducts.findMany({
+		where: whereStepComponents(query),
+		select: {
+			id: true,
+			_count: {
+				select: {
+					housePackageTools: whereCount,
+					salesDoors: whereCount,
+					stepForms: whereCount,
+				},
+			},
+		},
+	});
+	return components.map(({ id, _count }) => ({
+		id,
+		statistics: sum([
+			_count.housePackageTools,
+			_count.salesDoors,
+			_count.stepForms,
+		]),
+	}));
 }
 function whereStepComponents(query: GetStepComponentsSchema) {
 	const wheres: Prisma.DykeStepProductsWhereInput[] = [];
@@ -716,7 +939,9 @@ function whereStepComponents(query: GetStepComponentsSchema) {
 				dykeStepId: query.stepId,
 			});
 	}
-	if (query.isCustom) wheres.push({ custom: true });
+	if (query.isCustom === true) wheres.push({ custom: true });
+	if (query.isCustom === false)
+		wheres.push({ OR: [{ custom: false }, { custom: null }] });
 	if (query.title)
 		wheres.push({
 			name: query.title,

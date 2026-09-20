@@ -1,4 +1,4 @@
-import type { Db } from "@gnd/db";
+import type { Db, TransactionClient } from "@gnd/db";
 import { generateRandomString } from "@gnd/utils";
 import type {
   ArchiveDykeCustomStepComponent,
@@ -11,7 +11,7 @@ type DykeStepProductRecord = Awaited<
   ReturnType<typeof getDykeStepProductWithRelations>
 >;
 
-async function getDykeStepProductWithRelations(db: Db, id: number) {
+async function getDykeStepProductWithRelations(db: Db | TransactionClient, id: number) {
   return db.dykeStepProducts.findUniqueOrThrow({
     where: {
       id,
@@ -112,7 +112,7 @@ function buildDykeStepComponentDto(
   };
 }
 
-async function getPricingByComponentUid(db: Db, componentUid: string) {
+async function getPricingByComponentUid(db: Db | TransactionClient, componentUid: string) {
   const pricingRows = await db.dykePricingSystem.findMany({
     where: {
       deletedAt: null,
@@ -147,7 +147,7 @@ function normalizeCustomComponentTitle(value?: string | null) {
 }
 
 async function findExistingCustomComponent(
-  db: Db,
+  db: Db | TransactionClient,
   input: UpsertDykeCustomStepComponent,
 ) {
   if (input.id || input.uid) {
@@ -215,7 +215,7 @@ function safeMetaRecord(meta: unknown) {
     : {};
 }
 
-export async function saveDykeStepComponent(db: Db, input: DykeStepComponent) {
+export async function saveDykeStepComponent(db: Db | TransactionClient, input: DykeStepComponent) {
   const { id, stepId, productCode, ...data } = input;
 
   if (!id && !stepId) {
@@ -265,7 +265,7 @@ export async function saveDykeStepComponent(db: Db, input: DykeStepComponent) {
 }
 
 export async function upsertDykeCustomStepComponent(
-  db: Db,
+  db: Db | TransactionClient,
   input: UpsertDykeCustomStepComponent,
 ) {
   const title = String(input.title || "").trim();
@@ -316,7 +316,7 @@ export async function upsertDykeCustomStepComponent(
 }
 
 export async function archiveDykeCustomStepComponent(
-  db: Db,
+  db: Db | TransactionClient,
   input: ArchiveDykeCustomStepComponent,
 ) {
   const identityWhere = input.id ? { id: input.id } : { uid: input.uid || "" };
@@ -339,14 +339,16 @@ export async function archiveDykeCustomStepComponent(
   const meta =
     safeMetaRecord(existing.meta);
 
+  const archivedAt = new Date();
   const updated = await db.dykeStepProducts.update({
     where: {
       id: existing.id,
     },
     data: {
+      deletedAt: archivedAt,
       meta: {
         ...meta,
-        deletedAt: new Date().toISOString(),
+        deletedAt: archivedAt.toISOString(),
       },
     },
     select: {
