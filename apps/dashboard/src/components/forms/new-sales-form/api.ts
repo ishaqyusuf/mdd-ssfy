@@ -251,6 +251,7 @@ export function useSalesStepComponentsQuery(
 	input: { stepId?: number | null; stepTitle?: string | null },
 	enabled = true,
 	initialCatalog?: RouterOutputs["newSalesForm"]["getComponentCatalog"],
+	initialUsage?: RouterOutputs["newSalesForm"]["getComponentUsageRanks"],
 ) {
 	const trpc = useTRPC();
 	const client = useTRPCClient();
@@ -284,6 +285,7 @@ export function useSalesStepComponentsQuery(
 	const usageQuery = useQuery(
 		trpc.newSalesForm.getComponentUsageRanks.queryOptions(selector, {
 			enabled: shouldLoad && cacheEnabled,
+			initialData: initialUsage,
 			staleTime: 5 * 60 * 1000,
 			gcTime: 15 * 60 * 1000,
 		}),

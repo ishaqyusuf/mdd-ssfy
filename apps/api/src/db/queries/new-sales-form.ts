@@ -64,6 +64,7 @@ import {
 	lockSalesWorkflowCatalogRevision,
 } from "@gnd/db/queries";
 import { AppError } from "@gnd/errors";
+import { createLoggerWithContext } from "@gnd/logger";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
 import { prepareSalesDocumentReadiness } from "@gnd/sales/document-readiness";
@@ -120,7 +121,10 @@ import {
 } from "./new-sales-form-debug";
 import { hasUnprojectedApprovedCommercialSnapshot } from "./sales-commercial-consistency";
 import { getStaticStepComponentCatalog, getStepComponents } from "./sales-form";
-import { getVersionedSalesWorkflowCatalogSnapshot } from "./new-sales-form-catalog";
+import {
+	getSalesFormComponentUsageRanks,
+	getVersionedSalesWorkflowCatalogSnapshot,
+} from "./new-sales-form-catalog";
 import {
 	buildSalesFormUpdateActivity,
 	buildSpecialOrderEnrollmentActivity,
@@ -1953,8 +1957,29 @@ export async function getNewSalesFormStepRouting(
 			};
 		},
 	);
+	const rootStepId = snapshot.data.rootStepUid
+		? snapshot.data.stepsByUid[snapshot.data.rootStepUid]?.id
+		: null;
+	let rootUsageRanks:
+		| Awaited<ReturnType<typeof getSalesFormComponentUsageRanks>>
+		| undefined;
+	if (rootStepId) {
+		try {
+			rootUsageRanks = await getSalesFormComponentUsageRanks(ctx, {
+				stepId: rootStepId,
+				isCustom: false,
+			});
+		} catch (error) {
+			createLoggerWithContext("new-sales-form-routing").warn(
+				"Root usage ranking unavailable",
+				{ errorName: error instanceof Error ? error.name : "unknown" },
+			);
+			// Keep routing available; the picker can retry its separate ranking query.
+		}
+	}
 	return {
 		...snapshot.data,
+		rootUsageRanks,
 		rootCatalog: {
 			revision: snapshot.revision,
 			schemaVersion: snapshot.schemaVersion,
