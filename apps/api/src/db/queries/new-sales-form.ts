@@ -122,7 +122,7 @@ import {
 import { hasUnprojectedApprovedCommercialSnapshot } from "./sales-commercial-consistency";
 import { getStaticStepComponentCatalog, getStepComponents } from "./sales-form";
 import {
-	getSalesFormComponentUsageRanks,
+	getCachedSalesFormComponentUsageRanks,
 	getVersionedSalesWorkflowCatalogSnapshot,
 } from "./new-sales-form-catalog";
 import {
@@ -1961,21 +1961,13 @@ export async function getNewSalesFormStepRouting(
 		? snapshot.data.stepsByUid[snapshot.data.rootStepUid]?.id
 		: null;
 	let rootUsageRanks:
-		| Awaited<ReturnType<typeof getSalesFormComponentUsageRanks>>
+		| Awaited<ReturnType<typeof getCachedSalesFormComponentUsageRanks>>
 		| undefined;
 	if (rootStepId) {
-		try {
-			rootUsageRanks = await getSalesFormComponentUsageRanks(ctx, {
-				stepId: rootStepId,
-				isCustom: false,
-			});
-		} catch (error) {
-			createLoggerWithContext("new-sales-form-routing").warn(
-				"Root usage ranking unavailable",
-				{ errorName: error instanceof Error ? error.name : "unknown" },
-			);
-			// Keep routing available; the picker can retry its separate ranking query.
-		}
+		rootUsageRanks = await getCachedSalesFormComponentUsageRanks({
+			stepId: rootStepId,
+			isCustom: false,
+		});
 	}
 	return {
 		...snapshot.data,
