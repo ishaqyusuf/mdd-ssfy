@@ -348,12 +348,6 @@ export function ItemWorkflowPanel() {
 				.toLowerCase()
 				.includes("shelf"),
 	);
-	const needsDoorSuppliers = routeScopedLineItems.some((line) =>
-		line.formSteps?.some(
-			(step) => String(step.step?.title || "").toLowerCase() === "door",
-		),
-	);
-	const suppliersQuery = useSalesSuppliersQuery(needsDoorSuppliers);
 	const activeDoorStep = activeLine
 		? findLineStepByTitle(activeLine, "Door")
 		: null;
@@ -366,11 +360,12 @@ export function ItemWorkflowPanel() {
 					(step) =>
 						isDoorStepTitle(step?.step?.title) &&
 						Boolean(
-							step.prodUid || step.meta?.selectedComponents?.length,
+							step.prodUid || step.componentId || step.meta?.selectedComponents?.length,
 						),
 				),
 		),
 	);
+	const suppliersQuery = useSalesSuppliersQuery(needsDoorCatalog);
 	const activeSelectedComponentUids = useMemo(
 		() =>
 			new Set(

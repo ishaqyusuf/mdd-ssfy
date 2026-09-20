@@ -249,9 +249,14 @@ export function SalesFormWorkflowPanel<
 			.toLowerCase()
 			.includes("shelf"),
 	);
-	const needsDoorSuppliers = routeScopedLineItems.some((line) =>
-		line.formSteps?.some(
-			(step) => String(step.step?.title || "").toLowerCase() === "door",
+	const needsDoorCatalog = Boolean(
+		isDoorStepTitle(activeStep?.step?.title) ||
+		routeScopedLineItems.some((line) =>
+			Boolean(line.housePackageTool?.doors?.length) ||
+			line.formSteps?.some((step) =>
+				isDoorStepTitle(step?.step?.title) &&
+				Boolean(step.prodUid || step.componentId || step.meta?.selectedComponents?.length),
+			),
 		),
 	);
 	const profilesQuery = dataSource.useCustomerProfiles?.();
@@ -323,7 +328,7 @@ export function SalesFormWorkflowPanel<
 		[dataSource],
 	);
 	const doorSuppliersQuery = dataSource.useDoorSuppliers?.({
-		enabled: needsDoorSuppliers,
+		enabled: needsDoorCatalog,
 	});
 	const shelfProductsByCategory = useMemo(() => {
 		const bucket = new Map<number, ShelfProductOption[]>();
@@ -535,16 +540,6 @@ export function SalesFormWorkflowPanel<
 	const doorStepComponentOverrides = useMemo(
 		() => buildStepComponentOverrideMap(activeDoorStep || null),
 		[activeDoorStep],
-	);
-	const needsDoorCatalog = Boolean(
-		isDoorStepTitle(activeStep?.step?.title) ||
-		routeScopedLineItems.some((line) =>
-			Boolean(line.housePackageTool?.doors?.length) ||
-			line.formSteps?.some((step) =>
-				isDoorStepTitle(step?.step?.title) &&
-				Boolean(step.prodUid || step.componentId || step.meta?.selectedComponents?.length),
-			),
-		),
 	);
 	const doorComponentsQuery = (
 		dataSource.useDoorComponents || dataSource.useStepComponents

@@ -8,6 +8,7 @@ import {
 	SalesFormEnginePanel,
 	getRedirectableRoutes,
 	getWorkflowSteps,
+	isDoorStepTitle,
 	resolveConfiguredRouteStepsForLine,
 } from "@gnd/sales/sales-form";
 import { useMemo, useState } from "react";
@@ -36,7 +37,30 @@ export function DashboardSalesFormWorkflowPanel() {
 	const removeLineItem = useNewSalesFormStore((state) => state.removeLineItem);
 	const setEditor = useNewSalesFormStore((state) => state.setEditor);
 	const dataSource = useDashboardSalesFormWorkflowData();
-	const suppliersQuery = useSalesSuppliersQuery(true);
+	const activeLine = record?.lineItems.find(
+		(line) => line.uid === editor.activeItem,
+	);
+	const activeLineSteps = activeLine ? getWorkflowSteps(activeLine) : [];
+	const activeStep = activeLine
+		? activeLineSteps[editor.activeStepByLine[activeLine.uid] || 0]
+		: null;
+	const needsDoorSuppliers = Boolean(
+		isDoorStepTitle(activeStep?.step?.title) ||
+		record?.lineItems.some(
+			(line) =>
+				Boolean(line.housePackageTool?.doors?.length) ||
+				getWorkflowSteps(line).some(
+					(step) =>
+						isDoorStepTitle(step?.step?.title) &&
+						Boolean(
+							step.prodUid ||
+								step.componentId ||
+								step.meta?.selectedComponents?.length,
+						),
+				),
+			),
+	);
+	const suppliersQuery = useSalesSuppliersQuery(needsDoorSuppliers);
 	const saveSupplierMutation = useSalesSaveSupplierMutation();
 	const deleteSupplierMutation = useSalesDeleteSupplierMutation();
 	const updateStepMetaMutation = useSalesUpdateStepMetaMutation();
