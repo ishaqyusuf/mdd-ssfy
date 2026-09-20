@@ -1,11 +1,13 @@
 import { afterAll, describe, expect, it } from "bun:test";
 import { db } from "@gnd/db";
+import { addDays } from "date-fns";
 import type { TRPCContext } from "../../trpc/init";
 import {
 	getFreshNewSalesFormStepRouting,
 	projectInteractiveNewSalesFormRouting,
 } from "./new-sales-form";
 import {
+	getStepComponentUsageRanks,
 	getStaticStepComponentCatalog,
 	getStepComponents,
 } from "./sales-form";
@@ -26,6 +28,45 @@ if (enabled) {
 afterAll(async () => db.$disconnect());
 
 describe.skipIf(!enabled)("static sales catalog projection", () => {
+	it("preserves recent sales ranking totals across Door and Jamb Size", async () => {
+		const ctx = { db } as TRPCContext;
+		for (const title of ["Door", "Jamb Size"]) {
+			const step = await db.dykeSteps.findFirst({
+				where: { title, deletedAt: null },
+				select: { id: true },
+			});
+			expect(step).not.toBeNull();
+			const ranks = await getStepComponentUsageRanks(ctx, {
+				stepId: step!.id,
+				stepTitle: title,
+				isCustom: false,
+			});
+			const cutoff = addDays(new Date(), -30).toISOString();
+			const oldCounts = await db.dykeStepProducts.findMany({
+				where: { id: { in: ranks.map(({ id }) => id) } },
+				select: {
+					id: true,
+					_count: {
+						select: {
+							housePackageTools: {
+								where: { deletedAt: null, createdAt: { gte: cutoff } },
+							},
+							salesDoors: { where: { deletedAt: null, createdAt: { gte: cutoff } } },
+							stepForms: { where: { deletedAt: null, createdAt: { gte: cutoff } } },
+						},
+					},
+				},
+			});
+			expect(ranks.length).toBeGreaterThan(0);
+			expect(new Map(ranks.map(({ id, statistics }) => [id, statistics]))).toEqual(
+				new Map(oldCounts.map(({ id, _count }) => [
+					id,
+					_count.housePackageTools + _count.salesDoors + _count.stepForms,
+				])),
+			);
+		}
+	});
+
 	it("preserves picker fields and dependency prices across catalog families", async () => {
 		const ctx = { db } as TRPCContext;
 		let checked = 0;
