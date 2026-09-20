@@ -8,6 +8,7 @@ import {
 } from "@gnd/cache/sales-workflow-catalog-cache";
 import {
 	type SalesWorkflowCatalogSnapshotStore,
+	getCachedSalesFormComponentUsageRanks,
 	getSalesFormCatalog,
 	getSalesFormComponentUsageRanks,
 	getVersionedSalesWorkflowCatalogSnapshot,
@@ -275,6 +276,27 @@ describe("versioned sales workflow catalog snapshots", () => {
 		});
 		expect(result).toEqual([{ id: 51, statistics: 3 }]);
 		expect(loadCalls).toBe(0);
+	});
+
+	test("routing reads usage ranks only from cache and continues on a miss or outage", async () => {
+		const ranks = [{ id: 51, statistics: 3 }];
+		expect(
+			await getCachedSalesFormComponentUsageRanks(selector, {
+				getRanks: async () => ranks,
+			}),
+		).toEqual(ranks);
+		expect(
+			await getCachedSalesFormComponentUsageRanks(selector, {
+				getRanks: async () => undefined,
+			}),
+		).toBeUndefined();
+		expect(
+			await getCachedSalesFormComponentUsageRanks(selector, {
+				getRanks: async () => {
+					throw new Error("redis unavailable");
+				},
+			}),
+		).toBeUndefined();
 	});
 
 	test("usage ranking cache outage falls back to DB on normal and forced reads", async () => {

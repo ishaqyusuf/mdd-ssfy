@@ -5,6 +5,7 @@ import { buildWebAppSessionByToken } from "@gnd/auth/better-auth/www-session";
 import { getRequestCountryCode } from "@gnd/auth/request-country";
 import { type Database, db } from "@gnd/db";
 import type { getActiveDealerByAuthUserId } from "@gnd/db/queries";
+import { createLoggerWithContext } from "@gnd/logger";
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { Context } from "hono";
 import { getSignedCookie, setSignedCookie } from "hono/cookie";
@@ -13,6 +14,15 @@ import superjson from "superjson";
 import { getTrpcPublicError, normalizeTrpcError } from "./error-contract";
 import { withAuthPermission } from "./middleware/auth-permission";
 import { withSpecialOrderOperationFeedback } from "../utils/special-order-operation-feedback";
+
+const salesCatalogTimingLogger = createLoggerWithContext("sales-catalog-request");
+const salesFormInitialPaths = new Set([
+	"newSalesForm.getCatalogRevision",
+	"newSalesForm.getStepRouting",
+	"newSalesForm.searchCustomers",
+	"salesRequest.getPilotAccess",
+	"specialOrder.enrollmentAccess",
+]);
 export type TRPCContext = {
 	//   session: Session | null;
 	//   supabase: SupabaseClient;
@@ -32,6 +42,10 @@ export const createTRPCContext = async (
 	_: unknown,
 	c: Context,
 ): Promise<TRPCContext> => {
+	const measureSalesForm =
+		process.env.GND_SALES_CATALOG_TIMING === "1" &&
+		c.req.path.includes("newSalesForm.getStepRouting");
+	const contextStartedAt = measureSalesForm ? performance.now() : 0;
 	const header = c.req.header();
 	const isApp = header["x-trpc-source"] === "app";
 	const isStorefront = c.req.path.startsWith("/api/storefront/trpc");
@@ -98,6 +112,11 @@ export const createTRPCContext = async (
 			guestTokenHash = createHash("sha256").update(guestToken).digest("hex");
 		}
 	}
+	if (measureSalesForm) {
+		salesCatalogTimingLogger.info("Sales form context timing", {
+			durationMs: Math.round(performance.now() - contextStartedAt),
+		});
+	}
 
 	return {
 		db,
@@ -133,6 +152,21 @@ const t = initTRPC.context<TRPCContext>().create({
 
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
+const withSalesFormTimingMiddleware = t.middleware(async (opts) => {
+	if (
+		process.env.GND_SALES_CATALOG_TIMING !== "1" ||
+		!salesFormInitialPaths.has(opts.path)
+	) return opts.next();
+	const startedAt = performance.now();
+	try {
+		return await opts.next();
+	} finally {
+		salesCatalogTimingLogger.info("Sales form procedure timing", {
+			procedure: opts.path,
+			durationMs: Math.round(performance.now() - startedAt),
+		});
+	}
+});
 const withPrimaryDbMiddleware = t.middleware(async (opts) => {
 	return withAuthPermission({
 		ctx: opts.ctx,
@@ -160,6 +194,7 @@ export const publicProcedure = t.procedure
 
 export const protectedProcedure = t.procedure
 	.use(withErrorContractMiddleware)
+	.use(withSalesFormTimingMiddleware)
 	.use(withPrimaryDbMiddleware)
 	.use(async (opts) => {
 		if (!opts?.ctx?.userId)

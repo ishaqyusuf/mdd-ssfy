@@ -615,6 +615,9 @@ export function ItemWorkflowPanel() {
 		},
 		!!rootStepId,
 		routeData && "rootCatalog" in routeData ? routeData.rootCatalog : undefined,
+		routeData && "rootUsageRanks" in routeData
+			? routeData.rootUsageRanks
+			: undefined,
 	);
 	const doorStepComponentsQuery = useSalesStepComponentsQuery(
 		{
