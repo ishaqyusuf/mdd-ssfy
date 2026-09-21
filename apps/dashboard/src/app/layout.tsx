@@ -12,6 +12,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { Toaster } from "@gnd/ui/toaster";
+import { Provider as EventsProvider } from "@gnd/events/client";
 import { Toaster as MiddayToast } from "sonner";
 
 import { getServerAuthSession } from "@/lib/auth/session";
@@ -54,7 +55,7 @@ export default async function RootLayout({
                             initialSession={initialSession}
                             serverTrpcUrl={serverTrpcUrl}
                         >
-                            {children}
+                            <EventsProvider>{children}</EventsProvider>
                             {env.NODE_ENV !== "production" ? (
                                 <div className="fixed bottom-1 left-1 z-[9999] flex items-center gap-2 print:hidden">
                                     <TailwindIndicator />

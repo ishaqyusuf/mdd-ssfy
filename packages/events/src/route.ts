@@ -3,7 +3,11 @@ import { nativeAnalyticsBatchSchema } from "./native-contract";
 import { isProductOrigin, safeBatch } from "./policy";
 import { readBatchBody } from "./read-batch-body";
 
-export function createEventsRoute(surface: "web" | "mobile" = "web") {
+export function createEventsRoute(
+	surface: "web" | "mobile" = "web",
+	productOriginOverride?: string,
+	projectOverride?: string,
+) {
 	return async function POST(request: Request) {
 		const collector = process.env.LOGLY_COLLECTOR_URL?.trim();
 		const projectKey =
@@ -17,6 +21,7 @@ export function createEventsRoute(surface: "web" | "mobile" = "web") {
 			);
 		}
 		const productOrigin =
+			productOriginOverride ||
 			process.env.GND_LOGLY_ORIGIN?.trim() ||
 			process.env.NEXT_PUBLIC_APP_URL?.trim() ||
 			"https://www.gndprodesk.com";
@@ -54,9 +59,10 @@ export function createEventsRoute(surface: "web" | "mobile" = "web") {
 			);
 		}
 		const project =
-			surface === "mobile"
+			projectOverride ??
+			(surface === "mobile"
 				? (process.env.LOGLY_MOBILE_PROJECT?.trim() ?? "gnd-mobile")
-				: (process.env.NEXT_PUBLIC_LOGLY_PROJECT?.trim() ?? "gnd-web");
+				: (process.env.NEXT_PUBLIC_LOGLY_PROJECT?.trim() ?? "gnd-web"));
 		const batch = safeBatch(parsed.data, project, surface);
 		if (!batch.events.length) {
 			return Response.json({ accepted: 0 }, { status: 202 });

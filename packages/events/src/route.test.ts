@@ -78,6 +78,51 @@ test("mobile proxy fixes the project and forwards native platform metadata", asy
 	expect((await createEventsRoute("mobile")(request)).status).toBe(202);
 });
 
+test("dashboard web proxy pins its origin and project independently of dealership configuration", async () => {
+	configure();
+	const body = {
+		sentAt: "2026-09-21T12:00:00.000Z",
+		sdk: { name: "@ishaqyusuf/logly-core", version: "0.2.1" },
+		events: [
+			{
+				eventId: "00000000-0000-4000-8000-000000000003",
+				project: "gnd-web",
+				name: "site_visit",
+				version: 1,
+				source: "browser",
+				occurredAt: "2026-09-21T12:00:00.000Z",
+				visitorId: "dashboard-visitor",
+				route: "/dashboard/private",
+				properties: {},
+			},
+		],
+	};
+	globalThis.fetch = (async (_url, init) => {
+		const forwarded = JSON.parse(String(init?.body));
+		expect(forwarded.events[0]).toMatchObject({
+			project: "gnd-dashboard",
+			source: "browser",
+			route: "/dashboard",
+		});
+		return Response.json({ accepted: 1 }, { status: 202 });
+	}) as typeof fetch;
+	const response = await createEventsRoute(
+		"web",
+		"https://www.gndprodesk.com",
+		"gnd-dashboard",
+	)(
+		new Request("https://www.gndprodesk.com/api/analytics", {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				origin: "https://www.gndprodesk.com",
+			},
+			body: JSON.stringify(body),
+		}),
+	);
+	expect(response.status).toBe(202);
+});
+
 test("web proxy enforces the product origin and fixes the web project", async () => {
 	configure();
 	const body = {

@@ -120,6 +120,7 @@
         "@gnd/contractor-accounting": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/errors": "workspace:*",
+        "@gnd/events": "workspace:*",
         "@gnd/inventory": "workspace:*",
         "@gnd/notifications": "workspace:*",
         "@gnd/observability": "workspace:*",
