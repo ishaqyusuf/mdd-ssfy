@@ -144,6 +144,7 @@ const sentryRelease =
     process.env.VERCEL_GIT_COMMIT_SHA ??
     process.env.GIT_COMMIT_SHA ??
     undefined;
+const uploadSentrySourceMaps = process.env.SENTRY_SOURCE_MAP_UPLOAD === "1";
 
 export default isProduction
     ? withSentryConfig(config, {
@@ -167,8 +168,14 @@ export default isProduction
 
           ...(sentryRelease ? { release: { name: sentryRelease } } : {}),
 
-          sourcemaps: {
-              deleteSourcemapsAfterUpload: true,
-          },
+          // Turbopack performs source-map upload in Next's blocking
+          // runAfterProductionCompile hook. Keep runtime reporting enabled, but
+          // require an explicit opt-in for this nonessential deployment step so
+          // an unavailable upload service cannot consume Vercel's build limit.
+          useRunAfterProductionCompileHook: uploadSentrySourceMaps,
+
+          sourcemaps: uploadSentrySourceMaps
+              ? { deleteSourcemapsAfterUpload: true }
+              : { disable: true },
       })
     : config;
