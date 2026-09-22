@@ -3,6 +3,7 @@ import type { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useMemo } from "react";
 import { isSalesCatalogCacheEnabled } from "./catalog-rollout";
+import { getRoutingStaleTime } from "./routing-query-policy";
 import type { SalesRequestGeneratePreviewVariables } from "./request-generation-controller";
 import type { SalesRequestGeneratePreviewOutput } from "./request-generation-controller";
 import type {
@@ -134,6 +135,8 @@ export function useNewSalesFormStepRoutingQuery(
 	return useQuery(
 		trpc.newSalesForm.getStepRouting.queryOptions(input, {
 			enabled,
+			staleTime: (query) =>
+				getRoutingStaleTime(isSalesCatalogCacheEnabled(), query.state.data),
 		}),
 	);
 }

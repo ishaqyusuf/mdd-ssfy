@@ -78,6 +78,7 @@ export async function getNewSalesFormStepRouting(
 	}
 	return {
 		...snapshot.data,
+		revision: snapshot.revision,
 		rootUsageRanks,
 		rootCatalog: {
 			revision: snapshot.revision,
