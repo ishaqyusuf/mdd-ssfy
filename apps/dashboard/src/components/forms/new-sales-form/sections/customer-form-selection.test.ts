@@ -1,8 +1,35 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { resolveCustomerFormSelection } from "./customer-form-selection";
+import {
+	resolveCustomerFormSelection,
+	resolveCustomerProfileTransition,
+} from "./customer-form-selection";
 
 describe("customer form selection reconciliation", () => {
+	it("reprices an unprofiled draft when the selected customer has a profile", () => {
+		expect(
+			resolveCustomerProfileTransition({
+				currentProfileId: null,
+				nextProfileId: 1,
+				profiles: [{ id: 1, coefficient: 0.65 }],
+			}),
+		).toEqual({
+			status: "ready",
+			previousCoefficient: null,
+			nextCoefficient: 0.65,
+		});
+	});
+
+	it("waits for both profiles before changing customer pricing", () => {
+		expect(
+			resolveCustomerProfileTransition({
+				currentProfileId: 1,
+				nextProfileId: 2,
+				profiles: [{ id: 1, coefficient: 0.65 }],
+			}),
+		).toEqual({ status: "unavailable" });
+	});
+
 	it("refreshes the current customer without replacing sale pricing or addresses", () => {
 		expect(
 			resolveCustomerFormSelection({

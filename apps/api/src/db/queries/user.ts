@@ -3,12 +3,22 @@ import type {
   UpdateUserProfileSchema,
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
+import { deleteEmployeeDocumentBlob } from "@api/utils/employee-document-storage";
+import { getActiveCompanyMemberWhere } from "@gnd/auth/company-member";
 import {
   checkPassword,
   getUserSpecificPermissions,
   loginAction,
   mergePermissionRecords,
 } from "@gnd/auth/utils";
+import {
+  EMPLOYEE_DOCUMENT_KIND,
+  EMPLOYEE_DOCUMENT_OWNER_TYPE,
+  EMPLOYEE_DOCUMENT_PRIVATE_ACCESS,
+  employeeDocumentAccessPath,
+  isPrivateEmployeeDocumentMeta,
+  parseEmployeeStoredDocumentId,
+} from "@gnd/documents";
 import { Notifications } from "@gnd/notifications";
 import { camel, consoleLog } from "@gnd/utils";
 import {
@@ -45,6 +55,21 @@ function requireAuthUserId(ctx: TRPCContext) {
   }
 
   return ctx.userId;
+}
+
+async function requireActiveEmployeeDocumentActor(ctx: TRPCContext) {
+  const userId = requireAuthUserId(ctx);
+  const actor = await ctx.db.users.findFirst({
+    where: getActiveCompanyMemberWhere({ id: userId }),
+    select: { id: true },
+  });
+  if (!actor) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "An active employee account is required.",
+    });
+  }
+  return actor.id;
 }
 
 export async function getAuthUser(ctx: TRPCContext) {
@@ -127,6 +152,7 @@ export async function getProfile(ctx: TRPCContext) {
     },
     documents: user.documents.map((doc) => ({
       ...doc,
+      url: employeeDocumentAccessPath(doc.id),
       expiresAt:
         (parseInsuranceDocumentMeta(doc.meta).expiresAt as string | null) ??
         null,
@@ -206,21 +232,16 @@ export async function saveUserDocument(
     id?: number | null;
     userId?: number | null;
     title: string;
-    url: string;
+    url?: string | null;
     description?: string | null;
     expiresAt?: string | null;
     storedDocumentId?: string | null;
   },
 ) {
-  if (!ctx.userId) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "You must be signed in to upload documents.",
-    });
-  }
+  const actorUserId = await requireActiveEmployeeDocumentActor(ctx);
 
-  const targetUserId = data.userId ?? ctx.userId;
-  const actingOnAnotherUser = targetUserId !== ctx.userId;
+  const targetUserId = data.userId ?? actorUserId;
+  const actingOnAnotherUser = targetUserId !== actorUserId;
   const authUser = await getAuthUser(ctx);
 
   if (actingOnAnotherUser) {
@@ -238,7 +259,7 @@ export async function saveUserDocument(
 
   const targetUser = actingOnAnotherUser
     ? await ctx.db.users.findFirstOrThrow({
-        where: { id: targetUserId },
+        where: getActiveCompanyMemberWhere({ id: targetUserId }),
         select: {
           id: true,
           name: true,
@@ -246,34 +267,63 @@ export async function saveUserDocument(
       })
     : authUser;
 
-  let canonicalDocumentUrl = data.url;
-  if (data.storedDocumentId) {
-    const storedDocument = await ctx.db.storedDocument.findFirst({
-      where: {
-        id: data.storedDocumentId,
-        ownerType: "user",
-        ownerId: String(targetUserId),
-        status: "ready",
-        deletedAt: null,
-      },
-      select: { id: true, url: true, pathname: true },
+  const existingDocument = data.id
+    ? await ctx.db.userDocuments.findFirstOrThrow({
+        where: {
+          id: data.id,
+          userId: targetUserId,
+          deletedAt: null,
+        },
+        select: { id: true, meta: true },
+      })
+    : null;
+  const existingMeta = parseMeta(existingDocument?.meta);
+  const existingStoredDocumentId = parseEmployeeStoredDocumentId(existingMeta);
+  if (
+    existingDocument &&
+    data.storedDocumentId &&
+    data.storedDocumentId !== existingStoredDocumentId
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Employee document file replacement is not supported here.",
     });
-    if (!storedDocument) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "The uploaded document asset is unavailable.",
-      });
-    }
-    canonicalDocumentUrl = storedDocument.url || storedDocument.pathname;
+  }
+  const storedDocumentId = data.storedDocumentId ?? existingStoredDocumentId;
+  if (!storedDocumentId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Upload the document file before saving its details.",
+    });
+  }
+  const storedDocument = await ctx.db.storedDocument.findFirst({
+    where: {
+      id: storedDocumentId,
+      ownerType: EMPLOYEE_DOCUMENT_OWNER_TYPE,
+      ownerId: String(targetUserId),
+      kind: EMPLOYEE_DOCUMENT_KIND,
+      visibility: EMPLOYEE_DOCUMENT_PRIVATE_ACCESS,
+      status: "ready",
+      deletedAt: null,
+    },
+    select: { id: true, provider: true, meta: true },
+  });
+  if (
+    !storedDocument ||
+    storedDocument.provider !== "vercel-blob" ||
+    !isPrivateEmployeeDocumentMeta(storedDocument.meta)
+  ) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "The private uploaded document asset is unavailable.",
+    });
   }
 
-  const docMeta: Record<string, unknown> = {};
-  if (data.expiresAt) {
-    docMeta.expiresAt = data.expiresAt;
-  }
-  if (data.storedDocumentId) {
-    docMeta.storedDocumentId = data.storedDocumentId;
-  }
+  const docMeta: Record<string, unknown> = {
+    ...existingMeta,
+    storedDocumentId,
+    expiresAt: data.expiresAt || null,
+  };
 
   if (isInsuranceDocumentTitle(data.title)) {
     docMeta.status = "pending";
@@ -283,10 +333,13 @@ export async function saveUserDocument(
     docMeta.rejectedBy = null;
   }
 
-  if (data.id) {
+  if (existingDocument) {
+    const canonicalDocumentUrl = employeeDocumentAccessPath(
+      existingDocument.id,
+    );
     return ctx.db.userDocuments.update({
       where: {
-        id: data.id,
+        id: existingDocument.id,
         userId: targetUserId,
         deletedAt: null,
       },
@@ -300,21 +353,34 @@ export async function saveUserDocument(
     });
   }
 
-  const createdDocument = await ctx.db.userDocuments.create({
-    data: {
-      title: data.title,
-      description: data.description,
-      url: canonicalDocumentUrl,
-      userId: targetUserId,
-      meta: docMeta,
-    },
-    select: {
-      id: true,
-      title: true,
-      url: true,
-      description: true,
-      meta: true,
-    },
+  const createdDocument = await ctx.db.$transaction(async (tx) => {
+    const created = await tx.userDocuments.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        url: "employee-document://pending",
+        userId: targetUserId,
+        meta: docMeta,
+      },
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        description: true,
+        meta: true,
+      },
+    });
+    return tx.userDocuments.update({
+      where: { id: created.id },
+      data: { url: employeeDocumentAccessPath(created.id) },
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        description: true,
+        meta: true,
+      },
+    });
   });
 
   let notificationQueued = true;
@@ -342,7 +408,7 @@ export async function saveUserDocument(
         },
         {
           author: {
-            id: ctx.userId,
+            id: actorUserId,
             role: "employee",
           },
         },
@@ -366,15 +432,14 @@ export async function saveUserDocument(
 }
 
 export async function getDocumentReview(ctx: TRPCContext, id: number) {
-  if (!ctx.userId) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "You must be signed in to review documents.",
-    });
-  }
-
+  const actorUserId = await requireActiveEmployeeDocumentActor(ctx);
+  const session = await auth(ctx);
   const document = await ctx.db.userDocuments.findFirstOrThrow({
-    where: { id, deletedAt: null },
+    where: {
+      id,
+      deletedAt: null,
+      user: { is: getActiveCompanyMemberWhere() },
+    },
     select: {
       id: true,
       title: true,
@@ -392,6 +457,16 @@ export async function getDocumentReview(ctx: TRPCContext, id: number) {
       },
     },
   });
+  if (
+    document.user?.id !== actorUserId &&
+    !session.can.viewEmployeeDocument &&
+    !session.can.editEmployeeDocument
+  ) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Document not found.",
+    });
+  }
   const meta = parseInsuranceDocumentMeta(document.meta);
   const userMeta = parseMeta(document.user?.meta);
 
@@ -399,7 +474,7 @@ export async function getDocumentReview(ctx: TRPCContext, id: number) {
     id: document.id,
     title: document.title,
     description: document.description,
-    url: meta.url || document.url,
+    url: employeeDocumentAccessPath(document.id),
     expiresAt: meta.expiresAt ?? null,
     status: meta.status ?? "pending",
     approvedAt: meta.approvedAt ?? null,
@@ -424,34 +499,50 @@ export async function saveDocumentReviewNote(
     note: string;
   },
 ) {
-  if (!ctx.userId) {
+  const actorUserId = await requireActiveEmployeeDocumentActor(ctx);
+  const session = await auth(ctx);
+  if (!session.can.editEmployeeDocument) {
     throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "You must be signed in to add notes.",
+      code: "FORBIDDEN",
+      message: "You do not have permission to review employee documents.",
     });
   }
+
+  const document = await ctx.db.userDocuments.findFirstOrThrow({
+    where: {
+      id: data.documentId,
+      deletedAt: null,
+      user: { is: getActiveCompanyMemberWhere() },
+    },
+    select: { id: true, title: true, userId: true },
+  });
 
   return saveNote(
     ctx.db,
     {
-      headline: data.title,
+      headline: document.title || "Employee document",
       subject: "Document review note",
       note: data.note,
       type: "activity",
       status: "public",
       tags: [
         noteTag("channel", "employee_document_review"),
-        noteTag("documentId", data.documentId),
-        noteTag("userId", data.userId),
+        noteTag("documentId", document.id),
+        noteTag("userId", document.userId),
       ],
     },
-    ctx.userId,
+    actorUserId,
   );
 }
 
-export async function deleteUserDocument(ctx: TRPCContext, id: number) {
+export async function deleteUserDocument(
+  ctx: TRPCContext,
+  id: number,
+  deleteBlob: (pathname: string) => Promise<void> = deleteEmployeeDocumentBlob,
+) {
+  const actorUserId = await requireActiveEmployeeDocumentActor(ctx);
   const document = await ctx.db.userDocuments.findFirstOrThrow({
-    where: { id, userId: ctx.userId, deletedAt: null },
+    where: { id, userId: actorUserId, deletedAt: null },
     select: { meta: true },
   });
   const meta = parseMeta(document.meta);
@@ -459,9 +550,28 @@ export async function deleteUserDocument(ctx: TRPCContext, id: number) {
     typeof meta.storedDocumentId === "string" ? meta.storedDocumentId : null;
   const deletedAt = new Date();
 
+  const storedDocument = storedDocumentId
+    ? await ctx.db.storedDocument.findFirst({
+        where: {
+          id: storedDocumentId,
+          ownerType: EMPLOYEE_DOCUMENT_OWNER_TYPE,
+          ownerId: String(actorUserId),
+          kind: EMPLOYEE_DOCUMENT_KIND,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          pathname: true,
+          provider: true,
+          visibility: true,
+          meta: true,
+        },
+      })
+    : null;
+
   await ctx.db.$transaction(async (tx) => {
     await tx.userDocuments.update({
-      where: { id, userId: ctx.userId },
+      where: { id, userId: actorUserId },
       data: { deletedAt },
     });
     if (storedDocumentId) {
@@ -469,7 +579,8 @@ export async function deleteUserDocument(ctx: TRPCContext, id: number) {
         where: {
           id: storedDocumentId,
           ownerType: "user",
-          ownerId: String(ctx.userId),
+          ownerId: String(actorUserId),
+          kind: EMPLOYEE_DOCUMENT_KIND,
           deletedAt: null,
         },
         data: {
@@ -480,7 +591,30 @@ export async function deleteUserDocument(ctx: TRPCContext, id: number) {
       });
     }
   });
-  return { success: true };
+
+  let cleanupPending = false;
+  if (
+    storedDocument?.provider === "vercel-blob" &&
+    storedDocument.visibility === EMPLOYEE_DOCUMENT_PRIVATE_ACCESS &&
+    isPrivateEmployeeDocumentMeta(storedDocument.meta)
+  ) {
+    try {
+      await deleteBlob(storedDocument.pathname);
+    } catch {
+      cleanupPending = true;
+      await ctx.db.storedDocument.update({
+        where: { id: storedDocument.id },
+        data: {
+          meta: {
+            ...parseMeta(storedDocument.meta),
+            cleanupStatus: "retry_required",
+            cleanupUpdatedAt: new Date().toISOString(),
+          },
+        },
+      });
+    }
+  }
+  return { success: true, cleanupPending };
 }
 
 export async function updateNotificationPreferences(

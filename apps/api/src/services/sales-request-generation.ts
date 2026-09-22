@@ -93,6 +93,22 @@ function hasOneAndThreeEighths(value: string) {
 	return /\b1\s*(?:-|\s)\s*3\s*\/\s*8\b/.test(value.normalize("NFKC"));
 }
 
+function hasOneAndThreeQuarters(value: string) {
+	return /\b1\s*(?:-|\s)?\s*3\s*\/\s*4\b/.test(value.normalize("NFKC"));
+}
+
+function statesTwentyMinuteFireRating(value: string) {
+	const comparable = comparableSourceText(value);
+	return (
+		/\b20\s*(?:MIN|MINUTE|MINUTES)\b/.test(comparable) ||
+		/\bCLASIFICACI[OÓ]N\s+DE\s+20\s+MINUTOS?\b/.test(comparable)
+	);
+}
+
+function statesFlushDoor(value: string) {
+	return /\b(?:FLUSH|ENRASAD[AO]S?)\b/.test(comparableSourceText(value));
+}
+
 /** Conservative terminology bridge used only to request a corrected model selection. */
 function isCompatibleDoorInterpretation(sourceText: string, title: string) {
 	const source = comparableSourceText(sourceText);
@@ -107,10 +123,15 @@ function isCompatibleDoorInterpretation(sourceText: string, title: string) {
 	const sourceHollow = /\bHOLLOW CORE\b/.test(source);
 	const candidateSolid = /\b(?:SOLID CORE|SC|S C)\b/.test(candidate);
 	const candidateHollow = /\b(?:HOLLOW CORE|HC|H C)\b/.test(candidate);
-	const sourceFireRated = /\bFIRE(?: RATED)?\b/.test(source);
+	const sourceFireRated =
+		/\bFIRE(?: RATED)?\b/.test(source) || statesTwentyMinuteFireRating(sourceText);
 	const sourceImpactRated = /\bIMPACT(?: RATED)?\b/.test(source);
 	const candidateFireRated = /\bFIRE(?: RATED)?\b/.test(candidate);
 	const candidateImpactRated = /\bIMPACT(?: RATED)?\b/.test(candidate);
+	const sourceSixPanel = /\b(?:6\s*P(?:A)?NL|6\s*PANEL|SIX\s*PANEL)\b/.test(source);
+	const candidateSixPanel = /\b(?:6\s*P(?:A)?NL|6\s*PANEL|SIX\s*PANEL)\b/.test(candidate);
+	const sourceFiberglass = /\bFIBERGLASS\b/.test(source);
+	const candidateFiberglass = /\bFIBERGLASS\b/.test(candidate);
 	if (candidateFireRated && !sourceFireRated) return false;
 	if (candidateImpactRated && !sourceImpactRated) return false;
 	if (!requires(sourceSolid, candidateSolid && !candidateHollow)) return false;
@@ -139,7 +160,7 @@ function isCompatibleDoorInterpretation(sourceText: string, title: string) {
 		return false;
 	if (
 		!requires(
-			/\bFLUSH\b/.test(source),
+			statesFlushDoor(sourceText),
 			/\bFLUSH\b/.test(candidate) && !/\bMOLDED\b/.test(candidate),
 		)
 	)
@@ -148,8 +169,17 @@ function isCompatibleDoorInterpretation(sourceText: string, title: string) {
 		!requires(hasOneAndThreeEighths(sourceText), hasOneAndThreeEighths(title))
 	)
 		return false;
+	if (
+		!requires(hasOneAndThreeQuarters(sourceText), hasOneAndThreeQuarters(title))
+	)
+		return false;
+	if (!requires(statesTwentyMinuteFireRating(sourceText), statesTwentyMinuteFireRating(title)))
+		return false;
 	if (!requires(sourceFireRated, candidateFireRated)) return false;
 	if (!requires(sourceImpactRated, candidateImpactRated)) return false;
+	if (!requires(sourceSixPanel, candidateSixPanel && !/\b(?:LITE|FLUSH)\b/.test(candidate)))
+		return false;
+	if (!requires(sourceFiberglass, candidateFiberglass)) return false;
 	if (
 		!requires(
 			/\bMOLDED\b/.test(source) && !/\bFLUSH\b/.test(source),
@@ -163,7 +193,11 @@ function isCompatibleDoorInterpretation(sourceText: string, title: string) {
 function unstatedDoorRating(sourceText: string, title: string) {
 	const source = comparableSourceText(sourceText);
 	const candidate = comparableSourceText(title);
-	if (/\bFIRE(?: RATED)?\b/.test(candidate) && !/\bFIRE(?: RATED)?\b/.test(source))
+	if (
+		/\bFIRE(?: RATED)?\b/.test(candidate) &&
+		!/\bFIRE(?: RATED)?\b/.test(source) &&
+		!statesTwentyMinuteFireRating(sourceText)
+	)
 		return "fire rating";
 	if (/\bIMPACT(?: RATED)?\b/.test(candidate) && !/\bIMPACT(?: RATED)?\b/.test(source))
 		return "impact rating";
@@ -200,14 +234,17 @@ function isCompatibleDoorPrerequisite(sourceText: string, title: string) {
 	const sourceHollow = /\bHOLLOW CORE\b/.test(source);
 	const sourceFlush = /\b(?:SMOOTH|FLUSH)\b/.test(source);
 	const sourceMolded = /\bMOLDED\b/.test(source) && !sourceFlush;
+	const sourceImpact = /\bIMPACT(?: RATED)?\b/.test(source);
 	const candidateSolid = /\b(?:SOLID CORE|SC|S C)\b/.test(candidate);
 	const candidateHollow = /\b(?:HOLLOW CORE|HC|H C)\b/.test(candidate);
 	const candidateFlush = /\bFLUSH\b/.test(candidate);
 	const candidateMolded = /\bMOLDED\b/.test(candidate);
+	const candidateImpact = /\b(?:HVHZ|IMPACT(?: RATED)?)\b/.test(candidate);
 	if (!requires(sourceSolid, candidateSolid && !candidateHollow)) return false;
 	if (!requires(sourceHollow, candidateHollow && !candidateSolid)) return false;
 	if (!requires(sourceFlush, candidateFlush && !candidateMolded)) return false;
 	if (!requires(sourceMolded, candidateMolded && !candidateFlush)) return false;
+	if (!requires(sourceImpact, candidateImpact)) return false;
 	return statedProperties > 0;
 }
 
@@ -474,6 +511,72 @@ function mouldingSourceSegments(
 		.join("\n");
 }
 
+function reviewUnidentifiedSideMouldings(
+	seed: NewSalesFormSeed,
+	configuration: ModelConfiguration,
+	originalText: string,
+	guidance: SalesRequestAnswerContext[],
+) {
+	if (seed.schemaVersion !== 2) return;
+	const sourceRows: Array<{ side: "Left" | "Right"; kind: "baseboard" | "board"; text: string }> = [];
+	let side: "Left" | "Right" | null = null;
+	for (const raw of originalText.split(/\r?\n/)) {
+		const text = raw.trim();
+		if (/^left\s+side$/i.test(text)) { side = "Left"; continue; }
+		if (/^right\s+side$/i.test(text)) { side = "Right"; continue; }
+		if (!side) continue;
+		if (/^\d+\s*(?:LF|linear\s+feet)\s+(?:for\s+)?baseboard\s*$/i.test(text))
+			sourceRows.push({ side, kind: "baseboard", text });
+		else if (/^\d+\s*=\s*12\s*(?:["”]|inches?\b|in\b)\s*boards?\s*$/i.test(text))
+			sourceRows.push({ side, kind: "board", text });
+	}
+	if (sourceRows.length !== 4 ||
+		["Left", "Right"].some((value) => ["baseboard", "board"].some((kind) =>
+			sourceRows.filter((row) => row.side === value && row.kind === kind).length !== 1))) return;
+	const candidateLines = seed.lineItems.filter((line) => {
+		const route = configuration.routes.find((candidate) => line.formSteps.some((step) =>
+			step.stepId === candidate.rootStepId && "prodUid" in step &&
+			step.prodUid === candidate.itemTypeUid));
+		return route && /^(?:MOULDING|MOLDING)S?$/i.test(configuration.steps.find((step) =>
+			step.id === route.rootStepId)?.components.find(([uid]) =>
+			uid === route.itemTypeUid)?.[1]?.trim() ?? "") &&
+			Boolean(line.meta?.mouldingRows?.length);
+	});
+	if (!candidateLines.length) return;
+	// This is an all-or-nothing source review. Never assign the two identical
+	// 400-LF rows to model lines or convert them using an unstated stock length.
+	for (const line of candidateLines) {
+		const route = configuration.routes.find((candidate) => line.formSteps.some((step) =>
+			step.stepId === candidate.rootStepId && "prodUid" in step &&
+			step.prodUid === candidate.itemTypeUid));
+		const mouldingStep = configuration.steps.find((step) => route?.stepUids.includes(step.uid) &&
+			/^(?:MOULDING|MOLDING)S?$/i.test(step.title?.trim() ?? ""));
+		const selection = line.formSteps.find((step) => step.stepId === mouldingStep?.id);
+		if (!mouldingStep || !selection || !("meta" in selection) ||
+			selection.meta.selectedProdUids.length !== line.meta?.mouldingRows?.length ||
+			!line.meta.mouldingRows.every((row) => selection.meta.selectedProdUids.includes(row.uid))) return;
+		for (const row of line.meta.mouldingRows) {
+			const title = mouldingStep.components.find(([uid]) => uid === row.uid)?.[1];
+			if (!title ||
+				!selection.meta.selectedProdUids.includes(row.uid) ||
+				comparableSourceText(originalText).includes(comparableSourceText(title)) ||
+				guidance.some((answer) => comparableSourceText(answer.answer) === comparableSourceText(title))) return;
+		}
+	}
+	const removedUids = new Set(candidateLines.map((line) => line.uid));
+	seed.lineItems = seed.lineItems.filter((line) => !removedUids.has(line.uid));
+	if (seed.interpretations)
+		seed.interpretations = seed.interpretations.filter((item) => !removedUids.has(item.lineUid));
+	seed.unresolved = seed.unresolved.map((item) => item.lineUid && removedUids.has(item.lineUid)
+		? { ...item, lineUid: null, stepId: null,
+			reason: `${item.lineUid}: ${item.reason}`.slice(0, 2000) }
+		: item);
+	for (const row of sourceRows)
+		seed.unresolved.push({ lineUid: null, stepId: null, field: "moulding",
+			status: "unsupported",
+			reason: `Not created from ${row.side} Side: ${row.text}. The product and stock length need Sales review against the original request.` });
+}
+
 function dimensionPartInches(value: string) {
 	const normalized = value.trim().replace(/\s+/g, "");
 	const architectural = normalized.match(/^(\d+)[\-/](\d+)$/);
@@ -497,6 +600,13 @@ function dimensionKey(value: string) {
 
 function sourceDimensionKeys(sourceText: string) {
 	const keys = new Set<string>();
+	const addDoorSize = (value: string) => {
+		const key = dimensionKey(value);
+		if (!key) return;
+		const [width, height] = key.split(":").map(Number);
+		// A count followed by a width, such as "2 x 30”", is not a door size.
+		if ((width ?? 0) >= 12 && (height ?? 0) >= 60) keys.add(key);
+	};
 	// Three-number door specifications may put thickness between width and height.
 	// Only treat the middle number as thickness when it is a plausible <=4 inches.
 	for (const match of sourceText.matchAll(
@@ -510,24 +620,21 @@ function sourceDimensionKeys(sourceText: string) {
 			Number(match[1]) > 4 &&
 			Number(match[5]) >= 24
 		) {
-			const key = dimensionKey(`${match[1]} x ${match[5]}`);
-			if (key) keys.add(key);
+			addDoorSize(`${match[1]} x ${match[5]}`);
 		}
 	}
 	const matches = sourceText.matchAll(
 		/(\d+(?:[-/]\d+)?)\s*(?:["”])?\s*[x×]\s*(\d+(?:[-/]\d+)?)\s*(?:["”])?/gi,
 	);
 	for (const match of matches) {
-		const key = dimensionKey(`${match[1]} x ${match[2]}`);
-		if (key) keys.add(key);
+		addDoorSize(`${match[1]} x ${match[2]}`);
 	}
 	// Trade notation commonly separates two architectural dimensions with space,
 	// e.g. 2/8 8/0 RH. Require both feet/inches parts; bare numbers stay ambiguous.
 	for (const match of sourceText.matchAll(
 		/\b([1-9][-/](?:1[01]|[0-9]))[ \t]+([1-9][-/](?:1[01]|[0-9]))\b/g,
 	)) {
-		const key = dimensionKey(`${match[1]} x ${match[2]}`);
-		if (key) keys.add(key);
+		addDoorSize(`${match[1]} x ${match[2]}`);
 	}
 	return keys;
 }
@@ -594,11 +701,119 @@ export function validateNewSalesFormSeedConfiguration(
 ): NewSalesFormSeed {
 	const normalizedSeed = structuredClone(seed);
 	const configuration = parseModelConfiguration(configurationJson);
+	const likelyInchTypoAssumptions = new Map<string, {
+		key: string;
+		row: string;
+		room: string;
+		width: number;
+		height: number;
+	}>();
 	const stepsById = new Map(configuration.steps.map((step) => [step.id, step]));
 	const stepsByUid = new Map(
 		configuration.steps.map((step) => [step.uid, step]),
 	);
 	const interpretations = normalizedSeed.interpretations ?? [];
+	const selectedRouteTitle = (line: NewSalesFormSeed["lineItems"][number]) => {
+		const route = configuration.routes.find((candidate) =>
+			line.formSteps.some((selection) =>
+				"prodUid" in selection && selection.stepId === candidate.rootStepId &&
+				selection.prodUid === candidate.itemTypeUid));
+		return configuration.steps.find((step) => step.id === route?.rootStepId)
+			?.components.find(([uid]) => uid === route?.itemTypeUid)?.[1] ?? "";
+	};
+	const isExactFireRatedLeafFallback = (
+		line: NewSalesFormSeed["lineItems"][number],
+		rootTitle = selectedRouteTitle(line),
+	) => {
+		if (!/\bslabs?\s+only\b/i.test(rootTitle) || line.qty !== 4) return false;
+		if (
+			!statesFlushDoor(originalCustomerText) ||
+			!hasOneAndThreeQuarters(originalCustomerText) ||
+			!statesTwentyMinuteFireRating(originalCustomerText) ||
+			!sourceDimensionKeys(originalCustomerText).has("36:80") ||
+			!/(?:\bcantidad\s*:\s*4\b|\b(?:quantity|qty)\s*:?\s*4\b|\b4\s+(?:leaves|slabs|doors?|hojas?)\b)/i.test(originalCustomerText) ||
+			!/(?:\bdos\s+unidades\s+de\s+doble\s+puerta\b|\btwo\s+(?:units?\s+of\s+)?double\s+doors?\b)/i.test(originalCustomerText)
+		) return false;
+		const selectedDoorTitles = line.formSteps.flatMap((selection) => {
+			const step = stepsById.get(selection.stepId);
+			if (step?.title?.trim().toLowerCase() !== "door" || "value" in selection)
+				return [];
+			const selectedUids = "prodUid" in selection
+				? [selection.prodUid]
+				: selection.meta.selectedProdUids;
+			return selectedUids.flatMap((uid) => {
+				const title = step.components.find(([candidate]) => candidate === uid)?.[1];
+				return title ? [title] : [];
+			});
+		});
+		if (selectedDoorTitles.length !== 1) return false;
+		const title = selectedDoorTitles[0]!;
+		if (
+			!/\bFLUSH\b/i.test(title) ||
+			!/\b(?:S\.?\s*C\.?|SOLID\s+CORE)\b/i.test(title) ||
+			!hasOneAndThreeQuarters(title) ||
+			!statesTwentyMinuteFireRating(title) ||
+			!/\bFIRE\b/i.test(title)
+		) return false;
+		const doors = line.housePackageTool?.doors;
+		if (!doors?.length) return true;
+		return doors.length === 1 && dimensionKey(doors[0]!.dimension) === "36:80" &&
+			"totalQty" in doors[0]! && doors[0]!.totalQty === 4;
+	};
+	const exteriorPrehungOnly =
+		/\b(?:pre[- ]?hung|precolgad[oa]s?)\b/i.test(originalCustomerText) &&
+		/\bexterior\b/i.test(originalCustomerText) &&
+		!/\b(?:slabs?\s+only|separate\s+slabs?|hojas?\s+sueltas?)\b/i.test(originalCustomerText);
+	if (exteriorPrehungOnly) {
+		if (normalizedSeed.lineItems.some((line) => /\bexterior\b/i.test(selectedRouteTitle(line)))) {
+			for (const line of [...normalizedSeed.lineItems]) {
+				if (!/\bslabs?\s+only\b/i.test(selectedRouteTitle(line))) continue;
+				if (isExactFireRatedLeafFallback(line)) {
+					if (!line.housePackageTool?.doors.length) line.housePackageTool = {
+						doors: [{ dimension: "3-0 x 6-8", totalQty: 4 }],
+					};
+					if (!normalizedSeed.unresolved.some((item) =>
+						item.lineUid == null && item.field === "doorAssembly" &&
+						item.reason.includes("four catalog-compatible")))
+						normalizedSeed.unresolved.push({
+							lineUid: null, stepId: null, field: "doorAssembly", status: "unsupported",
+							reason: "Created four catalog-compatible 36 x 80, 1-3/4, 20-minute fire-rated flush leaves as a Sales-review starting point. The requested two exterior double pre-hung assemblies, right outswing, jamb, and final unit/leaf allocation are not represented by this Slabs Only line and must be completed in Sales.",
+						});
+					continue;
+				}
+				normalizedSeed.lineItems.splice(normalizedSeed.lineItems.indexOf(line), 1);
+				for (let index = interpretations.length - 1; index >= 0; index--)
+					if (interpretations[index]?.lineUid === line.uid) interpretations.splice(index, 1);
+				normalizedSeed.unresolved = normalizedSeed.unresolved.map((item) =>
+					item.lineUid === line.uid
+						? { ...item, lineUid: null, stepId: null, status: "unsupported" as const }
+						: item);
+				normalizedSeed.unresolved.push({
+					lineUid: null, stepId: null, field: "doorAssembly", status: "unsupported",
+					reason: `Not created: the model added ${line.qty} separate Slabs Only units, but the customer requested exterior pre-hung units. Compare the requested assemblies and leaf count with the original text in Sales.`,
+				});
+			}
+			if (normalizedSeed.lineItems.some((line) => isExactFireRatedLeafFallback(line))) {
+				for (const line of [...normalizedSeed.lineItems]) {
+					if (!/\bexterior\b/i.test(selectedRouteTitle(line))) continue;
+					const hasDoorProduct = line.formSteps.some((selection) => {
+						const step = stepsById.get(selection.stepId);
+						if (step?.title?.trim().toLowerCase() !== "door" || "value" in selection)
+							return false;
+						return "prodUid" in selection || selection.meta.selectedProdUids.length > 0;
+					});
+					if (hasDoorProduct) continue;
+					normalizedSeed.lineItems.splice(normalizedSeed.lineItems.indexOf(line), 1);
+					for (let index = interpretations.length - 1; index >= 0; index--)
+						if (interpretations[index]?.lineUid === line.uid) interpretations.splice(index, 1);
+					normalizedSeed.unresolved = normalizedSeed.unresolved.map((item) =>
+						item.lineUid === line.uid
+							? { ...item, lineUid: null, stepId: null, status: "unsupported" as const }
+							: item);
+				}
+			}
+		}
+	}
 	for (const row of originalCustomerText.split(/\r?\n/)) {
 		const closet = row.trim().match(
 			/^([^:\n]{2,80})\s+-\s*(\d{2,3})\s*["”]\s*[x×]\s*(\d{2,3})\s*["”]?.*\(\s*2\s*-\s*(\d{2,3})\s*["”]\s*doors?\s+w\/\s*T\s*Astragal\s*\)/i,
@@ -634,7 +849,12 @@ export function validateNewSalesFormSeedConfiguration(
 		if (confirmedAnswers.some((answer) =>
 			`${answer.question} ${answer.sourceText ?? ""}`.toLowerCase().includes(room) &&
 			/\b\d{2,3}\s*(?:["”]|inches?|feet|ft\b)/i.test(answer.answer))) continue;
+		const width = Number(ambiguous[2]);
+		const height = Number(ambiguous[3]);
+		if (width < 12 || width > 96 || width * 12 <= 96 || height < 60 || height > 120)
+			continue;
 		const inferredSize = dimensionKey(`${ambiguous[2]} x ${ambiguous[3]}`);
+		if (!inferredSize) continue;
 		const selected = normalizedSeed.lineItems.find((line) =>
 			line.housePackageTool?.doors.length === 1 &&
 			dimensionKey(line.housePackageTool.doors[0]!.dimension) === inferredSize &&
@@ -643,6 +863,21 @@ export function validateNewSalesFormSeedConfiguration(
 					item.sourceText.toLowerCase().includes(room))),
 		);
 		if (!selected) continue;
+		const door = selected.housePackageTool?.doors[0];
+		const doorQty = door && ("totalQty" in door ? door.totalQty : door.lhQty + door.rhQty);
+		const route = configuration.routes.find((candidate) =>
+			selected.formSteps.some((selection) => "prodUid" in selection &&
+				selection.stepId === candidate.rootStepId &&
+				selection.prodUid === candidate.itemTypeUid));
+		const supportsConfiguredSizes = !!route && configuration.steps.some((step) =>
+			(step.id === route.rootStepId || route.stepUids.includes(step.uid)) &&
+			(step.doorSizeVariation?.length ?? 0) > 0);
+		if (selected.qty === 1 && doorQty === 1 && supportsConfiguredSizes) {
+			likelyInchTypoAssumptions.set(selected.uid, {
+				key: inferredSize, row: row.trim(), room: ambiguous[1]!.trim(), width, height,
+			});
+			continue;
+		}
 		normalizedSeed.lineItems.splice(normalizedSeed.lineItems.indexOf(selected), 1);
 		for (let index = interpretations.length - 1; index >= 0; index--)
 			if (interpretations[index]?.lineUid === selected.uid) interpretations.splice(index, 1);
@@ -690,11 +925,26 @@ export function validateNewSalesFormSeedConfiguration(
 			const row = enumeratedDoorRows[index]!.trim();
 			const line = orderedDoorLines[index]!;
 			const bare = row.match(/^(\d{2,3})\s+([1-9][-/](?:1[01]|\d))\b/);
-			if (bare && !confirmedAnswers.some((answer) =>
+			const confirmedBareAnswer = bare && confirmedAnswers.find((answer) =>
 				`${answer.question} ${answer.sourceText ?? ""}`.includes(`${bare[1]} ${bare[2]}`) &&
 				/width|size|dimension/i.test(answer.field ?? "") &&
-				/^(?:\d{2,3}\s*(?:inches?|["”])|[1-9][-/](?:1[01]|\d))$/i.test(answer.answer.trim())) &&
-				line.housePackageTool?.doors.length) {
+				/^(?:\d{2,3}\s*(?:inches?|["”])|[1-9][-/](?:1[01]|\d))$/i.test(answer.answer.trim()));
+			if (bare && confirmedBareAnswer && line.housePackageTool?.doors.length === 1) {
+				const answeredInches = confirmedBareAnswer.answer.trim().match(
+					/^(\d{2,3})\s*(?:inches?|["”])$/i,
+				)?.[1];
+				const answeredArchitectural = confirmedBareAnswer.answer.trim().match(
+					/^([1-9])[-/](1[01]|\d)$/,
+				);
+				const width = answeredInches
+					? `${Math.floor(Number(answeredInches) / 12)}-${Number(answeredInches) % 12}`
+					: answeredArchitectural
+						? `${answeredArchitectural[1]}-${answeredArchitectural[2]}`
+						: null;
+				if (width) line.housePackageTool.doors[0]!.dimension =
+					`${width} x ${bare[2]!.replace("/", "-")}`;
+			}
+			if (bare && !confirmedBareAnswer && line.housePackageTool?.doors.length) {
 				moveToReview(line, "width", "ambiguous",
 					`Confirm the width for "${row.slice(0, 160)}": does ${bare[1]} mean inches or architectural feet/inches? This row was not created in Sales.`);
 				continue;
@@ -765,6 +1015,18 @@ export function validateNewSalesFormSeedConfiguration(
 			return !!room && sizes.size === 1 && item.reason.toLowerCase().includes(room.toLowerCase()) &&
 				[...sizes].every((size) => sourceDimensionKeys(item.reason).has(size));
 		};
+		const broadGlobalScheduleReview = (
+			item: NewSalesFormSeed["unresolved"][number],
+		) => item.lineUid === null && (
+			/\b(?:for example|such as|e\.?g\.?)\b/i.test(item.reason) ||
+			/\b(?:all|entire|whole|remaining|overall)\b.{0,80}\b(?:doors?|rooms?|rows?|schedule|package)\b|\b(?:doors?|rooms?|rows?|schedule|package)\b.{0,80}\b(?:all|entire|whole|remaining|overall)\b/i.test(item.reason) ||
+			enumeratedDoorRows.filter((row) => item.reason.includes(row.trim())).length > 1
+		);
+		const rowSpecificReview = (
+			item: NewSalesFormSeed["unresolved"][number], row: string,
+		) => roomScopedHandingReview(item, row) ||
+			(!broadGlobalScheduleReview(item) && item.reason.includes(row.trim()) &&
+				/door|dimension|size|width|height|pocket|bifold/i.test(item.field));
 		const doorRoutes = new Set(configuration.routes.flatMap((route) => {
 			const title = configuration.steps.find((step) => step.id === route.rootStepId)
 				?.components.find(([uid]) => uid === route.itemTypeUid)?.[1] ?? "";
@@ -797,44 +1059,37 @@ export function validateNewSalesFormSeedConfiguration(
 					reason: `Confirm the width for "${row.trim()}": does ${bareWidth[1]} mean inches or architectural feet/inches?`,
 				});
 		}
-		const selectedDoorQty = normalizedSeed.lineItems.reduce((total, line) =>
-			total + (line.formSteps.some((step) =>
-				"prodUid" in step && doorRoutes.has(step.prodUid))
-				? (line.housePackageTool?.doors ?? []).reduce((count, door) =>
-					count + ("totalQty" in door ? door.totalQty : door.lhQty + door.rhQty), 0)
-				: 0), 0);
-		const reviewedDoorRows = normalizedSeed.unresolved.filter((item) =>
-			roomScheduleRows.some((row) => roomScopedHandingReview(item, row)) ||
-			((/\b(?:[1-9][-/](?:1[01]|\d)|\d{2})\s*(?:[x×]\s*|\s+)[1-9][-/](?:1[01]|\d)\b/.test(item.reason) ||
-				/\b\d{2,3}\s*["”']?\s*[x×]\s*\d{2,3}\b/.test(item.reason)) &&
-			/door|dimension|size|width|height|pocket|bifold/i.test(item.field)),
-		).length;
-		if (selectedDoorQty + reviewedDoorRows < enumeratedDoorRows.length) {
-			const represented = new Map<string, number>();
-			for (const line of normalizedSeed.lineItems) {
-				if (!line.formSteps.some((step) =>
-					"prodUid" in step && doorRoutes.has(step.prodUid))) continue;
-				for (const door of line.housePackageTool?.doors ?? []) {
-					const key = dimensionKey(door.dimension);
-					if (key) represented.set(key, (represented.get(key) ?? 0) +
-						("totalQty" in door ? door.totalQty : door.lhQty + door.rhQty));
-				}
+		const represented = new Map<string, number>();
+		for (const line of normalizedSeed.lineItems) {
+			if (!line.formSteps.some((step) =>
+				"prodUid" in step && doorRoutes.has(step.prodUid))) continue;
+			for (const door of line.housePackageTool?.doors ?? []) {
+				const key = dimensionKey(door.dimension);
+				if (key) represented.set(key, (represented.get(key) ?? 0) +
+					("totalQty" in door ? door.totalQty : door.lhQty + door.rhQty));
 			}
-			for (const row of enumeratedDoorRows) {
-				const sourceRow = row.trim();
-				const keys = sourceDimensionKeys(sourceRow);
-				const key = keys.size === 1 ? [...keys][0] : undefined;
-				if (key && (represented.get(key) ?? 0) > 0) {
-					represented.set(key, (represented.get(key) ?? 0) - 1);
-					continue;
-				}
-				if (normalizedSeed.unresolved.some((item) => item.reason.includes(sourceRow)))
-					continue;
-				normalizedSeed.unresolved.push({
-					lineUid: null, stepId: null, field: "doorSchedule", status: "unsupported",
-					reason: `Not created from customer request: ${sourceRow.slice(0, 160)}. Add this row in Sales after comparing the original request.`,
-				});
+		}
+		const usedReviews = new Set<number>();
+		for (const row of enumeratedDoorRows) {
+			const sourceRow = row.trim();
+			const keys = sourceDimensionKeys(sourceRow);
+			const key = keys.size === 1 ? [...keys][0] : undefined;
+			if (key && (represented.get(key) ?? 0) > 0) {
+				represented.set(key, (represented.get(key) ?? 0) - 1);
+				continue;
 			}
+			const reviewIndex = normalizedSeed.unresolved.findIndex((item, index) =>
+				!usedReviews.has(index) &&
+				rowSpecificReview(item, sourceRow));
+			if (reviewIndex >= 0) {
+				usedReviews.add(reviewIndex);
+				continue;
+			}
+			normalizedSeed.unresolved.push({
+				lineUid: null, stepId: null, field: "doorSchedule", status: "unsupported",
+				reason: `Not created from customer request: ${sourceRow.slice(0, 160)}. Add this row in Sales after comparing the original request.`,
+			});
+			usedReviews.add(normalizedSeed.unresolved.length - 1);
 		}
 		const sourceCounts = new Map<string, number>();
 		for (const row of enumeratedDoorRows) {
@@ -871,12 +1126,13 @@ export function validateNewSalesFormSeedConfiguration(
 			total + (line.housePackageTool?.doors ?? []).reduce((count, door) =>
 				count + ("totalQty" in door ? door.totalQty : door.lhQty + door.rhQty), 0), 0);
 		if (roomScheduleRows.length && configuredSizeQty + normalizedSeed.unresolved.filter((item) =>
-			item.field === "doorSchedule" ||
+			(!broadGlobalScheduleReview(item) && item.field === "doorSchedule") ||
 			roomScheduleRows.some((row) => roomScopedHandingReview(item, row)) ||
-			(/door|dimension|size|width|height|pocket|bifold/i.test(item.field) &&
+			(!broadGlobalScheduleReview(item) &&
+				/door|dimension|size|width|height|pocket|bifold/i.test(item.field) &&
 				roomScheduleRows.some((row) => item.reason.includes(row.trim())))).length < roomScheduleRows.length)
 			for (const row of roomScheduleRows) {
-				if (normalizedSeed.unresolved.some((item) => item.reason.includes(row.trim()))) continue;
+				if (normalizedSeed.unresolved.some((item) => rowSpecificReview(item, row))) continue;
 				normalizedSeed.unresolved.push({
 					lineUid: null, stepId: null, field: "doorSchedule", status: "unsupported",
 					reason: `Not created from customer request: ${row.trim().slice(0, 160)}. Add this room's door in Sales after comparing the original request.`,
@@ -887,6 +1143,9 @@ export function validateNewSalesFormSeedConfiguration(
 			const room = row.trim().match(/^([^:\n]{2,80})\s+-\s+/)?.[1]?.trim();
 			if (!room) continue;
 			const roomSizes = sourceDimensionKeys(row);
+			const assumedSize = [...likelyInchTypoAssumptions.values()].find((assumption) =>
+				assumption.room.toLowerCase() === room.toLowerCase() && assumption.row === row.trim());
+			if (assumedSize) roomSizes.add(assumedSize.key);
 			const matchingLine = normalizedSeed.lineItems.some((line) =>
 				line.housePackageTool?.doors.some((door) =>
 					roomSizes.has(dimensionKey(door.dimension) ?? "")) &&
@@ -896,9 +1155,10 @@ export function validateNewSalesFormSeedConfiguration(
 			);
 			const matchingReview = normalizedSeed.unresolved.some((item) =>
 				roomScopedHandingReview(item, row) ||
-				(/door|dimension|size|width|height|pocket|bifold/i.test(item.field) &&
-				(item.reason.toLowerCase().includes(room.toLowerCase()) ||
-					(item.lineUid && roomKey(item.lineUid) === roomKey(room))) &&
+				(!broadGlobalScheduleReview(item) &&
+					/door|dimension|size|width|height|pocket|bifold/i.test(item.field) &&
+					(item.reason.toLowerCase().includes(room.toLowerCase()) ||
+						(item.lineUid && roomKey(item.lineUid) === roomKey(room))) &&
 				(!roomSizes.size || [...roomSizes].some((key) => sourceDimensionKeys(item.reason).has(key)))),
 			);
 			const conflictingLine = normalizedSeed.lineItems.some((line) =>
@@ -918,13 +1178,33 @@ export function validateNewSalesFormSeedConfiguration(
 		for (const row of originalCustomerText.split(/\r?\n/)) {
 			const room = row.trim().match(/^([^:\n]{3,80})\s+-\s*$/)?.[1]?.trim();
 			if (!room) continue;
-			const reviewed = normalizedSeed.unresolved.some((item) =>
-				item.status === "ambiguous" &&
-				item.reason.toLowerCase().includes(room.toLowerCase()));
-			const answered = confirmedAnswers.some((answer) =>
+			const reviewIndex = normalizedSeed.unresolved.findIndex((item) =>
+				!broadGlobalScheduleReview(item) &&
+				(item.reason.toLowerCase().includes(room.toLowerCase()) ||
+					(item.lineUid && roomKey(item.lineUid) === roomKey(room))));
+			const reviewed = reviewIndex >= 0;
+			const represented = normalizedSeed.lineItems.some((line) =>
+				roomKey(line.uid) === roomKey(room) || interpretations.some((item) =>
+					item.lineUid === line.uid && item.sourceText.toLowerCase().includes(room.toLowerCase())));
+			const answered = confirmedAnswers.find((answer) =>
 				`${answer.question} ${answer.sourceText ?? ""}`.toLowerCase().includes(room.toLowerCase()) &&
 				/\b\d{2,3}\s*["”']?\s*[x×]\s*\d{2,3}\b/.test(answer.answer));
-			if (!reviewed && !answered && !normalizedSeed.unresolved.some((item) =>
+			if (answered && reviewed) {
+				const existing = normalizedSeed.unresolved[reviewIndex]!;
+				const confirmedValue = answered.answer.trim().slice(0, 160);
+				if (!existing.reason.toLowerCase().includes(confirmedValue.toLowerCase()))
+					normalizedSeed.unresolved[reviewIndex] = {
+						...existing,
+						status: "unsupported",
+						reason: `${existing.reason.trim()}${/[.!?]$/.test(existing.reason.trim()) ? "" : "."} Confirmed customer answer: ${confirmedValue}.`,
+					};
+			}
+			if (answered && !reviewed && !represented)
+				normalizedSeed.unresolved.push({
+					lineUid: null, stepId: null, field: "doorSchedule", status: "unsupported",
+					reason: `Not created from customer request: ${room} was confirmed as ${answered.answer.trim().slice(0, 160)}. Add this room in Sales using the confirmed size.`,
+				});
+			else if (!reviewed && !answered && !normalizedSeed.unresolved.some((item) =>
 				item.field === "room" && item.reason.toLowerCase().includes(room.toLowerCase())))
 				normalizedSeed.unresolved.push({
 					lineUid: null, stepId: null, field: "room", status: "unsupported",
@@ -936,6 +1216,9 @@ export function validateNewSalesFormSeedConfiguration(
 			if (!ambiguous) continue;
 			const room = ambiguous[1]?.trim() ?? "room";
 			const quote = `${ambiguous[2]}'`;
+			if ([...likelyInchTypoAssumptions.values()].some((assumption) =>
+				assumption.room.toLowerCase() === room.toLowerCase() && assumption.row === row.trim()))
+				continue;
 			const reviewed = normalizedSeed.unresolved.some((item) =>
 				item.status === "ambiguous" &&
 				item.reason.toLowerCase().includes(room.toLowerCase()) &&
@@ -1092,6 +1375,7 @@ export function validateNewSalesFormSeedConfiguration(
 		}
 	}
 
+	reviewUnidentifiedSideMouldings(normalizedSeed, configuration, originalCustomerText, identityGuidance);
 	const statedDimensionKeys = sourceDimensionKeys(sourceText);
 	for (const key of confirmedBareSizes.keys()) statedDimensionKeys.add(key);
 	for (const key of confirmedDoorHeightKeys(
@@ -1100,8 +1384,24 @@ export function validateNewSalesFormSeedConfiguration(
 	const statedDimensionHeights = new Set(
 		[...statedDimensionKeys].map((key) => Number(key.split(":")[1])),
 	);
+	// An ambiguous apostrophe width still leaves an explicitly quoted height.
+	for (const match of sourceText.matchAll(/\b\d{2,3}\s*'\s*[x×]\s*(\d{2,3})\s*["”]/gi)) {
+		if (Number(match[1]) >= 60) statedDimensionHeights.add(Number(match[1]));
+	}
 	for (const line of normalizedSeed.lineItems) {
 		const formSteps = line.formSteps as ValidatedSeedStep[];
+		const assumedDimension = likelyInchTypoAssumptions.get(line.uid);
+		const lineStatedDimensionKeys = new Set(statedDimensionKeys);
+		if (assumedDimension) lineStatedDimensionKeys.add(assumedDimension.key);
+		const removeAssumptionQuestions = () => {
+			if (!assumedDimension) return;
+			normalizedSeed.unresolved = normalizedSeed.unresolved.filter((item) => {
+				const field = item.field.toLowerCase().replace(/[^a-z]/g, "");
+				return !(["width", "doorsize", "dimension"].includes(field) &&
+					(item.lineUid === line.uid ||
+						item.reason.toLowerCase().includes(assumedDimension.room.toLowerCase())));
+			});
+		};
 		for (const selection of formSteps) {
 			const step = stepsById.get(selection.stepId);
 			if (
@@ -1113,24 +1413,21 @@ export function validateNewSalesFormSeedConfiguration(
 				([uid]) => uid === selection.prodUid,
 			)?.[1];
 			const inches = title ? dimensionPartInches(title) : null;
-			if (
-				!title ||
-				inches == null ||
-				statedDimensionHeights.size === 0 ||
-				statedDimensionHeights.has(inches)
-			)
+		if (!title || inches == null || statedDimensionHeights.has(inches))
 				continue;
-			// A separate height statement can coexist with another line's complete dimensions.
+			// A separate, explicitly labeled height can coexist with another line's
+			// complete dimensions. A bare 80-inch value may instead be a width.
 			const architectural = title.trim().match(/^(\d+)[-/](\d+)$/);
-			const standalone = architectural
-				? new RegExp(
-						`\\b${architectural[1]}\\s*[-/]\\s*${architectural[2]}\\b|\\b${inches}\\s*(?:["”]|inches\\b|in\\b)`,
-						"i",
-					)
-				: new RegExp(`\\b${inches}\\s*(?:["”]|inches\\b|in\\b)`, "i");
+			const notation = architectural
+				? `(?:${architectural[1]}\\s*[-/]\\s*${architectural[2]}|${inches}\\s*(?:["”]|inches?\\b|in\\b))`
+				: `${inches}\\s*(?:["”]|inches?\\b|in\\b)?`;
+			const standalone = new RegExp(
+				`\\b(?:height|high|tall)\\s*(?:of|is|:)?\\s*${notation}(?=\\b|\\s|$)|\\b${notation}\\s*(?:high|tall|height)\\b`,
+				"i",
+			);
 			if (!standalone.test(sourceText))
 				throw new Error(
-					`Line ${line.uid} selects Height ${title}, which contradicts the dimensions stated in the customer request.`,
+					`Line ${line.uid} selects Height ${title}, which is not stated in the customer request.`,
 				);
 		}
 		const rootMatches = configuration.routes.filter((route) => {
@@ -1154,6 +1451,84 @@ export function validateNewSalesFormSeedConfiguration(
 		const rootTitle = rootStep?.components.find(
 			([uid]) => uid === route.itemTypeUid,
 		)?.[1];
+		const sixPanelExterior = /\b(?:6|six)[- ]?(?:panel|pnl)\b/i.test(originalCustomerText) &&
+			/\bfiberglass\b/i.test(originalCustomerText) &&
+			/\bimpact\b/i.test(originalCustomerText) &&
+			/\bexterior\b/i.test(rootTitle ?? "");
+		if (sixPanelExterior) {
+			for (const selection of formSteps) {
+				const doorStep = stepsById.get(selection.stepId);
+				if (doorStep?.title?.trim().toLowerCase() !== "door" || "value" in selection) continue;
+				const selectedUids = "prodUid" in selection ? [selection.prodUid] : selection.meta.selectedProdUids;
+				for (const uid of selectedUids) {
+					const title = doorStep.components.find(([candidate]) => candidate === uid)?.[1] ?? "";
+					const design = title.match(/\b(\d+)\s*(PNL|PANEL|LITE)\b/i);
+					if ((design && (Number(design[1]) !== 6 || /LITE/i.test(design[2] ?? ""))) ||
+						(/\bFLUSH\b/i.test(title) && !/\b(?:6|six)[- ]?(?:panel|pnl)\b/i.test(title)))
+						throw new Error(`Line ${line.uid} selects a Door design that does not match the six-panel customer request.`);
+				}
+			}
+			const overallSizeRow = originalCustomerText.split(/\r?\n/).find((row) =>
+				/\b(?:total|overall)\s+size\b/i.test(row) &&
+				/[x×]\s*\d{2,3}(?:\s*["”]|\s*in(?:ches?)?\b)/i.test(row));
+			const overallHeightInches = Number(overallSizeRow?.match(
+				/[x×]\s*(\d{2,3})(?:\s*["”]|\s*in(?:ches?)?\b)/i,
+			)?.[1]);
+			const overallSizeOnly = !!overallSizeRow &&
+				Number.isSafeInteger(overallHeightInches) &&
+				/\bsideli(?:te|ght)\b/i.test(originalCustomerText);
+			const panelHeightStated = originalCustomerText.split(/\r?\n/).some((row) =>
+				/\b(?:door\s+panel|panel\s+door)\b/i.test(row) &&
+				/(?:[x×]\s*\d{2,3}(?:\s*["”]|\s*in(?:ches?)?\b)|\bheight\s*(?:of|is|:)?\s*\d{2,3})/i.test(row)) ||
+				confirmedAnswers.some((answer) => answer.field?.toLowerCase() === "height" &&
+					/\bpanel\b/i.test(answer.question));
+			if (overallSizeOnly && !panelHeightStated) {
+				const heightStep = route.stepUids
+					.map((uid) => stepsByUid.get(uid))
+					.find((step) => step?.title?.trim().toLowerCase() === "height");
+				if (heightStep) {
+					const current = formSteps.findIndex((selection) =>
+						selection.stepId === heightStep.id);
+					if (current >= 0) formSteps.splice(current, 1);
+					for (let index = interpretations.length - 1; index >= 0; index--)
+						if (interpretations[index]?.lineUid === line.uid &&
+							interpretations[index]?.stepId === heightStep.id)
+							interpretations.splice(index, 1);
+					const compatibleHeights = heightStep.components.filter(([, title]) =>
+						dimensionPartInches(title) === overallHeightInches);
+					const compatibleHeight = compatibleHeights.length === 1
+						? compatibleHeights[0] : undefined;
+					if (compatibleHeight) {
+						formSteps.push({ stepId: heightStep.id, prodUid: compatibleHeight[0] });
+						interpretations.push({
+							lineUid: line.uid,
+							stepId: heightStep.id,
+							field: "height",
+							sourceText: overallSizeRow!.trim().slice(0, 1000),
+							selectedProdUid: compatibleHeight[0],
+							selectedTitle: compatibleHeight[1],
+							reason: `Drafted the configured ${compatibleHeight[1]} height from the stated ${overallHeightInches}-inch overall assembly height for Sales review.`,
+						});
+					}
+					normalizedSeed.unresolved = normalizedSeed.unresolved.filter((item) =>
+						!(item.lineUid === line.uid &&
+							(item.stepId === heightStep.id ||
+								["height", "overallheight", "assemblyheight", "heightassumption"].includes(
+									item.field.toLowerCase().replace(/[^a-z]/g, "")))));
+					if (compatibleHeight) normalizedSeed.unresolved.push({
+						lineUid: line.uid,
+						stepId: null,
+						field: "heightAssumption",
+						status: "unsupported",
+						reason: `Drafted Height ${compatibleHeight[1]} from the stated ${overallHeightInches}-inch overall assembly height; confirm the door panel height during Sales review.`,
+					});
+				}
+				// The overall sidelite assembly height cannot safely define an HPT
+				// panel row. Keep the catalog Door selection and let the native form
+				// apply its editable defaults, but never materialize the provider HPT.
+				delete line.housePackageTool;
+			}
+		}
 		if (
 			rootTitle &&
 			/\binterior\b/i.test(rootTitle) &&
@@ -1168,7 +1543,8 @@ export function validateNewSalesFormSeedConfiguration(
 			rootTitle &&
 			/\bslabs?\s+only\b/i.test(rootTitle) &&
 			/\b(?:pre[- ]?hung|precolgad[oa]s?)\b/i.test(sourceText) &&
-			!/\b(?:slabs?\s+only|separate\s+slabs?|hojas?\s+sueltas?)\b/i.test(sourceText)
+			!/\b(?:slabs?\s+only|separate\s+slabs?|hojas?\s+sueltas?)\b/i.test(sourceText) &&
+			!isExactFireRatedLeafFallback(line, rootTitle)
 		) {
 			throw new Error(
 				`Line ${line.uid} selects a slabs-only route for a pre-hung customer request.`,
@@ -1205,6 +1581,23 @@ export function validateNewSalesFormSeedConfiguration(
 			route.rootStepId,
 			...route.stepUids.map((uid) => stepsByUid.get(uid)?.id),
 		]);
+		const denseScheduleLineIndex = orderedDoorLines.indexOf(line);
+		const routeHasDoorStep = route.stepUids.some((uid) =>
+			stepsByUid.get(uid)?.title?.trim().toLowerCase() === "door",
+		);
+		const isDenseArchitecturalDoorLine =
+			enumeratedDoorRows.length >= 8 && denseScheduleLineIndex >= 0 &&
+			routeHasDoorStep;
+		const denseScheduleSourceIndex = (() => {
+			const ordinal = Number(
+				line.uid.match(/^line-(?:[a-z]+-)?(\d+)(?:-[a-z]+)?$/i)?.[1],
+			);
+			return Number.isSafeInteger(ordinal) && ordinal > 0 &&
+				ordinal <= enumeratedDoorRows.length
+				? ordinal - 1
+				: denseScheduleLineIndex;
+		})();
+		let degradedHiddenDoorSelection = false;
 		const selectionByStepId = new Map(
 			formSteps.map((selection) => [selection.stepId, selection] as const),
 		);
@@ -1243,14 +1636,20 @@ export function validateNewSalesFormSeedConfiguration(
 			const configuredTitle = step?.components.find(
 				([uid]) => uid === interpretation.selectedProdUid,
 			)?.[1];
-			if (
-				!configuredTitle ||
-				comparableCatalogTitle(configuredTitle) !==
-					comparableCatalogTitle(interpretation.selectedTitle)
-			) {
+			if (!configuredTitle) {
 				throw new Error(
 					`Line ${line.uid} interpretation must use the current configured component title.`,
 				);
+			}
+			if (
+				comparableCatalogTitle(configuredTitle) !==
+					comparableCatalogTitle(interpretation.selectedTitle)
+			) {
+				if (!isDenseArchitecturalDoorLine)
+					throw new Error(
+						`Line ${line.uid} interpretation must use the current configured component title.`,
+					);
+				interpretation.selectedTitle = configuredTitle;
 			}
 			if (
 				!comparableSourceText(sourceText).includes(
@@ -1391,6 +1790,18 @@ export function validateNewSalesFormSeedConfiguration(
 						`Moulding component ${title} must be stated in the customer request.`,
 					);
 				}
+				if (/\bDOOR\s*STOP\b/i.test(title) && "qty" in row && row.qty > 0 &&
+					!comparableSourceText(originalCustomerText).includes(comparableSourceText(title)) &&
+					!identityGuidance.some((answer) => comparableSourceText(answer.answer) === comparableSourceText(title))) {
+					const genericSource = originalCustomerText.split(/\r?\n/).map((sourceRow) => sourceRow.trim())
+						.find((sourceRow) => new RegExp(`^door\\s*stop\\s*\\(\\s*${row.qty}\\s*\\)$`, "i").test(sourceRow));
+					if (genericSource && !normalizedSeed.unresolved.some((item) =>
+						item.lineUid === line.uid && item.field === "mouldingProfile"))
+						normalizedSeed.unresolved.push({ lineUid: line.uid, stepId: null,
+							field: "mouldingProfile", status: "ambiguous",
+							reason: `${genericSource} does not name a profile. Confirm the selected ${title} in Sales before saving.`,
+						});
+				}
 				if (!row.calculation && "qty" in row) {
 					// Zero is an explicitly reviewed pending quantity, never a charge.
 					if (row.qty === 0) continue;
@@ -1488,6 +1899,92 @@ export function validateNewSalesFormSeedConfiguration(
 				);
 		}
 
+		const completedSelectionMaps = () => {
+			const selectedByStepUid: Record<string, string> = {};
+			const selectedProdUidsByStepUid: Record<string, string[]> = {};
+			for (const selection of formSteps) {
+				if ("value" in selection) continue;
+				const step = stepsById.get(selection.stepId);
+				if (!step) continue;
+				const selectedProdUids =
+					"prodUid" in selection
+						? [selection.prodUid]
+						: selection.meta.selectedProdUids;
+				selectedProdUidsByStepUid[step.uid] = selectedProdUids;
+				const first = selectedProdUids[0];
+				if (first) selectedByStepUid[step.uid] = first;
+			}
+			return { selectedByStepUid, selectedProdUidsByStepUid };
+		};
+		if (isDenseArchitecturalDoorLine) {
+			// Dense schedules are a reviewed starting point. If one non-root choice
+			// conflicts with the completed catalog combination, keep the usable row
+			// and send only that choice to Sales review instead of rejecting all rows.
+			const maxVisibilityPasses = formSteps.length;
+			for (let pass = 0; pass < maxVisibilityPasses; pass++) {
+				const complete = completedSelectionMaps();
+				let changed = false;
+				for (const selection of [...formSteps]) {
+					if (selection.stepId === route.rootStepId || "value" in selection)
+						continue;
+					const step = stepsById.get(selection.stepId);
+					if (!step) continue;
+					const selectedProdUids =
+						"prodUid" in selection
+							? [selection.prodUid]
+							: selection.meta.selectedProdUids;
+					const visibleProdUids = selectedProdUids.filter((uid) => {
+						const visibility = configuration.visibilityByComponentUid[uid];
+						return !visibility || isComponentVisibleByRules(
+							visibility,
+							complete.selectedByStepUid,
+							complete.selectedProdUidsByStepUid,
+						);
+					});
+					if (visibleProdUids.length === selectedProdUids.length) continue;
+					const hiddenProdUids = selectedProdUids.filter(
+						(uid) => !visibleProdUids.includes(uid),
+					);
+					const retainsSelection =
+						"meta" in selection && visibleProdUids.length > 0;
+					if (retainsSelection && "meta" in selection) {
+						selection.meta.selectedProdUids = visibleProdUids;
+						selectionByStepId.set(selection.stepId, selection);
+					} else {
+						formSteps.splice(formSteps.indexOf(selection), 1);
+						selectionByStepId.delete(selection.stepId);
+					}
+					for (let index = interpretations.length - 1; index >= 0; index--) {
+						const interpretation = interpretations[index];
+						if (
+							interpretation?.lineUid === line.uid &&
+							interpretation.stepId === selection.stepId &&
+							hiddenProdUids.includes(interpretation.selectedProdUid)
+						) interpretations.splice(index, 1);
+					}
+					const field = step.title?.trim() || "configuration";
+					if (!retainsSelection && field.toLowerCase() === "door")
+						degradedHiddenDoorSelection = true;
+					if (!normalizedSeed.unresolved.some((item) =>
+						item.lineUid === line.uid &&
+						item.stepId === (retainsSelection ? null : step.id) &&
+						item.field.trim().toLowerCase() === field.toLowerCase())) {
+						const sourceRow = enumeratedDoorRows[denseScheduleSourceIndex]!.trim();
+						normalizedSeed.unresolved.push({
+							lineUid: line.uid,
+							stepId: retainsSelection ? null : step.id,
+							field,
+							status: "unsupported",
+							reason: `From "${sourceRow.slice(0, 160)}": the selected ${field} option is not available under this line's completed catalog configuration. Keep the stated size and count for review, then choose a compatible ${field} in Sales.`,
+						});
+					}
+					changed = true;
+				}
+				if (!changed) break;
+			}
+		}
+		const completedSelections = completedSelectionMaps();
+
 		const selectedByStepUid: Record<string, string> = {};
 		const selectedProdUidsByStepUid: Record<string, string[]> = {};
 		const orderedStepIds = [
@@ -1512,7 +2009,13 @@ export function validateNewSalesFormSeedConfiguration(
 						visibility,
 						selectedByStepUid,
 						selectedProdUidsByStepUid,
-					)
+					) &&
+					(!isDenseArchitecturalDoorLine ||
+						!isComponentVisibleByRules(
+							visibility,
+							completedSelections.selectedByStepUid,
+							completedSelections.selectedProdUidsByStepUid,
+						))
 				) {
 					throw new Error(
 						`Line ${line.uid} selects a component hidden by configured rules for step ${selection.stepId}.`,
@@ -1523,16 +2026,15 @@ export function validateNewSalesFormSeedConfiguration(
 			const first = selectedProdUids[0];
 			if (first) selectedByStepUid[step.uid] = first;
 		}
-		if (line.housePackageTool) {
-			const doorSteps = configuration.steps.filter(
+		const doorSteps = configuration.steps.filter(
 				(step) =>
 					allowedStepIds.has(step.id) &&
 					String(step.title || "")
 						.trim()
 						.toLowerCase() === "door",
 			);
-			const doorStepIds = new Set(doorSteps.map((step) => step.id));
-			const doorSelections = formSteps.flatMap((selection) => {
+		const doorStepIds = new Set(doorSteps.map((step) => step.id));
+		const doorSelections = formSteps.flatMap((selection) => {
 				const step = stepsById.get(selection.stepId);
 				if (
 					!step ||
@@ -1546,17 +2048,34 @@ export function validateNewSalesFormSeedConfiguration(
 				if ("meta" in selection) return selection.meta.selectedProdUids;
 				return [];
 			});
-			let hasUnresolvedDoor = normalizedSeed.unresolved.some(
+		let hasUnresolvedDoor = normalizedSeed.unresolved.some(
 				(entry) =>
 					entry.lineUid === line.uid &&
 					entry.stepId != null &&
 					doorStepIds.has(entry.stepId) &&
 					entry.field.trim().toLowerCase() === "door",
 			);
-			if (doorSelections.length === 0) {
-				const visibleCompatibleCandidates = doorSteps.flatMap((doorStep) =>
+		if (doorSelections.length === 0) {
+				const identityRow = enumeratedDoorRows.length > 1 &&
+					line.housePackageTool?.doors.length === 1
+					? enumeratedDoorRows.filter((row, index) => {
+						const room = row.trim().match(/^([^:\n]{2,80})\s+-\s+/)?.[1]?.trim();
+						const ordinal = line.uid.match(/^line-(?:[a-z]+-)?(\d+)(?:-[a-z]+)?$/i)?.[1];
+						const identityMatches = room
+							? room.toLowerCase().replace(/[^a-z0-9]/g, "") ===
+								line.uid.toLowerCase().replace(/[^a-z0-9]/g, "")
+							: Number(ordinal) === index + 1;
+						const sizes = sourceDimensionKeys(row);
+						return identityMatches && sizes.size === 1 &&
+							sizes.has(dimensionKey(line.housePackageTool!.doors[0]!.dimension) ?? "");
+					})
+					: [];
+				const scopedDoorSource = enumeratedDoorRows.length > 1
+					? identityRow.length === 1 ? identityRow[0] : null
+					: sourceText;
+				const visibleCompatibleCandidates = scopedDoorSource ? doorSteps.flatMap((doorStep) =>
 					doorStep.components.flatMap(([uid, title]) => {
-						if (!isCompatibleDoorInterpretation(sourceText, title)) return [];
+						if (!isCompatibleDoorInterpretation(scopedDoorSource, title)) return [];
 						const visibility = configuration.visibilityByComponentUid[uid];
 						const prerequisite =
 							visibility &&
@@ -1571,7 +2090,7 @@ export function validateNewSalesFormSeedConfiguration(
 										allowedStepIds,
 										selectedByStepUid,
 										selectedProdUidsByStepUid,
-										sourceText,
+										sourceText: scopedDoorSource,
 									})
 								: null;
 						if (
@@ -1609,7 +2128,7 @@ export function validateNewSalesFormSeedConfiguration(
 								configuration,
 								selectedByStepUid: completedSelectedByStepUid,
 								selectedProdUidsByStepUid: completedSelectedProdUidsByStepUid,
-								sourceText,
+									sourceText: scopedDoorSource,
 							})
 						)
 							return [];
@@ -1636,8 +2155,9 @@ export function validateNewSalesFormSeedConfiguration(
 						if (!completedCombinationVisible) return [];
 						return [{ stepId: doorStep.id, uid, title, prerequisite }];
 					}),
-				);
-				if (visibleCompatibleCandidates.length === 1 && !rejectedUnstatedDoorRating) {
+				) : [];
+				if (scopedDoorSource && visibleCompatibleCandidates.length === 1 &&
+					!rejectedUnstatedDoorRating && !degradedHiddenDoorSelection) {
 					const [candidate] = visibleCompatibleCandidates;
 					const prerequisite = candidate!.prerequisite;
 					const newInterpretations: NonNullable<
@@ -1667,7 +2187,7 @@ export function validateNewSalesFormSeedConfiguration(
 							stepId: prerequisite.step.id,
 							field: prerequisite.step.title || "door type",
 							sourceText: shortestCompatiblePrerequisiteSourceSegment(
-								sourceText,
+								scopedDoorSource,
 								prerequisite.title,
 							),
 							selectedProdUid: prerequisite.uid,
@@ -1702,7 +2222,7 @@ export function validateNewSalesFormSeedConfiguration(
 						stepId: candidate!.stepId,
 						field: "door",
 						sourceText: shortestCompatibleDoorSourceSegment(
-							sourceText,
+							scopedDoorSource,
 							candidate!.title,
 						),
 						selectedProdUid: candidate!.uid,
@@ -1722,7 +2242,8 @@ export function validateNewSalesFormSeedConfiguration(
 						...newInterpretations,
 					];
 				}
-			}
+		}
+		if (line.housePackageTool) {
 			if (doorSelections.length === 0 && !hasUnresolvedDoor && doorSteps.length === 1) {
 				const room = sourceText.split(/\r?\n/).map((row) => row.trim())
 					.find((row) => row.toLowerCase().startsWith(
@@ -1735,7 +2256,7 @@ export function validateNewSalesFormSeedConfiguration(
 				);
 				const sourceGroundedSizes = sourceText && line.housePackageTool.doors.every((door) => {
 					const key = dimensionKey(door.dimension);
-					return key && statedDimensionKeys.has(key);
+					return key && lineStatedDimensionKeys.has(key);
 				});
 				if (!conflictingDoorReview && (room || sourceGroundedSizes)) {
 					normalizedSeed.unresolved.push({
@@ -1864,9 +2385,10 @@ export function validateNewSalesFormSeedConfiguration(
 				{ stepsByUid },
 			);
 			if (!candidates.length) {
+				removeAssumptionQuestions();
 				if (!sourceText || !line.housePackageTool.doors.every((door) => {
 					const key = dimensionKey(door.dimension);
-					return key && statedDimensionKeys.has(key);
+					return key && lineStatedDimensionKeys.has(key);
 				})) {
 					throw new Error(
 						`Line ${line.uid} cannot resolve door sizes for its selected Height and configuration.`,
@@ -1904,10 +2426,11 @@ export function validateNewSalesFormSeedConfiguration(
 					const key = dimensionKey(door.dimension);
 					const canonical = key ? candidateByDimensionKey.get(key) : undefined;
 					if (!canonical) {
+						if (assumedDimension?.key === key) removeAssumptionQuestions();
 						if (
 							sourceText &&
 							key &&
-							statedDimensionKeys.has(key) &&
+							lineStatedDimensionKeys.has(key) &&
 							line.housePackageTool.doors.length === 1
 						) {
 							const count = "totalQty" in door ? door.totalQty : door.lhQty + door.rhQty;
@@ -1925,7 +2448,17 @@ export function validateNewSalesFormSeedConfiguration(
 							`Line ${line.uid} uses door dimension ${door.dimension} outside its selected Height and Door Configuration. Available dimensions for this selected route are: ${candidates.join(", ")}.`,
 						);
 					}
-					if (sourceText && !statedDimensionKeys.has(key as string)) {
+					if (assumedDimension?.key === key) {
+						removeAssumptionQuestions();
+						normalizedSeed.unresolved.push({
+							lineUid: line.uid,
+							stepId: null,
+							field: "widthAssumption",
+							status: "unsupported",
+							reason: `Created for Sales review from "${assumedDimension.row.slice(0, 160)}": treated ${assumedDimension.width}' as ${assumedDimension.width} inches because ${canonical} is available for the selected configuration. Confirm before saving.`,
+						});
+					}
+					if (sourceText && !lineStatedDimensionKeys.has(key as string)) {
 						throw new Error(
 							`Door dimension ${door.dimension} must be stated in the customer request.`,
 						);
@@ -1960,7 +2493,6 @@ export function validateNewSalesFormSeedConfiguration(
 			}
 		}
 	}
-
 	if (seed.schemaVersion === 2 && seed.form) {
 		if (!sourceStatesDeliveryOption(sourceText, seed.form.deliveryOption)) {
 			throw new Error(
@@ -1990,43 +2522,27 @@ export function validateNewSalesFormSeedConfiguration(
 			(issue) => issue.lineUid === line.uid &&
 				issue.field.toLowerCase().replace(/[^a-z]/g, "") === field.toLowerCase(),
 		);
-		const addQuestion = (field: string, stepId: number | null, reason: string) => {
+		const addReview = (field: string, reason: string) => {
 			if (missing(field)) normalizedSeed.unresolved.push({
-				lineUid: line.uid, stepId, field, status: "ambiguous", reason,
+				lineUid: line.uid, stepId: null, field, status: "unsupported", reason,
 			});
 		};
-		const label = `${line.qty} ${title} ${line.qty === 1 ? "door" : "doors"}`;
 		const sourceRow = sourceText.split(/\r?\n/).map((row) => row.trim()).find((row) =>
 			row.toLowerCase().startsWith(`${line.uid.replace(/-/g, " ").toLowerCase()} -`));
 		const sourceRoom = sourceRow?.split(/\s+-\s*/)[0];
-		const jambSize = route.stepUids
-			.map((uid) => stepsByUid.get(uid))
-			.find((step) => step?.title?.trim().toLowerCase() === "jamb size");
-		if (jambSize && !line.formSteps.some((selection) => selection.stepId === jambSize.id)) {
-			if (sourceRoom && normalizedSeed.lineItems.length >= 4) {
-				if (missing("jambSize")) normalizedSeed.unresolved.push({
-					lineUid: line.uid, stepId: jambSize.id, field: "jambSize", status: "unsupported",
-					reason: `Jamb size is not specified for ${sourceRoom}; select it during Sales review.`,
-				});
-			} else addQuestion("jambSize", jambSize.id, `Confirm the jamb size for the ${label}.`);
-		}
+		const sourceEvidence = sourceRow ??
+			(normalizedSeed.lineItems.length === 1 ? sourceText : "");
 		if (route.config?.noHandle !== true && !line.housePackageTool?.doors?.length &&
-			(normalizedSeed.lineItems.length > 1 ||
-				!(/\b(?:left[- ]hand(?:ed)?|right[- ]hand(?:ed)?|LH|RH)\b/i.test(sourceText)))) {
-			if (sourceRoom && /(?:^|\s)(?:L|R)\s+(?:In|Out)\b|\b(?:LH|RH|left[- ]hand|right[- ]hand)\b/i.test(sourceRow)) {
-				if (missing("handing")) normalizedSeed.unresolved.push({
-					lineUid: line.uid, stepId: null, field: "handing", status: "unsupported",
-					reason: `${sourceRoom} states its handing in the source, but the native door row has no handed quantity; set it during Sales review.`,
-				});
-			} else addQuestion("handing", null,
-				`How many of the ${label} are left-hand and how many are right-hand?`);
+			/(?:^|\s)(?:L|R)\s+(?:In|Out)\b|\b(?:LH|RH|left[- ]hand|right[- ]hand)\b/i.test(sourceEvidence)) {
+			addReview("handing",
+				`${sourceRoom ?? "The request"} states its handing, but the native door row has no handed quantity; set it during Sales review.`);
 		}
 		if (route.config?.hasSwing === true &&
 			(line.housePackageTool?.doors?.some((row) => !("swing" in row) || !row.swing) ||
-				(!line.housePackageTool?.doors?.length &&
-					(normalizedSeed.lineItems.length > 1 ||
-						!(/\b(?:in[- ]?swing|out[- ]?swing)\b/i.test(sourceText)))))) {
-			addQuestion("swing", null, `Confirm in-swing or out-swing for the ${label}.`);
+				!line.housePackageTool?.doors?.length) &&
+			/\b(?:in[- ]?swing|out[- ]?swing|swing\s+(?:in|out))\b/i.test(sourceEvidence)) {
+			addReview("swing",
+				`${sourceRoom ?? "The request"} states its swing, but the native door row does not retain it; set it during Sales review.`);
 		}
 	}
 	return newSalesFormSeedSchema.parse(

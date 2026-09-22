@@ -1,5 +1,6 @@
 model Users {
     messagingDevices MessagingDevice[]
+    messagingConnectionCodes MessagingConnectionCode[]
     messagingCustomerLinkEvents MessagingCustomerLinkEvent[]
     id                          Int                              @unique @default(autoincrement())
     // id2               String?    @default(cuid()) // for Better Auth

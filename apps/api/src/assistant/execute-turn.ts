@@ -13,12 +13,15 @@ import { z } from "zod";
 import { assistantOutcomeSchema, presentAssistantOutcome } from "./outcomes";
 import { assistantAnalyticsPartSchema } from "./analytics-result-contract";
 import { assistantFindingPartSchema } from "./finding-contract";
-import { AssistantAttachmentInputError, withAssistantAttachmentCorrection } from "./attachment-errors";
+import {
+	AssistantAttachmentInputError,
+	withAssistantAttachmentCorrection,
+} from "./attachment-errors";
 import {
 	assistantEntityReferenceSchema,
 	assistantInvalidationTagSchema,
 } from "./contracts";
-import { assistantDocumentProposalActionPartSchema } from "./document-action-contract";
+import { assistantProposalActionPartSchema } from "./proposal-action-contract";
 import { getAssistantComposioTools } from "./integrations";
 import { createAssistantReadRetry } from "./manual-read-retry";
 import { createAssistantMcpExecutionClient } from "./mcp";
@@ -108,7 +111,11 @@ export function summarizeAssistantToolExecutionResult(result: unknown) {
 		// Warning bodies may contain provider/database details. Execution history
 		// retains only their presence; the private diagnostic owns failure context.
 		warningCount: Array.isArray(envelope.warnings)
-			? Math.min(20, envelope.warnings.filter((warning) => typeof warning === "string").length)
+			? Math.min(
+					20,
+					envelope.warnings.filter((warning) => typeof warning === "string")
+						.length,
+				)
 			: 0,
 	};
 }
@@ -148,12 +155,25 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 		return null;
 	if (part.type === "data-assistant-outcome") {
 		const parsed = assistantOutcomeSchema.safeParse(part.data);
-		return parsed.success ? { type: part.type, id: part.id, data: parsed.data } : null;
+		return parsed.success
+			? { type: part.type, id: part.id, data: parsed.data }
+			: null;
 	}
-	if (part.type === "data-assistant-tool" && part.data && typeof part.data === "object") {
+	if (
+		part.type === "data-assistant-tool" &&
+		part.data &&
+		typeof part.data === "object"
+	) {
 		const data = part.data as Record<string, unknown>;
-		if (typeof data.id === "string" && data.id.length <= 160 && typeof data.name === "string" && /^[a-z][a-z0-9_]{0,99}$/.test(data.name) &&
-			["running", "complete", "failed", "approval-required"].includes(String(data.status))) {
+		if (
+			typeof data.id === "string" &&
+			data.id.length <= 160 &&
+			typeof data.name === "string" &&
+			/^[a-z][a-z0-9_]{0,99}$/.test(data.name) &&
+			["running", "complete", "failed", "approval-required"].includes(
+				String(data.status),
+			)
+		) {
 			const retryId =
 				typeof data.retryId === "string" &&
 				z.string().uuid().safeParse(data.retryId).success
@@ -161,7 +181,8 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 					: null;
 			const retryExpiresAt =
 				typeof data.retryExpiresAt === "string" &&
-				z.string().datetime({ offset: true }).safeParse(data.retryExpiresAt).success
+				z.string().datetime({ offset: true }).safeParse(data.retryExpiresAt)
+					.success
 					? data.retryExpiresAt
 					: null;
 			return {
@@ -171,9 +192,7 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 					id: data.id,
 					name: data.name,
 					status: String(data.status),
-					...(retryId && retryExpiresAt
-						? { retryId, retryExpiresAt }
-						: {}),
+					...(retryId && retryExpiresAt ? { retryId, retryExpiresAt } : {}),
 				},
 			};
 		}
@@ -190,7 +209,7 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 	}
 	if (part.type === "data-assistant-finding") {
 		const parsed = assistantFindingPartSchema.safeParse(part);
-		return parsed.success ? parsed.data as Prisma.InputJsonValue : null;
+		return parsed.success ? (parsed.data as Prisma.InputJsonValue) : null;
 	}
 	if (part.type === "data-assistant-order-draft") {
 		const parsed = assistantOrderDraftPartSchema.safeParse(part);
@@ -200,8 +219,11 @@ function persistentAssistantPart(chunk: unknown): Prisma.InputJsonValue | null {
 		const parsed = assistantAnalyticsPartSchema.safeParse(part);
 		return parsed.success ? (parsed.data as Prisma.InputJsonValue) : null;
 	}
-	if (part.type === "data-assistant-document-action") {
-		const parsed = assistantDocumentProposalActionPartSchema.safeParse(part);
+	if (
+		part.type === "data-assistant-document-action" ||
+		part.type === "data-assistant-proposal-action"
+	) {
+		const parsed = assistantProposalActionPartSchema.safeParse(part);
 		return parsed.success ? (parsed.data as Prisma.InputJsonValue) : null;
 	}
 	if (part.type === "data-assistant-invalidation") {
@@ -322,7 +344,12 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 								effect: execution.effect,
 								status: execution.status,
 								toolInput: execution.toolInput as Prisma.InputJsonValue,
-								result: execution.recovery ? { ...(result ?? { status: execution.status }), recovery: execution.recovery } : result,
+								result: execution.recovery
+									? {
+											...(result ?? { status: execution.status }),
+											recovery: execution.recovery,
+										}
+									: result,
 								durationMs: execution.durationMs,
 								completedAt: new Date(),
 							});
@@ -330,11 +357,20 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 					: undefined,
 				async (error, failure) => {
 					const diagnostic = await captureAssistantDiagnostic(error, {
-						attempt: failure.attempt, presentation: failure.retrying ? "not-shown" : undefined,
-						stage: "tool", operation: failure.toolId, toolCallId: failure.toolCallId,
-						outcome: failure.outcome, runId, requestId: input.requestId, conversationId: input.conversationId,
-						actorUserId: input.actor.userId, scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
-						provider: input.runtimeSelection?.provider, model: input.runtimeSelection?.model,
+						attempt: failure.attempt,
+						presentation: failure.retrying ? "not-shown" : undefined,
+						stage: "tool",
+						operation: failure.toolId,
+						toolCallId: failure.toolCallId,
+						outcome: failure.outcome,
+						runId,
+						requestId: input.requestId,
+						conversationId: input.conversationId,
+						actorUserId: input.actor.userId,
+						scopeType: input.actor.scopeType,
+						scopeId: input.actor.scopeId,
+						provider: input.runtimeSelection?.provider,
+						model: input.runtimeSelection?.model,
 					});
 					const retryId =
 						!failure.retrying &&
@@ -356,9 +392,7 @@ const defaultDependencies: ExecuteAssistantTurnDependencies = {
 						...(retryId ? { retryId } : {}),
 						...(retryId
 							? {
-									retryExpiresAt: new Date(
-										Date.now() + 600_000,
-									).toISOString(),
+									retryExpiresAt: new Date(Date.now() + 600_000).toISOString(),
 								}
 							: {}),
 					};
@@ -508,11 +542,25 @@ export async function executeAssistantConversationTurn(
 		usage: { providerAttempted: false },
 	});
 	if (input.signal.aborted) return cancelledBeforeProvider();
-	const stage = <T>(name: AssistantDiagnosticStage, operation: string, execute: () => Promise<T>) => runAssistantOperation({
-		stage: name, operation, runId: input.run.runId, conversationId: input.request.conversationId,
-		requestId: input.request.requestId, actorUserId: input.actor.userId,
-		scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
-	}, execute, { capture: dependencies.captureDiagnostic, signal: input.signal });
+	const stage = <T>(
+		name: AssistantDiagnosticStage,
+		operation: string,
+		execute: () => Promise<T>,
+	) =>
+		runAssistantOperation(
+			{
+				stage: name,
+				operation,
+				runId: input.run.runId,
+				conversationId: input.request.conversationId,
+				requestId: input.request.requestId,
+				actorUserId: input.actor.userId,
+				scopeType: input.actor.scopeType,
+				scopeId: input.actor.scopeId,
+			},
+			execute,
+			{ capture: dependencies.captureDiagnostic, signal: input.signal },
+		);
 	const currentActor = input.reauthorizeActor
 		? await stage(
 				"authentication",
@@ -523,29 +571,38 @@ export async function executeAssistantConversationTurn(
 	assertAssistantActorContinuation(input.actor, currentActor);
 	if (input.signal.aborted) return cancelledBeforeProvider();
 	const [runProvider, runModel] = input.run.modelIdentity?.split(":", 2) ?? [];
-	const runtimeSelection = await stage("provider", "assistant.resolveProvider", async () => {
-		const selection = runProvider && runModel
-			? resolveAssistantRuntimeSelection({
-					ASSISTANT_AI_PROVIDER: runProvider,
-					ASSISTANT_AI_MODEL: runModel,
-				})
-			: getAssistantRuntimeIdentity();
-		assertAssistantProviderEnabled(selection.provider);
-		return selection;
-	});
+	const runtimeSelection = await stage(
+		"provider",
+		"assistant.resolveProvider",
+		async () => {
+			const selection =
+				runProvider && runModel
+					? resolveAssistantRuntimeSelection({
+							ASSISTANT_AI_PROVIDER: runProvider,
+							ASSISTANT_AI_MODEL: runModel,
+						})
+					: getAssistantRuntimeIdentity();
+			assertAssistantProviderEnabled(selection.provider);
+			return selection;
+		},
+	);
 	if (input.signal.aborted) return cancelledBeforeProvider();
 	const documentIds = input.request.message.parts.flatMap((part) =>
 		part.type === "file" ? [part.documentId] : [],
 	);
 	const [history, documents] = await Promise.all([
-		stage("history", "assistant.loadHistory", () => dependencies.loadHistory({
-			actor: currentActor,
-			conversationId: input.request.conversationId,
-		})),
-		stage("attachment", "assistant.loadAttachments", () => dependencies.loadDocuments({
-			conversationId: input.request.conversationId,
-			documentIds,
-		})),
+		stage("history", "assistant.loadHistory", () =>
+			dependencies.loadHistory({
+				actor: currentActor,
+				conversationId: input.request.conversationId,
+			}),
+		),
+		stage("attachment", "assistant.loadAttachments", () =>
+			dependencies.loadDocuments({
+				conversationId: input.request.conversationId,
+				documentIds,
+			}),
+		),
 	]);
 	if (input.signal.aborted) return cancelledBeforeProvider();
 	const fallbackText =
@@ -557,11 +614,14 @@ export async function executeAssistantConversationTurn(
 		0,
 	);
 	await stage("attachment", "assistant.checkAttachments", async () => {
-		if (declaredAttachmentBytes > 16_000_000) throw new AssistantAttachmentInputError("attachment-too-large");
+		if (declaredAttachmentBytes > 16_000_000)
+			throw new AssistantAttachmentInputError("attachment-too-large");
 		for (const document of documents) {
 			if (document.mimeType === "application/pdf") continue;
-			if (!document.mimeType?.startsWith("image/")) throw new AssistantAttachmentInputError("attachment-unsupported");
-			if (runtimeSelection.provider === "deepseek") throw new AssistantAttachmentInputError("image-unsupported");
+			if (!document.mimeType?.startsWith("image/"))
+				throw new AssistantAttachmentInputError("attachment-unsupported");
+			if (runtimeSelection.provider === "deepseek")
+				throw new AssistantAttachmentInputError("image-unsupported");
 		}
 	});
 	const preprocessingController = new AbortController();
@@ -587,10 +647,15 @@ export async function executeAssistantConversationTurn(
 		}> = [];
 		let loadedAttachmentBytes = 0;
 		for (const document of documents) {
-			const bytes = await stage("attachment", "assistant.downloadAttachment", () => dependencies.loadDocumentBytes({
-				document,
-				signal: preprocessingSignal,
-			}));
+			const bytes = await stage(
+				"attachment",
+				"assistant.downloadAttachment",
+				() =>
+					dependencies.loadDocumentBytes({
+						document,
+						signal: preprocessingSignal,
+					}),
+			);
 			throwIfAssistantPreprocessingAborted(preprocessingSignal);
 			loadedAttachmentBytes += bytes.byteLength;
 			if (loadedAttachmentBytes > 16_000_000) {
@@ -606,11 +671,18 @@ export async function executeAssistantConversationTurn(
 						text: `[Uploaded PDF: ${document.filename || "document.pdf"}]\n${await stage("attachment", "assistant.extractPdf", () => withAssistantAttachmentCorrection("pdf", () => dependencies.extractPdf(bytes, preprocessingSignal)))}`,
 					};
 				}
-				const normalized = await stage("attachment", "assistant.prepareImage", () => withAssistantAttachmentCorrection("image", () => dependencies.prepareImage(
-					bytes,
-					document.mimeType!,
-					preprocessingSignal,
-				)));
+				const normalized = await stage(
+					"attachment",
+					"assistant.prepareImage",
+					() =>
+						withAssistantAttachmentCorrection("image", () =>
+							dependencies.prepareImage(
+								bytes,
+								document.mimeType!,
+								preprocessingSignal,
+							),
+						),
+				);
 				return {
 					type: "image" as const,
 					image: normalized.bytes,
@@ -627,7 +699,9 @@ export async function executeAssistantConversationTurn(
 				usage: { providerAttempted: false },
 			};
 		}
-		return stage("attachment", "assistant.prepareAttachments", async () => { throw error; });
+		return stage("attachment", "assistant.prepareAttachments", async () => {
+			throw error;
+		});
 	} finally {
 		clearTimeout(preprocessingTimeout);
 	}
@@ -636,23 +710,34 @@ export async function executeAssistantConversationTurn(
 		? history.flatMap((message): ModelMessage[] => {
 				if (message.role === "assistant") {
 					return [
-						...(message.text ? [{ role: "assistant" as const, content: message.text }] : []),
-						...(message.executionFacts ? [{ role: "system" as const, content: `Private historical context for the preceding response. Use it only to interpret prior checks; never quote this note or its tool identifiers in your reply.\n${message.executionFacts}` }] : []),
-					];
-				}
-				return [{
-					role: "user",
-					content:
-						message.id === triggerMessageId && attachmentParts.length
+						...(message.text
+							? [{ role: "assistant" as const, content: message.text }]
+							: []),
+						...(message.executionFacts
 							? [
 									{
-										type: "text" as const,
-										text: message.text || fallbackText,
+										role: "system" as const,
+										content: `Private historical context for the preceding response. Use it only to interpret prior checks; never quote this note or its tool identifiers in your reply.\n${message.executionFacts}`,
 									},
-									...attachmentParts,
 								]
-							: message.text,
-				}];
+							: []),
+					];
+				}
+				return [
+					{
+						role: "user",
+						content:
+							message.id === triggerMessageId && attachmentParts.length
+								? [
+										{
+											type: "text" as const,
+											text: message.text || fallbackText,
+										},
+										...attachmentParts,
+									]
+								: message.text,
+					},
+				];
 			})
 		: [
 				{
@@ -686,7 +771,11 @@ export async function executeAssistantConversationTurn(
 			write(chunk) {
 				input.writer.write(chunk);
 				const persistentPart = persistentAssistantPart(chunk);
-				if (persistentPart && typeof persistentPart === "object" && "id" in persistentPart) {
+				if (
+					persistentPart &&
+					typeof persistentPart === "object" &&
+					"id" in persistentPart
+				) {
 					assistantPartMap.set(String(persistentPart.id), persistentPart);
 				}
 			},
@@ -708,38 +797,67 @@ export async function executeAssistantConversationTurn(
 	const persistResponse = async (assistantText: string) => {
 		try {
 			await dependencies.persistAssistantMessage({
-				actor: currentActor, conversationId: input.request.conversationId,
-				runId: input.run.runId, parentMessageId: input.run.triggerMessageId ?? null,
-				assistantText, assistantParts,
+				actor: currentActor,
+				conversationId: input.request.conversationId,
+				runId: input.run.runId,
+				parentMessageId: input.run.triggerMessageId ?? null,
+				assistantText,
+				assistantParts,
 			});
 			return true;
 		} catch (error) {
 			if (input.signal.aborted) return false;
 			let reference: string | undefined;
 			try {
-				reference = (await dependencies.captureDiagnostic(error, {
-					stage: "history", operation: "assistant.saveReply", outcome: "history-unconfirmed",
-					runId: input.run.runId, conversationId: input.request.conversationId,
-					requestId: input.request.requestId, actorUserId: input.actor.userId,
-					scopeType: input.actor.scopeType, scopeId: input.actor.scopeId,
-				})).reference;
+				reference = (
+					await dependencies.captureDiagnostic(error, {
+						stage: "history",
+						operation: "assistant.saveReply",
+						outcome: "history-unconfirmed",
+						runId: input.run.runId,
+						conversationId: input.request.conversationId,
+						requestId: input.request.requestId,
+						actorUserId: input.actor.userId,
+						scopeType: input.actor.scopeType,
+						scopeId: input.actor.scopeId,
+					})
+				).reference;
 			} catch {
-				console.error("assistant_history_diagnostic_failed", { runId: input.run.runId });
+				console.error("assistant_history_diagnostic_failed", {
+					runId: input.run.runId,
+				});
 			}
 			// Keep the completed business response. Do not retry a provider/tool
 			// because saving its transcript failed or its commit is uncertain.
-			input.writer.write({ type: "data-assistant-history-notice", id: "assistant-history-notice", data: {
-				kind: "history-unconfirmed", ...(reference ? { reference } : {}),
-			} });
+			input.writer.write({
+				type: "data-assistant-history-notice",
+				id: "assistant-history-notice",
+				data: {
+					kind: "history-unconfirmed",
+					...(reference ? { reference } : {}),
+				},
+			});
 			return false;
 		}
 	};
 	if (outcome.status === "failed") {
 		const storedOutcome = assistantPartMap.get("assistant-outcome");
-		const parsed = assistantOutcomeSchema.safeParse(storedOutcome && typeof storedOutcome === "object" && "data" in storedOutcome ? storedOutcome.data : null);
-		const publicOutcome = parsed.success ? parsed.data : { kind: "temporary" as const };
+		const parsed = assistantOutcomeSchema.safeParse(
+			storedOutcome &&
+				typeof storedOutcome === "object" &&
+				"data" in storedOutcome
+				? storedOutcome.data
+				: null,
+		);
+		const publicOutcome = parsed.success
+			? parsed.data
+			: { kind: "temporary" as const };
 		if (!parsed.success) {
-			const part = { type: "data-assistant-outcome", id: "assistant-outcome", data: publicOutcome };
+			const part = {
+				type: "data-assistant-outcome",
+				id: "assistant-outcome",
+				data: publicOutcome,
+			};
 			input.writer.write(part);
 			assistantParts.push(part);
 		}

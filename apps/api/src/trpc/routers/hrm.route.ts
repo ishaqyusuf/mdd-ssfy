@@ -255,7 +255,7 @@ export const hrmRoutes = createTRPCRouter({
         },
       });
     }),
-  getEmployeeOverview: publicProcedure
+  getEmployeeOverview: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async (props) => {
       return getEmployeeOverview(props.ctx, props.input.id);

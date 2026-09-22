@@ -201,21 +201,41 @@ function buildTransientCustomComponent(stepId: number, value: string) {
 	} satisfies WorkflowComponentRecord;
 }
 
+const DRAFT_DEFAULT_FIELDS = new Set([
+	"count",
+	"finish",
+	"handing",
+	"height",
+	"jamb",
+	"jambsize",
+	"quantity",
+	"swing",
+]);
+
+function canUseDraftDefaultForFact(
+	fact: NewSalesFormSeed["unresolved"][number],
+) {
+	if (fact.status !== "ambiguous") return false;
+	const field = fact.field.toLowerCase().replace(/[^a-z0-9]+/g, "");
+	return DRAFT_DEFAULT_FIELDS.has(field);
+}
+
 function defaultBlocker(seed: NewSalesFormSeed, lineUid: string) {
-	const blocksEveryDefault = seed.unresolved.some(
-		(entry) =>
-			entry.lineUid === null ||
-			(entry.lineUid === lineUid && entry.stepId === null),
+	const relevant = seed.unresolved.filter(
+		(entry) => entry.lineUid === null || entry.lineUid === lineUid,
+	);
+	const blocksEveryDefault = relevant.some(
+		(entry) => entry.stepId === null && entry.status !== "unsupported" &&
+			!canUseDraftDefaultForFact(entry),
 	);
 	const blockedStepIds = new Set(
-		seed.unresolved
-			.filter((entry) => entry.lineUid === lineUid && entry.stepId != null)
+		relevant
+			.filter(
+				(entry) => entry.stepId != null && !canUseDraftDefaultForFact(entry),
+			)
 			.map((entry) => entry.stepId as number),
 	);
-	return {
-		blocksEveryDefault,
-		blockedStepIds,
-	};
+	return { blocksEveryDefault, blockedStepIds };
 }
 
 function issue(
@@ -479,7 +499,6 @@ async function initializeLine(
 	formSteps = rootMutation.linePatch.formSteps;
 	const resolvedStepUids = new Set([stepUid(root)]);
 	const blockedDefaults = defaultBlocker(seed, seedLine.uid);
-
 	for (
 		let currentStepIndex = 1;
 		currentStepIndex < formSteps.length;
@@ -498,16 +517,8 @@ async function initializeLine(
 			}
 			continue;
 		}
-		const isRedirectTarget = formSteps
-			.slice(0, currentStepIndex)
-			.some(
-				(step) =>
-					readSalesFormObjectMetadata(step.meta)?.redirectUid ===
-					stepUid(currentStep),
-			);
 		const canApplyDefault =
 			!requested &&
-			!isRedirectTarget &&
 			!blockedDefaults.blocksEveryDefault &&
 			!blockedDefaults.blockedStepIds.has(currentId);
 		if (!requested && !canApplyDefault) continue;

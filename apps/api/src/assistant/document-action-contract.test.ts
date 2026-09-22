@@ -11,12 +11,13 @@ describe("Assistant PDF proposal action contract", () => {
 					label: `Generate ${mode} PDF`,
 					input: {
 						orderNo: "09502PC",
+						type: "order",
 						mode,
 						expectedRevision: "revision-1",
 						forceRegenerate: false,
 					},
 				}),
-			).toMatchObject({ input: { mode } });
+			).toMatchObject({ input: { type: "order", mode } });
 			expect(
 				assistantDocumentProposalActionSchema.parse({
 					toolId: "documents_cancel_pdf",
@@ -24,14 +25,32 @@ describe("Assistant PDF proposal action contract", () => {
 					label: `Cancel ${mode} PDF generation`,
 					input: {
 						orderNo: "09502PC",
+						type: "order",
 						mode,
 						snapshotId: "snapshot-1",
 						expectedRevision: "revision-1",
 					},
 				}),
-			).toMatchObject({ input: { mode } });
+			).toMatchObject({ input: { type: "order", mode } });
 		});
 	}
+
+	test("preserves quote identity when an order shares the same number", () => {
+		expect(
+			assistantDocumentProposalActionSchema.parse({
+				toolId: "documents_generate_pdf",
+				toolVersion: 1,
+				label: "Generate quote PDF",
+				input: {
+					orderNo: "03648PC",
+					type: "quote",
+					mode: "quote",
+					expectedRevision: "revision-1",
+					forceRegenerate: false,
+				},
+			}),
+		).toMatchObject({ input: { orderNo: "03648PC", type: "quote" } });
+	});
 
 	test("rejects the retired packing alias", () => {
 		expect(

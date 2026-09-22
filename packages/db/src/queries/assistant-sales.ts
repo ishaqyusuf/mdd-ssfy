@@ -16,6 +16,10 @@ export type AssistantPageInput = {
 	includeArchived?: boolean;
 };
 
+const assistantCustomerFacingSalesWhere = {
+	type: { in: ["order", "quote"] },
+} satisfies Prisma.SalesOrdersWhereInput;
+
 function organizationId(actor: AssistantBusinessActor) {
 	if (actor.scopeType !== "organization") return null;
 	const value = Number(actor.scopeId);
@@ -26,7 +30,27 @@ export function assistantSalesScopeWhere(
 	actor: AssistantBusinessActor,
 ): Prisma.SalesOrdersWhereInput {
 	const orgId = organizationId(actor);
-	if (orgId) return { orgId };
+	if (orgId)
+		return {
+			OR: [
+				{ orgId },
+				{
+					orgId: null,
+					salesRep: {
+						deletedAt: null,
+						accessRevokedAt: null,
+						roles: {
+							some: {
+								organizationId: orgId,
+								deletedAt: null,
+								role: { deletedAt: null },
+								organization: { deletedAt: null },
+							},
+						},
+					},
+				},
+			],
+		};
 	if (
 		actor.scopeType === "user" &&
 		Number(actor.scopeId) === actor.userId &&
@@ -45,7 +69,11 @@ export function assistantCustomerScopeWhere(
 			buildOfficeCustomerVisibilityWhere(),
 			{
 				salesOrders: {
-					some: { ...assistantSalesScopeWhere(actor), deletedAt: null },
+					some: {
+						...assistantSalesScopeWhere(actor),
+						...assistantCustomerFacingSalesWhere,
+						deletedAt: null,
+					},
 				},
 			},
 		],
@@ -136,6 +164,7 @@ export async function findAssistantSalesOrders(
 		where: {
 			AND: [
 				assistantSalesScopeWhere(actor),
+				assistantCustomerFacingSalesWhere,
 				{ deletedAt: null },
 				...(input.includeArchived ? [] : [{ archivedAt: null }]),
 				...(input.type ? [{ type: input.type }] : []),
@@ -176,6 +205,7 @@ export async function canAssistantAccessSalesOrderId(
 		where: {
 			AND: [
 				assistantSalesScopeWhere(actor),
+				assistantCustomerFacingSalesWhere,
 				{ id: salesOrderId, deletedAt: null },
 			],
 		},
@@ -251,6 +281,7 @@ function mapDetailedOrder(row: AssistantSalesOrderDetailRow) {
 	}));
 	return {
 		...base,
+		summaryRevision: base.revision,
 		deliveries,
 		payments,
 		statistics,
@@ -285,6 +316,7 @@ export async function getAssistantSalesOrderById(
 		where: {
 			AND: [
 				assistantSalesScopeWhere(actor),
+				assistantCustomerFacingSalesWhere,
 				{ id: salesOrderId, deletedAt: null },
 			],
 		},
@@ -302,6 +334,7 @@ export async function getAssistantSalesOrderCandidates(
 		where: {
 			AND: [
 				assistantSalesScopeWhere(actor),
+				assistantCustomerFacingSalesWhere,
 				{ deletedAt: null, orderId: input.orderNo },
 				...(input.type ? [{ type: input.type }] : []),
 			],
@@ -500,6 +533,7 @@ export async function getAssistantCustomerSummary(
 					salesOrders: {
 						where: {
 							...assistantSalesScopeWhere(actor),
+							...assistantCustomerFacingSalesWhere,
 							deletedAt: null,
 							archivedAt: null,
 						},
@@ -509,6 +543,7 @@ export async function getAssistantCustomerSummary(
 			salesOrders: {
 				where: {
 					...assistantSalesScopeWhere(actor),
+					...assistantCustomerFacingSalesWhere,
 					deletedAt: null,
 					archivedAt: null,
 				},

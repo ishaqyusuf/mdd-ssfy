@@ -1,16 +1,13 @@
-import { deleteSalesOrdersByOrderIds } from "@api/db/queries/delete-sales-orders";
-import { getProductionInboundOverview } from "@gnd/sales";
-import { getInboundActivityQuery } from "@api/db/queries/inbound-receiving";
-import { getSenderId } from "@api/db/queries/note";
-import { getProductionAvailability, getProductionAvailabilitySuppliers, markProductionMaterialsAvailable, productionAvailabilitySaveSchema } from "@gnd/sales";
-import { getCoveredProductionMaterials, applyCoveredProductionMaterials, applyCoveredProductionMaterialsSchema } from "@gnd/sales";
 import {
 	accountingIndex,
 	accountingIndexSchema,
 } from "@api/db/queries/accounting";
 import { buildFullPaymentToken } from "@api/db/queries/checkout";
 import { getCustomers } from "@api/db/queries/customer";
+import { deleteSalesOrdersByOrderIds } from "@api/db/queries/delete-sales-orders";
 import { getInboundSummary, getInbounds } from "@api/db/queries/inbound";
+import { getInboundActivityQuery } from "@api/db/queries/inbound-receiving";
+import { getSenderId } from "@api/db/queries/note";
 import { reconcilePendingGuardedPackingDispatchesInTransaction } from "@api/db/queries/packing-reports";
 import {
 	getProductReport,
@@ -140,8 +137,20 @@ import {
 	rejectDealerOrderRequest,
 } from "@gnd/db/queries";
 import { Notifications } from "@gnd/notifications";
-import { getSalesCompletionDateContext } from "@gnd/sales";
 import { EmailService } from "@gnd/notifications/services/email-service";
+import { getProductionInboundOverview } from "@gnd/sales";
+import {
+	getProductionAvailability,
+	getProductionAvailabilitySuppliers,
+	markProductionMaterialsAvailable,
+	productionAvailabilitySaveSchema,
+} from "@gnd/sales";
+import {
+	applyCoveredProductionMaterials,
+	applyCoveredProductionMaterialsSchema,
+	getCoveredProductionMaterials,
+} from "@gnd/sales";
+import { getSalesCompletionDateContext } from "@gnd/sales";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import {
 	SALES_PAYMENT_REVIEW_ACTIONS,
@@ -184,38 +193,38 @@ import {
 import {
 	getGuardedPackingSettings,
 	getProductionReceivingSettings,
-	updateProductionReceivingSettings,
-	productionReceivingPolicyInputSchema,
 	getSettingAction,
 	guardedPackingPolicyInputSchema,
 	normalizeSalesPrintSettings,
+	productionReceivingPolicyInputSchema,
 	salesHandoffTriggerInputSchema,
 	salesOverviewViewSettingsSchema,
 	salesPrintSettingsSchema,
 	specialOrderEnforcementModeSchema,
 	specialOrderReleaseAudienceSchema,
 	updateGuardedPackingSettings,
+	updateProductionReceivingSettings,
 	updateSettingsMeta,
 } from "@gnd/settings";
 import { generateRandomString, timeLog } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
 import { createNoteAction } from "@notifications/note";
 import {
-	getProductionPendingInbounds,
-	receiveProductionInbound,
-	cancelProductionInbound,
-	productionInboundCancelSchema,
-	productionInboundQuerySchema,
-	productionInboundReceiveSchema,
 	SalesScheduleMoveError,
 	buildProductionItemMaterialStatus,
+	cancelProductionInbound,
+	getProductionPendingInbounds,
 	getProductionReadiness,
 	getSalesPipelineSnapshots,
 	loadProductionMaterialStatuses,
 	moveProductionScheduleGroup,
+	productionInboundCancelSchema,
+	productionInboundQuerySchema,
+	productionInboundReceiveSchema,
 	productionScheduleMoveSchema,
 	productionV2DetailQuerySchema,
 	productionV2ListQuerySchema,
+	receiveProductionInbound,
 	refreshSalesOrderListProjections,
 	runSalesPipelineCommandTransaction,
 	salesProductionCalendarQuerySchema,
@@ -1126,48 +1135,123 @@ export const salesRouter = createTRPCRouter({
 			return getProductionOrderDetailV2(props.ctx.db, input);
 		}),
 	productionAvailability: protectedProcedure
-        .input(z.object({ salesOrderId: z.number().int().positive() }))
-        .query(async ({ctx,input}) => {
-            const {unappliedInboundNeeds, ...summary} = await getProductionAvailability(ctx.db,input.salesOrderId,await resolveProductionInboundActor(ctx));
-            return summary;
-        }),
-    coveredProductionMaterials: protectedProcedure
-        .input(z.object({salesOrderId:z.number().int().positive()}))
-        .query(async ({ctx,input}) => {
-            const {receivedPlan, applicableComponentIds, unappliedInboundNeeds, allocationRepairs, classificationPlan, reviewScopePlan, eligibleReviewIds, ...summary} = await getCoveredProductionMaterials(ctx.db,input.salesOrderId,await resolveProductionInboundActor(ctx));
-            return summary;
-        }),
-    applyCoveredProductionMaterials: protectedProcedure
-        .input(applyCoveredProductionMaterialsSchema)
-        .mutation(async ({ctx,input}) => applyCoveredProductionMaterials(ctx.db,input,tx => resolveProductionInboundActor({...ctx,db:tx as typeof ctx.db}))),
-    productionAvailabilitySuppliers: protectedProcedure
-        .input(z.object({ salesOrderId: z.number().int().positive() }))
-        .query(async ({ctx,input}) => getProductionAvailabilitySuppliers(ctx.db,input.salesOrderId,await resolveProductionInboundActor(ctx))),
-    markProductionMaterialsAvailable: protectedProcedure
-        .input(productionAvailabilitySaveSchema)
-        .mutation(async ({ctx,input}) => markProductionMaterialsAvailable(ctx.db,input,tx => resolveProductionInboundActor({...ctx,db:tx as typeof ctx.db}))),
+		.input(z.object({ salesOrderId: z.number().int().positive() }))
+		.query(async ({ ctx, input }) => {
+			const { unappliedInboundNeeds, ...summary } =
+				await getProductionAvailability(
+					ctx.db,
+					input.salesOrderId,
+					await resolveProductionInboundActor(ctx),
+				);
+			return summary;
+		}),
+	coveredProductionMaterials: protectedProcedure
+		.input(z.object({ salesOrderId: z.number().int().positive() }))
+		.query(async ({ ctx, input }) => {
+			const {
+				receivedPlan,
+				applicableComponentIds,
+				unappliedInboundNeeds,
+				allocationRepairs,
+				classificationPlan,
+				reviewScopePlan,
+				eligibleReviewIds,
+				...summary
+			} = await getCoveredProductionMaterials(
+				ctx.db,
+				input.salesOrderId,
+				await resolveProductionInboundActor(ctx),
+			);
+			return summary;
+		}),
+	applyCoveredProductionMaterials: protectedProcedure
+		.input(applyCoveredProductionMaterialsSchema)
+		.mutation(async ({ ctx, input }) =>
+			applyCoveredProductionMaterials(ctx.db, input, (tx) =>
+				resolveProductionInboundActor({ ...ctx, db: tx as typeof ctx.db }),
+			),
+		),
+	productionAvailabilitySuppliers: protectedProcedure
+		.input(z.object({ salesOrderId: z.number().int().positive() }))
+		.query(async ({ ctx, input }) =>
+			getProductionAvailabilitySuppliers(
+				ctx.db,
+				input.salesOrderId,
+				await resolveProductionInboundActor(ctx),
+			),
+		),
+	markProductionMaterialsAvailable: protectedProcedure
+		.input(productionAvailabilitySaveSchema)
+		.mutation(async ({ ctx, input }) =>
+			markProductionMaterialsAvailable(ctx.db, input, (tx) =>
+				resolveProductionInboundActor({ ...ctx, db: tx as typeof ctx.db }),
+			),
+		),
 
- productionInboundOverview: protectedProcedure
-  .input(z.object({salesOrderId: z.number().int().positive(), inboundId: z.number().int().positive()}))
-  .query(async ({ctx, input}) => getProductionInboundOverview(ctx.db, input, await resolveProductionInboundActor(ctx))),
- productionInboundActivity: protectedProcedure
-  .input(z.object({salesOrderId: z.number().int().positive(), inboundId: z.number().int().positive()}))
-  .query(async ({ctx, input}) => {
-   await getProductionInboundOverview(ctx.db, input, await resolveProductionInboundActor(ctx));
-   return getInboundActivityQuery(ctx, input.inboundId);
-  }),
- addProductionInboundNote: protectedProcedure
-  .input(z.object({salesOrderId: z.number().int().positive(), inboundId: z.number().int().positive(), note: z.string().trim().min(1).max(10000)}))
-  .mutation(async ({ctx, input}) => ctx.db.$transaction(async tx => {
-   const scopedCtx = {...ctx, db: tx as typeof ctx.db};
-   await getProductionInboundOverview(tx, input, await resolveProductionInboundActor(scopedCtx));
-   const senderId = await getSenderId(scopedCtx);
-   return tx.notePad.create({data: {
-    headline: "Inbound note", subject: "Comment", note: input.note,
-    senderContact: {connect: {id: senderId}},
-    tags: {createMany: {data: [{tagName: "inboundId", tagValue: String(input.inboundId)}]}},
-   }, select: {id: true}});
-  })),
+	productionInboundOverview: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: z.number().int().positive(),
+				inboundId: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) =>
+			getProductionInboundOverview(
+				ctx.db,
+				input,
+				await resolveProductionInboundActor(ctx),
+			),
+		),
+	productionInboundActivity: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: z.number().int().positive(),
+				inboundId: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			await getProductionInboundOverview(
+				ctx.db,
+				input,
+				await resolveProductionInboundActor(ctx),
+			);
+			return getInboundActivityQuery(ctx, input.inboundId);
+		}),
+	addProductionInboundNote: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: z.number().int().positive(),
+				inboundId: z.number().int().positive(),
+				note: z.string().trim().min(1).max(10000),
+			}),
+		)
+		.mutation(async ({ ctx, input }) =>
+			ctx.db.$transaction(async (tx) => {
+				const scopedCtx = { ...ctx, db: tx as typeof ctx.db };
+				await getProductionInboundOverview(
+					tx,
+					input,
+					await resolveProductionInboundActor(scopedCtx),
+				);
+				const senderId = await getSenderId(scopedCtx);
+				return tx.notePad.create({
+					data: {
+						headline: "Inbound note",
+						subject: "Comment",
+						note: input.note,
+						senderContact: { connect: { id: senderId } },
+						tags: {
+							createMany: {
+								data: [
+									{ tagName: "inboundId", tagValue: String(input.inboundId) },
+								],
+							},
+						},
+					},
+					select: { id: true },
+				});
+			}),
+		),
 	productionPendingInbounds: protectedProcedure
 		.input(productionInboundQuerySchema)
 		.query(async ({ ctx, input }) =>
@@ -1849,6 +1933,11 @@ export const salesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editOrderPayment"],
+				"You do not have permission to create Sales payment links.",
+			);
 			const order = await props.ctx.db.salesOrders.findFirstOrThrow({
 				where: {
 					id: props.input.salesId,
@@ -2144,7 +2233,8 @@ export const salesRouter = createTRPCRouter({
 		.input(deleteSalesByOrderIdsSchema)
 		.mutation(async (props) => {
 			const result = await deleteSalesOrdersByOrderIds(
-				props.ctx.db, props.input.orderIds,
+				props.ctx.db,
+				props.input.orderIds,
 			);
 			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
 				salesOrderIds: result.affectedSalesIds,

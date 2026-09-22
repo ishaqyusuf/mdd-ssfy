@@ -34,6 +34,25 @@ test("defaults an omitted unresolved collection without accepting malformed fact
 	).toBe(false);
 });
 
+test("uses quantity one when a draft line omits quantity", () => {
+	const raw = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "line-1",
+				formSteps: [{ stepId: 1, prodUid: "route" }],
+			},
+		],
+		unresolved: [],
+	};
+	const before = structuredClone(raw);
+	const normalized = normalizeSalesRequestProviderEnvelope(raw);
+
+	expect(newSalesFormSeedSchema.parse(normalized).lineItems[0]?.qty).toBe(1);
+	expect(raw).toEqual(before);
+	expect(normalizeSalesRequestProviderEnvelope(normalized)).toEqual(normalized);
+});
+
 function response() {
 	return {
 		schemaVersion: 2,
@@ -61,7 +80,7 @@ test("lifts misplaced facts without losing their scope or changing the raw respo
 	expect(normalizeSalesRequestProviderEnvelope(normalized)).toEqual(normalized);
 });
 
-test("uses explicit HPT row counts for a zero placeholder line quantity", () => {
+test("derives HPT line quantity from structurally valid door rows", () => {
 	const raw = {
 		schemaVersion: 2,
 		lineItems: [{ uid: "door", qty: 0,
@@ -76,9 +95,58 @@ test("uses explicit HPT row counts for a zero placeholder line quantity", () => 
 	expect(normalizeSalesRequestProviderEnvelope(normalized)).toEqual(normalized);
 	const mismatched = structuredClone(raw);
 	mismatched.lineItems[0]!.qty = 3;
-	expect(newSalesFormSeedSchema.safeParse(
+	expect(newSalesFormSeedSchema.parse(
 		normalizeSalesRequestProviderEnvelope(mismatched),
-	).success).toBe(false);
+	).lineItems[0]?.qty).toBe(1);
+	expect(mismatched.lineItems[0]?.qty).toBe(3);
+});
+
+test("uses one for an HPT size whose quantity is omitted", () => {
+	const raw = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "door",
+				formSteps: [{ stepId: 1, prodUid: "door-route" }],
+				housePackageTool: { doors: [{ dimension: "2-8 x 8-0" }] },
+			},
+		],
+		unresolved: [],
+	};
+	const before = structuredClone(raw);
+	const normalized = normalizeSalesRequestProviderEnvelope(raw);
+	const parsed = newSalesFormSeedSchema.parse(normalized);
+
+	expect(parsed.lineItems[0]).toMatchObject({
+		qty: 1,
+		housePackageTool: {
+			doors: [{ dimension: "2-8 x 8-0", totalQty: 1 }],
+		},
+	});
+	expect(raw).toEqual(before);
+	expect(normalizeSalesRequestProviderEnvelope(normalized)).toEqual(normalized);
+});
+
+test("does not guess the missing side of a partial handed quantity", () => {
+	const raw = {
+		schemaVersion: 2,
+		lineItems: [
+			{
+				uid: "door",
+				formSteps: [{ stepId: 1, prodUid: "door-route" }],
+				housePackageTool: {
+					doors: [{ dimension: "2-8 x 8-0", lhQty: 1 }],
+				},
+			},
+		],
+		unresolved: [],
+	};
+
+	expect(
+		newSalesFormSeedSchema.safeParse(
+			normalizeSalesRequestProviderEnvelope(raw),
+		).success,
+	).toBe(false);
 });
 
 test("uses only complete selected direct Mouldings counts for a zero placeholder", () => {

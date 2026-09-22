@@ -15,6 +15,10 @@ model MessagingConnection {
     scanIntervalSeconds Int      @default(900)
     pollIntervalSeconds Int      @default(60)
     quietWindowSeconds  Int      @default(30)
+    overlapWindowSeconds Int     @default(300)
+    maxConversationsPerScan Int  @default(50)
+    maxMessagesPerScan  Int      @default(500)
+    maxSendsPerHour     Int      @default(30)
     retentionDays       Int?
     sendPolicy          String   @default("off") @db.VarChar(30)
     createdAt           DateTime @default(now()) @db.DateTime(3)
@@ -22,6 +26,7 @@ model MessagingConnection {
 
     organization Organization             @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     devices      MessagingDeviceGrant[]
+    connectionCodes MessagingConnectionCode[]
     customers    MessagingCustomer[]
     conversations MessagingConversation[]
     rulesets     MessagingRuleSetVersion[]
@@ -34,8 +39,10 @@ model MessagingConnection {
 model MessagingDevice {
     id               String    @id @default(cuid()) @db.VarChar(191)
     employeeId       Int
-    tokenHash        String?   @db.Char(64)
+    label            String    @default("Chrome extension") @db.VarChar(100)
+    tokenHash        String?   @unique(map: "msg_device_token_hash_uq") @db.Char(64)
     extensionVersion String    @db.VarChar(50)
+    expiresAt        DateTime? @db.DateTime(3)
     lastSeenAt       DateTime? @db.DateTime(3)
     revokedAt        DateTime? @db.DateTime(3)
     createdAt        DateTime  @default(now()) @db.DateTime(3)
@@ -58,6 +65,23 @@ model MessagingDeviceGrant {
 
     @@id([deviceId, connectionId])
     @@index([connectionId, revokedAt], map: "msg_device_grant_connection_idx")
+}
+
+// One-time issuance evidence. The code is never stored in plaintext.
+model MessagingConnectionCode {
+    id             String    @id @default(cuid()) @db.VarChar(191)
+    connectionId   String    @db.VarChar(191)
+    issuerUserId   Int
+    codeHash       String    @unique(map: "msg_connection_code_hash_uq") @db.Char(64)
+    expiresAt      DateTime  @db.DateTime(3)
+    consumedAt     DateTime? @db.DateTime(3)
+    failedAttempts Int       @default(0)
+    createdAt      DateTime  @default(now()) @db.DateTime(3)
+    connection     MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    issuer         Users @relation(fields: [issuerUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([connectionId, expiresAt], map: "msg_connection_code_expiry_idx")
+    @@index([issuerUserId, createdAt], map: "msg_connection_code_issuer_idx")
 }
 
 model MessagingCustomer {

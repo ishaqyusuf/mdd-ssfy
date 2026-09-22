@@ -34,6 +34,16 @@ test("prompt uses the native door shell and forbids opening-to-leaf inference", 
 	);
 	expect(instructions).toContain("interpretations entry");
 	expect(instructions).toContain("materially plausible candidates remain");
+	expect(instructions).toContain("best useful partial draft");
+	expect(instructions).toContain("explicit customer values");
+	expect(instructions).toContain("business rules only where they do not conflict");
+	expect(instructions).toContain("first eligible configured option");
+	expect(instructions).toContain("jamb size, handing, swing, finish, or bore");
+	expect(instructions).toContain("one compact review notice");
+	expect(instructions).toContain("use qty:1 as the editable draft minimum");
+	expect(instructions).toContain("truly unmapped source lines");
+	expect(instructions).toContain("without asking a routine handing question");
+	expect(instructions).not.toContain("when the route exposes Jamb Size and it is missing, leave it unresolved");
 	expect(instructions).toContain("merely offers to provide more information");
 	expect(instructions).toContain("must not create a Bore question");
 	expect(instructions).toContain("lineUid:null must also use stepId:null");

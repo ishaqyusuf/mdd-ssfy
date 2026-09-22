@@ -1,5 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
 import { createHash } from "node:crypto";
+import { PERMISSIONS } from "@gnd/utils/constants";
 import {
 	assistantProposalCreateSchema,
 	createAssistantActionProposal,
@@ -206,6 +207,16 @@ describe("Assistant approval execution", () => {
 		expect(matrix.every((entry) => entry.checks.includes("job_resume"))).toBe(
 			true,
 		);
+		const permissionNames = new Set<string>(PERMISSIONS);
+		expect(
+			matrix.filter((entry) =>
+				entry.toolId.startsWith("sales_") ||
+				entry.toolId.startsWith("customers_"),
+			).flatMap((entry) => [
+				...entry.requiredGrants,
+				...entry.anyOfGrants,
+			]).filter((grant) => !permissionNames.has(grant)),
+		).toEqual([]);
 	});
 
 	test("rejects caller-authored confirmation diffs", () => {

@@ -119,6 +119,34 @@ describe("AssistantMessageRenderer", () => {
 
 		expect(html).not.toContain('href="javascript:');
 		expect(html).toContain('href="https://example.com/"');
+		expect(html).not.toContain("Blocked URL");
+	});
+
+	test("renders invented workspace link destinations as plain text", () => {
+		const html = renderToStaticMarkup(
+			<AssistantMessageRenderer
+				message={
+					{
+						id: "message-invented-link",
+						role: "assistant",
+						parts: [
+							{
+								type: "text",
+								text: "[Order 09672PC](undefined) and [Quote 03647PC](https://gndprodesk.localhost/sales-form/edit-quote/03647PC) are ready.",
+							},
+						],
+					} as UIMessage
+				}
+				isStreaming={false}
+				isLastMessage={false}
+			/>,
+		);
+
+		expect(html).toContain("Order 09672PC");
+		expect(html).toContain("Quote 03647PC");
+		expect(html).not.toContain("undefined");
+		expect(html).not.toContain("gndprodesk.localhost");
+		expect(html).not.toContain("Blocked URL");
 	});
 
 	test("blocks remote and data images embedded in assistant markdown", () => {
@@ -194,20 +222,24 @@ describe("AssistantMessageRenderer", () => {
 	test("renders a selective one-time retry for a failed read", () => {
 		const html = renderToStaticMarkup(
 			<AssistantMessageRenderer
-				message={{
-					id: "message-read-retry",
-					role: "assistant",
-					parts: [{
-						type: "data-assistant-tool",
-						data: {
-							id: "read-1",
-							name: "sales_find_orders",
-							status: "failed",
-							retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210",
-							retryExpiresAt: "2099-01-01T00:00:00.000Z",
-						},
-					}],
-				} as UIMessage}
+				message={
+					{
+						id: "message-read-retry",
+						role: "assistant",
+						parts: [
+							{
+								type: "data-assistant-tool",
+								data: {
+									id: "read-1",
+									name: "sales_find_orders",
+									status: "failed",
+									retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210",
+									retryExpiresAt: "2099-01-01T00:00:00.000Z",
+								},
+							},
+						],
+					} as UIMessage
+				}
 				isStreaming={false}
 				isLastMessage={false}
 				onRetryRead={() => {}}
@@ -218,20 +250,24 @@ describe("AssistantMessageRenderer", () => {
 		expect(html).toContain("<button");
 		const consumed = renderToStaticMarkup(
 			<AssistantMessageRenderer
-				message={{
-					id: "message-read-retry",
-					role: "assistant",
-					parts: [{
-						type: "data-assistant-tool",
-						data: {
-							id: "read-1",
-							name: "sales_find_orders",
-							status: "failed",
-							retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210",
-							retryExpiresAt: "2099-01-01T00:00:00.000Z",
-						},
-					}],
-				} as UIMessage}
+				message={
+					{
+						id: "message-read-retry",
+						role: "assistant",
+						parts: [
+							{
+								type: "data-assistant-tool",
+								data: {
+									id: "read-1",
+									name: "sales_find_orders",
+									status: "failed",
+									retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210",
+									retryExpiresAt: "2099-01-01T00:00:00.000Z",
+								},
+							},
+						],
+					} as UIMessage
+				}
 				isStreaming={false}
 				isLastMessage={false}
 				onRetryRead={() => {}}
@@ -334,7 +370,7 @@ describe("AssistantMessageRenderer", () => {
 				message={message}
 				isStreaming={false}
 				isLastMessage={false}
-				onCreateDocumentProposal={() => {}}
+				onCreateApprovalProposal={() => {}}
 			/>,
 		);
 		const disabled = renderToStaticMarkup(
@@ -344,7 +380,7 @@ describe("AssistantMessageRenderer", () => {
 				isLastMessage={false}
 			/>,
 		);
-		expect(enabled).toContain('aria-label="Available document actions"');
+		expect(enabled).toContain('aria-label="Available reviewed actions"');
 		expect(enabled).toContain("Generate invoice PDF");
 		expect(disabled).not.toContain("Generate invoice PDF");
 	});

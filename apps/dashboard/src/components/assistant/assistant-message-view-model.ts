@@ -3,12 +3,20 @@ import {
 	assistantAnalyticsPartSchema,
 } from "@api/assistant/analytics-result-contract";
 import type { AssistantEntityReference } from "@api/assistant/contracts";
-import { assistantFindingPartSchema, type AssistantOrderFinding } from "@api/assistant/finding-contract";
-import { assistantHistoryNoticeSchema, assistantOutcomeSchema, presentAssistantOutcome, type AssistantOutcome } from "@api/assistant/outcomes";
 import {
-	type AssistantDocumentProposalAction,
-	assistantDocumentProposalActionPartSchema,
-} from "@api/assistant/document-action-contract";
+	assistantFindingPartSchema,
+	type AssistantOrderFinding,
+} from "@api/assistant/finding-contract";
+import {
+	assistantHistoryNoticeSchema,
+	assistantOutcomeSchema,
+	presentAssistantOutcome,
+	type AssistantOutcome,
+} from "@api/assistant/outcomes";
+import {
+	type AssistantProposalAction,
+	assistantProposalActionPartSchema,
+} from "@api/assistant/proposal-action-contract";
 import {
 	type AssistantSalesRequestDraftPreview,
 	assistantOrderDraftPartSchema,
@@ -78,9 +86,9 @@ export type AssistantMessageViewModel = {
 		id: string;
 		data: AssistantAnalyticsResult;
 	}>;
-	documentActions: Array<{
+	approvalActions: Array<{
 		id: string;
-		data: AssistantDocumentProposalAction;
+		data: AssistantProposalAction;
 	}>;
 	cards: Array<{
 		kind: AssistantResponseCardKind;
@@ -143,9 +151,7 @@ function normalizeAssistantTool(part: Record<string, unknown>) {
 		name,
 		label: formatAssistantToolLabel(name),
 		retryId:
-			type === "data-assistant-tool"
-				? boundedString(data?.retryId, 64)
-				: null,
+			type === "data-assistant-tool" ? boundedString(data?.retryId, 64) : null,
 		retryExpiresAt:
 			type === "data-assistant-tool"
 				? boundedString(data?.retryExpiresAt, 80)
@@ -243,20 +249,27 @@ export function normalizeAssistantMessage(
 				return value ? [value] : [];
 			})
 		: [];
-	const tools = [...new Map(parts.flatMap((part) => {
-		const tool = normalizeAssistantTool(part);
-		return tool ? [[tool.id, tool] as const] : [];
-	})).values()];
+	const tools = [
+		...new Map(
+			parts.flatMap((part) => {
+				const tool = normalizeAssistantTool(part);
+				return tool ? [[tool.id, tool] as const] : [];
+			}),
+		).values(),
+	];
 	const outcome = parts.reduce<AssistantOutcome | null>((current, part) => {
 		if (part.type !== "data-assistant-outcome") return current;
 		const parsed = assistantOutcomeSchema.safeParse(part.data);
 		return parsed.success ? parsed.data : current;
 	}, null);
-	const historyNotice = parts.reduce<AssistantOutcome | null>((current, part) => {
-		if (part.type !== "data-assistant-history-notice") return current;
-		const parsed = assistantHistoryNoticeSchema.safeParse(part.data);
-		return parsed.success ? parsed.data : current;
-	}, null);
+	const historyNotice = parts.reduce<AssistantOutcome | null>(
+		(current, part) => {
+			if (part.type !== "data-assistant-history-notice") return current;
+			const parsed = assistantHistoryNoticeSchema.safeParse(part.data);
+			return parsed.success ? parsed.data : current;
+		},
+		null,
+	);
 	const lastToolIndex = parts.reduce(
 		(last, part, index) => (normalizeAssistantTool(part) ? index : last),
 		-1,
@@ -264,8 +277,9 @@ export function normalizeAssistantMessage(
 	const toolsInProgress = tools.some(
 		(tool) => tool.status === "queued" || tool.status === "running",
 	);
-	const text = outcome ? presentAssistantOutcome(outcome).message :
-		options.isLastMessage && options.isStreaming && toolsInProgress
+	const text = outcome
+		? presentAssistantOutcome(outcome).message
+		: options.isLastMessage && options.isStreaming && toolsInProgress
 			? ""
 			: parts
 					.flatMap((part, index) =>
@@ -303,9 +317,12 @@ export function normalizeAssistantMessage(
 			if (part.type !== "data-assistant-entity") return [];
 			const entity = parseAssistantEntity(part.data);
 			if (!entity) return [];
-			const subtype = entity.kind === "community"
-				? entity.communityType
-				: entity.kind === "order" ? entity.salesType ?? "order" : "";
+			const subtype =
+				entity.kind === "community"
+					? entity.communityType
+					: entity.kind === "order"
+						? (entity.salesType ?? "order")
+						: "";
 			const key = JSON.stringify([entity.kind, subtype, entity.id]);
 			if (seenEntities.has(key)) return [];
 			seenEntities.add(key);
@@ -318,7 +335,8 @@ export function normalizeAssistantMessage(
 		if (!parsed.success) continue;
 		const finding = parsed.data.data;
 		const key = `${finding.salesType}:${finding.orderNo}`;
-		if (findingMap.has(key) || findingMap.size < 6) findingMap.set(key, finding);
+		if (findingMap.has(key) || findingMap.size < 6)
+			findingMap.set(key, finding);
 	}
 	const findings = outcome ? [...findingMap.values()] : [];
 	const orderDrafts = parts.flatMap((part) => {
@@ -333,8 +351,8 @@ export function normalizeAssistantMessage(
 			? [{ id: parsed.data.id, data: parsed.data.data }]
 			: [];
 	});
-	const documentActions = parts.flatMap((part) => {
-		const parsed = assistantDocumentProposalActionPartSchema.safeParse(part);
+	const approvalActions = parts.flatMap((part) => {
+		const parsed = assistantProposalActionPartSchema.safeParse(part);
 		return parsed.success
 			? [{ id: parsed.data.id, data: parsed.data.data }]
 			: [];
@@ -357,7 +375,7 @@ export function normalizeAssistantMessage(
 		entities,
 		orderDrafts,
 		analytics,
-		documentActions,
+		approvalActions,
 		cards,
 		showThinking,
 		hasContent:
@@ -370,7 +388,7 @@ export function normalizeAssistantMessage(
 			entities.length > 0 ||
 			orderDrafts.length > 0 ||
 			analytics.length > 0 ||
-			documentActions.length > 0 ||
+			approvalActions.length > 0 ||
 			cards.length > 0,
 	};
 }

@@ -108,4 +108,88 @@ describe("Assistant Sales draft handoff", () => {
 			new Date("2026-09-19T12:00:00Z"),
 		)).toEqual({ preview: null, savedSale: { orderId: "QA91", slug: "QA91" } });
 	});
+
+	test("a completed final preview is projected for native handoff without changing stored source facts", async () => {
+		const now = new Date("2026-09-19T12:00:00Z");
+		const sourceText = [
+			"Left Side", "1 ATTIC ACCESS", "DOORS", '30” = AC CLOSET LUVER BIFOLD',
+			"Right Side", "1 ATTIC ACCESS", "DOORS", '30” = AC CLOSET LUVER BIFOLD',
+		].join("\n");
+		const configurationJson = JSON.stringify({
+			routes: [
+				{ itemTypeUid: "prehung", rootStepId: 1, stepUids: ["door"] },
+				{ itemTypeUid: "mouldings", rootStepId: 1, stepUids: ["moulding-products"] },
+			],
+			steps: [
+				{ id: 1, uid: "item-type", title: "Item Type", components: [
+					["prehung", "Prehung"], ["mouldings", "Mouldings"],
+				] },
+				{ id: 2, uid: "door", title: "Door", components: [] },
+				{ id: 3, uid: "moulding-products", title: "Mouldings", components: [] },
+			],
+			visibilityByComponentUid: {},
+		});
+		const finalPreview = {
+			type: "order" as const,
+			generationId: "11111111-1111-4111-8111-111111111111",
+			seed: {
+				schemaVersion: 2 as const,
+				lineItems: [
+					{ uid: "door-schedule", qty: 2,
+						formSteps: [{ stepId: 1, prodUid: "prehung" }] },
+					{ uid: "attic-access-left", qty: 1,
+						formSteps: [{ stepId: 1, prodUid: "mouldings" }] },
+					{ uid: "attic-access-right", qty: 1,
+						formSteps: [{ stepId: 1, prodUid: "mouldings" }] },
+				],
+				unresolved: [],
+			},
+			configurationScope: "sales-settings:1",
+			configurationRevision: "revision-1",
+			promptVersion: "sales-request-v1",
+			provider: "openai",
+			model: "gpt-5",
+			usage: { inputTokens: 1, outputTokens: 1 },
+			unresolvedCount: 0,
+		};
+		const db = {
+			assistantConversation: { findFirst: async () => ({ id: input.conversationId }) },
+			assistantSalesRequestSession: { findFirst: async () => ({
+				finalPreview, sourceText, completedAt: new Date("2026-09-19T11:59:00Z"),
+				saleType: "order",
+			}) },
+			salesRequestGenerationRun: { findFirst: async () => null },
+			settings: { findMany: async () => [{ id: 1 }] },
+		};
+		const result = await getAssistantSalesDraftHandoff(
+			db as unknown as Database,
+			actor,
+			{ ...input, generationId: finalPreview.generationId },
+			now,
+			{
+				authorizeSalesRequestPreview: async () => {},
+				getAssistantRuntimeConfiguration: async () => ({
+					selection: { provider: "openai" as const, model: "gpt-5" },
+					source: "persisted" as const, version: 1, updatedAt: null,
+					updatedByUserId: null,
+				}),
+				getSalesRequestConfigurationContext: async () => ({
+					scope: "sales-settings:1", revision: "revision-1", configurationJson,
+				}) as never,
+				getSalesRequestCatalogSettings: async () => ({ publication: {} }) as never,
+				isSalesRequestCatalogPublicationCurrent: () => true,
+			},
+		);
+
+		expect(result.preview?.seed.lineItems).toEqual([]);
+		expect(result.preview?.unresolvedCount).toBe(4);
+		expect(result.preview?.seed.unresolved.map((item) => item.reason)).toEqual([
+			expect.stringContaining("Left Side door row 1"),
+			expect.stringContaining("Right Side door row 1"),
+			expect.stringContaining("Left Side: 1 ATTIC ACCESS"),
+			expect.stringContaining("Right Side: 1 ATTIC ACCESS"),
+		]);
+		expect(finalPreview.seed.lineItems).toHaveLength(3);
+		expect(finalPreview.seed.unresolved).toEqual([]);
+	});
 });

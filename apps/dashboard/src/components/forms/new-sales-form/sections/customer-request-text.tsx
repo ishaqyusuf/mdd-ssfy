@@ -27,3 +27,34 @@ export function CustomerRequestText({ text }: { text?: string | null }) {
 		</Collapsible>
 	);
 }
+
+export function CustomerRequestReview({
+	review,
+	lineItems,
+}: {
+	review?: { lineUid: string | null; reason: string }[] | null;
+	lineItems: { uid: string }[];
+}) {
+	if (!review?.length) return null;
+	return (
+		<section className="rounded-lg border p-4" aria-label="Sales request needs review">
+			<h3 className="text-sm font-medium">Needs review ({review.length})</h3>
+			<p className="mt-1 text-xs text-muted-foreground">
+				Compare these details with the original request and finish them before confirming.
+			</p>
+			<ul className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">
+				{review.map((item, index) => {
+					const lineIndex = lineItems.findIndex((line) => line.uid === item.lineUid);
+					return (
+						<li key={`${item.lineUid}:${index}`} className="border-t pt-2 first:border-t-0 first:pt-0">
+							<span className="font-medium">
+								{lineIndex >= 0 ? `Item ${lineIndex + 1}: ` : "Request: "}
+							</span>
+							{item.reason}
+						</li>
+					);
+				})}
+			</ul>
+		</section>
+	);
+}

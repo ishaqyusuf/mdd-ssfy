@@ -15,6 +15,7 @@ import {
 	SalesRequestPreviewNeedsClarification,
 	createSalesRequestPreview,
 } from "./sales-request-preview";
+import type { SalesRequestAnswerContext } from "./sales-request-context";
 
 export {
 	SALES_REQUEST_INTERPRETATION_WARNING_CATEGORIES,
@@ -33,6 +34,8 @@ export type ClarificationQuestion = {
 	sourceText: string | null;
 	reason: string;
 	options?: Array<{ value: string; label: string }>;
+	stepId?: number;
+	allowOther?: boolean;
 	canSaveRule?: boolean;
 };
 type Answer = {
@@ -120,6 +123,34 @@ function configuredQuestionOptions(
 	sourceText: string,
 ) {
 	const field = item.field.toLowerCase().replace(/[^a-z0-9]/g, "");
+	const mouldingRoutes = configuration.routes.filter((route) => {
+		const rootStep = configuration.steps.find((step) => step.id === route.rootStepId);
+		const rootTitle = rootStep?.components.find(
+			(component) => component.uid === route.itemTypeUid,
+		)?.title;
+		return /^mouldings?$/i.test(rootTitle?.trim() ?? "");
+	});
+	const mouldingSteps = configuration.steps.filter((step) =>
+		mouldingRoutes.some((route) => route.stepUids.includes(step.uid)) &&
+		/^mouldings?$/i.test(step.title.trim()),
+	);
+	if (field === "mouldingprofile" || field === "boardproduct") {
+		const seen = new Set<string>();
+		return mouldingSteps.flatMap((step) => step.components.flatMap((component) => {
+			const title = component.title.trim();
+			const hasStockLength = /\bx\s*(?:8|12|14|16|17)\s*(?:ft\b|['’])?(?=\s|$|[),;])/i.test(title);
+			const isBaseboard = (/\bbaseboard\b/i.test(title) || /^base\b/i.test(title)) &&
+				hasStockLength;
+			const isTwelveInchBoard = /\bflat\s*boards?\b/i.test(title) &&
+				(/\b1\s*[x×]\s*12\b/i.test(title) || /\b11\s*[- ]?1\/4\b/i.test(title));
+			if (!(field === "mouldingprofile" ? isBaseboard : isTwelveInchBoard) ||
+				!title || title.length > 120 || seen.has(title.toLowerCase())) return [];
+			const visibility = configuration.visibilityByComponentUid[component.uid];
+			if (visibility && !isComponentVisibleByRules(visibility, {}, {})) return [];
+			seen.add(title.toLowerCase());
+			return [{ value: title, label: title }];
+		}));
+	}
 	if (field === "width" && item.lineUid === null) {
 		const bare = item.reason.match(/"(\d{2})\s+[1-9][-/](?:1[01]|\d)\b[^"\n]*"/);
 		if (bare) {
@@ -220,6 +251,42 @@ function configuredQuestionOptions(
 		seen.add(title.toLowerCase());
 		return [{ value: title, label: title }];
 	});
+}
+
+function normalizedClarificationAnswer(
+	question: ClarificationQuestion,
+	answer: string,
+) {
+	const trimmed = answer.trim();
+	if (question.options?.length && /\bfirst compatible\b/i.test(trimmed))
+		return question.options[0]!.value;
+	return trimmed;
+}
+
+/** Derive custom-answer authority from the current Sales step, including older stored questions. */
+export function clarificationQuestionAllowsOther(
+	question: ClarificationQuestion,
+	configuration: Configuration,
+) {
+	if (!question.options?.length) return true;
+	const field = question.field.toLowerCase().replace(/[^a-z0-9]/g, "");
+	// These options are shortcuts for customer facts, not Sales component choices.
+	if (field === "handing" || field === "swing" || field === "handingswing" ||
+		(field === "width" && question.lineUid === null)) return true;
+	const matchesStep = (step: Configuration["steps"][number]) =>
+		step.uid.toLowerCase().replace(/[^a-z0-9]/g, "") === field ||
+		step.title.toLowerCase().replace(/[^a-z0-9]/g, "") === field ||
+		((field === "doorsize" || field === "width") &&
+			!!step.doorSizeVariation?.length) ||
+		question.options!.every((option) => step.components.some((component) =>
+			component.title.trim() === option.value));
+	const explicitStep = configuration.steps.find((step) =>
+		step.id === question.stepId && matchesStep(step));
+	const matchingSteps = configuration.steps.filter(matchesStep);
+	const step = explicitStep ?? (matchingSteps.length === 1 ? matchingSteps[0] : undefined);
+	// An option-bearing catalog question without a unique current step cannot
+	// authorize an arbitrary Sales selection.
+	return step?.custom === true;
 }
 
 function questionPrompt(
@@ -325,8 +392,10 @@ function clarifyUnspecifiedScheduleRows<TPreview extends Preview>(
 		answered.map((answer) => ({ field: answer.question.field })));
 	const broadIssue = preview.seed.unresolved.find((item) =>
 		item.lineUid === null && item.status === "ambiguous" &&
-		item.field.toLowerCase() === "doors" &&
-		/\b(?:door rows|per.room|entire schedule|all listed doors)\b/i.test(item.reason),
+		["doors", "schedule", "doorschedule"].includes(
+			item.field.toLowerCase().replace(/[^a-z]/g, ""),
+		) &&
+		/\b(?:door rows|per.room|entire schedule|all listed doors|townhouse door package)\b/i.test(item.reason),
 	);
 	if (!broadIssue) return preview;
 	return {
@@ -350,24 +419,44 @@ export function reviewDenseArchitecturalSchedule<TPreview extends Preview>(
 	answered: readonly Answer[] = [],
 ): TPreview {
 	const sizedRows = sourceText.split(/\r?\n/).filter((row) =>
-		/^(?:(?:bifold|pocket)\s+)?(?:[1-9][-/](?:1[01]|\d)|\d{2})\s+[1-9][-/](?:1[01]|\d)\b/i.test(row.trim()),
+		/^(?:(?:bifold|pocket)\s+)?(?:[1-9][-/](?:1[01]|\d)|\d{2})\s+[1-9][-/](?:1[01]|\d)\b/i.test(row.trim()) ||
+		/^[^:\n]{3,80}\s+-\s*\d{2,3}["”]\s*[x×]\s*\d{2,3}["”]/i.test(row.trim()),
 	);
 	if (sizedRows.length < 8) return preview;
 	const sourceSizes = new Set(sizedRows.flatMap((row) => {
 		const size = row.trim().match(/^(?:(?:bifold|pocket)\s+)?([1-9][-/](?:1[01]|\d))\s+([1-9][-/](?:1[01]|\d))\b/i);
-		return size ? [`${size[1]?.replace("/", "-")} x ${size[2]?.replace("/", "-")}`] : [];
+		if (size) return [`${size[1]?.replace("/", "-")} x ${size[2]?.replace("/", "-")}`];
+		const inches = row.match(/\b(\d{2,3})["”]\s*[x×]\s*(\d{2,3})["”]/i);
+		const architectural = (value: string) => `${Math.floor(Number(value) / 12)}-${Number(value) % 12}`;
+		return inches ? [`${architectural(inches[1]!)} x ${architectural(inches[2]!)}`] : [];
 	}));
 	const sourceHeights = new Set([...sourceSizes].map((size) => size.split(" x ")[1]));
+	const likelyInchTypoRows = sourceText.split(/\r?\n/).map((row) => row.trim())
+		.filter((row) => /^[^:\n]{3,80}\s+-\s*\d{2,3}'\s*[x×]\s*\d{2,3}["”]/i.test(row));
+	const missingRoomQuestion = unspecifiedScheduleFacts(sourceText, answered
+		.map((answer) => ({ field: answer.question.field })))
+		.find((item) => item.field === "roomSize");
+	const missingRoom = missingRoomQuestion?.reason.match(
+		/What size is the (.+?) door\?/i,
+	)?.[1];
+	const missingRoomField = missingRoom?.toLowerCase().replace(/[^a-z0-9]/g, "");
 	const reviewFields = new Set([
-		"door", "doorconfiguration", "jambsize", "handing", "swing",
+		"door", "doormodel", "doorproduct", "doorstyle", "doortype",
+		"itemtype", "product", "producttype", "doorconfiguration", "jambsize", "handing", "swing",
 		"moulding", "mouldingprofile", "pocketdoorhardware", "lineitem",
 	]);
 	const unresolved = preview.seed.unresolved.map((item) => {
 		if (item.status !== "ambiguous") return item;
 		const field = item.field.toLowerCase().replace(/[^a-z]/g, "");
+		if (missingRoomField &&
+			item.field.toLowerCase().replace(/[^a-z0-9]/g, "") === missingRoomField)
+			return { ...item, status: "unsupported" as const };
 		const statedSize = [...item.reason.matchAll(/\b([1-9][-/](?:1[01]|\d))\s*[x×]\s*([1-9][-/](?:1[01]|\d))\b/gi)]
 			.some((match) => sourceSizes.has(
 				`${match[1]?.replace("/", "-")} x ${match[2]?.replace("/", "-")}`,
+			)) || [...item.reason.matchAll(/\b(\d{2,3})["”]?\s*[x×]\s*(\d{2,3})["”]?\b/gi)]
+			.some((match) => sourceSizes.has(
+				`${Math.floor(Number(match[1]) / 12)}-${Number(match[1]) % 12} x ${Math.floor(Number(match[2]) / 12)}-${Number(match[2]) % 12}`,
 			));
 		const statedHeight = field === "height" &&
 			[...item.reason.matchAll(/\b([1-9][-/](?:1[01]|\d))\b/g)]
@@ -375,8 +464,15 @@ export function reviewDenseArchitecturalSchedule<TPreview extends Preview>(
 		const statedAccessoryCount =
 			(field === "doorstopquantity" && /\bdoor\s+stop\s*\(\s*\d+\s*\)/i.test(sourceText)) ||
 			(field === "mouldingquantities" && /\b\d+\s+tiras\s+de\s+(?:base|casing|crown)\b/i.test(sourceText));
+		const likelyInchTypo = ["size", "doorsize", "dimension", "width"].includes(field) &&
+			likelyInchTypoRows.some((row) => {
+				const room = row.match(/^([^:\n]{3,80}?)\s+-\s*\d/)?.[1]?.trim();
+				const quotedWidth = row.match(/\b\d{2,3}'/)?.[0];
+				return !!room && !!quotedWidth && item.reason.toLowerCase().includes(room.toLowerCase()) &&
+					item.reason.includes(quotedWidth);
+			});
 		return reviewFields.has(field) || (field === "doorsize" && statedSize) ||
-			statedHeight || statedAccessoryCount
+			statedHeight || statedAccessoryCount || likelyInchTypo
 			? { ...item, status: "unsupported" as const }
 			: item;
 	});
@@ -395,12 +491,122 @@ export function reviewDenseArchitecturalSchedule<TPreview extends Preview>(
 			reason: `Confirm the width for "${bare}": does ${bare.slice(0, 2)} mean inches or architectural feet/inches?`,
 		});
 	}
+	for (const missing of unspecifiedScheduleFacts(sourceText, answered
+		.map((answer) => ({ field: answer.question.field })))
+		.filter((item) => item.field === "roomSize")) {
+		const room = missing.reason.match(/What size is the (.+?) door\?/i)?.[1];
+		if (unresolved.some((item) => item.status === "ambiguous" &&
+			(item.field.toLowerCase().replace(/[^a-z]/g, "") === "roomsize" ||
+				(!!room && item.reason.toLowerCase().includes(room.toLowerCase()))))) continue;
+		unresolved.push({ lineUid: null, stepId: null, field: missing.field,
+			status: "ambiguous", reason: missing.reason });
+	}
 	return {
 		...preview,
 		seed: {
 			...preview.seed,
 			unresolved,
 		},
+	} as TPreview;
+}
+
+function applyDraftClarificationPolicy<TPreview extends Preview>(
+	preview: TPreview,
+	sourceText: string,
+	configuration: Configuration,
+): TPreview {
+	const routineDraftFields = new Set([
+		"bore",
+		"count",
+		"finish",
+		"handing",
+		"handingswing",
+		"jamb",
+		"jambsize",
+		"quantity",
+		"qty",
+		"swing",
+	]);
+	const productIdentityFields = new Set([
+		"boardproduct",
+		"door",
+		"doormodel",
+		"doorproduct",
+		"doorstyle",
+		"doortype",
+		"itemtype",
+		"mouldingprofile",
+		"product",
+		"producttype",
+	]);
+	const impactAssemblyReviewFields = new Set([
+		"assemblysize",
+		"height",
+		"overallassembly",
+		"pvcbrickmoulding",
+		"pvcjamb",
+		"sideliteassembly",
+	]);
+	const impactSidelite = /\b(?:hurricane|impact)\b/i.test(sourceText) &&
+		/\bside\s*lite\b/i.test(sourceText);
+	const unresolved = preview.seed.unresolved.flatMap((item) => {
+		if (item.status !== "ambiguous") return [item];
+		const field = item.field.toLowerCase().replace(/[^a-z0-9]/g, "");
+		const line = preview.seed.lineItems.find((candidate) =>
+			candidate.uid === item.lineUid,
+		);
+		if (impactSidelite && impactAssemblyReviewFields.has(field)) {
+			const route = line && configuration.routes.find((candidate) =>
+				line.formSteps.some((selection) =>
+					selection.stepId === candidate.rootStepId &&
+					"prodUid" in selection && selection.prodUid === candidate.itemTypeUid,
+				),
+			);
+			const jambType = field === "pvcjamb" && route
+				? configuration.steps.find((step) =>
+					route.stepUids.includes(step.uid) && /^jamb\s*type$/i.test(step.title.trim()))
+				: undefined;
+			return [{ ...item, status: "unsupported" as const,
+				...(jambType ? { stepId: jambType.id } : {}) }];
+		}
+		if (routineDraftFields.has(field)) {
+			const explicitConflict =
+				/\b(?:conflict|contradict|different values?|both left and right|ambiguous)\b/i.test(
+					item.reason,
+				);
+			return explicitConflict
+				? [{ ...item, status: "unsupported" as const }]
+				: [];
+		}
+		const hasUsableRoute = !!line && configuration.routes.some((route) =>
+			line.formSteps.some((selection) =>
+				selection.stepId === route.rootStepId &&
+				"prodUid" in selection &&
+				selection.prodUid === route.itemTypeUid,
+			),
+		);
+		const asksForSeveralFacts =
+			/\b(?:dimensions?|size|width|height|quantity|count|jamb|handing|swing|finish)\b/i.test(
+				item.reason,
+			);
+		const explicitlyNamedStepChoice = item.stepId != null &&
+			configuration.steps.find((step) => step.id === item.stepId)
+				?.components.some((component) => {
+					const title = component.title.trim();
+					return title.length >= 3 &&
+						sourceText.toLowerCase().includes(title.toLowerCase()) &&
+						item.reason.toLowerCase().includes(title.toLowerCase());
+				}) === true;
+		const isProductIdentity = productIdentityFields.has(field) &&
+			!asksForSeveralFacts &&
+			!explicitlyNamedStepChoice;
+		const isQuantity = /quantity|qty|count/.test(field);
+		return [isProductIdentity || (!hasUsableRoute && !isQuantity)
+			? item : { ...item, status: "unsupported" as const }];
+	});
+	return {
+		...preview,
+		seed: { ...preview.seed, unresolved },
 	} as TPreview;
 }
 
@@ -494,10 +700,14 @@ function questionsFor(
 				.find((row) => row.toLowerCase().startsWith(
 					`${line.uid.replace(/-/g, " ").toLowerCase()} -`,
 				));
+			const reasonRoom = sourceText.split(/\r?\n/).map((row) => row.trim())
+				.map((row) => row.match(/^([^:\n]{3,80}?)\s+-\s*/)?.[1]?.trim())
+				.find((candidate) => candidate &&
+					item.reason.toLowerCase().includes(candidate.toLowerCase()));
 			const side = line?.uid.match(/(?:^|[-_])(left|right)(?:$|[-_])/i)?.[1];
 			const sideSection = side && sourceText.split(new RegExp(`\\b${side} side\\b`, "i"))[1]
 				?.split(/\b(?:left|right) side\b/i)[0];
-			const room = interpretedRoom ?? namedSourceRow?.split(/\s+-\s*/)[0] ??
+			const room = interpretedRoom ?? namedSourceRow?.split(/\s+-\s*/)[0] ?? reasonRoom ??
 				(sideSection && /\b1\s+attic access\b/i.test(sideSection) &&
 				/\battic[-_ ]access\b/i.test(line?.uid ?? "")
 				? `${side?.toLowerCase() === "left" ? "Left" : "Right"} Side attic access`
@@ -515,7 +725,8 @@ function questionsFor(
 					: null
 				: null;
 			const prompt = item === groupedBifold[0] && groupedBifoldPrompt
-				? groupedBifoldPrompt : detailQuestion ?? (room && field === "door" &&
+				? groupedBifoldPrompt : detailQuestion ?? (room &&
+				["door", "size", "doorsize", "dimension"].includes(field) &&
 				/\b(?:no dimensions|missing size)\b/i.test(item.reason)
 				? `What size is the ${room} door?`
 				: room && field === "width" && /\b\d{2,3}'\s*[x×]\s*\d{2,3}["”]/.test(namedSourceRow ?? "")
@@ -527,16 +738,21 @@ function questionsFor(
 		field: item.field,
 		question: prompt,
 		sourceText: sourceReference,
+		...(item.stepId != null && route && configuration.steps.some((step) =>
+			step.id === item.stepId &&
+			(step.id === route.rootStepId || route.stepUids.includes(step.uid)))
+			? { stepId: item.stepId } : {}),
 				reason: item === groupedBifold[0] && groupedBifoldPrompt
 				? groupedBifoldPrompt : (normalizedField === "mouldingprofile" && /\b\d+(?:[- ]foot|[- ]ft|['’])\s+stock\b/i.test(item.reason)) ||
 				(room && (field === "door" || field === "width") && prompt !== item.reason) ||
 			(normalizedField === "doorschedule" && prompt !== item.reason)
 			? prompt : item.reason,
 			};
-			const options = room && field === "door" &&
+			const options = room && ["door", "size", "doorsize", "dimension"].includes(field) &&
 				/\b(?:no dimensions|missing size)\b/i.test(item.reason)
 				? [] : configuredQuestionOptions(item, preview, configuration, sourceText);
 			if (options.length) question.options = options;
+			question.allowOther = clarificationQuestionAllowsOther(question, configuration);
 			question.canSaveRule = reusableClarification({
 				questionId: question.id, question, answer: "approved term", reuse: true, active: true,
 			}, sourceText, productTitles);
@@ -555,6 +771,18 @@ function recoverableMissingFacts(
 	missing.push(...unspecifiedScheduleFacts(sourceText, answered).map((item) => ({
 		lineUid: null, stepId: null, ...item, status: "ambiguous" as const,
 	})));
+	const denseDoorRows = sourceText.split(/\r?\n/).map((row) => row.trim()).filter((row) =>
+		/^(?:(?:bifold|pocket)\s+)?(?:[1-9][-/](?:1[01]|\d)|\d{2})\s+[1-9][-/](?:1[01]|\d)\b/i.test(row));
+	const bareWidthRows = denseDoorRows.filter((row) =>
+		/^\d{2}\s+[1-9][-/](?:1[01]|\d)\b/.test(row));
+	if (denseDoorRows.length >= 8 && bareWidthRows.length === 1 &&
+		!alreadyAnswered("width") && !missing.some((item) => item.field === "width")) {
+		const row = bareWidthRows[0]!;
+		missing.push({
+			lineUid: null, stepId: null, field: "width", status: "ambiguous",
+			reason: `Confirm the width for "${row}": does ${row.slice(0, 2)} mean inches or architectural feet/inches?`,
+		});
+	}
 	const impactSidelite = /\b(?:hurricane|impact)\b/i.test(sourceText) &&
 		/\bside\s*lite\b/i.test(sourceText) &&
 		/\b(?:total|overall)\s+size\b/i.test(sourceText) &&
@@ -613,10 +841,287 @@ function recoverableMissingFacts(
 	return missing;
 }
 
+function retainDenseFallbackRowReviews(
+	sourceText: string,
+	unresolved: NewSalesFormSeed["unresolved"],
+	answers: readonly SalesRequestAnswerContext[] = [],
+) {
+	const namedRows = sourceText.split(/\r?\n/).map((row) => row.trim()).filter((row) =>
+		/^[^:\n]{3,80}\s+-\s*(?:\d{2,3}\s*["”']?\s*[x×]\s*\d{2,3}\s*["”']?|$)/i.test(row));
+	const sizedRowCount = namedRows.filter((row) =>
+		/\d{2,3}\s*["”']?\s*[x×]\s*\d{2,3}\s*["”']?/i.test(row)).length;
+	if (sizedRowCount < 8) return unresolved;
+	const normalize = (value: string) => value.normalize("NFKC").toLowerCase()
+		.replace(/[“”]/g, '"').replace(/[‘’′]/g, "'").replace(/\s+/g, " ").trim();
+	const retained = unresolved.map((item) => ({ ...item }));
+	const usedReviews = new Set<number>();
+	const reviews = namedRows.flatMap((row, index) => {
+		const room = row.split(/\s+-\s*/)[0]?.trim() ?? "";
+		const normalizedRow = normalize(row);
+		const normalizedRoom = normalize(room);
+		const confirmed = answers.find((answer) =>
+			normalize(`${answer.question} ${answer.sourceText ?? ""}`).includes(normalizedRoom) &&
+			/\b\d{2,3}\s*["”']?\s*[x×]\s*\d{2,3}\b/.test(answer.answer));
+		const confirmedValue = confirmed?.answer.trim().slice(0, 160);
+		const reviewIndex = retained.findIndex((item, candidate) => {
+			if (usedReviews.has(candidate)) return false;
+			const reason = normalize(item.reason);
+			return reason.includes(normalizedRow) ||
+				(normalizedRoom.length >= 3 && reason.includes(normalizedRoom));
+		});
+		if (reviewIndex >= 0) {
+			usedReviews.add(reviewIndex);
+			const existing = retained[reviewIndex]!;
+			if (confirmedValue && !normalize(existing.reason).includes(normalize(confirmedValue)))
+				retained[reviewIndex] = {
+					...existing,
+					status: "unsupported",
+					reason: `${existing.reason.trim()}${/[.!?]$/.test(existing.reason.trim()) ? "" : "."} Confirmed customer answer: ${confirmedValue}.`,
+				};
+			return [];
+		}
+		return [{ lineUid: null, stepId: null, field: "doorSchedule",
+			status: "unsupported" as const,
+			reason: `Source door row ${index + 1}: ${row.slice(0, 160)}.${confirmedValue
+				? ` Confirmed customer answer: ${confirmedValue}.` : ""} No compatible Door line was created; use this exact source row when completing the draft in Sales.` }];
+	});
+	return [...retained, ...reviews];
+}
+
+function normalizeRecoverableClarifications<TPreview extends Preview>(
+	preview: TPreview,
+	sourceText: string,
+	answered: readonly { field?: string }[] = [],
+): TPreview {
+	const normalizeField = (field: string) =>
+		field.toLowerCase().replace(/[^a-z0-9]/g, "");
+	const broadFields = new Set(["doors", "doorschedule", "schedule", "moulding", "mouldings"]);
+	if (!preview.seed.unresolved.some((item) => item.lineUid === null &&
+		item.status === "ambiguous" && broadFields.has(normalizeField(item.field))))
+		return preview;
+	const isTargetFact = (item: NewSalesFormSeed["unresolved"][number]) =>
+		["height", "mouldingprofile", "boardproduct"].includes(normalizeField(item.field));
+	const sourceFacts = recoverableMissingFacts(sourceText).filter(isTargetFact);
+	if (!sourceFacts.length) return preview;
+	const recoverable = recoverableMissingFacts(sourceText, answered).filter(isTargetFact);
+	const recoverableFields = new Set(sourceFacts.map((item) =>
+		normalizeField(item.field),
+	));
+	const unresolved = preview.seed.unresolved.map((item) => {
+		if (item.lineUid !== null || item.status !== "ambiguous") return item;
+		const field = normalizeField(item.field);
+		const broadDoorConcern = ["doors", "doorschedule", "schedule"].includes(field) &&
+			recoverableFields.has("height");
+		const broadMouldingConcern = ["moulding", "mouldings"].includes(field) &&
+			(recoverableFields.has("mouldingprofile") || recoverableFields.has("boardproduct"));
+		return broadDoorConcern || broadMouldingConcern
+			? { ...item, status: "unsupported" as const }
+			: item;
+	});
+	const presentFields = new Set(unresolved.map((item) => normalizeField(item.field)));
+	for (const item of recoverable) {
+		const field = normalizeField(item.field);
+		if (presentFields.has(field)) continue;
+		unresolved.push(item);
+		presentFields.add(field);
+	}
+	return {
+		...preview,
+		seed: { ...preview.seed, unresolved },
+	} as TPreview;
+}
+
+function applyConfirmedMouldingProducts<TPreview extends Preview>(
+	preview: TPreview,
+	sourceText: string,
+	configuration: Configuration,
+	answers: readonly Answer[],
+): TPreview {
+	const rootRoute = configuration.routes.find((route) => {
+		const rootStep = configuration.steps.find((step) => step.id === route.rootStepId);
+		return /^mouldings?$/i.test(rootStep?.components.find(
+			(component) => component.uid === route.itemTypeUid,
+		)?.title.trim() ?? "");
+	});
+	if (!rootRoute) return preview;
+	const mouldingStep = configuration.steps.find((step) =>
+		rootRoute.stepUids.includes(step.uid) && /^mouldings?$/i.test(step.title.trim()),
+	);
+	if (!mouldingStep) return preview;
+	const normalizedField = (field: string) =>
+		field.toLowerCase().replace(/[^a-z0-9]/g, "");
+	const selected = new Map<"mouldingProfile" | "boardProduct",
+		Configuration["steps"][number]["components"][number]>();
+	for (const answer of answers) {
+		const field = normalizedField(answer.question.field);
+		if (field !== "mouldingprofile" && field !== "boardproduct") continue;
+		const component = mouldingStep.components.find((candidate) =>
+			candidate.title.trim() === answer.answer,
+		);
+		if (component) selected.set(
+			field === "mouldingprofile" ? "mouldingProfile" : "boardProduct",
+			component,
+		);
+	}
+	if (!selected.size) return preview;
+	type SourceFact = {
+		section: string;
+		kind: "mouldingProfile" | "boardProduct";
+		quantity: number;
+		linearFeet?: number;
+	};
+	const facts: SourceFact[] = [];
+	let section: string | null = null;
+	for (const sourceLine of sourceText.split(/\r?\n/)) {
+		const line = sourceLine.trim();
+		if (/^(?:left|right)(?:\s+side)?\s*:? ?$/i.test(line) ||
+			/^(?:side|unit|section)\s+[\p{L}\p{N}_.-]+\s*:? ?$/iu.test(line)) {
+			section = line.replace(/\s*:\s*$/, "").trim();
+			continue;
+		}
+		if (!section) continue;
+		const baseboard = line.match(/^(\d+)\s+(?:LF|linear\s+feet)\s+(?:for\s+)?baseboard\b/i);
+		if (baseboard) {
+			const linearFeet = Number(baseboard[1]);
+			if (Number.isSafeInteger(linearFeet) && linearFeet > 0)
+				facts.push({ section, kind: "mouldingProfile", quantity: 0, linearFeet });
+			continue;
+		}
+		const board = line.match(/^(\d+)\s*=\s*12\s*(?:["”]|inches?\b|in\b)\s*boards?\b/i);
+		if (board) {
+			const quantity = Number(board[1]);
+			if (Number.isSafeInteger(quantity) && quantity > 0)
+				facts.push({ section, kind: "boardProduct", quantity });
+		}
+	}
+	if (new Set(facts.map((fact) => fact.section.toLowerCase())).size < 2) return preview;
+	const stockLength = (title: string) => [...title.matchAll(
+		/\bx\s*(\d{1,2})(?:\s*(?:ft\b|['’]))?(?=\s|$|[),;])/gi,
+	)].map((match) => Number(match[1])).filter((value) => value >= 6 && value <= 24).at(-1);
+	const usableFacts = facts.flatMap((fact) => {
+		const component = selected.get(fact.kind);
+		if (!component) return [];
+		if (fact.kind === "boardProduct") return [{ ...fact, component }];
+		const pieceLength = stockLength(component.title);
+		if (!pieceLength || fact.linearFeet == null) return [];
+		return [{ ...fact, component, pieceLength,
+			quantity: Math.ceil(fact.linearFeet / pieceLength) }];
+	});
+	if (!usableFacts.length) return preview;
+	const replacedComponentUids = new Set(usableFacts.map((fact) => fact.component.uid));
+	const matchingFactForLine = (line: Preview["seed"]["lineItems"][number]) => {
+		const uid = line.uid.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+		return usableFacts.find((fact) => {
+			const section = fact.section.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+				.replace(/^-|-$/g, "");
+			const sectionToken = /^(left|right)-side$/.test(section)
+				? section.split("-")[0]! : section;
+			const kindPattern = fact.kind === "mouldingProfile"
+				? /(?:^|-)(?:mould|moulding|base|baseboard)(?:-|$)/
+				: /(?:^|-)board(?:-|$)/;
+			return !!sectionToken && `-${uid}-`.includes(`-${sectionToken}-`) &&
+				kindPattern.test(uid);
+		});
+	};
+	const isCorrespondingRootPlaceholder = (
+		line: Preview["seed"]["lineItems"][number],
+	) => {
+		if (line.meta?.mouldingRows?.length || /attic/i.test(line.uid))
+			return false;
+		const hasMouldingsRoot = line.formSteps.some((step) =>
+			step.stepId === rootRoute.rootStepId && "prodUid" in step &&
+			step.prodUid === rootRoute.itemTypeUid,
+		);
+		const hasNonRootSelection = line.formSteps.some((step) => {
+			if (step.stepId === rootRoute.rootStepId) return false;
+			if ("prodUid" in step) return !!step.prodUid;
+			if ("value" in step) return !!step.value.trim();
+			return "meta" in step && step.meta.selectedProdUids.length > 0;
+		});
+		if (!hasMouldingsRoot || hasNonRootSelection) return false;
+		return !!matchingFactForLine(line);
+	};
+	const removedLineFacts = new Map<string, (typeof usableFacts)[number]>();
+	const lineItems = preview.seed.lineItems.filter((line) => {
+		const removed = line.meta?.mouldingRows?.some((row) =>
+			replacedComponentUids.has(row.uid)) || isCorrespondingRootPlaceholder(line);
+		if (removed) {
+			const fact = matchingFactForLine(line);
+			if (fact) removedLineFacts.set(line.uid, fact);
+		}
+		return !removed;
+	});
+	const usedUids = new Set(lineItems.map((line) => line.uid));
+	const replacementUidByFact = new Map<(typeof usableFacts)[number], string>();
+	const lineUid = (fact: (typeof usableFacts)[number]) => {
+		const base = `clarified-${fact.section}-${fact.kind}-${fact.component.uid}`
+			.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
+			"clarified-moulding";
+		let uid = base;
+		for (let index = 2; usedUids.has(uid); index++) uid = `${base}-${index}`;
+		usedUids.add(uid);
+		return uid;
+	};
+	for (const fact of usableFacts) {
+		const mouldingRow = fact.kind === "mouldingProfile"
+			? { uid: fact.component.uid, qty: fact.quantity, calculation: {
+				linearFeet: fact.linearFeet!, pieceLength: fact.pieceLength!, wastePercentage: 0,
+			} }
+			: { uid: fact.component.uid, qty: fact.quantity };
+		const uid = lineUid(fact);
+		replacementUidByFact.set(fact, uid);
+		lineItems.push({
+			uid,
+			qty: fact.quantity,
+			formSteps: [
+				{ stepId: rootRoute.rootStepId, prodUid: rootRoute.itemTypeUid },
+				{ stepId: mouldingStep.id, meta: { selectedProdUids: [fact.component.uid] } },
+			],
+			meta: { mouldingRows: [mouldingRow] },
+		});
+	}
+	const retainedLineUids = new Set(lineItems.map((line) => line.uid));
+	const confirmedTitles = new Set([...selected.values()].map((component) =>
+		component.title.trim().toLowerCase()));
+	const unresolved = preview.seed.unresolved.flatMap((item) => {
+		const reason = item.reason.toLowerCase();
+		const contradictsConfirmedCatalog = [...confirmedTitles].some((title) =>
+			reason.includes(title) &&
+			/\b(?:not present|not found|missing)\b[^.]{0,80}\bconfig(?:uration)?\b|\bprovide a substitution\b/i.test(item.reason));
+		if (contradictsConfirmedCatalog) return [];
+		if (!item.lineUid || retainedLineUids.has(item.lineUid)) return [item];
+		const field = normalizedField(item.field);
+		if (field === "mouldingprofile" || field === "boardproduct") return [];
+		return [{
+			...item,
+			lineUid: null,
+			stepId: null,
+			status: "unsupported" as const,
+		}];
+	});
+	const interpretations = preview.seed.interpretations?.flatMap((interpretation) => {
+		if (retainedLineUids.has(interpretation.lineUid)) return [interpretation];
+		const fact = removedLineFacts.get(interpretation.lineUid);
+		const replacementUid = fact && replacementUidByFact.get(fact);
+		return replacementUid && fact?.component.uid === interpretation.selectedProdUid
+			? [{ ...interpretation, lineUid: replacementUid }]
+			: [];
+	});
+	return {
+		...preview,
+		seed: {
+			...preview.seed,
+			lineItems,
+			unresolved,
+			...(interpretations ? { interpretations } : {}),
+		},
+	} as TPreview;
+}
+
 async function createClarifiablePreview(
 	input: Parameters<typeof createSalesRequestPreview>[0],
 	dependencies: Dependencies,
-	answered: readonly { field?: string }[] = [],
+	answered: readonly SalesRequestAnswerContext[] = [],
 ): Promise<Preview> {
 	try {
 		return await createSalesRequestPreview(
@@ -624,7 +1129,11 @@ async function createClarifiablePreview(
 		);
 	} catch (error) {
 		if (!(error instanceof SalesRequestPreviewNeedsClarification)) throw error;
-		const unresolved = recoverableMissingFacts(input.text, answered);
+		const unresolved = retainDenseFallbackRowReviews(
+			input.text,
+			recoverableMissingFacts(input.text, answered),
+			answered,
+		);
 		if (!unresolved.length)
 			throw new Error("The AI provider could not generate a request preview. Try again.");
 		return {
@@ -894,13 +1403,16 @@ export async function beginSalesRequestClarification(input: {
 		{ text: input.text, images: [], signal: input.signal, guidance },
 		input.dependencies,
 	);
-	const preview = reviewDenseArchitecturalSchedule(
+	const preview = applyDraftClarificationPolicy(reviewDenseArchitecturalSchedule(
 		clarifyUnspecifiedScheduleRows(
-			suppressApprovedInterpretationWarnings(generatedPreview, guidance),
+			normalizeRecoverableClarifications(
+				suppressApprovedInterpretationWarnings(generatedPreview, guidance),
+				input.text,
+			),
 			input.text,
 		),
 		input.text,
-	);
+	), input.text, snapshot.configuration);
 	input.signal.throwIfAborted();
 	const questions = questionsFor(
 		preview,
@@ -978,12 +1490,30 @@ export async function answerSalesRequestClarification(input: {
 	const productTitles = snapshot.configuration.steps.flatMap((step) =>
 		step.components.map((component) => component.title),
 	);
-	if (input.answers.some((answer) => {
+	const submittedAnswers = input.answers.map((answer) => {
+		const question = questions.find((item) => item.id === answer.questionId);
+		return {
+			...answer,
+			answer: question
+				? normalizedClarificationAnswer(question, answer.answer)
+				: answer.answer.trim(),
+		};
+	});
+	if (submittedAnswers.some((answer) => {
+		const question = questions.find((item) => item.id === answer.questionId);
+		return question && !clarificationQuestionAllowsOther(question, snapshot.configuration) &&
+			!question.options?.some((option) => option.value === answer.answer);
+	}))
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Choose a configured option for this Sales step.",
+		});
+	if (submittedAnswers.some((answer) => {
 		if (!answer.reuse) return false;
 		const question = questions.find((item) => item.id === answer.questionId);
 		return !question?.canSaveRule || !reusableClarification({
 			questionId: answer.questionId,
-			answer: answer.answer.trim(),
+			answer: answer.answer,
 			reuse: true,
 			active: true,
 			question,
@@ -1014,9 +1544,9 @@ export async function answerSalesRequestClarification(input: {
 	try {
 		const answers: Answer[] = [
 			...(session.answers as Answer[]),
-			...input.answers.map((answer) => ({
+			...submittedAnswers.map((answer) => ({
 				...answer,
-				answer: answer.answer.trim(),
+				answer: answer.answer,
 				active: answer.reuse,
 				question: (() => {
 					const question = questions.find((q) => q.id === answer.questionId);
@@ -1081,17 +1611,32 @@ export async function answerSalesRequestClarification(input: {
 				})),
 			},
 			input.dependencies,
-			answers.map((answer) => ({ field: answer.question.field })),
+			answers.map((answer) => ({
+				question: answer.question.question,
+				answer: answer.answer,
+				field: answer.question.field,
+				sourceText: answer.question.sourceText,
+			})),
 		);
-		const preview = reviewDenseArchitecturalSchedule(
+		const confirmedPreview = applyConfirmedMouldingProducts(
+			generatedPreview,
+			session.sourceText,
+			snapshot.configuration,
+			answers,
+		);
+		const preview = applyDraftClarificationPolicy(reviewDenseArchitecturalSchedule(
 			clarifyUnspecifiedScheduleRows(
-				suppressApprovedInterpretationWarnings(generatedPreview, guidance),
+				normalizeRecoverableClarifications(
+					suppressApprovedInterpretationWarnings(confirmedPreview, guidance),
+					session.sourceText,
+					answers.map((answer) => ({ field: answer.question.field })),
+				),
 				session.sourceText,
 				answers,
 			),
 			session.sourceText,
 			answers,
-		);
+		), session.sourceText, snapshot.configuration);
 		input.signal.throwIfAborted();
 		const nextQuestions = questionsFor(
 			preview,

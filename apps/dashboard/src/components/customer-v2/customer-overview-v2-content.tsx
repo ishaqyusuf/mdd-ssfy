@@ -2,11 +2,13 @@
 
 import { Icons } from "@gnd/ui/icons";
 
+import { buildAssistantContextUrl } from "@/components/assistant/assistant-context";
 import { CustomerPartnershipCard } from "@/components/dealers/customer-partnership-status";
 import Link from "@/components/link";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { TransactionsTab } from "@/components/sheets/customer-overview-sheet/transactions-tab";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
+import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { useTRPC } from "@/trpc/client";
 import type { TableSettings } from "@/utils/table-settings";
@@ -26,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { formatMoney } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { DataTable as CustomerOverviewSalesPreviewTable } from "../tables-2/customer-overview-sales-preview/data-table";
@@ -198,6 +201,16 @@ function CustomerHero({
 	isPending: boolean;
 	pendingPaymentIds: number[];
 }) {
+	const router = useRouter();
+	const trpc = useTRPC();
+	const auth = useAuth();
+	const customerId = data?.customer.id;
+	const assistantAccess = useQuery({
+		...trpc.assistant.bootstrap.queryOptions(),
+		enabled: auth.enabled && Boolean(customerId),
+		staleTime: 30_000,
+	});
+
 	return (
 		<Card className="overflow-hidden border-border/70">
 			<CardContent className="space-y-6 p-6">
@@ -245,6 +258,24 @@ function CustomerHero({
 						</div>
 					</div>
 					<div className="flex flex-wrap gap-2">
+						{assistantAccess.data?.enabled && customerId ? (
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => {
+									router.push(
+										buildAssistantContextUrl({
+											entityType: "customer",
+											entityId: `cust-${customerId}`,
+											intent: "summary-and-history",
+										}),
+									);
+								}}
+							>
+								<Icons.Sparkles className="mr-2 size-4" />
+								Ask Assistant
+							</Button>
+						) : null}
 						<SendSalesReminder salesIds={pendingPaymentIds}>
 							<Button variant="outline" disabled={!pendingPaymentIds.length}>
 								<Icons.Mail className="mr-2 size-4" />

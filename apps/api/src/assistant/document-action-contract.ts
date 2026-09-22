@@ -16,6 +16,7 @@ export const assistantDocumentProposalActionSchema = z.discriminatedUnion(
 				input: z
 					.object({
 						orderNo: z.string().trim().min(1).max(100),
+						type: z.enum(["order", "quote"]).optional(),
 						mode: assistantSalesPdfModeSchema,
 						expectedRevision: z.string().trim().min(1).max(191),
 						forceRegenerate: z.boolean(),
@@ -30,6 +31,7 @@ export const assistantDocumentProposalActionSchema = z.discriminatedUnion(
 				input: z
 					.object({
 						orderNo: z.string().trim().min(1).max(100),
+						type: z.enum(["order", "quote"]).optional(),
 						mode: assistantSalesPdfModeSchema,
 						snapshotId: z.string().trim().min(1).max(191),
 						expectedRevision: z.string().trim().min(1).max(191),

@@ -21,6 +21,22 @@ describe("Assistant website context", () => {
 		).toBe("Check status and explain blockers for order 09640PC.");
 	});
 
+	test("builds a bounded customer summary and history draft", () => {
+		const url = buildAssistantContextUrl({
+			entityType: "customer",
+			entityId: "cust-35",
+			intent: "summary-and-history",
+		});
+		expect(url).toBe(
+			"/assistant?entityType=customer&entityId=cust-35&intent=summary-and-history",
+		);
+		expect(
+			readAssistantContextPrompt(
+				new URL(url, "https://gnd.local").searchParams,
+			),
+		).toBe("Summarize customer account cust-35 and their order history.");
+	});
+
 	test("rejects malformed or unsupported entity context", () => {
 		expect(() =>
 			buildAssistantContextUrl({
@@ -30,5 +46,26 @@ describe("Assistant website context", () => {
 			}),
 		).toThrow();
 		expect(readAssistantContextPrompt(new URLSearchParams())).toBe("");
+	});
+
+	test("rejects incompatible entity and intent pairs", () => {
+		expect(
+			readAssistantContextPrompt(
+				new URLSearchParams({
+					entityType: "customer",
+					entityId: "cust-35",
+					intent: "status-and-blockers",
+				}),
+			),
+		).toBe("");
+		expect(
+			readAssistantContextPrompt(
+				new URLSearchParams({
+					entityType: "order",
+					entityId: "09640PC",
+					intent: "summary-and-history",
+				}),
+			),
+		).toBe("");
 	});
 });

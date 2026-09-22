@@ -10,8 +10,9 @@ import {
 describe("record-normalization application", () => {
 	it("round trips exact customer request text through hydration and save schema", () => {
 		const customerRequestText = '  Customer original\r\n1 attic kit <script>text</script>  ';
+		const customerRequestReview = [{ lineUid: "line-1", reason: "Confirm the kit finish." }];
 		const record = hydrateSalesFormRecord({
-			type: "order", form: { customerId: 101, customerRequestText },
+			type: "order", form: { customerId: 101, customerRequestText, customerRequestReview },
 			lineItems: [{ uid: "line-1", title: "Kit", qty: 1 }],
 			extraCosts: [], summary: { taxRate: 0 },
 		});
@@ -19,6 +20,7 @@ describe("record-normalization application", () => {
 		const persistedForm = salesFormMetaSchema.parse(payload.meta);
 		const reopened = hydrateSalesFormRecord({ ...record, form: persistedForm });
 		expect(reopened.form.customerRequestText).toBe(customerRequestText);
+		expect(reopened.form.customerRequestReview).toEqual(customerRequestReview);
 		expect(salesFormMetaSchema.safeParse({ customerRequestText: "x".repeat(20_001) }).success).toBe(false);
 	});
 

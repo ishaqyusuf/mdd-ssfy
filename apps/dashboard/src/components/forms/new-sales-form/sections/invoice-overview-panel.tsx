@@ -51,7 +51,7 @@ import {
 	shouldPreserveInitialEditTaxRate,
 } from "./customer-resolution";
 import { CustomerSelectorDialog } from "./customer-selector-dialog";
-import { CustomerRequestText } from "./customer-request-text";
+import { CustomerRequestReview, CustomerRequestText } from "./customer-request-text";
 import {
 	CustomerRequestInterpretations,
 	type DismissSalesRequestInterpretation,
@@ -728,6 +728,10 @@ export function InvoiceOverviewPanel(props: Props) {
 			/>
 
 			<CustomerRequestText text={record.form.customerRequestText} />
+			<CustomerRequestReview
+				review={record.form.customerRequestReview}
+				lineItems={record.lineItems}
+			/>
 			<CustomerRequestInterpretations
 				lineItems={record.lineItems}
 				onDismiss={async (interpretation) => {

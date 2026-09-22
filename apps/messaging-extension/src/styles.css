@@ -34,3 +34,4 @@ p { color: #586973; font-size: 13px; line-height: 1.5; margin: 0; }
 .status-card strong { font-size: 15px; }
 .status-label { color: var(--primary); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .footnote { font-size: 11px; }
+input { border: 1px solid var(--border); border-radius: 8px; background: #fff; padding: 10px; font: inherit; }

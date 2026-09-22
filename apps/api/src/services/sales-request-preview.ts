@@ -311,6 +311,12 @@ export async function createSalesRequestPreview(
 								...(providerFailure.configurationIssue
 									? { configurationIssue: providerFailure.configurationIssue }
 									: {}),
+								...(providerFailure.routeFailureKind
+									? { routeFailureKind: providerFailure.routeFailureKind }
+									: {}),
+								...(providerFailure.catalogFailureKind
+									? { catalogFailureKind: providerFailure.catalogFailureKind }
+									: {}),
 								...(providerFailure.schemaIssues
 									? { schemaIssues: providerFailure.schemaIssues }
 									: {}),

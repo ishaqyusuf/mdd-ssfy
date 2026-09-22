@@ -55,7 +55,7 @@ describe("assistant tool selection", () => {
 	test("selects the authorized Sales and customer reads from natural requests", async () => {
 		const readActor = {
 			...actor,
-			grants: { viewOrders: true, viewCustomers: true },
+			grants: { viewOrders: true, viewSalesCustomers: true },
 		};
 		const cases = [
 			["Which orders belong to Ada Millwork?", "sales_find_orders"],

@@ -4,7 +4,9 @@ import type { UIMessage } from "ai";
 import {
 	AlertCircle,
 	Check,
+	ChevronDown,
 	ChevronRight,
+	ChevronUp,
 	CircleDashed,
 	Copy,
 	ExternalLink,
@@ -12,10 +14,11 @@ import {
 	FileText,
 	LoaderCircle,
 	LockKeyhole,
+	Pencil,
 	RefreshCw,
 	Sparkles,
 } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useId, useState } from "react";
 import type { ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import { AssistantAnalyticsResultCard } from "./assistant-analytics-result";
@@ -40,23 +43,28 @@ function AssistantThinkingIndicator() {
 }
 
 function AssistantToolProgress({
- tools,
+	tools,
 }: {
- tools: AssistantMessageViewModel["tools"];
+	tools: AssistantMessageViewModel["tools"];
 }) {
- const active = [...tools].reverse().find(({ status }) => status === "queued" || status === "running");
- if (active) return (
-  <div className={styles.toolProgress} role="status">
-   <LoaderCircle className={styles.spin} size={13} aria-hidden="true" />
-   {active.label}…
-  </div>
- );
- if (tools.some(tool => tool.status === "approval-required")) return (
-  <div className={styles.toolProgress}>
-   <LockKeyhole size={13} aria-hidden="true" /> Please review before continuing.
-  </div>
- );
- return null;
+	const active = [...tools]
+		.reverse()
+		.find(({ status }) => status === "queued" || status === "running");
+	if (active)
+		return (
+			<div className={styles.toolProgress} role="status">
+				<LoaderCircle className={styles.spin} size={13} aria-hidden="true" />
+				{active.label}…
+			</div>
+		);
+	if (tools.some((tool) => tool.status === "approval-required"))
+		return (
+			<div className={styles.toolProgress}>
+				<LockKeyhole size={13} aria-hidden="true" /> Please review before
+				continuing.
+			</div>
+		);
+	return null;
 }
 
 function AssistantReadRetries({
@@ -82,7 +90,8 @@ function AssistantReadRetries({
 		<div className={styles.toolProgress}>
 			{retryable.map((tool) => (
 				<button type="button" key={tool.id} onClick={() => onRetry(tool)}>
-					<RefreshCw size={13} aria-hidden="true" /> Retry {tool.label.toLowerCase()}
+					<RefreshCw size={13} aria-hidden="true" /> Retry{" "}
+					{tool.label.toLowerCase()}
 				</button>
 			))}
 		</div>
@@ -143,7 +152,7 @@ function AssistantEntityLinks({
 			{entities.map((entity) => (
 				<button
 					type="button"
-					key={`${entity.kind}:${entity.kind === "order" ? entity.salesType ?? "order" : entity.kind === "community" ? entity.communityType : ""}:${entity.id}`}
+					key={`${entity.kind}:${entity.kind === "order" ? (entity.salesType ?? "order") : entity.kind === "community" ? entity.communityType : ""}:${entity.id}`}
 					onClick={() => onOpen(entity)}
 				>
 					<span>{entity.label}</span>
@@ -185,28 +194,32 @@ function AssistantOrderDraftLinks({
 	);
 }
 
-function AssistantDocumentActions({
+function AssistantApprovalActions({
 	actions,
 	onCreateProposal,
 }: {
-	actions: AssistantMessageViewModel["documentActions"];
+	actions: AssistantMessageViewModel["approvalActions"];
 	onCreateProposal?: (
-		action: AssistantMessageViewModel["documentActions"][number],
+		action: AssistantMessageViewModel["approvalActions"][number],
 	) => void;
 }) {
 	if (!actions.length || !onCreateProposal) return null;
 	return (
-		<nav className={styles.entityLinks} aria-label="Available document actions">
+		<nav className={styles.entityLinks} aria-label="Available reviewed actions">
 			{actions.map((action) => (
 				<button
 					type="button"
 					key={action.id}
 					onClick={() => onCreateProposal(action)}
 				>
-					<FilePlus2 size={15} />
+					{action.data.toolId === "sales_update_purchase_order" ? (
+						<Pencil size={15} />
+					) : (
+						<FilePlus2 size={15} />
+					)}
 					<span>
 						{action.data.label}
-						<small>Review the exact document request before it runs</small>
+						<small>Review the exact change before it runs</small>
 					</span>
 					<ChevronRight size={14} />
 				</button>
@@ -260,6 +273,68 @@ const assistantStreamdownComponents = {
 	img: () => null,
 };
 
+function sanitizeAssistantMarkdownLinks(text: string) {
+	return text.replace(
+		/(?<!!)\[([^\]\n]+)\]\(([^)\n]+)\)/g,
+		(link, label: string, destination: string) => {
+			const href = destination.trim().split(/\s+/)[0];
+			if (!href?.startsWith("https://")) return label;
+			try {
+				const hostname = new URL(href).hostname.toLowerCase();
+				const isWorkspaceHost =
+					hostname === "gndprodesk.com" ||
+					hostname.endsWith(".gndprodesk.com") ||
+					hostname === "localhost" ||
+					hostname.endsWith(".localhost");
+				return isWorkspaceHost ? label : link;
+			} catch {
+				return label;
+			}
+		},
+	);
+}
+
+function CollapsibleMessageContent({
+	children,
+	text,
+	enabled = true,
+}: {
+	children: ReactNode;
+	text: string;
+	enabled?: boolean;
+}) {
+	const [expanded, setExpanded] = useState(false);
+	const contentId = useId();
+	const canCollapse = text.length > 600 || text.split("\n").length > 8;
+	const collapsed = enabled && canCollapse && !expanded;
+	return (
+		<>
+			<div
+				id={contentId}
+				className={collapsed ? styles.collapsibleMessageCollapsed : undefined}
+			>
+				{children}
+			</div>
+			{enabled && canCollapse ? (
+				<button
+					type="button"
+					className={styles.messageToggle}
+					onClick={() => setExpanded((current) => !current)}
+					aria-controls={contentId}
+					aria-expanded={expanded}
+				>
+					{expanded ? "Show less" : "Show more"}
+					{expanded ? (
+						<ChevronUp size={14} aria-hidden="true" />
+					) : (
+						<ChevronDown size={14} aria-hidden="true" />
+					)}
+				</button>
+			) : null}
+		</>
+	);
+}
+
 function UserMessage({ message }: { message: UIMessage }) {
 	const view = normalizeAssistantMessage(message, {
 		isLastMessage: false,
@@ -267,7 +342,11 @@ function UserMessage({ message }: { message: UIMessage }) {
 	});
 	return (
 		<section className={styles.liveUserTurn}>
-			<div className={styles.userMessage}>{view.text}</div>
+			<div className={styles.userMessage}>
+				<CollapsibleMessageContent text={view.text}>
+					{view.text}
+				</CollapsibleMessageContent>
+			</div>
 			{view.files.length ? (
 				<div className={styles.messageFiles}>
 					{view.files.map((file) => (
@@ -288,7 +367,7 @@ function AssistantMessage({
 	onCardAction,
 	onOpenEntity,
 	onOpenOrderDraft,
-	onCreateDocumentProposal,
+	onCreateApprovalProposal,
 	onRetryRead,
 	consumedRetryIds,
 }: {
@@ -302,8 +381,8 @@ function AssistantMessage({
 	onOpenOrderDraft?: (
 		draft: AssistantMessageViewModel["orderDrafts"][number],
 	) => void;
-	onCreateDocumentProposal?: (
-		action: AssistantMessageViewModel["documentActions"][number],
+	onCreateApprovalProposal?: (
+		action: AssistantMessageViewModel["approvalActions"][number],
 	) => void;
 	onRetryRead?: (tool: AssistantMessageViewModel["tools"][number]) => void;
 	consumedRetryIds?: ReadonlySet<string>;
@@ -313,6 +392,7 @@ function AssistantMessage({
 		isStreaming,
 		isLastMessage,
 	});
+	const renderedText = sanitizeAssistantMarkdownLinks(view.text);
 	if (!view.hasContent && !view.showThinking) return null;
 	return (
 		<section className={styles.liveAssistantTurn}>
@@ -324,23 +404,35 @@ function AssistantMessage({
 				{view.showThinking ? <AssistantThinkingIndicator /> : null}
 				{view.text ? (
 					<div className={styles.markdownAnswer}>
-						<Streamdown
-							isAnimating={isLastMessage && isStreaming}
-							controls={{
-								table: { copy: true, download: true, fullscreen: false },
-							}}
-							components={assistantStreamdownComponents}
+						<CollapsibleMessageContent
+							text={renderedText}
+							enabled={!isStreaming}
 						>
-							{view.text}
-						</Streamdown>
+							<Streamdown
+								isAnimating={isLastMessage && isStreaming}
+								controls={{
+									table: { copy: true, download: true, fullscreen: false },
+								}}
+								components={assistantStreamdownComponents}
+							>
+								{renderedText}
+							</Streamdown>
+						</CollapsibleMessageContent>
 						<button
 							type="button"
 							className={styles.copyAnswer}
 							onClick={() => {
-								void navigator.clipboard.writeText([view.text, ...view.findings.map(assistantFindingText)].join("\n\n")).then(() => {
-									setCopied(true);
-									setTimeout(() => setCopied(false), 1_500);
-								});
+								void navigator.clipboard
+									.writeText(
+										[
+											renderedText,
+											...view.findings.map(assistantFindingText),
+										].join("\n\n"),
+									)
+									.then(() => {
+										setCopied(true);
+										setTimeout(() => setCopied(false), 1_500);
+									});
 							}}
 							aria-label="Copy assistant response"
 						>
@@ -357,22 +449,33 @@ function AssistantMessage({
 						consumedRetryIds={consumedRetryIds}
 					/>
 				) : null}
-				{view.outcome?.reference ? <AssistantOutcomeHelp reference={view.outcome.reference} /> : null}
+				{view.outcome?.reference ? (
+					<AssistantOutcomeHelp reference={view.outcome.reference} />
+				) : null}
 				{view.findings.length ? (
-					<section className="mt-3 space-y-2 rounded-md border p-3 text-sm" aria-label="Completed checks">
+					<section
+						className="mt-3 space-y-2 rounded-md border p-3 text-sm"
+						aria-label="Completed checks"
+					>
 						<p className="font-medium">What I found</p>
 						<ul className="space-y-2">
-							{view.findings.map(finding => <li key={`${finding.salesType}:${finding.orderNo}`}>
-								<p>{assistantFindingText(finding)}</p>
-								<p className="text-xs text-muted-foreground">Checked {new Date(finding.observedAt).toLocaleString()}</p>
-							</li>)}
+							{view.findings.map((finding) => (
+								<li key={`${finding.salesType}:${finding.orderNo}`}>
+									<p>{assistantFindingText(finding)}</p>
+									<p className="text-xs text-muted-foreground">
+										Checked {new Date(finding.observedAt).toLocaleString()}
+									</p>
+								</li>
+							))}
 						</ul>
 					</section>
 				) : null}
 				{view.historyNotice ? (
 					<aside className="mt-3 text-sm text-muted-foreground" role="status">
 						{presentAssistantOutcome(view.historyNotice).message}
-						{view.historyNotice.reference ? <AssistantOutcomeHelp reference={view.historyNotice.reference} /> : null}
+						{view.historyNotice.reference ? (
+							<AssistantOutcomeHelp reference={view.historyNotice.reference} />
+						) : null}
 					</aside>
 				) : null}
 				{view.analytics.map((analytics) => (
@@ -387,9 +490,9 @@ function AssistantMessage({
 					drafts={view.orderDrafts}
 					onOpen={onOpenOrderDraft}
 				/>
-				<AssistantDocumentActions
-					actions={view.documentActions}
-					onCreateProposal={onCreateDocumentProposal}
+				<AssistantApprovalActions
+					actions={view.approvalActions}
+					onCreateProposal={onCreateApprovalProposal}
 				/>
 				<AssistantSources sources={view.sources} />
 			</div>
@@ -404,7 +507,7 @@ const MemoizedAssistantMessage = memo(AssistantMessage, (previous, next) => {
 		previous.onCardAction === next.onCardAction &&
 		previous.onOpenEntity === next.onOpenEntity &&
 		previous.onOpenOrderDraft === next.onOpenOrderDraft &&
-		previous.onCreateDocumentProposal === next.onCreateDocumentProposal &&
+		previous.onCreateApprovalProposal === next.onCreateApprovalProposal &&
 		previous.onRetryRead === next.onRetryRead &&
 		previous.consumedRetryIds === next.consumedRetryIds
 	);
@@ -421,8 +524,8 @@ export function AssistantMessageRenderer(props: {
 	onOpenOrderDraft?: (
 		draft: AssistantMessageViewModel["orderDrafts"][number],
 	) => void;
-	onCreateDocumentProposal?: (
-		action: AssistantMessageViewModel["documentActions"][number],
+	onCreateApprovalProposal?: (
+		action: AssistantMessageViewModel["approvalActions"][number],
 	) => void;
 	onRetryRead?: (tool: AssistantMessageViewModel["tools"][number]) => void;
 	consumedRetryIds?: ReadonlySet<string>;

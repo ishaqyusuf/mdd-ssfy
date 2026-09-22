@@ -944,6 +944,73 @@ describe("initializeNewSalesFormSeed", () => {
 		expect(blocked.unresolved).toEqual(seed.unresolved);
 	});
 
+	it("uses the first sorted component for an omitted routine draft field", async () => {
+		const seed = seedLine("interior", "primed");
+		const seedItem = seed.lineItems[0];
+		if (!seedItem) throw new Error("Expected seed fixture line");
+		seedItem.formSteps = seedItem.formSteps.filter((step) => step.stepId !== 2);
+		seed.unresolved.push({
+			lineUid: "interior-line",
+			stepId: 2,
+			field: "jambSize",
+			status: "ambiguous",
+			reason: "Jamb size was not specified",
+		});
+
+		const result = await initialize(seed);
+
+		expect(result.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("primed");
+		expect(result.unresolved).toEqual(seed.unresolved);
+
+		const unresolved = seed.unresolved[0];
+		if (!unresolved) throw new Error("Expected unresolved fixture fact");
+		seed.unresolved[0] = {
+			...unresolved,
+			status: "unsupported",
+			reason: "The requested jamb size is unavailable",
+		};
+		const unsupported = await initialize(seed);
+		expect(unsupported.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("");
+	});
+
+	it("keeps a line-wide missing quantity from blocking configuration defaults", async () => {
+		const seed = seedLine("interior", "primed");
+		const seedItem = seed.lineItems[0];
+		if (!seedItem) throw new Error("Expected seed fixture line");
+		seedItem.formSteps = seedItem.formSteps.filter((step) => step.stepId !== 2);
+		seed.unresolved.push({
+			lineUid: "interior-line",
+			stepId: null,
+			field: "quantity",
+			status: "ambiguous",
+			reason: "Quantity was not specified",
+		});
+
+		const result = await initialize(seed);
+
+		expect(result.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("primed");
+		expect(result.unresolved).toEqual(seed.unresolved);
+	});
+
+	it("keeps global review-only facts from blocking unrelated configuration defaults", async () => {
+		const seed = seedLine("interior", "primed");
+		const seedItem = seed.lineItems[0];
+		if (!seedItem) throw new Error("Expected seed fixture line");
+		seedItem.formSteps = seedItem.formSteps.filter((step) => step.stepId !== 2);
+		seed.unresolved.push({
+			lineUid: null,
+			stepId: null,
+			field: "sideliteAssembly",
+			status: "unsupported",
+			reason: "The sidelite remains for Sales review",
+		});
+
+		const result = await initialize(seed);
+
+		expect(result.record.lineItems[0]?.formSteps?.[1]?.prodUid).toBe("primed");
+		expect(result.unresolved).toEqual(seed.unresolved);
+	});
+
 	it("does not apply defaults when an unresolved fact has line-wide scope", async () => {
 		const seed = seedLine("interior", "primed");
 		const seedItem = seed.lineItems[0];
@@ -1020,7 +1087,7 @@ describe("initializeNewSalesFormSeed", () => {
 		);
 	});
 
-	it("follows a component redirect without auto-selecting its target step", async () => {
+	it("follows a component redirect and defaults its target step", async () => {
 		const frameComponents = componentsByStepId[2];
 		if (!frameComponents) throw new Error("Expected frame component fixtures");
 		const redirectRouteData: WorkflowRouteData = {
@@ -1071,12 +1138,12 @@ describe("initializeNewSalesFormSeed", () => {
 			result.record.lineItems[0]?.formSteps?.find(
 				(step) => step.step?.uid === "finish",
 			)?.prodUid,
-		).toBe("");
+		).toBe("painted");
 		expect(
 			result.record.lineItems[0]?.formSteps?.find(
 				(step) => step.step?.uid === "door",
 			)?.meta,
-		).toMatchObject({ redirectDisabled: true, redirectTargetUid: "finish" });
+		).toMatchObject({ redirectDisabled: false, redirectTargetUid: null });
 	});
 
 	it("produces the native save shell and remains stable through form rehydration", async () => {

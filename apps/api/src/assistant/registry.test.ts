@@ -4,8 +4,8 @@ import {
 	assistantToolRegistry,
 	discoverAssistantTools,
 	executeRegisteredAssistantTool,
-	getExecutableAssistantDefinitions,
 	getAssistantToolCatalog,
+	getExecutableAssistantDefinitions,
 	preflightRegisteredAssistantProposal,
 } from "./registry";
 
@@ -18,10 +18,25 @@ const actor = {
 
 describe("assistant tool registry", () => {
 	test("routes customer request drafts through the dedicated Assistant conversation", () => {
-		const salesActor = { ...actor, grants: { ...actor.grants, editOrders: true } };
-		expect(discoverAssistantTools(salesActor).some((tool) => tool.toolId === "sales_draft_from_request")).toBe(false);
-		expect(getExecutableAssistantDefinitions(salesActor).some((tool) => tool.toolId === "sales_draft_from_request")).toBe(false);
-		expect(getAssistantToolCatalog(salesActor).some((tool) => tool.toolId === "sales_draft_from_request")).toBe(true);
+		const salesActor = {
+			...actor,
+			grants: { ...actor.grants, editOrders: true },
+		};
+		expect(
+			discoverAssistantTools(salesActor).some(
+				(tool) => tool.toolId === "sales_draft_from_request",
+			),
+		).toBe(false);
+		expect(
+			getExecutableAssistantDefinitions(salesActor).some(
+				(tool) => tool.toolId === "sales_draft_from_request",
+			),
+		).toBe(false);
+		expect(
+			getAssistantToolCatalog(salesActor).some(
+				(tool) => tool.toolId === "sales_draft_from_request",
+			),
+		).toBe(true);
 	});
 	test("returns schema-valid discovery results without internal catalog metadata", async () => {
 		const result = await executeRegisteredAssistantTool(actor, {
@@ -47,7 +62,7 @@ describe("assistant tool registry", () => {
 		);
 
 		expect(new Set(identities).size).toBe(identities.length);
-		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v8");
+		expect(ASSISTANT_TOOL_CATALOG_VERSION).toBe("assistant-catalog-v12");
 		for (const tool of assistantToolRegistry) {
 			expect(tool.toolId).toMatch(/^[a-z][a-z0-9]*_[a-z][a-z0-9_]*$/);
 			expect(tool.version).toBeGreaterThan(0);
@@ -62,7 +77,11 @@ describe("assistant tool registry", () => {
 
 		expect(discovered.map((tool) => tool.toolId)).toEqual([
 			"analytics_query",
+			"customers_find",
+			"customers_get_order_history",
+			"customers_get_summary",
 			"documents_get_sales_pdf_status",
+			"finance_get_refund_overview",
 			"finance_summarize_orders",
 			"fulfillment_check_status",
 			"fulfillment_explain_exceptions",

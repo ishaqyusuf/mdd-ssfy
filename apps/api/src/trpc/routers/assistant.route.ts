@@ -7,8 +7,16 @@ import {
 import { resolveAssistantActor } from "@api/assistant/actor";
 import { getAssistantSalesDraftHandoff } from "@api/assistant/sales-draft-handoff";
 import {
+	prepareAssistantSalesDraft,
+	prepareAssistantSalesDraftSchema,
+	saveAssistantSalesDraft,
+	saveAssistantSalesDraftSchema,
+} from "@api/assistant/sales-draft-save";
+import {
 	answerAssistantSalesRequest,
 	answerAssistantSalesRequestSchema,
+	continueAssistantSalesRequest,
+	continueAssistantSalesRequestSchema,
 	readAssistantSalesRequestSession,
 	startAssistantSalesRequest,
 	startAssistantSalesRequestSchema,
@@ -190,6 +198,16 @@ const assistantQuotaPolicyUpdateSchema = z
 	.strict();
 
 export const assistantRouter = createTRPCRouter({
+	prepareSalesDraft: protectedProcedure
+		.input(prepareAssistantSalesDraftSchema)
+		.mutation(async ({ ctx, input }) =>
+			prepareAssistantSalesDraft(ctx, await actorOrThrow(ctx), input),
+		),
+	saveSalesDraft: protectedProcedure
+		.input(saveAssistantSalesDraftSchema)
+		.mutation(async ({ ctx, input }) =>
+			saveAssistantSalesDraft(ctx, await actorOrThrow(ctx), input),
+		),
 	salesRequestSession: protectedProcedure
 		.input(z.object({ conversationId: z.string().min(1).max(191) }).strict())
 		.query(async ({ ctx, input }) =>
@@ -210,6 +228,11 @@ export const assistantRouter = createTRPCRouter({
 				ctx.db, await actorOrThrow(ctx), input,
 				signal ?? new AbortController().signal,
 			),
+		),
+	continueSalesRequest: protectedProcedure
+		.input(continueAssistantSalesRequestSchema)
+		.mutation(async ({ ctx, input }) =>
+			continueAssistantSalesRequest(ctx.db, await actorOrThrow(ctx), input),
 		),
 	captureHealth: protectedProcedure.query(async ({ ctx }) => {
 		await featureAdminOrThrow(ctx);

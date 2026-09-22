@@ -117,6 +117,9 @@ type PrepareRequestGenerationProposalInput = Omit<
 	allowUnresolvedDraft?: boolean;
 };
 
+const ASSISTANT_DRAFT_REVIEW =
+	"Review unspecified details and any draft defaults before saving.";
+
 function clone<T>(value: T): T {
 	return structuredClone(value);
 }
@@ -238,6 +241,16 @@ export async function prepareRequestGenerationProposal(
 		: [...clone(baseRecord.lineItems), ...generatedLines];
 	const record = hydrateSalesFormRecord({
 		...initialized.record,
+		form: {
+			...initialized.record.form,
+			customerRequestReview: [
+				{ lineUid: null, reason: ASSISTANT_DRAFT_REVIEW },
+				...initialized.unresolved.map(({ lineUid, reason }) => ({
+					lineUid,
+					reason,
+				})),
+			],
+		},
 		lineItems,
 	}) as NewSalesFormRecord;
 

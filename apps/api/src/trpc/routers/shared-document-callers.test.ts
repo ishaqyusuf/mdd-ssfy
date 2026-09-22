@@ -17,13 +17,20 @@ describe("shared document caller migration", () => {
 		expect(route).toContain("registerStoredDocumentUpload");
 		expect(route).toContain("storedDocumentId:");
 		expect(query).toContain("storedDocumentId?: string");
-		expect(query).toContain("docMeta.storedDocumentId");
+		expect(query).toContain("storedDocumentId,");
 		expect(query).toContain("url: canonicalDocumentUrl");
+		expect(query).toContain("employeeDocumentAccessPath");
 		expect(query).toContain("userId: targetUserId");
 		expect(query).toContain("deletedAt: null");
+		expect(route).toContain("createEmployeeDocumentService");
+		expect(route).toContain("EMPLOYEE_DOCUMENT_PRIVATE_ACCESS");
+		expect(route).toContain("getActiveCompanyMemberWhere");
+		expect(route).not.toContain("provider: uploaded.provider");
+		expect(route).toContain("return { ...document, storedDocumentId:");
 		expect(route).toContain("await saveUserDocument(props.ctx");
 		expect(route).toContain("finalizeUploadedDocument");
 		expect(mobile).not.toContain("saveDocumentMutation");
+		expect(mobile).not.toContain("Linking.openURL");
 	});
 
 	test("dispatch proof and packing signatures register canonical documents", () => {

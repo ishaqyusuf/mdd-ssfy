@@ -399,6 +399,9 @@ export function normalizeSalesFormMeta(meta: Partial<SalesFormMetaRecord>) {
 			typeof meta.customerRequestText === "string"
 				? meta.customerRequestText
 				: null,
+		customerRequestReview: Array.isArray(meta.customerRequestReview)
+			? meta.customerRequestReview
+			: [],
 		deliveryOption: meta.deliveryOption ?? "pickup",
 		paymentMethod: meta.paymentMethod ?? null,
 		taxCode: meta.taxCode ?? null,

@@ -545,6 +545,13 @@ describe("sales request evaluation corpus", () => {
 			"spanish-fire-rated-double-doors",
 			"townhouse-multifloor-door-package",
 		];
+		const expectedNative: Record<string, "passed" | "blocked"> = {
+			"duplex-millwork-order": "blocked",
+			"interior-solid-core-slabs": "blocked",
+			"spanish-carrara-door-package": "blocked",
+			"spanish-fire-rated-double-doors": "passed",
+			"townhouse-multifloor-door-package": "blocked",
+		};
 		const configurationPath = join(
 			repositoryRoot,
 			".brain/evaluations/sales-request-generation/runs/2026-09-12T-input-review-mouldings-exact-multi-selection-v3/deepseek/deepseek-v4-flash/configuration.json",
@@ -609,14 +616,27 @@ describe("sales request evaluation corpus", () => {
 					output: structuredClone(caseData.expectedProviderOutput),
 				}),
 			});
+			if (caseData.id === "exterior-impact-door-sidelite") {
+				expect(result.status).toBe("error");
+				if (result.status === "error") {
+					expect(result.providerOutput).toEqual(caseData.expectedProviderOutput);
+					expect(result.validation.error).toContain(
+						"panel Height from the overall sidelite assembly size");
+				}
+				continue;
+			}
 			const expectedSeedDrift = [
-				"exterior-impact-door-sidelite",
 				"spanish-carrara-door-package",
 				"spanish-fire-rated-double-doors",
 				"townhouse-multifloor-door-package",
 			].includes(caseData.id);
 			expect(result.status, caseData.id).toBe("review-required");
 			if (result.status === "error") continue;
+			const expectedLines = caseData.expectedSeed?.lineItems ?? [];
+			expect(result.metrics.lineCount, caseData.id).toBe(expectedLines.length);
+			expect(result.seed.lineItems.reduce((total, line) => total + line.qty, 0), caseData.id).toBe(
+				expectedLines.reduce((total, line) => total + line.qty, 0),
+			);
 			expect(result.metrics.providerOracle?.wholeOrderMatch).toBe(true);
 			expect(result.metrics.seedOracle?.wholeOrderMatch, caseData.id).toBe(
 				!expectedSeedDrift,
@@ -631,17 +651,13 @@ describe("sales request evaluation corpus", () => {
 				const actualFacts = (lineReferences?.actual as { facts: string[] })
 					.facts;
 				const expectedAdditionalReferences: Record<string, string[]> = {
-					"exterior-impact-door-sidelite": [
-						"line:0:61:jambSize:ambiguous",
-						"none::pvcBrickMoulding:ambiguous",
-					],
 					"spanish-fire-rated-double-doors": [
 						"line:0:61:jambSize:ambiguous",
 						"line:0::handing:ambiguous",
 						"line:0::swing:ambiguous",
 					],
 					"spanish-carrara-door-package": [
-						...Array(9).fill("none::doorSchedule:unsupported"),
+						...Array(10).fill("none::doorSchedule:unsupported"),
 						...Array(4).fill("none::moulding:ambiguous"),
 						"none::width:ambiguous",
 					],
@@ -658,9 +674,12 @@ describe("sales request evaluation corpus", () => {
 				facts: "passed",
 				normalization: "passed",
 			});
-			expect(result.validation.initializer).toBe(result.validation.saveReopen);
-			if (result.seed.lineItems.length > 0 && result.validation.issues.length === 0) {
-				expect(result.validation.initializer, caseData.id).toBe("passed");
+			expect(result.validation.initializer, caseData.id).toBe(expectedNative[caseData.id]);
+			expect(result.validation.saveReopen, caseData.id).toBe(expectedNative[caseData.id]);
+			if (expectedNative[caseData.id] === "blocked") {
+				expect(result.validation.issues.length, caseData.id).toBeGreaterThan(0);
+			} else {
+				expect(result.validation.issues, caseData.id).toEqual([]);
 			}
 		}
 
@@ -679,6 +698,8 @@ describe("sales request evaluation corpus", () => {
 		});
 		expect(control.status).toBe("ok");
 		if (control.status !== "error") {
+			expect(control.metrics.lineCount).toBe(mouldings.expectedSeed?.lineItems.length);
+			expect(control.seed.lineItems.reduce((total, line) => total + line.qty, 0)).toBe(32);
 			expect(control.metrics.factExpectations.provider.all).toMatchObject({ expected: 11, matched: 11 });
 			expect(control.metrics.factExpectations.seed.all).toMatchObject({ expected: 11, matched: 11 });
 			expect(control.metrics.providerOracle?.wholeOrderMatch).toBe(true);

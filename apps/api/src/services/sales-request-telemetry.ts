@@ -71,6 +71,7 @@ export type SalesRequestProviderFailureTelemetry = Pick<
 	| "repairAttempted"
 	| "configurationIssue"
 	| "routeFailureKind"
+	| "catalogFailureKind"
 	| "schemaIssues"
 >;
 
@@ -499,6 +500,11 @@ export function normalizeSalesRequestProviderFailureTelemetry(value: unknown) {
 		input.routeFailureKind === "service-route" ||
 		input.routeFailureKind === "swing-route"
 	) ? input.routeFailureKind : undefined;
+	const catalogFailureKind = configurationIssue === "catalog" && (
+		input.catalogFailureKind === "unavailable-component" ||
+		input.catalogFailureKind === "hidden-component" ||
+		input.catalogFailureKind === "selection-shape"
+	) ? input.catalogFailureKind : undefined;
 	const finishReason =
 		input.finishReason === "length" ||
 		input.finishReason === "stop" ||
@@ -544,6 +550,7 @@ export function normalizeSalesRequestProviderFailureTelemetry(value: unknown) {
 		...(repairAttempted !== undefined ? { repairAttempted } : {}),
 		...(configurationIssue ? { configurationIssue } : {}),
 		...(routeFailureKind ? { routeFailureKind } : {}),
+		...(catalogFailureKind ? { catalogFailureKind } : {}),
 		...(schemaIssues.length ? { schemaIssues } : {}),
 	};
 	return Object.keys(normalized).length ? normalized : null;
@@ -982,6 +989,11 @@ export function aggregateSalesRequestProviderDiagnostics(
 		model: string;
 		stage: string;
 		cause?: "json-parse" | "schema-validation";
+		finishReason?: string;
+		repairAttempted?: boolean;
+		configurationIssue?: string;
+		routeFailureKind?: string;
+		catalogFailureKind?: string;
 		statusCode?: number;
 		providerStatus?: string;
 		retryable?: boolean;
@@ -1043,6 +1055,21 @@ export function aggregateSalesRequestProviderDiagnostics(
 			stage,
 			...(payload?.structuredOutputCause
 				? { cause: payload.structuredOutputCause }
+				: {}),
+			...(payload?.finishReason
+				? { finishReason: payload.finishReason }
+				: {}),
+			...(payload?.repairAttempted !== undefined
+				? { repairAttempted: payload.repairAttempted }
+				: {}),
+			...(payload?.configurationIssue
+				? { configurationIssue: payload.configurationIssue }
+				: {}),
+			...(payload?.routeFailureKind
+				? { routeFailureKind: payload.routeFailureKind }
+				: {}),
+			...(payload?.catalogFailureKind
+				? { catalogFailureKind: payload.catalogFailureKind }
 				: {}),
 			...(payload?.statusCode !== undefined
 				? { statusCode: payload.statusCode }

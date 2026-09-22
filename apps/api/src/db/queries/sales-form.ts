@@ -388,7 +388,7 @@ export async function createWorkflowComponent(
 	});
 }
 
-async function validateWorkflowVisibilityRules(
+export async function validateWorkflowVisibilityRules(
 	ctx: TRPCContext,
 	variations: z.infer<
 		typeof saveWorkflowComponentVisibilitySchema
@@ -407,17 +407,20 @@ async function validateWorkflowVisibilityRules(
 			},
 		},
 	});
-	if (steps.length !== stepUids.length) {
+	const allowedByStep = new Map<string, Set<string>>();
+	for (const step of steps) {
+		const stepUid = String(step.uid || "");
+		if (!stepUid) continue;
+		const allowed = allowedByStep.get(stepUid) || new Set<string>();
+		for (const component of step.stepProducts) {
+			const componentUid = String(component.uid || "");
+			if (componentUid) allowed.add(componentUid);
+		}
+		allowedByStep.set(stepUid, allowed);
+	}
+	if (stepUids.some((stepUid) => !allowedByStep.has(stepUid))) {
 		throw new Error("A visibility rule references an unavailable step.");
 	}
-	const allowedByStep = new Map(
-		steps.map((step) => [
-			String(step.uid || ""),
-			new Set(
-				step.stepProducts.map((component) => String(component.uid || "")),
-			),
-		]),
-	);
 	for (const rule of rules) {
 		const allowed = allowedByStep.get(rule.stepUid);
 		if (!allowed || rule.componentsUid.some((uid) => !allowed.has(uid))) {

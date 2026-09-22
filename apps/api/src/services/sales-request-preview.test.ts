@@ -157,6 +157,8 @@ test("provider failures retain bounded usage metadata without retaining output",
 			createProvider: () => async () => {
 				throw new SalesRequestProviderExecutionError({
 					stage: "structured-output",
+					configurationIssue: "route",
+					routeFailureKind: "outside-step",
 					finishReason: "stop",
 					inputTokens: 321,
 					outputTokens: 45,
@@ -177,6 +179,11 @@ test("provider failures retain bounded usage metadata without retaining output",
 		value: {
 			status: "provider-error",
 			failureStage: "structured-output",
+			issueCounts: { providerFailure: {
+				finishReason: "stop",
+				configurationIssue: "route",
+				routeFailureKind: "outside-step",
+			} },
 			inputTokens: 321,
 			outputTokens: 45,
 		},

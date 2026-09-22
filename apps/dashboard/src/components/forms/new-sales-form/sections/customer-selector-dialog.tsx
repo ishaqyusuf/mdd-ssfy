@@ -12,11 +12,18 @@ import {
 	DialogTitle,
 } from "@gnd/ui/dialog";
 import { Icons } from "@gnd/ui/icons";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNewSalesFormCustomerPickerQuery } from "../api";
+import { toast } from "@gnd/ui/use-toast";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	useCustomerProfilesQuery,
+	useNewSalesFormCustomerPickerQuery,
+} from "../api";
 import { useNewSalesFormStore } from "../store";
 import { useCreateFormQueryParams } from "../use-create-form-query-params";
-import { resolveCustomerFormSelection } from "./customer-form-selection";
+import {
+	resolveCustomerFormSelection,
+	resolveCustomerProfileTransition,
+} from "./customer-form-selection";
 
 interface Props {
 	mode: "create" | "edit";
@@ -29,6 +36,9 @@ interface Props {
 export function CustomerSelectorDialog(props: Props) {
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const setMeta = useNewSalesFormStore((s) => s.setMeta);
+	const setCustomerProfileMeta = useNewSalesFormStore(
+		(s) => s.setCustomerProfileMeta,
+	);
 	const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
 	const [, setParams] = useCreateFormQueryParams();
 	const { params: createCustomerParams, setParams: setCreateCustomerParams } =
@@ -46,6 +56,7 @@ export function CustomerSelectorDialog(props: Props) {
 		type: props.type,
 		limit: 10,
 	});
+	const customerProfiles = useCustomerProfilesQuery(true);
 	const results = hasSearchText
 		? (searchCustomers.data ?? [])
 		: (recentCustomers.data ?? []);
@@ -57,6 +68,43 @@ export function CustomerSelectorDialog(props: Props) {
 			return "Searching customers and addresses...";
 		return "No customers matched that name, phone, profile, or address.";
 	}, [hasSearchText, searchCustomers.isPending]);
+	const applyCustomerSelection = useCallback(
+		async (selection: ReturnType<typeof resolveCustomerFormSelection>) => {
+			const currentProfileId =
+				useNewSalesFormStore.getState().record?.form.customerProfileId ?? null;
+			if (currentProfileId === selection.customerProfileId) {
+				setMeta(selection);
+				return true;
+			}
+			const profiles =
+				customerProfiles.data ?? (await customerProfiles.refetch()).data ?? [];
+			const transition = resolveCustomerProfileTransition({
+				currentProfileId,
+				nextProfileId: selection.customerProfileId,
+				profiles,
+			});
+			if (transition.status === "unavailable") {
+				toast({
+					variant: "destructive",
+					title: "Customer pricing unavailable",
+					description: "Reload the customer profiles and try again.",
+				});
+				return false;
+			}
+			setCustomerProfileMeta(
+				selection,
+				transition.previousCoefficient,
+				transition.nextCoefficient,
+			);
+			return true;
+		},
+		[
+			customerProfiles.data,
+			customerProfiles.refetch,
+			setCustomerProfileMeta,
+			setMeta,
+		],
+	);
 
 	useEffect(() => {
 		if (!props.open) return;
@@ -96,32 +144,31 @@ export function CustomerSelectorDialog(props: Props) {
 			const savedCustomer = await getCustomerFormAction(createdCustomerId);
 			if (cancelled || !savedCustomer?.customerId) return;
 
-			setMeta(
-				resolveCustomerFormSelection({
-					current: {
-						customerId: currentRecord.form.customerId,
-						customerProfileId: currentRecord.form.customerProfileId,
-						billingAddressId: currentRecord.form.billingAddressId,
-						shippingAddressId: currentRecord.form.shippingAddressId,
-						paymentTerm: currentRecord.form.paymentTerm,
-						taxCode: currentRecord.form.taxCode,
-					},
-					editedCustomerId: createCustomerParams.customerId,
-					savedCustomer: {
-						customerId: savedCustomer.customerId,
-						profileId: savedCustomer.profileId
-							? Number(savedCustomer.profileId)
-							: null,
-						addressId: savedCustomer.addressId ?? null,
-						billingAddressId:
-							createCustomerParams.payload?.billingAddressId ?? null,
-						shippingAddressId:
-							createCustomerParams.payload?.shippingAddressId ?? null,
-						netTerm: savedCustomer.netTerm || null,
-						taxCode: savedCustomer.taxCode || null,
-					},
-				}),
-			);
+			const selection = resolveCustomerFormSelection({
+				current: {
+					customerId: currentRecord.form.customerId,
+					customerProfileId: currentRecord.form.customerProfileId,
+					billingAddressId: currentRecord.form.billingAddressId,
+					shippingAddressId: currentRecord.form.shippingAddressId,
+					paymentTerm: currentRecord.form.paymentTerm,
+					taxCode: currentRecord.form.taxCode,
+				},
+				editedCustomerId: createCustomerParams.customerId,
+				savedCustomer: {
+					customerId: savedCustomer.customerId,
+					profileId: savedCustomer.profileId
+						? Number(savedCustomer.profileId)
+						: null,
+					addressId: savedCustomer.addressId ?? null,
+					billingAddressId:
+						createCustomerParams.payload?.billingAddressId ?? null,
+					shippingAddressId:
+						createCustomerParams.payload?.shippingAddressId ?? null,
+					netTerm: savedCustomer.netTerm || null,
+					taxCode: savedCustomer.taxCode || null,
+				},
+			});
+			if (!(await applyCustomerSelection(selection))) return;
 			patchRecord({
 				customer: {
 					id: savedCustomer.customerId,
@@ -155,11 +202,11 @@ export function CustomerSelectorDialog(props: Props) {
 		createCustomerParams?.payload?.customerId,
 		createCustomerParams?.payload?.billingAddressId,
 		createCustomerParams?.payload?.shippingAddressId,
+		applyCustomerSelection,
 		patchRecord,
 		props.mode,
 		props.onOpenChange,
 		setCreateCustomerParams,
-		setMeta,
 		setParams,
 	]);
 
@@ -173,13 +220,17 @@ export function CustomerSelectorDialog(props: Props) {
 	}
 
 	async function handleSelectCustomer(customer: (typeof results)[number]) {
-		setMeta({
+		const currentPaymentTerm =
+			useNewSalesFormStore.getState().record?.form.paymentTerm ?? null;
+		const selection = {
 			customerId: customer.id,
 			customerProfileId: customer.profileId ?? null,
 			billingAddressId: customer.billingAddressId ?? null,
 			shippingAddressId: customer.shippingAddressId ?? null,
+			paymentTerm: currentPaymentTerm,
 			taxCode: customer.taxCode || null,
-		});
+		};
+		if (!(await applyCustomerSelection(selection))) return;
 		patchRecord({
 			customer: {
 				id: customer.id,

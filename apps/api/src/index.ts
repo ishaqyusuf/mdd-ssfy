@@ -21,6 +21,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { captureApiError, captureTrpcError } from "./observability/sentry";
 import { getRestErrorResponse } from "./rest/error-response";
 import { handleReliabilityHealthRequest } from "./rest/reliability-health";
+import { handleMessagingConnection } from "./rest/messaging-connection";
 import { readConfiguredReliabilityHealth } from "./rest/reliability-health-sources";
 import { resolveSentryRegistration } from "./rest/reliability-registration";
 import { handleSentryAlertRequest } from "./rest/reliability-sentry";
@@ -35,6 +36,18 @@ import { appRouter } from "./trpc/routers/_app";
 import { storefrontAppRouter } from "./trpc/routers/storefront-app";
 
 const app = new OpenAPIHono<Context>(); //.basePath("/api");
+
+app.use("/api/messaging/connection/*", cors({
+	origin: (origin) => {
+		const dashboard = process.env.NEXT_PUBLIC_APP_URL;
+		const extension = process.env.MESSAGING_EXTENSION_ORIGIN;
+		return origin === extension || (dashboard && origin === new URL(dashboard).origin) ? origin : "";
+	},
+	credentials: true,
+	allowMethods: ["POST", "OPTIONS"],
+	allowHeaders: ["Authorization", "Content-Type"],
+}));
+app.post("/api/messaging/connection/:action", (c) => handleMessagingConnection(c.req.raw));
 
 app.use(secureHeaders());
 app.use("*", async (c, next) => {

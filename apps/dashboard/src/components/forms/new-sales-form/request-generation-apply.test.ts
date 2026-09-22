@@ -187,17 +187,26 @@ describe("sales request generation apply boundary", () => {
 			reason: "Two finishes match.",
 		});
 		let proposalUnresolved = 0;
+		let reviewNotes: { lineUid: string | null; reason: string }[] | null | undefined;
 		const result = await applySalesRequestGenerationProposal({
 			...applyInput({ preview: unresolvedPreview }),
 			allowUnresolvedDraft: true,
 			applyProposal: (proposal) => {
 				proposalUnresolved = proposal.unresolved.length;
+				reviewNotes = proposal.record.form.customerRequestReview;
 				return { status: "applied" as const };
 			},
 		});
 
 		expect(result.status).toBe("applied");
 		expect(proposalUnresolved).toBe(1);
+		expect(reviewNotes).toEqual([
+			{
+				lineUid: null,
+				reason: "Review unspecified details and any draft defaults before saving.",
+			},
+			{ lineUid: "generated-line", reason: "Two finishes match." },
+		]);
 	});
 
 	test("requires a current configuration validator and rejects a stale revision", async () => {

@@ -97,13 +97,15 @@ export function salesRequestMaxOutputTokens(sourceText: string) {
 	const rows = sourceText.split(/\r?\n/).map((row) => row.trim());
 	const roomRows = rows.filter((row) =>
 		/^[^:\n]{2,80}\s+-\s+\d{2,3}\s*["”']?\s*[x×]\s*\d{2,3}/i.test(row));
+	const architecturalRows = rows.filter((row) =>
+		/^(?:(?:bifold|pocket)\s+)?(?:[1-9][-/](?:1[01]|\d)|\d{2})\s+[1-9][-/](?:1[01]|\d)\b/i.test(row));
 	const sideHeadings = new Set(
 		rows.filter((row) => /^(left|right) side$/i.test(row))
 			.map((row) => row.toLowerCase()),
 	);
 	const sideDoorRows = rows.filter((row) =>
 		/^(?:\d+\s*[x×]\s*)?\d{2}\s*["”]\s*(?:LT|RT)?\s*=/.test(row));
-	return roomRows.length >= 12 ||
+	return roomRows.length >= 12 || architecturalRows.length >= 8 ||
 		(sideHeadings.size === 2 && sideDoorRows.length >= 12)
 		? SALES_REQUEST_DENSE_SCHEDULE_MAX_OUTPUT_TOKENS
 		: SALES_REQUEST_MAX_OUTPUT_TOKENS;
@@ -165,6 +167,7 @@ export type SalesRequestProviderFailureDiagnostic = {
 	repairAttempted?: boolean;
 	configurationIssue?: "source" | "source-coverage" | "moulding-product" | "moulding-quantity" | "interpretation-source" | "interpretation-route" | "interpretation-title" | "custom-source" | "service-source" | "door-dimension-source" | "delivery-option-source" | "delivery-amount-source" | "route" | "catalog" | "dimensions" | "mouldings" | "interpretation" | "other";
 	routeFailureKind?: "missing-root" | "interior-for-exterior" | "slab-for-prehung" | "outside-step" | "service-route" | "swing-route";
+	catalogFailureKind?: "unavailable-component" | "hidden-component" | "selection-shape";
 	schemaIssues?: Array<{
 		code: string;
 		path: string;
@@ -445,6 +448,8 @@ export function safeConfigurationIssue(message: string): SalesRequestProviderFai
 		return "door-dimension-source";
 	if (/Delivery option .* must be stated/i.test(message))
 		return "delivery-option-source";
+	if (/Door design that does not match the six-panel customer request|door panel Height from the overall sidelite assembly size/i.test(message))
+		return "source";
 	if (/delivery amount must be stated/i.test(message))
 		return "delivery-amount-source";
 	if (/must be stated in the customer request|must be quoted from the customer request/i.test(message))
@@ -470,9 +475,22 @@ export function safeRouteFailureKind(message: string): SalesRequestProviderFailu
 	return undefined;
 }
 
+export function safeCatalogFailureKind(message: string): SalesRequestProviderFailureDiagnostic["catalogFailureKind"] {
+	if (/references an unavailable component for step/i.test(message)) return "unavailable-component";
+	if (/selects a component hidden by configured rules/i.test(message)) return "hidden-component";
+	if (/uses the wrong selection shape for step/i.test(message)) return "selection-shape";
+	return undefined;
+}
+
 function configurationRepairFeedback(message: string) {
 	if (/The door schedule has \d+ explicit entries/i.test(message)) {
 		return `${message} Count each separate door schedule row, including repeated sizes, bifolds, pocket doors and garage doors. Keep compatible units with their exact source count; for each unsupported or ambiguous row include its original dimension and descriptor in unresolved. Do not omit rows or increase another line's quantity to hide omissions.`;
+	}
+	if (/selects a Door design that does not match the six-panel customer request/i.test(message)) {
+		return `${message} Remove the incompatible Door choice. Select a visible six-panel fiberglass impact panel only if its configured category and route match the request; otherwise leave Door unresolved. Keep the PVC frame, right sidelite, overall assembly size and brick moulding as separate Sales review facts. Do not substitute a lite or flush design.`;
+	}
+	if (/selects a door panel Height from the overall sidelite assembly size/i.test(message)) {
+		return `${message} The 69-5/8 x 80 overall size includes the right sidelite. Do not apply its 80-inch height to the 36-inch door panel without a panel-height statement or confirmed answer. Remove the ungrounded Height and dependent HPT size; keep the panel width, RH outswing, overall assembly size, sidelite and PVC frame in Sales review and ask for the panel height.`;
 	}
 	if (/The door schedule selects \d+ units/i.test(message)) {
 		return `${message} Count only exact stated architectural dimensions as selected HPT units. A bare width followed by a slash height, such as 28 8/0, needs its own width-unit question; do not use another row's 2/8 size to resolve it.`;
@@ -484,7 +502,7 @@ function configurationRepairFeedback(message: string) {
 		return `${message} Keep the exact room name in an unresolved question. Do not assign another room's size or product to this blank entry.`;
 	}
 	if (/width \d+' must remain an ambiguous question/i.test(message)) {
-		return `${message} Ask the customer whether the single apostrophe means feet or was intended as inches. Keep the room name and quoted width in that question; retain the explicit height. Do not select a door width until the customer confirms its unit.`;
+		return `${message} For a complete named door row, treat a plausible door width written with one apostrophe as the likely inches typo only when its exact converted dimension is available for that line's selected configuration. Keep the line and add an unsupported widthAssumption review quoting the conversion. If the exact size is unavailable, leave the row for Sales review without substituting another size.`;
 	}
 	if (/The request includes \d+ (?:door stop|base|casing|crown) pieces|requested pocket door hardware is missing/i.test(message)) {
 		return `${message} Keep the stated accessory count and description. Select a catalog component only when it matches; otherwise add a quantity-preserving unresolved fact for that accessory. Do not hide it in another line's quantity.`;
@@ -495,12 +513,15 @@ function configurationRepairFeedback(message: string) {
 	if (/line uses a different size than the customer request/i.test(message)) {
 		return `${message} Compare this named room against its exact source row. Use that room's stated width, height and count only when the selected native route supports them; otherwise remove the conflicting size and keep the room and its exact source dimension in an unresolved Sales review note. Do not borrow another room's size or ask the customer to restate a dimension already supplied.`;
 	}
+	if (/selects Height \d+[-/]\d+, which is not stated in the customer request/i.test(message)) {
+		return `${message} The source may state only a door count and width, such as 2 x 30-inch doors. That is not a two-dimensional door size and does not supply a height. Remove every ungrounded Height selection and its dependent HPT dimensions; retain each affected side, room, width, handing and count in separate unresolved Sales review facts, then ask only for the missing height. Do not substitute a standard height.`;
+	}
 	const category = safeConfigurationIssue(message);
 	if (category === "moulding-product") {
-		return `${message} Remove the unsupported Moulding component and its row. Ask for the catalog-identifying profile in unresolved; retain the customer's stated linear feet and piece counts in the question. Do not substitute a different profile.`;
+		return `${message} Review every selected Moulding product, including boards and baseboard on each side. Remove each selection whose catalog identity is not stated or confirmed, not just the product named in this error. Keep a separate line-scoped unresolved review for each affected source line with its stated side, linear feet or piece count. Do not derive pieces from an unstated stock length or reduce a stated count to one. Do not substitute a different profile.`;
 	}
 	if (category === "door-dimension-source") {
-		return `${message} Remove the unsupported housePackageTool dimension for the affected line. Keep the stated count and any reliable width or height in unresolved; ask only for the missing or ambiguous measurement. A single apostrophe is feet notation, so a value such as 30' cannot silently become 30 inches. Do not invent a replacement size.`;
+		return `${message} Remove the unsupported housePackageTool dimension for the affected line. Keep the stated count and any reliable width or height in unresolved; ask only for a genuinely missing measurement. For a complete named door row, a plausible door width written with one apostrophe may use the exact inches conversion only when that dimension is available for the selected configuration, with an unsupported widthAssumption Sales review note. Do not invent or substitute another size.`;
 	}
 	if (category === "dimensions") {
 		return `${message} Compare each door's requested width and height with the selected route, Door Configuration, Height and available housePackageTool sizes. An 80-inch height is 6-8, not 8-0; 8-0 means 96 inches. Keep compatible requested door rows. For an unavailable size, omit its invalid housePackageTool row and record its exact requested dimension, count and handing as unsupported in unresolved; never substitute another height or width. If a shorthand width is ambiguous, ask for confirmation instead of guessing.`;
@@ -778,11 +799,30 @@ export function createSalesRequestProvider(options: {
 					},
 				);
 			}
+			if (
+				options.maxOutputRepairs === 1 &&
+				!repair &&
+				result.text?.trim() &&
+				result.finishReason !== "length" &&
+				!input.signal.aborted
+			) {
+				return execute(input, {
+					text: result.text,
+					feedback: "The previous response was not a valid seed JSON object.",
+					inputTokens: result.usage.inputTokens ?? 0,
+					outputTokens: result.usage.outputTokens ?? 0,
+				});
+			}
 			throw new SalesRequestProviderExecutionError({
 				stage: "structured-output",
+				repairAttempted: Boolean(repair),
 				finishReason: result.finishReason,
-				inputTokens: totalInputTokens,
-				outputTokens: totalOutputTokens,
+				...(finiteToken(totalInputTokens) !== undefined
+					? { inputTokens: finiteToken(totalInputTokens) }
+					: {}),
+				...(finiteToken(totalOutputTokens) !== undefined
+					? { outputTokens: finiteToken(totalOutputTokens) }
+					: {}),
 			});
 		}
 		if (selection.provider === "deepseek") {
@@ -866,6 +906,8 @@ export function createSalesRequestProvider(options: {
 				}
 				const routeFailureKind = configurationError
 					? safeRouteFailureKind(configurationError) : undefined;
+				const catalogFailureKind = configurationError
+					? safeCatalogFailureKind(configurationError) : undefined;
 				throw new SalesRequestProviderExecutionError({
 					stage: "structured-output",
 					structuredOutputCause: "schema-validation",
@@ -874,6 +916,7 @@ export function createSalesRequestProvider(options: {
 						? { configurationIssue: safeConfigurationIssue(configurationError) }
 						: {}),
 					...(routeFailureKind ? { routeFailureKind } : {}),
+					...(catalogFailureKind ? { catalogFailureKind } : {}),
 					...(schemaIssues ? { schemaIssues } : {}),
 					...(result.finishReason ? { finishReason: result.finishReason } : {}),
 					...(finiteToken(totalInputTokens) !== undefined

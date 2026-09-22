@@ -19,7 +19,7 @@ describe("assistant runtime", () => {
 			userId: 42,
 			scopeType: "organization",
 			scopeId: "7",
-			grants: { viewOrders: true, viewCustomers: true },
+			grants: { viewOrders: true, viewSalesCustomers: true },
 		};
 		expect(() =>
 			assertAssistantActorContinuation(admitted, {
@@ -30,7 +30,7 @@ describe("assistant runtime", () => {
 		expect(() =>
 			assertAssistantActorContinuation(admitted, {
 				...admitted,
-				grants: { viewOrders: true, viewCustomers: false },
+				grants: { viewOrders: true, viewSalesCustomers: false },
 			}),
 		).toThrow("Assistant access is disabled");
 		expect(() =>
@@ -235,8 +235,8 @@ describe("assistant runtime", () => {
 			provider: "openai",
 			model: "gpt-5-mini",
 			modelIdentity: "openai:gpt-5-mini",
-			catalogVersion: "assistant-catalog-v8",
-			promptVersion: "gnd-assistant-prompt-v2",
+			catalogVersion: "assistant-catalog-v12",
+			promptVersion: "gnd-assistant-prompt-v7",
 		});
 	});
 
@@ -293,7 +293,9 @@ describe("assistant runtime", () => {
 		});
 
 		environment.ASSISTANT_DISABLED_PROVIDERS = "openai";
-		const prepare = settings?.prepareStep as (input: unknown) => Promise<unknown>;
+		const prepare = settings?.prepareStep as (
+			input: unknown,
+		) => Promise<unknown>;
 		await expect(prepare({ messages: [] })).rejects.toThrow(
 			"provider is disabled",
 		);
@@ -536,6 +538,13 @@ describe("assistant runtime", () => {
 							output: {
 								structuredContent: {
 									status: "conflict",
+									sources: [
+										{
+											kind: "record",
+											id: "order-1",
+											label: "Order 1 duplicate",
+										},
+									],
 									entities: [
 										{
 											kind: "order",
@@ -1716,6 +1725,185 @@ describe("assistant runtime", () => {
 		expect(result.assistantText).toBe("Saved answer");
 	});
 
+	test("emits a trusted revision-bound manual payment proposal", async () => {
+		const chunks: unknown[] = [];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { finance_prepare_manual_payment: {} },
+			trustedResultTools: ["finance_prepare_manual_payment"],
+			trustedResultToolEffects: { finance_prepare_manual_payment: "draft" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-call",
+							toolCallId: "payment-1",
+							toolName: "finance_prepare_manual_payment",
+							input: {
+								orderNo: "09502PC",
+								amount: 25,
+								paymentMethod: "cash",
+							},
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "payment-1",
+							toolName: "finance_prepare_manual_payment",
+							output: {
+								structuredContent: {
+									status: "success",
+									data: {
+										order: {
+											orderNo: "09502PC",
+											revision: "order-revision-1",
+										},
+										customer: { accountNo: "ada-millwork" },
+										payment: {
+											amount: 25,
+											paymentMethod: "cash",
+											checkNo: null,
+										},
+										expectedAmountDue: "34.56",
+									},
+								},
+							},
+						};
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 4 }),
+				}),
+			}),
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Record the cash payment" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(chunks).toContainEqual({
+			type: "data-assistant-proposal-action",
+			id: "proposal-action-payment-1",
+			data: {
+				toolId: "finance_record_manual_payment",
+				toolVersion: 1,
+				label: "Record manual payment",
+				input: {
+					orderNo: "09502PC",
+					accountNo: "ada-millwork",
+					amount: 25,
+					paymentMethod: "cash",
+					expectedAmountDue: "34.56",
+					expectedRevision: "order-revision-1",
+				},
+			},
+		});
+	});
+
+	test("emits a trusted revision-bound Square refund proposal", async () => {
+		const chunks: unknown[] = [];
+		const runtime = createAssistantRuntime({
+			selection: { provider: "openai", model: "gpt-5-mini" },
+			createModel: () => ({}) as never,
+			modelTools: { finance_prepare_square_refund: {} },
+			trustedResultTools: ["finance_prepare_square_refund"],
+			trustedResultToolEffects: { finance_prepare_square_refund: "draft" },
+			createAgent: () => ({
+				stream: async () => ({
+					textStream: (async function* () {})(),
+					fullStream: (async function* () {
+						yield {
+							type: "tool-call",
+							toolCallId: "refund-1",
+							toolName: "finance_prepare_square_refund",
+							input: {
+								orderNo: "09646AD",
+								amount: 0.01,
+								reason: "Assistant local sandbox acceptance",
+							},
+						};
+						yield {
+							type: "tool-result",
+							toolCallId: "refund-1",
+							toolName: "finance_prepare_square_refund",
+							output: {
+								structuredContent: {
+									status: "success",
+									data: {
+										order: {
+											orderNo: "09646AD",
+											revision: "order-revision-1",
+										},
+										transactionRef: "payment:501",
+										refund: {
+											amountCents: 1,
+											reason: "Assistant local sandbox acceptance",
+											remainingRefundableCents: 44805,
+										},
+									},
+								},
+							},
+						};
+					})(),
+					totalUsage: Promise.resolve({ totalTokens: 4 }),
+				}),
+			}),
+		});
+		await runtime.execute({
+			actor: {
+				userId: 42,
+				scopeType: "user",
+				scopeId: "42",
+				fullName: null,
+				teamName: null,
+				locale: "en-US",
+				timezone: "UTC",
+				baseCurrency: "USD",
+				dateFormat: null,
+				timeFormat: 12,
+				countryCode: null,
+				grants: {},
+			},
+			modelMessages: [{ role: "user", content: "Refund one cent" }],
+			recentUploads: [],
+			mentionedIntegrations: [],
+			writer: { write: (chunk) => chunks.push(chunk) },
+			signal: new AbortController().signal,
+		});
+		expect(chunks).toContainEqual({
+			type: "data-assistant-proposal-action",
+			id: "proposal-action-refund-1",
+			data: {
+				toolId: "finance_create_square_refund",
+				toolVersion: 1,
+				label: "Create Square refund",
+				input: {
+					orderNo: "09646AD",
+					transactionRef: "payment:501",
+					amount: 0.01,
+					reason: "Assistant local sandbox acceptance",
+					expectedRemainingRefundableCents: 44805,
+					expectedRevision: "order-revision-1",
+				},
+			},
+		});
+	});
+
 	test("emits a trusted revision-bound PDF proposal action from a status result", async () => {
 		const chunks: unknown[] = [];
 		const runtime = createAssistantRuntime({
@@ -1742,7 +1930,11 @@ describe("assistant runtime", () => {
 								structuredContent: {
 									status: "success",
 									data: {
-										order: { orderNo: "09502PC", revision: "revision-7" },
+										order: {
+											orderNo: "09502PC",
+											type: "quote",
+											revision: "revision-7",
+										},
 										candidates: [],
 										pdf: { status: "missing" },
 									},
@@ -1787,6 +1979,7 @@ describe("assistant runtime", () => {
 				label: "Generate invoice PDF",
 				input: {
 					orderNo: "09502PC",
+					type: "quote",
 					mode: "invoice",
 					expectedRevision: "revision-7",
 					forceRegenerate: false,
@@ -1821,7 +2014,11 @@ describe("assistant runtime", () => {
 								structuredContent: {
 									status: "success",
 									data: {
-										order: { orderNo: "09502PC", revision: "revision-8" },
+										order: {
+											orderNo: "09502PC",
+											type: "order",
+											revision: "revision-8",
+										},
 										candidates: [],
 										pdf: { status: "running", snapshotId: "snapshot-8" },
 									},
@@ -1866,6 +2063,7 @@ describe("assistant runtime", () => {
 				label: "Cancel invoice PDF generation",
 				input: {
 					orderNo: "09502PC",
+					type: "order",
 					mode: "invoice",
 					snapshotId: "snapshot-8",
 					expectedRevision: "revision-8",

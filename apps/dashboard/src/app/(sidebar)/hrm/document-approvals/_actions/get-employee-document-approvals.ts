@@ -1,6 +1,9 @@
 "use server";
 
 import { prisma } from "@/db";
+import { requireEmployeeDocumentViewer } from "@/lib/employee-document-auth";
+import { getActiveCompanyMemberWhere } from "@gnd/auth/company-member";
+import { employeeDocumentAccessPath } from "@gnd/documents";
 import {
 	INSURANCE_DOCUMENT_TITLES,
 	parseInsuranceDocumentMeta,
@@ -20,9 +23,11 @@ function statusRank(status?: string | null) {
 }
 
 export async function getEmployeeDocumentApprovals() {
+	await requireEmployeeDocumentViewer();
 	const documents = await prisma.userDocuments.findMany({
 		where: {
 			deletedAt: null,
+			user: { is: getActiveCompanyMemberWhere() },
 			title: {
 				in: [...INSURANCE_DOCUMENT_TITLES],
 			},
@@ -56,7 +61,7 @@ export async function getEmployeeDocumentApprovals() {
 				id: document.id,
 				title: document.title,
 				description: document.description,
-				url: meta.url || document.url,
+				url: employeeDocumentAccessPath(document.id),
 				expiresAt: meta.expiresAt ?? null,
 				status: meta.status ?? "pending",
 				approvedAt: meta.approvedAt ?? null,

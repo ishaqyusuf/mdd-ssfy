@@ -379,6 +379,25 @@
 	white-space: pre-wrap;
 	margin-bottom: 30px;
 }
+.collapsibleMessageCollapsed {
+	max-height: 180px;
+	overflow: hidden;
+}
+.messageToggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 8px;
+	color: var(--muted-foreground);
+	font-size: 11px;
+	line-height: 1;
+}
+.messageToggle:hover {
+	color: var(--foreground);
+}
+.userMessage .messageToggle {
+	margin-left: auto;
+}
 .answer {
 	margin-bottom: 36px;
 }
@@ -1157,6 +1176,10 @@
 	padding: 8px 12px;
 	border-radius: 8px;
 	background: var(--muted);
+}
+.composerNotice {
+	margin-bottom: 10px;
+	padding-inline: 2px;
 }
 .reconnectActivity {
 	margin: 12px 0;

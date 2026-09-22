@@ -167,10 +167,7 @@ export async function getSalesRefundOverview(
 				payment.transaction?.paymentMethod ||
 				payment.squarePayments?.paymentMethod ||
 				"other",
-			checkNo: readCheckNo(
-				payment.meta,
-				payment.transaction?.meta,
-			),
+			checkNo: readCheckNo(payment.meta, payment.transaction?.meta),
 			status: tender?.status || payment.transaction?.status || payment.status,
 			authorName: payment.transaction?.author?.name || null,
 			receivedCents,
@@ -200,6 +197,7 @@ export async function getSalesRefundOverview(
 						amountCents: tender.amountCents,
 						tipCents: tender.tipCents,
 						currency: tender.currency,
+						paidAt: tender.paidAt,
 						eligibleOrders: eligibleOrdersByLegacyId.get(
 							tender.legacySquarePaymentId || "",
 						) || [

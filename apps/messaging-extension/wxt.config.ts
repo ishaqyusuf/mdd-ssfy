@@ -10,7 +10,10 @@ export default defineConfig({
     version: "0.1.0",
     permissions: ["storage", "sidePanel"],
     // Additional business surfaces require an explicit grant in a later ticket.
-    optional_host_permissions: ["https://business.facebook.com/*"],
+    optional_host_permissions: [
+      "https://business.facebook.com/*",
+      `${new URL(process.env.WXT_PUBLIC_GND_APP_ORIGIN || "http://localhost:3010").origin}/*`,
+    ],
   },
   vite: () => ({ plugins: [tailwindcss()] }),
 });

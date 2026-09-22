@@ -295,6 +295,29 @@ describe("high-risk tRPC permission boundaries", () => {
 		}
 	});
 
+	test("Sales payment processor effects require order-payment editing permission", () => {
+		const processor = source("sales-payment-processor.route.ts");
+		for (const mutation of [
+			"applyPayment",
+			"cancelTerminalPayment",
+			"sendPaymentLink",
+		]) {
+			expectProtectedMutation(processor, mutation, '["editOrderPayment"]');
+		}
+		const status = processor.indexOf(
+			"getTerminalPaymentStatus: protectedProcedure",
+		);
+		expect(status).toBeGreaterThanOrEqual(0);
+		expect(processor.slice(status, status + 900)).toContain(
+			'["viewOrderPayment", "editOrderPayment"]',
+		);
+		expectProtectedMutation(
+			source("sales.route.ts"),
+			"createPaymentLink",
+			'["editOrderPayment"]',
+		);
+	});
+
 	test("Square refund commands require the dedicated refund permission", () => {
 		const refunds = source("sales-refunds.route.ts");
 		for (const mutation of ["create", "allocateExternal", "retry"]) {

@@ -1,5 +1,6 @@
 import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
+import { requireEmployeeDocumentViewer } from "@/lib/employee-document-auth";
 import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
@@ -14,6 +15,7 @@ export async function generateMetadata() {
 }
 
 export default async function DocumentApprovalsPage() {
+	await requireEmployeeDocumentViewer();
 	const [documents, initialSettings] = await Promise.all([
 		getEmployeeDocumentApprovals(),
 		getInitialTableSettings("document-approvals"),

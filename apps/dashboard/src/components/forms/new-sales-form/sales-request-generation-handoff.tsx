@@ -79,7 +79,6 @@ export function SalesRequestGenerationHandoff(props: {
 	useEffect(() => {
 		if (
 			!preview ||
-			preview.seed.lineItems.length === 0 ||
 			attemptedRef.current ||
 			apply.applyDisabled
 		)
@@ -171,10 +170,7 @@ export function SalesRequestGenerationHandoff(props: {
 				: apply.applyDisabledReason === "persisted-record"
 					? "This request needs a new, unsaved sales form."
 					: null;
-	const emptyDraft = preview.seed.lineItems.length === 0;
-	const message = emptyDraft
-		? "No draftable items were found. Review the unresolved details, then paste a revised request."
-		: failure || dependencyError;
+	const message = failure || dependencyError;
 	if (!message && props.loadingFallback) return props.loadingFallback;
 	const reviewTargets = [
 		...preview.seed.unresolved,
@@ -299,7 +295,7 @@ export function SalesRequestGenerationHandoff(props: {
 					<Button
 						type="button"
 						size="sm"
-						disabled={retrying || emptyDraft}
+						disabled={retrying}
 						onClick={async () => {
 							setRetrying(true);
 							try {

@@ -1,4 +1,8 @@
 import { getSalesRequestConfigurationContext } from "@api/services/sales-request-configuration-context";
+import {
+	projectSalesRequestPartialNativeSeed,
+	verifySalesRequestNativeSeedCompatibility,
+} from "@api/services/request-generation/native-compatibility";
 import { selectSalesRequestSettingId } from "@api/services/sales-request-preview";
 import { authorizeSalesRequestPreview } from "@api/services/sales-request-preview-dependencies";
 import type { Database } from "@gnd/db";
@@ -13,12 +17,21 @@ import { getAssistantRuntimeConfiguration } from "./runtime-settings";
 
 const HANDOFF_AGE_MS = 15 * 60 * 1000;
 
+const defaultHandoffDependencies = {
+	authorizeSalesRequestPreview,
+	getAssistantRuntimeConfiguration,
+	getSalesRequestConfigurationContext,
+	getSalesRequestCatalogSettings,
+	isSalesRequestCatalogPublicationCurrent,
+};
+
 /** The Sales form reads the saved preview itself; a URL never carries its contents. */
 export async function getAssistantSalesDraftHandoff(
 	db: Database,
 	actor: AssistantToolActor,
 	input: { conversationId: string; generationId: string },
 	now = new Date(),
+	dependencies = defaultHandoffDependencies,
 ) {
 	const conversation = await db.assistantConversation.findFirst({
 		where: {
@@ -41,7 +54,7 @@ export async function getAssistantSalesDraftHandoff(
 			generationId: input.generationId,
 			status: "ready",
 		},
-		select: { finalPreview: true, completedAt: true, saleType: true },
+		select: { finalPreview: true, completedAt: true, saleType: true, sourceText: true },
 	});
 	if (session) {
 		const retained = assistantSalesRequestDraftPreviewSchema.safeParse(session.finalPreview);
@@ -105,21 +118,22 @@ export async function getAssistantSalesDraftHandoff(
 	if (!preview.success || preview.data.generationId !== input.generationId) {
 		throw new TRPCError({ code: "NOT_FOUND" });
 	}
-	if (preview.data.seed.lineItems.length === 0) {
+	if (preview.data.seed.lineItems.length === 0 &&
+		preview.data.seed.unresolved.length === 0) {
 		throw new TRPCError({
 			code: "CONFLICT",
 			message:
-				"No Sales item could be mapped. Review the unresolved request in Assistant.",
+				"No Sales items or review details were retained. Start a new request.",
 		});
 	}
 
-	await authorizeSalesRequestPreview({
+	await dependencies.authorizeSalesRequestPreview({
 		db,
 		userId: actor.userId,
 		type: preview.data.type,
 	});
 	const [model, settings] = await Promise.all([
-		getAssistantRuntimeConfiguration(db),
+		dependencies.getAssistantRuntimeConfiguration(db),
 		db.settings.findMany({
 			where: { type: "sales-settings", deletedAt: null },
 			select: { id: true },
@@ -136,13 +150,13 @@ export async function getAssistantSalesDraftHandoff(
 	}
 	const settingId = selectSalesRequestSettingId(settings.map((row) => row.id));
 	const [snapshot, catalog] = await Promise.all([
-		getSalesRequestConfigurationContext(db, { settingId }),
-		getSalesRequestCatalogSettings(db, settingId),
+		dependencies.getSalesRequestConfigurationContext(db, { settingId }),
+		dependencies.getSalesRequestCatalogSettings(db, settingId),
 	]);
 	if (
 		snapshot.scope !== preview.data.configurationScope ||
 		snapshot.revision !== preview.data.configurationRevision ||
-		!isSalesRequestCatalogPublicationCurrent(
+		!dependencies.isSalesRequestCatalogPublicationCurrent(
 			catalog.publication,
 			snapshot.revision,
 		)
@@ -152,10 +166,28 @@ export async function getAssistantSalesDraftHandoff(
 			message: "The Sales catalog changed. Generate a new draft.",
 		});
 	}
+	const projectedSeed = projectSalesRequestPartialNativeSeed(
+		preview.data.seed,
+		session?.sourceText ?? preview.data.sourceText ?? "",
+		snapshot.configurationJson,
+	);
+	const compatibility = await verifySalesRequestNativeSeedCompatibility(
+		projectedSeed,
+		snapshot.configurationJson,
+		true,
+	);
+	if (compatibility.initializer !== "passed" || compatibility.saveReopen !== "passed") {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "The generated request is not compatible with the current Sales form. Generate a new draft.",
+		});
+	}
 	return {
 		savedSale: null,
 		preview: {
 			...preview.data,
+			seed: projectedSeed,
+			unresolvedCount: projectedSeed.unresolved.length,
 			clarification: null,
 			userReviewed: true as const,
 		},

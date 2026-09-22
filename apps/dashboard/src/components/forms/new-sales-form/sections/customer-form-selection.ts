@@ -17,6 +17,59 @@ type SavedCustomerSelection = {
 	taxCode?: string | null;
 };
 
+type CustomerProfileOption = {
+	id?: number | null;
+	coefficient?: number | string | null;
+};
+
+export type CustomerProfileTransition =
+	| {
+			status: "ready";
+			previousCoefficient: number | null;
+			nextCoefficient: number | null;
+	  }
+	| { status: "unavailable" };
+
+function resolveProfileCoefficient(
+	profileId: number | null,
+	profiles: readonly CustomerProfileOption[],
+) {
+	if (profileId == null) return null;
+	const profile = profiles.find(
+		(candidate) => Number(candidate.id) === Number(profileId),
+	);
+	if (!profile) return undefined;
+	if (profile.coefficient == null) return null;
+	const coefficient = Number(profile.coefficient);
+	return Number.isFinite(coefficient) && coefficient > 0
+		? coefficient
+		: undefined;
+}
+
+export function resolveCustomerProfileTransition({
+	currentProfileId,
+	nextProfileId,
+	profiles,
+}: {
+	currentProfileId: number | null;
+	nextProfileId: number | null;
+	profiles: readonly CustomerProfileOption[];
+}): CustomerProfileTransition {
+	const previousCoefficient = resolveProfileCoefficient(
+		currentProfileId,
+		profiles,
+	);
+	const nextCoefficient = resolveProfileCoefficient(nextProfileId, profiles);
+	if (previousCoefficient === undefined || nextCoefficient === undefined) {
+		return { status: "unavailable" };
+	}
+	return {
+		status: "ready",
+		previousCoefficient,
+		nextCoefficient,
+	};
+}
+
 export function resolveCustomerFormSelection({
 	current,
 	editedCustomerId,

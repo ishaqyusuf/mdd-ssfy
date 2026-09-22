@@ -316,7 +316,7 @@ export function assistantFeatureKnowledgeSnapshot(
 				fields: ["id", "name", "phoneNo", "email", "deletedAt"],
 				joins: ["SalesOrders.customerId = Customers.id"],
 				authority:
-					"customers_find requires viewCustomers; summary and order history require viewCustomers plus viewOrders",
+					"customers_find requires viewSalesCustomers, editSalesCustomers, or viewOrders; summary and order history require viewOrders",
 			},
 			{
 				name: "Projects",

@@ -3,6 +3,7 @@ import type { Database } from "../index";
 import {
 	assistantCustomerScopeWhere,
 	assistantSalesScopeWhere,
+	canAssistantAccessSalesOrderId,
 	findAssistantSalesOrders,
 	getAssistantCustomerOrderHistory,
 	getAssistantCustomerSummary,
@@ -44,7 +45,26 @@ function order(overrides: Record<string, unknown> = {}) {
 
 describe("assistant Sales/customer query boundary", () => {
 	test("derives organization or representative scope only from the actor", () => {
-		expect(assistantSalesScopeWhere(organizationActor)).toEqual({ orgId: 7 });
+		expect(assistantSalesScopeWhere(organizationActor)).toEqual({
+			OR: [
+				{ orgId: 7 },
+				{
+					orgId: null,
+					salesRep: {
+						deletedAt: null,
+						accessRevokedAt: null,
+						roles: {
+							some: {
+								organizationId: 7,
+								deletedAt: null,
+								role: { deletedAt: null },
+								organization: { deletedAt: null },
+							},
+						},
+					},
+				},
+			],
+		});
 		expect(
 			assistantSalesScopeWhere({
 				userId: 42,
@@ -69,7 +89,32 @@ describe("assistant Sales/customer query boundary", () => {
 		expect(assistantCustomerScopeWhere(organizationActor)).toEqual({
 			AND: [
 				{ OR: [{ dealerOwnerId: null }, { officeVisibility: "SHARED" }] },
-				{ salesOrders: { some: { orgId: 7, deletedAt: null } } },
+				{
+					salesOrders: {
+						some: {
+							OR: [
+								{ orgId: 7 },
+								{
+									orgId: null,
+									salesRep: {
+										deletedAt: null,
+										accessRevokedAt: null,
+										roles: {
+											some: {
+												organizationId: 7,
+												deletedAt: null,
+												role: { deletedAt: null },
+												organization: { deletedAt: null },
+											},
+										},
+									},
+								},
+							],
+							type: { in: ["order", "quote"] },
+							deletedAt: null,
+						},
+					},
+				},
 			],
 		});
 	});
@@ -101,8 +146,9 @@ describe("assistant Sales/customer query boundary", () => {
 		expect(captured.skip).toBe(1);
 		expect(captured.take).toBe(2);
 		expect(captured.orderBy).toEqual({ id: "desc" });
-		expect(captured.where.AND.slice(0, 3)).toEqual([
-			{ orgId: 7 },
+		expect(captured.where.AND.slice(0, 4)).toEqual([
+			assistantSalesScopeWhere(organizationActor),
+			{ type: { in: ["order", "quote"] } },
 			{ deletedAt: null },
 			{ archivedAt: null },
 		]);
@@ -162,9 +208,37 @@ describe("assistant Sales/customer query boundary", () => {
 		const result = await getAssistantSalesOrderById(db, organizationActor, 101);
 		expect(result).toMatchObject({ id: 101, orderNo: "09502PC" });
 		expect((query as { where: { AND: unknown[] } }).where.AND).toEqual([
-			{ orgId: 7 },
+			assistantSalesScopeWhere(organizationActor),
+			{ type: { in: ["order", "quote"] } },
 			{ id: 101, deletedAt: null },
 		]);
+	});
+
+	test("excludes internal Sales history snapshots from exact record reads", async () => {
+		const queries: unknown[] = [];
+		const db = {
+			salesOrders: {
+				findFirst: async (input: unknown) => {
+					queries.push(input);
+					return null;
+				},
+				findMany: async (input: unknown) => {
+					queries.push(input);
+					return [];
+				},
+			},
+		} as unknown as Database;
+		await canAssistantAccessSalesOrderId(db, organizationActor, 101);
+		await getAssistantSalesOrderById(db, organizationActor, 101);
+		await getAssistantSalesOrderCandidates(db, organizationActor, {
+			orderNo: "09502PC",
+		});
+		expect(queries).toHaveLength(3);
+		for (const query of queries) {
+			expect(JSON.stringify(query)).toContain(
+				'"type":{"in":["order","quote"]}',
+			);
+		}
 	});
 
 	test("bounds payments and revises detailed status when related evidence changes", async () => {
@@ -205,6 +279,7 @@ describe("assistant Sales/customer query boundary", () => {
 			{ orderNo: "09502PC" },
 		);
 		expect(first[0]?.revision).not.toBe(second[0]?.revision);
+		expect(first[0]?.summaryRevision).toBe(second[0]?.summaryRevision);
 		expect(
 			(query as { select: { payments: { take: number } } }).select.payments
 				.take,
@@ -310,9 +385,21 @@ describe("assistant Sales/customer query boundary", () => {
 			},
 		} as unknown as Database;
 		const result = await getAssistantCustomerSummary(db, organizationActor, 9);
-		const serializedQuery = JSON.stringify(query);
+		const captured = query as {
+			select: {
+				_count: { select: { salesOrders: { where: unknown } } };
+				salesOrders: { where: unknown };
+			};
+		};
+		const serializedQuery = JSON.stringify(captured);
 		expect(serializedQuery).toContain('"deletedAt":null');
 		expect(serializedQuery).toContain('"archivedAt":null');
+		expect(captured.select._count.select.salesOrders.where).toMatchObject({
+			type: { in: ["order", "quote"] },
+		});
+		expect(captured.select.salesOrders.where).toMatchObject({
+			type: { in: ["order", "quote"] },
+		});
 		expect(result).toMatchObject({
 			id: 9,
 			accountNo: "cust-9",
@@ -350,7 +437,11 @@ describe("assistant Sales/customer query boundary", () => {
 			organizationActor,
 			{ customerId: 9, limit: 10 },
 		);
-		expect(JSON.stringify(salesQuery)).toContain('"customerId":9');
+		const salesAnd = (
+			salesQuery as { where: { AND: unknown[] } }
+		).where.AND;
+		expect(salesAnd).toContainEqual({ type: { in: ["order", "quote"] } });
+		expect(salesAnd).toContainEqual({ customerId: 9 });
 		expect(result?.items).toHaveLength(1);
 	});
 });

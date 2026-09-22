@@ -55,7 +55,111 @@ test("rejects slab-only fulfillment of an explicitly pre-hung request", () => {
 	)).toThrow(/slabs-only route for a pre-hung customer request/);
 });
 
-test("a named multiroom prehung schedule leaves stated handing and unstated jambs for native review", () => {
+test("drops a duplicate slabs-only line beside the requested exterior pre-hung units", () => {
+	const configuration = JSON.stringify({
+		schemaVersion: 1,
+		routes: [
+			{ itemTypeUid: "exterior", rootStepId: 1, stepUids: [] },
+			{ itemTypeUid: "slabs", rootStepId: 1, stepUids: [] },
+		],
+		steps: [{ id: 1, uid: "type", title: "Item Type", selectionMode: "single",
+			components: [["exterior", "Exterior"], ["slabs", "Door Slabs Only"]] }],
+		visibilityByComponentUid: {},
+	});
+	const seed = {
+		schemaVersion: 2 as const,
+		lineItems: [
+			{ uid: "assembled", qty: 2, formSteps: [{ stepId: 1, prodUid: "exterior" }] },
+			{ uid: "duplicate-slabs", qty: 4, formSteps: [{ stepId: 1, prodUid: "slabs" }] },
+		],
+		unresolved: [{ lineUid: "duplicate-slabs", stepId: null, field: "jambSize",
+			status: "ambiguous" as const, reason: "Confirm the jamb size." }],
+		interpretations: [{ lineUid: "duplicate-slabs", stepId: 1, field: "itemType",
+			sourceText: "dos unidades de doble puerta precolgadas para exterior",
+			selectedProdUid: "slabs", selectedTitle: "Door Slabs Only",
+			reason: "Incorrect slab route." }],
+	};
+	const source = "tamaño: 36 x 1 3/4 x 80; cantidad: 4. Necesito dos unidades de doble puerta precolgadas para exterior.";
+	const reviewed = validateNewSalesFormSeedConfiguration(seed, configuration, source);
+	expect(reviewed.lineItems.map((line) => [line.uid, line.qty])).toEqual([["assembled", 2]]);
+	expect(reviewed.interpretations).toEqual([]);
+	expect(reviewed.unresolved).toContainEqual(expect.objectContaining({
+		lineUid: null, stepId: null, field: "doorAssembly", status: "unsupported",
+		reason: expect.stringContaining("4 separate Slabs Only units"),
+	}));
+	expect(reviewed.unresolved).toContainEqual(expect.objectContaining({
+		lineUid: null, stepId: null, field: "jambSize", status: "unsupported",
+	}));
+	expect(seed.lineItems).toHaveLength(2);
+	const separateSlabs = validateNewSalesFormSeedConfiguration({
+		...seed, interpretations: [], unresolved: [],
+	}, configuration, `${source} Also four separate slabs for another opening.`);
+	expect(separateSlabs.lineItems).toHaveLength(2);
+});
+
+test("keeps an exact four-leaf fire-rated slab fallback for an unavailable exterior assembly", () => {
+	const configuration = JSON.stringify({
+		schemaVersion: 1,
+		routes: [
+			{ itemTypeUid: "exterior", rootStepId: 1, stepUids: [] },
+			{ itemTypeUid: "slabs", rootStepId: 1, stepUids: ["door"],
+				config: { noHandle: true, hasSwing: false } },
+		],
+		steps: [
+			{ id: 1, uid: "type", title: "Item Type", selectionMode: "single",
+				components: [["exterior", "Exterior"], ["slabs", "Door Slabs Only"]] },
+			{ id: 2, uid: "door", title: "Door", selectionMode: "single",
+				components: [["rated", "DOOR S.C FLUSH HARDBOARD PRIMED 1-3/4 (20MIN FIRE RATED)"]] },
+		],
+		visibilityByComponentUid: {},
+	});
+	const seed = {
+		schemaVersion: 2 as const,
+		lineItems: [
+			{ uid: "assembled", qty: 2, formSteps: [{ stepId: 1, prodUid: "exterior" }] },
+			{ uid: "fire-leaves", qty: 4, formSteps: [
+				{ stepId: 1, prodUid: "slabs" }, { stepId: 2, prodUid: "rated" },
+			], housePackageTool: { doors: [] } },
+		],
+		unresolved: [{ lineUid: "assembled", stepId: null, field: "door",
+			status: "unsupported" as const, reason: "No compatible exterior fire-rated Door." }],
+	};
+	const source = [
+		"estilo: Enrasada",
+		"tamaño: 36 x 1 3/4 x 80, con clasificación de 20 minutos",
+		"cantidad: 4",
+		"Necesito dos unidades de doble puerta precolgadas, ambas con apertura hacia afuera a la derecha, para exterior",
+	].join("\n");
+	const reviewed = validateNewSalesFormSeedConfiguration(seed, configuration, source);
+	expect(reviewed.lineItems.map((line) => [line.uid, line.qty])).toEqual([
+		["fire-leaves", 4],
+	]);
+	expect(reviewed.lineItems[0]?.housePackageTool?.doors).toEqual([
+		{ dimension: "3-0 x 6-8", totalQty: 4 },
+	]);
+	expect(reviewed.unresolved).toContainEqual(expect.objectContaining({
+		lineUid: null, field: "door", status: "unsupported",
+	}));
+	expect(reviewed.unresolved).toContainEqual(expect.objectContaining({
+		lineUid: null, field: "doorAssembly", status: "unsupported",
+		reason: expect.stringContaining("four catalog-compatible 36 x 80"),
+	}));
+
+	const wrongThickness = validateNewSalesFormSeedConfiguration(
+		seed,
+		configuration,
+		source.replace("1 3/4", "1 3/8"),
+	);
+	expect(wrongThickness.lineItems.map((line) => line.uid)).toEqual(["assembled"]);
+	const missingSourceQuantity = validateNewSalesFormSeedConfiguration(
+		seed,
+		configuration,
+		source.replace("cantidad: 4", "cantidad no especificada"),
+	);
+	expect(missingSourceQuantity.lineItems.map((line) => line.uid)).toEqual(["assembled"]);
+});
+
+test("a named multiroom prehung schedule defaults omitted configuration and reviews only lost source facts", () => {
 	const configuration = JSON.stringify({
 		schemaVersion: 1,
 		routes: [{ itemTypeUid: "interior", rootStepId: 1, stepUids: ["jamb"] }],
@@ -77,13 +181,11 @@ test("a named multiroom prehung schedule leaves stated handing and unstated jamb
 	};
 	const reviewed = validateNewSalesFormSeedConfiguration(seed, configuration, source);
 	expect(reviewed.unresolved.filter((issue) => issue.field === "jambSize"))
-		.toHaveLength(4);
-	expect(reviewed.unresolved.filter((issue) => issue.field === "jambSize" && issue.status === "unsupported"))
-		.toHaveLength(4);
+		.toEqual([]);
 	expect(reviewed.unresolved.filter((issue) => issue.field === "handing" && issue.status === "unsupported"))
 		.toHaveLength(3);
 	expect(reviewed.unresolved.filter((issue) => issue.field === "handing" && issue.status === "ambiguous"))
-		.toHaveLength(1);
+		.toEqual([]);
 });
 
 test("unstated fire rating stays in review while stated slab size remains", () => {
@@ -152,6 +254,107 @@ test("retains requested PVC brick moulding and sidelite when a partial exterior 
 	const repeat = validateNewSalesFormSeedConfiguration(reviewed, configuration, source);
 	expect(repeat.unresolved.filter((item) => item.field === "pvcBrickMoulding")).toHaveLength(1);
 	expect(repeat.unresolved.filter((item) => item.field === "sideliteAssembly")).toHaveLength(1);
+});
+
+test("an impact panel does not inherit a lite design or the sidelite assembly height", () => {
+	const config = JSON.stringify({ schemaVersion: 1,
+		routes: [{ itemTypeUid: "exterior", rootStepId: 1, stepUids: ["height", "door"] }],
+		steps: [
+			{ id: 1, uid: "type", title: "Item Type", selectionMode: "single",
+				components: [["exterior", "Exterior"]] },
+			{ id: 2, uid: "height", title: "Height", selectionMode: "single",
+				components: [["height-68", "6-8"]] },
+			{ id: 3, uid: "door", title: "Door", selectionMode: "multiple",
+				components: [["lite", "EXT DOOR 3 LITE FIBERGLASS FROSTED (HVHZ)"],
+					["panel", "6PNL FIBERGLASS SMOOTH DOOR (HVHZ) IMPACT RESISTANT"]] },
+		], visibilityByComponentUid: {} });
+	const source = ["Hurricane impact exterior door and sidelite",
+		"Style = 6-panel, Fiberglass door on PVC frame",
+		"36” door panel, RH, outswing", "Total size is 69-5/8” x 80”",
+		"Door on left and sidelite on right"].join("\n");
+	const seed = { schemaVersion: 2 as const,
+		lineItems: [{ uid: "panel", qty: 1, formSteps: [
+			{ stepId: 1, prodUid: "exterior" }, { stepId: 2, prodUid: "height-68" },
+			{ stepId: 3, meta: { selectedProdUids: ["lite"] } },
+		] }], unresolved: [] };
+	expect(() => validateNewSalesFormSeedConfiguration(seed, config, source))
+		.toThrow(/Door design that does not match the six-panel/);
+	const correctPanel = structuredClone(seed);
+	correctPanel.lineItems[0]!.formSteps[2] = { stepId: 3, meta: { selectedProdUids: ["panel"] } };
+	Object.assign(correctPanel.lineItems[0]!, {
+		housePackageTool: {
+			doors: [{ dimension: "3-0 x 6-8", swing: "outswing", lhQty: 0, rhQty: 1 }],
+		},
+	});
+	const reviewable = validateNewSalesFormSeedConfiguration(correctPanel, config, source);
+	expect(reviewable.lineItems[0]?.formSteps).toEqual([
+		{ stepId: 1, prodUid: "exterior" },
+		{ stepId: 3, meta: { selectedProdUids: ["panel"] } },
+		{ stepId: 2, prodUid: "height-68" },
+	]);
+	expect(reviewable.unresolved).toContainEqual(expect.objectContaining({
+		field: "sideliteAssembly", status: "ambiguous",
+	}));
+	expect(reviewable.lineItems[0]?.housePackageTool).toBeUndefined();
+	expect(reviewable.unresolved).toContainEqual(expect.objectContaining({
+		field: "heightAssumption", status: "unsupported",
+		reason: expect.stringContaining("80-inch overall assembly height"),
+	}));
+	const missingDoor = structuredClone(correctPanel);
+	missingDoor.lineItems[0]!.formSteps = missingDoor.lineItems[0]!.formSteps.slice(0, 2);
+	const mapped = validateNewSalesFormSeedConfiguration(missingDoor, config, source);
+	expect(mapped.lineItems[0]?.formSteps).toContainEqual({
+		stepId: 3, meta: { selectedProdUids: ["panel"] },
+	});
+	expect(mapped.interpretations).toContainEqual(expect.objectContaining({
+		field: "door", selectedProdUid: "panel",
+	}));
+	expect(() => validateNewSalesFormSeedConfiguration(correctPanel, config, source,
+		[], [{ question: "What is the door panel height?", field: "height", answer: "6-8" }]))
+		.not.toThrow();
+});
+
+test("maps one visible six-panel impact candidate and converts the stated 80-inch height", () => {
+	const config = JSON.stringify({ schemaVersion: 1,
+		routes: [{ itemTypeUid: "exterior", rootStepId: 1,
+			stepUids: ["category", "height", "door"] }],
+		steps: [
+			{ id: 1, uid: "type", title: "Item Type", selectionMode: "single",
+				components: [["exterior", "Exterior"]] },
+			{ id: 2, uid: "category", title: "Category", selectionMode: "single",
+				components: [["impact", "HVHZ impact series doors"], ["ordinary", "Non-impact doors"]] },
+			{ id: 3, uid: "height", title: "Height", selectionMode: "single",
+				components: [["height-70", "7-0"], ["height-68", "6-8"]] },
+			{ id: 4, uid: "door", title: "Door", selectionMode: "multiple",
+				components: [["panel", "6PNL FIBERGLASS SMOOTH DOOR (HVHZ) IMPACT RESISTANT"]] },
+		],
+		visibilityByComponentUid: {
+			panel: { variations: [{ rules: [
+				{ stepUid: "type", operator: "is", componentsUid: ["exterior"] },
+				{ stepUid: "category", operator: "is", componentsUid: ["impact"] },
+			] }] },
+		},
+	});
+	const source = ["Hurricane impact exterior door and sidelite",
+		"Style = 6-panel, Fiberglass door on PVC frame",
+		"36-inch door panel, RH, outswing",
+		"Total size is 69-5/8 inches x 80 inches"].join("\n");
+	const reviewed = validateNewSalesFormSeedConfiguration({
+		schemaVersion: 2,
+		lineItems: [{ uid: "line-1", qty: 1,
+			formSteps: [{ stepId: 1, prodUid: "exterior" }] }],
+		unresolved: [],
+	}, config, source);
+	expect(reviewed.lineItems[0]?.formSteps).toEqual([
+		{ stepId: 1, prodUid: "exterior" },
+		{ stepId: 3, prodUid: "height-68" },
+		{ stepId: 2, prodUid: "impact" },
+		{ stepId: 4, meta: { selectedProdUids: ["panel"] } },
+	]);
+	expect(reviewed.interpretations).toEqual(expect.arrayContaining([
+		expect.objectContaining({ stepId: 2, selectedProdUid: "impact" }),
+		expect.objectContaining({ stepId: 4, selectedProdUid: "panel" }),
+	]));
 });
 
 test("partial enumerated door schedule retains omitted rows as review notes", () => {
@@ -252,6 +455,25 @@ test("does not count bare 28 8/0 as a fifth explicit 2-8 door", () => {
 	}, config, source, [], [{ question: "Confirm width for 28 8/0 RH",
 		answer: "28 inches", field: "width" }]);
 	expect(confirmed.unresolved.some((item) => item.field === "width")).toBe(false);
+	const ordered = validateNewSalesFormSeedConfiguration({
+		schemaVersion: 2,
+		lineItems: source.split("\n").map((_, index) => ({
+			uid: `line-${index + 1}`,
+			qty: 1,
+			formSteps: [{ stepId: 1, prodUid: "garage" }, { stepId: 2, prodUid: "panel" }],
+			housePackageTool: { doors: [{ dimension: "2-8 x 8-0", totalQty: 1 }] },
+		})),
+		unresolved: [],
+	}, config, source, [], [{ question: "Confirm width for 28 8/0 RH",
+		answer: "28 inches", field: "width" }]);
+	const orderedDoors = ordered.lineItems.flatMap((item) =>
+		item.housePackageTool?.doors ?? []);
+	expect(orderedDoors).toContainEqual(expect.objectContaining({
+		dimension: "2-4 x 8-0", totalQty: 1,
+	}));
+	expect(orderedDoors.filter((door) => door.dimension === "2-8 x 8-0")
+		.reduce((total, door) => total + ("totalQty" in door ? door.totalQty : 0), 0))
+		.toBe(4);
 });
 
 test("keeps explicitly counted Carrara accessories and pocket hardware reviewable", () => {
@@ -375,6 +597,68 @@ test("townhouse room schedule keeps all sized rows and its blank room for review
 			reason: "Confirm size and product for Master Water Closet" }],
 	}, config, `${source}\n\nRepresentative clarifications:\nBedroom 5 Entry - 24 x 80`, [], [], source))
 		.not.toThrow();
+});
+
+test("a broad schedule review cannot account for its example source row", () => {
+	const config = JSON.stringify({ schemaVersion: 1,
+		routes: [{ itemTypeUid: "interior", rootStepId: 1, stepUids: [] }],
+		steps: [{ id: 1, uid: "type", title: "Item Type", selectionMode: "single",
+			components: [["interior", "Interior pre-hung"]] }],
+		visibilityByComponentUid: {} });
+	const rows = [
+		'Garage Door Entry - 32" x 96"',
+		'Powder Room - 32" x 96"',
+		'Bedroom Entry - 36" x 96"',
+		'Linen Closet - 30" x 96"',
+	];
+	const result = validateNewSalesFormSeedConfiguration({
+		schemaVersion: 2, lineItems: [], unresolved: [
+			...rows.filter((row) => !row.startsWith("Powder Room")).map((reason) => ({
+				lineUid: null, stepId: null, field: "doorSize", status: "unsupported" as const, reason,
+			})),
+			{ lineUid: null, stepId: null, field: "doors", status: "unsupported" as const,
+				reason: `Review the remaining Townhouse door schedule; for example ${rows[1]}.` },
+		],
+	}, config, rows.join("\n"));
+	expect(result.unresolved).toContainEqual(expect.objectContaining({
+		field: "doorSchedule", status: "unsupported",
+		reason: expect.stringContaining(rows[1]!),
+	}));
+});
+
+test("an answered blank named-room row stays in review when no native line represents it", () => {
+	const config = JSON.stringify({ schemaVersion: 1,
+		routes: [{ itemTypeUid: "interior", rootStepId: 1, stepUids: [] }],
+		steps: [{ id: 1, uid: "type", title: "Item Type", selectionMode: "single",
+			components: [["interior", "Interior pre-hung"]] }],
+		visibilityByComponentUid: {} });
+	const rows = [
+		'Garage Door Entry - 32" x 96"',
+		'Powder Room - 32" x 96"',
+		'Master Water Closet -',
+		'Bedroom Entry - 36" x 96"',
+		'Linen Closet - 30" x 96"',
+	];
+	const sizedReviews = rows.filter((row) => row !== "Master Water Closet -").map((reason) => ({
+		lineUid: null, stepId: null, field: "doorSize", status: "unsupported" as const, reason,
+	}));
+	const result = validateNewSalesFormSeedConfiguration({
+		schemaVersion: 2, lineItems: [], unresolved: [
+			...sizedReviews,
+			{ lineUid: null, stepId: null, field: "doorSchedule", status: "unsupported" as const,
+				reason: "Source door row 3: Master Water Closet -. No compatible Door line was created." },
+		],
+	}, config, rows.join("\n"), [], [{
+		question: "What size is the Master Water Closet door?",
+		field: "roomSize", sourceText: "Master Water Closet -",
+		answer: "32 x 96 inches",
+	}]);
+	expect(result.unresolved).toContainEqual(expect.objectContaining({
+		field: "doorSchedule", status: "unsupported",
+		reason: expect.stringMatching(/Master Water Closet.*32 x 96 inches/),
+	}));
+	expect(result.unresolved.filter((item) => item.reason.includes("Master Water Closet")))
+		.toHaveLength(1);
 });
 
 test("the sanitized townhouse schedule cannot trade one room's review for another", () => {
@@ -507,7 +791,7 @@ test("keeps the other rooms when a double closet is mapped as two leaf-size open
 	]));
 });
 
-test("keeps supported rooms while moving an inferred apostrophe-width room to review", () => {
+test("keeps supported rooms while moving an unverified apostrophe-width room to review", () => {
 	const source = `Powder Room - 32" x 96"\nCabana Bathroom - 30' x 96" - PVC Louvered R In`;
 	const config = JSON.stringify({ schemaVersion: 1,
 		routes: [{ itemTypeUid: "interior", rootStepId: 1, stepUids: [] }],
@@ -579,6 +863,34 @@ test("ordered door schedule does not turn bare width or incompatible pocket hard
 		lineItems: seed.lineItems.map((line) =>
 			line.uid === "line-3" ? { ...line, uid: "unlinked-line" } : line),
 	}, configuration, source)).toThrow(/door schedule selects|HPT quantity shape/);
+});
+
+test("one review cannot account for two repeated source door rows", () => {
+	const repeated = "Bifold 2/4 8/0";
+	const source = [repeated, repeated, "Bifold 2/0 8/0", "Bifold 5/0 8/0"].join("\n");
+	const configuration = JSON.stringify({ schemaVersion: 1,
+		routes: [{ itemTypeUid: "interior", rootStepId: 1, stepUids: ["door"],
+			config: { noHandle: true } }],
+		steps: [{ id: 1, uid: "type", title: "Item Type", selectionMode: "single",
+			components: [["interior", "Interior pre-hung"]] },
+			{ id: 2, uid: "door", title: "Door", selectionMode: "single",
+				components: [["bifold", "Bifold Door"]] }],
+		visibilityByComponentUid: {} });
+	const seed = { schemaVersion: 2 as const,
+		lineItems: [
+			{ uid: "bifold-small", qty: 1, formSteps: [{ stepId: 1, prodUid: "interior" },
+				{ stepId: 2, prodUid: "bifold" }],
+				housePackageTool: { doors: [{ dimension: "2-0 x 8-0", totalQty: 1 }] } },
+			{ uid: "bifold-large", qty: 1, formSteps: [{ stepId: 1, prodUid: "interior" },
+				{ stepId: 2, prodUid: "bifold" }],
+				housePackageTool: { doors: [{ dimension: "5-0 x 8-0", totalQty: 1 }] } },
+		],
+		unresolved: [{ lineUid: null, stepId: null, field: "doorSchedule", status: "unsupported" as const,
+			reason: `Not created from customer request: ${repeated}. Add this row in Sales.` }],
+	};
+	const result = validateNewSalesFormSeedConfiguration(seed, configuration, source);
+	expect(result.unresolved.filter((item) => item.reason.includes(repeated))).toHaveLength(2);
+	expect(result.unresolved.some((item) => item.reason.includes("Bifold 2/0 8/0"))).toBe(false);
 });
 
 const configuration = {
@@ -939,6 +1251,34 @@ test("accepts a defensible moulding interpretation and still rejects an unexplai
 	).rejects.toThrow("Moulding component");
 });
 
+test("keeps both sides' generic Duplex Mouldings facts when guessed products are removed", () => {
+	const source = ["Left Side", "400 linear feet for baseboard", "3 = 12” boards",
+		"Right Side", "400 linear feet for baseboard", "4 = 12” boards"].join("\n");
+	const seed = { schemaVersion: 2 as const,
+		lineItems: [
+			{ uid: "left-guessed", qty: 25, formSteps: [
+				{ stepId: 1, prodUid: "mouldings" },
+				{ stepId: 215, meta: { selectedProdUids: ["baseboard-16"] } }],
+				meta: { mouldingRows: [{ uid: "baseboard-16", qty: 25 }] } },
+			{ uid: "right-guessed", qty: 1, formSteps: [
+				{ stepId: 1, prodUid: "mouldings" },
+				{ stepId: 215, meta: { selectedProdUids: ["casing-17"] } }],
+				meta: { mouldingRows: [{ uid: "casing-17", qty: 1 }] } },
+		],
+		unresolved: [{ lineUid: "right-guessed", stepId: null, field: "product",
+			status: "ambiguous" as const, reason: "Confirm catalog product." }],
+	};
+	const reviewed = validateNewSalesFormSeedConfiguration(seed,
+		JSON.stringify(mouldingConfiguration), source);
+	expect(reviewed.lineItems).toEqual([]);
+	expect(reviewed.unresolved.filter((item) => item.status === "unsupported" &&
+		item.reason.startsWith("Not created from"))).toHaveLength(4);
+	expect(reviewed.unresolved.some((item) => item.reason.includes("Left Side: 3 = 12” boards"))).toBe(true);
+	expect(reviewed.unresolved.some((item) => item.reason.includes("Right Side: 4 = 12” boards"))).toBe(true);
+	expect(reviewed.unresolved[0]).toMatchObject({ lineUid: null, stepId: null });
+	expect(seed.lineItems).toHaveLength(2);
+});
+
 test("rejects interpretation provenance that is not current source and catalog data", async () => {
 	const interpreted = {
 		...mouldingLinearFeetSeed,
@@ -1061,8 +1401,14 @@ test("keeps a counted door stop when its catalog interpretation quotes the whole
 			field: "Moulding", sourceText: source, selectedProdUid: "door-stop",
 			selectedTitle: title, reason: "Current catalog match" }],
 	};
-	expect(validateNewSalesFormSeedConfiguration(seed, JSON.stringify(configuration), source)
-		.lineItems[0]?.qty).toBe(6);
+	const reviewed = validateNewSalesFormSeedConfiguration(seed, JSON.stringify(configuration), source);
+	expect(reviewed.lineItems[0]?.qty).toBe(6);
+	expect(reviewed.unresolved).toContainEqual(expect.objectContaining({
+		lineUid: "line-doorstop", stepId: null, field: "mouldingProfile",
+		status: "ambiguous", reason: expect.stringContaining(title),
+	}));
+	expect(validateNewSalesFormSeedConfiguration(reviewed, JSON.stringify(configuration), source)
+		.unresolved.filter((item) => item.field === "mouldingProfile")).toHaveLength(1);
 	expect(() => validateNewSalesFormSeedConfiguration({ ...seed, interpretations:
 		[{ ...seed.interpretations[0]!, sourceText: "Door stop (4)" }] },
 		JSON.stringify(configuration), "Door stop (4)\nCasing (6)"))
@@ -1295,10 +1641,29 @@ test("canonicalizes source-grounded inch dimensions through the selected Height 
 		townhouseSeed, JSON.stringify(townhouseConfiguration),
 		'Bedroom 3 Closet 1 - 28" x 96" x 1-3/4 Louvered R In',
 	)).not.toThrow();
-	expect(() => validateNewSalesFormSeedConfiguration(
-		townhouseSeed, JSON.stringify(townhouseConfiguration),
+	const cabanaSeed = { ...townhouseSeed, lineItems: [{
+		...townhouseSeed.lineItems[0]!, uid: "cabana-bathroom",
+	}] };
+	const likelyTypo = validateNewSalesFormSeedConfiguration(
+		cabanaSeed, JSON.stringify(townhouseConfiguration),
 		`Cabana Bathroom - 28' x 96" - PVC Louvered R In`,
-	)).toThrow(/Door dimension 2-4 x 8-0 must be stated/);
+	);
+	expect(likelyTypo.lineItems[0]?.housePackageTool?.doors[0]?.dimension).toBe("2-4 x 8-0");
+	expect(likelyTypo.unresolved).toContainEqual(expect.objectContaining({
+		lineUid: "cabana-bathroom", field: "widthAssumption", status: "unsupported",
+		reason: expect.stringMatching(/treated 28' as 28 inches/),
+	}));
+	const incompatibleTownhouse = structuredClone(townhouseConfiguration);
+	incompatibleTownhouse.steps.find((step) => step.id === 4)!.doorSizeVariation![0]!
+		.widthList = ["2-6"];
+	const incompatibleTypo = validateNewSalesFormSeedConfiguration(
+		cabanaSeed, JSON.stringify(incompatibleTownhouse),
+		`Cabana Bathroom - 28' x 96" - PVC Louvered R In`,
+	);
+	expect(incompatibleTypo.lineItems[0]?.housePackageTool).toBeUndefined();
+	expect(incompatibleTypo.unresolved).toContainEqual(expect.objectContaining({
+		lineUid: "cabana-bathroom", field: "doorSize", status: "unsupported",
+	}));
 	const unavailableWidth = validateNewSalesFormSeedConfiguration({
 		schemaVersion: 2,
 		lineItems: [{
@@ -1325,6 +1690,18 @@ test("canonicalizes source-grounded inch dimensions through the selected Height 
 		...input, text: widthOnly,
 		configurationJson: JSON.stringify(sizedConfiguration),
 	}, async () => ({ output: seed }))).rejects.toThrow(/Height|dimension/);
+	const countedWidthOnly = {
+		schemaVersion: 2 as const,
+		lineItems: [{ uid: "counted-width", qty: 2,
+			formSteps: [...seed.lineItems[0]!.formSteps] }],
+		unresolved: [],
+	};
+	expect(() => validateNewSalesFormSeedConfiguration(countedWidthOnly,
+		JSON.stringify(sizedConfiguration), '2 x 30” LT = bedroom closet bifolds'))
+		.toThrow(/Height 6-8, which is not stated/);
+	expect(() => validateNewSalesFormSeedConfiguration(countedWidthOnly,
+		JSON.stringify(sizedConfiguration), '2 x 80” wide panels'))
+		.toThrow(/Height 6-8, which is not stated/);
 	const confirmedHeight = await generateNewSalesFormSeed({
 		...input, text: widthOnly,
 		clarifications: [{ question: "What height applies to the listed doors?", answer: "6-8", field: "height" }],
@@ -1388,7 +1765,7 @@ test("canonicalizes source-grounded inch dimensions through the selected Height 
 			},
 			async () => ({ output: partial }),
 		),
-	).rejects.toThrow("contradicts the dimensions stated");
+	).rejects.toThrow("is not stated in the customer request");
 });
 
 test("rejects handed HPT rows on an effective no-handle route", async () => {
@@ -1591,6 +1968,31 @@ test("keeps a sized room line and asks for its missing Door product", () => {
 		lineUid: line.uid, stepId: 3, field: "door", status: "ambiguous",
 		reason: "Confirm the Door product for Garage Door Entry; its stated size and count remain for review.",
 	});
+});
+
+test("a fire-rated Door named for one room is not assigned to another room", () => {
+	const config = JSON.stringify({ schemaVersion: 1,
+		routes: [{ itemTypeUid: "exterior", rootStepId: 1, stepUids: ["door"],
+			config: { noHandle: true, hasSwing: false } }],
+		steps: [
+			{ id: 1, uid: "type", title: "Item Type", selectionMode: "single",
+				components: [["exterior", "Exterior"]] },
+			{ id: 2, uid: "door", title: "Door", selectionMode: "single",
+				components: [["rated", "20 minute fire rated door"]] },
+		], visibilityByComponentUid: {},
+	});
+	const row = (uid: string) => ({ uid, qty: 1,
+		formSteps: [{ stepId: 1, prodUid: "exterior" }],
+		housePackageTool: { doors: [{ dimension: "3-0 x 6-8", totalQty: 1 }] } });
+	const result = validateNewSalesFormSeedConfiguration({ schemaVersion: 2,
+		lineItems: [row("plain-room"), row("fire-room")], unresolved: [],
+	}, config, "Plain Room - 36\" x 80\" plain door\nFire Room - 36\" x 80\" fire rated door");
+	expect(result.lineItems.map((line) => line.uid)).toEqual(["plain-room", "fire-room"]);
+	expect(result.lineItems[0]?.formSteps).not.toContainEqual({ stepId: 2, prodUid: "rated" });
+	expect(result.lineItems[1]?.formSteps).toContainEqual({ stepId: 2, prodUid: "rated" });
+	expect(result.unresolved).toContainEqual(expect.objectContaining({
+		lineUid: "plain-room", field: "door", status: "ambiguous",
+	}));
 });
 
 test("applies one visible domain-compatible unresolved Door and preserves true ambiguity", async () => {
@@ -2066,9 +2468,7 @@ test("accepts a source-grounded custom value only on a custom-capable step", asy
 			},
 			async () => ({ output: seed }),
 		),
-	).resolves.toMatchObject({
-		seed: { ...seed, unresolved: [{ field: "handing", status: "ambiguous" }] },
-	});
+		).resolves.toMatchObject({ seed });
 });
 
 test("uses decoded grounding text without exposing it to the provider", async () => {
@@ -2106,9 +2506,7 @@ test("uses decoded grounding text without exposing it to the provider", async ()
 				return { output: seed };
 			},
 		),
-	).resolves.toMatchObject({
-		seed: { ...seed, unresolved: [{ field: "handing", status: "ambiguous" }] },
-	});
+		).resolves.toMatchObject({ seed });
 	expect(providerInput).toMatchObject({ text: "canonical safety envelope" });
 	expect(providerInput).not.toHaveProperty("groundingText");
 });
@@ -2291,6 +2689,87 @@ test("rejects a component hidden by configured dependency rules", async () => {
 			},
 		})),
 	).rejects.toThrow("hidden by configured rules");
+});
+
+test("moves hidden non-root choices in a dense door schedule to Sales review", () => {
+	const source = Array.from({ length: 8 }, () => "3/0 6/8 LH").join("\n");
+	const seed = {
+		schemaVersion: 1 as const,
+		lineItems: Array.from({ length: 8 }, (_, index) => ({
+			uid: `line-${index + 1}`,
+			qty: 1,
+			formSteps: [
+				{ stepId: 1, prodUid: "exterior" },
+				{ stepId: 3, meta: { selectedProdUids: ["panel", "lite"] } },
+			],
+			housePackageTool: {
+				doors: [{ dimension: "3-0 x 6-8", swing: "", lhQty: 1, rhQty: 0 }],
+			},
+		})),
+		unresolved: [],
+		interpretations: [
+			{ lineUid: "line-1", stepId: 1, field: "type", sourceText: "3/0 6/8 LH",
+				selectedProdUid: "exterior", selectedTitle: "Exterior door route",
+				reason: "Selected the configured exterior route." },
+			{ lineUid: "line-1", stepId: 3, field: "door", sourceText: "3/0 6/8 LH",
+				selectedProdUid: "lite", selectedTitle: "Lite",
+				reason: "Selected a configured Door component." },
+		],
+	};
+
+	const reviewed = validateNewSalesFormSeedConfiguration(
+		seed,
+		JSON.stringify(configuration),
+		source,
+	);
+
+	expect(reviewed.lineItems).toHaveLength(1);
+	expect(reviewed.lineItems.every((line) =>
+		line.formSteps.length === 2 &&
+		"prodUid" in line.formSteps[0]! &&
+		line.formSteps[0]!.prodUid === "exterior" &&
+		"meta" in line.formSteps[1]! &&
+		line.formSteps[1]!.meta.selectedProdUids.length === 1 &&
+		line.formSteps[1]!.meta.selectedProdUids[0] === "panel",
+	)).toBe(true);
+	const hiddenDoorReviews = reviewed.unresolved.filter((item) =>
+		item.field.toLowerCase() === "door" && item.status === "unsupported",
+	);
+	expect(hiddenDoorReviews).toHaveLength(1);
+	expect(hiddenDoorReviews[0]?.stepId).toBeNull();
+	expect(reviewed.interpretations).toEqual([
+		expect.objectContaining({
+			lineUid: "line-1", selectedProdUid: "exterior", selectedTitle: "Exterior",
+		}),
+	]);
+	expect(reviewed.unresolved.every((item) =>
+		item.lineUid == null || item.reason.includes('From "3/0 6/8 LH"'),
+	)).toBe(true);
+});
+
+test("still rejects a hidden root route in a dense door schedule", () => {
+	const hiddenRootConfiguration = structuredClone(configuration);
+	hiddenRootConfiguration.visibilityByComponentUid.exterior = {
+		variations: [{
+			rules: [{ stepUid: "frame", operator: "is", componentsUid: ["missing"] }],
+		}],
+	};
+	const source = Array.from({ length: 8 }, () => "3/0 6/8 LH").join("\n");
+	const seed = {
+		schemaVersion: 1 as const,
+		lineItems: Array.from({ length: 8 }, (_, index) => ({
+			uid: `line-${index + 1}`,
+			qty: 1,
+			formSteps: [{ stepId: 1, prodUid: "exterior" }],
+		})),
+		unresolved: [],
+	};
+
+	expect(() => validateNewSalesFormSeedConfiguration(
+		seed,
+		JSON.stringify(hiddenRootConfiguration),
+		source,
+	)).toThrow("hidden by configured rules");
 });
 
 test("rejects a component whose visibility depends on a later route step", async () => {

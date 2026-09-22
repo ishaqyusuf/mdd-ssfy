@@ -23,6 +23,15 @@ describe("sales request telemetry boundaries", () => {
 		expect(normalizeSalesRequestProviderFailureTelemetry({
 			configurationIssue: "catalog", routeFailureKind: "outside-step",
 		})).toEqual({ configurationIssue: "catalog" });
+		expect(normalizeSalesRequestProviderFailureTelemetry({
+			configurationIssue: "catalog", catalogFailureKind: "unavailable-component",
+		})).toEqual({ configurationIssue: "catalog", catalogFailureKind: "unavailable-component" });
+		expect(normalizeSalesRequestProviderFailureTelemetry({
+			configurationIssue: "catalog", catalogFailureKind: "private component title",
+		})).toEqual({ configurationIssue: "catalog" });
+		expect(normalizeSalesRequestProviderFailureTelemetry({
+			configurationIssue: "route", catalogFailureKind: "hidden-component",
+		})).toEqual({ configurationIssue: "route" });
 	});
 	test("keeps only allowlisted quantity diagnostics", () => {
 		expect(normalizeSalesRequestProviderFailureTelemetry({
@@ -55,6 +64,10 @@ describe("sales request telemetry boundaries", () => {
 				issueCounts: {
 					providerFailure: {
 						structuredOutputCause: "schema-validation",
+						finishReason: "stop",
+						repairAttempted: true,
+						configurationIssue: "route",
+						routeFailureKind: "outside-step",
 						schemaIssues: [{ code: "invalid_type", path: "unresolved" }],
 					},
 				},
@@ -99,6 +112,10 @@ describe("sales request telemetry boundaries", () => {
 			model: "deepseek-v4-flash",
 			stage: "structured-output",
 			cause: "schema-validation",
+			finishReason: "stop",
+			repairAttempted: true,
+			configurationIssue: "route",
+			routeFailureKind: "outside-step",
 			schemaIssues: [{ code: "invalid_type", path: "unresolved" }],
 			occurredAt: new Date("2026-09-14T17:36:10.000Z"),
 			latencyMs: 1_900,

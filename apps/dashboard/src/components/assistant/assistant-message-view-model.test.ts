@@ -7,15 +7,37 @@ import {
 
 describe("assistant message view model", () => {
 	test("partial history keeps the latest safe order finding and rejects technical extras", () => {
-		const finding = { kind: "order-status", orderNo: "QA-123", salesType: "order", status: "pending", observedAt: "2026-09-15T10:00:00.000Z" };
+		const finding = {
+			kind: "order-status",
+			orderNo: "QA-123",
+			salesType: "order",
+			status: "pending",
+			observedAt: "2026-09-15T10:00:00.000Z",
+		};
 		const parts = [
 			{ type: "data-assistant-finding", id: "first", data: finding },
-			{ type: "data-assistant-finding", id: "latest", data: { ...finding, status: "in_production" } },
-			{ type: "data-assistant-finding", id: "bad", data: { ...finding, message: "private SQL" } },
+			{
+				type: "data-assistant-finding",
+				id: "latest",
+				data: { ...finding, status: "in_production" },
+			},
+			{
+				type: "data-assistant-finding",
+				id: "bad",
+				data: { ...finding, message: "private SQL" },
+			},
 		];
 		const options = { isLastMessage: true, isStreaming: false };
 		expect(normalizeAssistantMessage({ parts }, options).findings).toEqual([]);
-		const view = normalizeAssistantMessage({ parts: [...parts, { type: "data-assistant-outcome", data: { kind: "partial" } }] }, options);
+		const view = normalizeAssistantMessage(
+			{
+				parts: [
+					...parts,
+					{ type: "data-assistant-outcome", data: { kind: "partial" } },
+				],
+			},
+			options,
+		);
 		expect(view.findings).toEqual([{ ...finding, status: "in_production" }]);
 		expect(JSON.stringify(view)).not.toContain("private SQL");
 	});
@@ -23,35 +45,90 @@ describe("assistant message view model", () => {
 	test("repeated tool results share one record link without merging distinct record types", () => {
 		const entities = [
 			{ kind: "order", id: "QA-ASST-0915", label: "Order QA-ASST-0915" },
-			{ kind: "order", salesType: "order", id: "QA-ASST-0915", label: "Order QA-ASST-0915" },
-			{ kind: "order", salesType: "quote", id: "QA-ASST-0915", label: "Quote QA-ASST-0915" },
+			{
+				kind: "order",
+				salesType: "order",
+				id: "QA-ASST-0915",
+				label: "Order QA-ASST-0915",
+			},
+			{
+				kind: "order",
+				salesType: "quote",
+				id: "QA-ASST-0915",
+				label: "Quote QA-ASST-0915",
+			},
 			{ kind: "customer", id: "QA-ASST-0915", label: "Sample customer" },
 		];
-		const view = normalizeAssistantMessage({ parts: entities.map((data) => ({ type: "data-assistant-entity", data })) }, { isLastMessage: true, isStreaming: false });
+		const view = normalizeAssistantMessage(
+			{
+				parts: entities.map((data) => ({
+					type: "data-assistant-entity",
+					data,
+				})),
+			},
+			{ isLastMessage: true, isStreaming: false },
+		);
 		expect(view.entities).toEqual([entities[0], entities[2], entities[3]]);
 	});
 
 	test("save uncertainty preserves the answer and only accepts the typed history notice", () => {
 		const parts = [
 			{ type: "text", text: "Your order is ready." },
-			{ type: "data-assistant-history-notice", data: { kind: "history-unconfirmed", reference: "ERR-ABCDEFGHIJ" } },
-			{ type: "data-assistant-history-notice", data: { kind: "temporary", message: "private SQL failure" } },
+			{
+				type: "data-assistant-history-notice",
+				data: { kind: "history-unconfirmed", reference: "ERR-ABCDEFGHIJ" },
+			},
+			{
+				type: "data-assistant-history-notice",
+				data: { kind: "temporary", message: "private SQL failure" },
+			},
 		];
-		const view = normalizeAssistantMessage({ parts }, { isLastMessage: true, isStreaming: false });
+		const view = normalizeAssistantMessage(
+			{ parts },
+			{ isLastMessage: true, isStreaming: false },
+		);
 		expect(view.text).toBe("Your order is ready.");
 		expect(view.outcome).toBeNull();
-		expect(view.historyNotice).toEqual({ kind: "history-unconfirmed", reference: "ERR-ABCDEFGHIJ" });
+		expect(view.historyNotice).toEqual({
+			kind: "history-unconfirmed",
+			reference: "ERR-ABCDEFGHIJ",
+		});
 		expect(JSON.stringify(view)).not.toContain("private SQL");
 	});
 
 	test("reload restores one terminal tool state and deterministic outcome instead of technical narration", () => {
-		const view = normalizeAssistantMessage({ parts: [
-			{ type: "data-assistant-tool", data: { id: "one", name: "sales_find_orders", status: "running" } },
-			{ type: "data-assistant-tool", data: { id: "one", name: "sales_find_orders", status: "failed", retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210", retryExpiresAt: "2099-01-01T00:00:00.000Z" } },
-			{ type: "data-assistant-outcome", data: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" } },
-			{ type: "text", text: "Prisma query failed with private SQL parameters" },
-		] }, { isLastMessage: true, isStreaming: false });
-		expect(view.text).toBe("I couldn't check that right now. Please try again.");
+		const view = normalizeAssistantMessage(
+			{
+				parts: [
+					{
+						type: "data-assistant-tool",
+						data: { id: "one", name: "sales_find_orders", status: "running" },
+					},
+					{
+						type: "data-assistant-tool",
+						data: {
+							id: "one",
+							name: "sales_find_orders",
+							status: "failed",
+							retryId: "d9428888-122b-11e1-b85c-61cd3cbb3210",
+							retryExpiresAt: "2099-01-01T00:00:00.000Z",
+						},
+					},
+					{
+						type: "data-assistant-outcome",
+						data: { kind: "temporary", reference: "ERR-ABCDEFGHIJ" },
+					},
+					{
+						type: "text",
+						text: "Prisma query failed with private SQL parameters",
+					},
+				],
+			},
+			{ isLastMessage: true, isStreaming: false },
+		);
+		expect(view.text).toBe(
+			"I couldn't check that right now. Please try again.",
+		);
 		expect(view.tools).toHaveLength(1);
 		expect(view.tools[0]?.status).toBe("failed");
 		expect(view.tools[0]?.retryId).toBe("d9428888-122b-11e1-b85c-61cd3cbb3210");
@@ -396,6 +473,30 @@ describe("assistant message view model", () => {
 			},
 			{ isLastMessage: false, isStreaming: false },
 		);
-		expect(view.documentActions).toEqual([{ id: valid.id, data: valid.data }]);
+		expect(view.approvalActions).toEqual([{ id: valid.id, data: valid.data }]);
+	});
+
+	test("accepts a strict reviewed Sales P.O. update action", () => {
+		const valid = {
+			type: "data-assistant-proposal-action",
+			id: "sales-action-1",
+			data: {
+				toolId: "sales_update_purchase_order",
+				toolVersion: 1,
+				label: "Update P.O. number",
+				input: {
+					orderNo: "09673PC",
+					type: "order",
+					expectedRevision: "revision-8",
+					previousPurchaseOrderNumber: "OLD-PO",
+					purchaseOrderNumber: "NEW-PO",
+				},
+			},
+		};
+		const view = normalizeAssistantMessage(
+			{ parts: [valid] },
+			{ isLastMessage: false, isStreaming: false },
+		);
+		expect(view.approvalActions).toEqual([{ id: valid.id, data: valid.data }]);
 	});
 });

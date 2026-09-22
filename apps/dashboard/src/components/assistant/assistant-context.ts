@@ -1,11 +1,14 @@
-const assistantContextEntityTypes = ["order", "quote"] as const;
-const assistantContextIntents = ["status-and-blockers"] as const;
-
-export type AssistantWebsiteContext = {
-	entityType: (typeof assistantContextEntityTypes)[number];
-	entityId: string;
-	intent: (typeof assistantContextIntents)[number];
-};
+export type AssistantWebsiteContext =
+	| {
+			entityType: "order" | "quote";
+			entityId: string;
+			intent: "status-and-blockers";
+	  }
+	| {
+			entityType: "customer";
+			entityId: string;
+			intent: "summary-and-history";
+	  };
 
 type AssistantContextParams = Pick<URLSearchParams, "get">;
 
@@ -15,28 +18,26 @@ function parseAssistantWebsiteContext(
 	const entityType = params.get("entityType");
 	const entityId = params.get("entityId")?.trim();
 	const intent = params.get("intent");
+	if (!entityId || !/^[A-Za-z0-9._/-]{1,64}$/.test(entityId)) return null;
+
 	if (
-		!assistantContextEntityTypes.includes(
-			entityType as AssistantWebsiteContext["entityType"],
-		) ||
-		!entityId ||
-		!/^[A-Za-z0-9._/-]{1,64}$/.test(entityId) ||
-		!assistantContextIntents.includes(
-			intent as AssistantWebsiteContext["intent"],
-		)
+		(entityType === "order" || entityType === "quote") &&
+		intent === "status-and-blockers"
 	) {
-		return null;
+		return { entityType, entityId, intent };
 	}
-	return {
-		entityType: entityType as AssistantWebsiteContext["entityType"],
-		entityId,
-		intent: intent as AssistantWebsiteContext["intent"],
-	};
+	if (entityType === "customer" && intent === "summary-and-history") {
+		return { entityType, entityId, intent };
+	}
+	return null;
 }
 
 export function readAssistantContextPrompt(params: AssistantContextParams) {
 	const context = parseAssistantWebsiteContext(params);
 	if (!context) return "";
+	if (context.entityType === "customer") {
+		return `Summarize customer account ${context.entityId} and their order history.`;
+	}
 	return `Check status and explain blockers for ${context.entityType} ${context.entityId}.`;
 }
 

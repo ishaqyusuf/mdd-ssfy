@@ -43,3 +43,21 @@ export type {
 	VercelBlobPutResult,
 } from "./providers/vercel-blob";
 export { createVercelBlobProvider } from "./providers/vercel-blob";
+
+export {
+	EMPLOYEE_DOCUMENT_KIND,
+	EMPLOYEE_DOCUMENT_OWNER_TYPE,
+	EMPLOYEE_DOCUMENT_PRIVATE_ACCESS,
+	EMPLOYEE_DOCUMENT_WORKFLOW,
+	canAccessEmployeeDocument,
+	classifyLegacyEmployeeDocumentSource,
+	employeeDocumentAccessPath,
+	isPrivateEmployeeDocumentMeta,
+	parseEmployeeStoredDocumentId,
+	trustedLegacyEmployeeDocumentUrl,
+	trustedLegacyEmployeeDocumentUrlFromRecord,
+} from "./employee-document";
+export type {
+	EmployeeDocumentAccessInput,
+	LegacyEmployeeDocumentSourceClassification,
+} from "./employee-document";

@@ -24,11 +24,22 @@ export function normalizeSalesRequestProviderEnvelope(
 	const unresolved = [...value.unresolved];
 	const lineItems = value.lineItems.map((line) => {
 		if (!isRecord(line)) return line;
-		const normalized = { ...line };
-		if (line.qty === 0 && isRecord(line.housePackageTool) &&
+		const normalized = {
+			...line,
+			...(!Object.hasOwn(line, "qty") ? { qty: 1 } : {}),
+		};
+		if (isRecord(line.housePackageTool) &&
 			Array.isArray(line.housePackageTool.doors) &&
 			line.housePackageTool.doors.length > 0) {
-			const counts = line.housePackageTool.doors.map((door) => {
+			const doors = line.housePackageTool.doors.map((door) => {
+				if (!isRecord(door)) return door;
+				const hasTotalQty = typeof door.totalQty === "number";
+				const hasHandedQty =
+					typeof door.lhQty === "number" || typeof door.rhQty === "number";
+				return hasTotalQty || hasHandedQty ? door : { ...door, totalQty: 1 };
+			});
+			normalized.housePackageTool = { ...line.housePackageTool, doors };
+			const counts = doors.map((door) => {
 				if (!isRecord(door)) return null;
 				if (typeof door.totalQty === "number" && Number.isInteger(door.totalQty) && door.totalQty >= 0)
 					return door.totalQty;

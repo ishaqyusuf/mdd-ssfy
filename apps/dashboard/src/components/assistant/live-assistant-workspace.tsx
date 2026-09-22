@@ -42,7 +42,7 @@ import { parseAsString, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	type AssistantApprovalReview,
-	assistantDocumentApprovalSummary,
+	assistantApprovalSummary,
 	parseAssistantApprovalReview,
 } from "./assistant-approval-review";
 import { AssistantArtifactCanvas } from "./assistant-artifact-canvas";
@@ -112,7 +112,7 @@ type PendingAssistantApproval = {
 	approvalToken: string;
 	expiresAt: Date | string;
 	review: AssistantApprovalReview;
-	summary: ReturnType<typeof assistantDocumentApprovalSummary>;
+	summary: ReturnType<typeof assistantApprovalSummary>;
 };
 
 type PendingAssistantPrompt = {
@@ -643,8 +643,8 @@ function AssistantConversation(props: {
 				}).outcome
 			: null;
 	const showTransportError = Boolean(chat.error && !latestOutcome);
-	const createDocumentProposal = useCallback(
-		async (action: AssistantMessageViewModel["documentActions"][number]) => {
+	const createApprovalProposal = useCallback(
+		async (action: AssistantMessageViewModel["approvalActions"][number]) => {
 			setApprovalReference(null);
 			setApprovalBusy(true);
 			setApprovalNotice(null);
@@ -665,7 +665,7 @@ function AssistantConversation(props: {
 					approvalToken: result.approvalToken,
 					expiresAt: result.expiresAt,
 					review: parseAssistantApprovalReview(result.review),
-					summary: assistantDocumentApprovalSummary(
+					summary: assistantApprovalSummary(
 						result.toolId,
 						parseAssistantApprovalReview(result.review),
 					),
@@ -673,7 +673,7 @@ function AssistantConversation(props: {
 			} catch (error) {
 				setApprovalReference(assistantErrorReference(error));
 				setApprovalNotice(
-					"I couldn't prepare the document for approval. Please try again.",
+					"I couldn't prepare this action for approval. Please try again.",
 				);
 			} finally {
 				setApprovalBusy(false);
@@ -681,7 +681,7 @@ function AssistantConversation(props: {
 		},
 		[client, props.conversation.id],
 	);
-	const decideDocumentProposal = useCallback(
+	const decideApprovalProposal = useCallback(
 		async (decision: "approve" | "reject") => {
 			if (
 				!pendingApproval ||
@@ -727,7 +727,7 @@ function AssistantConversation(props: {
 						publicFailure ??
 							(result.status === "unknown"
 								? "I couldn't confirm whether that started. Check its status before trying again."
-								: "Your document is still being prepared."),
+								: "Your approved action is still running."),
 					);
 					return;
 				}
@@ -736,9 +736,9 @@ function AssistantConversation(props: {
 					result.status === "succeeded"
 						? pendingApproval.summary.successMessage
 						: result.status === "rejected"
-							? "PDF generation was declined."
+							? pendingApproval.summary.declineMessage
 							: (publicFailure ??
-								"I couldn't finish that document request. Please check its latest status."),
+								"I couldn't finish that action. Please check its latest status."),
 				);
 				props.onChanged();
 			} catch (error) {
@@ -752,7 +752,7 @@ function AssistantConversation(props: {
 		},
 		[client, pendingApproval, props, approvalBusy],
 	);
-	const checkDocumentProposal = useCallback(async () => {
+	const checkApprovalProposal = useCallback(async () => {
 		if (!pendingApproval || approvalBusy) return;
 		setApprovalBusy(true);
 		setApprovalReference(null);
@@ -784,7 +784,7 @@ function AssistantConversation(props: {
 				setPendingApproval({
 					...pendingApproval,
 					review: parseAssistantApprovalReview(result.review),
-					summary: assistantDocumentApprovalSummary(
+					summary: assistantApprovalSummary(
 						result.toolId,
 						parseAssistantApprovalReview(result.review),
 					),
@@ -800,7 +800,7 @@ function AssistantConversation(props: {
 					publicFailure ??
 						(result.status === "unknown"
 							? "I still couldn't confirm the result. Ask an administrator to check before starting another request."
-							: "Your document is still being prepared. Check again shortly."),
+							: "Your approved action is still running. Check again shortly."),
 				);
 			} else {
 				setPendingApproval(null);
@@ -808,9 +808,9 @@ function AssistantConversation(props: {
 					result.status === "succeeded"
 						? pendingApproval.summary.successMessage
 						: result.status === "rejected"
-							? "PDF generation was declined."
+							? pendingApproval.summary.declineMessage
 							: (publicFailure ??
-								"This document request has ended. Review the document before starting another request."),
+								"This action has ended. Review the related record before trying again."),
 				);
 				props.onChanged();
 			}
@@ -952,8 +952,8 @@ function AssistantConversation(props: {
 												void setArtifactParams({ assistantArtifact: null });
 												setOrderDraft(draft);
 											}}
-											onCreateDocumentProposal={(action) => {
-												void createDocumentProposal(action);
+											onCreateApprovalProposal={(action) => {
+												void createApprovalProposal(action);
 											}}
 											onRetryRead={readRetryBusy ? undefined : retryFailedRead}
 											consumedRetryIds={consumedReadRetryIds}
@@ -1081,6 +1081,21 @@ function AssistantConversation(props: {
 						{salesRequestError}
 					</p>
 				) : null}
+				{approvalNotice && !pendingApproval ? (
+					<output className={`${styles.liveStatus} ${styles.composerNotice}`}>
+						{approvalNotice}
+					</output>
+				) : null}
+				{readRetryNotice ? (
+					<output className={`${styles.liveStatus} ${styles.composerNotice}`}>
+						{readRetryNotice}
+					</output>
+				) : null}
+				{approvalReference && !pendingApproval ? (
+					<div className={styles.composerNotice}>
+						<AssistantOutcomeHelp reference={approvalReference} />
+					</div>
+				) : null}
 				<AssistantSalesRequestQuestionnaire
 					conversationId={props.conversation.id}
 					refreshKey={salesRequestRefresh}
@@ -1159,7 +1174,7 @@ function AssistantConversation(props: {
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
 						<DialogTitle>
-							{pendingApproval?.summary.title ?? "Review document"}
+							{pendingApproval?.summary.title ?? "Review action"}
 						</DialogTitle>
 						<DialogDescription>
 							{pendingApproval?.summary.description}
@@ -1168,12 +1183,12 @@ function AssistantConversation(props: {
 					{pendingApproval ? (
 						<div className="space-y-4 text-sm">
 							<dl className="grid gap-2 rounded-md border bg-muted/30 p-3 sm:grid-cols-[8rem_1fr]">
-								<dt className="text-muted-foreground">
-									{pendingApproval.summary.recordLabel}
-								</dt>
-								<dd>{pendingApproval.summary.orderNo}</dd>
-								<dt className="text-muted-foreground">Document</dt>
-								<dd>{pendingApproval.summary.document}</dd>
+								{pendingApproval.summary.details.map((detail) => (
+									<div className="contents" key={detail.label}>
+										<dt className="text-muted-foreground">{detail.label}</dt>
+										<dd>{detail.value}</dd>
+									</div>
+								))}
 							</dl>
 							<p className="text-xs text-muted-foreground">
 								Expires {new Date(pendingApproval.expiresAt).toLocaleString()}.
@@ -1187,7 +1202,7 @@ function AssistantConversation(props: {
 									<Button
 										type="button"
 										disabled={approvalBusy}
-										onClick={() => void checkDocumentProposal()}
+										onClick={() => void checkApprovalProposal()}
 									>
 										{approvalBusy ? "Checking…" : "Check status"}
 									</Button>
@@ -1197,14 +1212,14 @@ function AssistantConversation(props: {
 											type="button"
 											variant="outline"
 											disabled={approvalBusy}
-											onClick={() => void decideDocumentProposal("reject")}
+											onClick={() => void decideApprovalProposal("reject")}
 										>
 											Decline
 										</Button>
 										<Button
 											type="button"
 											disabled={approvalBusy}
-											onClick={() => void decideDocumentProposal("approve")}
+											onClick={() => void decideApprovalProposal("approve")}
 										>
 											{approvalBusy
 												? "Processing…"
@@ -1217,15 +1232,6 @@ function AssistantConversation(props: {
 					) : null}
 				</DialogContent>
 			</Dialog>
-			{approvalNotice && !pendingApproval ? (
-				<output className={styles.liveStatus}>{approvalNotice}</output>
-			) : null}
-			{readRetryNotice ? (
-				<output className={styles.liveStatus}>{readRetryNotice}</output>
-			) : null}
-			{approvalReference && !pendingApproval ? (
-				<AssistantOutcomeHelp reference={approvalReference} />
-			) : null}
 		</>
 	);
 }
@@ -1532,16 +1538,17 @@ export function LiveAssistantWorkspace() {
 			createdConversationId = created.id;
 			if (request !== startRequestRef.current) return;
 			if (salesType && prompt && !attachments.length) {
+				setConversationId(created.id);
+				updateUrl(created.id);
 				await client.assistant.startSalesRequest.mutate({
 					conversationId: created.id,
 					requestId: optimisticPrompt.id,
 					type: salesType,
 					text: source,
 				});
+				if (request !== startRequestRef.current) return;
 				setNewSalesRequestType(null);
 				setCreatingPrompt(null);
-				setConversationId(created.id);
-				updateUrl(created.id);
 				await loadConversation(created.id);
 				await loadHistory("");
 				return;
@@ -1707,7 +1714,7 @@ export function LiveAssistantWorkspace() {
 						<LoaderCircle className={styles.spin} size={20} /> Loading
 						conversation…
 					</output>
-				) : conversation ? (
+				) : conversation && !creatingPrompt ? (
 					<AssistantConversation
 						key={`${conversation.id}:${conversationRenderRevision}`}
 						conversation={conversation}

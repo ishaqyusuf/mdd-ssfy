@@ -47,6 +47,21 @@ export type SquareRefundResult = {
 	locationId: string | null;
 };
 
+export function getSquareRefundSubmissionFailure(error: unknown) {
+	if (
+		error instanceof ApiError &&
+		error.statusCode === 404 &&
+		error.errors.some((item) => item.code === "NOT_FOUND")
+	) {
+		return {
+			code: "SQUARE_PAYMENT_NOT_FOUND",
+			message:
+				"The original payment was not found in the configured Square account and environment. No refund was submitted.",
+		};
+	}
+	return null;
+}
+
 function normalizeSquareRefund(refund: {
 	id: string;
 	paymentId?: string | null;

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
-import { db } from "@gnd/db";
+import { type Prisma, db } from "@gnd/db";
 import {
+	assistantSalesScopeWhere,
 	findAssistantCommunityProjects,
 	findAssistantCommunityUnits,
 	findAssistantCustomers,
@@ -15,13 +16,25 @@ import {
 	getAssistantSalesTimeline,
 } from "@gnd/db/queries";
 import { salesDocumentModeRequiresPaymentAccess } from "@gnd/sales/assistant-source";
+import { assertRefundIntent } from "@gnd/sales/payment-system/refunds";
+import {
+	mergeSalesMetaPatch,
+	readSalesFormPo,
+} from "@gnd/sales/sales-form/application/legacy-metadata";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import {
 	buildCanonicalSalesSourceRevision,
 	getSalesPipelineSnapshots,
 } from "@gnd/sales/sales-pipeline-order";
+import { getAppUrl } from "@gnd/utils/envs";
 import { z } from "zod";
+import { buildFullPaymentToken } from "../db/queries/checkout";
 import { getAssistantSalesFinanceReceivablesSummary } from "../db/queries/sales-finance";
+import { applySalesPaymentProcessorPayment } from "../db/queries/sales-payment-processor";
+import {
+	createSalesSquareRefundIntent,
+	getSalesRefundOverview,
+} from "../db/queries/sales-refunds";
 import { assistantAnalyticsQueryIntentSchema } from "./analytics-contract";
 import { assistantAnalyticsResultSchema } from "./analytics-result-contract";
 import { runAssistantAnalytics } from "./analytics-service";
@@ -29,6 +42,7 @@ import {
 	type AssistantCapabilityState,
 	type AssistantEffect,
 	type AssistantEntityReference,
+	type AssistantInvalidationTag,
 	assistantToolIdentitySchema,
 	createAssistantResultEnvelopeSchema,
 } from "./contracts";
@@ -45,7 +59,7 @@ import {
 	queueAssistantSalesPdfJob,
 } from "./pdf-artifacts";
 
-export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v8";
+export const ASSISTANT_TOOL_CATALOG_VERSION = "assistant-catalog-v12";
 
 export const assistantToolDomains = [
 	"system",
@@ -270,6 +284,57 @@ const financeOrderSummaryInputSchema = z
 			.optional(),
 	})
 	.strict();
+const assistantManualPaymentMethodSchema = z.enum([
+	"check",
+	"cash",
+	"zelle",
+	"credit-card",
+	"wire",
+]);
+const prepareFinanceManualPaymentInputSchema = z
+	.object({
+		orderNo: z.string().trim().min(1).max(64),
+		amount: z.number().positive().max(1_000_000_000),
+		paymentMethod: assistantManualPaymentMethodSchema,
+		checkNo: z.string().trim().min(1).max(100).optional(),
+		expectedRevision: z.string().trim().min(1).max(191).optional(),
+	})
+	.strict()
+	.superRefine((input, context) => {
+		if (input.paymentMethod === "check" && !input.checkNo) {
+			context.addIssue({
+				code: "custom",
+				path: ["checkNo"],
+				message: "Check number is required for check payments",
+			});
+		}
+	});
+const financeManualPaymentInputSchema = z
+	.object({
+		orderNo: z.string().trim().min(1).max(64),
+		accountNo: z.string().trim().min(1).max(191),
+		amount: z.number().positive().max(1_000_000_000),
+		paymentMethod: assistantManualPaymentMethodSchema,
+		checkNo: z.string().trim().min(1).max(100).optional(),
+		expectedAmountDue: z.string().trim().min(1).max(100),
+		expectedRevision: z.string().trim().min(1).max(191),
+	})
+	.strict()
+	.superRefine((input, context) => {
+		if (input.paymentMethod === "check" && !input.checkNo) {
+			context.addIssue({
+				code: "custom",
+				path: ["checkNo"],
+				message: "Check number is required for check payments",
+			});
+		}
+	});
+const financePaymentLinkInputSchema = z
+	.object({
+		orderNo: z.string().trim().min(1).max(64),
+		expectedRevision: z.string().trim().min(1).max(191).optional(),
+	})
+	.strict();
 const orderIdentityInputSchema = z
 	.object({
 		orderNo: z.string().trim().min(1).max(64),
@@ -277,6 +342,40 @@ const orderIdentityInputSchema = z
 		expectedRevision: z.string().trim().min(1).max(191).optional(),
 	})
 	.strict();
+const prepareFinanceRefundInputSchema = z
+	.object({
+		orderNo: z.string().trim().min(1).max(64),
+		transactionRef: z.string().trim().min(1).max(191).optional(),
+		amount: z.number().positive().max(1_000_000_000),
+		reason: z.string().trim().min(3).max(192),
+		expectedRevision: z.string().trim().min(1).max(191).optional(),
+	})
+	.strict()
+	.refine((input) => Number.isInteger(input.amount * 100), {
+		path: ["amount"],
+		message: "Refund amount must use at most two decimal places",
+	});
+const financeRefundInputSchema = prepareFinanceRefundInputSchema
+	.safeExtend({
+		transactionRef: z.string().trim().min(1).max(191),
+		expectedRemainingRefundableCents: z.number().int().positive(),
+		expectedRevision: z.string().trim().min(1).max(191),
+	})
+	.strict();
+const purchaseOrderNumberSchema = z
+	.string()
+	.trim()
+	.max(100)
+	.transform((value) => value.toUpperCase());
+const prepareSalesPurchaseOrderUpdateInputSchema =
+	orderIdentityInputSchema.extend({
+		purchaseOrderNumber: purchaseOrderNumberSchema,
+	});
+const salesPurchaseOrderUpdateInputSchema =
+	prepareSalesPurchaseOrderUpdateInputSchema.extend({
+		expectedRevision: z.string().trim().min(1).max(191),
+		previousPurchaseOrderNumber: purchaseOrderNumberSchema,
+	});
 const timelineInputSchema = orderIdentityInputSchema.extend({
 	limit: z.number().int().min(1).max(20).default(10),
 	cursor: z.string().trim().min(1).max(500).optional(),
@@ -390,6 +489,7 @@ const pipelineSchema = z
 	.strict();
 const detailedOrderSchema = orderSchema
 	.extend({
+		summaryRevision: z.string().min(1).optional(),
 		pipeline: pipelineSchema,
 		deliveries: z.array(
 			z
@@ -502,7 +602,138 @@ const financeOrderSummarySchema = z
 		bucketCounts: z.record(z.string(), z.number().int().nonnegative()),
 	})
 	.strict();
+const financeManualPaymentDataSchema = z
+	.object({
+		order: detailedOrderSchema.nullable(),
+		candidates: z.array(detailedOrderSchema).max(10),
+		customer: z
+			.object({
+				id: z.number().int().positive(),
+				accountNo: z.string().min(1),
+				name: z.string().min(1),
+			})
+			.strict()
+			.nullable(),
+		payment: z
+			.object({
+				amount: z.number().positive(),
+				currency: z.literal("USD"),
+				paymentMethod: assistantManualPaymentMethodSchema,
+				checkNo: nullableText,
+				notifyCustomer: z.literal(false),
+			})
+			.strict(),
+		expectedAmountDue: nullableText,
+		state: z.enum(["prepared", "recorded"]),
+		receipt: z
+			.object({
+				appliedSalesIds: z.array(z.number().int().positive()),
+				appliedAmount: z.number().nonnegative(),
+				remainingDue: z.number().nonnegative(),
+				customerReceiptQueueStatus: z.enum([
+					"not_requested",
+					"queued",
+					"failed",
+				]),
+			})
+			.strict()
+			.nullable(),
+	})
+	.strict();
+const financePaymentLinkDataSchema = z
+	.object({
+		order: detailedOrderSchema.nullable(),
+		candidates: z.array(detailedOrderSchema).max(10),
+		customer: z
+			.object({
+				id: z.number().int().positive(),
+				accountNo: z.string().min(1),
+				name: z.string().min(1),
+			})
+			.strict()
+			.nullable(),
+		amountDue: nullableText,
+		currency: z.literal("USD"),
+		paymentUrl: z.string().url().nullable(),
+	})
+	.strict();
+const financeRefundOverviewDataSchema = z
+	.object({
+		order: detailedOrderSchema.nullable(),
+		candidates: z.array(detailedOrderSchema).max(10),
+		summary: z
+			.object({
+				receivedCents: z.number().int().nonnegative(),
+				completedRefundCents: z.number().int().nonnegative(),
+				pendingRefundCents: z.number().int().nonnegative(),
+				netCents: z.number().int(),
+			})
+			.strict(),
+		transactions: z.array(
+			z
+				.object({
+					transactionRef: z.string().min(1),
+					createdAt: z.string().min(1),
+					description: z.string().min(1),
+					paymentMethod: z.string().min(1),
+					status: z.string().min(1),
+					receivedCents: z.number().int().nonnegative(),
+					completedRefundCents: z.number().int().nonnegative(),
+					pendingRefundCents: z.number().int().nonnegative(),
+					netCents: z.number().int(),
+					remainingRefundableCents: z.number().int().nonnegative(),
+					refundable: z.boolean(),
+					refunds: z.array(
+						z
+							.object({
+								status: z.string().min(1),
+								amountCents: z.number().int().nonnegative(),
+								reason: z.string().min(1),
+							})
+							.strict(),
+					),
+				})
+				.strict(),
+		),
+	})
+	.strict();
+const financeRefundDataSchema = z
+	.object({
+		order: detailedOrderSchema.nullable(),
+		candidates: z.array(detailedOrderSchema).max(10),
+		transactionRef: nullableText,
+		refund: z
+			.object({
+				amountCents: z.number().int().positive(),
+				currency: z.literal("USD"),
+				reason: z.string().min(3).max(192),
+				remainingRefundableCents: z.number().int().nonnegative(),
+				remainingAfterRefundCents: z.number().int().nonnegative(),
+			})
+			.strict()
+			.nullable(),
+		state: z.enum(["prepared", "requested"]),
+		receipt: z
+			.object({
+				refundRef: z.string().min(1),
+				status: z.string().min(1),
+				queued: z.boolean(),
+			})
+			.strict()
+			.nullable(),
+	})
+	.strict();
 type FinanceOrderSummaryInput = z.infer<typeof financeOrderSummaryInputSchema>;
+type PrepareFinanceManualPaymentInput = z.infer<
+	typeof prepareFinanceManualPaymentInputSchema
+>;
+type FinanceManualPaymentInput = z.infer<
+	typeof financeManualPaymentInputSchema
+>;
+type PrepareFinanceRefundInput = z.infer<
+	typeof prepareFinanceRefundInputSchema
+>;
+type FinanceRefundInput = z.infer<typeof financeRefundInputSchema>;
 type FinanceOrderSummary = Omit<
 	z.infer<typeof financeOrderSummarySchema>,
 	"currency"
@@ -517,6 +748,12 @@ const orderResolutionSchema = z
 	.object({
 		order: detailedOrderSchema.nullable(),
 		candidates: z.array(detailedOrderSchema).max(3),
+	})
+	.strict();
+const salesPurchaseOrderUpdateDataSchema = orderResolutionSchema
+	.extend({
+		currentPurchaseOrderNumber: z.string().max(100),
+		nextPurchaseOrderNumber: z.string().max(100),
 	})
 	.strict();
 const blockerDataSchema = orderResolutionSchema
@@ -722,6 +959,12 @@ const communityProjectSummarySchema = z
 type PageInput = z.infer<typeof pageInputSchema>;
 type OrderSearchInput = z.infer<typeof orderSearchInputSchema>;
 type OrderIdentityInput = z.infer<typeof orderIdentityInputSchema>;
+type PrepareSalesPurchaseOrderUpdateInput = z.infer<
+	typeof prepareSalesPurchaseOrderUpdateInputSchema
+>;
+type SalesPurchaseOrderUpdateInput = z.infer<
+	typeof salesPurchaseOrderUpdateInputSchema
+>;
 type TimelineInput = z.infer<typeof timelineInputSchema>;
 type CustomerHistoryInput = z.infer<typeof customerHistoryInputSchema>;
 type Order = z.infer<typeof orderSchema>;
@@ -760,6 +1003,51 @@ export type AssistantToolServices = {
 		actor: AssistantToolActor,
 		input: Pick<OrderIdentityInput, "orderNo" | "type">,
 	) => Promise<DetailedOrder[]>;
+	getSalesPurchaseOrder: (
+		actor: AssistantToolActor,
+		salesOrderId: number,
+	) => Promise<string>;
+	updateSalesPurchaseOrder: (
+		actor: AssistantToolActor,
+		input: {
+			salesOrderId: number;
+			expectedUpdatedAt: string;
+			purchaseOrderNumber: string;
+		},
+	) => Promise<boolean>;
+	recordSalesManualPayment: (
+		actor: AssistantToolActor,
+		input: {
+			salesOrderId: number;
+			orderNo: string;
+			accountNo: string;
+			amount: number;
+			paymentMethod: z.infer<typeof assistantManualPaymentMethodSchema>;
+			checkNo?: string;
+		},
+	) => ReturnType<typeof applySalesPaymentProcessorPayment>;
+	createSalesPaymentLink: (
+		actor: AssistantToolActor,
+		input: {
+			salesOrderId: number;
+			customerId: number;
+			amountDue: number;
+		},
+	) => Promise<string | null>;
+	getSalesRefundOverview: (
+		actor: AssistantToolActor,
+		orderNo: string,
+	) => ReturnType<typeof getSalesRefundOverview>;
+	createSalesRefund: (
+		actor: AssistantToolActor,
+		input: {
+			tenderPaymentId: string;
+			salesOrderId: number;
+			originalSalesPaymentId: number;
+			amountCents: number;
+			reason: string;
+		},
+	) => ReturnType<typeof createSalesSquareRefundIntent>;
 	getProductionOrderCandidates: (
 		actor: AssistantToolActor,
 		input: Pick<OrderIdentityInput, "orderNo" | "type">,
@@ -922,6 +1210,119 @@ const defaultAssistantToolServices: AssistantToolServices = {
 		loadCanonicalSalesOrders(
 			await getAssistantSalesOrderCandidates(db, actor, input),
 		),
+	getSalesPurchaseOrder: async (actor, salesOrderId) => {
+		const order = await db.salesOrders.findFirst({
+			where: {
+				AND: [
+					assistantSalesScopeWhere(actor),
+					{
+						id: salesOrderId,
+						type: { in: ["order", "quote"] },
+						deletedAt: null,
+					},
+				],
+			},
+			select: { meta: true },
+		});
+		if (!order) throw new Error("Assistant Sales record is unavailable");
+		return readSalesFormPo(order.meta as Record<string, unknown>);
+	},
+	updateSalesPurchaseOrder: async (actor, input) => {
+		const expectedUpdatedAt = new Date(input.expectedUpdatedAt);
+		if (Number.isNaN(expectedUpdatedAt.getTime())) return false;
+		const order = await db.salesOrders.findFirst({
+			where: {
+				AND: [
+					assistantSalesScopeWhere(actor),
+					{
+						id: input.salesOrderId,
+						type: { in: ["order", "quote"] },
+						deletedAt: null,
+						updatedAt: expectedUpdatedAt,
+					},
+				],
+			},
+			select: { meta: true },
+		});
+		if (!order) return false;
+		const meta = mergeSalesMetaPatch(
+			(order.meta ?? {}) as Record<string, unknown>,
+			{ po: input.purchaseOrderNumber },
+		);
+		const updated = await db.salesOrders.updateMany({
+			where: {
+				AND: [
+					assistantSalesScopeWhere(actor),
+					{
+						id: input.salesOrderId,
+						type: { in: ["order", "quote"] },
+						deletedAt: null,
+						updatedAt: expectedUpdatedAt,
+					},
+				],
+			},
+			data: { meta: meta as Prisma.InputJsonValue },
+		});
+		return updated.count === 1;
+	},
+	recordSalesManualPayment: (actor, input) =>
+		applySalesPaymentProcessorPayment(
+			{ db, userId: actor.userId },
+			{
+				salesIds: [input.salesOrderId],
+				orderNos: [input.orderNo],
+				accountNo: input.accountNo,
+				paymentMethod: input.paymentMethod,
+				amount: input.amount,
+				checkNo: input.checkNo,
+				useWallet: false,
+				notifyCustomer: false,
+				terminalPaymentSession: null,
+			},
+		),
+	createSalesPaymentLink: async (_actor, input) => {
+		const token = await buildFullPaymentToken(
+			{ db } as Parameters<typeof buildFullPaymentToken>[0],
+			{
+				salesId: input.salesOrderId,
+				customerId: input.customerId,
+				amountDue: input.amountDue,
+			},
+		);
+		return token ? `${assistantCheckoutBaseUrl()}/checkout/${token}/v2` : null;
+	},
+	getSalesRefundOverview: (_actor, orderNo) =>
+		getSalesRefundOverview(
+			{ db } as Parameters<typeof getSalesRefundOverview>[0],
+			{
+				orderNo,
+			},
+		),
+	createSalesRefund: (actor, input) =>
+		createSalesSquareRefundIntent(
+			{ db, userId: actor.userId } as Parameters<
+				typeof createSalesSquareRefundIntent
+			>[0],
+			{
+				tenderPaymentId: input.tenderPaymentId,
+				principalCents: input.amountCents,
+				cccCents: 0,
+				tipCents: 0,
+				reason: input.reason,
+				note: "Created from the Assistant after explicit review.",
+				commercialActionType: "customer_request",
+				commercialActionId: null,
+				allocations: [
+					{
+						salesOrderId: input.salesOrderId,
+						originalSalesPaymentId: input.originalSalesPaymentId,
+						principalCents: input.amountCents,
+						cccCents: 0,
+						tipCents: 0,
+					},
+				],
+			},
+		),
 	getProductionOrderCandidates: async (actor, input) => {
 		const candidates = await getAssistantSalesOrderCandidates(db, actor, input);
 		const accessibleIds = new Set(
@@ -1005,6 +1406,15 @@ function definition(
 		toolVersion: value.version,
 	});
 	return { ...value, relatedTools: value.relatedTools ?? [] };
+}
+
+function assistantCheckoutBaseUrl() {
+	const configured =
+		process.env.PORTLESS_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
+	if (configured?.startsWith("https://")) return configured.replace(/\/$/, "");
+	if (process.env.NODE_ENV !== "production" && !process.env.VERCEL_ENV)
+		return "https://gndprodesk.localhost";
+	return getAppUrl().replace(/\/$/, "");
 }
 
 function canViewOrderFinance(actor: AssistantToolActor) {
@@ -1159,7 +1569,7 @@ function resolveOrderResult(
 	}
 	const order = candidates[0];
 	if (!order) throw new Error("Assistant order resolution failed");
-	if (expectedRevision && expectedRevision !== order.revision) {
+	if (!matchesOrderRevision(order, expectedRevision)) {
 		return assistantResultEnvelope({
 			status: "conflict",
 			data: { order, candidates: [] },
@@ -1191,13 +1601,1102 @@ function resolveOrderResult(
 	});
 }
 
+function matchesOrderRevision(order: DetailedOrder, expectedRevision?: string) {
+	return (
+		!expectedRevision ||
+		expectedRevision === order.revision ||
+		expectedRevision === order.summaryRevision
+	);
+}
+
 function getOrderBlockers(actor: AssistantToolActor, order: DetailedOrder) {
 	return order.pipeline.blockers.filter(
 		(blocker) => blocker.dimension !== "payment" || canViewOrderFinance(actor),
 	);
 }
 
+async function resolveSalesPurchaseOrderTarget(
+	actor: AssistantToolActor,
+	input: PrepareSalesPurchaseOrderUpdateInput,
+	services: AssistantToolServices,
+) {
+	const candidates = await services.getSalesOrderCandidates(actor, input);
+	const resolved = resolveOrderResult(
+		actor,
+		candidates,
+		input.expectedRevision,
+	);
+	if (resolved.status !== "success" || candidates.length !== 1) {
+		return {
+			result: {
+				...resolved,
+				data: {
+					...resolved.data,
+					currentPurchaseOrderNumber: "",
+					nextPurchaseOrderNumber: input.purchaseOrderNumber,
+				},
+			},
+		};
+	}
+	const order = candidates[0];
+	const presentedOrder = resolved.data?.order;
+	if (!order || !presentedOrder)
+		throw new Error("Assistant order resolution failed");
+	const currentPurchaseOrderNumber = await services.getSalesPurchaseOrder(
+		actor,
+		order.id,
+	);
+	return {
+		order,
+		presentedOrder,
+		currentPurchaseOrderNumber,
+		nextPurchaseOrderNumber: input.purchaseOrderNumber,
+	};
+}
+
+function salesPurchaseOrderResult(input: {
+	actor: AssistantToolActor;
+	order: DetailedOrder;
+	presentedOrder: DetailedOrder;
+	currentPurchaseOrderNumber: string;
+	nextPurchaseOrderNumber: string;
+	invalidate?: boolean;
+}) {
+	return assistantResultEnvelope({
+		status: "success",
+		data: {
+			order: input.presentedOrder,
+			candidates: [],
+			currentPurchaseOrderNumber: input.currentPurchaseOrderNumber,
+			nextPurchaseOrderNumber: input.nextPurchaseOrderNumber,
+		},
+		sources: [orderSource(input.presentedOrder)],
+		entities: [orderEntity(input.presentedOrder)],
+		revision: input.order.revision,
+		...(input.invalidate
+			? {
+					invalidationTags: [
+						input.order.type === "quote" ? "sales.quotes" : "sales.orders",
+					] as const,
+				}
+			: {}),
+		allowedNextActions:
+			input.actor.grants.viewOrders === true
+				? [{ toolId: "sales_get_order_status", toolVersion: 1 }]
+				: [],
+	});
+}
+
+function paymentMoney(value: string | number | null | undefined) {
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : null;
+}
+
+function manualPaymentReview(
+	input: Pick<
+		PrepareFinanceManualPaymentInput,
+		"amount" | "paymentMethod" | "checkNo"
+	>,
+) {
+	return {
+		amount: paymentMoney(input.amount) ?? input.amount,
+		currency: "USD" as const,
+		paymentMethod: input.paymentMethod,
+		checkNo: input.checkNo ?? null,
+		notifyCustomer: false as const,
+	};
+}
+
+async function resolveFinanceManualPaymentTarget(
+	actor: AssistantToolActor,
+	input: PrepareFinanceManualPaymentInput | FinanceManualPaymentInput,
+	services: AssistantToolServices,
+) {
+	const candidates = await services.getSalesOrderCandidates(actor, {
+		orderNo: input.orderNo,
+		type: "order",
+	});
+	const resolved = resolveOrderResult(
+		actor,
+		candidates,
+		input.expectedRevision,
+	);
+	const payment = manualPaymentReview(input);
+	if (resolved.status !== "success" || candidates.length !== 1) {
+		return {
+			result: {
+				...resolved,
+				data: {
+					order: resolved.data?.order ?? null,
+					candidates: resolved.data?.candidates ?? [],
+					customer: null,
+					payment,
+					expectedAmountDue: null,
+					state: "prepared" as const,
+					receipt: null,
+				},
+			},
+		};
+	}
+	const order = candidates[0];
+	const presentedOrder = resolved.data?.order;
+	if (!order || !presentedOrder)
+		throw new Error("Assistant order resolution failed");
+	if (!order.customerId) {
+		return {
+			result: assistantResultEnvelope({
+				status: "requires_input",
+				data: {
+					order: presentedOrder,
+					candidates: [],
+					customer: null,
+					payment,
+					expectedAmountDue: order.amountDue,
+					state: "prepared" as const,
+					receipt: null,
+				},
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder)],
+				revision: order.revision,
+				warnings: ["The order does not have a customer account for payment."],
+			}),
+		};
+	}
+	const customer = await services.getCustomerSummary(actor, order.customerId);
+	if (!customer) {
+		return {
+			result: assistantResultEnvelope({
+				status: "unavailable",
+				data: {
+					order: presentedOrder,
+					candidates: [],
+					customer: null,
+					payment,
+					expectedAmountDue: order.amountDue,
+					state: "prepared" as const,
+					receipt: null,
+				},
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder)],
+				revision: order.revision,
+				warnings: ["The customer account is unavailable for payment."],
+			}),
+		};
+	}
+	const amountDue = paymentMoney(order.amountDue);
+	const requestedAmount = paymentMoney(input.amount);
+	const reviewedCustomer = {
+		id: customer.id,
+		accountNo: customer.accountNo,
+		name: customer.name,
+	};
+	const conflict =
+		amountDue == null ||
+		amountDue <= 0 ||
+		requestedAmount == null ||
+		requestedAmount > amountDue ||
+		("accountNo" in input && input.accountNo !== customer.accountNo) ||
+		("expectedAmountDue" in input &&
+			paymentMoney(input.expectedAmountDue) !== amountDue);
+	if (conflict) {
+		return {
+			result: assistantResultEnvelope({
+				status: "conflict",
+				data: {
+					order: presentedOrder,
+					candidates: [],
+					customer: reviewedCustomer,
+					payment,
+					expectedAmountDue: order.amountDue,
+					state: "prepared" as const,
+					receipt: null,
+				},
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder), customerEntity(customer)],
+				revision: order.revision,
+				warnings: [
+					amountDue != null &&
+					requestedAmount != null &&
+					requestedAmount > amountDue
+						? "The payment exceeds the current amount due. Review a smaller amount."
+						: "The payment target changed. Review the current balance before continuing.",
+				],
+			}),
+		};
+	}
+	return {
+		order,
+		presentedOrder,
+		customer: reviewedCustomer,
+		amountDue,
+		payment,
+	};
+}
+
+function preparedManualPaymentResult(input: {
+	order: DetailedOrder;
+	presentedOrder: DetailedOrder;
+	customer: { id: number; accountNo: string; name: string };
+	amountDue: number;
+	payment: ReturnType<typeof manualPaymentReview>;
+}) {
+	return assistantResultEnvelope({
+		status: "success",
+		data: {
+			order: input.presentedOrder,
+			candidates: [],
+			customer: input.customer,
+			payment: input.payment,
+			expectedAmountDue: input.amountDue.toFixed(2),
+			state: "prepared" as const,
+			receipt: null,
+		},
+		sources: [orderSource(input.presentedOrder)],
+		entities: [
+			orderEntity(input.presentedOrder),
+			customerEntity(input.customer),
+		],
+		revision: input.order.revision,
+	});
+}
+
+function refundAmountCents(amount: number) {
+	return Math.round(amount * 100);
+}
+
+function refundReview(input: {
+	amount: number;
+	reason: string;
+	remainingRefundableCents: number;
+}) {
+	const amountCents = refundAmountCents(input.amount);
+	return {
+		amountCents,
+		currency: "USD" as const,
+		reason: input.reason,
+		remainingRefundableCents: input.remainingRefundableCents,
+		remainingAfterRefundCents: Math.max(
+			0,
+			input.remainingRefundableCents - amountCents,
+		),
+	};
+}
+
+function refundTargetRevision(input: {
+	orderRevision: string;
+	transaction: {
+		id: string;
+		status: string | null;
+		remainingRefundableCents: number;
+		tender: { id: string } | null;
+		refunds: Array<{
+			id: string;
+			providerStatus: string;
+			amountCents: number;
+		}>;
+	};
+}) {
+	return `refund-${createHash("sha256")
+		.update(
+			JSON.stringify({
+				orderRevision: input.orderRevision,
+				transactionRef: input.transaction.id,
+				status: input.transaction.status,
+				tenderId: input.transaction.tender?.id,
+				remainingRefundableCents: input.transaction.remainingRefundableCents,
+				refunds: input.transaction.refunds.map((refund) => ({
+					id: refund.id,
+					status: refund.providerStatus,
+					amountCents: refund.amountCents,
+				})),
+			}),
+		)
+		.digest("hex")}`;
+}
+
+async function resolveFinanceRefundTarget(
+	actor: AssistantToolActor,
+	input: PrepareFinanceRefundInput | FinanceRefundInput,
+	services: AssistantToolServices,
+) {
+	const candidates = await services.getSalesOrderCandidates(actor, {
+		orderNo: input.orderNo,
+		type: "order",
+	});
+	const resolved = resolveOrderResult(
+		actor,
+		candidates,
+		input.expectedRevision,
+	);
+	const emptyData = {
+		order: resolved.data?.order ?? null,
+		candidates: resolved.data?.candidates ?? [],
+		transactionRef: input.transactionRef ?? null,
+		refund: null,
+		state: "prepared" as const,
+		receipt: null,
+	};
+	if (resolved.status !== "success" || candidates.length !== 1) {
+		return { result: { ...resolved, data: emptyData } };
+	}
+	const order = candidates[0];
+	const presentedOrder = resolved.data?.order;
+	if (!order || !presentedOrder)
+		throw new Error("Assistant order resolution failed");
+	if (process.env.SQUARE_REFUNDS_ENABLED === "false") {
+		return {
+			result: assistantResultEnvelope({
+				status: "unavailable",
+				data: { ...emptyData, order: presentedOrder, candidates: [] },
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder)],
+				revision: order.revision,
+				warnings: ["Square refunds are temporarily disabled."],
+			}),
+		};
+	}
+	const overview = await services.getSalesRefundOverview(actor, order.orderNo);
+	const refundable = overview.transactions.filter(
+		(transaction) =>
+			transaction.refundable &&
+			transaction.tender &&
+			transaction.salesPaymentId > 0,
+	);
+	const transaction = input.transactionRef
+		? refundable.find((item) => item.id === input.transactionRef)
+		: refundable.length === 1
+			? refundable[0]
+			: null;
+	if (!transaction) {
+		return {
+			result: assistantResultEnvelope({
+				status: refundable.length > 1 ? "requires_input" : "unavailable",
+				data: { ...emptyData, order: presentedOrder, candidates: [] },
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder)],
+				revision: order.revision,
+				warnings: [
+					refundable.length > 1
+						? "More than one payment can be refunded. Review the payment transactions and choose one."
+						: "This order does not have a refundable Square payment.",
+				],
+			}),
+		};
+	}
+	const tender = transaction.tender;
+	if (
+		!tender ||
+		tender.eligibleOrders.length !== 1 ||
+		tender.eligibleOrders[0]?.id !== order.id
+	) {
+		return {
+			result: assistantResultEnvelope({
+				status: "requires_input",
+				data: {
+					...emptyData,
+					order: presentedOrder,
+					candidates: [],
+					transactionRef: transaction.id,
+				},
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder)],
+				revision: order.revision,
+				warnings: [
+					"This payment covers multiple orders. Use the Sales finance refund form to review its allocations.",
+				],
+			}),
+		};
+	}
+	const amountCents = refundAmountCents(input.amount);
+	const allocationLimitCents = Math.min(
+		transaction.remainingRefundableCents,
+		overview.order.grandTotalCents,
+	);
+	const staleRemaining =
+		"expectedRemainingRefundableCents" in input &&
+		input.expectedRemainingRefundableCents !==
+			transaction.remainingRefundableCents;
+	if (amountCents > allocationLimitCents || staleRemaining) {
+		return {
+			result: assistantResultEnvelope({
+				status: "conflict",
+				data: {
+					...emptyData,
+					order: presentedOrder,
+					candidates: [],
+					transactionRef: transaction.id,
+					refund: refundReview({
+						amount: input.amount,
+						reason: input.reason,
+						remainingRefundableCents: transaction.remainingRefundableCents,
+					}),
+				},
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder)],
+				revision: order.revision,
+				warnings: [
+					amountCents > allocationLimitCents
+						? "The refund exceeds the amount available for this order and payment."
+						: "The refundable balance changed. Review the current amount before continuing.",
+				],
+			}),
+		};
+	}
+	try {
+		assertRefundIntent({
+			paymentStatus: transaction.status || "",
+			paidAt: tender.paidAt,
+			remainingCents: transaction.remainingRefundableCents,
+			money: { principalCents: amountCents, cccCents: 0, tipCents: 0 },
+			allocations: [
+				{
+					salesOrderId: order.id,
+					originalSalesPaymentId: transaction.salesPaymentId,
+					principalCents: amountCents,
+					cccCents: 0,
+					tipCents: 0,
+				},
+			],
+		});
+	} catch (error) {
+		return {
+			result: assistantResultEnvelope({
+				status: "unavailable",
+				data: {
+					...emptyData,
+					order: presentedOrder,
+					candidates: [],
+					transactionRef: transaction.id,
+				},
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder)],
+				revision: order.revision,
+				warnings: [
+					error instanceof Error
+						? error.message
+						: "This Square payment cannot be refunded.",
+				],
+			}),
+		};
+	}
+	return {
+		order,
+		presentedOrder,
+		transaction,
+		refund: refundReview({
+			amount: input.amount,
+			reason: input.reason,
+			remainingRefundableCents: transaction.remainingRefundableCents,
+		}),
+		targetRevision: refundTargetRevision({
+			orderRevision: order.revision,
+			transaction,
+		}),
+	};
+}
+
+function preparedRefundResult(input: {
+	order: DetailedOrder;
+	presentedOrder: DetailedOrder;
+	transaction: { id: string };
+	refund: ReturnType<typeof refundReview>;
+}) {
+	return assistantResultEnvelope({
+		status: "success",
+		data: {
+			order: input.presentedOrder,
+			candidates: [],
+			transactionRef: input.transaction.id,
+			refund: input.refund,
+			state: "prepared" as const,
+			receipt: null,
+		},
+		sources: [orderSource(input.presentedOrder)],
+		entities: [orderEntity(input.presentedOrder)],
+		revision: input.order.revision,
+	});
+}
+
 const salesCustomerDefinitions: AssistantToolDefinition[] = [
+	definition({
+		toolId: "sales_prepare_purchase_order_update",
+		version: 1,
+		domain: "sales",
+		title: "Prepare P.O. number update",
+		description:
+			"Resolve an authorized order or quote and prepare a reviewed P.O. number change for explicit confirmation.",
+		capability: "implemented",
+		effect: "draft",
+		requiredGrants: ["editOrders"],
+		presentation: {
+			group: "Sales",
+			resultComponent: "order-update",
+			icon: "pencil",
+		},
+		inputSchema: prepareSalesPurchaseOrderUpdateInputSchema,
+		outputSchema: salesPurchaseOrderUpdateDataSchema,
+		relatedTools: ["sales_get_order_status"],
+		async handler(actor, rawInput, services) {
+			const input = prepareSalesPurchaseOrderUpdateInputSchema.parse(rawInput);
+			const resolved = await resolveSalesPurchaseOrderTarget(
+				actor,
+				input,
+				services,
+			);
+			if ("result" in resolved) return resolved.result;
+			return salesPurchaseOrderResult({ actor, ...resolved });
+		},
+	}),
+	definition({
+		toolId: "sales_update_purchase_order",
+		version: 1,
+		domain: "sales",
+		title: "Update P.O. number",
+		description:
+			"Update one authorized order or quote P.O. number after explicit review and confirmation.",
+		capability: "implemented",
+		effect: "write",
+		requiredGrants: ["editOrders"],
+		presentation: {
+			group: "Sales",
+			resultComponent: "order-update",
+			icon: "pencil",
+		},
+		inputSchema: salesPurchaseOrderUpdateInputSchema,
+		outputSchema: salesPurchaseOrderUpdateDataSchema,
+		relatedTools: ["sales_get_order_status"],
+		async proposalPreflight(actor, rawInput, services) {
+			const input = salesPurchaseOrderUpdateInputSchema.parse(rawInput);
+			const resolved = await resolveSalesPurchaseOrderTarget(
+				actor,
+				input,
+				services,
+			);
+			if (
+				"result" in resolved ||
+				resolved.currentPurchaseOrderNumber !==
+					input.previousPurchaseOrderNumber
+			) {
+				throw new AssistantProposalPrecommitError(
+					"conflict",
+					"The Sales record changed before approval",
+				);
+			}
+			return { ok: true, targetRevision: resolved.order.revision };
+		},
+		async handler(actor, rawInput, services) {
+			const input = salesPurchaseOrderUpdateInputSchema.parse(rawInput);
+			const resolved = await resolveSalesPurchaseOrderTarget(
+				actor,
+				input,
+				services,
+			);
+			if ("result" in resolved) return resolved.result;
+			if (
+				resolved.currentPurchaseOrderNumber !==
+				input.previousPurchaseOrderNumber
+			) {
+				return assistantResultEnvelope({
+					status: "conflict",
+					data: {
+						order: resolved.presentedOrder,
+						candidates: [],
+						currentPurchaseOrderNumber: resolved.currentPurchaseOrderNumber,
+						nextPurchaseOrderNumber: input.purchaseOrderNumber,
+					},
+					sources: [orderSource(resolved.presentedOrder)],
+					entities: [orderEntity(resolved.presentedOrder)],
+					revision: resolved.order.revision,
+					warnings: [
+						"The P.O. number changed. Review the current value before updating it.",
+					],
+				});
+			}
+			if (resolved.currentPurchaseOrderNumber === input.purchaseOrderNumber) {
+				return salesPurchaseOrderResult({ actor, ...resolved });
+			}
+			if (!resolved.order.updatedAt) {
+				throw new AssistantProposalPrecommitError(
+					"conflict",
+					"The Sales record revision is unavailable",
+				);
+			}
+			const changed = await services.updateSalesPurchaseOrder(actor, {
+				salesOrderId: resolved.order.id,
+				expectedUpdatedAt: resolved.order.updatedAt,
+				purchaseOrderNumber: input.purchaseOrderNumber,
+			});
+			if (!changed) {
+				return assistantResultEnvelope({
+					status: "conflict",
+					data: {
+						order: resolved.presentedOrder,
+						candidates: [],
+						currentPurchaseOrderNumber: resolved.currentPurchaseOrderNumber,
+						nextPurchaseOrderNumber: input.purchaseOrderNumber,
+					},
+					sources: [orderSource(resolved.presentedOrder)],
+					entities: [orderEntity(resolved.presentedOrder)],
+					revision: resolved.order.revision,
+					warnings: [
+						"The Sales record changed. Review it before updating the P.O. number.",
+					],
+				});
+			}
+			const refreshed = await resolveSalesPurchaseOrderTarget(
+				actor,
+				{
+					orderNo: input.orderNo,
+					type: input.type,
+					purchaseOrderNumber: input.purchaseOrderNumber,
+				},
+				services,
+			);
+			if ("result" in refreshed) return refreshed.result;
+			return salesPurchaseOrderResult({
+				actor,
+				...refreshed,
+				currentPurchaseOrderNumber: input.purchaseOrderNumber,
+				invalidate: true,
+			});
+		},
+	}),
+	definition({
+		toolId: "finance_prepare_manual_payment",
+		version: 1,
+		domain: "finance",
+		title: "Prepare manual payment",
+		description:
+			"Resolve one authorized order and prepare an exact manual payment for explicit review. Customer notification stays off.",
+		capability: "implemented",
+		effect: "draft",
+		requiredGrants: ["viewOrders", "editOrderPayment"],
+		presentation: {
+			group: "Finance",
+			resultComponent: "manual-payment",
+			icon: "banknote",
+		},
+		inputSchema: prepareFinanceManualPaymentInputSchema,
+		outputSchema: financeManualPaymentDataSchema,
+		relatedTools: ["sales_get_order_status", "finance_summarize_orders"],
+		async handler(actor, rawInput, services) {
+			const input = prepareFinanceManualPaymentInputSchema.parse(rawInput);
+			const resolved = await resolveFinanceManualPaymentTarget(
+				actor,
+				input,
+				services,
+			);
+			if ("result" in resolved) return resolved.result;
+			return preparedManualPaymentResult(resolved);
+		},
+	}),
+	definition({
+		toolId: "finance_create_payment_link",
+		version: 1,
+		domain: "finance",
+		title: "Create secure payment link",
+		description:
+			"Create a seven-day secure checkout link for the full current balance of one authorized order. This does not send email or record a payment.",
+		capability: "implemented",
+		effect: "draft",
+		requiredGrants: ["viewOrders", "editOrderPayment"],
+		presentation: {
+			group: "Finance",
+			resultComponent: "payment-link",
+			icon: "link",
+		},
+		inputSchema: financePaymentLinkInputSchema,
+		outputSchema: financePaymentLinkDataSchema,
+		relatedTools: ["sales_get_order_status", "finance_prepare_manual_payment"],
+		async handler(actor, rawInput, services) {
+			const input = financePaymentLinkInputSchema.parse(rawInput);
+			const candidates = await services.getSalesOrderCandidates(actor, {
+				orderNo: input.orderNo,
+				type: "order",
+			});
+			const resolved = resolveOrderResult(
+				actor,
+				candidates,
+				input.expectedRevision,
+			);
+			const emptyData = {
+				order: resolved.data?.order ?? null,
+				candidates: resolved.data?.candidates ?? [],
+				customer: null,
+				amountDue: resolved.data?.order?.amountDue ?? null,
+				currency: "USD" as const,
+				paymentUrl: null,
+			};
+			if (resolved.status !== "success" || candidates.length !== 1)
+				return { ...resolved, data: emptyData };
+			const order = candidates[0];
+			const presentedOrder = resolved.data?.order;
+			if (!order || !presentedOrder)
+				throw new Error("Assistant order resolution failed");
+			if (!order.customerId) {
+				return assistantResultEnvelope({
+					status: "requires_input",
+					data: emptyData,
+					sources: [orderSource(presentedOrder)],
+					entities: [orderEntity(presentedOrder)],
+					revision: order.revision,
+					warnings: [
+						"The order does not have a customer account for checkout.",
+					],
+				});
+			}
+			const customer = await services.getCustomerSummary(
+				actor,
+				order.customerId,
+			);
+			const amountDue = paymentMoney(order.amountDue);
+			if (!customer || amountDue == null || amountDue <= 0) {
+				return assistantResultEnvelope({
+					status: "unavailable",
+					data: {
+						...emptyData,
+						customer: customer
+							? {
+									id: customer.id,
+									accountNo: customer.accountNo,
+									name: customer.name,
+								}
+							: null,
+					},
+					sources: [orderSource(presentedOrder)],
+					entities: [orderEntity(presentedOrder)],
+					revision: order.revision,
+					warnings: [
+						customer
+							? "The order does not have an outstanding balance."
+							: "The customer account is unavailable for checkout.",
+					],
+				});
+			}
+			const paymentUrl = await services.createSalesPaymentLink(actor, {
+				salesOrderId: order.id,
+				customerId: customer.id,
+				amountDue,
+			});
+			if (!paymentUrl) {
+				return assistantResultEnvelope({
+					status: "unavailable",
+					data: {
+						...emptyData,
+						customer: {
+							id: customer.id,
+							accountNo: customer.accountNo,
+							name: customer.name,
+						},
+					},
+					sources: [orderSource(presentedOrder)],
+					entities: [orderEntity(presentedOrder), customerEntity(customer)],
+					revision: order.revision,
+					warnings: [
+						"A secure payment link could not be created for this order.",
+					],
+				});
+			}
+			return assistantResultEnvelope({
+				status: "success",
+				data: {
+					order: presentedOrder,
+					candidates: [],
+					customer: {
+						id: customer.id,
+						accountNo: customer.accountNo,
+						name: customer.name,
+					},
+					amountDue: amountDue.toFixed(2),
+					currency: "USD",
+					paymentUrl,
+				},
+				sources: [
+					orderSource(presentedOrder),
+					{
+						kind: "document",
+						id: `payment-link:${order.id}@${order.revision}`,
+						label: `Pay order ${order.orderNo}`,
+						href: paymentUrl,
+					},
+				],
+				entities: [orderEntity(presentedOrder), customerEntity(customer)],
+				revision: order.revision,
+			});
+		},
+	}),
+	definition({
+		toolId: "finance_get_refund_overview",
+		version: 1,
+		domain: "finance",
+		title: "Check refund eligibility",
+		description:
+			"Read canonical payment and Square refund eligibility for one authorized order, including remaining refundable amounts and existing refund states.",
+		capability: "implemented",
+		effect: "read",
+		requiredGrants: ["viewOrders"],
+		anyOfGrants: ["viewOrderPayment", "editOrderPayment", "editRefundSquare"],
+		presentation: {
+			group: "Finance",
+			resultComponent: "refund-overview",
+			icon: "undo",
+		},
+		inputSchema: orderIdentityInputSchema,
+		outputSchema: financeRefundOverviewDataSchema,
+		relatedTools: ["sales_get_order_status"],
+		async handler(actor, rawInput, services) {
+			const input = orderIdentityInputSchema.parse(rawInput);
+			const candidates = await services.getSalesOrderCandidates(actor, {
+				orderNo: input.orderNo,
+				type: "order",
+			});
+			const resolved = resolveOrderResult(
+				actor,
+				candidates,
+				input.expectedRevision,
+			);
+			if (resolved.status !== "success" || candidates.length !== 1) {
+				return {
+					...resolved,
+					data: {
+						order: resolved.data?.order ?? null,
+						candidates: resolved.data?.candidates ?? [],
+						summary: {
+							receivedCents: 0,
+							completedRefundCents: 0,
+							pendingRefundCents: 0,
+							netCents: 0,
+						},
+						transactions: [],
+					},
+				};
+			}
+			const order = candidates[0];
+			const presentedOrder = resolved.data?.order;
+			if (!order || !presentedOrder)
+				throw new Error("Assistant order resolution failed");
+			const overview = await services.getSalesRefundOverview(
+				actor,
+				order.orderNo,
+			);
+			return assistantResultEnvelope({
+				status: "success",
+				data: {
+					order: presentedOrder,
+					candidates: [],
+					summary: overview.summary,
+					transactions: overview.transactions.map((transaction) => ({
+						transactionRef: transaction.id,
+						createdAt: new Date(transaction.createdAt).toISOString(),
+						description: String(transaction.description || "Sales payment"),
+						paymentMethod: String(transaction.paymentMethod || "other"),
+						status: String(transaction.status || "unknown"),
+						receivedCents: transaction.receivedCents,
+						completedRefundCents: transaction.completedRefundCents,
+						pendingRefundCents: transaction.pendingRefundCents,
+						netCents: transaction.netCents,
+						remainingRefundableCents: transaction.remainingRefundableCents,
+						refundable: transaction.refundable,
+						refunds: transaction.refunds.map((refund) => ({
+							status: refund.providerStatus,
+							amountCents: refund.amountCents,
+							reason: refund.reason || "Refund",
+						})),
+					})),
+				},
+				sources: [orderSource(presentedOrder)],
+				entities: [orderEntity(presentedOrder)],
+				revision: order.revision,
+			});
+		},
+	}),
+	definition({
+		toolId: "finance_prepare_square_refund",
+		version: 1,
+		domain: "finance",
+		title: "Prepare Square refund",
+		description:
+			"Prepare an exact principal-only refund for one eligible Square payment and one authorized order. Explicit confirmation is required before a refund request is created.",
+		capability: "implemented",
+		effect: "draft",
+		requiredGrants: ["viewOrders", "editRefundSquare"],
+		presentation: {
+			group: "Finance",
+			resultComponent: "square-refund",
+			icon: "undo",
+		},
+		inputSchema: prepareFinanceRefundInputSchema,
+		outputSchema: financeRefundDataSchema,
+		relatedTools: ["finance_get_refund_overview", "sales_get_order_status"],
+		async handler(actor, rawInput, services) {
+			const input = prepareFinanceRefundInputSchema.parse(rawInput);
+			const resolved = await resolveFinanceRefundTarget(actor, input, services);
+			if ("result" in resolved) return resolved.result;
+			return preparedRefundResult(resolved);
+		},
+	}),
+	definition({
+		toolId: "finance_create_square_refund",
+		version: 1,
+		domain: "finance",
+		title: "Create Square refund request",
+		description:
+			"Create one reviewed Square refund request through the canonical retry-safe payment workflow.",
+		capability: "implemented",
+		effect: "destructive",
+		requiredGrants: ["viewOrders", "editRefundSquare"],
+		presentation: {
+			group: "Finance",
+			resultComponent: "square-refund",
+			icon: "undo",
+		},
+		inputSchema: financeRefundInputSchema,
+		outputSchema: financeRefundDataSchema,
+		relatedTools: ["finance_get_refund_overview", "sales_get_order_status"],
+		async proposalPreflight(actor, rawInput, services) {
+			const input = financeRefundInputSchema.parse(rawInput);
+			const resolved = await resolveFinanceRefundTarget(actor, input, services);
+			if ("result" in resolved) {
+				throw new AssistantProposalPrecommitError(
+					"conflict",
+					resolved.result.warnings?.[0] ??
+						"The refundable payment changed before approval",
+				);
+			}
+			return { ok: true, targetRevision: resolved.targetRevision };
+		},
+		async handler(actor, rawInput, services) {
+			const input = financeRefundInputSchema.parse(rawInput);
+			const resolved = await resolveFinanceRefundTarget(actor, input, services);
+			if ("result" in resolved) return resolved.result;
+			const tender = resolved.transaction.tender;
+			if (!tender) throw new Error("The refundable payment is unavailable");
+			const receipt = await services.createSalesRefund(actor, {
+				tenderPaymentId: tender.id,
+				salesOrderId: resolved.order.id,
+				originalSalesPaymentId: resolved.transaction.salesPaymentId,
+				amountCents: resolved.refund.amountCents,
+				reason: resolved.refund.reason,
+			});
+			return assistantResultEnvelope({
+				status: "success",
+				data: {
+					order: resolved.presentedOrder,
+					candidates: [],
+					transactionRef: resolved.transaction.id,
+					refund: resolved.refund,
+					state: "requested" as const,
+					receipt: {
+						refundRef: receipt.refundId,
+						status: receipt.status,
+						queued: receipt.queued,
+					},
+				},
+				sources: [orderSource(resolved.presentedOrder)],
+				entities: [orderEntity(resolved.presentedOrder)],
+				revision: resolved.targetRevision,
+				invalidationTags: ["sales.orders", "sales.payments", "sales.pipeline"],
+				warnings: receipt.queued
+					? []
+					: [
+							"The refund request was saved, but provider processing still needs a retry.",
+						],
+			});
+		},
+	}),
+	definition({
+		toolId: "finance_record_manual_payment",
+		version: 1,
+		domain: "finance",
+		title: "Record manual payment",
+		description:
+			"Record one reviewed manual payment against one authorized order without sending a customer receipt.",
+		capability: "implemented",
+		effect: "write",
+		requiredGrants: ["viewOrders", "editOrderPayment"],
+		presentation: {
+			group: "Finance",
+			resultComponent: "manual-payment",
+			icon: "banknote",
+		},
+		inputSchema: financeManualPaymentInputSchema,
+		outputSchema: financeManualPaymentDataSchema,
+		relatedTools: ["sales_get_order_status", "finance_summarize_orders"],
+		async proposalPreflight(actor, rawInput, services) {
+			const input = financeManualPaymentInputSchema.parse(rawInput);
+			const resolved = await resolveFinanceManualPaymentTarget(
+				actor,
+				input,
+				services,
+			);
+			if ("result" in resolved) {
+				throw new AssistantProposalPrecommitError(
+					"conflict",
+					resolved.result.warnings?.[0] ??
+						"The payment target changed before approval",
+				);
+			}
+			return { ok: true, targetRevision: resolved.order.revision };
+		},
+		async handler(actor, rawInput, services) {
+			const input = financeManualPaymentInputSchema.parse(rawInput);
+			const resolved = await resolveFinanceManualPaymentTarget(
+				actor,
+				input,
+				services,
+			);
+			if ("result" in resolved) return resolved.result;
+			const recorded = await services.recordSalesManualPayment(actor, {
+				salesOrderId: resolved.order.id,
+				orderNo: resolved.order.orderNo,
+				accountNo: resolved.customer.accountNo,
+				amount: input.amount,
+				paymentMethod: input.paymentMethod,
+				checkNo: input.checkNo,
+			});
+			const applied = recorded.appliedSales.find(
+				(sale) => sale.salesId === resolved.order.id,
+			);
+			if (recorded.status !== "success" || !applied) {
+				throw new Error("The payment processor did not confirm the payment");
+			}
+			const refreshedCandidates = await services.getSalesOrderCandidates(
+				actor,
+				{
+					orderNo: input.orderNo,
+					type: "order",
+				},
+			);
+			const refreshed = refreshedCandidates.find(
+				(order) => order.id === resolved.order.id,
+			);
+			const presentedOrder = refreshed ?? resolved.presentedOrder;
+			return assistantResultEnvelope({
+				status: "success",
+				data: {
+					order: presentedOrder,
+					candidates: [],
+					customer: resolved.customer,
+					payment: resolved.payment,
+					expectedAmountDue: String(applied.remainingDue),
+					state: "recorded" as const,
+					receipt: {
+						appliedSalesIds: recorded.appliedSalesIds,
+						appliedAmount: applied.amountApplied,
+						remainingDue: applied.remainingDue,
+						customerReceiptQueueStatus: recorded.customerReceiptQueueStatus,
+					},
+				},
+				sources: [orderSource(presentedOrder)],
+				entities: [
+					orderEntity(presentedOrder),
+					customerEntity(resolved.customer),
+				],
+				revision: presentedOrder.revision,
+				invalidationTags: ["sales.orders", "sales.payments", "sales.pipeline"],
+			});
+		},
+	}),
 	definition({
 		toolId: "sales_find_orders",
 		version: 1,
@@ -1336,7 +2835,8 @@ const salesCustomerDefinitions: AssistantToolDefinition[] = [
 			"Find authorized office-visible customer records with sales history in the current scope.",
 		capability: "implemented",
 		effect: "read",
-		requiredGrants: ["viewCustomers"],
+		requiredGrants: [],
+		anyOfGrants: ["viewSalesCustomers", "editSalesCustomers", "viewOrders"],
 		presentation: {
 			group: "Customers",
 			resultComponent: "customer-list",
@@ -1371,7 +2871,7 @@ const salesCustomerDefinitions: AssistantToolDefinition[] = [
 		description: "Read a safe customer summary and latest authorized order.",
 		capability: "implemented",
 		effect: "read",
-		requiredGrants: ["viewCustomers", "viewOrders"],
+		requiredGrants: ["viewOrders"],
 		presentation: {
 			group: "Customers",
 			resultComponent: "customer-summary",
@@ -1425,7 +2925,7 @@ const salesCustomerDefinitions: AssistantToolDefinition[] = [
 			"Read bounded authorized order history for an office-visible customer.",
 		capability: "implemented",
 		effect: "read",
-		requiredGrants: ["viewCustomers", "viewOrders"],
+		requiredGrants: ["viewOrders"],
 		presentation: {
 			group: "Customers",
 			resultComponent: "customer-order-history",
@@ -1513,7 +3013,7 @@ async function resolveSalesPdfOrder(
 	}
 	const order = candidates[0];
 	if (!order) throw new Error("Assistant order resolution failed");
-	if (input.expectedRevision && input.expectedRevision !== order.revision) {
+	if (!matchesOrderRevision(order, input.expectedRevision)) {
 		return {
 			result: assistantResultEnvelope({
 				status: "conflict",
@@ -1967,7 +3467,7 @@ const placeholders: AssistantToolDefinition[] = [
 			}
 			const order = candidates[0];
 			if (!order) throw new Error("Assistant order resolution failed");
-			if (input.expectedRevision && input.expectedRevision !== order.revision) {
+			if (!matchesOrderRevision(order, input.expectedRevision)) {
 				return assistantResultEnvelope({
 					status: "conflict",
 					data: { order, candidates: [], pdf: null },
@@ -2607,15 +4107,18 @@ function assistantResultEnvelope<T = never>(input: {
 			| "failed"
 			| "cancelled";
 	};
+	invalidationTags?: AssistantInvalidationTag[];
 	allowedNextActions?: Array<{ toolId: string; toolVersion: number }>;
 }) {
-	const allowedNextActions = (input.allowedNextActions ?? []).filter((action) => {
-		const definition = assistantToolRegistry.find(
-			(tool) =>
-				tool.toolId === action.toolId && tool.version === action.toolVersion,
-		);
-		return definition && isAssistantToolControlEnabled(definition);
-	});
+	const allowedNextActions = (input.allowedNextActions ?? []).filter(
+		(action) => {
+			const definition = assistantToolRegistry.find(
+				(tool) =>
+					tool.toolId === action.toolId && tool.version === action.toolVersion,
+			);
+			return definition && isAssistantToolControlEnabled(definition);
+		},
+	);
 	return {
 		status: input.status,
 		...(input.data === undefined ? {} : { data: input.data }),
@@ -2626,6 +4129,9 @@ function assistantResultEnvelope<T = never>(input: {
 		...(input.revision ? { revision: input.revision } : {}),
 		...(input.artifact ? { artifact: input.artifact } : {}),
 		...(input.job ? { job: input.job } : {}),
+		...(input.invalidationTags?.length
+			? { invalidationTags: input.invalidationTags }
+			: {}),
 		allowedNextActions,
 	};
 }

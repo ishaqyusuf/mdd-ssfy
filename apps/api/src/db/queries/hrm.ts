@@ -14,6 +14,10 @@ import {
 	USER_PERMISSION_MODEL_TYPE_ALIASES,
 	getUserSpecificPermissions,
 } from "@gnd/auth/utils";
+import {
+	canAccessEmployeeDocument,
+	employeeDocumentAccessPath,
+} from "@gnd/documents";
 import { formatMoney, padStart } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import {
@@ -36,6 +40,51 @@ const EMPLOYEE_SPECIFIC_PERMISSION_NAMES = [
 ] as const;
 const LEGACY_MARK_FULFILLED_PERMISSION = "mark sales order fulfilled";
 const VIEW_MARK_FULFILLED_PERMISSION = "view mark sales order fulfilled";
+
+async function getEmployeeDocumentActor(ctx: TRPCContext) {
+	if (!ctx.userId) return null;
+	const [actor, specificPermissions] = await Promise.all([
+		ctx.db.users.findFirst({
+			where: getActiveCompanyMemberWhere({ id: ctx.userId }),
+			select: {
+				roles: {
+					where: activeCompanyRoleAssignmentWhere,
+					select: {
+						role: {
+							select: {
+								name: true,
+								RoleHasPermissions: {
+									where: {
+										deletedAt: null,
+										permission: { deletedAt: null },
+									},
+									select: { permission: { select: { name: true } } },
+								},
+							},
+						},
+					},
+				},
+			},
+		}),
+		getUserSpecificPermissions(ctx.db, ctx.userId),
+	]);
+	if (!actor) return null;
+	const roleNames = actor.roles.map((entry) => entry.role.name.toLowerCase());
+	const permissionNames = new Set([
+		...actor.roles.flatMap((entry) =>
+			entry.role.RoleHasPermissions.map((item) => item.permission.name),
+		),
+		...specificPermissions.map((permission) => permission.name),
+	]);
+	const isSuperAdmin = roleNames.includes("super admin");
+	return {
+		id: ctx.userId,
+		canViewEmployeeDocument:
+			isSuperAdmin || permissionNames.has("view employee document"),
+		canEditEmployeeDocument:
+			isSuperAdmin || permissionNames.has("edit employee document"),
+	};
+}
 
 async function ensureEmployeeSpecificPermissions(ctx: TRPCContext) {
 	const existing = await ctx.db.permissions.findMany({
@@ -172,6 +221,7 @@ export async function getEmployees(
 	query: EmployeesQueryParams,
 ) {
 	const { db } = ctx;
+	const documentActor = await getEmployeeDocumentActor(ctx);
 	const permissions = await ensureEmployeeSpecificPermissions(ctx);
 	const bugReportPermission = permissions.find(
 		(permission) => permission.name === "submit bug report",
@@ -294,7 +344,21 @@ export async function getEmployees(
 			role: user?.roles?.[0]?.role?.name,
 			org: user.roles?.[0]?.organization,
 			date: formatDate(user.createdAt),
-			documents: user.documents,
+			documents:
+				documentActor &&
+				canAccessEmployeeDocument({
+					actorId: documentActor.id,
+					employeeId: user.id,
+					canViewEmployeeDocument:
+						documentActor.canViewEmployeeDocument,
+					canEditEmployeeDocument:
+						documentActor.canEditEmployeeDocument,
+				})
+					? user.documents.map((document) => ({
+							...document,
+							url: employeeDocumentAccessPath(document.id),
+						}))
+					: [],
 			profile: user.employeeProfile,
 			specificPermissionCount:
 				specificPermissionCountByUserId.get(user.id) ?? 0,
@@ -680,6 +744,16 @@ export async function setEmployeeBugReportingAccess(
 
 export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
 	await ensureEmployeeSpecificPermissions(ctx);
+	const actor = await getEmployeeDocumentActor(ctx);
+	if (!actor) {
+		throw new TRPCError({ code: "UNAUTHORIZED", message: "Unauthorized" });
+	}
+	const canReadDocuments = canAccessEmployeeDocument({
+		actorId: actor.id,
+		employeeId: id,
+		canViewEmployeeDocument: actor.canViewEmployeeDocument,
+		canEditEmployeeDocument: actor.canEditEmployeeDocument,
+	});
 	const user = await ctx.db.users.findUniqueOrThrow({
 		where: { id },
 		select: {
@@ -845,7 +919,7 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
 				}
 			: undefined;
 
-	const records = user.documents.map((doc) => {
+	const records = canReadDocuments ? user.documents.map((doc) => {
 		const meta = parseInsuranceDocumentMeta(doc.meta);
 		const isInsuranceDocument = isInsuranceDocumentTitle(doc.title);
 
@@ -855,7 +929,7 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
 			title: doc.title || "Document",
 			document: {
 				id: String(doc.id),
-				url: (meta.url as string | null | undefined) || doc.url,
+				url: employeeDocumentAccessPath(doc.id),
 				filename: doc.title || undefined,
 			},
 			expiresAt: meta.expiresAt ?? undefined,
@@ -867,7 +941,7 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
 			notes: doc.description || undefined,
 			createdAt: doc.createdAt?.toISOString() || new Date().toISOString(),
 		};
-	});
+	}) : [];
 
 	return {
 		user: {

@@ -4,12 +4,7 @@ import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import {
 	type NewSalesFormSeed,
-	type WorkflowComponentRecord,
-	type WorkflowRouteData,
-	hydrateSalesFormRecord,
-	initializeNewSalesFormSeed,
 	newSalesFormSeedV2Schema,
-	toSalesFormSaveDraftPayload,
 } from "@gnd/sales/sales-form-core";
 import {
 	SALES_REQUEST_PROMPT_VERSION,
@@ -17,6 +12,8 @@ import {
 } from "@gnd/sales/sales-form/request-generation";
 import { z } from "zod";
 import { generateNewSalesFormSeed } from "../../sales-request-generation";
+import { verifySalesRequestNativeSeedCompatibility as verifySalesRequestCorpusSeedCompatibility } from "../native-compatibility";
+export { verifySalesRequestNativeSeedCompatibility as verifySalesRequestCorpusSeedCompatibility } from "../native-compatibility";
 import {
 	type SalesRequestProvider,
 	SalesRequestProviderExecutionError,
@@ -431,131 +428,6 @@ function appendUnsafePaths(
 		wholeOrderMatch: false,
 		unsafeGuesses: unsafeGuessPaths.length,
 		unsafeGuessPaths,
-	};
-}
-
-export type SalesRequestCorpusSeedCompatibility = {
-	initializer: "passed" | "blocked";
-	saveReopen: "passed" | "blocked";
-	unresolvedCount: number;
-	issues: string[];
-};
-
-/**
- * Exercises the real initializer and native draft round-trip against a
- * deterministic price-neutral projection. This proves structural compatibility;
- * current prices are still resolved by the New Sales Form at apply time.
- */
-export async function verifySalesRequestCorpusSeedCompatibility(
-	seed: NewSalesFormSeed,
-	configurationJson: string,
-): Promise<SalesRequestCorpusSeedCompatibility> {
-	const configuration = JSON.parse(
-		configurationJson,
-	) as CompatibilityConfiguration;
-	const rootStepId = configuration.routes[0]?.rootStepId;
-	const rootStep = configuration.steps.find((step) => step.id === rootStepId);
-	const routeData: WorkflowRouteData = {
-		rootStepUid: rootStep?.uid || null,
-		stepsById: Object.fromEntries(
-			configuration.steps.map((step) => [step.id, step.uid]),
-		),
-		stepsByUid: Object.fromEntries(
-			configuration.steps.map((step) => [
-				step.uid,
-				{
-					id: step.id,
-					uid: step.uid,
-					title: step.title || "",
-					...(step.doorSizeVariation?.length
-						? { meta: { doorSizeVariation: step.doorSizeVariation } }
-						: {}),
-				},
-			]),
-		),
-		composedRouter: Object.fromEntries(
-			configuration.routes.map((route) => [
-				route.itemTypeUid,
-				{
-					routeSequence: route.stepUids.map((uid) => ({ uid })),
-					config: route.config || {},
-				},
-			]),
-		),
-	};
-	const componentsByStepId = new Map<number, WorkflowComponentRecord[]>();
-	let componentId = 1;
-	for (const step of configuration.steps) {
-		componentsByStepId.set(
-			step.id,
-			step.components.map(([uid, title]) => {
-				const visibility = configuration.visibilityByComponentUid[uid];
-				const projectedVisibility =
-					visibility &&
-					typeof visibility === "object" &&
-					!Array.isArray(visibility)
-						? (visibility as Record<string, unknown>)
-						: {};
-				return {
-					id: componentId++,
-					uid,
-					title,
-					basePrice: 1,
-					salesPrice: 1,
-					...projectedVisibility,
-				};
-			}),
-		);
-	}
-	const initialized = await initializeNewSalesFormSeed({
-		seed,
-		baseRecord: {
-			type: "quote",
-			salesId: null,
-			form: { customerProfileId: 1 },
-			lineItems: [],
-			extraCosts: [],
-			summary: { taxRate: 0 },
-		},
-		routeData,
-		pricing: { profileCoefficient: 1 },
-		resolveComponents: ({ step }) =>
-			componentsByStepId.get(Number(step.id)) || [],
-	});
-	const issues = initialized.issues.map((issue) =>
-		[issue.reason, issue.lineUid, issue.stepId ?? "", issue.componentUid ?? ""]
-			.filter((value) => value !== "")
-			.join(":"),
-	);
-	if (issues.length || seed.lineItems.length === 0) {
-		return {
-			initializer: "blocked",
-			saveReopen: "blocked",
-			unresolvedCount: initialized.unresolved.length,
-			issues: seed.lineItems.length === 0
-				? [...issues, "empty-native-draft"]
-				: issues,
-		};
-	}
-	const payload = toSalesFormSaveDraftPayload(initialized.record, true);
-	const reopened = hydrateSalesFormRecord({
-		...initialized.record,
-		form: payload.meta,
-		lineItems: payload.lineItems,
-		extraCosts: payload.extraCosts,
-		summary: payload.summary,
-	});
-	const reopenedPayload = toSalesFormSaveDraftPayload(reopened, true);
-	if (!isDeepStrictEqual(payload, reopenedPayload)) {
-		throw new Error(
-			"Corpus seed changed during the native save/reopen round-trip.",
-		);
-	}
-	return {
-		initializer: "passed",
-		saveReopen: "passed",
-		unresolvedCount: initialized.unresolved.length,
-		issues: [],
 	};
 }
 

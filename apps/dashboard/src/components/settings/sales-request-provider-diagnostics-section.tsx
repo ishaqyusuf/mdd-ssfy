@@ -28,6 +28,11 @@ const chartConfig = {
 function formatFailureDetail(failure: {
 	stage: string;
 	cause?: string;
+	finishReason?: string;
+	repairAttempted?: boolean;
+	configurationIssue?: string;
+	routeFailureKind?: string;
+	catalogFailureKind?: string;
 	statusCode?: number;
 	providerStatus?: string;
 	retryable?: boolean;
@@ -36,6 +41,15 @@ function formatFailureDetail(failure: {
 	const identity = [
 		failure.stage,
 		failure.cause,
+		failure.configurationIssue,
+		failure.routeFailureKind,
+		failure.catalogFailureKind,
+		failure.finishReason,
+		failure.repairAttempted === undefined
+			? undefined
+			: failure.repairAttempted
+				? "repair attempted"
+				: "no repair",
 		failure.statusCode,
 		failure.providerStatus,
 	]

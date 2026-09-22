@@ -3,9 +3,12 @@
 import { Icons } from "@gnd/ui/icons";
 
 import { useZodForm } from "@/hooks/use-zod-form";
-import { uploadFile } from "@/lib/upload-file";
+import {
+	readEmployeeDocumentAsBase64,
+	resolveEmployeeDocumentMimeType,
+	validateEmployeeDocumentFile,
+} from "@/lib/employee-document-upload";
 import { useTRPC } from "@/trpc/client";
-import { useTransition } from "@/utils/use-safe-transistion";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {
@@ -54,7 +57,6 @@ const defaultTitles: Record<EmployeeRecord["type"], string> = {
 
 const documentSchema = z.object({
 	title: z.string().min(1, "Document title is required"),
-	url: z.string().min(1, "Document URL is required"),
 	description: z.string().optional().nullable(),
 	expiresAt: z.string().optional().nullable(),
 });
@@ -63,20 +65,20 @@ export function RecordUploadForm({ open, employeeId, onClose }: Props) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const [isUploading, startUpload] = useTransition();
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [isPreparing, setIsPreparing] = useState(false);
 	const [type, setType] = useState<EmployeeRecord["type"]>("insurance");
 	const [fileName, setFileName] = useState("");
 	const form = useZodForm(documentSchema, {
 		defaultValues: {
 			title: defaultTitles.insurance,
-			url: "",
 			description: "",
 			expiresAt: "",
 		},
 	});
 
-	const saveDocument = useMutation(
-		trpc.user.saveDocument.mutationOptions({
+	const uploadDocument = useMutation(
+		trpc.user.uploadDocumentAsset.mutationOptions({
 			onSuccess() {
 				toast.success("Employee document uploaded");
 				resetForm();
@@ -94,9 +96,9 @@ export function RecordUploadForm({ open, employeeId, onClose }: Props) {
 	function resetForm() {
 		setType("insurance");
 		setFileName("");
+		setSelectedFile(null);
 		form.reset({
 			title: defaultTitles.insurance,
-			url: "",
 			description: "",
 			expiresAt: "",
 		});
@@ -113,46 +115,56 @@ export function RecordUploadForm({ open, employeeId, onClose }: Props) {
 	}
 
 	function handleFileSelect(file: File) {
-		startUpload(async () => {
-			const formData = new FormData();
-			formData.append("file", file);
-			const data = await uploadFile(formData, "contractor-document");
-			if (data?.error) {
-				toast.error(data.error.message ?? "Unable to upload employee document");
-				return;
-			}
-
-			form.setValue("url", data.secure_url ?? data.public_id ?? "", {
+		const validationError = validateEmployeeDocumentFile(file);
+		if (validationError) {
+			toast.error(validationError);
+			return;
+		}
+		setSelectedFile(file);
+		setFileName(file.name);
+		if (!form.getValues("title").trim()) {
+			form.setValue("title", file.name.replace(/\.[^.]+$/, ""), {
 				shouldValidate: true,
 			});
-			setFileName(file.name);
-			if (!form.getValues("title").trim()) {
-				form.setValue("title", file.name.replace(/\.[^.]+$/, ""), {
-					shouldValidate: true,
-				});
-			}
-		});
+		}
 	}
 
-	const onSubmit = form.handleSubmit((values) => {
+	const onSubmit = form.handleSubmit(async (values) => {
+		if (!selectedFile) {
+			toast.error("Choose a document file first.");
+			return;
+		}
+		const contentType = resolveEmployeeDocumentMimeType(selectedFile);
+		if (!contentType) {
+			toast.error("The selected document type is unsupported.");
+			return;
+		}
 		const normalizedTitle =
 			type === "insurance" ? defaultTitles.insurance : values.title.trim();
-
-		saveDocument.mutate({
-			...values,
-			userId: employeeId,
-			title: normalizedTitle,
-			description: values.description?.trim()
-				? values.description.trim()
-				: type === "insurance"
-					? "Uploaded by admin from employee overview."
-					: type,
-			expiresAt: values.expiresAt || undefined,
-		});
+		setIsPreparing(true);
+		try {
+			await uploadDocument.mutateAsync({
+				userId: employeeId,
+				filename: selectedFile.name,
+				contentType,
+				content: await readEmployeeDocumentAsBase64(selectedFile),
+				title: normalizedTitle,
+				description: values.description?.trim()
+					? values.description.trim()
+					: type === "insurance"
+						? "Uploaded by admin from employee overview."
+						: type,
+				expiresAt: values.expiresAt || undefined,
+			});
+		} catch {
+			// The mutation reports a sanitized error through its onError handler.
+		} finally {
+			setIsPreparing(false);
+		}
 	});
 
 	const title = form.watch("title");
-	const url = form.watch("url");
+	const isUploading = uploadDocument.isPending || isPreparing;
 
 	return (
 		<Dialog open={open} onOpenChange={handleDialogChange}>
@@ -211,12 +223,14 @@ export function RecordUploadForm({ open, employeeId, onClose }: Props) {
 										{fileName || "PDF, image, or any supporting document"}
 									</span>
 								</div>
-								{url ? <Badge variant="secondary">Uploaded</Badge> : null}
+								{selectedFile ? (
+									<Badge variant="secondary">Selected</Badge>
+								) : null}
 							</button>
 							<input
 								ref={fileInputRef}
 								type="file"
-								accept="*/*"
+								accept=".pdf,.png,.jpg,.jpeg,.webp,.avif,.heic,.heif,application/pdf,image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif"
 								className="sr-only"
 								onChange={(event) => {
 									const file = event.target.files?.[0];
@@ -256,11 +270,9 @@ export function RecordUploadForm({ open, employeeId, onClose }: Props) {
 							</Button>
 							<Button
 								type="submit"
-								disabled={
-									!title.trim() || !url || isUploading || saveDocument.isPending
-								}
+								disabled={!title.trim() || !selectedFile || isUploading}
 							>
-								{saveDocument.isPending ? "Saving..." : "Upload"}
+								{isUploading ? "Uploading..." : "Upload"}
 							</Button>
 						</div>
 					</form>

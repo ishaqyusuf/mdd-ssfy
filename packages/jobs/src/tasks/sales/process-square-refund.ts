@@ -11,7 +11,12 @@ import {
 } from "@gnd/sales/payment-system";
 import { normalizeSquareRefundStatus } from "@gnd/sales/payment-system/refunds";
 import { recordSalesHandoffReconciliationRepair } from "@gnd/sales/sales-handoff";
-import { createSquarePaymentRefund, getSquarePaymentRefund } from "@gnd/square";
+import {
+	createSquarePaymentRefund,
+	getSquarePaymentRefund,
+	getSquareRefundSubmissionFailure,
+	type SquareRefundResult,
+} from "@gnd/square";
 import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import type { TaskName } from "../../schema";
@@ -418,15 +423,55 @@ export async function processSquareSalesRefund(refundId: string) {
 		include: { tender: true, allocations: true },
 	});
 	if (refund.applicationStatus === "applied") return { status: "applied" };
-	const providerRefund = refund.providerRefundId
-		? await getSquarePaymentRefund(refund.providerRefundId)
-		: await createSquarePaymentRefund({
-				providerPaymentId: refund.tender.providerPaymentId,
-				amountCents: refund.amountCents,
-				currency: refund.currency,
-				idempotencyKey: refund.idempotencyKey,
-				reason: refund.reason,
+	let providerRefund: SquareRefundResult;
+	try {
+		providerRefund = refund.providerRefundId
+			? await getSquarePaymentRefund(refund.providerRefundId)
+			: await createSquarePaymentRefund({
+					providerPaymentId: refund.tender.providerPaymentId,
+					amountCents: refund.amountCents,
+					currency: refund.currency,
+					idempotencyKey: refund.idempotencyKey,
+					reason: refund.reason,
+				});
+	} catch (error) {
+		const failure = getSquareRefundSubmissionFailure(error);
+		if (refund.providerRefundId || !failure) throw error;
+		await db.$transaction(async (tx) => {
+			const updated = await tx.salesSquareRefund.updateMany({
+				where: {
+					id: refund.id,
+					version: refund.version,
+					providerRefundId: null,
+					providerStatus: "not_submitted",
+				},
+				data: {
+					providerStatus: "failed",
+					applicationStatus: "apply_failed",
+					reservedCents: 0,
+					failureCode: failure.code,
+					failureDetail: failure.message,
+					version: { increment: 1 },
+				},
 			});
+			if (updated.count === 1) {
+				await tx.salesSquareRefundTransition.create({
+					data: {
+						refundId: refund.id,
+						providerStatus: "failed",
+						applicationStatus: "apply_failed",
+						source: "square_api",
+						message: failure.message,
+					},
+				});
+			}
+		});
+		const current = await db.salesSquareRefund.findUniqueOrThrow({
+			where: { id: refund.id },
+			select: { providerStatus: true },
+		});
+		return { status: current.providerStatus };
+	}
 	const providerStatus = normalizeSquareRefundStatus(providerRefund.status);
 	const providerStatusChanged = providerStatus !== refund.providerStatus;
 	const applicationStatus =

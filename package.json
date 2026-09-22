@@ -61,6 +61,7 @@
 		"eas:appstore:upload:ios": "bun ./scripts/eas-account-runner.ts submit --prod --platform ios --require-id",
 		"eas:appstore:build-upload:ios": "bun ./scripts/eas-account-runner.ts build-submit --prod --platform ios",
 		"eas:update": "bun ./scripts/eas-account-runner.ts update",
+		"employee-documents:private-migrate": "bun ./scripts/employee-document-private-migration.ts",
 		"ios:release:check": "bun run --cwd apps/mobile ios:release:check",
 		"ios:backend:deployment-target:check": "bun ./scripts/ios-backend-deployment-target.ts",
 		"format": "biome format --write .",

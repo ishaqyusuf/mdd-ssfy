@@ -4,6 +4,11 @@ import { Icons } from "@gnd/ui/icons";
 
 import { Avatar } from "@/components/avatar";
 import { useZodForm } from "@/hooks/use-zod-form";
+import {
+    readEmployeeDocumentAsBase64,
+    resolveEmployeeDocumentMimeType,
+    validateEmployeeDocumentFile,
+} from "@/lib/employee-document-upload";
 import { uploadFile } from "@/lib/upload-file";
 import { useTRPC } from "@/trpc/client";
 import { useTransition } from "@/utils/use-safe-transistion";
@@ -75,7 +80,6 @@ const passwordSchema = z
 
 const documentSchema = z.object({
     title: z.string().min(1, "Document title is required"),
-    url: z.string().min(1, "Document URL is required"),
     description: z.string().optional().nullable(),
     expiresAt: z.string().optional().nullable(),
 });
@@ -567,26 +571,28 @@ function DocumentsTab({
 }) {
     const trpc = useTRPC();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [uploading, startUpload] = useTransition();
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [preparing, setPreparing] = useState(false);
 
     const form = useZodForm(documentSchema, {
         defaultValues: {
             title: CONTRACTOR_JOB_DOCUMENT_TITLE,
-            url: "",
             description: "",
             expiresAt: "",
         },
     });
 
-    const save = useMutation(
-        trpc.user.saveDocument.mutationOptions({
+    const upload = useMutation(
+        trpc.user.uploadDocumentAsset.mutationOptions({
             onSuccess() {
-                toast.success("Document saved");
+                toast.success("Document uploaded securely");
                 form.reset();
+                setSelectedFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
                 onUpdate();
             },
             onError(err) {
-                toast.error(err.message ?? "Failed to save document");
+                toast.error(err.message ?? "Failed to upload document");
             },
         }),
     );
@@ -603,22 +609,43 @@ function DocumentsTab({
         }),
     );
 
-    const handleFileUpload = async (file: File) => {
-        startUpload(async () => {
-            const formData = new FormData();
-            formData.append("file", file);
-            const data = await uploadFile(formData, "contractor-document");
-            if (data?.error) {
-                toast.error(data.error.message);
-                return;
-            }
-            form.setValue("url", data.secure_url ?? data.public_id ?? "");
-        });
+    const handleFileUpload = (file: File) => {
+        const validationError = validateEmployeeDocumentFile(file);
+        if (validationError) {
+            toast.error(validationError);
+            return;
+        }
+        setSelectedFile(file);
     };
 
-    const onSubmit = form.handleSubmit((values) => {
-        save.mutate(values);
+    const onSubmit = form.handleSubmit(async (values) => {
+        if (!selectedFile) {
+            toast.error("Choose a document file first.");
+            return;
+        }
+        const contentType = resolveEmployeeDocumentMimeType(selectedFile);
+        if (!contentType) {
+            toast.error("The selected document type is unsupported.");
+            return;
+        }
+        setPreparing(true);
+        try {
+            await upload.mutateAsync({
+                filename: selectedFile.name,
+                contentType,
+                content: await readEmployeeDocumentAsBase64(selectedFile),
+                title: values.title,
+                description: values.description,
+                expiresAt: values.expiresAt,
+            });
+        } catch {
+            // The mutation reports a sanitized error through its onError handler.
+        } finally {
+            setPreparing(false);
+        }
     });
+
+    const uploading = upload.isPending || preparing;
 
     return (
         <div className="space-y-6">
@@ -647,24 +674,24 @@ function DocumentsTab({
                                     <Icons.Upload className="h-5 w-5 text-muted-foreground shrink-0" />
                                     <span className="text-sm text-muted-foreground">
                                         {uploading
-                                            ? "Uploading…"
-                                            : form.watch("url")
-                                              ? "File uploaded — click to replace"
+                                            ? "Uploading securely…"
+                                            : selectedFile
+                                              ? selectedFile.name
                                               : "Click to select a file"}
                                     </span>
-                                    {form.watch("url") && (
+                                    {selectedFile && (
                                         <Badge
                                             variant="secondary"
                                             className="ml-auto"
                                         >
-                                            Uploaded
+                                            Selected
                                         </Badge>
                                     )}
                                 </button>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept="*/*"
+                                    accept=".pdf,.png,.jpg,.jpeg,.webp,.avif,.heic,.heif,application/pdf,image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif"
                                     className="sr-only"
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
@@ -733,14 +760,10 @@ function DocumentsTab({
 
                             <div className="flex justify-end">
                                 <SubmitButton
-                                    isSubmitting={save.isPending || uploading}
-                                    disabled={
-                                        save.isPending ||
-                                        uploading ||
-                                        !form.watch("url")
-                                    }
+                                    isSubmitting={uploading}
+                                    disabled={uploading || !selectedFile}
                                 >
-                                    Save Document
+                                    Upload Document
                                 </SubmitButton>
                             </div>
                         </form>

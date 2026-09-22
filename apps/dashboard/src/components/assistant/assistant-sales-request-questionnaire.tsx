@@ -31,6 +31,7 @@ import {
 	useState,
 } from "react";
 import { shouldSubmitAssistantComposerKey } from "./assistant-chat-state";
+import { AssistantSalesDraftSave } from "./assistant-sales-draft-save";
 
 function canSaveAnswerAsRule(
 	question: { canSaveRule?: boolean; options?: { value: string }[] },
@@ -84,13 +85,18 @@ export function AssistantSalesRequestQuestionnaire({
 	const [hydratedKey, setHydratedKey] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [discardUnsentAnswers, setDiscardUnsentAnswers] = useState<string | null>(null);
 	const [moreOpen, setMoreOpen] = useState(false);
 	const [optionSearch, setOptionSearch] = useState("");
+	const [choicesOverflow, setChoicesOverflow] = useState(false);
+	const optionRowRef = useRef<HTMLDivElement>(null);
 	const optionsRef = useRef<HTMLDivElement>(null);
 	const round = session.data?.revision;
 	const draftKey = round
 		? `assistant-sales-answers:${conversationId}:${round}`
 		: null;
+	const hasUnsentAnswers = Object.values(answers).some((answer) => answer.trim());
+	const answerSnapshot = JSON.stringify(answers);
 	useEffect(() => {
 		void session.refetch();
 	}, [session.refetch]);
@@ -161,6 +167,20 @@ export function AssistantSalesRequestQuestionnaire({
 		reuse,
 		questionIndex,
 	]);
+	useEffect(() => {
+		const row = optionRowRef.current;
+		const choices = optionsRef.current;
+		if (!row || !choices) {
+			setChoicesOverflow(false);
+			return;
+		}
+		const updateOverflow = () =>
+			setChoicesOverflow(choices.scrollWidth > row.clientWidth + 1);
+		updateOverflow();
+		const observer = new ResizeObserver(updateOverflow);
+		observer.observe(row);
+		return () => observer.disconnect();
+	}, [questionIndex, session.data?.questions]);
 
 	const submit = async (submittedAnswers = answers) => {
 		const questions = session.data?.questions ?? [];
@@ -199,6 +219,37 @@ export function AssistantSalesRequestQuestionnaire({
 					? cause.message
 					: "The answers could not be submitted. Reload and try again.",
 			);
+			await session.refetch();
+		} finally {
+			setBusy(false);
+		}
+	};
+	const continueWithPartialDraft = async () => {
+		if (!round || busy || disabled || !session.data?.canContinuePartial) return;
+		if (hasUnsentAnswers && discardUnsentAnswers !== answerSnapshot) {
+			setDiscardUnsentAnswers(answerSnapshot);
+			return;
+		}
+		setBusy(true);
+		setError(null);
+		try {
+			await client.assistant.continueSalesRequest.mutate({
+				conversationId,
+				revision: round,
+			});
+			if (draftKey) {
+				try {
+					sessionStorage.removeItem(draftKey);
+				} catch {
+					/* Browser storage is optional. */
+				}
+			}
+			await session.refetch();
+			onChanged();
+		} catch (cause) {
+			setError(cause instanceof Error
+				? cause.message
+				: "The partial draft could not be opened. Reload and try again.");
 			await session.refetch();
 		} finally {
 			setBusy(false);
@@ -258,19 +309,7 @@ export function AssistantSalesRequestQuestionnaire({
 					</a>
 				</section>
 			);
-		if (!request.preview.seed.lineItems.length)
-			return (
-				<section
-					className="rounded-lg border bg-card p-4 text-sm"
-					aria-label="Sales Request result"
-				>
-					<p className="font-medium">This request needs manual review.</p>
-					<p className="mt-1 text-muted-foreground">
-						No catalog-compatible Sales line was found. Nothing has been saved
-						or charged.
-					</p>
-				</section>
-			);
+		const reviewOnly = request.preview.seed.lineItems.length === 0;
 		const href = `/sales-form/create-${request.type}?${new URLSearchParams({
 			salesRequestGeneration: request.preview.generationId,
 			assistantChat: conversationId,
@@ -281,10 +320,17 @@ export function AssistantSalesRequestQuestionnaire({
 				aria-label="Sales Request result"
 			>
 				<p className="font-medium">
-					{request.preview.unresolvedCount > 0
+					{reviewOnly
+					? "This request needs manual review."
+						: request.preview.unresolvedCount > 0
 						? "Draft needs review."
 						: `Your ${request.type} draft is ready for review.`}
 				</p>
+				{reviewOnly ? (
+					<p className="mt-1 text-muted-foreground">
+						No catalog-compatible items were created. Add the missing items in the Sales form.
+					</p>
+				) : null}
 				{request.preview.unresolvedCount > 0 ? (
 					<p className="mt-1 text-muted-foreground">
 						{request.preview.unresolvedCount} unresolved request detail
@@ -294,13 +340,21 @@ export function AssistantSalesRequestQuestionnaire({
 				<p className="mt-1 text-muted-foreground">
 					Nothing has been saved or charged.
 				</p>
+				{!reviewOnly ? <AssistantSalesDraftSave
+					key={request.preview.generationId}
+					conversationId={conversationId}
+					generationId={request.preview.generationId}
+					type={request.type}
+					disabled={disabled}
+					onSaved={() => { void session.refetch(); onChanged(); }}
+				/> : null}
 				<a
 					href={href}
 					target="_blank"
 					rel="noopener noreferrer"
 					className="mt-3 inline-flex items-center gap-2 underline underline-offset-4"
 				>
-					Open the Sales form in a new tab{" "}
+					{reviewOnly ? "Open Sales form to add items" : "Open the Sales form in a new tab"}{" "}
 					<ExternalLink size={14} aria-hidden="true" />
 				</a>
 			</section>
@@ -317,7 +371,8 @@ export function AssistantSalesRequestQuestionnaire({
 	const filteredOptions = options.filter((option) =>
 		option.label.toLowerCase().includes(optionSearch.trim().toLowerCase()),
 	);
-	const showTextAnswer = !hasOptions || otherSelected[question.id];
+	const allowOther = question.allowOther !== false;
+	const showTextAnswer = !hasOptions || (allowOther && otherSelected[question.id]);
 	const showRule =
 		(hasOptions && question.canSaveRule === true) ||
 		canSaveAnswerAsRule(question, answers[question.id] ?? "");
@@ -415,21 +470,23 @@ export function AssistantSalesRequestQuestionnaire({
 								className="flex w-full flex-col gap-1.5"
 							>
 								{compactOptions ? (
-									<div className="flex w-full items-center gap-1">
-										<InputGroupButton
-											type="button"
-											variant="ghost"
-											size="icon-sm"
-											aria-label="Scroll choices left"
-											onClick={() =>
-												optionsRef.current?.scrollBy({
-													left: -180,
-													behavior: "smooth",
-												})
-											}
-										>
-											<ChevronLeft size={16} />
-										</InputGroupButton>
+									<div ref={optionRowRef} className="flex w-full items-center gap-1">
+										{choicesOverflow ? (
+											<InputGroupButton
+												type="button"
+												variant="ghost"
+												size="icon-sm"
+												aria-label="Scroll choices left"
+												onClick={() =>
+													optionsRef.current?.scrollBy({
+														left: -180,
+														behavior: "smooth",
+													})
+												}
+											>
+												<ChevronLeft size={16} />
+											</InputGroupButton>
+										) : null}
 										<section
 											ref={optionsRef}
 											aria-label="Answer choices"
@@ -447,7 +504,7 @@ export function AssistantSalesRequestQuestionnaire({
 												}
 											}}
 										>
-											{shownOptions.map((option) => (
+										{shownOptions.map((option) => (
 												<Button
 													key={option.value}
 													type="button"
@@ -467,7 +524,8 @@ export function AssistantSalesRequestQuestionnaire({
 												>
 													{option.label}
 												</Button>
-											))}
+										))}
+										{allowOther ? (
 											<Button
 												type="button"
 												size="sm"
@@ -489,21 +547,24 @@ export function AssistantSalesRequestQuestionnaire({
 											>
 												Other
 											</Button>
+										) : null}
 										</section>
-										<InputGroupButton
-											type="button"
-											variant="ghost"
-											size="icon-sm"
-											aria-label="Scroll choices right"
-											onClick={() =>
-												optionsRef.current?.scrollBy({
-													left: 180,
+										{choicesOverflow ? (
+											<InputGroupButton
+												type="button"
+												variant="ghost"
+												size="icon-sm"
+												aria-label="Scroll choices right"
+												onClick={() =>
+													optionsRef.current?.scrollBy({
+														left: 180,
 													behavior: "smooth",
-												})
-											}
-										>
-											<ChevronRight size={16} />
-										</InputGroupButton>
+													})
+												}
+											>
+												<ChevronRight size={16} />
+											</InputGroupButton>
+										) : null}
 									</div>
 								) : (
 									shownOptions.map((option) => (
@@ -542,7 +603,7 @@ export function AssistantSalesRequestQuestionnaire({
 										More ({options.length - 3})
 									</Button>
 								) : null}
-								{!compactOptions ? (
+								{!compactOptions && allowOther ? (
 									<Button
 										type="button"
 										size="sm"
@@ -591,6 +652,22 @@ export function AssistantSalesRequestQuestionnaire({
 							/>
 						) : null}
 						<InputGroupAddon align="block-end">
+							{request.canContinuePartial ? (
+								<InputGroupButton
+									type="button"
+									variant="ghost"
+									size="sm"
+									title={hasUnsentAnswers
+										? "Unsubmitted answers will be discarded; unanswered details remain for Sales review"
+										: "Unanswered details remain for review in the Sales form"}
+									disabled={disabled || busy}
+									onClick={() => void continueWithPartialDraft()}
+								>
+									{discardUnsentAnswers === answerSnapshot && hasUnsentAnswers
+										? "Discard answers & open draft"
+										: "Continue with partial draft"}
+								</InputGroupButton>
+							) : null}
 							{showRule ? (
 								<label className="flex items-center gap-2 text-xs text-muted-foreground">
 									<input

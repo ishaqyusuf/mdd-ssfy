@@ -13,19 +13,28 @@ import {
 	updateProfile,
 } from "@api/db/queries/user";
 import { loginByTokenSchema } from "@api/schemas/hrm";
-import { createApiVercelBlobDocumentService } from "@api/utils/documents";
+import {
+	createEmployeeDocumentService,
+	deleteEmployeeDocumentBlob,
+} from "@api/utils/employee-document-storage";
 import { registerStoredDocumentUpload } from "@api/utils/stored-documents";
 import { finalizeUploadedDocument } from "@api/utils/upload-finalization";
 import {
 	decodeValidatedDocumentBase64,
 	supportedDocumentMimeTypes,
 } from "@api/utils/upload-validation";
-import { buildOwnerDocumentFolder } from "@gnd/documents";
+import { getActiveCompanyMemberWhere } from "@gnd/auth/company-member";
+import {
+	EMPLOYEE_DOCUMENT_KIND,
+	EMPLOYEE_DOCUMENT_OWNER_TYPE,
+	EMPLOYEE_DOCUMENT_PRIVATE_ACCESS,
+	EMPLOYEE_DOCUMENT_WORKFLOW,
+	buildOwnerDocumentFolder,
+} from "@gnd/documents";
 import { consoleLog } from "@gnd/utils";
 import { getContact } from "@notifications/activities";
 import { getSubscriberAccount } from "@notifications/channel-subscribers";
 import { TRPCError } from "@trpc/server";
-import { del, put } from "@vercel/blob";
 import { sign } from "jsonwebtoken";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
@@ -71,7 +80,7 @@ export const userRoutes = createTRPCRouter({
 				id: z.number().optional().nullable(),
 				userId: z.number().optional().nullable(),
 				title: z.string().min(1),
-				url: z.string().min(1),
+				url: z.string().optional().nullable(),
 				description: z.string().optional().nullable(),
 				expiresAt: z.string().optional().nullable(),
 				storedDocumentId: z.string().min(1).optional().nullable(),
@@ -83,6 +92,7 @@ export const userRoutes = createTRPCRouter({
 	uploadDocumentAsset: protectedProcedure
 		.input(
 			z.object({
+				userId: z.number().int().positive().optional().nullable(),
 				filename: z.string().min(1),
 				contentType: z.enum(supportedDocumentMimeTypes),
 				content: z
@@ -96,13 +106,42 @@ export const userRoutes = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
-			const documents = createApiVercelBlobDocumentService({
-				put,
+			const actor = await props.ctx.db.users.findFirst({
+				where: getActiveCompanyMemberWhere({ id: props.ctx.userId }),
+				select: { id: true },
 			});
+			if (!actor) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "An active employee account is required.",
+				});
+			}
+			const targetUserId = props.input.userId ?? actor.id;
+			if (targetUserId !== actor.id) {
+				const session = await auth(props.ctx);
+				if (!session.can?.editEmployeeDocument) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message:
+							"You do not have permission to upload documents for employees.",
+					});
+				}
+				const target = await props.ctx.db.users.findFirst({
+					where: getActiveCompanyMemberWhere({ id: targetUserId }),
+					select: { id: true },
+				});
+				if (!target) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Employee not found.",
+					});
+				}
+			}
+			const documents = createEmployeeDocumentService();
 			const owner = {
-				ownerType: "user" as const,
-				ownerId: String(props.ctx.userId),
-				kind: "attachment" as const,
+				ownerType: EMPLOYEE_DOCUMENT_OWNER_TYPE,
+				ownerId: String(targetUserId),
+				kind: EMPLOYEE_DOCUMENT_KIND,
 			};
 			const body = await decodeValidatedDocumentBase64(props.input);
 			const uploaded = await documents.upload({
@@ -113,33 +152,30 @@ export const userRoutes = createTRPCRouter({
 			});
 			return finalizeUploadedDocument({
 				pathname: uploaded.pathname,
-				deleteUpload: del,
+				deleteUpload: deleteEmployeeDocumentBlob,
 				register: () =>
 					registerStoredDocumentUpload(props.ctx.db, {
 						...owner,
-						upload: uploaded,
+						upload: { ...uploaded, url: undefined },
+						visibility: EMPLOYEE_DOCUMENT_PRIVATE_ACCESS,
 						isCurrent: false,
-						uploadedBy: props.ctx.userId,
+						uploadedBy: actor.id,
 						title: props.input.filename,
 						meta: {
-							workflow: "employee_document",
-							source: "mobile_gallery",
+							workflow: EMPLOYEE_DOCUMENT_WORKFLOW,
+							storageAccess: EMPLOYEE_DOCUMENT_PRIVATE_ACCESS,
+							source: "employee_portal",
 						},
 					}),
 				finalize: async (storedDocument) => {
 					const document = await saveUserDocument(props.ctx, {
+						userId: targetUserId,
 						title: props.input.title,
 						description: props.input.description,
 						expiresAt: props.input.expiresAt,
-						url: uploaded.url || uploaded.pathname,
 						storedDocumentId: storedDocument.id,
 					});
-					return {
-						...document,
-						provider: uploaded.provider,
-						pathname: uploaded.pathname,
-						storedDocumentId: storedDocument.id,
-					};
+					return { ...document, storedDocumentId: storedDocument.id };
 				},
 				markFailed: (storedDocument) =>
 					props.ctx.db.storedDocument.update({
@@ -170,7 +206,7 @@ export const userRoutes = createTRPCRouter({
 			return saveDocumentReviewNote(props.ctx, props.input);
 		}),
 	deleteDocument: protectedProcedure
-		.input(z.object({ id: z.number() }))
+		.input(z.object({ id: z.number().int().positive() }))
 		.mutation(async (props) => {
 			return deleteUserDocument(props.ctx, props.input.id);
 		}),

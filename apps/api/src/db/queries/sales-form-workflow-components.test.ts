@@ -9,6 +9,7 @@ import {
 	saveWorkflowComponentDetailsSchema,
 	saveWorkflowComponentPricingSchema,
 	saveWorkflowComponentVisibilitySchema,
+	validateWorkflowVisibilityRules,
 } from "./sales-form";
 
 const repositoryRoot = existsSync(resolve(process.cwd(), "apps/api/src"))
@@ -129,6 +130,40 @@ describe("workflow component mutation contracts", () => {
 				],
 			}),
 		).toMatchObject({ componentIds: [10, 11] });
+	});
+
+	test("validates visibility against all active steps sharing a legacy UID", async () => {
+		await expect(
+			validateWorkflowVisibilityRules(
+				{
+					db: {
+						dykeSteps: {
+							findMany: async () => [
+								{
+									uid: "duplicate-step",
+									stepProducts: [{ uid: "other-component" }],
+								},
+								{
+									uid: "duplicate-step",
+									stepProducts: [{ uid: "selected-component" }],
+								},
+							],
+						},
+					},
+				} as never,
+				[
+					{
+						rules: [
+							{
+								stepUid: "duplicate-step",
+								operator: "is",
+								componentsUid: ["selected-component"],
+							},
+						],
+					},
+				],
+			),
+		).resolves.toBeUndefined();
 	});
 
 	test("accepts a new component bound to the active workflow step", () => {

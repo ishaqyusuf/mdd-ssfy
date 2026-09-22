@@ -43,6 +43,22 @@ test("allows complete JSON for a dense named-room schedule without raising ordin
 		.toBe(SALES_REQUEST_MAX_OUTPUT_TOKENS);
 });
 
+test("allows complete JSON for a dense architectural door schedule", () => {
+	const carraraRows = [
+		"2/8 8/0 RH out swing garage door",
+		"2/8 8/0 RH",
+		"Bifold 2/0 8/0",
+		"28 8/0 RH",
+		"Bifold 2/4 8/0",
+		"Bifold 2/4 8/0",
+		"Pocket 2/6 8/0",
+		"2/8 8/0 LH",
+	];
+	expect(salesRequestMaxOutputTokens(carraraRows.join("\n"))).toBe(12_000);
+	expect(salesRequestMaxOutputTokens(carraraRows.slice(0, 7).join("\n")))
+		.toBe(SALES_REQUEST_MAX_OUTPUT_TOKENS);
+});
+
 test("allows a two-sided door schedule to complete without raising short requests", () => {
 	const doors = Array.from({ length: 11 }, (_, index) => `30” LT = BEDROOM ${index + 1}`);
 	const twoSides = ["Left Side", ...doors, "Right Side", "32” RT = MBR BATH"].join("\n");
@@ -196,9 +212,6 @@ describe("sales request provider factory", () => {
 	});
 	test.each([
 		[{ uid: "door", qty: 0, formSteps: [] }, "zero-quantity"],
-		[{ uid: "door", qty: 2, formSteps: [],
-			housePackageTool: { doors: [{ dimension: "2-8 x 8-0", totalQty: 1 }] } },
-			"hpt-quantity-mismatch"],
 	] as const)("reports only a safe line-quantity reason for %s", async (line, detail) => {
 		const output = { schemaVersion: 2, lineItems: [line], unresolved: [] };
 		const provider = createSalesRequestProvider({
@@ -252,17 +265,23 @@ describe("sales request provider factory", () => {
 	});
 	test.each([
 		["Delivery option pickup must be stated in the customer request.", "delivery-option-source", "Omit form entirely"],
-		["Moulding component Unknown Profile must be stated in the customer request.", "moulding-product", "Do not substitute a different profile"],
-		["Door dimension 2-6 x 6-8 must be stated in the customer request.", "door-dimension-source", "ask only for the missing or ambiguous measurement"],
+		["Moulding component Unknown Profile must be stated in the customer request.", "moulding-product", "Review every selected Moulding product"],
+		["Door dimension 2-6 x 6-8 must be stated in the customer request.", "door-dimension-source", "ask only for a genuinely missing measurement"],
 		["The Laundry Entry line uses a different size than the customer request.", "door-dimension-source", "Do not borrow another room's size"],
 		["Line test uses a door dimension outside its selected Height configuration.", "dimensions", "record its exact requested dimension"],
+		["Line left-closet selects Height 6-8, which is not stated in the customer request.", "dimensions", "does not supply a height"],
+		["Line panel selects a Door design that does not match the six-panel customer request.", "source", "Do not substitute a lite or flush design"],
+		["Line panel selects a door panel Height from the overall sidelite assembly size, but panel height is not stated.", "source", "ask for the panel height"],
 		["Line room-1 selects an interior route for an exterior-only customer request.", "route", "remove the Interior route"],
 		["Line room-1 must select exactly one configured item route.", "route", "one compatible configured route"],
 		["Line room-1 selects a slabs-only route for a pre-hung customer request.", "route", "Remove the slabs-only line"],
+		["Line room-1 references an unavailable component for step 51.", "catalog", "unavailable component"],
+		["Line room-1 selects a component hidden by configured rules for step 51.", "catalog", "hidden by configured rules"],
+		["Line room-1 uses the wrong selection shape for step 51.", "catalog", "selection shape"],
 		["The door schedule has 22 explicit entries, but only 1 selected units and 0 dimension-specific unresolved entries.", "source-coverage", "Count each separate door schedule row"],
 		["The door schedule selects 5 units at 2-8 x 8-0, but only 4 separate source rows explicitly state that size.", "source-coverage", "A bare width followed by a slash height"],
 		["The room door schedule has 22 sized entries, but only 0 configured door sizes and 0 dimension-specific unresolved entries.", "source-coverage", "housePackageTool doors"],
-		["The Cabana Bathroom width 30' must remain an ambiguous question until its unit is confirmed.", "source-coverage", "single apostrophe means feet"],
+		["The Cabana Bathroom width 30' must remain an ambiguous question until its unit is confirmed.", "source-coverage", "exact converted dimension"],
 		["Line line-1 interpretation references a step outside its configured route.", "interpretation-route", "configured route"],
 		["Line line-1 interpretation must use the current configured component title.", "interpretation-title", "current configured component title"],
 	] as const)("native source grounding safely repairs %s", async (message, category, repairHint) => {
@@ -295,6 +314,12 @@ describe("sales request provider factory", () => {
 				message.includes("exterior-only") ? "interior-for-exterior" : "missing-root",
 			);
 		}
+		if (category === "catalog") {
+			expect(classifySalesRequestProviderFailure(failure).catalogFailureKind).toBe(
+				message.includes("unavailable") ? "unavailable-component" :
+				message.includes("hidden") ? "hidden-component" : "selection-shape",
+			);
+		}
 	});
 	test("recovers once when DeepSeek returns text but no structured object", async () => {
 		let calls = 0;
@@ -320,15 +345,39 @@ describe("sales request provider factory", () => {
 		expect(result.inputTokens).toBe(22);
 		expect(result.outputTokens).toBe(11);
 	});
-	test.each(["quantity", "selected-unresolved"] as const)("corrects shared semantic validation failure: %s", async (failure) => {
+	test("normalizes an HPT parent quantity without a second provider call", async () => {
+		const output = {
+			schemaVersion: 2,
+			lineItems: [{ uid: "line-1", qty: 2,
+				formSteps: [{ stepId: 1, prodUid: "slab" }],
+				housePackageTool: { doors: [{ dimension: "2-8 x 8-0", totalQty: 1 }] } }],
+			unresolved: [],
+		};
+		let calls = 0;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials, maxRetries: 0, maxOutputRepairs: 1,
+			generateTextImpl: (async () => {
+				calls++;
+				return { output, text: JSON.stringify(output), usage: {}, finishReason: "stop" };
+			}) as typeof generateText,
+		});
+		const result = await provider({
+			configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+			text: "One slab 2/8 8/0", images: [], signal: new AbortController().signal,
+		});
+		expect(calls).toBe(1);
+		expect(result.output.lineItems[0]?.qty).toBe(1);
+		expect(output.lineItems[0]?.qty).toBe(2);
+	});
+	test("corrects a selected and unresolved semantic validation failure", async () => {
 		const valid = {
 			schemaVersion: 2,
 			lineItems: [{ uid: "line-1", qty: 1, formSteps: [{ stepId: 1, prodUid: "slab" }], housePackageTool: { doors: [{ dimension: "2-8 x 8-0", totalQty: 1 }] } }],
 			unresolved: [] as Array<{ lineUid: string; stepId: number; field: string; status: string; reason: string }>,
 		};
 		const invalid = structuredClone(valid);
-		if (failure === "quantity") invalid.lineItems[0]!.qty = 2;
-		else invalid.unresolved.push({ lineUid: "line-1", stepId: 1, field: "itemType", status: "ambiguous", reason: "Unresolved route" });
+		invalid.unresolved.push({ lineUid: "line-1", stepId: 1, field: "itemType", status: "ambiguous", reason: "Unresolved route" });
 		let calls = 0;
 		let correction = "";
 		const provider = createSalesRequestProvider({
@@ -344,12 +393,7 @@ describe("sales request provider factory", () => {
 		expect(calls).toBe(2);
 		expect(result.output).toEqual(valid);
 		expect(result.outputTokens).toBe(40);
-		expect(correction).toContain(failure === "quantity" ? "Line quantity must equal" : "cannot be selected and unresolved");
-		if (failure === "quantity") {
-			expect(correction).toContain('\\"lineQty\\":2');
-			expect(correction).toContain('\\"doorRowTotal\\":1');
-			expect(correction).toContain("compare the door-row total with the customer's request");
-		}
+		expect(correction).toContain("cannot be selected and unresolved");
 	});
 	test("the first DeepSeek call receives the strict output contract", async () => {
 		let system = "";
@@ -384,6 +428,66 @@ describe("sales request provider factory", () => {
 		expect(classifySalesRequestProviderFailure(failure)).toMatchObject({ stage: "structured-output", finishReason: "length", outputTokens: 4000 });
 		expect(captures).toHaveLength(1);
 		expect(String(failure)).not.toContain("private SDK payload");
+	});
+	test("repairs a non-truncated response when the SDK output getter throws", async () => {
+		let calls = 0;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials,
+			maxRetries: 0,
+			maxOutputRepairs: 1,
+			generateTextImpl: (async () => {
+				calls++;
+				if (calls === 1) return {
+					get output() { throw new Error("private SDK payload"); },
+					text: '{"schemaVersion":2,"lineItems":[],"unresolved":[]}',
+					usage: { inputTokens: 10, outputTokens: 5 },
+					finishReason: "stop",
+				};
+				return {
+					output: validEmptyPreview,
+					text: JSON.stringify(validEmptyPreview),
+					usage: { inputTokens: 12, outputTokens: 6 },
+					finishReason: "stop",
+				};
+			}) as typeof generateText,
+		});
+		const result = await provider({
+			configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+			text: "sample", images: [], signal: new AbortController().signal,
+		});
+		expect(calls).toBe(2);
+		expect(result).toMatchObject({ output: validEmptyPreview, inputTokens: 22, outputTokens: 11 });
+	});
+	test("a second SDK output getter failure stays terminal", async () => {
+		let calls = 0;
+		const provider = createSalesRequestProvider({
+			selection: { provider: "deepseek", model: "deepseek-flash" },
+			environment: credentials,
+			maxRetries: 0,
+			maxOutputRepairs: 1,
+			generateTextImpl: (async () => {
+				calls++;
+				return {
+					get output() { throw new Error("private SDK payload"); },
+					text: '{"schemaVersion":2,"lineItems":[],"unresolved":[]}',
+					usage: { inputTokens: 10, outputTokens: 5 },
+					finishReason: "stop",
+				};
+			}) as typeof generateText,
+		});
+		let failure: unknown;
+		try {
+			await provider({
+				configurationJson: JSON.stringify({ routes: [], steps: [], visibilityByComponentUid: {} }),
+				text: "sample", images: [], signal: new AbortController().signal,
+			});
+		} catch (error) { failure = error; }
+		expect(calls).toBe(2);
+		expect(classifySalesRequestProviderFailure(failure)).toMatchObject({
+			stage: "structured-output", repairAttempted: true,
+			inputTokens: 20, outputTokens: 10,
+		});
 	});
 	test("manual schema correction is limited to one attempt and sums billed usage", async () => {
 		let calls = 0;

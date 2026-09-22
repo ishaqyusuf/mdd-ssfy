@@ -25,10 +25,10 @@ import {
 	assistantSourceKinds,
 } from "./contracts";
 import { captureAssistantDiagnostic } from "./diagnostics";
-import { assistantDocumentProposalActionSchema } from "./document-action-contract";
 import { assistantOrderFinding } from "./finding-contract";
 import { prepareAssistantSafeStep } from "./model-errors";
 import { assistantSalesRequestDraftPreviewSchema } from "./order-draft-contract";
+import { assistantProposalActionSchema } from "./proposal-action-contract";
 import {
 	assertAssistantProviderEnabled,
 	getAssistantApiKey,
@@ -227,13 +227,16 @@ function documentProposalActionFromResult(
 	);
 	const mode = boundedRuntimeString(input?.mode, 20);
 	const orderNo = boundedRuntimeString(order?.orderNo, 100);
+	const salesType = boundedRuntimeString(order?.type, 20);
+	const type =
+		salesType === "order" || salesType === "quote" ? salesType : undefined;
 	const expectedRevision = boundedRuntimeString(order?.revision, 191);
 	const pdf =
 		data?.pdf && typeof data.pdf === "object"
 			? (data.pdf as Record<string, unknown>)
 			: null;
 	const snapshotId = boundedRuntimeString(pdf?.snapshotId, 191);
-	const parsed = assistantDocumentProposalActionSchema.safeParse({
+	const parsed = assistantProposalActionSchema.safeParse({
 		toolId,
 		toolVersion: 1,
 		label:
@@ -246,8 +249,108 @@ function documentProposalActionFromResult(
 					: "Generate PDF",
 		input:
 			toolId === "documents_cancel_pdf"
-				? { orderNo, mode, snapshotId, expectedRevision }
-				: { orderNo, mode, expectedRevision, forceRegenerate: false },
+				? { orderNo, type, mode, snapshotId, expectedRevision }
+				: { orderNo, type, mode, expectedRevision, forceRegenerate: false },
+	});
+	return parsed.success ? parsed.data : null;
+}
+
+function salesPurchaseOrderActionFromResult(envelope: Record<string, unknown>) {
+	const data =
+		envelope.data && typeof envelope.data === "object"
+			? (envelope.data as Record<string, unknown>)
+			: null;
+	const order =
+		data?.order && typeof data.order === "object"
+			? (data.order as Record<string, unknown>)
+			: null;
+	const orderNo = boundedRuntimeString(order?.orderNo, 64);
+	const type = boundedRuntimeString(order?.type, 20);
+	const expectedRevision = boundedRuntimeString(order?.revision, 191);
+	const previousPurchaseOrderNumber =
+		boundedRuntimeString(data?.currentPurchaseOrderNumber, 100) ?? "";
+	const purchaseOrderNumber =
+		boundedRuntimeString(data?.nextPurchaseOrderNumber, 100) ?? "";
+	const parsed = assistantProposalActionSchema.safeParse({
+		toolId: "sales_update_purchase_order",
+		toolVersion: 1,
+		label: "Update P.O. number",
+		input: {
+			orderNo,
+			type,
+			expectedRevision,
+			previousPurchaseOrderNumber,
+			purchaseOrderNumber,
+		},
+	});
+	return parsed.success ? parsed.data : null;
+}
+
+function financeManualPaymentActionFromResult(
+	envelope: Record<string, unknown>,
+) {
+	const data =
+		envelope.data && typeof envelope.data === "object"
+			? (envelope.data as Record<string, unknown>)
+			: null;
+	const order =
+		data?.order && typeof data.order === "object"
+			? (data.order as Record<string, unknown>)
+			: null;
+	const customer =
+		data?.customer && typeof data.customer === "object"
+			? (data.customer as Record<string, unknown>)
+			: null;
+	const payment =
+		data?.payment && typeof data.payment === "object"
+			? (data.payment as Record<string, unknown>)
+			: null;
+	const checkNo = boundedRuntimeString(payment?.checkNo, 100);
+	const parsed = assistantProposalActionSchema.safeParse({
+		toolId: "finance_record_manual_payment",
+		toolVersion: 1,
+		label: "Record manual payment",
+		input: {
+			orderNo: boundedRuntimeString(order?.orderNo, 64),
+			accountNo: boundedRuntimeString(customer?.accountNo, 191),
+			amount: payment?.amount,
+			paymentMethod: boundedRuntimeString(payment?.paymentMethod, 40),
+			...(checkNo ? { checkNo } : {}),
+			expectedAmountDue: boundedRuntimeString(data?.expectedAmountDue, 100),
+			expectedRevision: boundedRuntimeString(order?.revision, 191),
+		},
+	});
+	return parsed.success ? parsed.data : null;
+}
+
+function financeSquareRefundActionFromResult(
+	envelope: Record<string, unknown>,
+) {
+	const data =
+		envelope.data && typeof envelope.data === "object"
+			? (envelope.data as Record<string, unknown>)
+			: null;
+	const order =
+		data?.order && typeof data.order === "object"
+			? (data.order as Record<string, unknown>)
+			: null;
+	const refund =
+		data?.refund && typeof data.refund === "object"
+			? (data.refund as Record<string, unknown>)
+			: null;
+	const amountCents = refund?.amountCents;
+	const parsed = assistantProposalActionSchema.safeParse({
+		toolId: "finance_create_square_refund",
+		toolVersion: 1,
+		label: "Create Square refund",
+		input: {
+			orderNo: boundedRuntimeString(order?.orderNo, 64),
+			transactionRef: boundedRuntimeString(data?.transactionRef, 191),
+			amount: typeof amountCents === "number" ? amountCents / 100 : undefined,
+			reason: boundedRuntimeString(refund?.reason, 192),
+			expectedRemainingRefundableCents: refund?.remainingRefundableCents,
+			expectedRevision: boundedRuntimeString(order?.revision, 191),
+		},
 	});
 	return parsed.success ? parsed.data : null;
 }
@@ -345,6 +448,7 @@ async function writeSafeAssistantStream(input: {
 	const runningTools = new Map<string, string>();
 	const openTextIds = new Set<string>();
 	const findingKeys = new Set<string>();
+	const emittedToolSourceIds = new Set<string>();
 	let lastTextId: string | null = null;
 	let assistantText = "";
 	let sourceCount = 0;
@@ -460,14 +564,15 @@ async function writeSafeAssistantStream(input: {
 					}
 					const outputMeta =
 						trustedResult && part.output && typeof part.output === "object"
-							? (part.output as {
-									_meta?: {
-										assistantOutcome?: unknown;
-										assistantReadRetryId?: unknown;
-										assistantReadRetryExpiresAt?: unknown;
-									};
-								})
-									._meta
+							? (
+									part.output as {
+										_meta?: {
+											assistantOutcome?: unknown;
+											assistantReadRetryId?: unknown;
+											assistantReadRetryExpiresAt?: unknown;
+										};
+									}
+								)._meta
 							: undefined;
 					const retryId = boundedRuntimeString(
 						outputMeta?.assistantReadRetryId,
@@ -563,6 +668,8 @@ async function writeSafeAssistantStream(input: {
 							!(assistantSourceKinds as readonly string[]).includes(kind)
 						)
 							continue;
+						if (emittedToolSourceIds.has(sourceId)) continue;
+						emittedToolSourceIds.add(sourceId);
 						const href = boundedRuntimeString(source.href, 2_000);
 						let url: string | undefined;
 						if (href?.startsWith("https://")) {
@@ -605,6 +712,51 @@ async function writeSafeAssistantStream(input: {
 							input.writer.write({
 								type: "data-assistant-document-action",
 								id: `document-action-${id}`,
+								data: action,
+							});
+						}
+					}
+					if (
+						id &&
+						envelope &&
+						knownName === "sales_prepare_purchase_order_update" &&
+						status === "success"
+					) {
+						const action = salesPurchaseOrderActionFromResult(envelope);
+						if (action) {
+							input.writer.write({
+								type: "data-assistant-proposal-action",
+								id: `proposal-action-${id}`,
+								data: action,
+							});
+						}
+					}
+					if (
+						id &&
+						envelope &&
+						knownName === "finance_prepare_manual_payment" &&
+						status === "success"
+					) {
+						const action = financeManualPaymentActionFromResult(envelope);
+						if (action) {
+							input.writer.write({
+								type: "data-assistant-proposal-action",
+								id: `proposal-action-${id}`,
+								data: action,
+							});
+						}
+					}
+					if (
+						id &&
+						envelope &&
+						knownName === "finance_prepare_square_refund" &&
+						status === "success"
+					) {
+						const action = financeSquareRefundActionFromResult(envelope);
+						if (action) {
+							input.writer.write({
+								type: "data-assistant-proposal-action",
+								id: `proposal-action-${id}`,
 								data: action,
 							});
 						}

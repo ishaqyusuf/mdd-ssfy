@@ -14,7 +14,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
-import { Linking, ScrollView, Text, TextInput, View } from "react-native";
+import { ScrollView, Text, TextInput, View } from "react-native";
 import Toast from "react-native-toast-message";
 
 function formatDate(value?: string | Date | null) {
@@ -368,14 +368,9 @@ export default function DocumentsScreen() {
 											) : null}
 										</View>
 
-										<Button
-											variant="outline"
-											size="sm"
-											className="mt-1 self-start rounded-xl"
-											onPress={() => Linking.openURL(document.url)}
-										>
-											<Text>Open document</Text>
-										</Button>
+										<Text className="text-xs text-muted-foreground">
+											Open the employee dashboard to view this private file.
+										</Text>
 									</View>
 								</View>
 							</View>
