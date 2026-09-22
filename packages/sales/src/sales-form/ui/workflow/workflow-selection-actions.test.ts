@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildStepComponentOverrideMap,
+	type WorkflowComponentRecord,
+	type WorkflowStepRecord,
+} from "./workflow-records";
+import { resolveWorkflowCatalogComponents } from "./workflow-visible-components";
+import {
 	proceedWorkflowMultiSelectStep,
 	saveWorkflowSelectedComponent,
 	selectAllWorkflowComponents,
@@ -39,6 +45,55 @@ const routeData = {
 };
 
 describe("workflow selection actions", () => {
+	it.each([110, 0])("retains custom dependency cost %s through selection and rehydration", (cost) => {
+		const steps: WorkflowStepRecord[] = [
+			{ stepId: 1, step: { uid: "rootStep", title: "Item Type" }, prodUid: "rootA" },
+			{
+				stepId: 2,
+				step: { uid: "stepB", title: "Jamb Size" },
+				meta: { priceStepDeps: ["rootStep"] },
+			},
+		];
+		const fresh: WorkflowComponentRecord = {
+			uid: "custom-frame",
+			title: "FRAME 10-1/2' FJ PRIMED",
+			custom: true,
+			basePrice: null,
+			salesPrice: null,
+			pricing: { rootA: { price: cost } },
+		};
+		const component = resolveWorkflowCatalogComponents({
+			components: [fresh], steps, activeStep: steps[1]!,
+			overrides: new Map(), profileCoefficient: 0.5,
+		})[0]!;
+		const result = saveWorkflowSelectedComponent({
+			routeData: {
+				...routeData,
+				stepsByUid: {
+					...routeData.stepsByUid,
+					stepB: { ...routeData.stepsByUid.stepB, title: "Jamb Size" },
+				},
+			},
+			line: { uid: "custom-line", formSteps: steps },
+			steps, currentStepIndex: 1, component,
+			visibleComponents: [component], activeStepTitle: "Jamb Size",
+		});
+		expect(result?.linePatch.formSteps?.[1]).toMatchObject({
+			prodUid: "custom-frame", basePrice: cost, price: cost * 2,
+		});
+		const reopened: WorkflowStepRecord[] = JSON.parse(JSON.stringify(result?.linePatch.formSteps));
+		const overrides = buildStepComponentOverrideMap(reopened[1]);
+		const selected = overrides.get("custom-frame");
+		expect(selected?.basePrice).toBe(cost);
+		expect(selected?.salesPrice).toBe(cost * 2);
+		const [card] = resolveWorkflowCatalogComponents({
+			components: [selected!], steps: reopened, activeStep: reopened[1]!,
+			overrides, profileCoefficient: 0.5,
+		});
+		expect(card?.basePrice).toBe(cost);
+		expect(card?.salesPrice).toBe(cost * 2);
+	});
+
 	it("selects a root component and returns a line patch", () => {
 		const result = selectWorkflowRootComponent({
 			routeData,

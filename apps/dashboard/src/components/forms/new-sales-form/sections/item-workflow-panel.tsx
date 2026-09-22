@@ -689,8 +689,16 @@ export function ItemWorkflowPanel() {
 		[customSuggestions],
 	);
 	useEffect(() => {
-		const selected = customSearchQuery.data?.selectedComponent;
-		if (!customDialogActive || !selected || selected.isDeleted) return;
+		const current = customSearchQuery.data?.selectedComponent;
+		if (!customDialogActive || !current || current.isDeleted) return;
+		const selected = resolveWorkflowCatalogComponents({
+			components: [current],
+			steps: activeLineSteps,
+			activeStep: activeStep || null,
+			overrides: activeStepComponentOverrides,
+			profileCoefficient: activeProfileCoefficient ?? 1,
+		})[0];
+		if (!selected) return;
 		setCustomComponentDialog((current) => {
 			if (
 				!current.open ||
@@ -705,7 +713,14 @@ export function ItemWorkflowPanel() {
 				return current;
 			return { ...current, title: option.title, price, selectedOption: option };
 		});
-	}, [customDialogActive, customSearchQuery.data?.selectedComponent]);
+	}, [
+		customDialogActive,
+		customSearchQuery.data?.selectedComponent,
+		activeLineSteps,
+		activeStep,
+		activeStepComponentOverrides,
+		activeProfileCoefficient,
+	]);
 	const selectedCustomComponentOption = useMemo(() => {
 		const title = customComponentDialog.title.trim();
 		return (
@@ -1100,16 +1115,16 @@ export function ItemWorkflowPanel() {
 			selectedComponent &&
 			!selectedCustomComponentPriceChanged
 		) {
-			const selectedPrice = firstFiniteNumber(
-				selectedComponent.basePrice,
-				selectedComponent.salesPrice,
-				selectedOption.price,
-			);
-			const componentForSelection = withCustomSelectionPrice(
-				selectedComponent as WorkflowComponent,
-				selectedPrice,
-				activeProfileCoefficient,
-			);
+			// Fresh catalog records store dependency prices in `pricing`, just as
+			// search suggestions do. Resolve them before saving the selection.
+			const componentForSelection = resolveWorkflowCatalogComponents({
+				components: [selectedComponent],
+				steps,
+				activeStep: step || null,
+				overrides: activeStepComponentOverrides,
+				profileCoefficient: activeProfileCoefficient ?? 1,
+			})[0];
+			if (!componentForSelection) return;
 			saveSelectedComponent({
 				line,
 				steps,
