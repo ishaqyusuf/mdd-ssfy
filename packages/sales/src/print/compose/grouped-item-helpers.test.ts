@@ -142,6 +142,112 @@ describe("financial print door reconciliation", () => {
 			getCurrentHousePackageDoors(item, { requireReconciliation: true }),
 		).toEqual(doors);
 	});
+
+	it("uses one active door when legacy parent aggregates are empty placeholders", () => {
+		const doors = [
+			{ id: 42235, totalQty: 2, lhQty: 1, rhQty: 1, lineTotal: 226.22 },
+		];
+		const item = {
+			id: 146234,
+			qty: null,
+			total: null,
+			housePackageTool: { totalDoors: 0, totalPrice: 0, doors },
+		} as never;
+
+		expect(
+			getCurrentHousePackageDoors(item, { requireReconciliation: true }),
+		).toEqual(doors);
+	});
+
+	it("uses distinct doors from one saved legacy generation", () => {
+		const updatedAt = new Date("2026-05-22T15:18:39.429Z");
+		const doors = [
+			{
+				id: 54130,
+				stepProductId: 978,
+				dimension: "2-6 x 6-8",
+				updatedAt,
+				totalQty: 7,
+				lineTotal: 798.84,
+			},
+			{
+				id: 54131,
+				stepProductId: 978,
+				dimension: "2-8 x 6-8",
+				updatedAt,
+				totalQty: 2,
+				lineTotal: 233.66,
+			},
+		];
+		const item = {
+			id: 159452,
+			qty: null,
+			total: null,
+			housePackageTool: { totalDoors: 0, totalPrice: 0, doors },
+		} as never;
+
+		expect(
+			getCurrentHousePackageDoors(item, { requireReconciliation: true }),
+		).toEqual(doors);
+	});
+
+	it("still rejects multiple active doors when legacy aggregates are empty", () => {
+		const item = {
+			id: 146234,
+			qty: null,
+			total: null,
+			housePackageTool: {
+				totalDoors: 0,
+				totalPrice: 0,
+				doors: [
+					{ id: 1, totalQty: 2, lineTotal: 226.22 },
+					{ id: 2, totalQty: 2, lineTotal: 226.22 },
+				],
+			},
+		} as never;
+
+		expect(() =>
+			getCurrentHousePackageDoors(item, { requireReconciliation: true }),
+		).toThrow("do not reconcile");
+	});
+
+	it("rejects duplicate identities and mixed save times with empty aggregates", () => {
+		const updatedAt = new Date("2026-05-22T15:18:39.429Z");
+		const first = {
+			id: 1,
+			stepProductId: 978,
+			dimension: "2-6 x 6-8",
+			updatedAt,
+			totalQty: 2,
+			lineTotal: 200,
+		};
+		const item = (second: Record<string, unknown>) =>
+			({
+				id: 159452,
+				qty: null,
+				total: null,
+				housePackageTool: {
+					totalDoors: 0,
+					totalPrice: 0,
+					doors: [first, { ...first, id: 2, ...second }],
+				},
+			}) as never;
+
+		expect(() =>
+			getCurrentHousePackageDoors(item({ dimension: "2-6x6-8" }), {
+				requireReconciliation: true,
+			}),
+		).toThrow("do not reconcile");
+		expect(() =>
+			getCurrentHousePackageDoors(
+				item({
+					dimension: "2-8 x 6-8",
+					updatedAt: new Date("2026-05-22T15:19:00.000Z"),
+				}),
+				{ requireReconciliation: true },
+			),
+		).toThrow("do not reconcile");
+	});
 });
 
 describe("financial print form-step reconciliation", () => {

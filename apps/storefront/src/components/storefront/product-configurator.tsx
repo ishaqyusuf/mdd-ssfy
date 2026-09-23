@@ -2,7 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import type { StorefrontRouterOutputs } from "@gnd/api/trpc/routers/storefront-app";
-import { percentageMoney, subtractMoney } from "@gnd/sales/payment-system";
+import { percentageMoney, subtractMoney } from "@gnd/sales/payment-system/money";
 import { deduplicateStorefrontOptions } from "@gnd/sales/storefront-configuration";
 import {
 	calculateMouldingQuantity,

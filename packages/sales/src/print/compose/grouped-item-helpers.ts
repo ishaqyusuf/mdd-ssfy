@@ -1,3 +1,7 @@
+import {
+	getSalesDoorActiveIdentity,
+	normalizeSalesDoorDimension,
+} from "../../sales-form/domain/door-identity";
 import type { PrintSalesItem } from "../query";
 
 type PrintFormStep = PrintSalesItem["formSteps"][number];
@@ -111,6 +115,44 @@ function getDoorTotalCents(door: PrintDoor) {
 		: Math.round(unitPrice * getDoorQuantity(door) * 100);
 }
 
+function isUnambiguousLegacyDoorGeneration(doors: PrintDoor[]) {
+	if (
+		!doors.length ||
+		doors.some(
+			(door) =>
+				getDoorQuantity(door) <= 0 || (getDoorTotalCents(door) ?? 0) <= 0,
+		)
+	) {
+		return false;
+	}
+	if (doors.length === 1) return true;
+
+	const firstDoor = doors[0];
+	if (!firstDoor) return false;
+	const revisionTime = getRevisionTime(firstDoor);
+	if (
+		!revisionTime ||
+		doors.some((door) => getRevisionTime(door) !== revisionTime)
+	) {
+		return false;
+	}
+
+	const identities = doors.map((door) => {
+		if (
+			(getNumber(door.stepProductId) ?? 0) <= 0 ||
+			!normalizeSalesDoorDimension(door.dimension)
+		) {
+			return null;
+		}
+		return getSalesDoorActiveIdentity({
+			stepProductId: door.stepProductId,
+			dimension: door.dimension,
+			meta: door.meta,
+		});
+	});
+	return identities.every(Boolean) && new Set(identities).size === doors.length;
+}
+
 /**
  * Older sales-form saves can leave prior HPT door generations active. Recover
  * only when the newest rows reconcile exactly to the persisted item quantity
@@ -121,6 +163,18 @@ export function getCurrentHousePackageDoors(
 	options: { requireReconciliation?: boolean } = {},
 ): PrintDoor[] {
 	const doors = item.housePackageTool?.doors || [];
+	if (
+		options.requireReconciliation &&
+		getNumber(item.qty) === null &&
+		getNumber(item.total) === null &&
+		getNumber(item.housePackageTool?.totalDoors) === 0 &&
+		getNumber(item.housePackageTool?.totalPrice) === 0 &&
+		isUnambiguousLegacyDoorGeneration(doors)
+	) {
+		// Older saves left both parent aggregates as zero placeholders. Only one
+		// priced generation with distinct door identities is unambiguous.
+		return doors;
+	}
 	const targetQty =
 		getNumber(item.qty) ?? getNumber(item.housePackageTool?.totalDoors);
 	const targetTotal =
