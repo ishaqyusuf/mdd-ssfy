@@ -1,4 +1,12 @@
 import type { SpecialOrderReleaseAudience } from "@gnd/settings";
+import { hasSpecialOrderCustomerEmail } from "./presentation";
+
+export {
+	SPECIAL_ORDER_STATUS_LABELS,
+	getSpecialOrderStatusLabel,
+	hasSpecialOrderCustomerEmail,
+	resolveSpecialOrderDisplayState,
+} from "./presentation";
 
 export const SPECIAL_ORDER_DECLARATIONS = ["NO", "YES"] as const;
 
@@ -44,14 +52,6 @@ export const SPECIAL_ORDER_STATUSES = [
 
 export type SpecialOrderStatus = (typeof SPECIAL_ORDER_STATUSES)[number];
 
-export const SPECIAL_ORDER_STATUS_LABELS = {
-	NOT_REQUIRED: "Not required",
-	SIGNATURE_PENDING: "Signature pending",
-	CUSTOMER_APPROVED: "Customer approved",
-	REAPPROVAL_REQUIRED: "Reapproval required",
-	CUSTOMER_DECLINED: "Customer declined",
-} satisfies Record<SpecialOrderStatus, string>;
-
 export const INITIAL_SPECIAL_ORDER_POLICY = {
 	title: "Special Order — Non-Returnable",
 	acknowledgmentText:
@@ -70,23 +70,6 @@ export type SpecialOrderState = {
 export type SpecialOrderDisplayState =
 	| "LEGACY_NOT_EVALUATED"
 	| SpecialOrderStatus;
-
-export function resolveSpecialOrderDisplayState(
-	state?: SpecialOrderState | null,
-): SpecialOrderDisplayState {
-	if (!state?.declaration) return "LEGACY_NOT_EVALUATED";
-	if (state.declaration === "NO") return "NOT_REQUIRED";
-	return state.status ?? "SIGNATURE_PENDING";
-}
-
-export function getSpecialOrderStatusLabel(
-	state?: SpecialOrderState | null,
-): string {
-	const displayState = resolveSpecialOrderDisplayState(state);
-	return displayState === "LEGACY_NOT_EVALUATED"
-		? "Not evaluated"
-		: SPECIAL_ORDER_STATUS_LABELS[displayState];
-}
 
 export function deriveSpecialOrderStatus(input: {
 	declaration?: SpecialOrderDeclaration | null;
@@ -151,13 +134,6 @@ export const SPECIAL_ORDER_COMMIT_INTENTS = [
 
 export type SpecialOrderCommitIntent =
 	(typeof SPECIAL_ORDER_COMMIT_INTENTS)[number];
-
-export function hasSpecialOrderCustomerEmail(
-	email?: string | null,
-): email is string {
-	const value = email?.trim() || "";
-	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
 
 export function requiresSpecialOrderCustomerEmail(input: {
 	declaration?: SpecialOrderDeclaration | null;

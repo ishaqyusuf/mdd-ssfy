@@ -15,7 +15,7 @@ import {
 } from "@sales/filter-constants";
 import { SALES_ORDER_LIFECYCLE_STATUSES } from "@sales/order-status";
 import { SALES_PRIORITY_VALUES } from "@sales/priority";
-import { SALES_COMPLETION_FILTER_OPTIONS } from "@sales/sales-completion";
+import { SALES_COMPLETION_FILTER_OPTIONS } from "@sales/sales-completion-filter";
 import { useQueryStates } from "nuqs";
 import {
 	createLoader,

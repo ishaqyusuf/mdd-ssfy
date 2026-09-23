@@ -2,7 +2,7 @@ import { dispatchWorkspaceStages } from "@gnd/sales/dispatch-manifest/status";
 import {
 	dispatchRiskCodes,
 	dispatchWorkspaceSections,
-} from "@gnd/sales/dispatch-manifest/workspace";
+} from "@gnd/sales/dispatch-manifest/workspace-filter";
 import { salesDispatchStatus } from "@gnd/utils/constants";
 import { useQueryStates } from "nuqs";
 import {

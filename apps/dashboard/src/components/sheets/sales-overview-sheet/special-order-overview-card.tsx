@@ -3,7 +3,7 @@
 import { CustomerEmailRequiredDialog } from "@/components/modals/customer-email-required-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
-import { hasSpecialOrderCustomerEmail } from "@gnd/sales/special-order";
+import { hasSpecialOrderCustomerEmail } from "@gnd/sales/special-order/presentation";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";

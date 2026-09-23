@@ -4,7 +4,7 @@ import { CustomerEmailRequiredDialog } from "@/components/modals/customer-email-
 import {
 	getSpecialOrderStatusLabel,
 	hasSpecialOrderCustomerEmail,
-} from "@gnd/sales/special-order";
+} from "@gnd/sales/special-order/presentation";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {

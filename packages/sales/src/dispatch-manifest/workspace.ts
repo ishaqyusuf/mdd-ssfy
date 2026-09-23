@@ -1,33 +1,20 @@
-import { resolveCanonicalDispatchWorkspaceMembership, type SalesPipelineSnapshot } from "../sales-pipeline";
+import {
+	type SalesPipelineSnapshot,
+	resolveCanonicalDispatchWorkspaceMembership,
+} from "../sales-pipeline";
 import type { DispatchDueBucket } from "./driver-work-queue";
 import type { DispatchWorkspaceStage } from "./status";
+import type {
+	DispatchRiskCode,
+	DispatchWorkspaceSection,
+} from "./workspace-filter";
 
-export const dispatchWorkspaceSections = [
-	"dashboard",
-	"backlog",
-	"active",
-	"due-today",
-	"past-due",
-	"completed",
-	"dispatches",
-	"calendar",
-	"drivers",
-	"exceptions",
-] as const;
-
-export type DispatchWorkspaceSection =
-	(typeof dispatchWorkspaceSections)[number];
-
-export const dispatchRiskCodes = [
-	"overdue",
-	"unscheduled",
-	"missing_items",
-	"unassigned",
-	"open_exception",
-	"proof_sync_failed",
-] as const;
-
-export type DispatchRiskCode = (typeof dispatchRiskCodes)[number];
+export {
+	dispatchRiskCodes,
+	dispatchWorkspaceSections,
+	type DispatchRiskCode,
+	type DispatchWorkspaceSection,
+} from "./workspace-filter";
 
 export type DispatchRiskInput = {
 	stage: DispatchWorkspaceStage;

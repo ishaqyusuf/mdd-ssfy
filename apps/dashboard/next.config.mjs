@@ -91,7 +91,15 @@ const config = {
     // experimental: {
     // serverExternalPackages: ["puppeteer-core", "@prisma/client", "@gnd/db"],
     // PDF.js resolves its worker relative to its own module at runtime.
-    serverExternalPackages: ["puppeteer-core", "pino", "@ai-sdk/mcp", "pdfjs-dist"],
+    // Blob's OIDC dependency reads Node module filenames during initialization.
+    // Preserve its native module boundary in page-data workers and at runtime.
+    serverExternalPackages: [
+        "puppeteer-core",
+        "pino",
+        "@ai-sdk/mcp",
+        "pdfjs-dist",
+        "@vercel/blob",
+    ],
     // },
     // webpack: (config, { isServer }) => {
     //     if (isServer) {

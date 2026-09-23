@@ -1,9 +1,9 @@
+import type { SalesPipelineSnapshot } from "./sales-pipeline";
 import {
 	SALES_PIPELINE_HEADLINE_CODES,
 	SALES_PIPELINE_HEADLINE_META,
 	type SalesPipelineHeadlineCode,
-	type SalesPipelineSnapshot,
-} from "./sales-pipeline";
+} from "./sales-pipeline-status";
 
 /** Display copy uses the same lifecycle metadata as the standard status badges. */
 export function getSalesOrderStatusPresentation(
