@@ -13,6 +13,19 @@ type ReadableHeaders = {
 	get(name: string): string | null;
 };
 
+export function employeeDocumentError(status: 401 | 404 | 503, message: string) {
+	return Response.json(
+		{ error: message },
+		{
+			status,
+			headers: {
+				"Cache-Control": "private, no-store",
+				"X-Content-Type-Options": "nosniff",
+			},
+		},
+	);
+}
+
 function copyHeader(target: Headers, source: ReadableHeaders, name: string) {
 	const value = source.get(name);
 	if (value) target.set(name, value);
@@ -58,7 +71,7 @@ export async function serveEmployeeDocument(input: {
 		actor: input.actor,
 	});
 	if (!document) {
-		return Response.json({ error: "File not found." }, { status: 404 });
+		return employeeDocumentError(404, "File not found.");
 	}
 
 	try {
@@ -87,7 +100,7 @@ export async function serveEmployeeDocument(input: {
 				...(range ? { headers: { Range: range } } : {}),
 			});
 			if (!result || result.statusCode === 304 || !result.stream) {
-				return Response.json({ error: "File not found." }, { status: 404 });
+				return employeeDocumentError(404, "File not found.");
 			}
 			return new Response(result.stream, {
 				status: result.headers.has("content-range") ? 206 : 200,
@@ -109,7 +122,7 @@ export async function serveEmployeeDocument(input: {
 			redirect: "error",
 		});
 		if (!response.ok || (!input.headOnly && !response.body)) {
-			return Response.json({ error: "File not found." }, { status: 404 });
+			return employeeDocumentError(404, "File not found.");
 		}
 		return new Response(input.headOnly ? null : response.body, {
 			status: response.status === 206 ? 206 : 200,
@@ -124,11 +137,11 @@ export async function serveEmployeeDocument(input: {
 			error instanceof Error &&
 			error.message === "Private employee document storage is not configured."
 		) {
-			return Response.json(
-				{ error: "Private employee document storage is not configured." },
-				{ status: 503 },
+			return employeeDocumentError(
+				503,
+				"Private employee document storage is not configured.",
 			);
 		}
-		return Response.json({ error: "File not found." }, { status: 404 });
+		return employeeDocumentError(404, "File not found.");
 	}
 }

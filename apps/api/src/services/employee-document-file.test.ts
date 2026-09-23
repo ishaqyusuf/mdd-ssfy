@@ -112,6 +112,8 @@ describe("employee document file service", () => {
 			request: new Request("https://gnd.example/api/employee-documents/42"),
 		});
 		expect(response.status).toBe(503);
+		expect(response.headers.get("cache-control")).toBe("private, no-store");
+		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 		expect(await response.json()).toEqual({
 			error: "Private employee document storage is not configured.",
 		});
@@ -126,6 +128,7 @@ describe("employee document file service", () => {
 			request: new Request("https://gnd.example/api/employee-documents/42"),
 		});
 		expect(response.status).toBe(404);
+		expect(response.headers.get("cache-control")).toBe("private, no-store");
 		expect(await response.json()).toEqual({ error: "File not found." });
 	});
 });

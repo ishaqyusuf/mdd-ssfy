@@ -1,5 +1,8 @@
 import { getEmployeeDocumentActor } from "@/lib/employee-document-auth";
-import { serveEmployeeDocument } from "@api/services/employee-document-file";
+import {
+	employeeDocumentError,
+	serveEmployeeDocument,
+} from "@api/services/employee-document-file";
 import { db } from "@gnd/db";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +19,7 @@ async function serve(
 ) {
 	const actor = await getEmployeeDocumentActor(new Headers(request.headers));
 	if (!actor) {
-		return Response.json({ error: "Sign in required." }, { status: 401 });
+		return employeeDocumentError(401, "Sign in required.");
 	}
 	const { documentId } = await context.params;
 	return serveEmployeeDocument({
