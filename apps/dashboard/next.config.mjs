@@ -71,6 +71,10 @@ const config = {
         ],
     },
     experimental: {
+        // Sentry adds a webpack callback, which disables Next's automatic
+        // build-worker selection. Explicit isolation lowers compiler memory.
+        webpackBuildWorker: true,
+        webpackMemoryOptimizations: true,
         // Page-data workers each load the full dashboard server graph. Keep the
         // Vercel build within its memory envelope as that graph grows.
         cpus: 1,
