@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "bun run next build --webpack",
+    "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build --webpack",
     "build:turbopack": "bun run next build --turbopack",
     "clean": "git clean -xdf .next .turbo node_modules",
     "dev": "if [ \"${GND_REDIS_MODE:-local}\" = local ]; then export REDIS_URL=redis://127.0.0.1:6379; fi; bun run with-env env PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_DASHBOARD_PORT:-3010}} TZ=UTC portless gndprodesk next dev --turbopack",
