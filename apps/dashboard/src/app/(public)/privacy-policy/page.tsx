@@ -88,10 +88,13 @@ export default function PrivacyPolicyPage() {
 					Information may be available to authorized GND personnel, the
 					developer when supporting GND&apos;s systems, and service providers
 					involved in hosting, storage, analytics, diagnostics, and delivery of
-					the service. Known providers include Vercel, Logly, and Sentry. The
-					final provider list, processing locations, contract terms, and
-					retention settings are being verified against the production release.
-					Information may also be disclosed when required by applicable law.
+					the service. Known providers include Vercel for application hosting
+					and storage, PlanetScale as the configured Production database
+					provider, Logly for app-use analytics, and Sentry for diagnostics. The
+					final provider list, the database&apos;s primary region, other
+					processing locations, contract terms, and retention settings are being
+					verified against the production release. Information may also be
+					disclosed when required by applicable law.
 				</p>
 				<p>
 					This draft does not assert that every historical document has already
