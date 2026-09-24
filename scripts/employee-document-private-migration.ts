@@ -152,6 +152,47 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 type DbClient = Database | TransactionClient;
 type Source = Awaited<ReturnType<typeof readSource>>;
 
+export function assertEmployeeDocumentMigrationVerifiedLink(input: {
+	candidate: z.infer<typeof candidateSchema>;
+	source: { id: number; userId: number; url: string };
+	stored: {
+		pathname: string;
+		provider: string;
+		visibility: string;
+		size: number | null;
+		sourceType: string | null;
+		sourceId: string | null;
+		meta: unknown;
+	} | null;
+}) {
+	const { candidate, source, stored } = input;
+	if (
+		source.id !== candidate.documentId ||
+		source.userId !== candidate.userId
+	) {
+		throw new Error(
+			`Document ${candidate.documentId} owner changed after preview.`,
+		);
+	}
+	if (
+		!stored ||
+		stored.provider !== "vercel-blob" ||
+		stored.visibility !== EMPLOYEE_DOCUMENT_PRIVATE_ACCESS ||
+		!isPrivateEmployeeDocumentMeta(stored.meta) ||
+		stored.sourceType !== EMPLOYEE_DOCUMENT_PRIVATE_MIGRATION ||
+		stored.sourceId !== String(candidate.documentId) ||
+		asRecord(stored.meta).sourceHash !== candidate.sourceHash ||
+		stored.size === null ||
+		stored.size <= 0 ||
+		source.url !== employeeDocumentAccessPath(candidate.documentId)
+	) {
+		throw new Error(
+			`Document ${candidate.documentId} is not privately linked to this migration.`,
+		);
+	}
+	return stored;
+}
+
 async function readSource(db: DbClient, documentId: number) {
 	return db.userDocuments.findFirst({
 		where: { id: documentId, deletedAt: null },
@@ -449,21 +490,19 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 								provider: true,
 								visibility: true,
 								size: true,
+								sourceType: true,
+								sourceId: true,
 								meta: true,
 							},
 						})
 					: null;
-				if (
-					!stored ||
-					stored.provider !== "vercel-blob" ||
-					stored.visibility !== EMPLOYEE_DOCUMENT_PRIVATE_ACCESS ||
-					!isPrivateEmployeeDocumentMeta(stored.meta) ||
-					source.url !== employeeDocumentAccessPath(source.id)
-				) {
-					throw new Error(`Document ${source.id} is not privately linked.`);
-				}
-				const remote = await head(stored.pathname, { token });
-				if (stored.size !== null && remote.size !== stored.size) {
+				const verifiedStored = assertEmployeeDocumentMigrationVerifiedLink({
+					candidate,
+					source,
+					stored,
+				});
+				const remote = await head(verifiedStored.pathname, { token });
+				if (remote.size !== verifiedStored.size) {
 					throw new Error(`Document ${source.id} private size mismatch.`);
 				}
 				await append({ documentId: source.id, status: "verified" });

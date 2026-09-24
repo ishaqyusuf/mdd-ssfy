@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
+	assertEmployeeDocumentMigrationVerifiedLink,
 	employeeDocumentMigrationManifestSchema,
 	parseEmployeeDocumentMigrationArguments,
 	resolveEmployeeDocumentMigrationSource,
@@ -262,7 +263,67 @@ describe("employee document private migration contract", () => {
 		expect(migrationSource).toContain(
 			"resolved.storedDocument.checksum !== checksum",
 		);
-		expect(migrationSource).toContain("remote.size !== stored.size");
+		expect(migrationSource).toContain("remote.size !== verifiedStored.size");
+	});
+
+	test("verify binds the private link to the manifest employee and migration source", () => {
+		const candidate = {
+			documentId: 12,
+			userId: 7,
+			sourceHash: "b".repeat(64),
+		};
+		const source = {
+			id: 12,
+			userId: 7,
+			url: "/api/employee-documents/12",
+		};
+		const stored = {
+			pathname: "employee-documents/7/12/private.pdf",
+			provider: "vercel-blob",
+			visibility: "private",
+			size: 1024,
+			sourceType: EMPLOYEE_DOCUMENT_PRIVATE_MIGRATION,
+			sourceId: "12",
+			meta: {
+				workflow: "employee_document",
+				storageAccess: "private",
+				sourceHash: candidate.sourceHash,
+			},
+		};
+		const verify = (
+			overrides: {
+				candidate?: typeof candidate;
+				source?: typeof source;
+				stored?: typeof stored | null;
+			} = {},
+		) =>
+			assertEmployeeDocumentMigrationVerifiedLink({
+				candidate: overrides.candidate ?? candidate,
+				source: overrides.source ?? source,
+				stored: overrides.stored === undefined ? stored : overrides.stored,
+			});
+
+		expect(() => verify()).not.toThrow();
+		expect(() => verify({ source: { ...source, userId: 8 } })).toThrow(
+			"owner changed after preview",
+		);
+		expect(() => verify({ stored: { ...stored, size: 0 } })).toThrow(
+			"not privately linked to this migration",
+		);
+		expect(() => verify({ stored: { ...stored, sourceId: "13" } })).toThrow(
+			"not privately linked to this migration",
+		);
+		expect(() =>
+			verify({
+				stored: {
+					...stored,
+					meta: { ...stored.meta, sourceHash: "c".repeat(64) },
+				},
+			}),
+		).toThrow("not privately linked to this migration");
+		expect(() => verify({ stored: null })).toThrow(
+			"not privately linked to this migration",
+		);
 	});
 
 	test("checks a recovery object in the selected private store before relinking", () => {
