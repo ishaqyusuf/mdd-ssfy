@@ -222,4 +222,17 @@ describe("employee document private migration contract", () => {
 		);
 		expect(migrationSource).toContain("remote.size !== stored.size");
 	});
+
+	test("checks a recovery object in the selected private store before relinking", () => {
+		const recovery = migrationSource.slice(
+			migrationSource.indexOf("if (existing && isPrivateEmployeeDocumentMeta"),
+			migrationSource.indexOf("const response = await fetch(resolved.url"),
+		);
+		expect(recovery).toContain("head(existing.pathname, { token })");
+		expect(recovery.indexOf("head(existing.pathname, { token })")).toBeLessThan(
+			recovery.indexOf("db.userDocuments.updateMany"),
+		);
+		expect(recovery).toContain("remote.size !== existing.size");
+		expect(recovery).toContain("existing.size <= 0");
+	});
 });

@@ -492,9 +492,19 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 						status: "ready",
 						deletedAt: null,
 					},
-					select: { id: true, meta: true, pathname: true },
+					select: { id: true, meta: true, pathname: true, size: true },
 				});
 				if (existing && isPrivateEmployeeDocumentMeta(existing.meta)) {
+					const remote = await head(existing.pathname, { token });
+					if (
+						existing.size === null ||
+						existing.size <= 0 ||
+						remote.size !== existing.size
+					) {
+						throw new Error(
+							`Document ${source.id} recovery object size mismatch.`,
+						);
+					}
 					const updated = await db.userDocuments.updateMany({
 						where: {
 							id: source.id,
