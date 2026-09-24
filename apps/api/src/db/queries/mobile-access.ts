@@ -230,8 +230,16 @@ export async function updateMobileAccessRequest(
 						externalReference: input.externalReference,
 					})
 				: {};
+		const closesRequest =
+			input.status === "REJECTED" || input.status === "CANCELLED";
 		const changed = await tx.mobileAccessRequest.updateMany({
-			where: { id: current.id, status: current.status },
+			where: {
+				id: current.id,
+				status: current.status,
+				...(closesRequest
+					? {}
+					: { requester: { is: getActiveCompanyMemberWhere() } }),
+			},
 			data: {
 				status: input.status,
 				statusNote: input.statusNote ?? null,
@@ -249,7 +257,7 @@ export async function updateMobileAccessRequest(
 			throw new TRPCError({
 				code: "CONFLICT",
 				message:
-					"The request changed while it was being reviewed. Refresh and retry.",
+					"The request changed or the employee no longer has an active company account. Refresh and retry.",
 			});
 		}
 
