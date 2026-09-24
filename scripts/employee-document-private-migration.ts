@@ -22,6 +22,7 @@ import {
 } from "../apps/api/src/utils/upload-validation";
 import {
 	EMPLOYEE_DOCUMENT_PRIVATE_MIGRATION,
+	assertEmployeeDocumentMigrationBlobStore,
 	assertEmployeeDocumentMigrationStorageIsolation,
 	digestEmployeeDocumentMigration,
 	employeeDocumentDatabaseTarget,
@@ -80,6 +81,7 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 		"--output",
 		"--manifest",
 		"--confirm-target",
+		"--confirm-store-id",
 		"--document-id",
 		"--limit",
 	]);
@@ -127,12 +129,19 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 	if (values["--limit"] && mode !== "preview") {
 		throw new Error("--limit is a preview-only filter.");
 	}
+	if (mode !== "preview" && !values["--confirm-store-id"]) {
+		throw new Error("Apply and verify require --confirm-store-id.");
+	}
+	if (values["--confirm-store-id"] && mode === "preview") {
+		throw new Error("--confirm-store-id is for apply and verify only.");
+	}
 	return {
 		environment: environment as "local" | "production",
 		mode: mode as "preview" | "apply" | "verify",
 		output: resolve(values["--output"]),
 		manifest: values["--manifest"] ? resolve(values["--manifest"]) : null,
 		confirmTarget: values["--confirm-target"] || null,
+		confirmStoreId: values["--confirm-store-id"] || null,
 		documentId: values["--document-id"]
 			? Number(values["--document-id"])
 			: null,
@@ -316,6 +325,12 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 			mode: options.mode,
 			token,
 			productionToken: productionProfile.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim(),
+		});
+	}
+	if (options.mode !== "preview" && token) {
+		assertEmployeeDocumentMigrationBlobStore({
+			token,
+			confirmedStoreId: options.confirmStoreId,
 		});
 	}
 	const { db } = await import("@gnd/db");

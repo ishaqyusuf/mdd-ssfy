@@ -24,6 +24,13 @@ describe("employee document private migration contract", () => {
 		expect(guard).toBeLessThan(
 			migrationSource.indexOf('open(options.output, "wx"'),
 		);
+		const storeGuard = migrationSource.indexOf(
+			"assertEmployeeDocumentMigrationBlobStore({",
+		);
+		expect(storeGuard).toBeGreaterThan(guard);
+		expect(storeGuard).toBeLessThan(
+			migrationSource.indexOf('await import("@gnd/db")'),
+		);
 	});
 
 	test("requires an immutable output and manifest for write-adjacent modes", () => {
@@ -60,6 +67,38 @@ describe("employee document private migration contract", () => {
 				"1",
 			]),
 		).toThrow("--limit is a preview-only filter");
+		expect(() =>
+			parseEmployeeDocumentMigrationArguments([
+				"--mode",
+				"apply",
+				"--output",
+				"journal.jsonl",
+				"--manifest",
+				"manifest.json",
+			]),
+		).toThrow("require --confirm-store-id");
+		expect(() =>
+			parseEmployeeDocumentMigrationArguments([
+				"--mode",
+				"preview",
+				"--output",
+				"manifest.json",
+				"--confirm-store-id",
+				"store_example",
+			]),
+		).toThrow("--confirm-store-id is for apply and verify only");
+		expect(
+			parseEmployeeDocumentMigrationArguments([
+				"--mode",
+				"verify",
+				"--output",
+				"journal.jsonl",
+				"--manifest",
+				"manifest.json",
+				"--confirm-store-id",
+				"store_example",
+			]).confirmStoreId,
+		).toBe("store_example");
 		expect(() =>
 			parseEmployeeDocumentMigrationArguments([
 				"--mode",

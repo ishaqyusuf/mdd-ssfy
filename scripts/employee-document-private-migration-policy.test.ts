@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	assertEmployeeDocumentMigrationBlobStore,
 	assertEmployeeDocumentMigrationStorageIsolation,
 	digestEmployeeDocumentMigration,
 	employeeDocumentDatabaseTarget,
@@ -8,6 +9,23 @@ import {
 } from "./employee-document-private-migration-policy";
 
 describe("employee document private migration policy", () => {
+	test("requires the operator-confirmed Blob store ID to match the selected token", () => {
+		expect(() =>
+			assertEmployeeDocumentMigrationBlobStore({
+				token: "vercel_blob_rw_hwG94qb1mozFw1qD_example",
+				confirmedStoreId: "store_hwG94qb1mozFw1qD",
+			}),
+		).not.toThrow();
+		for (const [token, confirmedStoreId] of [
+			["vercel_blob_rw_other_example", "store_hwG94qb1mozFw1qD"],
+			["invalid-token", "store_hwG94qb1mozFw1qD"],
+			["vercel_blob_rw_hwG94qb1mozFw1qD_example", null],
+		] as const) {
+			expect(() =>
+				assertEmployeeDocumentMigrationBlobStore({ token, confirmedStoreId }),
+			).toThrow("Private Blob token does not match --confirm-store-id.");
+		}
+	});
 	test("keeps concurrent uploads private, unique, and non-overwriting", () => {
 		expect(
 			employeeDocumentMigrationUploadOptions({

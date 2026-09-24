@@ -20,6 +20,16 @@ export function assertEmployeeDocumentMigrationStorageIsolation(input: {
 	}
 }
 
+export function assertEmployeeDocumentMigrationBlobStore(input: {
+	token: string;
+	confirmedStoreId: string | null;
+}) {
+	const tokenStoreId = /^vercel_blob_rw_([^_]+)_.+$/.exec(input.token)?.[1];
+	if (!tokenStoreId || input.confirmedStoreId !== `store_${tokenStoreId}`) {
+		throw new Error("Private Blob token does not match --confirm-store-id.");
+	}
+}
+
 export function employeeDocumentMigrationUploadOptions(input: {
 	token: string;
 	contentType: string;
