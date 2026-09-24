@@ -1327,6 +1327,12 @@ describe("sales production priority sorting", () => {
 			expect(JSON.stringify(fallbackWhere)).toContain(
 				'"listProjection":{"is":null}',
 			);
+			expect(JSON.stringify(fallbackWhere)).toContain(
+				'"itemControls":{"some":{"deletedAt":null,"produceable":true}}',
+			);
+			expect(JSON.stringify(fallbackWhere)).toContain(
+				'"assignments":{"some":{"deletedAt":null}}',
+			);
 		},
 	);
 

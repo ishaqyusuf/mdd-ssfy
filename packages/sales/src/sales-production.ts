@@ -1279,11 +1279,25 @@ async function addUncachedCanonicalProductionStageMembership(
 			},
 		],
 	} satisfies Prisma.SalesOrdersWhereInput;
+	// A fresh snapshot can require Production only when an active item is
+	// produceable or active assignment evidence exists. Skip unrelated orders
+	// before hydrating their full pipeline evidence.
+	const productionCandidates = {
+		OR: [
+			{ itemControls: { some: { deletedAt: null, produceable: true } } },
+			{ assignments: { some: { deletedAt: null } } },
+		],
+	} satisfies Prisma.SalesOrdersWhereInput;
 	let cursor = 0;
 	for (;;) {
 		const page = await db.salesOrders.findMany({
 			where: {
-				AND: [workspaceWhere, unavailableProjection, { id: { gt: cursor } }],
+				AND: [
+					workspaceWhere,
+					unavailableProjection,
+					productionCandidates,
+					{ id: { gt: cursor } },
+				],
 			},
 			select: { id: true },
 			orderBy: { id: "asc" },
