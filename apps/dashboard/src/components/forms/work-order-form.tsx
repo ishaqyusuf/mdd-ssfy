@@ -3,7 +3,10 @@
 import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
-import { workOrderFormSchema } from "@api/db/queries/work-order";
+import {
+	CUSTOM_SERVICE_NO_PROJECT,
+	workOrderFormSchema,
+} from "@api/db/queries/work-order";
 import { Button } from "@gnd/ui/button";
 import { DialogFooter } from "@gnd/ui/dialog";
 import { Form } from "@gnd/ui/form";
@@ -23,13 +26,24 @@ import { SubmitButton } from "../submit-button";
 type WorkOrderFormData = z.infer<typeof workOrderFormSchema>;
 
 export function WorkOrderForm({ data }: { data?: unknown }) {
+	const initialData = data as Partial<WorkOrderFormData> | undefined;
 	const form = useZodForm(workOrderFormSchema, {
-		defaultValues: (data as Partial<WorkOrderFormData> | undefined) ?? {
-			lot: "",
-			block: "",
-			status: "Pending",
-			meta: { lotBlock: "" },
-		},
+		defaultValues: initialData
+			? {
+					...initialData,
+					projectName: initialData.projectName || CUSTOM_SERVICE_NO_PROJECT,
+					lot: initialData.projectName ? (initialData.lot ?? "") : "",
+					block: initialData.projectName ? (initialData.block ?? "") : "",
+					meta: initialData.projectName
+						? (initialData.meta ?? { lotBlock: "" })
+						: { lotBlock: "" },
+				}
+			: {
+					lot: "",
+					block: "",
+					status: "Pending",
+					meta: { lotBlock: "" },
+				},
 	});
 
 	const control = form.control as unknown as Control<WorkOrderFormData>;
@@ -42,6 +56,7 @@ export function WorkOrderForm({ data }: { data?: unknown }) {
 		}),
 	);
 	const projectName = form.watch("projectName");
+	const withoutProject = projectName === CUSTOM_SERVICE_NO_PROJECT;
 
 	const project = useMemo(
 		() => projectList?.find((item) => item?.title === projectName),
@@ -87,7 +102,8 @@ export function WorkOrderForm({ data }: { data?: unknown }) {
 							Location
 						</h3>
 						<p className="text-xs text-muted-foreground">
-							Choose the project and unit where service is needed.
+							Choose a project and unit, or select Custom for service without a
+							project.
 						</p>
 					</div>
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -101,11 +117,14 @@ export function WorkOrderForm({ data }: { data?: unknown }) {
 									form.setValue("block", "");
 									form.setValue("meta.lotBlock", "");
 								},
-								items: projectList?.map((item) => ({
-									label: item.title,
-									id: item.title,
-									disabled: !item.active,
-								})),
+								items: [
+									{ label: "Custom", id: CUSTOM_SERVICE_NO_PROJECT },
+									...(projectList?.map((item) => ({
+										label: item.title,
+										id: item.title,
+										disabled: !item.active,
+									})) ?? []),
+								],
 							}}
 						/>
 						<FormCombobox
@@ -118,7 +137,7 @@ export function WorkOrderForm({ data }: { data?: unknown }) {
 									form.setValue("block", item?.data?.block);
 									form.setValue("meta.lotBlock", item?.data?.lotBlock);
 								},
-								disabled: !project?.active,
+								disabled: withoutProject || !project?.active,
 								items: project?.homes?.map((item) => ({
 									label: item.lotBlock,
 									id: item.lotBlock,
@@ -222,7 +241,7 @@ export function WorkOrderForm({ data }: { data?: unknown }) {
 							toast({
 								title: "Check the work order",
 								description:
-									"Choose a project and unit, then review the required fields.",
+									"Choose a project and unit, or Custom, then review the required fields.",
 								variant: "destructive",
 							}),
 					)}

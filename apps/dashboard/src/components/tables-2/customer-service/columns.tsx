@@ -132,7 +132,7 @@ const descriptionColumn: Column = {
 		<div className="min-w-0 space-y-0.5">
 			<TextWithTooltip
 				className="max-w-full truncate font-medium"
-				text={row.original.projectName || "No project"}
+				text={row.original.projectName || "Custom"}
 			/>
 			<TextWithTooltip
 				className="max-w-full truncate text-xs text-muted-foreground"

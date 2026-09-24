@@ -1,6 +1,8 @@
 import type { TRPCContext } from "@api/trpc/init";
-import { slugify, slugModel } from "@gnd/utils";
+import { slugModel } from "@gnd/utils";
 import { z } from "zod";
+
+export const CUSTOM_SERVICE_NO_PROJECT = "__custom_service_no_project__";
 
 export const workOrderFormSchema = z.object({
   id: z.number().optional().nullable(),
@@ -28,7 +30,8 @@ export const workOrderFormSchema = z.object({
   if (!value.projectName?.trim()) {
     context.addIssue({ code: "custom", path: ["projectName"], message: "Choose a project" });
   }
-  if (!value.meta.lotBlock.trim() || !value.lot.trim() || !value.block.trim()) {
+  if (value.projectName !== CUSTOM_SERVICE_NO_PROJECT &&
+      (!value.meta.lotBlock.trim() || !value.lot.trim() || !value.block.trim())) {
     context.addIssue({ code: "custom", path: ["meta", "lotBlock"], message: "Choose a unit" });
   }
   if (!value.homeOwner?.trim()) {
@@ -50,12 +53,21 @@ export async function getWorkOrderForm(ctx: TRPCContext, id) {
 }
 
 export async function saveWorkOrderForm(ctx: TRPCContext, data: WorkOrderForm) {
-  if (!data.slug)
-    data.slug = await slugModel(
-      [data.projectName, data.lot, data.block],
+  const withoutProject = data.projectName === CUSTOM_SERVICE_NO_PROJECT;
+  const { id, techId, assignedAt, ...updateData } = data;
+  if (withoutProject) {
+    updateData.projectName = null;
+    updateData.lot = "";
+    updateData.block = "";
+    updateData.meta = { lotBlock: "" };
+  }
+  if (!updateData.slug)
+    updateData.slug = await slugModel(
+      withoutProject
+        ? ["customer-service", data.homeOwner]
+        : [data.projectName, data.lot, data.block],
       ctx.db.workOrders,
     );
-  const { id, techId, assignedAt, ...updateData } = data;
   if (id)
     await ctx.db.workOrders.update({
       where: {

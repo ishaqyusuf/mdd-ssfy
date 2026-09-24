@@ -135,7 +135,10 @@ export function WorkOrderOverviewModal() {
 										</p>
 									</section>
 									<section className="rounded-xl border p-5">
-										<Detail label="Location" value={data.projectName} />
+										<Detail
+											label="Location"
+											value={data.projectName || "Custom"}
+										/>
 										<p className="mt-2 text-xs text-muted-foreground">
 											{[
 												data.lot && `Lot ${data.lot}`,

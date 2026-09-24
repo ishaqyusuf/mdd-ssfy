@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { workOrderFormSchema } from "./work-order";
+import {
+	CUSTOM_SERVICE_NO_PROJECT,
+	saveWorkOrderForm,
+	workOrderFormSchema,
+} from "./work-order";
 
 describe("workOrderFormSchema", () => {
 	test("rejects an empty new work order", () => {
@@ -17,6 +21,77 @@ describe("workOrderFormSchema", () => {
 				"description",
 			]);
 		}
+	});
+	test("accepts a Custom work order without a unit", () => {
+		const result = workOrderFormSchema.safeParse({
+			projectName: CUSTOM_SERVICE_NO_PROJECT,
+			lot: "",
+			block: "",
+			meta: { lotBlock: "" },
+			homeOwner: "Alex Rivera",
+			description: "Repair a cabinet door",
+		});
+		expect(result.success).toBe(true);
+	});
+	test("saves Custom work without a project or stale unit", async () => {
+		let created: Record<string, unknown> | undefined;
+		const db = {
+			workOrders: {
+				count: async () => 0,
+				create: async ({ data }: { data: Record<string, unknown> }) => {
+					created = data;
+				},
+			},
+		};
+		const input = workOrderFormSchema.parse({
+			projectName: CUSTOM_SERVICE_NO_PROJECT,
+			lot: "old-lot",
+			block: "old-block",
+			meta: { lotBlock: "old-lot/old-block" },
+			homeOwner: "Alex Rivera",
+			description: "Repair a cabinet door",
+		});
+
+		await saveWorkOrderForm(
+			{ db } as unknown as Parameters<typeof saveWorkOrderForm>[0],
+			input,
+		);
+
+		expect(created?.projectName).toBeNull();
+		expect(created?.lot).toBe("");
+		expect(created?.block).toBe("");
+		expect(created?.meta).toEqual({ lotBlock: "" });
+		expect(created?.slug).toBe("customer-service-alex-rivera");
+	});
+	test("switches an existing project work order to Custom", async () => {
+		let updated: Record<string, unknown> | undefined;
+		const db = {
+			workOrders: {
+				update: async ({ data }: { data: Record<string, unknown> }) => {
+					updated = data;
+				},
+			},
+		};
+		const input = workOrderFormSchema.parse({
+			id: 812,
+			slug: "old-project-lot-block",
+			projectName: CUSTOM_SERVICE_NO_PROJECT,
+			lot: "old-lot",
+			block: "old-block",
+			meta: { lotBlock: "old-lot/old-block" },
+			homeOwner: "Alex Rivera",
+			description: "Repair a cabinet door",
+		});
+
+		await saveWorkOrderForm(
+			{ db } as unknown as Parameters<typeof saveWorkOrderForm>[0],
+			input,
+		);
+
+		expect(updated?.projectName).toBeNull();
+		expect(updated?.lot).toBe("");
+		expect(updated?.block).toBe("");
+		expect(updated?.meta).toEqual({ lotBlock: "" });
 	});
 	test("accepts an existing assigned work order hydrated through SuperJSON", () => {
 		const assignedAt = new Date("2026-07-24T15:00:00.000Z");
