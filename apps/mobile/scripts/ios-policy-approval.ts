@@ -13,6 +13,7 @@ export type IosPolicyApproval = {
 type IosPolicySources = {
 	privacyPage: string;
 	termsPage: string;
+	supportPage: string;
 	legalLayout: string;
 };
 const DRAFT_MARKER =
@@ -22,7 +23,7 @@ export async function readCurrentIosPolicySources(
 	repositoryRoot = path.resolve(import.meta.dir, "../../.."),
 ): Promise<IosPolicySources> {
 	const dashboardRoot = path.join(repositoryRoot, "apps/dashboard/src");
-	const [privacyPage, termsPage, legalLayout] = await Promise.all([
+	const [privacyPage, termsPage, supportPage, legalLayout] = await Promise.all([
 		readFile(
 			path.join(dashboardRoot, "app/(public)/privacy-policy/page.tsx"),
 			"utf8",
@@ -31,17 +32,23 @@ export async function readCurrentIosPolicySources(
 			path.join(dashboardRoot, "app/(public)/terms-of-use/page.tsx"),
 			"utf8",
 		),
+		readFile(path.join(dashboardRoot, "app/(public)/support/page.tsx"), "utf8"),
 		readFile(
 			path.join(dashboardRoot, "components/legal/legal-draft-layout.tsx"),
 			"utf8",
 		),
 	]);
-	return { privacyPage, termsPage, legalLayout };
+	return { privacyPage, termsPage, supportPage, legalLayout };
 }
 
 export function hashIosPolicySources(sources: IosPolicySources): string {
 	const hash = createHash("sha256");
-	for (const key of ["privacyPage", "termsPage", "legalLayout"] as const) {
+	for (const key of [
+		"privacyPage",
+		"termsPage",
+		"supportPage",
+		"legalLayout",
+	] as const) {
 		hash.update(key);
 		hash.update("\0");
 		hash.update(sources[key]);
@@ -81,14 +88,14 @@ export function evaluateIosPolicyApproval(
 		return {
 			ok: false,
 			detail:
-				"The policy pages still contain an AI-assisted review-draft marker",
+				"The policy or support pages still contain an AI-assisted review-draft marker",
 		};
 	}
 	if (approval.approvedContentSha256 !== hashIosPolicySources(sources)) {
 		return {
 			ok: false,
 			detail:
-				"The policy page source changed after GND approval; review it again",
+				"The policy or support page source changed after GND approval; review it again",
 		};
 	}
 	return { ok: true, detail: `GND-approved policy URL: ${configuredUrl}` };
@@ -98,7 +105,7 @@ if (import.meta.main) {
 	const sources = await readCurrentIosPolicySources();
 	if (DRAFT_MARKER.test(Object.values(sources).join("\n"))) {
 		console.error(
-			"The ProDesk policy pages are still marked as review drafts.",
+			"The ProDesk policy or support pages are still marked as review drafts.",
 		);
 		process.exit(1);
 	}

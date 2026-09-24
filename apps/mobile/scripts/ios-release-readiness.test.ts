@@ -58,6 +58,7 @@ describe("iOS public App Store release readiness", () => {
 		const sources = {
 			privacyPage: "Approved privacy notice",
 			termsPage: "Approved terms",
+			supportPage: "Approved support information",
 			legalLayout: "Public legal layout",
 		};
 		const approval = {
@@ -88,6 +89,18 @@ describe("iOS public App Store release readiness", () => {
 			evaluateIosPolicyApproval(approval.approvedUrl, approval, {
 				...sources,
 				privacyPage: "Changed privacy notice",
+			}).ok,
+		).toBe(false);
+		expect(
+			evaluateIosPolicyApproval(approval.approvedUrl, approval, {
+				...sources,
+				supportPage: "Changed support information",
+			}).ok,
+		).toBe(false);
+		expect(
+			evaluateIosPolicyApproval(approval.approvedUrl, approval, {
+				...sources,
+				supportPage: "Support review draft",
 			}).ok,
 		).toBe(false);
 		expect(
