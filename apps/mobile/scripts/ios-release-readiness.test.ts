@@ -5,9 +5,35 @@ import path from "node:path";
 
 import appConfig, { isHttpsEndpoint } from "../app.config";
 
-import { collectIosReleaseReadiness } from "./ios-release-readiness";
+import {
+	collectIosReleaseReadiness,
+	hasDashboardApiAuthRouteContract,
+} from "./ios-release-readiness";
 
 describe("iOS public App Store release readiness", () => {
+	it("requires both HTTP methods from the dashboard API and auth handlers", () => {
+		const trpc =
+			'export { GET, OPTIONS, PATCH, POST, PUT } from "@api/internal-api";';
+		const auth =
+			"export const { GET, POST, PATCH, PUT, DELETE } = toNextJsHandler(webAuth);";
+		expect(hasDashboardApiAuthRouteContract(trpc, auth)).toBe(true);
+		expect(
+			hasDashboardApiAuthRouteContract(
+				'export { GET, PATCH } from "@api/internal-api";',
+				auth,
+			),
+		).toBe(false);
+		expect(
+			hasDashboardApiAuthRouteContract(
+				trpc,
+				"export const { GET, DELETE } = toNextJsHandler(webAuth);",
+			),
+		).toBe(false);
+		expect(
+			hasDashboardApiAuthRouteContract(`// ${trpc}`, auth),
+		).toBe(false);
+	});
+
 	it("keeps every local release invariant green", async () => {
 		const checks = await collectIosReleaseReadiness();
 		const policyGate = checks.find(

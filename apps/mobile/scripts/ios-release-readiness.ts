@@ -21,6 +21,24 @@ const EXPECTED_SDK_DEPENDENCIES = {
 	"react-dom-mobile": "npm:react-dom@19.1.0",
 } as const;
 
+function hasGetAndPost(exportNames: string | undefined): boolean {
+	const names = new Set(exportNames?.split(",").map((name) => name.trim()));
+	return names.has("GET") && names.has("POST");
+}
+
+export function hasDashboardApiAuthRouteContract(
+	trpcRouteSource: string,
+	authRouteSource: string,
+): boolean {
+	const trpcExports = trpcRouteSource.match(
+		/^\s*export\s*\{([^}]+)\}\s*from\s*["']@api\/internal-api["']/ms,
+	)?.[1];
+	const authExports = authRouteSource.match(
+		/^\s*export\s+const\s*\{([^}]+)\}\s*=\s*toNextJsHandler\s*\(\s*webAuth\s*\)/ms,
+	)?.[1];
+	return hasGetAndPost(trpcExports) && hasGetAndPost(authExports);
+}
+
 export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	const eas = JSON.parse(
 		await readFile(path.join(APP_ROOT, "eas.json"), "utf8"),
@@ -188,9 +206,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		),
 		check(
 			"Dashboard API/auth route source contract",
-			trpcRouteSource.includes('export * from "@api/internal-api"') &&
-				authRouteSource.includes("toNextJsHandler(webAuth)") &&
-				authRouteSource.includes("GET, POST"),
+			hasDashboardApiAuthRouteContract(trpcRouteSource, authRouteSource),
 			"The dashboard source must serve both /api/trpc and /api/auth on the configured production origin; deployment reachability is separate",
 		),
 		check(
