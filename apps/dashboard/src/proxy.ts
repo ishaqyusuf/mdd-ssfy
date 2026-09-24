@@ -11,6 +11,11 @@ import {
 } from "./lib/routing/redirect-engine";
 
 const AUTHENTICATED_FALLBACK_ROUTE = "/settings/profile";
+const PUBLIC_INFORMATION_ROUTES = new Set([
+    "/privacy-policy",
+    "/terms-of-use",
+    "/support",
+]);
 const AUTHENTICATED_SAFE_ROUTES = new Set([
     AUTHENTICATED_FALLBACK_ROUTE,
     // The page performs the live database entitlement check. The proxy only has
@@ -37,6 +42,9 @@ export const config = {
 // }
 export default async function proxy(req: NextRequest) {
     const newUrl = req.nextUrl;
+    if (PUBLIC_INFORMATION_ROUTES.has(newUrl.pathname)) {
+        return NextResponse.next();
+    }
     const resolvedRedirect = resolveRedirectPath(newUrl.toString());
     if (resolvedRedirect) {
         const redirectUrl = new URL(
