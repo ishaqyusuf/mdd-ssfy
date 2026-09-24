@@ -1,11 +1,49 @@
 import { describe, expect, test } from "bun:test";
 import {
+	assertEmployeeDocumentMigrationStorageIsolation,
 	digestEmployeeDocumentMigration,
 	employeeDocumentDatabaseTarget,
 	employeeDocumentSourceHash,
 } from "./employee-document-private-migration-policy";
 
 describe("employee document private migration policy", () => {
+	test("local apply and verify refuse the production private-store token", () => {
+		for (const mode of ["apply", "verify"] as const) {
+			expect(() =>
+				assertEmployeeDocumentMigrationStorageIsolation({
+					environment: "local",
+					mode,
+					token: "shared-token",
+					productionToken: "shared-token",
+				}),
+			).toThrow("Local migration refuses the Production private Blob token.");
+			expect(() =>
+				assertEmployeeDocumentMigrationStorageIsolation({
+					environment: "local",
+					mode,
+					token: "isolated-token",
+					productionToken: undefined,
+				}),
+			).toThrow("Cannot verify local private Blob token isolation.");
+			expect(() =>
+				assertEmployeeDocumentMigrationStorageIsolation({
+					environment: "local",
+					mode,
+					token: "isolated-token",
+					productionToken: "production-token",
+				}),
+			).not.toThrow();
+		}
+		expect(() =>
+			assertEmployeeDocumentMigrationStorageIsolation({
+				environment: "local",
+				mode: "preview",
+				token: undefined,
+				productionToken: undefined,
+			}),
+		).not.toThrow();
+	});
+
 	test("fingerprints database identity without credentials", () => {
 		const target = employeeDocumentDatabaseTarget(
 			"mysql://secret:password@localhost:3307/gnd",

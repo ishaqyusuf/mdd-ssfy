@@ -13,6 +13,19 @@ const migrationSource = readFileSync(
 );
 
 describe("employee document private migration contract", () => {
+	test("checks local storage isolation before database access or journal creation", () => {
+		const guard = migrationSource.indexOf(
+			"assertEmployeeDocumentMigrationStorageIsolation({",
+		);
+		expect(guard).toBeGreaterThan(0);
+		expect(guard).toBeLessThan(
+			migrationSource.indexOf('await import("@gnd/db")'),
+		);
+		expect(guard).toBeLessThan(
+			migrationSource.indexOf('open(options.output, "wx"'),
+		);
+	});
+
 	test("requires an immutable output and manifest for write-adjacent modes", () => {
 		expect(() => parseEmployeeDocumentMigrationArguments([])).toThrow(
 			"--output is required",

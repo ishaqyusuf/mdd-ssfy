@@ -3,6 +3,23 @@ import { createHash } from "node:crypto";
 export const EMPLOYEE_DOCUMENT_PRIVATE_MIGRATION =
 	"employee-document-private-storage/v1";
 
+export function assertEmployeeDocumentMigrationStorageIsolation(input: {
+	environment: "local" | "production";
+	mode: "preview" | "apply" | "verify";
+	token: string | undefined;
+	productionToken: string | undefined;
+}) {
+	if (input.environment !== "local" || input.mode === "preview") return;
+	if (!input.productionToken) {
+		throw new Error("Cannot verify local private Blob token isolation.");
+	}
+	if (input.token && input.token === input.productionToken) {
+		throw new Error(
+			"Local migration refuses the Production private Blob token.",
+		);
+	}
+}
+
 export function digestEmployeeDocumentMigration(value: unknown) {
 	return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }

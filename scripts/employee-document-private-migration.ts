@@ -22,6 +22,7 @@ import {
 } from "../apps/api/src/utils/upload-validation";
 import {
 	EMPLOYEE_DOCUMENT_PRIVATE_MIGRATION,
+	assertEmployeeDocumentMigrationStorageIsolation,
 	digestEmployeeDocumentMigration,
 	employeeDocumentDatabaseTarget,
 	employeeDocumentSourceHash,
@@ -293,6 +294,26 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 		);
 	}
 	const token = process.env.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim();
+	if (options.mode !== "preview" && !token) {
+		throw new Error("PRIVATE_BLOB_READ_WRITE_TOKEN is required.");
+	}
+	if (options.environment === "local" && options.mode !== "preview") {
+		const productionProfile = parse(
+			await readFile(
+				resolve(import.meta.dir, "..", ".env.production"),
+				"utf8",
+			).catch((error: NodeJS.ErrnoException) => {
+				if (error.code === "ENOENT") return "";
+				throw error;
+			}),
+		);
+		assertEmployeeDocumentMigrationStorageIsolation({
+			environment: options.environment,
+			mode: options.mode,
+			token,
+			productionToken: productionProfile.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim(),
+		});
+	}
 	const { db } = await import("@gnd/db");
 	const output = await open(options.output, "wx", 0o600);
 	let journalQueue = Promise.resolve();
@@ -367,9 +388,6 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 			return;
 		}
 
-		if (!token) {
-			throw new Error("PRIVATE_BLOB_READ_WRITE_TOKEN is required.");
-		}
 		if (!options.manifest) throw new Error("Manifest path is required.");
 		const manifest = employeeDocumentMigrationManifestSchema.parse(
 			JSON.parse(await readFile(options.manifest, "utf8")),
