@@ -64,6 +64,7 @@ export type MouldingLineItemsEditorProps<
 	priceBreakdown?: CostPriceBreakdownContext | null;
 	onRowsChange: (rows: TRow[]) => void;
 	onRemoveRow: (uid: string) => void;
+	onAddMoulding?: () => void;
 };
 
 function MouldingEstimateBreakdown<TRow extends MouldingLineItemEditorRow>(
@@ -235,7 +236,7 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 		);
 	}
 
-	return (
+	const table = (
 		<div className="overflow-x-auto rounded-lg border max-lg:overflow-visible max-lg:rounded-none max-lg:border-0">
 			<table className="w-full min-w-[620px] text-sm max-lg:min-w-0">
 				<thead className="max-lg:hidden">
@@ -363,5 +364,25 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 				</tfoot>
 			</table>
 		</div>
+	);
+
+	return (
+		<>
+			{props.onAddMoulding ? (
+				<div className="mb-3 flex justify-end">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={props.onAddMoulding}
+						aria-label="Add another moulding"
+					>
+						<Icons.Plus className="size-4" />
+						Add Moulding
+					</Button>
+				</div>
+			) : null}
+			{table}
+		</>
 	);
 }

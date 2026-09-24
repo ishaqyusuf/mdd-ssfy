@@ -869,6 +869,7 @@ export function ItemWorkflowPanel() {
 		saveMouldingSelectionWithQty,
 		setMouldingSelectionQty,
 		closeMouldingSelectionPopover,
+		reopenMouldingComponentGrid,
 		shouldRetainMouldingComponentGrid,
 	} = useMouldingWorkflow({
 		activeLine,
@@ -1678,6 +1679,9 @@ export function ItemWorkflowPanel() {
 	function renderMouldingLineItemPanel(
 		line: (typeof record.lineItems)[number],
 	) {
+		const mouldingStepIndex = (line.formSteps || []).findIndex(
+			(step) => normalizeTitle(step?.step?.title) === "moulding",
+		);
 		const {
 			rows,
 			selectedMouldings,
@@ -1717,6 +1721,12 @@ export function ItemWorkflowPanel() {
 				resolveImageSrc={resolveComponentImageSrc}
 				onRowsChange={persistRows}
 				onRemoveRow={removeSelectedMoulding}
+				onAddMoulding={
+					mouldingStepIndex >= 0
+						? () =>
+							reopenMouldingComponentGrid(line.uid, mouldingStepIndex)
+						: undefined
+				}
 				renderCalculator={({ row, onCalculate }) => (
 					<MouldingCalculator
 						title={String(row.title || "")}

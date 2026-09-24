@@ -727,6 +727,7 @@ export function SalesFormWorkflowPanel<
 		saveMouldingSelectionWithQty,
 		setMouldingSelectionQty,
 		closeMouldingSelectionPopover,
+		reopenMouldingComponentGrid,
 		shouldRetainMouldingComponentGrid,
 	} = useMouldingWorkflow({
 		activeLine,
@@ -736,6 +737,7 @@ export function SalesFormWorkflowPanel<
 		visibleComponents,
 		updateLineItem: (uid, patch) =>
 			actions.updateLineItem(uid, patch as Partial<TLine>),
+		setActiveLine: (lineUid) => setActiveItem(lineUid),
 		setActiveStep,
 	});
 
@@ -1315,6 +1317,9 @@ export function SalesFormWorkflowPanel<
 				title: step.title,
 			}));
 		const mouldingContext = buildWorkflowMouldingRowsContext(line);
+		const mouldingStepIndex = steps.findIndex(
+			(step) => normalizeTitle(step?.step?.title) === "moulding",
+		);
 		const serviceContext = buildWorkflowServiceRowsContext(line);
 		const shelfContext = buildWorkflowShelfSectionsContext(
 			line,
@@ -1680,6 +1685,15 @@ export function SalesFormWorkflowPanel<
 										sharedComponentPrice: mouldingContext.sharedComponentPrice,
 									}) as unknown as Partial<TLine>,
 								)
+							}
+							onAddMoulding={
+								mouldingStepIndex >= 0
+									? () =>
+											reopenMouldingComponentGrid(
+												String(line.uid || ""),
+												mouldingStepIndex,
+											)
+									: undefined
 							}
 							onRemoveRow={(uid) => {
 								const rows = mouldingContext.rows.filter(

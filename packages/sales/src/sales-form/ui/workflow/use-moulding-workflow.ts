@@ -47,6 +47,23 @@ type RetainedMouldingSelectionStep = {
 	stepIndex: number;
 };
 
+export function reopenMouldingComponentGrid(args: {
+	lineUid: string;
+	stepIndex: number;
+	retainStep: (step: RetainedMouldingSelectionStep) => void;
+	activateLine?: (lineUid: string) => void;
+	activateStep: (lineUid: string, stepIndex: number) => void;
+}) {
+	const retainedStep = {
+		lineUid: args.lineUid,
+		stepIndex: args.stepIndex,
+	};
+	args.retainStep(retainedStep);
+	args.activateLine?.(args.lineUid);
+	args.activateStep(args.lineUid, args.stepIndex);
+	return retainedStep;
+}
+
 function getMouldingRows(line: SalesFormLineItemRecord): WorkflowComponent[] {
 	const lineMeta = line.meta as SalesFormLineItemRecord["meta"] & {
 		mouldingRows?: WorkflowComponent[];
@@ -103,6 +120,7 @@ export function useMouldingWorkflow(args: {
 		uid: string,
 		patch: Partial<SalesFormLineItemRecord>,
 	) => void;
+	setActiveLine?: (lineUid: string) => void;
 	setActiveStep: (lineUid: string, stepIndex: number) => void;
 }) {
 	const {
@@ -112,6 +130,7 @@ export function useMouldingWorkflow(args: {
 		normalizeTitle,
 		visibleComponents,
 		updateLineItem,
+		setActiveLine,
 		setActiveStep,
 	} = args;
 	const [mouldingSelectionPopover, setMouldingSelectionPopover] =
@@ -267,6 +286,14 @@ export function useMouldingWorkflow(args: {
 			})),
 		closeMouldingSelectionPopover: () =>
 			setMouldingSelectionPopover(closePopoverState()),
+		reopenMouldingComponentGrid: (lineUid: string, stepIndex: number) =>
+			reopenMouldingComponentGrid({
+				lineUid,
+				stepIndex,
+				retainStep: setRetainedMouldingSelectionStep,
+				activateLine: setActiveLine,
+				activateStep: setActiveStep,
+			}),
 		shouldRetainMouldingComponentGrid: (lineUid: string, stepIndex: number) =>
 			retainedMouldingSelectionStep?.lineUid === lineUid &&
 			retainedMouldingSelectionStep.stepIndex === stepIndex,

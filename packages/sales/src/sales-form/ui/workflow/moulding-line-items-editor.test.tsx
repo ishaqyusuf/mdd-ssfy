@@ -44,12 +44,12 @@ describe("MouldingLineItemsEditor estimate breakdown", () => {
 		expect(html).toContain('data-component-image-preview-trigger="true"');
 		expect(html).toContain(">Estimate<");
 		expect(html).toContain(">Line Total<");
-		expect(html).toContain('class="flex justify-end"');
+		expect(html).toContain('class="flex justify-end');
 	});
 
 	it("moves add-on and custom pricing from table columns into the Estimate menu", () => {
 		const header = source.slice(
-			source.indexOf("<thead>"),
+			source.indexOf("<thead"),
 			source.indexOf("</thead>"),
 		);
 
@@ -69,5 +69,31 @@ describe("MouldingLineItemsEditor estimate breakdown", () => {
 		expect(source).toContain("onPatch={(patch) => patchRow(index, patch)}");
 		expect(source).toContain('event.target.value === ""');
 		expect(source).toContain("? null");
+	});
+
+	it("offers a clear way to add another moulding from persisted rows", () => {
+		const html = renderToStaticMarkup(
+			<MouldingLineItemsEditor
+				rows={[
+					{
+						uid: "moulding-1",
+						title: "Casing",
+						qty: 2,
+						lineTotal: 30,
+					},
+				]}
+				totalQty={2}
+				totalAmount={30}
+				formatMoney={(value) => `$${Number(value || 0).toFixed(2)}`}
+				componentLabel={(value) => value || ""}
+				resolveImageSrc={() => null}
+				onRowsChange={() => undefined}
+				onRemoveRow={() => undefined}
+				onAddMoulding={() => undefined}
+			/>,
+		);
+
+		expect(html).toContain('aria-label="Add another moulding"');
+		expect(html).toContain("Add Moulding");
 	});
 });

@@ -13,7 +13,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { InputGroup } from "@gnd/ui/namespace";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useReducer, useRef, useState } from "react";
 import {
 	WorkflowStepList,
 	type WorkflowStepListVersion,
@@ -31,6 +31,40 @@ function currency(value?: number | null) {
 
 function uppercaseItemTitle(value?: string | null) {
 	return String(value || "").toUpperCase();
+}
+
+export type ItemTitleDraftState = {
+	draft: string;
+	editing: boolean;
+};
+
+export type ItemTitleDraftEvent =
+	| { type: "focus" }
+	| { type: "input"; value: string }
+	| { type: "sync"; value: string }
+	| { type: "blur"; value: string };
+
+export function itemTitleDraftReducer(
+	state: ItemTitleDraftState,
+	event: ItemTitleDraftEvent,
+): ItemTitleDraftState {
+	switch (event.type) {
+		case "focus":
+			return state.editing ? state : { ...state, editing: true };
+		case "input":
+			return state.draft === event.value && state.editing
+				? state
+				: { draft: event.value, editing: true };
+		case "sync":
+			if (state.editing || state.draft === event.value) return state;
+			return { ...state, draft: event.value };
+		case "blur": {
+			const draft = uppercaseItemTitle(event.value);
+			return state.draft === draft && !state.editing
+				? state
+				: { draft, editing: false };
+		}
+	}
 }
 
 const STEP_PANEL_ANIMATION_MS = 200;
@@ -197,6 +231,14 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 	const isExpanded = props.isExpanded ?? props.isActive;
 	const isCollapsed = !isExpanded;
 	const collapseTriggerDisabled = !!props.disableCollapseTrigger;
+	const [titleDraft, dispatchTitleDraft] = useReducer(itemTitleDraftReducer, {
+		draft: String(props.title || ""),
+		editing: false,
+	});
+
+	useEffect(() => {
+		dispatchTitleDraft({ type: "sync", value: String(props.title || "") });
+	}, [props.title]);
 
 	return (
 		<div
@@ -239,11 +281,20 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 						</InputGroup.Addon>
 						<InputGroup.Input
 							aria-label={`Item ${props.index + 1} title`}
-							value={props.title || ""}
-							onChange={(e) => props.onTitleChange(e.target.value)}
-							onBlur={(e) =>
-								props.onTitleChange(uppercaseItemTitle(e.currentTarget.value))
-							}
+							value={titleDraft.draft}
+							onFocus={() => dispatchTitleDraft({ type: "focus" })}
+							onChange={(event) => {
+								dispatchTitleDraft({
+									type: "input",
+									value: event.target.value,
+								});
+								props.onTitleChange(event.target.value);
+							}}
+							onBlur={(event) => {
+								const title = uppercaseItemTitle(event.currentTarget.value);
+								dispatchTitleDraft({ type: "blur", value: title });
+								props.onTitleChange(title);
+							}}
 							placeholder={uppercaseItemTitle(
 								props.titlePlaceholder || "Description",
 							)}

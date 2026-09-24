@@ -2,7 +2,10 @@
 
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { getInvoiceItemMoveTargets } from "./invoice-item-card";
+import {
+	getInvoiceItemMoveTargets,
+	itemTitleDraftReducer,
+} from "./invoice-item-card";
 import {
 	WorkflowLineList,
 	resolveNewlyAddedActiveLineUid,
@@ -32,6 +35,24 @@ describe("WorkflowLineList", () => {
 			{ index: 1, label: "Item 2", disabled: true },
 			{ index: 2, label: "Item 3", disabled: false },
 		]);
+	});
+
+	it("keeps the active title draft when external form state refreshes", () => {
+		const focused = itemTitleDraftReducer(
+			{ draft: "THIS IS A TEST", editing: false },
+			{ type: "focus" },
+		);
+		const inserted = itemTitleDraftReducer(focused, {
+			type: "input",
+			value: "THIS IS A DTEST",
+		});
+		const refreshed = itemTitleDraftReducer(inserted, {
+			type: "sync",
+			value: "THIS IS A TEST",
+		});
+
+		expect(refreshed).toBe(inserted);
+		expect(refreshed.draft).toBe("THIS IS A DTEST");
 	});
 
 	it("scopes each rendered panel to its own active-line state", () => {
