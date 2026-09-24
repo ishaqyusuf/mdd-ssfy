@@ -16,6 +16,7 @@ const REPOSITORY_ROOT = path.join(APP_ROOT, "..", "..");
 const EXPECTED_PROJECT_ID = "8ea2eecb-4109-453c-827f-9b2de2e3a9aa";
 const EXPECTED_TEAM_ID = "ZXC78SPCV4";
 const EXPECTED_ASC_APP_ID = "6811442922";
+const CANONICAL_PUBLIC_ORIGIN = "https://www.gndprodesk.com";
 const EXPECTED_SDK_DEPENDENCIES = {
 	"@react-native-community/netinfo": "11.4.1",
 	expo: "~54.0.37",
@@ -29,6 +30,13 @@ const EXPECTED_SDK_DEPENDENCIES = {
 function hasGetAndPost(exportNames: string | undefined): boolean {
 	const names = new Set(exportNames?.split(",").map((name) => name.trim()));
 	return names.has("GET") && names.has("POST");
+}
+
+export function isCanonicalIosReleaseOrigin(
+	value: string | undefined,
+): boolean {
+	if (!value || !isPublicHttpsOrigin(value)) return false;
+	return new URL(value).origin === CANONICAL_PUBLIC_ORIGIN;
 }
 
 export function hasDashboardApiAuthRouteContract(
@@ -214,6 +222,12 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			!isProductionIosCheck ||
 				isPublicHttpsOrigin(process.env.EXPO_PUBLIC_BASE_URL),
 			`productionIos=${isProductionIosCheck}; configuredPublicHttpsOrigin=${isPublicHttpsOrigin(process.env.EXPO_PUBLIC_BASE_URL)}`,
+		),
+		check(
+			"Canonical public iOS API/auth origin",
+			!isProductionIosCheck ||
+				isCanonicalIosReleaseOrigin(process.env.EXPO_PUBLIC_BASE_URL),
+			`productionIos=${isProductionIosCheck}; expected=${CANONICAL_PUBLIC_ORIGIN}; configuredCanonical=${isCanonicalIosReleaseOrigin(process.env.EXPO_PUBLIC_BASE_URL)}`,
 		),
 		check(
 			"Dashboard API/auth route source contract",

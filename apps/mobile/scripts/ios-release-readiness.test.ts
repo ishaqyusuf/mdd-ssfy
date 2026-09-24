@@ -12,9 +12,56 @@ import {
 import {
 	collectIosReleaseReadiness,
 	hasDashboardApiAuthRouteContract,
+	isCanonicalIosReleaseOrigin,
 } from "./ios-release-readiness";
 
 describe("iOS public App Store release readiness", () => {
+	it("requires the non-redirecting canonical host for public iOS auth", () => {
+		expect(isCanonicalIosReleaseOrigin("https://www.gndprodesk.com")).toBe(
+			true,
+		);
+		expect(isCanonicalIosReleaseOrigin("https://www.gndprodesk.com/")).toBe(
+			true,
+		);
+		expect(isCanonicalIosReleaseOrigin("https://gndprodesk.com")).toBe(false);
+		expect(isCanonicalIosReleaseOrigin("https://www.gndprodesk.com/path")).toBe(
+			false,
+		);
+		expect(isCanonicalIosReleaseOrigin("http://www.gndprodesk.com")).toBe(
+			false,
+		);
+	});
+
+	it("applies the canonical-origin gate only to the public iOS production check", async () => {
+		const original = {
+			APP_VARIANT: process.env.APP_VARIANT,
+			GND_IOS_PUBLIC_RELEASE: process.env.GND_IOS_PUBLIC_RELEASE,
+			EXPO_PUBLIC_BASE_URL: process.env.EXPO_PUBLIC_BASE_URL,
+		};
+		const originCheck = async () =>
+			(await collectIosReleaseReadiness()).find(
+				(item) => item.label === "Canonical public iOS API/auth origin",
+			)?.ok;
+
+		try {
+			process.env.EXPO_PUBLIC_BASE_URL = "https://gndprodesk.com";
+			process.env.APP_VARIANT = "production";
+			process.env.GND_IOS_PUBLIC_RELEASE = "true";
+			expect(await originCheck()).toBe(false);
+
+			process.env.GND_IOS_PUBLIC_RELEASE = "false";
+			expect(await originCheck()).toBe(true);
+
+			process.env.APP_VARIANT = "preview";
+			process.env.GND_IOS_PUBLIC_RELEASE = "true";
+			expect(await originCheck()).toBe(true);
+		} finally {
+			for (const [key, value] of Object.entries(original)) {
+				if (value === undefined) delete process.env[key];
+				else process.env[key] = value;
+			}
+		}
+	});
 	it("requires both HTTP methods from the dashboard API and auth handlers", () => {
 		const trpc =
 			'export { GET, OPTIONS, PATCH, POST, PUT } from "@api/internal-api";';
