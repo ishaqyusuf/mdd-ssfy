@@ -216,6 +216,9 @@ describe("employee document private migration contract", () => {
 	});
 
 	test("verifies provider size and honors a known source checksum", () => {
+		expect(migrationSource).toContain(
+			"employeeDocumentMigrationUploadOptions({ token, contentType })",
+		);
 		expect(migrationSource).toContain("remote.size !== bytes.length");
 		expect(migrationSource).toContain(
 			"resolved.storedDocument.checksum !== checksum",

@@ -3,10 +3,25 @@ import {
 	assertEmployeeDocumentMigrationStorageIsolation,
 	digestEmployeeDocumentMigration,
 	employeeDocumentDatabaseTarget,
+	employeeDocumentMigrationUploadOptions,
 	employeeDocumentSourceHash,
 } from "./employee-document-private-migration-policy";
 
 describe("employee document private migration policy", () => {
+	test("keeps concurrent uploads private, unique, and non-overwriting", () => {
+		expect(
+			employeeDocumentMigrationUploadOptions({
+				token: "local-token",
+				contentType: "application/pdf",
+			}),
+		).toEqual({
+			access: "private",
+			token: "local-token",
+			contentType: "application/pdf",
+			addRandomSuffix: true,
+			allowOverwrite: false,
+		});
+	});
 	test("local apply and verify refuse the production private-store token", () => {
 		for (const mode of ["apply", "verify"] as const) {
 			expect(() =>

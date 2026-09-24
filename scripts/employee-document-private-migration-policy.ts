@@ -20,6 +20,19 @@ export function assertEmployeeDocumentMigrationStorageIsolation(input: {
 	}
 }
 
+export function employeeDocumentMigrationUploadOptions(input: {
+	token: string;
+	contentType: string;
+}) {
+	return {
+		access: "private" as const,
+		token: input.token,
+		contentType: input.contentType,
+		addRandomSuffix: true,
+		allowOverwrite: false,
+	};
+}
+
 export function digestEmployeeDocumentMigration(value: unknown) {
 	return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }

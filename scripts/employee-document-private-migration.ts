@@ -25,6 +25,7 @@ import {
 	assertEmployeeDocumentMigrationStorageIsolation,
 	digestEmployeeDocumentMigration,
 	employeeDocumentDatabaseTarget,
+	employeeDocumentMigrationUploadOptions,
 	employeeDocumentSourceHash,
 } from "./employee-document-private-migration-policy";
 
@@ -564,13 +565,11 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 					`employee-document-${source.id}${extension}`,
 				);
 				const pathname = `employee-documents/${source.userId}/${source.id}/${candidate.sourceHash.slice(0, 16)}-${filename}`;
-				const uploaded = await put(pathname, bytes, {
-					access: "private",
-					token,
-					contentType: contentType || undefined,
-					addRandomSuffix: false,
-					allowOverwrite: true,
-				});
+				const uploaded = await put(
+					pathname,
+					bytes,
+					employeeDocumentMigrationUploadOptions({ token, contentType }),
+				);
 				try {
 					const remote = await head(uploaded.pathname, { token });
 					if (remote.size !== bytes.length) {
