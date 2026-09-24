@@ -48,6 +48,30 @@ describe("employee document private migration contract", () => {
 				"same.json",
 			]),
 		).toThrow("Manifest and output must differ");
+		expect(() =>
+			parseEmployeeDocumentMigrationArguments([
+				"--mode",
+				"apply",
+				"--output",
+				"journal.jsonl",
+				"--manifest",
+				"manifest.json",
+				"--limit",
+				"1",
+			]),
+		).toThrow("--limit is a preview-only filter");
+		expect(() =>
+			parseEmployeeDocumentMigrationArguments([
+				"--mode",
+				"verify",
+				"--output",
+				"journal.jsonl",
+				"--manifest",
+				"manifest.json",
+				"--limit",
+				"1",
+			]),
+		).toThrow("--limit is a preview-only filter");
 	});
 
 	test("holds a linked stored record when employee ownership does not match", async () => {

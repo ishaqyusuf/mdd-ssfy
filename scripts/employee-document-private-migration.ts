@@ -123,6 +123,9 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 	if (values["--document-id"] && mode !== "preview") {
 		throw new Error("--document-id is a preview-only filter.");
 	}
+	if (values["--limit"] && mode !== "preview") {
+		throw new Error("--limit is a preview-only filter.");
+	}
 	return {
 		environment: environment as "local" | "production",
 		mode: mode as "preview" | "apply" | "verify",
