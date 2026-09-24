@@ -1,5 +1,6 @@
 const RELEASE_VARIANTS = new Set(["preview", "production"]);
 const RESERVED_HOSTNAMES = new Set(["localhost", "0.0.0.0", "::1"]);
+const CANONICAL_IOS_RELEASE_ORIGIN = "https://www.gndprodesk.com";
 
 /**
  * @param {string | undefined} value
@@ -46,6 +47,16 @@ function isPublicHttpsOrigin(value) {
 }
 
 /**
+ * @param {string | undefined} value
+ */
+function isCanonicalIosReleaseOrigin(value) {
+	return (
+		isPublicHttpsOrigin(value) &&
+		new URL(value).origin === CANONICAL_IOS_RELEASE_ORIGIN
+	);
+}
+
+/**
  * @param {{
  *   appVariant?: unknown;
  *   envVariant?: string;
@@ -79,6 +90,8 @@ function resolveConfiguredReleaseBaseUrl(input) {
 }
 
 module.exports = {
+	CANONICAL_IOS_RELEASE_ORIGIN,
+	isCanonicalIosReleaseOrigin,
 	isPublicHttpsOrigin,
 	resolveConfiguredReleaseBaseUrl,
 };

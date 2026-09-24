@@ -1,4 +1,5 @@
 const { spawnSync } = require("node:child_process");
+const { readFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
 
@@ -11,6 +12,15 @@ const env = Object.fromEntries(
 );
 env.EXPO_NO_DOTENV = "1";
 env.BUN_AUTO_INSTALL = "0";
+// Match EAS's iOS-specific production profile instead of the shared local
+// Production dotenv, which still supplies Android's legacy apex origin.
+const eas = JSON.parse(readFileSync(path.join(__dirname, "..", "eas.json"), "utf8"));
+const iosReleaseOrigin = eas.build?.production?.ios?.env?.EXPO_PUBLIC_BASE_URL;
+if (typeof iosReleaseOrigin !== "string" || !iosReleaseOrigin.trim()) {
+	process.stderr.write("Missing iOS production EXPO_PUBLIC_BASE_URL in eas.json.\n");
+	process.exit(1);
+}
+env.EXPO_PUBLIC_BASE_URL = iosReleaseOrigin;
 
 const result = spawnSync(
 	"bun",

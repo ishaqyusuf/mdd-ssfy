@@ -27,7 +27,8 @@
 			"environment": "production",
 			"ios": {
 				"env": {
-					"GND_IOS_PUBLIC_RELEASE": "true"
+					"GND_IOS_PUBLIC_RELEASE": "true",
+					"EXPO_PUBLIC_BASE_URL": "https://www.gndprodesk.com"
 				}
 			},
 			"env": {

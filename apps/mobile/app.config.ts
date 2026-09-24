@@ -1,6 +1,7 @@
 import type { ExpoConfig } from "expo/config";
 
-const { isPublicHttpsOrigin } = require("./config/release-base-url.cjs") as {
+const { isCanonicalIosReleaseOrigin, isPublicHttpsOrigin } = require("./config/release-base-url.cjs") as {
+  isCanonicalIosReleaseOrigin(value: string | undefined): boolean;
   isPublicHttpsOrigin(value: string | undefined): boolean;
 };
 
@@ -65,6 +66,9 @@ export function isHttpsEndpoint(value: string | undefined): boolean {
 if (isExplicitProductionIosBuild) {
   if (!isPublicHttpsOrigin(process.env.EXPO_PUBLIC_BASE_URL)) {
     throw new Error("Public iOS production builds require a public HTTPS EXPO_PUBLIC_BASE_URL origin.");
+  }
+  if (!isCanonicalIosReleaseOrigin(process.env.EXPO_PUBLIC_BASE_URL)) {
+    throw new Error("Public iOS production builds require the canonical non-redirecting EXPO_PUBLIC_BASE_URL origin.");
   }
   if (
     process.env.EXPO_PUBLIC_SENTRY_DEBUG === "true" ||

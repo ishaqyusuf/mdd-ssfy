@@ -219,7 +219,7 @@ describe("iOS public App Store release readiness", () => {
 				...process.env,
 				APP_VARIANT: "production",
 				GND_IOS_PUBLIC_RELEASE: "true",
-				EXPO_PUBLIC_BASE_URL: "https://api.example.com",
+				EXPO_PUBLIC_BASE_URL: "https://gndprodesk.com",
 				EXPO_PUBLIC_PRIVACY_POLICY_URL: "https://example.com/privacy",
 				EXPO_PUBLIC_EMAIL: "release-secret-sentinel-5927",
 				EXPO_PUBLIC_TOK: "release-secret-sentinel-5927",
@@ -232,6 +232,9 @@ describe("iOS public App Store release readiness", () => {
 		expect(result.exitCode).toBe(1);
 		expect(result.stdout.toString()).toContain(
 			"FAIL  Approved public privacy-policy URL",
+		);
+		expect(result.stdout.toString()).toContain(
+			"PASS  Canonical public iOS API/auth origin",
 		);
 		expect(result.stdout.toString()).toContain(
 			"The configured privacy URL has no matching GND-approved policy record",
@@ -268,7 +271,7 @@ describe("iOS public App Store release readiness", () => {
 					{
 						APP_VARIANT: "production",
 						GND_IOS_PUBLIC_RELEASE: "true",
-						EXPO_PUBLIC_BASE_URL: "https://api.example.com",
+						EXPO_PUBLIC_BASE_URL: "https://www.gndprodesk.com",
 						EXPO_PUBLIC_EMAIL: "",
 						EXPO_PUBLIC_TOK: "",
 						EXPO_PUBLIC_PRIVACY_POLICY_URL: "",
@@ -309,6 +312,24 @@ describe("iOS public App Store release readiness", () => {
 				"Public iOS production builds require a public HTTPS EXPO_PUBLIC_BASE_URL origin.",
 			);
 		}
+		const redirectingApex = Bun.spawnSync({
+			cmd: [process.execPath, "-e", "import './app.config.ts'"],
+			cwd: path.join(import.meta.dir, ".."),
+			env: {
+				...process.env,
+				APP_VARIANT: "production",
+				GND_IOS_PUBLIC_RELEASE: "true",
+				EXPO_PUBLIC_BASE_URL: "https://gndprodesk.com",
+				EXPO_PUBLIC_EMAIL: "",
+				EXPO_PUBLIC_TOK: "",
+				EXPO_PUBLIC_SENTRY_ENABLED: "false",
+				EXPO_PUBLIC_LOGLY_ENABLED: "false",
+			},
+		});
+		expect(redirectingApex.exitCode).not.toBe(0);
+		expect(redirectingApex.stderr.toString()).toContain(
+			"Public iOS production builds require the canonical non-redirecting EXPO_PUBLIC_BASE_URL origin.",
+		);
 		expect(isHttpsEndpoint("https://example.test/collector")).toBe(true);
 		expect(isHttpsEndpoint("http://example.test/collector")).toBe(false);
 		expect(isHttpsEndpoint("not-a-url")).toBe(false);
@@ -327,5 +348,18 @@ describe("iOS public App Store release readiness", () => {
 			},
 		});
 		expect(android.exitCode).toBe(0);
+		const androidApex = Bun.spawnSync({
+			cmd: [process.execPath, "-e", "import './app.config.ts'"],
+			cwd: path.join(import.meta.dir, ".."),
+			env: {
+				...process.env,
+				APP_VARIANT: "production",
+				GND_IOS_PUBLIC_RELEASE: "false",
+				EXPO_PUBLIC_BASE_URL: "https://gndprodesk.com",
+				EXPO_PUBLIC_EMAIL: "",
+				EXPO_PUBLIC_TOK: "",
+			},
+		});
+		expect(androidApex.exitCode).toBe(0);
 	});
 });

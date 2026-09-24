@@ -2,7 +2,11 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import appConfig, { isHttpsEndpoint } from "../app.config";
-import { isPublicHttpsOrigin } from "../src/lib/release-base-url";
+import {
+	CANONICAL_IOS_RELEASE_ORIGIN,
+	isCanonicalIosReleaseOrigin,
+	isPublicHttpsOrigin,
+} from "../src/lib/release-base-url";
 import {
 	type IosPolicyApproval,
 	evaluateIosPolicyApproval,
@@ -16,7 +20,6 @@ const REPOSITORY_ROOT = path.join(APP_ROOT, "..", "..");
 const EXPECTED_PROJECT_ID = "8ea2eecb-4109-453c-827f-9b2de2e3a9aa";
 const EXPECTED_TEAM_ID = "ZXC78SPCV4";
 const EXPECTED_ASC_APP_ID = "6811442922";
-const CANONICAL_PUBLIC_ORIGIN = "https://www.gndprodesk.com";
 const EXPECTED_SDK_DEPENDENCIES = {
 	"@react-native-community/netinfo": "11.4.1",
 	expo: "~54.0.37",
@@ -32,12 +35,7 @@ function hasGetAndPost(exportNames: string | undefined): boolean {
 	return names.has("GET") && names.has("POST");
 }
 
-export function isCanonicalIosReleaseOrigin(
-	value: string | undefined,
-): boolean {
-	if (!value || !isPublicHttpsOrigin(value)) return false;
-	return new URL(value).origin === CANONICAL_PUBLIC_ORIGIN;
-}
+export { isCanonicalIosReleaseOrigin };
 
 export function hasDashboardApiAuthRouteContract(
 	trpcRouteSource: string,
@@ -180,6 +178,13 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"The iOS production profile enables the guard without changing Android production routing",
 		),
 		check(
+			"iOS-only canonical build origin",
+			isCanonicalIosReleaseOrigin(
+				eas.build?.production?.ios?.env?.EXPO_PUBLIC_BASE_URL,
+			) && eas.build?.production?.env?.EXPO_PUBLIC_BASE_URL === undefined,
+			"The iOS profile uses the non-redirecting canonical host; Android keeps the shared Production origin",
+		),
+		check(
 			"Preview remains development-only internal distribution",
 			eas.build?.preview?.distribution === "internal",
 			String(eas.build?.preview?.distribution),
@@ -227,7 +232,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"Canonical public iOS API/auth origin",
 			!isProductionIosCheck ||
 				isCanonicalIosReleaseOrigin(process.env.EXPO_PUBLIC_BASE_URL),
-			`productionIos=${isProductionIosCheck}; expected=${CANONICAL_PUBLIC_ORIGIN}; configuredCanonical=${isCanonicalIosReleaseOrigin(process.env.EXPO_PUBLIC_BASE_URL)}`,
+			`productionIos=${isProductionIosCheck}; expected=${CANONICAL_IOS_RELEASE_ORIGIN}; configuredCanonical=${isCanonicalIosReleaseOrigin(process.env.EXPO_PUBLIC_BASE_URL)}`,
 		),
 		check(
 			"Dashboard API/auth route source contract",
