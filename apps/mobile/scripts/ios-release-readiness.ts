@@ -3,6 +3,11 @@ import path from "node:path";
 
 import appConfig, { isHttpsEndpoint } from "../app.config";
 import { isPublicHttpsOrigin } from "../src/lib/release-base-url";
+import {
+	type IosPolicyApproval,
+	evaluateIosPolicyApproval,
+	readCurrentIosPolicySources,
+} from "./ios-policy-approval";
 
 type Check = { label: string; ok: boolean; detail: string };
 
@@ -48,6 +53,15 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	);
 	const rootPkg = JSON.parse(
 		await readFile(path.join(REPOSITORY_ROOT, "package.json"), "utf8"),
+	);
+	const policyApproval = JSON.parse(
+		await readFile(path.join(APP_ROOT, "ios-policy-approval.json"), "utf8"),
+	) as IosPolicyApproval;
+	const policySources = await readCurrentIosPolicySources(REPOSITORY_ROOT);
+	const policyApprovalCheck = evaluateIosPolicyApproval(
+		appConfig.extra?.privacyPolicyUrl,
+		policyApproval,
+		policySources,
 	);
 	const submitByIdSource = await readFile(
 		path.join(APP_ROOT, "scripts", "ios-submit-by-id.ts"),
@@ -191,12 +205,9 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			String(infoPlist?.NSPhotoLibraryUsageDescription),
 		),
 		check(
-			"Configured public privacy-policy URL",
-			typeof appConfig.extra?.privacyPolicyUrl === "string" &&
-				appConfig.extra.privacyPolicyUrl.startsWith("https://"),
-			appConfig.extra?.privacyPolicyUrl
-				? String(appConfig.extra.privacyPolicyUrl)
-				: "Missing EXPO_PUBLIC_PRIVACY_POLICY_URL; owner/legal approval required before a public build",
+			"Approved public privacy-policy URL",
+			policyApprovalCheck.ok,
+			policyApprovalCheck.detail,
 		),
 		check(
 			"Public iOS API/auth origin",
@@ -234,9 +245,11 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"iOS build command",
 			scripts["eas-build:ios:prod"]?.startsWith(
 				"bun ./scripts/ios-build-gate.ts && bun run ios:release:preflight &&",
-			) && scripts["eas-build:ios:prod"]?.includes(
-				"eas build -p ios --profile production",
-			) && buildGateSource.includes('process.env.GND_IOS_BUILD_ACK !== "1"'),
+			) &&
+				scripts["eas-build:ios:prod"]?.includes(
+					"eas build -p ios --profile production",
+				) &&
+				buildGateSource.includes('process.env.GND_IOS_BUILD_ACK !== "1"'),
 			scripts["eas-build:ios:prod"] ?? "missing",
 		),
 		check(
@@ -249,15 +262,15 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"iOS combined command",
 			scripts["eas-build-submit:ios:prod"]?.startsWith(
 				"bun ./scripts/ios-auto-submit-gate.ts && bun run ios:release:preflight &&",
-			) && scripts["eas-build-submit:ios:prod"]?.includes(
-				"--auto-submit-with-profile production",
-			),
+			) &&
+				scripts["eas-build-submit:ios:prod"]?.includes(
+					"--auto-submit-with-profile production",
+				),
 			scripts["eas-build-submit:ios:prod"] ?? "missing",
 		),
 		check(
 			"Explicit public App Store commands",
-			rootScripts["eas:appstore:build:ios"] ===
-				rootScripts["eas:build:ios"] &&
+			rootScripts["eas:appstore:build:ios"] === rootScripts["eas:build:ios"] &&
 				rootScripts["eas:appstore:upload:ios"] ===
 					rootScripts["eas:submit:ios"] &&
 				rootScripts["eas:submit:ios"]?.endsWith("--require-id") &&
@@ -267,7 +280,9 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		),
 		check(
 			"Build-ID upload command",
-			submitByIdSource.includes("parseReviewedBuildId(process.argv.slice(2))") &&
+			submitByIdSource.includes(
+				"parseReviewedBuildId(process.argv.slice(2))",
+			) &&
 				submitByIdSource.includes('process.env.GND_IOS_UPLOAD_ACK !== "1"') &&
 				submitByIdSource.includes('"submit"') &&
 				submitByIdSource.includes('"--profile"') &&
@@ -278,10 +293,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		),
 		check(
 			"Release scripts strip dev credentials",
-			[
-				"eas-build:ios:prod",
-				"eas-build-submit:ios:prod",
-			].every(
+			["eas-build:ios:prod", "eas-build-submit:ios:prod"].every(
 				(name) =>
 					scripts[name]?.includes(
 						"env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK",
@@ -296,7 +308,9 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"iOS store preflight loads production configuration",
 			scripts["ios:release:preflight"]?.includes("with-env:prod") &&
 				scripts["ios:release:preflight"]?.includes("APP_VARIANT=production") &&
-				scripts["ios:release:preflight"]?.includes("GND_IOS_PUBLIC_RELEASE=true") &&
+				scripts["ios:release:preflight"]?.includes(
+					"GND_IOS_PUBLIC_RELEASE=true",
+				) &&
 				scripts["ios:release:preflight"]?.includes("EXPO_NO_DOTENV=1") &&
 				scripts["ios:release:preflight"]?.includes(
 					"node ./scripts/run-ios-release-preflight.cjs",

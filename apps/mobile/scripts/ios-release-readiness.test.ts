@@ -3,8 +3,12 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import appConfig, { isHttpsEndpoint } from "../app.config";
+import { isHttpsEndpoint } from "../app.config";
 
+import {
+	evaluateIosPolicyApproval,
+	hashIosPolicySources,
+} from "./ios-policy-approval";
 import {
 	collectIosReleaseReadiness,
 	hasDashboardApiAuthRouteContract,
@@ -29,25 +33,81 @@ describe("iOS public App Store release readiness", () => {
 				"export const { GET, DELETE } = toNextJsHandler(webAuth);",
 			),
 		).toBe(false);
-		expect(
-			hasDashboardApiAuthRouteContract(`// ${trpc}`, auth),
-		).toBe(false);
+		expect(hasDashboardApiAuthRouteContract(`// ${trpc}`, auth)).toBe(false);
 	});
 
 	it("keeps every local release invariant green", async () => {
 		const checks = await collectIosReleaseReadiness();
 		const policyGate = checks.find(
-			(item) => item.label === "Configured public privacy-policy URL",
+			(item) => item.label === "Approved public privacy-policy URL",
 		);
 		expect(policyGate).toBeDefined();
-		expect(policyGate?.ok).toBe(Boolean(appConfig.extra?.privacyPolicyUrl));
+		expect(policyGate?.ok).toBe(false);
 		expect(
-			checks.find((item) => item.label === "Dashboard API/auth route source contract")?.ok,
+			checks.find(
+				(item) => item.label === "Dashboard API/auth route source contract",
+			)?.ok,
 		).toBe(true);
 		expect(
 			checks.filter((item) => !item.ok && item.label !== policyGate?.label),
 		).toEqual([]);
 		expect(checks.length).toBeGreaterThanOrEqual(15);
+	});
+
+	it("requires GND approval of the exact URL and unchanged, non-draft policy source", () => {
+		const sources = {
+			privacyPage: "Approved privacy notice",
+			termsPage: "Approved terms",
+			legalLayout: "Public legal layout",
+		};
+		const approval = {
+			status: "approved" as const,
+			approvedUrl: "https://www.gndprodesk.com/privacy-policy",
+			approvedContentSha256: hashIosPolicySources(sources),
+			approvedOn: "2026-09-24",
+			approvedBy: "GND MILLWORK CORP",
+		};
+		expect(
+			evaluateIosPolicyApproval(approval.approvedUrl, approval, sources).ok,
+		).toBe(true);
+		expect(
+			evaluateIosPolicyApproval(
+				"https://example.com/privacy",
+				approval,
+				sources,
+			).ok,
+		).toBe(false);
+		expect(
+			evaluateIosPolicyApproval(
+				approval.approvedUrl,
+				{ ...approval, status: "pending" },
+				sources,
+			).ok,
+		).toBe(false);
+		expect(
+			evaluateIosPolicyApproval(approval.approvedUrl, approval, {
+				...sources,
+				privacyPage: "Changed privacy notice",
+			}).ok,
+		).toBe(false);
+		expect(
+			evaluateIosPolicyApproval(approval.approvedUrl, approval, {
+				...sources,
+				legalLayout: "AI-assisted draft",
+			}).ok,
+		).toBe(false);
+		expect(
+			evaluateIosPolicyApproval(approval.approvedUrl, approval, {
+				...sources,
+				legalLayout: "Review copy",
+			}).ok,
+		).toBe(false);
+		expect(
+			evaluateIosPolicyApproval(approval.approvedUrl, approval, {
+				...sources,
+				privacyPage: "robots: { index: false, follow: false }",
+			}).ok,
+		).toBe(false);
 	});
 
 	it("puts an accessible privacy link on sign-in and signed-in Settings", async () => {
@@ -109,11 +169,16 @@ describe("iOS public App Store release readiness", () => {
 				EXPO_PUBLIC_LOGLY_ENABLED: "false",
 			},
 		});
-		expect(result.exitCode).toBe(0);
+		expect(result.exitCode).toBe(1);
 		expect(result.stdout.toString()).toContain(
-			"30/30 iOS release-readiness checks passed.",
+			"FAIL  Approved public privacy-policy URL",
 		);
-		expect(result.stdout.toString()).not.toContain("release-secret-sentinel-5927");
+		expect(result.stdout.toString()).toContain(
+			"The configured privacy URL has no matching GND-approved policy record",
+		);
+		expect(result.stdout.toString()).not.toContain(
+			"release-secret-sentinel-5927",
+		);
 	});
 
 	it("rejects unsafe telemetry settings in explicit production config", () => {
@@ -137,25 +202,34 @@ describe("iOS public App Store release readiness", () => {
 			const result = Bun.spawnSync({
 				cmd: [process.execPath, "-e", "import './app.config.ts'"],
 				cwd: path.join(import.meta.dir, ".."),
-				env: Object.assign({}, process.env, {
-					APP_VARIANT: "production",
-					GND_IOS_PUBLIC_RELEASE: "true",
-					EXPO_PUBLIC_BASE_URL: "https://api.example.com",
-					EXPO_PUBLIC_EMAIL: "",
-					EXPO_PUBLIC_TOK: "",
-					EXPO_PUBLIC_PRIVACY_POLICY_URL: "",
-					EXPO_PUBLIC_SENTRY_ENABLED: "false",
-					EXPO_PUBLIC_SENTRY_DEBUG: "false",
-					EXPO_PUBLIC_SENTRY_SMOKE_TEST: "false",
-					EXPO_PUBLIC_SENTRY_DSN: "",
-					EXPO_PUBLIC_LOGLY_ENABLED: "false",
-					EXPO_PUBLIC_LOGLY_ENDPOINT: "",
-				}, overrides),
+				env: Object.assign(
+					{},
+					process.env,
+					{
+						APP_VARIANT: "production",
+						GND_IOS_PUBLIC_RELEASE: "true",
+						EXPO_PUBLIC_BASE_URL: "https://api.example.com",
+						EXPO_PUBLIC_EMAIL: "",
+						EXPO_PUBLIC_TOK: "",
+						EXPO_PUBLIC_PRIVACY_POLICY_URL: "",
+						EXPO_PUBLIC_SENTRY_ENABLED: "false",
+						EXPO_PUBLIC_SENTRY_DEBUG: "false",
+						EXPO_PUBLIC_SENTRY_SMOKE_TEST: "false",
+						EXPO_PUBLIC_SENTRY_DSN: "",
+						EXPO_PUBLIC_LOGLY_ENABLED: "false",
+						EXPO_PUBLIC_LOGLY_ENDPOINT: "",
+					},
+					overrides,
+				),
 			});
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr.toString()).toContain(expectedError);
 		}
-		for (const baseUrl of ["", "http://api.example.com", "https://localhost:3010"]) {
+		for (const baseUrl of [
+			"",
+			"http://api.example.com",
+			"https://localhost:3010",
+		]) {
 			const result = Bun.spawnSync({
 				cmd: [process.execPath, "-e", "import './app.config.ts'"],
 				cwd: path.join(import.meta.dir, ".."),
