@@ -1290,34 +1290,30 @@ export async function salesAccountingFilters(ctx: TRPCContext) {
 export async function customerServiceFilters(ctx: TRPCContext) {
   type T = keyof GetCustomerServicesSchema;
   type FilterData = PageFilterData<T>;
-  // const steps = labelValueOptions(
-  //   await ctx.db.WorkOrders.findMany({
-  //     where: {},
-  //     select: {
-  //       id: true,
-  //       title: true,
-  //     },
-  //   }),
-  //   "title",
-  //   "id"
-  // );
-  const resp = [
+  const assignees = await ctx.db.users.findMany({
+    where: { workOrders: { some: { deletedAt: null } } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  return [
     searchFilter,
     optionFilter<T>(
       "status",
       "Status",
       WORK_ORDER_STATUS.map((status) => ({
-        label: `${status}`,
+        label: status,
         value: status,
         color: getStatusFilterOptionColor(status),
       })),
     ),
-
-    // optionFilter<T>("categoryId", "Category", steps),
-    // dateRangeFilter<T>("dateRange", "Filter by date"),
+    dateRangeFilter<T>("scheduleDate", "Appointment date"),
+    dateRangeFilter<T>("dateRange", "Created date"),
+    optionFilter<T>(
+      "techId",
+      "Assigned to",
+      assignees.map((person) => ({ label: person.name, value: person.id })),
+    ),
   ] satisfies FilterData[];
-
-  return resp;
 }
 export async function builderFilters(ctx: TRPCContext) {
   type T = keyof GetBuildersSchema;

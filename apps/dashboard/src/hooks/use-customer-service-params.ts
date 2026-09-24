@@ -4,6 +4,7 @@ export function useCustomerServiceParams() {
     const [params, setParams] = useQueryStates({
         // createModelCost: parseAsBoolean,
         openCustomerServiceId: parseAsInteger,
+        openCustomerServiceOverviewId: parseAsInteger,
         // editModelCostId: parseAsInteger,
     });
 
@@ -12,4 +13,3 @@ export function useCustomerServiceParams() {
         setParams,
     };
 }
-

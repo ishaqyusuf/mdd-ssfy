@@ -8,14 +8,12 @@ import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
-import { cn } from "@gnd/ui/cn";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
-import { Item as TableItem } from "@gnd/ui/namespace";
 import { formatDate } from "@gnd/utils/dayjs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -25,7 +23,7 @@ export type CustomerServiceRow =
 	RouterOutputs["customerService"]["getCustomerServices"]["data"][number];
 
 export type CustomerServiceEmployeeList =
-	RouterOutputs["hrm"]["getEmployees"]["data"];
+	RouterOutputs["customerService"]["getAssignees"];
 
 type Column = ColumnDef<CustomerServiceRow>;
 
@@ -85,7 +83,9 @@ const appointmentColumn: Column = {
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-0.5">
-			<p className="truncate font-medium">{formatDate(row.original.scheduleDate)}</p>
+			<p className="truncate font-medium">
+				{formatDate(row.original.scheduleDate)}
+			</p>
 			<p className="truncate text-[11px] text-muted-foreground">
 				{row.original.scheduleTime || "No time set"}
 			</p>
@@ -192,7 +192,7 @@ const actionsColumn: Column = {
 	cell: ({ row }) => <Actions item={row.original} />,
 };
 
-function StatusCell({ item }: { item: CustomerServiceRow }) {
+export function StatusCell({ item }: { item: CustomerServiceRow }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const { mutate: updateStatus } = useMutation(
@@ -247,7 +247,7 @@ function StatusCell({ item }: { item: CustomerServiceRow }) {
 	);
 }
 
-function AssignedTo({
+export function AssignedTo({
 	item,
 	employees,
 }: {
@@ -282,6 +282,7 @@ function AssignedTo({
 
 	return (
 		<ComboboxDropdown
+			searchPlaceholder="Find a technician..."
 			selectedItem={selected}
 			onSelect={(data) => {
 				assign({
@@ -290,43 +291,31 @@ function AssignedTo({
 				});
 			}}
 			items={labelIdOptions(employees, "name", "id")}
-			popoverProps={{
-				className: cn("!w-auto"),
-			}}
+			popoverProps={{ align: "end", className: "w-64 p-1" }}
 			placeholder="Assign"
 			Trigger={
 				<Button
 					type="button"
 					variant="outline"
-					className="h-8 min-w-0 justify-between gap-2 px-2 text-xs"
+					className="h-9 min-w-0 max-w-full justify-between gap-2 rounded-lg border-dashed bg-background px-2.5 text-xs font-medium shadow-none hover:border-primary/40 hover:bg-accent/50"
 				>
-					<span className="truncate">{selected?.label || "Assign"}</span>
+					<span className="flex min-w-0 items-center gap-2">
+						<span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+							{selected?.label?.charAt(0) || "+"}
+						</span>
+						<span className="truncate">
+							{selected?.label || "Assign technician"}
+						</span>
+					</span>
 					<Icons.ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
 				</Button>
 			}
-			listClassName="max-w-auto"
-			renderListItem={({ item }) => (
-				<TableItem size="xs">
-					<TableItem.Media>
-						<Icons.CheckIcon
-							className={cn(
-								"size-4",
-								item?.id !== selected?.id && "text-transparent",
-							)}
-						/>
-					</TableItem.Media>
-					<TableItem.Content>
-						<TableItem.Title className="whitespace-nowrap">
-							{item?.label}
-						</TableItem.Title>
-					</TableItem.Content>
-				</TableItem>
-			)}
+			listClassName="max-h-64"
 		/>
 	);
 }
 
-function Actions({ item }: { item: CustomerServiceRow }) {
+export function Actions({ item }: { item: CustomerServiceRow }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const { setParams } = useCustomerServiceParams();

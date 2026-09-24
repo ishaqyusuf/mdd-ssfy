@@ -23,6 +23,20 @@ export const workOrderFormSchema = z.object({
   meta: z.object({
     lotBlock: z.string(),
   }),
+}).superRefine((value, context) => {
+  if (value.id) return;
+  if (!value.projectName?.trim()) {
+    context.addIssue({ code: "custom", path: ["projectName"], message: "Choose a project" });
+  }
+  if (!value.meta.lotBlock.trim() || !value.lot.trim() || !value.block.trim()) {
+    context.addIssue({ code: "custom", path: ["meta", "lotBlock"], message: "Choose a unit" });
+  }
+  if (!value.homeOwner?.trim()) {
+    context.addIssue({ code: "custom", path: ["homeOwner"], message: "Enter the homeowner" });
+  }
+  if (!value.description?.trim()) {
+    context.addIssue({ code: "custom", path: ["description"], message: "Describe the issue" });
+  }
 });
 export type WorkOrderForm = z.infer<typeof workOrderFormSchema>;
 

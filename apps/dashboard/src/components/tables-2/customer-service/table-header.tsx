@@ -33,6 +33,7 @@ interface Props<TData> {
 	loading?: boolean;
 	tableScroll?: TableScrollState;
 	showColumnDividers?: boolean;
+	stickyTop?: string;
 }
 
 const HEADER_BACKGROUND_CLASS = "!bg-sidebar-accent";
@@ -50,6 +51,7 @@ export function DataTableHeader<TData>({
 	loading,
 	tableScroll,
 	showColumnDividers = false,
+	stickyTop,
 }: Props<TData>) {
 	const { sortColumn, sortValue, createSortQuery } = useSortQuery();
 	const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
@@ -70,6 +72,7 @@ export function DataTableHeader<TData>({
 
 	return (
 		<TableHeader
+			style={{ top: stickyTop }}
 			className={cn(
 				"sticky top-0 z-20 block w-full border-0",
 				HEADER_BACKGROUND_CLASS,

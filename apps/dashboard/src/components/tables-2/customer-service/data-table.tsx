@@ -1,9 +1,10 @@
 "use client";
 
+import { useCustomerServiceScrollArea } from "@/components/customer-service-scroll-area";
 import { VirtualRow } from "@/components/tables-2/core";
 import { useCustomerServiceFilterParams } from "@/hooks/use-customer-service-filter-params";
+import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useSortParams } from "@/hooks/use-sort-params";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
@@ -14,7 +15,9 @@ import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { DndContext, closestCenter } from "@dnd-kit/core";
+import { Button } from "@gnd/ui/button";
 import { Table, TableBody } from "@gnd/ui/table";
+import { formatDate } from "@gnd/utils/dayjs";
 import { useQuery, useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import {
 	type RowSelectionState,
@@ -23,11 +26,14 @@ import {
 } from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence } from "framer-motion";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { BottomBar } from "./bottom-bar";
 import {
+	Actions,
+	AssignedTo,
 	type CustomerServiceRow,
+	StatusCell,
 	columns,
 	getCustomerServiceRowId,
 } from "./columns";
@@ -66,13 +72,14 @@ export function DataTable({
 	singlePage,
 }: Props) {
 	const trpc = useTRPC();
+	const { setParams } = useCustomerServiceParams();
 	const { params } = useSortParams();
 	const { filters, hasFilters } = useCustomerServiceFilterParams();
-	const parentRef = useRef<HTMLDivElement>(null);
+	const scrollRef = useCustomerServiceScrollArea();
+	const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+	const [scrollMargin, setScrollMargin] = useState(0);
 	const { rowSelection, setRowSelection, setColumns, bindShowColumnDividers } =
 		useCustomerServiceTableStore();
-
-	useScrollHeader(parentRef);
 
 	const {
 		columnVisibility,
@@ -107,8 +114,8 @@ export function DataTable({
 			infiniteQueryOptions as never,
 		);
 	const { data: employeesResp } = useQuery(
-		trpc.hrm.getEmployees.queryOptions({
-			roles: ["Punchout"],
+		trpc.customerService.getAssignees.queryOptions(undefined, {
+			staleTime: 60_000,
 		}),
 	);
 
@@ -134,7 +141,7 @@ export function DataTable({
 			rowSelection: rowSelection as RowSelectionState,
 		},
 		meta: {
-			employees: employeesResp?.data,
+			employees: employeesResp,
 		},
 	});
 
@@ -148,10 +155,35 @@ export function DataTable({
 		useColumnWidths: true,
 		startFromColumn: 2,
 	});
+	useLayoutEffect(() => {
+		const scrollArea = scrollRef.current;
+		if (!scrollArea) return;
+		tableScroll.containerRef.current = scrollArea;
+		const measure = () => {
+			const body = tableBodyRef.current;
+			if (!body) return;
+			const margin = Math.round(
+				body.getBoundingClientRect().top -
+					scrollArea.getBoundingClientRect().top +
+					scrollArea.scrollTop,
+			);
+			setScrollMargin((current) => (current === margin ? current : margin));
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(scrollArea);
+		if (scrollArea.firstElementChild)
+			observer.observe(scrollArea.firstElementChild);
+		return () => {
+			observer.disconnect();
+			tableScroll.containerRef.current = null;
+		};
+	}, [scrollRef, tableScroll.containerRef]);
 	const rows = table.getRowModel().rows;
 	const rowVirtualizer = useVirtualizer({
 		count: rows.length,
-		getScrollElement: () => parentRef.current,
+		getScrollElement: () => scrollRef.current,
+		scrollMargin,
 		estimateSize: () => tableConfig.rowHeight,
 		overscan: 10,
 	});
@@ -165,7 +197,7 @@ export function DataTable({
 	}, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
 
 	useInfiniteScroll<HTMLDivElement>({
-		scrollRef: parentRef,
+		scrollRef,
 		rowVirtualizer,
 		rowCount: rows.length,
 		hasNextPage: singlePage ? false : hasNextPage,
@@ -185,18 +217,79 @@ export function DataTable({
 	const showBottomBar = Object.keys(rowSelection).length > 0;
 
 	return (
-		<div className="relative">
-			<div className="w-full">
-				<div
-					ref={(element) => {
-						parentRef.current = element;
-						tableScroll.containerRef.current = element;
-					}}
-					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
-					style={{
-						height: "calc(100vh - 420px + var(--header-offset, 0px))",
-					}}
-				>
+		<div className="relative md:-mt-6">
+			<div className="space-y-3 md:hidden">
+				{tableData.map((item) => (
+					<article
+						key={item.id}
+						className="rounded-xl border bg-card p-4 shadow-sm"
+					>
+						<div className="flex items-start justify-between gap-3">
+							<div className="min-w-0">
+								<p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+									{item.projectName || "Work order"}
+								</p>
+								<h3 className="mt-1 truncate text-base font-semibold">
+									{item.homeOwner || "No homeowner"}
+								</h3>
+								{item.homePhone ? (
+									<p className="text-xs text-muted-foreground">
+										{item.homePhone}
+									</p>
+								) : null}
+							</div>
+							<StatusCell item={item} />
+						</div>
+						<p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+							{item.description || "No description provided"}
+						</p>
+						<div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+							<div>
+								<p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+									Appointment
+								</p>
+								<p className="text-sm font-medium">
+									{item.scheduleDate
+										? formatDate(item.scheduleDate)
+										: "Not scheduled"}
+								</p>
+								{item.scheduleTime ? (
+									<p className="text-xs text-muted-foreground">
+										{item.scheduleTime}
+									</p>
+								) : null}
+							</div>
+							<AssignedTo item={item} employees={employeesResp ?? []} />
+						</div>
+						<div className="mt-3 flex items-center justify-between">
+							<Button
+								variant="link"
+								className="px-0"
+								onClick={() =>
+									void setParams({ openCustomerServiceOverviewId: item.id })
+								}
+							>
+								View details
+							</Button>
+							<Actions item={item} />
+						</div>
+					</article>
+				))}
+				{hasNextPage && !singlePage ? (
+					<Button
+						className="w-full"
+						variant="outline"
+						disabled={isFetchingNextPage}
+						onClick={() => fetchNextPage()}
+					>
+						{isFetchingNextPage
+							? "Loading work orders..."
+							: "Load more work orders"}
+					</Button>
+				) : null}
+			</div>
+			<div className="hidden w-full md:block">
+				<div className="border-b border-l border-r border-border">
 					<DndContext
 						id="customer-service-table-dnd"
 						sensors={sensors}
@@ -208,9 +301,11 @@ export function DataTable({
 								table={table}
 								tableScroll={tableScroll}
 								showColumnDividers={showColumnDividers}
+								stickyTop="var(--customer-service-toolbar-height, 0px)"
 							/>
 
 							<TableBody
+								ref={tableBodyRef}
 								className="block border-l-0 border-r-0"
 								style={{
 									height: `${rowVirtualizer.getTotalSize()}px`,
@@ -225,7 +320,12 @@ export function DataTable({
 										<VirtualRow
 											key={row.id}
 											row={row}
-											virtualStart={virtualRow.start}
+											onCellClick={(rowId) =>
+												void setParams({
+													openCustomerServiceOverviewId: Number(rowId),
+												})
+											}
+											virtualStart={virtualRow.start - scrollMargin}
 											rowHeight={tableConfig.rowHeight}
 											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
@@ -243,13 +343,6 @@ export function DataTable({
 							</TableBody>
 						</Table>
 					</DndContext>
-					<div
-						style={{
-							height: "var(--header-offset, 0px)",
-							flexShrink: 0,
-						}}
-						aria-hidden
-					/>
 				</div>
 			</div>
 			<AnimatePresence>

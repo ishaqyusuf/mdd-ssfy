@@ -2,6 +2,22 @@ import { describe, expect, test } from "bun:test";
 import { workOrderFormSchema } from "./work-order";
 
 describe("workOrderFormSchema", () => {
+	test("rejects an empty new work order", () => {
+		const result = workOrderFormSchema.safeParse({
+			lot: "",
+			block: "",
+			meta: { lotBlock: "" },
+		});
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(result.error.issues.map((issue) => issue.path.join("."))).toEqual([
+				"projectName",
+				"meta.lotBlock",
+				"homeOwner",
+				"description",
+			]);
+		}
+	});
 	test("accepts an existing assigned work order hydrated through SuperJSON", () => {
 		const assignedAt = new Date("2026-07-24T15:00:00.000Z");
 

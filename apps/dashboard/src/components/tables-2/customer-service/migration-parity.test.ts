@@ -17,12 +17,12 @@ function expectExcludes(source: string, value: string) {
 }
 
 describe("Customer Services Sales Orders table migration parity", () => {
-	it("keeps the route shell aligned with Sales Orders without the shared sticky header abstraction", () => {
+	it("uses one Customer Service scroll area for analytics, toolbar, and table", () => {
 		const source = readSource(
 			"app/(sidebar)/community/customer-services/page.tsx",
 		);
 
-		expectIncludes(source, "ScrollableContent");
+		expectIncludes(source, "CustomerServiceScrollArea");
 		expectIncludes(source, "<PageTitle>Customer Service</PageTitle>");
 		expectIncludes(source, "<CustomerServiceHeader />");
 		expectIncludes(source, "<DataTable initialSettings={initialSettings} />");
@@ -32,17 +32,19 @@ describe("Customer Services Sales Orders table migration parity", () => {
 		expectExcludes(source, "fetchInfiniteQuery");
 	});
 
-	it("keeps the table-owned scroll, column-drag, selection, and bottom-bar behavior from Sales Orders", () => {
+	it("keeps table-core drag, selection, virtualization, and bottom-bar behavior", () => {
 		const source = readSource(
 			"components/tables-2/customer-service/data-table.tsx",
 		);
 
-		expectIncludes(source, "useScrollHeader(parentRef)");
+		expectExcludes(source, "useScrollHeader(parentRef)");
+		expectIncludes(source, "useCustomerServiceScrollArea()");
+		expectIncludes(source, "scrollMargin");
 		expectIncludes(source, "useTableDnd(table)");
 		expectIncludes(source, "<DndContext");
 		expectIncludes(source, 'id="customer-service-table-dnd"');
 		expectIncludes(source, "collisionDetection={closestCenter}");
-		expectIncludes(source, 'height: "var(--header-offset, 0px)"');
+		expectExcludes(source, 'height: "var(--header-offset, 0px)"');
 		expectIncludes(source, "rowHeight={tableConfig.rowHeight}");
 		expectIncludes(source, "estimateSize: () => tableConfig.rowHeight");
 		expectIncludes(source, "onRowSelectionChange: setRowSelection");
@@ -84,6 +86,6 @@ describe("Customer Services Sales Orders table migration parity", () => {
 		expectIncludes(columnsSource, "...sizes.custom(220, 420, 260)");
 		expectIncludes(columnsSource, "...sizes.custom(140, 220, 160)");
 		expectIncludes(columnsSource, "...sizes.custom(112, 170, 128)");
-		expectIncludes(columnsSource, 'className="h-8 min-w-0 justify-between');
+		expectIncludes(columnsSource, 'className="h-9 min-w-0');
 	});
 });

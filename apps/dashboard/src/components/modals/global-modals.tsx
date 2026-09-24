@@ -78,6 +78,9 @@ const CommunityModelCostModal = dynamic(() =>
 const WorkOrderFormModal = dynamic(() =>
     import("./work-order-form-modal").then((mod) => mod.WorkOrderFormModal),
 );
+const WorkOrderOverviewModal = dynamic(() =>
+    import("./work-order-overview-modal").then((mod) => mod.WorkOrderOverviewModal),
+);
 const ModelInstallCostModal = dynamic(() =>
     import("./model-install-cost-modal").then(
         (mod) => mod.ModelInstallCostModal,
@@ -98,7 +101,8 @@ export function GlobalModals() {
     const { createTemplate, templateId } = useCommunityTemplateParams();
     const { createModelCost, editModelCostTemplateId } =
         useCommunityModelCostParams();
-    const { openCustomerServiceId } = useCustomerServiceParams();
+    const { openCustomerServiceId, openCustomerServiceOverviewId } =
+        useCustomerServiceParams();
     const { opened: projectModalOpen } = useCommunityProjectParams();
     const { editCommunityModelInstallCostId, openToSide } =
         useCommunityInstallCostParams();
@@ -140,6 +144,7 @@ export function GlobalModals() {
             {contractorPayoutOpen ? <ContractorPayoutOverviewModal /> : null}
             {/* <Env isDev> */}
             {openCustomerServiceId ? <WorkOrderFormModal /> : null}
+            {openCustomerServiceOverviewId ? <WorkOrderOverviewModal /> : null}
 
             {/* LEGACY */}
 

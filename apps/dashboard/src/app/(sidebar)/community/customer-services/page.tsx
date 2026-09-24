@@ -1,7 +1,8 @@
+import { CustomerServiceCalendar } from "@/components/customer-service-calendar";
 import { CustomerServiceHeader } from "@/components/customer-service-header";
+import { CustomerServiceScrollArea } from "@/components/customer-service-scroll-area";
 import { ErrorFallback } from "@/components/error-fallback";
 import { LazyWorkOrderFilterChart } from "@/components/lazy-work-order-filter-chart";
-import { ScrollableContent } from "@/components/scrollable-content";
 import { DataTable } from "@/components/tables-2/customer-service/data-table";
 import { CustomerServiceSkeleton } from "@/components/tables-2/customer-service/skeleton";
 import { WorkOrderSummaryWidgets } from "@/components/work-order-summary-widgets";
@@ -29,45 +30,67 @@ type Props = {
 };
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
+	const isCalendar = searchParams.view === "calendar";
 	const filter = loadCustomerServiceFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
-	const initialSettings = await getInitialTableSettings("customer-service");
+	const initialSettings = isCalendar
+		? undefined
+		: await getInitialTableSettings("customer-service");
 	const queryInput = {
 		...filter,
 		sort,
 	} as RouterInputs["customerService"]["getCustomerServices"];
 
 	batchPrefetch([
-		trpc.customerService.getCustomerServices.infiniteQueryOptions(queryInput, {
-			getNextPageParam: ({ meta }) =>
-				(meta as { cursor?: string | number | null } | undefined)?.cursor,
-		}),
-		trpc.hrm.getEmployees.queryOptions({
-			roles: ["Punchout"],
-		}),
+		...(!isCalendar
+			? [
+					trpc.customerService.getCustomerServices.infiniteQueryOptions(
+						queryInput,
+						{
+							getNextPageParam: ({ meta }) =>
+								(meta as { cursor?: string | number | null } | undefined)
+									?.cursor,
+						},
+					),
+				]
+			: []),
 	]);
 
 	return (
-		<PageShell>
-			<HydrateClient>
-				<ScrollableContent>
-					<div className="flex flex-col gap-6">
+		<CustomerServiceScrollArea>
+			<PageShell className="min-w-0 px-4 pb-8 sm:px-6">
+				<HydrateClient>
+					<div className="flex min-w-0 flex-col gap-5 sm:gap-6">
 						<PageTitle>Customer Service</PageTitle>
-						<CustomerServiceHeader />
+						<p className="-mt-4 text-sm text-muted-foreground">
+							Manage requests, appointments, and assignments in one place.
+						</p>
 						<WorkOrderSummaryWidgets />
 						<LazyWorkOrderFilterChart />
-						<ErrorBoundary errorComponent={ErrorFallback}>
-							<Suspense
-								fallback={
-									<CustomerServiceSkeleton initialSettings={initialSettings} />
-								}
-							>
-								<DataTable initialSettings={initialSettings} />
-							</Suspense>
-						</ErrorBoundary>
+						<div
+							data-customer-service-toolbar
+							className="sticky top-0 z-30 -mx-4 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/90 sm:-mx-6 sm:px-6"
+						>
+							<CustomerServiceHeader />
+						</div>
+						{isCalendar ? (
+							<CustomerServiceCalendar />
+						) : (
+							<ErrorBoundary errorComponent={ErrorFallback}>
+								<Suspense
+									fallback={
+										<CustomerServiceSkeleton
+											initialSettings={initialSettings}
+										/>
+									}
+								>
+									<DataTable initialSettings={initialSettings} />
+								</Suspense>
+							</ErrorBoundary>
+						)}
 					</div>
-				</ScrollableContent>
-			</HydrateClient>
-		</PageShell>
+				</HydrateClient>
+			</PageShell>
+		</CustomerServiceScrollArea>
 	);
 }

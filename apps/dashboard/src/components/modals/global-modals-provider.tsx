@@ -26,6 +26,7 @@ const MODAL_QUERY_KEYS = [
 	"quickPaySalesId",
 	"openContractorPayoutId",
 	"openCustomerServiceId",
+	"openCustomerServiceOverviewId",
 	"editCommunityModelInstallCostId",
 	"openCommunityProjectId",
 	"openBuilderId",
