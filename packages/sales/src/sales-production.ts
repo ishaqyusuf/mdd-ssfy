@@ -171,6 +171,16 @@ export async function getSalesProductionDashboard(
 	db: Db,
 	input: SalesProductionListQuery,
 ) {
+	if (input.workerId) {
+		const { summary } = await getSalesProductionSummary(db, input);
+		return {
+			summary,
+			alerts: { pastDue: [], dueToday: [], dueTomorrow: [] },
+			calendar: [],
+			spotlight: [],
+		};
+	}
+
 	const resolved = resolveSalesProductionWorkspaceQuery(input);
 	const query = {
 		...input,

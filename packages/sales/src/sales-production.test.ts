@@ -234,6 +234,47 @@ describe("sales production priority sorting", () => {
 		});
 	});
 
+	it("loads only summary data for the worker dashboard", async () => {
+		let orderReads = 0;
+		let assignmentReads = 0;
+		const db = {
+			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
+				findMany: async () => {
+					assignmentReads += 1;
+					return [];
+				},
+			},
+			salesOrderListProjection: { findMany: async () => [] },
+			salesOrders: {
+				count: async () => 0,
+				findMany: async () => {
+					orderReads += 1;
+					return [];
+				},
+			},
+			salesProductionSubmissionMaterialReview: {
+				count: async () => 0,
+				findMany: async () => [],
+			},
+		};
+		const input = { workerId: 17 };
+		const summary = await getSalesProductionSummary(db as unknown as Db, input);
+		const summaryOrderReads = orderReads;
+		const summaryAssignmentReads = assignmentReads;
+		orderReads = 0;
+		assignmentReads = 0;
+
+		const dashboard = await getSalesProductionDashboard(
+			db as unknown as Db,
+			input,
+		);
+
+		expect(dashboard.summary).toEqual(summary.summary);
+		expect(orderReads).toBe(summaryOrderReads);
+		expect(assignmentReads).toBe(summaryAssignmentReads);
+	});
+
 	it.each([
 		{ mode: "legacy", percent: "100", observe: false, canonical: false },
 		{ mode: "shadow", percent: "0", observe: false, canonical: false },
