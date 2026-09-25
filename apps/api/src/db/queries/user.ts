@@ -569,16 +569,21 @@ export async function deleteUserDocument(
       })
     : null;
 
+  const privateStoredDocument =
+    storedDocument?.provider === "vercel-blob" &&
+    storedDocument.visibility === EMPLOYEE_DOCUMENT_PRIVATE_ACCESS &&
+    isPrivateEmployeeDocumentMeta(storedDocument.meta);
+
   await ctx.db.$transaction(async (tx) => {
     await tx.userDocuments.update({
       where: { id, userId: actorUserId },
       data: { deletedAt },
     });
     if (storedDocumentId) {
-      await tx.storedDocument.updateMany({
+      const result = await tx.storedDocument.updateMany({
         where: {
           id: storedDocumentId,
-          ownerType: "user",
+          ownerType: EMPLOYEE_DOCUMENT_OWNER_TYPE,
           ownerId: String(actorUserId),
           kind: EMPLOYEE_DOCUMENT_KIND,
           deletedAt: null,
@@ -587,31 +592,39 @@ export async function deleteUserDocument(
           status: "deleted",
           isCurrent: false,
           deletedAt,
+          ...(privateStoredDocument
+            ? {
+                meta: {
+                  ...parseMeta(storedDocument.meta),
+                  cleanupStatus: "retry_required",
+                  cleanupUpdatedAt: deletedAt.toISOString(),
+                },
+              }
+            : {}),
         },
       });
+      if (privateStoredDocument && result.count !== 1) {
+        throw new Error("Private employee document changed during deletion.");
+      }
     }
   });
 
   let cleanupPending = false;
-  if (
-    storedDocument?.provider === "vercel-blob" &&
-    storedDocument.visibility === EMPLOYEE_DOCUMENT_PRIVATE_ACCESS &&
-    isPrivateEmployeeDocumentMeta(storedDocument.meta)
-  ) {
+  if (privateStoredDocument) {
     try {
       await deleteBlob(storedDocument.pathname);
-    } catch {
-      cleanupPending = true;
       await ctx.db.storedDocument.update({
         where: { id: storedDocument.id },
         data: {
           meta: {
             ...parseMeta(storedDocument.meta),
-            cleanupStatus: "retry_required",
+            cleanupStatus: "completed",
             cleanupUpdatedAt: new Date().toISOString(),
           },
         },
       });
+    } catch {
+      cleanupPending = true;
     }
   }
   return { success: true, cleanupPending };

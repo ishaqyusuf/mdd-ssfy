@@ -187,7 +187,10 @@ describe("saveUserDocument canonical ownership", () => {
 });
 
 describe("deleteUserDocument private cleanup", () => {
-	function deletionFixture(events: string[]) {
+	function deletionFixture(
+		events: string[],
+		options: { completionUpdateFails?: boolean; revokedCount?: number } = {},
+	) {
 		return {
 			userId: 7,
 			db: {
@@ -209,7 +212,13 @@ describe("deleteUserDocument private cleanup", () => {
 						},
 					}),
 					update: async (input: unknown) => {
-						events.push("cleanup-retry-recorded");
+						events.push("cleanup-completion-recorded");
+						if (options.completionUpdateFails) {
+							throw new Error("database unavailable");
+						}
+						expect(input).toMatchObject({
+							data: { meta: { cleanupStatus: "completed" } },
+						});
 						return input;
 					},
 				},
@@ -235,9 +244,10 @@ describe("deleteUserDocument private cleanup", () => {
 									data: {
 										status: "deleted",
 										isCurrent: false,
+										meta: { cleanupStatus: "retry_required" },
 									},
 								});
-								return { count: 1 };
+								return { count: options.revokedCount ?? 1 };
 							},
 						},
 					});
@@ -266,6 +276,7 @@ describe("deleteUserDocument private cleanup", () => {
 			"canonical-access-revoked",
 			"transaction-committed",
 			"provider-object-deleted",
+			"cleanup-completion-recorded",
 		]);
 	});
 
@@ -287,7 +298,41 @@ describe("deleteUserDocument private cleanup", () => {
 			"canonical-access-revoked",
 			"transaction-committed",
 			"provider-delete-failed",
-			"cleanup-retry-recorded",
 		]);
+	});
+
+	test("leaves the transactional retry marker when recording completion fails", async () => {
+		const events: string[] = [];
+		const result = await deleteUserDocument(
+			deletionFixture(events, { completionUpdateFails: true }),
+			91,
+			async () => {
+				events.push("provider-object-deleted");
+			},
+		);
+
+		expect(result).toEqual({ success: true, cleanupPending: true });
+		expect(events).toEqual([
+			"transaction-started",
+			"business-access-revoked",
+			"canonical-access-revoked",
+			"transaction-committed",
+			"provider-object-deleted",
+			"cleanup-completion-recorded",
+		]);
+	});
+
+	test("rolls back instead of deleting an object when canonical revocation lost a race", async () => {
+		const events: string[] = [];
+		await expect(
+			deleteUserDocument(
+				deletionFixture(events, { revokedCount: 0 }),
+				91,
+				async () => {
+					events.push("provider-object-deleted");
+				},
+			),
+		).rejects.toThrow("Private employee document changed during deletion.");
+		expect(events).not.toContain("provider-object-deleted");
 	});
 });
