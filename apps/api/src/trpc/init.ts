@@ -9,13 +9,15 @@ import { createLoggerWithContext } from "@gnd/logger";
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { Context } from "hono";
 import { getSignedCookie, setSignedCookie } from "hono/cookie";
-import { type JwtPayload, verify } from "jsonwebtoken";
 import superjson from "superjson";
-import { getTrpcPublicError, normalizeTrpcError } from "./error-contract";
-import { withAuthPermission } from "./middleware/auth-permission";
 import { withSpecialOrderOperationFeedback } from "../utils/special-order-operation-feedback";
+import { getTrpcPublicError, normalizeTrpcError } from "./error-contract";
+import { resolveLegacyTrpcJwtUserId } from "./legacy-jwt-session";
+import { withAuthPermission } from "./middleware/auth-permission";
 
-const salesCatalogTimingLogger = createLoggerWithContext("sales-catalog-request");
+const salesCatalogTimingLogger = createLoggerWithContext(
+	"sales-catalog-request",
+);
 const salesFormInitialPaths = new Set([
 	"newSalesForm.getCatalogRevision",
 	"newSalesForm.getStepRouting",
@@ -60,17 +62,12 @@ export const createTRPCContext = async (
 		if (webSession?.user?.id) {
 			userId = webSession.user.id;
 		} else {
-			try {
-				const secret = process.env.JWT_SECRET;
-				if (!secret) throw new Error("JWT secret is not configured.");
-				const payload = verify(token, secret);
-				userId =
-					typeof payload === "string"
-						? undefined
-						: (payload as JwtPayload & { userId?: string | number }).userId;
-			} catch {
-				userId = undefined;
-			}
+			userId = await resolveLegacyTrpcJwtUserId({
+				token,
+				secret: process.env.JWT_SECRET,
+				db,
+				allowCustomer: isStorefront,
+			});
 		}
 	}
 	if (!userId && !isApp) {
@@ -156,7 +153,8 @@ const withSalesFormTimingMiddleware = t.middleware(async (opts) => {
 	if (
 		process.env.GND_SALES_CATALOG_TIMING !== "1" ||
 		!salesFormInitialPaths.has(opts.path)
-	) return opts.next();
+	)
+		return opts.next();
 	const startedAt = performance.now();
 	try {
 		return await opts.next();
