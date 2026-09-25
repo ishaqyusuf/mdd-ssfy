@@ -82,11 +82,13 @@ export default function TermsOfUsePage() {
 			<section className="rounded-xl border border-[#c6d4c8] bg-[#edf2eb] p-5 space-y-3">
 				<h2>Pending legal review</h2>
 				<p>
-					These are not binding terms. GND must approve the contracting entity,
-					effective date, relationship to employment policies, availability and
-					liability language, dispute process, and governing law before the
-					draft label is removed or any acceptance flow is introduced. No
-					checkbox or app action is treated as acceptance of this draft.
+					This page is informational guidance, not a separate contract. GND
+					employment policies and instructions continue to apply.
+				</p>
+				<p>
+					The requested effective date for this guidance is September 24, 2026,
+					pending final publication. No checkbox or app action is treated as
+					acceptance of this draft.
 				</p>
 			</section>
 		</LegalDraftLayout>

@@ -75,26 +75,55 @@ export default function PrivacyPolicyPage() {
 					GND uses this information to verify identity, enforce access
 					permissions, run authorized company workflows, maintain business
 					records, respond to requests, investigate misuse, and keep the service
-					reliable. The current mobile release also uses Logly for app-use
-					analytics and Sentry for crash and performance diagnostics. The
-					applicable legal bases and any consent-withdrawal process are still
-					under legal review; this draft does not make a final legal-basis
-					claim.
+					reliable. GND has chosen to disable optional Logly app-use analytics
+					and Sentry crash and performance diagnostics for the first public iOS
+					release; the final build still needs verification. The applicable
+					legal bases and any consent-withdrawal process are still under legal
+					review; this draft does not make a final legal-basis claim.
 				</p>
 			</section>
 			<section className="space-y-4">
 				<h2>Who may receive information</h2>
 				<p>
-					Information may be available to authorized GND personnel, the
-					developer when supporting GND&apos;s systems, and service providers
-					involved in hosting, storage, analytics, diagnostics, and delivery of
-					the service. Known providers include Vercel for application hosting
-					and storage, PlanetScale as the configured Production database
-					provider, Logly for app-use analytics, and Sentry for diagnostics. The
-					final provider list, the database&apos;s primary region, other
-					processing locations, contract terms, and retention settings are being
-					verified against the production release. Information may also be
-					disclosed when required by applicable law.
+					Authorized GND personnel may access information for company work.
+					ZEROES AND ONE TECH HUB NIG LIMITED develops and maintains ProDesk for
+					GND under arrangements still being documented.
+				</p>
+				<p>
+					GND uses service providers to operate ProDesk. Vercel hosts
+					application functions and file storage, and PlanetScale is the
+					configured Production database provider.
+				</p>
+				<p>
+					GND has selected an iOS-only Production build configuration that
+					disables Logly app-use analytics and Sentry diagnostics for the first
+					public iOS release. The release guard blocks a build with either
+					enabled. The exact signed app has not yet been built or verified;
+					Android and other releases may use different settings.
+				</p>
+				<p>
+					When enabled, Logly receives a persistent random installation
+					identifier, app version/build, platform, and limited usage events
+					through GND&apos;s API.
+				</p>
+				<p>
+					The app&apos;s analytics schema excludes names, email addresses,
+					document contents, and raw work-record identifiers.
+				</p>
+				<p>
+					When enabled, Sentry can receive error, device, app-version, and
+					performance context. Disabling default PII collection does not ensure
+					every diagnostic event is non-personal.
+				</p>
+				<p>
+					GND is verifying each recipient&apos;s operator, processing terms,
+					access and security controls, location, retention/deletion, and
+					subprocessors against the actual release configuration.
+				</p>
+				<p>
+					Until that review is complete, GND does not claim every provider is
+					contractually bound to the same or equivalent protection stated in
+					this notice. Information may also be disclosed when required by law.
 				</p>
 				<p>
 					This draft does not assert that every historical document has already
@@ -108,12 +137,21 @@ export default function PrivacyPolicyPage() {
 				<p>
 					Access to the app is controlled by company accounts and permissions.
 					New employee-document uploads use an authenticated private-storage
-					path. Account, work, document, security, and diagnostic records are
-					kept for operational or legal needs; exact periods and provider
-					backup/deletion behavior have not yet been approved. Removing a record
-					from the app can restrict access before every provider copy or backup
-					expires. GND is reviewing these procedures before issuing a final
-					retention statement.
+					path.
+				</p>
+				<p>
+					GND keeps account, work, document, security, and diagnostic records
+					while access is active and while a documented operational, accounting,
+					dispute, security, or legal need exists.
+				</p>
+				<p>
+					After a verified request, GND assesses whether an eligible record can
+					be deleted or anonymized. A scoped hold may delay that action.
+				</p>
+				<p>
+					Removing a record from the app may restrict access before provider
+					copies or backups expire. Their exact expiry periods and the
+					legacy-document migration remain under verification.
 				</p>
 			</section>
 			<section className="space-y-4">
