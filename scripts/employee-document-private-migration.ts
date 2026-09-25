@@ -82,6 +82,7 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 		"--manifest",
 		"--confirm-target",
 		"--confirm-store-id",
+		"--token-source",
 		"--document-id",
 		"--limit",
 	]);
@@ -135,6 +136,18 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 	if (values["--confirm-store-id"] && mode === "preview") {
 		throw new Error("--confirm-store-id is for apply and verify only.");
 	}
+	const tokenSource = values["--token-source"] || "profile";
+	if (!["profile", "rehearsal-env"].includes(tokenSource)) {
+		throw new Error("Use --token-source profile|rehearsal-env.");
+	}
+	if (
+		tokenSource === "rehearsal-env" &&
+		(environment !== "local" || mode === "preview")
+	) {
+		throw new Error(
+			"--token-source rehearsal-env is for local apply/verify only.",
+		);
+	}
 	return {
 		environment: environment as "local" | "production",
 		mode: mode as "preview" | "apply" | "verify",
@@ -142,11 +155,22 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 		manifest: values["--manifest"] ? resolve(values["--manifest"]) : null,
 		confirmTarget: values["--confirm-target"] || null,
 		confirmStoreId: values["--confirm-store-id"] || null,
+		tokenSource: tokenSource as "profile" | "rehearsal-env",
 		documentId: values["--document-id"]
 			? Number(values["--document-id"])
 			: null,
 		limit: values["--limit"] ? Number(values["--limit"]) : null,
 	};
+}
+
+export function selectEmployeeDocumentMigrationToken(input: {
+	tokenSource: "profile" | "rehearsal-env";
+	profileToken: string | undefined;
+	rehearsalToken: string | undefined;
+}) {
+	return input.tokenSource === "rehearsal-env"
+		? input.rehearsalToken?.trim()
+		: input.profileToken?.trim();
 }
 
 type DbClient = Database | TransactionClient;
@@ -433,6 +457,12 @@ async function loadProfile(environment: "local" | "production") {
 
 export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 	const options = parseEmployeeDocumentMigrationArguments(argv);
+	// Capture before profile loading so an existing local profile cannot replace
+	// the explicitly selected, ephemeral rehearsal credential.
+	const rehearsalToken =
+		options.tokenSource === "rehearsal-env"
+			? process.env.REHEARSAL_BLOB_READ_WRITE_TOKEN?.trim()
+			: undefined;
 	const databaseUrl = await loadProfile(options.environment);
 	const target = employeeDocumentDatabaseTarget(
 		databaseUrl,
@@ -447,9 +477,17 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 			"Apply and verify require --confirm-target matching the printed fingerprint.",
 		);
 	}
-	const token = process.env.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim();
+	const token = selectEmployeeDocumentMigrationToken({
+		tokenSource: options.tokenSource,
+		profileToken: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN,
+		rehearsalToken,
+	});
 	if (options.mode !== "preview" && !token) {
-		throw new Error("PRIVATE_BLOB_READ_WRITE_TOKEN is required.");
+		throw new Error(
+			options.tokenSource === "rehearsal-env"
+				? "REHEARSAL_BLOB_READ_WRITE_TOKEN is required in the launch environment."
+				: "PRIVATE_BLOB_READ_WRITE_TOKEN is required.",
+		);
 	}
 	if (options.environment === "local" && options.mode !== "preview") {
 		const productionProfile = parse(

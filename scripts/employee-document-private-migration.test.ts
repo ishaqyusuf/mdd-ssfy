@@ -8,6 +8,7 @@ import {
 	employeeDocumentMigrationManifestSchema,
 	parseEmployeeDocumentMigrationArguments,
 	resolveEmployeeDocumentMigrationSource,
+	selectEmployeeDocumentMigrationToken,
 } from "./employee-document-private-migration";
 import { EMPLOYEE_DOCUMENT_PRIVATE_MIGRATION } from "./employee-document-private-migration-policy";
 
@@ -17,6 +18,64 @@ const migrationSource = readFileSync(
 );
 
 describe("employee document private migration contract", () => {
+	test("explicit local rehearsal source cannot fall back to the profile token", () => {
+		const base = [
+			"--environment",
+			"local",
+			"--mode",
+			"apply",
+			"--output",
+			"journal.jsonl",
+			"--manifest",
+			"manifest.json",
+			"--confirm-store-id",
+			"store_rehearsal",
+		];
+		expect(
+			parseEmployeeDocumentMigrationArguments([
+				...base,
+				"--token-source",
+				"rehearsal-env",
+			]).tokenSource,
+		).toBe("rehearsal-env");
+		expect(
+			selectEmployeeDocumentMigrationToken({
+				tokenSource: "rehearsal-env",
+				profileToken: "production-store-token",
+				rehearsalToken: " rehearsal-store-token ",
+			}),
+		).toBe("rehearsal-store-token");
+		expect(
+			selectEmployeeDocumentMigrationToken({
+				tokenSource: "rehearsal-env",
+				profileToken: "production-store-token",
+				rehearsalToken: undefined,
+			}),
+		).toBeUndefined();
+		expect(migrationSource.indexOf("const rehearsalToken =")).toBeLessThan(
+			migrationSource.indexOf("await loadProfile(options.environment)"),
+		);
+		for (const args of [
+			["--environment", "production", ...base.slice(2)],
+			[
+				"--environment",
+				"local",
+				"--mode",
+				"preview",
+				"--output",
+				"manifest.json",
+			],
+		]) {
+			expect(() =>
+				parseEmployeeDocumentMigrationArguments([
+					...args,
+					"--token-source",
+					"rehearsal-env",
+				]),
+			).toThrow("--token-source rehearsal-env is for local apply/verify only");
+		}
+	});
+
 	test("checks local storage isolation before database access or journal creation", () => {
 		const guard = migrationSource.indexOf(
 			"assertEmployeeDocumentMigrationStorageIsolation({",
