@@ -185,6 +185,18 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"The iOS profile uses the non-redirecting canonical host; Android keeps the shared Production origin",
 		),
 		check(
+			"iOS-only optional telemetry disabled in build profile",
+			eas.build?.production?.ios?.env?.EXPO_PUBLIC_LOGLY_ENABLED === "false" &&
+				eas.build?.production?.ios?.env?.EXPO_PUBLIC_SENTRY_ENABLED ===
+					"false" &&
+				eas.build?.production?.ios?.env?.SENTRY_DISABLE_AUTO_UPLOAD ===
+					"true" &&
+				eas.build?.production?.env?.EXPO_PUBLIC_LOGLY_ENABLED === undefined &&
+				eas.build?.production?.env?.EXPO_PUBLIC_SENTRY_ENABLED === undefined &&
+				eas.build?.production?.env?.SENTRY_DISABLE_AUTO_UPLOAD === undefined,
+			"iOS Production pins Logly, Sentry, and Sentry source upload off; Android retains its shared Production configuration",
+		),
+		check(
 			"Preview remains development-only internal distribution",
 			eas.build?.preview?.distribution === "internal",
 			String(eas.build?.preview?.distribution),
@@ -243,6 +255,11 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			"Production telemetry inventory (non-secret local snapshot)",
 			true,
 			`Sentry enabled=${sentryEnabled}; Logly enabled=${loglyEnabled}; compare with the final EAS artifact/environment before App Privacy answers`,
+		),
+		check(
+			"Public iOS optional telemetry consent gate",
+			!isProductionIosCheck || (!sentryEnabled && !loglyEnabled),
+			`productionIos=${isProductionIosCheck}; Sentry enabled=${sentryEnabled}; Logly enabled=${loglyEnabled}; keep both disabled until consent, withdrawal, and provider safeguards are verified`,
 		),
 		check(
 			"Production Sentry diagnostic modes disabled",

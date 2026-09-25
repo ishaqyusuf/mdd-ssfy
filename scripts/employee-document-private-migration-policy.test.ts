@@ -40,7 +40,7 @@ describe("employee document private migration policy", () => {
 			allowOverwrite: false,
 		});
 	});
-	test("local apply and verify refuse the production private-store token", () => {
+	test("local apply and verify require a distinct private Blob store", () => {
 		for (const mode of ["apply", "verify"] as const) {
 			expect(() =>
 				assertEmployeeDocumentMigrationStorageIsolation({
@@ -54,16 +54,32 @@ describe("employee document private migration policy", () => {
 				assertEmployeeDocumentMigrationStorageIsolation({
 					environment: "local",
 					mode,
-					token: "isolated-token",
+					token: "vercel_blob_rw_local_first",
 					productionToken: undefined,
 				}),
 			).toThrow("Cannot verify local private Blob token isolation.");
+			for (const [token, productionToken] of [
+				["vercel_blob_rw_shared_first", "vercel_blob_rw_shared_second"],
+				["malformed-local-token", "vercel_blob_rw_production_first"],
+				["vercel_blob_rw_local_first", "malformed-production-token"],
+			] as const) {
+				expect(() =>
+					assertEmployeeDocumentMigrationStorageIsolation({
+						environment: "local",
+						mode,
+						token,
+						productionToken,
+					}),
+				).toThrow(
+					"Local migration requires a distinct private Blob store from Production.",
+				);
+			}
 			expect(() =>
 				assertEmployeeDocumentMigrationStorageIsolation({
 					environment: "local",
 					mode,
-					token: "isolated-token",
-					productionToken: "production-token",
+					token: "vercel_blob_rw_local_first",
+					productionToken: "vercel_blob_rw_production_second",
 				}),
 			).not.toThrow();
 		}
