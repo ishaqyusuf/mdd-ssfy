@@ -1,45 +1,32 @@
 /** @jsxImportSource react */
-import { Img, Section } from "@react-email/components";
-
-import { getEmailUrl } from "@gnd/utils/envs";
-
-const baseUrl = getEmailUrl();
+import { Column, Row, Section, Text } from "@react-email/components";
+import { emailTheme } from "./theme";
 
 export function Logo() {
-  return (
-    <Section className="mt-[32px]">
-      <style>{`
-      .logo-blend {
-        filter: none;
-      }
-      
-      /* Regular dark mode - exclude Outlook.com and disable-dark-mode class */
-      @media (prefers-color-scheme: dark) {
-        .logo-blend:not([class^="x_"]):not(.disable-dark-mode .logo-blend) {
-          filter: invert(1) brightness(1);
-        }
-      }
-      
-      /* Outlook.com specific dark mode targeting - but not when dark mode is disabled */
-      [data-ogsb]:not(.disable-dark-mode) .logo-blend,
-      [data-ogsc]:not(.disable-dark-mode) .logo-blend,
-      [data-ogac]:not(.disable-dark-mode) .logo-blend,
-      [data-ogab]:not(.disable-dark-mode) .logo-blend {
-        filter: invert(1) brightness(1);
-      }
-      
-      /* Force no filter when dark mode is disabled */
-      .disable-dark-mode .logo-blend {
-        filter: none !important;
-      }
-    `}</style>
-      <Img
-        src={`${baseUrl}/email/logo.png`}
-        width="45"
-        height="45"
-        alt="GndMillwork"
-        className="mx-auto my-0 block"
-      />
-    </Section>
-  );
+	return (
+		<Section
+			className="email-receipt-header"
+			style={{
+				borderBottom: `1px solid ${emailTheme.light.border}`,
+				paddingBottom: 20,
+			}}
+		>
+			<Row>
+				<Column style={{ verticalAlign: "middle" }}>
+					<Text
+						className="email-text m-0 text-[13px] font-semibold tracking-[1.4px]"
+						style={{ color: emailTheme.light.foreground }}
+					>
+						GND MILLWORK
+					</Text>
+					<Text
+						className="email-muted m-0 mt-[3px] text-[12px] tracking-[0.4px]"
+						style={{ color: emailTheme.light.muted }}
+					>
+						DESIGN · BUILD · INSTALL
+					</Text>
+				</Column>
+			</Row>
+		</Section>
+	);
 }

@@ -66,7 +66,7 @@ export default function StorefrontHotDeals({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `Hot deals you don't want to miss!`;
+  const previewText = "Hot deals you don't want to miss!";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -116,7 +116,7 @@ export default function StorefrontHotDeals({
                     />
                     <Text style={{ margin: "10px 0" }}>{product.name}</Text>
                     <Text style={{ fontWeight: "bold" }}>${product.price}</Text>
-                    <Button href={product.productUrl}>View Product</Button>
+                    <Button className="email-receipt-button" href={product.productUrl}>View Product</Button>
                   </div>
                 </Column>
               ))}
@@ -133,7 +133,7 @@ export default function StorefrontHotDeals({
                     />
                     <Text style={{ margin: "10px 0" }}>{product.name}</Text>
                     <Text style={{ fontWeight: "bold" }}>${product.price}</Text>
-                    <Button href={product.productUrl}>View Product</Button>
+                    <Button className="email-receipt-button" href={product.productUrl}>View Product</Button>
                   </div>
                 </Column>
               ))}

@@ -26,7 +26,7 @@ export default function StorefrontMagicLoginCode({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `Your magic login code for GND Millwork`;
+  const previewText = "Your magic login code for GND Millwork";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -65,9 +65,9 @@ export default function StorefrontMagicLoginCode({
 
           <Section className="text-center my-[30px]">
             <Text
-              className={`text-[16px] font-mono$ tracking-wide bg-gray-100 py-2 px-4 inline-block rounded ${themeClasses.text}`}
+              className={`text-[16px] email-receipt-panel font-mono tracking-wide py-2 px-4 inline-block rounded ${themeClasses.text}`}
               style={{
-                backgroundColor: "#f3f4f6",
+                backgroundColor: "#eaf2ee",
                 color: lightStyles.text.color,
               }}
             >

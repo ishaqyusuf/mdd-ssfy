@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
+	assertEmployeeDocumentMigrationPrivateBytes,
+	assertEmployeeDocumentMigrationRecoverySource,
 	assertEmployeeDocumentMigrationVerifiedLink,
 	employeeDocumentMigrationManifestSchema,
 	parseEmployeeDocumentMigrationArguments,
@@ -263,7 +266,12 @@ describe("employee document private migration contract", () => {
 		expect(migrationSource).toContain(
 			"resolved.storedDocument.checksum !== checksum",
 		);
-		expect(migrationSource).toContain("remote.size !== verifiedStored.size");
+		expect(migrationSource).toContain(
+			"verifyEmployeeDocumentMigrationPrivateBlob({",
+		);
+		expect(migrationSource).toContain("remote.size !== input.size");
+		expect(migrationSource).toContain('access: "private"');
+		expect(migrationSource).toContain("useCache: false");
 	});
 
 	test("verify binds the private link to the manifest employee and migration source", () => {
@@ -282,6 +290,7 @@ describe("employee document private migration contract", () => {
 			provider: "vercel-blob",
 			visibility: "private",
 			size: 1024,
+			checksum: "a".repeat(64),
 			sourceType: EMPLOYEE_DOCUMENT_PRIVATE_MIGRATION,
 			sourceId: "12",
 			meta: {
@@ -310,6 +319,9 @@ describe("employee document private migration contract", () => {
 		expect(() => verify({ stored: { ...stored, size: 0 } })).toThrow(
 			"not privately linked to this migration",
 		);
+		expect(() => verify({ stored: { ...stored, checksum: "" } })).toThrow(
+			"not privately linked to this migration",
+		);
 		expect(() => verify({ stored: { ...stored, sourceId: "13" } })).toThrow(
 			"not privately linked to this migration",
 		);
@@ -328,14 +340,98 @@ describe("employee document private migration contract", () => {
 
 	test("checks a recovery object in the selected private store before relinking", () => {
 		const recovery = migrationSource.slice(
-			migrationSource.indexOf("if (existing && isPrivateEmployeeDocumentMeta"),
+			migrationSource.indexOf("if (existing) {"),
 			migrationSource.indexOf("const response = await fetch(resolved.url"),
 		);
-		expect(recovery).toContain("head(existing.pathname, { token })");
-		expect(recovery.indexOf("head(existing.pathname, { token })")).toBeLessThan(
-			recovery.indexOf("db.userDocuments.updateMany"),
+		expect(recovery).toContain(
+			"assertEmployeeDocumentMigrationRecoverySource({",
 		);
-		expect(recovery).toContain("remote.size !== existing.size");
-		expect(recovery).toContain("existing.size <= 0");
+		expect(
+			recovery.indexOf("assertEmployeeDocumentMigrationRecoverySource({"),
+		).toBeLessThan(
+			recovery.indexOf("verifyEmployeeDocumentMigrationPrivateBlob({"),
+		);
+		expect(recovery).toContain("verifyEmployeeDocumentMigrationPrivateBlob({");
+		expect(
+			recovery.indexOf("verifyEmployeeDocumentMigrationPrivateBlob({"),
+		).toBeLessThan(recovery.indexOf("db.userDocuments.updateMany"));
+		expect(recovery).toContain("checksum: existing.checksum");
+	});
+
+	test("private byte verification rejects equal-size corruption and missing checksum", async () => {
+		const bytes = new TextEncoder().encode("private document");
+		const checksum = createHash("sha256").update(bytes).digest("hex");
+		const stream = (value: Uint8Array) =>
+			new ReadableStream<Uint8Array>({
+				start(controller) {
+					controller.enqueue(value);
+					controller.close();
+				},
+			});
+		await expect(
+			assertEmployeeDocumentMigrationPrivateBytes({
+				documentId: 12,
+				stream: stream(bytes),
+				expectedSize: bytes.length,
+				expectedChecksum: checksum,
+			}),
+		).resolves.toBeUndefined();
+		await expect(
+			assertEmployeeDocumentMigrationPrivateBytes({
+				documentId: 12,
+				stream: stream(new TextEncoder().encode("private documenT")),
+				expectedSize: bytes.length,
+				expectedChecksum: checksum,
+			}),
+		).rejects.toThrow("private checksum or size mismatch");
+		await expect(
+			assertEmployeeDocumentMigrationPrivateBytes({
+				documentId: 12,
+				stream: stream(bytes),
+				expectedSize: bytes.length,
+				expectedChecksum: null,
+			}),
+		).rejects.toThrow("private integrity metadata is invalid");
+		await expect(
+			assertEmployeeDocumentMigrationPrivateBytes({
+				documentId: 12,
+				stream: stream(bytes),
+				expectedSize: bytes.length - 1,
+				expectedChecksum: checksum,
+			}),
+		).rejects.toThrow("private size mismatch");
+		await expect(
+			assertEmployeeDocumentMigrationPrivateBytes({
+				documentId: 12,
+				stream: stream(bytes.subarray(0, bytes.length - 1)),
+				expectedSize: bytes.length,
+				expectedChecksum: checksum,
+			}),
+		).rejects.toThrow("private checksum or size mismatch");
+	});
+
+	test("recovery refuses a private object from another source snapshot", () => {
+		const candidate = {
+			documentId: 12,
+			userId: 7,
+			sourceHash: "b".repeat(64),
+		};
+		const meta = {
+			workflow: "employee_document",
+			storageAccess: "private",
+			sourceHash: candidate.sourceHash,
+		};
+		expect(() =>
+			assertEmployeeDocumentMigrationRecoverySource({ candidate, meta }),
+		).not.toThrow();
+		expect(() =>
+			assertEmployeeDocumentMigrationRecoverySource({
+				candidate,
+				meta: { ...meta, sourceHash: "c".repeat(64) },
+			}),
+		).toThrow("recovery source changed after preview");
+		expect(() =>
+			assertEmployeeDocumentMigrationRecoverySource({ candidate, meta: null }),
+		).toThrow("recovery source changed after preview");
 	});
 });

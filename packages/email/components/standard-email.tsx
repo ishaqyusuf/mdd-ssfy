@@ -19,8 +19,8 @@ import { EmailThemeProvider } from "./theme";
 const baseUrl = getEmailUrl();
 
 export const standardEmailColors = {
-	canvas: "#f1f3ef",
-	card: "#fffefa",
+	canvas: "#ffffff",
+	card: "#ffffff",
 	ink: "#17211d",
 	muted: "#68736e",
 	border: "#d9dfda",
@@ -45,6 +45,10 @@ const standardEmailCSS = `
 
   .gnd-standard-panel {
     width: calc(100% - 72px) !important;
+  }
+
+  .gnd-standard-receipt-header {
+    border-bottom: 1px solid ${standardEmailColors.border};
   }
 
   @media only screen and (max-width: 600px) {
@@ -84,12 +88,21 @@ const standardEmailCSS = `
     .gnd-standard-mobile-stack + .gnd-standard-mobile-stack {
       padding-top: 10px !important;
     }
+    .gnd-standard-priority-action {
+      display: block !important;
+      width: 100% !important;
+      padding-top: 14px !important;
+      text-align: left !important;
+    }
   }
 
   @media (prefers-color-scheme: dark) {
     .gnd-standard-canvas {
       background-color: #101714 !important;
       color: #f3f6f4 !important;
+    }
+    .gnd-standard-canvas > table > tbody > tr > td {
+      background-color: #101714 !important;
     }
     .gnd-standard-card,
     .gnd-standard-row,
@@ -122,6 +135,9 @@ const standardEmailCSS = `
     }
     .gnd-standard-border {
       border-color: #34433d !important;
+    }
+    .gnd-standard-receipt-header {
+      border-bottom-color: #34433d !important;
     }
     .gnd-standard-brass-border {
       border-left-color: #c58b32 !important;
@@ -228,7 +244,10 @@ export function StandardEmailHeader({
 	documentMeta,
 }: StandardEmailHeaderProps) {
 	return (
-		<Section className="gnd-standard-content px-[36px] pt-[28px]">
+		<Section
+			className="gnd-standard-content gnd-standard-receipt-header px-[36px] pb-[20px] pt-[26px]"
+			style={{ borderBottom: `1px solid ${standardEmailColors.border}` }}
+		>
 			<Row>
 				<Column style={{ verticalAlign: "middle", width: "64%" }}>
 					<Row>
@@ -340,7 +359,7 @@ export function StandardEmailHero({
 	title,
 }: StandardEmailHeroProps) {
 	return (
-		<Section className="gnd-standard-content px-[36px] pt-[40px]">
+		<Section className="gnd-standard-content px-[36px] pt-[28px]">
 			<Text
 				className="gnd-standard-accent-text m-0 text-[12px] font-semibold uppercase tracking-[1.5px]"
 				style={{ color: standardEmailColors.cypress }}
@@ -348,7 +367,7 @@ export function StandardEmailHero({
 				{eyebrow}
 			</Text>
 			<Heading
-				className="gnd-standard-heading m-0 mt-[12px] text-[32px] font-normal leading-[39px]"
+				className="gnd-standard-heading m-0 mt-[10px] text-[29px] font-normal leading-[36px]"
 				style={{
 					color: standardEmailColors.ink,
 					fontFamily: "Georgia, 'Times New Roman', serif",
@@ -365,6 +384,59 @@ export function StandardEmailHero({
 				</Text>
 			) : null}
 			{children}
+		</Section>
+	);
+}
+
+type StandardEmailPriorityActionProps = {
+	actionLabel?: string;
+	href?: string | null;
+	label: string;
+	value: string;
+};
+
+export function StandardEmailPriorityAction({
+	actionLabel,
+	href,
+	label,
+	value,
+}: StandardEmailPriorityActionProps) {
+	return (
+		<Section
+			className="gnd-standard-panel gnd-standard-soft-green gnd-standard-border mx-[36px] mt-[24px] rounded-[6px] border border-solid px-[20px] py-[18px]"
+			style={{
+				backgroundColor: standardEmailColors.softGreen,
+				borderColor: standardEmailColors.border,
+			}}
+		>
+			<Row>
+				<Column style={{ verticalAlign: "middle" }}>
+					<Text
+						className="gnd-standard-muted m-0 text-[11px] font-semibold uppercase tracking-[0.9px]"
+						style={{ color: standardEmailColors.muted }}
+					>
+						{label}
+					</Text>
+					<Text
+						className="gnd-standard-heading m-0 mt-[5px] text-[29px] font-semibold leading-[34px]"
+						style={{
+							color: standardEmailColors.ink,
+							fontFamily: "Georgia, 'Times New Roman', serif",
+						}}
+					>
+						{value}
+					</Text>
+				</Column>
+				{href && actionLabel ? (
+					<Column
+						align="right"
+						className="gnd-standard-priority-action"
+						style={{ verticalAlign: "middle", width: 180 }}
+					>
+						<StandardEmailButton href={href}>{actionLabel}</StandardEmailButton>
+					</Column>
+				) : null}
+			</Row>
 		</Section>
 	);
 }

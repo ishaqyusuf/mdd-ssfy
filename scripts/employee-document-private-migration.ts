@@ -160,6 +160,7 @@ export function assertEmployeeDocumentMigrationVerifiedLink(input: {
 		provider: string;
 		visibility: string;
 		size: number | null;
+		checksum: string | null;
 		sourceType: string | null;
 		sourceId: string | null;
 		meta: unknown;
@@ -184,6 +185,7 @@ export function assertEmployeeDocumentMigrationVerifiedLink(input: {
 		asRecord(stored.meta).sourceHash !== candidate.sourceHash ||
 		stored.size === null ||
 		stored.size <= 0 ||
+		!/^[a-f0-9]{64}$/.test(stored.checksum || "") ||
 		source.url !== employeeDocumentAccessPath(candidate.documentId)
 	) {
 		throw new Error(
@@ -191,6 +193,104 @@ export function assertEmployeeDocumentMigrationVerifiedLink(input: {
 		);
 	}
 	return stored;
+}
+
+export function assertEmployeeDocumentMigrationRecoverySource(input: {
+	candidate: z.infer<typeof candidateSchema>;
+	meta: unknown;
+}) {
+	if (
+		!isPrivateEmployeeDocumentMeta(input.meta) ||
+		asRecord(input.meta).sourceHash !== input.candidate.sourceHash
+	) {
+		throw new Error(
+			`Document ${input.candidate.documentId} recovery source changed after preview.`,
+		);
+	}
+}
+
+export async function assertEmployeeDocumentMigrationPrivateBytes(input: {
+	documentId: number;
+	stream: ReadableStream<Uint8Array>;
+	expectedSize: number;
+	expectedChecksum: string | null;
+}) {
+	if (
+		!Number.isSafeInteger(input.expectedSize) ||
+		input.expectedSize <= 0 ||
+		input.expectedSize > 25_000_000 ||
+		!/^[a-f0-9]{64}$/.test(input.expectedChecksum || "")
+	) {
+		throw new Error(
+			`Document ${input.documentId} private integrity metadata is invalid.`,
+		);
+	}
+	const hash = createHash("sha256");
+	let size = 0;
+	const reader = input.stream.getReader();
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			size += value.byteLength;
+			if (size > input.expectedSize) {
+				throw new Error(`Document ${input.documentId} private size mismatch.`);
+			}
+			hash.update(value);
+		}
+	} catch (error) {
+		await reader.cancel().catch(() => undefined);
+		throw error;
+	} finally {
+		reader.releaseLock();
+	}
+	if (
+		size !== input.expectedSize ||
+		hash.digest("hex") !== input.expectedChecksum
+	) {
+		throw new Error(
+			`Document ${input.documentId} private checksum or size mismatch.`,
+		);
+	}
+}
+
+async function verifyEmployeeDocumentMigrationPrivateBlob(input: {
+	documentId: number;
+	pathname: string;
+	token: string;
+	size: number | null;
+	checksum: string | null;
+}) {
+	const { get, head } = await import("@vercel/blob");
+	if (
+		input.size === null ||
+		!Number.isSafeInteger(input.size) ||
+		input.size <= 0 ||
+		input.size > 25_000_000 ||
+		!/^[a-f0-9]{64}$/.test(input.checksum || "")
+	) {
+		throw new Error(
+			`Document ${input.documentId} private integrity metadata is invalid.`,
+		);
+	}
+	const remote = await head(input.pathname, { token: input.token });
+	if (remote.size !== input.size) {
+		throw new Error(`Document ${input.documentId} private size mismatch.`);
+	}
+	const result = await get(input.pathname, {
+		access: "private",
+		token: input.token,
+		useCache: false,
+	});
+	if (!result || result.statusCode !== 200 || !result.stream) {
+		throw new Error(`Document ${input.documentId} private read failed.`);
+	}
+	await assertEmployeeDocumentMigrationPrivateBytes({
+		documentId: input.documentId,
+		stream: result.stream,
+		expectedSize: input.size,
+		expectedChecksum: input.checksum,
+	});
 }
 
 async function readSource(db: DbClient, documentId: number) {
@@ -469,7 +569,6 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 		});
 
 		if (options.mode === "verify") {
-			const { head } = await import("@vercel/blob");
 			for (const candidate of manifest.candidates) {
 				const source = await readSource(db, candidate.documentId);
 				if (!source)
@@ -490,6 +589,7 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 								provider: true,
 								visibility: true,
 								size: true,
+								checksum: true,
 								sourceType: true,
 								sourceId: true,
 								meta: true,
@@ -501,10 +601,14 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 					source,
 					stored,
 				});
-				const remote = await head(verifiedStored.pathname, { token });
-				if (remote.size !== verifiedStored.size) {
-					throw new Error(`Document ${source.id} private size mismatch.`);
-				}
+				if (!token) throw new Error("Private Blob token is required.");
+				await verifyEmployeeDocumentMigrationPrivateBlob({
+					documentId: source.id,
+					pathname: verifiedStored.pathname,
+					token,
+					size: verifiedStored.size,
+					checksum: verifiedStored.checksum,
+				});
 				await append({ documentId: source.id, status: "verified" });
 			}
 			return;
@@ -547,19 +651,27 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 						status: "ready",
 						deletedAt: null,
 					},
-					select: { id: true, meta: true, pathname: true, size: true },
+					select: {
+						id: true,
+						meta: true,
+						pathname: true,
+						size: true,
+						checksum: true,
+					},
 				});
-				if (existing && isPrivateEmployeeDocumentMeta(existing.meta)) {
-					const remote = await head(existing.pathname, { token });
-					if (
-						existing.size === null ||
-						existing.size <= 0 ||
-						remote.size !== existing.size
-					) {
-						throw new Error(
-							`Document ${source.id} recovery object size mismatch.`,
-						);
-					}
+				if (existing) {
+					assertEmployeeDocumentMigrationRecoverySource({
+						candidate,
+						meta: existing.meta,
+					});
+					if (!token) throw new Error("Private Blob token is required.");
+					await verifyEmployeeDocumentMigrationPrivateBlob({
+						documentId: source.id,
+						pathname: existing.pathname,
+						token,
+						size: existing.size,
+						checksum: existing.checksum,
+					});
 					const updated = await db.userDocuments.updateMany({
 						where: {
 							id: source.id,

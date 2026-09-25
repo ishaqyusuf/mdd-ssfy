@@ -8,6 +8,7 @@ import {
 	getContractorLedgerEntriesThrough,
 	recordContractorAccountingAlertEvent,
 } from "@gnd/db/queries";
+import { renderContractorAccountingAlertEmail } from "@gnd/email/contractor-accounting";
 import { getEmailUrl, getRecipient, shouldSkipEmail } from "@gnd/utils/envs";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
 import { nanoid } from "nanoid";
@@ -20,15 +21,6 @@ function getResendClient() {
 	if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
 	resend ??= new Resend(apiKey);
 	return resend;
-}
-
-function escapeHtml(value: string) {
-	return value
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;")
-		.replaceAll("'", "&#039;");
 }
 
 function parseRecipients(value: Prisma.JsonValue) {
@@ -91,10 +83,11 @@ async function deliverAlertEmail(input: {
 				from: "GND Millwork <noreply@gndprodesk.com>",
 				to: getRecipient(recipient),
 				subject: input.event.title,
-				html: [
-					`<p>${escapeHtml(input.event.message)}</p>`,
-					`<p><a href="${getEmailUrl()}/contractors/accounting?manageAlerts=true">Open contractor accounting alerts</a></p>`,
-				].join(""),
+				html: await renderContractorAccountingAlertEmail({
+					title: input.event.title,
+					message: input.event.message,
+					actionUrl: `${getEmailUrl()}/contractors/accounting?manageAlerts=true`,
+				}),
 				headers: { "X-Entity-Ref-ID": nanoid() },
 			});
 			if (response.error) throw new Error(response.error.message);

@@ -71,7 +71,7 @@ export default function StorefrontOrderStatusUpdate({
           </Text>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={orderUrl}>View Your Order</Button>
+            <Button className="email-receipt-button" href={orderUrl}>View Your Order</Button>
           </Section>
 
           <Footer />

@@ -30,7 +30,7 @@ export default function StorefrontOrderCompletedReview({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `How was your experience with GND Millwork?`;
+  const previewText = "How was your experience with GND Millwork?";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -69,7 +69,7 @@ export default function StorefrontOrderCompletedReview({
           </Text>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={reviewUrl}>Leave a Review</Button>
+            <Button className="email-receipt-button" href={reviewUrl}>Leave a Review</Button>
           </Section>
 
           <Footer />

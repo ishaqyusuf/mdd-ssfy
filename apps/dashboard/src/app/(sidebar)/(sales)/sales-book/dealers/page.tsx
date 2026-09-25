@@ -37,10 +37,13 @@ export default async function SalesDealersPage(props: Props) {
 	]);
 
 	return (
-		<PageShell>
+		<PageShell className="min-w-0 px-4 pb-8 sm:px-6">
 			<HydrateClient>
 				<ScrollableContent>
 					<PageTitle>Dealers</PageTitle>
+					<p className="-mt-4 text-sm text-muted-foreground">
+						Manage dealer accounts, onboarding, and recruitment in one place.
+					</p>
 					<AuthGuard
 						Fallback={
 							<div className="rounded-lg border p-6 text-sm text-muted-foreground">

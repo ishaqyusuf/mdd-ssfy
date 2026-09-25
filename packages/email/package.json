@@ -4,6 +4,7 @@
   "private": true,
   "main": "index.ts",
   "exports": {
+    "./contractor-accounting": "./contractor-accounting.tsx",
     "./emails/*": "./emails/*.tsx",
     "./locales": "./locales/index.ts",
     "./render": "./render.ts"

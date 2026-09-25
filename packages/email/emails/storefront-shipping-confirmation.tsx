@@ -70,9 +70,9 @@ export default function StorefrontShippingConfirmation({
 
           <Section className="text-center my-[30px]">
             <Text
-              className={`text-[16px] font-mono$ tracking-wide bg-gray-100 py-2 px-4 inline-block rounded ${themeClasses.text}`}
+              className={`text-[16px] email-receipt-panel font-mono tracking-wide py-2 px-4 inline-block rounded ${themeClasses.text}`}
               style={{
-                backgroundColor: "#f3f4f6",
+                backgroundColor: "#eaf2ee",
                 color: lightStyles.text.color,
               }}
             >
@@ -81,7 +81,7 @@ export default function StorefrontShippingConfirmation({
           </Section>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={trackingUrl}>Track Your Package</Button>
+            <Button className="email-receipt-button" href={trackingUrl}>Track Your Package</Button>
           </Section>
 
           <Footer />

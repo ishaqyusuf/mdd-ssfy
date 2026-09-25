@@ -5,33 +5,88 @@ import type React from "react";
 // Re-export Button component for convenience
 export { Button } from "./button";
 
-// Email-optimized theme colors (avoiding pure white/black for better email client compatibility)
+// Shared receipt-first colors for templates that still use the legacy shell.
 export const emailTheme = {
-  light: {
-    background: "#ffffff",
-    foreground: "#0e0e0e", // Slightly off-black to prevent auto-inversion
-    muted: "#6b7280",
-    border: "#e5e7eb",
-    accent: "#0e0e0e",
-    secondary: "#9ca3af",
-  },
-  dark: {
-    background: "#0C0C0C",
-    foreground: "#fefefe", // Slightly off-white to prevent auto-inversion
-    muted: "#a1a1aa",
-    border: "#1D1D1D",
-    accent: "#fefefe",
-    secondary: "#6b7280",
-  },
+	light: {
+		background: "#ffffff",
+		card: "#ffffff",
+		foreground: "#17211d",
+		muted: "#68736e",
+		border: "#d9dfda",
+		accent: "#1f5b4d",
+		secondary: "#68736e",
+	},
+	dark: {
+		background: "#101714",
+		card: "#18211e",
+		foreground: "#f3f6f4",
+		muted: "#aab5b0",
+		border: "#34433d",
+		accent: "#8ec4b3",
+		secondary: "#aab5b0",
+	},
 } as const;
 
 // Industry-standard dark mode CSS for email clients
 export const getEmailDarkModeCSS = () => {
-  return `
+	return `
     /* Root CSS for email dark mode support */
     :root {
       color-scheme: light dark;
       supported-color-schemes: light dark;
+    }
+
+    .email-body {
+      background-color: ${emailTheme.light.background};
+      color: ${emailTheme.light.foreground};
+      font-family: Geist, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 32px 0;
+    }
+    .email-container {
+      background-color: ${emailTheme.light.card};
+      border: 1px solid ${emailTheme.light.border};
+      border-top: 5px solid ${emailTheme.light.accent} !important;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .email-container h1.email-text,
+    .email-container h2.email-text,
+    .email-container h3.email-text {
+      color: ${emailTheme.light.foreground};
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 29px;
+      font-weight: 400;
+      line-height: 1.2;
+      text-align: left !important;
+    }
+    .email-container .email-muted {
+      color: ${emailTheme.light.muted};
+    }
+    .email-receipt-header {
+      border-bottom: 1px solid ${emailTheme.light.border};
+    }
+    .email-receipt-footer {
+      background-color: #f6f7f3;
+      border-top: 1px solid ${emailTheme.light.border};
+    }
+    .email-receipt-panel {
+      background-color: #eaf2ee;
+    }
+    .email-receipt-button {
+      display: inline-block;
+      background-color: ${emailTheme.light.accent} !important;
+      border: 1px solid ${emailTheme.light.accent} !important;
+      border-radius: 5px !important;
+      color: #fffefa !important;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 13px 20px;
+      text-decoration: none;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-body { padding: 0 !important; }
+      .email-container { width: 100% !important; margin: 0 !important; }
     }
 
     /* Apple Mail, iOS Mail, and some webview clients */
@@ -40,8 +95,22 @@ export const getEmailDarkModeCSS = () => {
         background-color: ${emailTheme.dark.background} !important;
         color: ${emailTheme.dark.foreground} !important;
       }
+      .email-body > table > tbody > tr > td {
+        background-color: ${emailTheme.dark.background} !important;
+      }
       .email-container {
+        background-color: ${emailTheme.dark.card} !important;
         border-color: ${emailTheme.dark.border} !important;
+        border-top-color: #1f5b4d !important;
+      }
+      .email-receipt-header,
+      .email-receipt-footer { border-color: ${emailTheme.dark.border} !important; }
+      .email-receipt-footer { background-color: #202a26 !important; }
+      .email-receipt-panel { background-color: #1a2a24 !important; }
+      .email-receipt-button {
+        background-color: #8ec4b3 !important;
+        border-color: #8ec4b3 !important;
+        color: #101714 !important;
       }
       .email-text {
         color: ${emailTheme.dark.foreground} !important;
@@ -151,131 +220,133 @@ export const getEmailDarkModeCSS = () => {
       background-color: ${emailTheme.dark.background} !important;
     }
     [data-ogsb] .email-container {
+      background-color: ${emailTheme.dark.card} !important;
       border-color: ${emailTheme.dark.border} !important;
     }
   `;
 };
 
 interface EmailThemeProviderProps {
-  children: React.ReactNode;
-  preview?: React.ReactNode;
-  additionalHeadContent?: React.ReactNode;
+	children: React.ReactNode;
+	preview?: React.ReactNode;
+	additionalHeadContent?: React.ReactNode;
 }
 
 export function EmailThemeProvider({
-  children,
-  preview,
-  additionalHeadContent,
+	children,
+	preview,
+	additionalHeadContent,
 }: EmailThemeProviderProps) {
-  return (
-    <Html>
-      <Tailwind>
-        <Head>
-          {/* Essential meta tags for email dark mode support */}
-          <meta name="color-scheme" content="light dark" />
-          <meta name="supported-color-schemes" content="light dark" />
+	return (
+		<Html>
+			<Tailwind>
+				<Head>
+					{/* Essential meta tags for email dark mode support */}
+					<meta name="color-scheme" content="light dark" />
+					<meta name="supported-color-schemes" content="light dark" />
 
-          {/* Additional Gmail dark mode hints */}
-          <meta
-            name="theme-color"
-            content="#0C0C0C"
-            media="(prefers-color-scheme: dark)"
-          />
-          <meta
-            name="theme-color"
-            content="#ffffff"
-            media="(prefers-color-scheme: light)"
-          />
-          <meta name="msapplication-navbutton-color" content="#0C0C0C" />
+					{/* Additional Gmail dark mode hints */}
+					<meta
+						name="theme-color"
+						content="#101714"
+						media="(prefers-color-scheme: dark)"
+					/>
+					<meta
+						name="theme-color"
+						content="#ffffff"
+						media="(prefers-color-scheme: light)"
+					/>
+					<meta name="msapplication-navbutton-color" content="#101714" />
 
-          {/* Dark mode styles */}
-          <style>{getEmailDarkModeCSS()}</style>
+					{/* Dark mode styles */}
+					<style>{getEmailDarkModeCSS()}</style>
 
-          {/* Default fonts for all emails */}
-          <Font
-            fontFamily="Geist"
-            fallbackFontFamily="Helvetica"
-            webFont={{
-              url: "https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.0.1/files/geist-sans-latin-400-normal.woff2",
-              format: "woff2",
-            }}
-            fontWeight={400}
-            fontStyle="normal"
-          />
+					{/* Default fonts for all emails */}
+					<Font
+						fontFamily="Geist"
+						fallbackFontFamily="Helvetica"
+						webFont={{
+							url: "https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.0.1/files/geist-sans-latin-400-normal.woff2",
+							format: "woff2",
+						}}
+						fontWeight={400}
+						fontStyle="normal"
+					/>
 
-          <Font
-            fontFamily="Geist"
-            fallbackFontFamily="Helvetica"
-            webFont={{
-              url: "https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.0.1/files/geist-sans-latin-500-normal.woff2",
-              format: "woff2",
-            }}
-            fontWeight={500}
-            fontStyle="normal"
-          />
+					<Font
+						fontFamily="Geist"
+						fallbackFontFamily="Helvetica"
+						webFont={{
+							url: "https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.0.1/files/geist-sans-latin-500-normal.woff2",
+							format: "woff2",
+						}}
+						fontWeight={500}
+						fontStyle="normal"
+					/>
 
-          {/* Additional head content */}
-          {additionalHeadContent}
-        </Head>
-        {preview}
-        {children}
-      </Tailwind>
-    </Html>
-  );
+					{/* Additional head content */}
+					{additionalHeadContent}
+				</Head>
+				{preview}
+				{children}
+			</Tailwind>
+		</Html>
+	);
 }
 
 // Email-optimized theme classes (no Tailwind dependencies)
 export function getEmailThemeClasses() {
-  return {
-    // Base classes that work across email clients
-    body: "email-body",
-    container: "email-container",
-    heading: "email-text",
-    text: "email-text",
-    mutedText: "email-muted",
-    secondaryText: "email-secondary",
-    button: "email-accent",
-    border: "email-border",
-    link: "email-text",
-    mutedLink: "email-muted",
+	return {
+		// Base classes that work across email clients
+		body: "email-body",
+		container: "email-container",
+		heading: "email-text",
+		text: "email-text",
+		mutedText: "email-muted",
+		secondaryText: "email-secondary",
+		button: "email-accent",
+		border: "email-border",
+		link: "email-text",
+		mutedLink: "email-muted",
 
-    // Dark mode image control
-    hideInDark: "dark-mode-hide",
-    showInDark: "dark-mode-show",
-  };
+		// Dark mode image control
+		hideInDark: "dark-mode-hide",
+		showInDark: "dark-mode-show",
+	};
 }
 
 // Utility to get inline styles (fallback for older email clients)
 export function getEmailInlineStyles(mode: "light" | "dark" = "light") {
-  const theme = emailTheme[mode];
-  return {
-    body: {
-      backgroundColor: theme.background,
-      color: theme.foreground,
-    },
-    container: {
-      borderColor: theme.border,
-    },
-    text: {
-      color: theme.foreground,
-    },
-    mutedText: {
-      color: theme.muted,
-    },
-    secondaryText: {
-      color: theme.secondary,
-    },
-    button: {
-      color: theme.accent,
-      borderColor: theme.accent,
-    },
-  };
+	const theme = emailTheme[mode];
+	return {
+		body: {
+			backgroundColor: theme.background,
+			color: theme.foreground,
+		},
+		container: {
+			backgroundColor: theme.card,
+			borderColor: theme.border,
+		},
+		text: {
+			color: theme.foreground,
+		},
+		mutedText: {
+			color: theme.muted,
+		},
+		secondaryText: {
+			color: theme.secondary,
+		},
+		button: {
+			color: theme.accent,
+			borderColor: theme.accent,
+		},
+	};
 }
 
 // Simplified theme hook for email components
 export function useEmailTheme() {
-  return {
-    classes: getEmailThemeClasses(),
-    lightStyles: getEmailInlineStyles("light"),
-  };
+	return {
+		classes: getEmailThemeClasses(),
+		lightStyles: getEmailInlineStyles("light"),
+	};
 }

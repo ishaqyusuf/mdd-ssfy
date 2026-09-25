@@ -14,6 +14,7 @@ import {
 	listContractorTaxProfiles,
 	updateContractorAccountingReportRun,
 } from "@gnd/db/queries";
+import { renderContractorAccountingReportReadyEmail } from "@gnd/email/contractor-accounting";
 import { renderContractorAccountingPdfBuffer } from "@gnd/pdf";
 import { getRecipient, shouldSkipEmail } from "@gnd/utils/envs";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
@@ -417,11 +418,12 @@ async function deliverScheduledReport(input: {
 			from: "GND Millwork <noreply@gndprodesk.com>",
 			to: getRecipient(recipient),
 			subject: `${input.schedule.name} — ${input.from} to ${input.to}`,
-			html: [
-				"<p>Your scheduled contractor accounting report is ready.</p>",
-				`<p><strong>${input.kind.replaceAll("_", " ")}</strong><br />${input.from} through ${input.to}</p>`,
-				`<p><a href="${input.url}">Download the report</a></p>`,
-			].join(""),
+			html: await renderContractorAccountingReportReadyEmail({
+				kind: input.kind,
+				from: input.from,
+				to: input.to,
+				url: input.url,
+			}),
 			headers: { "X-Entity-Ref-ID": nanoid() },
 		});
 		if (response.error) {

@@ -68,7 +68,7 @@ export default function StorefrontDeliveryConfirmation({
           </Text>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={storeUrl}>Shop Again</Button>
+            <Button className="email-receipt-button" href={storeUrl}>Shop Again</Button>
           </Section>
 
           <Footer />

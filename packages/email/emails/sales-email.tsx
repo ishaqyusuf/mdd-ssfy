@@ -9,6 +9,7 @@ import {
 	StandardEmailButton,
 	StandardEmailHeader,
 	StandardEmailLayout,
+	StandardEmailPriorityAction,
 	StandardEmailSignature,
 	standardEmailColors,
 } from "../components/standard-email";
@@ -59,7 +60,7 @@ function SummaryMetric({
 	return (
 		<Column
 			className="gnd-standard-summary-column"
-			style={{ paddingRight: 18, verticalAlign: "top", width: "33.33%" }}
+			style={{ paddingRight: 18, verticalAlign: "top", width: "50%" }}
 		>
 			<Text
 				className="gnd-standard-muted m-0 text-[11px] font-semibold uppercase tracking-[0.8px]"
@@ -113,6 +114,7 @@ const SalesEmail = ({
 	const totalAmount = sales.reduce((acc, item) => acc + (item.total || 0), 0);
 	const totalDue = sales.reduce((acc, item) => acc + (item.due || 0), 0);
 	const primaryAmount = isQuote ? totalAmount : totalDue;
+	const paidAmount = Math.max(0, totalAmount - totalDue);
 	const documentLabel = isQuote ? "Quote" : "Invoice";
 	const documentMeta =
 		sales.length === 1
@@ -133,7 +135,7 @@ const SalesEmail = ({
 				</Section>
 			) : null}
 
-			<Section className="gnd-standard-content px-[36px] pt-[40px]">
+			<Section className="gnd-standard-content px-[36px] pt-[28px]">
 				<Text
 					className="gnd-standard-accent-text m-0 text-[11px] font-semibold uppercase tracking-[1.5px]"
 					style={{ color: standardEmailColors.cypress }}
@@ -141,13 +143,13 @@ const SalesEmail = ({
 					Sales document
 				</Text>
 				<Heading
-					className="gnd-standard-heading m-0 mt-[12px] text-[32px] font-normal leading-[39px]"
+					className="gnd-standard-heading m-0 mt-[10px] text-[29px] font-normal leading-[36px]"
 					style={{
 						color: standardEmailColors.ink,
 						fontFamily: "Georgia, 'Times New Roman', serif",
 					}}
 				>
-					{isQuote ? "Quote Ready for Review" : "Invoice Ready for Payment"}
+					{isQuote ? "Your Quote Is Ready" : "Your Invoice Is Ready"}
 				</Heading>
 				<Text
 					className="gnd-standard-text m-0 mt-[18px] text-[15px] leading-[24px]"
@@ -165,50 +167,22 @@ const SalesEmail = ({
 				</Text>
 			</Section>
 
-			{note ? (
-				<Section
-					className="gnd-standard-panel gnd-standard-soft gnd-standard-content mx-[36px] mt-[24px] px-[18px] py-[16px]"
-					style={{
-						backgroundColor: standardEmailColors.soft,
-						borderLeft: `3px solid ${standardEmailColors.brass}`,
-					}}
-				>
-					<Text
-						className="gnd-standard-muted m-0 text-[11px] font-semibold uppercase tracking-[0.9px]"
-						style={{ color: standardEmailColors.muted }}
-					>
-						A note from your sales representative
-					</Text>
-					<Text
-						className="gnd-standard-text m-0 mt-[8px] text-[14px] leading-[22px]"
-						style={{ color: standardEmailColors.ink }}
-					>
-						{note}
-					</Text>
-				</Section>
-			) : null}
+			<StandardEmailPriorityAction
+				actionLabel={isQuote ? "Accept Quote" : "Make Payment"}
+				href={isQuote ? acceptQuoteLink : paymentLink}
+				label={isQuote ? "Quoted total" : "Balance due"}
+				value={formatCurrency(primaryAmount)}
+			/>
 
-			<Section
-				className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-content mx-[36px] mt-[28px] px-[20px] py-[18px]"
-				style={{
-					backgroundColor: standardEmailColors.softGreen,
-					border: `1px solid ${standardEmailColors.border}`,
-					borderRadius: 6,
-				}}
-			>
+			<Section className="gnd-standard-content px-[36px] pt-[20px]">
 				<Row>
-					<SummaryMetric
-						emphasis
-						label={isQuote ? "Quoted total" : "Amount due"}
-						value={formatCurrency(primaryAmount)}
-					/>
 					<SummaryMetric
 						label={isQuote ? "Documents" : "Invoice total"}
 						value={isQuote ? String(sales.length) : formatCurrency(totalAmount)}
 					/>
 					<SummaryMetric
-						label={isQuote ? "Prepared for" : "Documents"}
-						value={isQuote ? customerName : String(sales.length)}
+						label={isQuote ? "Prepared for" : "Paid"}
+						value={isQuote ? customerName : formatCurrency(paidAmount)}
 					/>
 				</Row>
 			</Section>
@@ -339,104 +313,38 @@ const SalesEmail = ({
 				) : null}
 			</Section>
 
-			{isQuote ? (
-				<Section
-					className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-content mx-[36px] my-[30px] px-[22px] py-[22px]"
-					style={{
-						backgroundColor: standardEmailColors.soft,
-						border: `1px solid ${standardEmailColors.border}`,
-						borderRadius: 6,
-					}}
-				>
+			{note ? (
+				<Section className="gnd-standard-content px-[36px] pt-[18px]">
 					<Text
-						className="gnd-standard-accent-text m-0 text-[11px] font-semibold uppercase tracking-[1px]"
-						style={{ color: standardEmailColors.cypress }}
+						className="gnd-standard-muted m-0 text-[11px] font-semibold uppercase tracking-[0.9px]"
+						style={{ color: standardEmailColors.muted }}
 					>
-						Next step
+						A note from your sales representative
 					</Text>
-					<Heading
-						className="gnd-standard-heading m-0 mt-[8px] text-[20px] font-normal leading-[27px]"
-						style={{
-							color: standardEmailColors.ink,
-							fontFamily: "Georgia, 'Times New Roman', serif",
-						}}
-					>
-						Confirm the scope when you are ready.
-					</Heading>
 					<Text
-						className="gnd-standard-text m-0 mt-[10px] text-[14px] leading-[22px]"
+						className="gnd-standard-text m-0 mt-[8px] text-[14px] leading-[22px]"
 						style={{ color: standardEmailColors.ink }}
 					>
-						Accepting confirms the quoted scope and pricing and takes you to the
-						next step.
+						{note}
 					</Text>
-					{acceptQuoteLink ? (
-						<Section className="mt-[18px]">
-							<StandardEmailButton href={acceptQuoteLink}>
-								Accept Quote
-							</StandardEmailButton>
-						</Section>
-					) : null}
-					{pdfFallbackAvailable && pdfLink ? (
-						<Section className="mt-[12px]">
-							<StandardEmailButton href={pdfLink} variant="secondary">
-								Download PDF
-							</StandardEmailButton>
-						</Section>
-					) : null}
 				</Section>
-			) : paymentLink || pdfFallbackAvailable ? (
-				<Section
-					className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-content mx-[36px] my-[30px] px-[22px] py-[22px]"
-					style={{
-						backgroundColor: standardEmailColors.soft,
-						border: `1px solid ${standardEmailColors.border}`,
-						borderRadius: 6,
-					}}
-				>
+			) : null}
+
+			{pdfFallbackAvailable && pdfLink ? (
+				<Section className="gnd-standard-content px-[36px] pt-[20px] pb-[24px]">
 					<Text
-						className="gnd-standard-accent-text m-0 text-[11px] font-semibold uppercase tracking-[1px]"
-						style={{ color: standardEmailColors.cypress }}
+						className="gnd-standard-muted m-0 mb-[12px] text-[12px] leading-[19px]"
+						style={{ color: standardEmailColors.muted }}
 					>
-						Secure actions
+						{isQuote
+							? "Download the quote PDF for your records."
+							: "Download the invoice PDF for your records."}
 					</Text>
-					<Heading
-						className="gnd-standard-heading m-0 mt-[8px] text-[20px] font-normal leading-[27px]"
-						style={{
-							color: standardEmailColors.ink,
-							fontFamily: "Georgia, 'Times New Roman', serif",
-						}}
-					>
-						Complete the next step online.
-					</Heading>
-					<Text
-						className="gnd-standard-text m-0 mt-[10px] text-[14px] leading-[22px]"
-						style={{ color: standardEmailColors.ink }}
-					>
-						{paymentLink && pdfFallbackAvailable
-							? "Make payment securely or download the invoice PDF for your records."
-							: paymentLink
-								? "Make payment securely online from any device."
-								: "Download the invoice PDF for your records."}
-					</Text>
-					{paymentLink ? (
-						<Section className="mt-[18px]">
-							<StandardEmailButton href={paymentLink}>
-								Make Payment
-							</StandardEmailButton>
-						</Section>
-					) : null}
-					{pdfFallbackAvailable && pdfLink ? (
-						<Section className="mt-[12px]">
-							<StandardEmailButton href={pdfLink} variant="secondary">
-								Download PDF
-							</StandardEmailButton>
-						</Section>
-					) : null}
+					<StandardEmailButton href={pdfLink} variant="secondary">
+						Download PDF
+					</StandardEmailButton>
 				</Section>
-			) : (
-				<Section style={{ height: 30 }} />
-			)}
+			) : null}
 
 			{specialOrderApprovals.map((approval) => (
 				<Section
@@ -487,6 +395,16 @@ SalesEmail.PreviewProps = {
 	note: "Thank you for choosing GND Millwork. I’m available if you would like to walk through any part of the invoice.",
 	paymentLink: "https://gndprodesk.com/checkout/preview",
 	hasPdfAttachment: true,
+	dealerProgramBanner: {
+		headline: "Grow your business with GND",
+		benefitText:
+			"Join the GND dealer program for preferred pricing, sales tools, and dedicated support.",
+		ctaLabel: "Explore dealership",
+		imageUrl: null,
+		accentColor: "#0f766e",
+		url: "https://gndprodesk.com/dealer-program/preview",
+		placement: "BOTTOM",
+	},
 	sales: [
 		{
 			date: new Date("2026-08-29T12:00:00.000Z"),

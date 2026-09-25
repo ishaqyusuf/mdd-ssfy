@@ -29,7 +29,7 @@ export default function StorefrontWinBack({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `We miss you at GND Millwork!`;
+  const previewText = "We miss you at GND Millwork!";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -68,9 +68,9 @@ export default function StorefrontWinBack({
 
           <Section className="text-center my-[30px]">
             <Text
-              className={`text-[16px] font-mono$ tracking-wide bg-gray-100 py-2 px-4 inline-block rounded ${themeClasses.text}`}
+              className={`text-[16px] email-receipt-panel font-mono tracking-wide py-2 px-4 inline-block rounded ${themeClasses.text}`}
               style={{
-                backgroundColor: "#f3f4f6",
+                backgroundColor: "#eaf2ee",
                 color: lightStyles.text.color,
               }}
             >
@@ -79,7 +79,7 @@ export default function StorefrontWinBack({
           </Section>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={storeUrl}>Shop Now</Button>
+            <Button className="email-receipt-button" href={storeUrl}>Shop Now</Button>
           </Section>
 
           <Footer />

@@ -1,6 +1,68 @@
 import { describe, expect, it } from "bun:test";
 import type { TRPCContext } from "@api/trpc/init";
-import { updateMobileAccessRequest } from "./mobile-access";
+import {
+	requestMobileAccess,
+	updateMobileAccessRequest,
+} from "./mobile-access";
+
+function requestContext({
+	currentEmployee,
+	changedCount = 1,
+}: {
+	currentEmployee: boolean;
+	changedCount?: number;
+}) {
+	let requestReads = 0;
+	let eventWrites = 0;
+	let updateWhere: Record<string, unknown> | undefined;
+	let updateData: Record<string, unknown> | undefined;
+	const employee = { id: 27, name: "Employee", email: "employee@example.test" };
+	const existing = { id: 42, userId: 27, platform: "IOS", status: "REJECTED" };
+	const tx = {
+		users: {
+			findFirst: async () => (currentEmployee ? { id: employee.id } : null),
+			findMany: async () => [],
+		},
+		mobileAccessRequest: {
+			findUnique: async () => {
+				requestReads += 1;
+				return existing;
+			},
+			updateMany: async ({
+				where,
+				data,
+			}: {
+				where: Record<string, unknown>;
+				data: Record<string, unknown>;
+			}) => {
+				updateWhere = where;
+				updateData = data;
+				return { count: changedCount };
+			},
+			findUniqueOrThrow: async () => existing,
+		},
+		mobileAccessRequestEvent: {
+			create: async () => {
+				eventWrites += 1;
+			},
+		},
+	};
+	const ctx = {
+		userId: employee.id,
+		db: {
+			users: { findFirst: async () => employee },
+			$transaction: async (callback: (transaction: typeof tx) => unknown) =>
+				callback(tx),
+		},
+	} as unknown as TRPCContext;
+	return {
+		ctx,
+		getRequestReads: () => requestReads,
+		getEventWrites: () => eventWrites,
+		getUpdateWhere: () => updateWhere,
+		getUpdateData: () => updateData,
+	};
+}
 
 function reviewContext(status: "REQUESTED" | "APPROVED", changedCount: number) {
 	let updateWhere: Record<string, unknown> | undefined;
@@ -81,5 +143,47 @@ describe("mobile access admin review liveness", () => {
 		});
 		expect(harness.getWhere()).toEqual({ id: 42, status: "APPROVED" });
 		expect(harness.getEventWrites()).toBe(1);
+	});
+});
+
+describe("mobile access employee re-request liveness", () => {
+	it("denies a request when membership was revoked before the transaction", async () => {
+		const harness = requestContext({ currentEmployee: false });
+		await expect(
+			requestMobileAccess(harness.ctx, { platform: "IOS" }),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		expect(harness.getRequestReads()).toBe(0);
+		expect(harness.getEventWrites()).toBe(0);
+	});
+
+	it("uses a live-member and status compare-and-set before reopening", async () => {
+		const harness = requestContext({
+			currentEmployee: true,
+			changedCount: 0,
+		});
+		await expect(
+			requestMobileAccess(harness.ctx, { platform: "IOS" }),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+		expect(harness.getUpdateWhere()).toMatchObject({
+			id: 42,
+			status: "REJECTED",
+			requester: {
+				is: { deletedAt: null, accessRevokedAt: null },
+			},
+		});
+		expect(harness.getEventWrites()).toBe(0);
+	});
+
+	it("reopens an unchanged request and clears old invitation metadata", async () => {
+		const harness = requestContext({ currentEmployee: true });
+		await requestMobileAccess(harness.ctx, { platform: "IOS" });
+		expect(harness.getEventWrites()).toBe(1);
+		expect(harness.getUpdateData()).toMatchObject({
+			status: "REQUESTED",
+			invitationProvider: null,
+			externalReference: null,
+			internalNote: null,
+			reviewedById: null,
+		});
 	});
 });

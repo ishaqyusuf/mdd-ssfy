@@ -1,113 +1,59 @@
 /** @jsxImportSource react */
+import { Section, Text } from "@react-email/components";
 import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Img,
-  Preview,
-  Section,
-  Text,
-} from "@react-email/components";
-import * as React from "react";
+	StandardEmailButton,
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 interface EmailProps {
-  name?: string;
-  storeUrl?: string;
+	name?: string;
+	storeUrl?: string;
 }
 
 const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3010";
+	? `https://${process.env.VERCEL_URL}`
+	: "http://localhost:3010";
 
 export const PasswordCreatedEmail = ({
-  name = "Valued Customer",
-  storeUrl = `${baseUrl}/shop`,
+	name = "Valued Customer",
+	storeUrl = `${baseUrl}/shop`,
 }: EmailProps) => (
-  <Html>
-    <Head />
-    <Preview>Password Created</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Img
-          src={`${baseUrl}/static/logo-email.png`}
-          width="212"
-          height="49"
-          alt="GND"
-          style={logo}
-        />
-        <Heading style={h1}>Password Created</Heading>
-        <Text style={text}>Hello {name},</Text>
-        <Text style={text}>
-          Your password has been successfully created. You can now login to your
-          account and start shopping.
-        </Text>
-        <Section style={buttonContainer}>
-          <Button style={button} href={storeUrl}>
-            Start Shopping
-          </Button>
-        </Section>
-        <Text style={text}>
-          If you have any questions, please don't hesitate to contact us.
-        </Text>
-        <Text style={text}>
-          Thanks,
-          <br />
-          The GND Team
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+	<StandardEmailLayout previewText="Password Created">
+		<StandardEmailHeader
+			documentLabel="Password created"
+			documentMeta="GND Store"
+		/>
+		<StandardEmailHero
+			eyebrow="Account access"
+			recipientName={name}
+			title="Password Created"
+		>
+			<Text
+				className="gnd-standard-text m-0 mt-[10px] text-[15px] leading-[24px]"
+				style={{ color: standardEmailColors.ink }}
+			>
+				Your password has been successfully created. You can now log in to your
+				account and start shopping.
+			</Text>
+		</StandardEmailHero>
+		<Section className="gnd-standard-content px-[36px] pb-[30px] pt-[24px]">
+			<StandardEmailButton href={storeUrl}>Start Shopping</StandardEmailButton>
+			<Text
+				className="gnd-standard-muted m-0 mt-[18px] text-[12px] leading-[19px]"
+				style={{ color: standardEmailColors.muted }}
+			>
+				If you have any questions, please contact our support team.
+			</Text>
+		</Section>
+		<StandardEmailSignature
+			department="Store · GND Millwork"
+			senderName="The GND Team"
+		/>
+	</StandardEmailLayout>
 );
 
 export default PasswordCreatedEmail;
-
-const main = {
-  backgroundColor: "#ffffff",
-  margin: "0 auto",
-  fontFamily:
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
-};
-
-const container = {
-  maxWidth: "600px",
-  margin: "0 auto",
-  padding: "20px 0 48px",
-  border: "1px solid #eaeaea",
-  borderRadius: "5px",
-};
-
-const logo = {
-  margin: "0 auto",
-};
-
-const h1 = {
-  color: "#333",
-  fontSize: "24px",
-  fontWeight: "bold",
-  textAlign: "center" as const,
-  margin: "30px 0",
-};
-
-const text = {
-  color: "#333",
-  fontSize: "14px",
-  lineHeight: "24px",
-  margin: "0 20px",
-};
-
-const buttonContainer = {
-  textAlign: "center" as const,
-  margin: "30px 0",
-};
-
-const button = {
-  backgroundColor: "#000",
-  color: "#fff",
-  fontSize: "14px",
-  textDecoration: "none",
-  borderRadius: "5px",
-  padding: "12px 20px",
-};

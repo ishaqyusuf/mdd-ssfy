@@ -13,7 +13,10 @@ type ReadableHeaders = {
 	get(name: string): string | null;
 };
 
-export function employeeDocumentError(status: 401 | 404 | 503, message: string) {
+export function employeeDocumentError(
+	status: 401 | 404 | 503,
+	message: string,
+) {
 	return Response.json(
 		{ error: message },
 		{
@@ -32,17 +35,32 @@ function copyHeader(target: Headers, source: ReadableHeaders, name: string) {
 }
 
 function safeFilename(value: string | null | undefined) {
-	return (value || "employee-document").replace(/["\r\n]/g, "");
+	return (value || "employee-document").replace(/[^\x20-\x7e]|["\\]/g, "_");
 }
+
+const safeInlineContentTypes = new Set([
+	"application/pdf",
+	"image/png",
+	"image/jpeg",
+	"image/webp",
+	"image/avif",
+	"image/heic",
+	"image/heif",
+]);
 
 function fileHeaders(input: {
 	contentType: string | null;
 	filename: string;
 	source?: ReadableHeaders;
 }) {
+	const normalizedContentType =
+		input.contentType?.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+	const safeInline = safeInlineContentTypes.has(normalizedContentType);
 	const headers = new Headers({
-		"Content-Type": input.contentType || "application/octet-stream",
-		"Content-Disposition": `inline; filename="${safeFilename(input.filename)}"`,
+		"Content-Type": safeInline
+			? normalizedContentType
+			: "application/octet-stream",
+		"Content-Disposition": `${safeInline ? "inline" : "attachment"}; filename="${safeFilename(input.filename)}"`,
 		"Cache-Control": "private, no-store",
 		"X-Content-Type-Options": "nosniff",
 	});

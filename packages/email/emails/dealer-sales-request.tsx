@@ -1,19 +1,11 @@
 /** @jsxImportSource react */
 import {
-	Body,
-	Container,
-	Heading,
-	Preview,
-	Section,
-	Text,
-} from "@react-email/components";
-import { Logo } from "../components/logo";
-import {
-	Button,
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	DealerEmailActions,
+	DealerEmailDetails,
+	DealerEmailFrame,
+	DealerEmailNote,
+	StandardEmailButton,
+} from "../components/dealer-email";
 
 interface Props {
 	recipientName?: string | null;
@@ -42,54 +34,34 @@ export default function DealerSalesRequestEmail({
 	requestedAt,
 	requestUrl,
 }: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
-
 	return (
-		<EmailThemeProvider
-			preview={
-				<Preview>{`${dealerName} requested approval for ${quoteNo}`}</Preview>
-			}
+		<DealerEmailFrame
+			description={`${dealerName} requested approval to make quote ${quoteNo} an order.`}
+			documentLabel="Review requested"
+			documentMeta={quoteNo}
+			eyebrow="Dealer order request"
+			previewText={`${dealerName} requested approval for ${quoteNo}`}
+			recipientName={recipientName || "Sales Team"}
+			title="Review This Dealer Order Request"
 		>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
-			>
-				<Container
-					className={`my-[40px] mx-auto p-[20px] max-w-[600px] ${themeClasses.container}`}
-					style={{
-						borderStyle: "solid",
-						borderWidth: 1,
-						borderColor: lightStyles.container.borderColor,
-					}}
-				>
-					<Logo />
-					<Heading
-						className={`text-[21px] font-normal text-center p-0 my-[30px] mx-0 ${themeClasses.heading}`}
-						style={{ color: lightStyles.text.color }}
-					>
-						Dealer Order Request
-					</Heading>
-					<Text className={`font-medium ${themeClasses.text}`}>
-						Hi {recipientName || "Sales Team"},
-					</Text>
-					<Text className={themeClasses.text}>
-						{dealerName} requested approval to make quote {quoteNo} an order.
-					</Text>
-					<Text className={themeClasses.text}>
-						{customerName ? `Customer: ${customerName}. ` : ""}
-						Requested {formatRequestedAt(requestedAt)}.
-					</Text>
-					<Section className="text-center mt-[30px] mb-[40px]">
-						<Button href={requestUrl}>Review Request</Button>
-					</Section>
-					<Text className="text-[12px] leading-tight text-gray-500">
-						Review the quote, complete any missing details, and approve or
-						reject the request from GND Prodesk.
-					</Text>
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+			<DealerEmailDetails
+				items={[
+					{ label: "Dealer", value: dealerName },
+					{ label: "Quote", value: quoteNo },
+					...(customerName ? [{ label: "Customer", value: customerName }] : []),
+					{ label: "Requested", value: formatRequestedAt(requestedAt) },
+				]}
+			/>
+			<DealerEmailNote label="Before you decide">
+				Review the quote, complete any missing details, and approve or reject
+				the request from GND Prodesk.
+			</DealerEmailNote>
+			<DealerEmailActions>
+				<StandardEmailButton href={requestUrl}>
+					Review Request
+				</StandardEmailButton>
+			</DealerEmailActions>
+		</DealerEmailFrame>
 	);
 }
 

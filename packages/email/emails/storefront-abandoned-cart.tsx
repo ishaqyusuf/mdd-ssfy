@@ -39,7 +39,7 @@ export default function StorefrontAbandonedCart({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `You left items in your cart at GND Millwork`;
+  const previewText = "You left items in your cart at GND Millwork";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -95,7 +95,7 @@ export default function StorefrontAbandonedCart({
           </Section>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={cartUrl}>Complete Your Purchase</Button>
+            <Button className="email-receipt-button" href={cartUrl}>Complete Your Purchase</Button>
           </Section>
 
           <Footer />

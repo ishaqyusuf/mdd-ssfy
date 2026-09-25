@@ -82,6 +82,16 @@ export async function requestMobileAccess(
 ) {
 	const employee = await requireActiveEmployee(ctx);
 	const result = await ctx.db.$transaction(async (tx) => {
+		const currentEmployee = await tx.users.findFirst({
+			where: getActiveCompanyMemberWhere({ id: employee.id }),
+			select: { id: true },
+		});
+		if (!currentEmployee) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "An active employee account is required.",
+			});
+		}
 		const existing = await tx.mobileAccessRequest.findUnique({
 			where: {
 				userId_platform: {
@@ -98,40 +108,56 @@ export async function requestMobileAccess(
 		}
 
 		const now = new Date();
-		const request = existing
-			? await tx.mobileAccessRequest.update({
-					where: { id: existing.id },
-					data: {
-						status: "REQUESTED",
-						employeeNote: input.employeeNote ?? null,
-						statusNote: null,
-						internalNote: null,
-						invitationProvider: null,
-						externalReference: null,
-						requestedAt: now,
-						approvedAt: null,
-						invitedAt: null,
-						acceptedAt: null,
-						installedAt: null,
-						rejectedAt: null,
-						cancelledAt: null,
-						reviewedById: null,
-						lastStatusChangedAt: now,
-					},
-				})
-			: await tx.mobileAccessRequest.create({
-					data: {
-						userId: employee.id,
-						platform: input.platform,
-						employeeNote: input.employeeNote ?? null,
-						requestedAt: now,
-						lastStatusChangedAt: now,
-					},
+		let requestId: number;
+		if (existing) {
+			const changed = await tx.mobileAccessRequest.updateMany({
+				where: {
+					id: existing.id,
+					status: existing.status,
+					requester: { is: getActiveCompanyMemberWhere() },
+				},
+				data: {
+					status: "REQUESTED",
+					employeeNote: input.employeeNote ?? null,
+					statusNote: null,
+					internalNote: null,
+					invitationProvider: null,
+					externalReference: null,
+					requestedAt: now,
+					approvedAt: null,
+					invitedAt: null,
+					acceptedAt: null,
+					installedAt: null,
+					rejectedAt: null,
+					cancelledAt: null,
+					reviewedById: null,
+					lastStatusChangedAt: now,
+				},
+			});
+			if (changed.count !== 1) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"The request changed or the employee no longer has an active company account. Refresh and retry.",
 				});
+			}
+			requestId = existing.id;
+		} else {
+			const request = await tx.mobileAccessRequest.create({
+				data: {
+					userId: employee.id,
+					platform: input.platform,
+					employeeNote: input.employeeNote ?? null,
+					requestedAt: now,
+					lastStatusChangedAt: now,
+				},
+			});
+			requestId = request.id;
+		}
 
 		await tx.mobileAccessRequestEvent.create({
 			data: {
-				requestId: request.id,
+				requestId,
 				actorId: employee.id,
 				fromStatus: existing?.status ?? null,
 				toStatus: "REQUESTED",
@@ -166,7 +192,7 @@ export async function requestMobileAccess(
 		}
 
 		return tx.mobileAccessRequest.findUniqueOrThrow({
-			where: { id: request.id },
+			where: { id: requestId },
 			select: selfRequestSelect,
 		});
 	});

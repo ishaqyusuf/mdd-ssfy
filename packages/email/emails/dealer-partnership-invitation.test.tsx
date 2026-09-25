@@ -10,6 +10,7 @@ describe("dealer partnership invitation email", () => {
 				benefitText="Serve your customers with dealer pricing and office fulfillment."
 				ctaLabel="Request partnership"
 				headline="Grow with GND"
+				imageUrl="https://example.com/dealer-campaign.jpg"
 				invitationUrl="https://gndprodesk.com/dealer-program/opaque-token"
 				recipientName="Acme Millwork"
 			/>,
@@ -19,5 +20,7 @@ describe("dealer partnership invitation email", () => {
 		expect(html).toContain("dealer pricing and office fulfillment");
 		expect(html).toContain("Request partnership");
 		expect(html).toContain("opaque-token");
+		expect(html).toContain("dealer-campaign.jpg");
+		expect(html).toContain("gnd-standard-primary-button");
 	});
 });

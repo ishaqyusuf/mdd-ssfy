@@ -19,7 +19,7 @@ describe("dispatch emails", () => {
 		expect(html).toContain("GND-10482");
 		expect(html).toContain("Local delivery");
 		expect(html).toContain("Sep 3, 2026");
-		expect(html).toContain("background-color:#f1f3ef");
+		expect(html).toContain("background-color:#ffffff");
 	});
 
 	it("keeps the created state distinct", async () => {

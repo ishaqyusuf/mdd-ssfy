@@ -28,7 +28,10 @@
 			"ios": {
 				"env": {
 					"GND_IOS_PUBLIC_RELEASE": "true",
-					"EXPO_PUBLIC_BASE_URL": "https://www.gndprodesk.com"
+					"EXPO_PUBLIC_BASE_URL": "https://www.gndprodesk.com",
+					"EXPO_PUBLIC_LOGLY_ENABLED": "false",
+					"EXPO_PUBLIC_SENTRY_ENABLED": "false",
+					"SENTRY_DISABLE_AUTO_UPLOAD": "true"
 				}
 			},
 			"env": {

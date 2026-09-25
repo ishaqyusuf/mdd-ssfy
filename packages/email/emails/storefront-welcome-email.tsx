@@ -27,7 +27,7 @@ export default function StorefrontWelcomeEmail({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `Welcome to GND Millwork Store`;
+  const previewText = "Welcome to GND Millwork Store";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -66,7 +66,7 @@ export default function StorefrontWelcomeEmail({
           </Text>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={storeUrl}>Go to Store</Button>
+            <Button className="email-receipt-button" href={storeUrl}>Go to Store</Button>
           </Section>
 
           <Text

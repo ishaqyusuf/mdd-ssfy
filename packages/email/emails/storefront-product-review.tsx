@@ -32,7 +32,7 @@ export default function StorefrontProductReview({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `We'd love to hear your feedback on your recent purchase`;
+  const previewText = "We'd love to hear your feedback on your recent purchase";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -71,7 +71,7 @@ export default function StorefrontProductReview({
           </Text>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={productReviewUrl}>Leave a Review</Button>
+            <Button className="email-receipt-button" href={productReviewUrl}>Leave a Review</Button>
           </Section>
 
           <Footer />

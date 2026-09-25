@@ -33,7 +33,7 @@ describe("dealership recruitment sales-email banner", () => {
 		expect(html).toContain(banner.benefitText);
 		expect(html).toContain("opaque-token");
 		expect(html.indexOf(banner.headline)).toBeLessThan(
-			html.indexOf("Invoice Ready for Payment"),
+			html.indexOf("Your Invoice Is Ready"),
 		);
 	});
 

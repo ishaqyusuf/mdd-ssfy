@@ -6,6 +6,7 @@ import {
 } from "@/components/page-tabs";
 import { queryFromActiveFilters } from "@/components/page-tabs/query-utils";
 import { SavePageTabButton } from "@/components/page-tabs/save-page-tab-button";
+import { SearchInput } from "@/components/search-input";
 import { DealersColumnVisibility } from "@/components/tables-2/dealers/column-visibility";
 import type { SalesProfileOption } from "@/components/tables-2/dealers/columns";
 import { DataTable } from "@/components/tables-2/dealers/data-table";
@@ -20,7 +21,6 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@gnd/ui/dialog";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
@@ -32,12 +32,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useQueryStates } from "nuqs";
 import { parseAsString } from "nuqs/server";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	type FilterDefinition,
 	buildOptionLabelLookup,
 } from "../midday-search-filter/filter-definitions";
 import { DealerProgramAdmin } from "./dealer-program-admin";
+import { DealerSummaryWidgets } from "./dealer-summary-widgets";
 
 type AddMode = "existing" | "new";
 type CustomerCandidate = {
@@ -82,6 +83,7 @@ export function DealersAdminPage({ initialSettings }: Props) {
 	const [filters, setFilters] = useQueryStates(dealerFilterParams);
 	const search = filters.search ?? "";
 	const [open, setOpen] = useState(false);
+	const [isHydrated, setIsHydrated] = useState(false);
 	const [mode, setMode] = useState<AddMode>("existing");
 	const [customerSearch, setCustomerSearch] = useState("");
 	const [selectedCustomer, setSelectedCustomer] =
@@ -96,6 +98,8 @@ export function DealersAdminPage({ initialSettings }: Props) {
 	>(null);
 	const debouncedSearch = useDebounce(search, 300);
 	const debouncedCustomerSearch = useDebounce(customerSearch, 300);
+
+	useEffect(() => setIsHydrated(true), []);
 
 	const dealersQuery = useQuery(
 		trpc.dealer.list.queryOptions({
@@ -230,7 +234,18 @@ export function DealersAdminPage({ initialSettings }: Props) {
 		[dealers],
 	);
 	const totalPending = useMemo(
-		() => dealers.filter((dealer) => dealer.status === "pending").length,
+		() =>
+			dealers.filter((dealer) =>
+				["pending", "pending approval", "pending_approval"].includes(
+					dealer.status?.toLowerCase() || "",
+				),
+			).length,
+		[dealers],
+	);
+	const totalVerified = useMemo(
+		() =>
+			dealers.filter((dealer) => dealer.status?.toLowerCase() === "verified")
+				.length,
 		[dealers],
 	);
 	const activeTabFilters = useMemo(
@@ -280,147 +295,134 @@ export function DealersAdminPage({ initialSettings }: Props) {
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
-			<div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
-				<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-					<Metric label="Total dealers" value={dealers.length} />
-					<Metric label="Active" value={totalActive} />
-					<Metric label="Pending" value={totalPending} />
-					<Metric label="Showing" value={dealers.length} />
-				</div>
-				<Dialog open={open} onOpenChange={setOpen}>
-					<DialogTrigger asChild>
-						<Button className="h-9 gap-2 self-start md:self-center">
-							<Icons.Add className="size-4" />
-							Add dealer
-						</Button>
-					</DialogTrigger>
-					<DialogContent className="max-w-2xl">
-						<DialogHeader>
-							<DialogTitle>Add dealer</DialogTitle>
-						</DialogHeader>
+		<div className="flex min-w-0 flex-col gap-5 sm:gap-6">
+			<DealerSummaryWidgets
+				active={totalActive}
+				isLoading={!isHydrated || dealersQuery.isPending}
+				pending={totalPending}
+				shown={dealers.length}
+				verified={totalVerified}
+			/>
+			<Dialog open={open} onOpenChange={setOpen}>
+				<DialogContent className="max-w-2xl">
+					<DialogHeader>
+						<DialogTitle>Add dealer</DialogTitle>
+					</DialogHeader>
 
-						<Tabs
-							value={mode}
-							onValueChange={(value) => setMode(value as AddMode)}
-						>
-							<TabsList className="grid w-full grid-cols-2">
-								<TabsTrigger value="existing">Existing customer</TabsTrigger>
-								<TabsTrigger value="new">New dealer</TabsTrigger>
-							</TabsList>
-							<TabsContent value="existing" className="mt-4 space-y-3">
-								<div className="space-y-2">
-									<Label htmlFor="dealer-customer-search">
-										Search customers
-									</Label>
-									<Input
-										id="dealer-customer-search"
-										value={customerSearch}
-										onChange={(event) => setCustomerSearch(event.target.value)}
-										placeholder="Name, business, email, or phone"
-									/>
-								</div>
-								<RadioGroup
-									value={selectedCustomer?.id?.toString()}
-									onValueChange={(value) => {
-										const next = candidates.find(
-											(candidate) => candidate.id?.toString() === value,
-										);
-										setSelectedCustomer(next ?? null);
-									}}
-									className="max-h-72 overflow-y-auto rounded-lg border"
-								>
-									{candidateQuery.isPending ? (
-										<div className="p-4 text-sm text-muted-foreground">
-											Loading customers...
-										</div>
-									) : candidates.length ? (
-										candidates.map((customer) => (
-											<label
-												htmlFor={`dealer-candidate-${customer.id}`}
-												key={customer.id}
-												className="flex cursor-pointer items-start gap-3 border-b p-3 last:border-b-0 hover:bg-muted/50"
-											>
-												<RadioGroupItem
-													id={`dealer-candidate-${customer.id}`}
-													value={customer.id?.toString() ?? ""}
-													className="mt-1"
-												/>
-												<span className="min-w-0 flex-1">
-													<span className="block truncate text-sm font-medium">
-														{displayCustomerName(customer)}
-													</span>
-													<span className="block truncate text-xs text-muted-foreground">
-														{customer.email || "No email on customer"}{" "}
-														{customer.phoneNo ? `- ${customer.phoneNo}` : ""}
-													</span>
-													{customer.auth ? (
-														<Badge
-															variant="outline"
-															className="mt-2 rounded-full text-[11px]"
-														>
-															Dealer {customer.auth.status || "pending"}
-														</Badge>
-													) : null}
+					<Tabs
+						value={mode}
+						onValueChange={(value) => setMode(value as AddMode)}
+					>
+						<TabsList className="grid w-full grid-cols-2">
+							<TabsTrigger value="existing">Existing customer</TabsTrigger>
+							<TabsTrigger value="new">New dealer</TabsTrigger>
+						</TabsList>
+						<TabsContent value="existing" className="mt-4 space-y-3">
+							<div className="space-y-2">
+								<Label htmlFor="dealer-customer-search">Search customers</Label>
+								<Input
+									id="dealer-customer-search"
+									value={customerSearch}
+									onChange={(event) => setCustomerSearch(event.target.value)}
+									placeholder="Name, business, email, or phone"
+								/>
+							</div>
+							<RadioGroup
+								value={selectedCustomer?.id?.toString()}
+								onValueChange={(value) => {
+									const next = candidates.find(
+										(candidate) => candidate.id?.toString() === value,
+									);
+									setSelectedCustomer(next ?? null);
+								}}
+								className="max-h-72 overflow-y-auto rounded-lg border"
+							>
+								{candidateQuery.isPending ? (
+									<div className="p-4 text-sm text-muted-foreground">
+										Loading customers...
+									</div>
+								) : candidates.length ? (
+									candidates.map((customer) => (
+										<label
+											htmlFor={`dealer-candidate-${customer.id}`}
+											key={customer.id}
+											className="flex cursor-pointer items-start gap-3 border-b p-3 last:border-b-0 hover:bg-muted/50"
+										>
+											<RadioGroupItem
+												id={`dealer-candidate-${customer.id}`}
+												value={customer.id?.toString() ?? ""}
+												className="mt-1"
+											/>
+											<span className="min-w-0 flex-1">
+												<span className="block truncate text-sm font-medium">
+													{displayCustomerName(customer)}
 												</span>
-											</label>
-										))
-									) : (
-										<div className="p-4 text-sm text-muted-foreground">
-											No customers found.
-										</div>
-									)}
-								</RadioGroup>
-							</TabsContent>
-							<TabsContent value="new" className="mt-4 space-y-3">
-								<div className="space-y-2">
-									<Label htmlFor="dealer-name">Dealer name</Label>
-									<Input
-										id="dealer-name"
-										value={dealerName}
-										onChange={(event) => setDealerName(event.target.value)}
-										placeholder="Dealer or company name"
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="dealer-email">Email</Label>
-									<Input
-										id="dealer-email"
-										type="email"
-										value={dealerEmail}
-										onChange={(event) => setDealerEmail(event.target.value)}
-										placeholder="dealer@example.com"
-									/>
-								</div>
-							</TabsContent>
-						</Tabs>
-						<DialogFooter>
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => setOpen(false)}
-							>
-								Cancel
-							</Button>
-							<Button
-								type="button"
-								disabled={!canSubmit || createDealer.isPending}
-								onClick={submitDealer}
-							>
-								{createDealer.isPending ? "Sending..." : "Send onboarding"}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
-			</div>
+												<span className="block truncate text-xs text-muted-foreground">
+													{customer.email || "No email on customer"}{" "}
+													{customer.phoneNo ? `- ${customer.phoneNo}` : ""}
+												</span>
+												{customer.auth ? (
+													<Badge
+														variant="outline"
+														className="mt-2 rounded-full text-[11px]"
+													>
+														Dealer {customer.auth.status || "pending"}
+													</Badge>
+												) : null}
+											</span>
+										</label>
+									))
+								) : (
+									<div className="p-4 text-sm text-muted-foreground">
+										No customers found.
+									</div>
+								)}
+							</RadioGroup>
+						</TabsContent>
+						<TabsContent value="new" className="mt-4 space-y-3">
+							<div className="space-y-2">
+								<Label htmlFor="dealer-name">Dealer name</Label>
+								<Input
+									id="dealer-name"
+									value={dealerName}
+									onChange={(event) => setDealerName(event.target.value)}
+									placeholder="Dealer or company name"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="dealer-email">Email</Label>
+								<Input
+									id="dealer-email"
+									type="email"
+									value={dealerEmail}
+									onChange={(event) => setDealerEmail(event.target.value)}
+									placeholder="dealer@example.com"
+								/>
+							</div>
+						</TabsContent>
+					</Tabs>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							disabled={!canSubmit || createDealer.isPending}
+							onClick={submitDealer}
+						>
+							{createDealer.isPending ? "Sending..." : "Send onboarding"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
-			<div className="flex flex-col gap-3">
-				<div className="flex flex-col gap-3 pb-2">
-					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<h2 className="text-base font-semibold">Dealer accounts</h2>
-						<DealersColumnVisibility />
-					</div>
-					<div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center">
+			<div className="min-w-0 space-y-3">
+				<div className="sticky top-0 z-30 -mx-4 space-y-4 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/90 sm:-mx-6 sm:px-6">
+					<div className="min-w-0">
 						<PageTabs
 							portal={false}
 							currentQuery={saveTabQuery}
@@ -437,19 +439,27 @@ export function DealersAdminPage({ initialSettings }: Props) {
 								) : undefined
 							}
 						/>
-						<div className="relative w-full lg:w-[350px]">
-							<Icons.Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-							<Input
+					</div>
+					<div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+						<div className="min-w-0 flex-1">
+							<SearchInput
+								ariaLabel="Search dealers"
 								value={search}
-								onChange={(event) => {
-									const value = event.target.value.trimStart();
+								onChangeText={(text) => {
+									const value = text.trimStart();
 									void setFilters({
 										search: value || null,
 									});
 								}}
-								placeholder="Search dealers"
-								className="pl-9"
+								placeholder="Search dealers..."
 							/>
+						</div>
+						<div className="flex shrink-0 items-center justify-end gap-2">
+							<DealersColumnVisibility />
+							<Button className="h-9 gap-2" onClick={() => setOpen(true)}>
+								<Icons.Add className="size-4" />
+								Add dealer
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -457,7 +467,7 @@ export function DealersAdminPage({ initialSettings }: Props) {
 					dealers={dealers}
 					hasFilters={Boolean(filters.search)}
 					initialSettings={initialSettings}
-					isLoading={dealersQuery.isPending}
+					isLoading={!isHydrated || dealersQuery.isPending}
 					isProfilesLoading={profilesQuery.isPending}
 					isResending={resendOnboarding.isPending}
 					onCreateDealer={() => setOpen(true)}
@@ -478,15 +488,6 @@ export function DealersAdminPage({ initialSettings }: Props) {
 				/>
 			</div>
 			<DealerProgramAdmin />
-		</div>
-	);
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-	return (
-		<div className="rounded-md border bg-muted/20 px-3 py-2">
-			<div className="text-xs text-muted-foreground">{label}</div>
-			<div className="text-lg font-semibold">{value}</div>
 		</div>
 	);
 }

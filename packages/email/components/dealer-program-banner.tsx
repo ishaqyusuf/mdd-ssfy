@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import { Heading, Img, Section, Text } from "@react-email/components";
-import { Button } from "./theme";
+import { StandardEmailButton, standardEmailColors } from "./standard-email";
 
 export type DealerProgramBannerProps = {
 	headline: string;
@@ -21,25 +21,42 @@ export function DealerProgramBanner({
 }: DealerProgramBannerProps) {
 	return (
 		<Section
-			className="my-[22px] overflow-hidden rounded-[12px] p-[20px]"
-			style={{ backgroundColor: accentColor }}
+			className="gnd-standard-soft gnd-standard-border my-[22px] overflow-hidden rounded-[6px] border border-solid p-[20px]"
+			style={{
+				backgroundColor: standardEmailColors.soft,
+				borderColor: standardEmailColors.border,
+				borderLeft: `4px solid ${accentColor}`,
+			}}
 		>
 			{imageUrl ? (
 				<Img
-					alt=""
-					className="mb-[14px] h-auto w-full rounded-[8px]"
+					alt="Dealership partnership"
+					className="mb-[16px] h-auto w-full rounded-[5px]"
 					src={imageUrl}
 				/>
 			) : null}
-			<Heading className="m-0 text-[22px] leading-[28px] text-white">
+			<Text
+				className="gnd-standard-accent-text m-0 text-[11px] font-semibold uppercase tracking-[1.2px]"
+				style={{ color: standardEmailColors.cypress }}
+			>
+				Dealer partnership
+			</Text>
+			<Heading
+				className="gnd-standard-heading m-0 mt-[8px] text-[22px] leading-[28px]"
+				style={{
+					color: standardEmailColors.ink,
+					fontFamily: "Georgia, 'Times New Roman', serif",
+				}}
+			>
 				{headline}
 			</Heading>
-			<Text className="mt-[10px] mb-[16px] text-[14px] leading-[22px] text-white">
+			<Text
+				className="gnd-standard-text mb-[18px] mt-[10px] text-[14px] leading-[22px]"
+				style={{ color: standardEmailColors.ink }}
+			>
 				{benefitText}
 			</Text>
-			<Button href={url} variant="secondary">
-				{ctaLabel}
-			</Button>
+			<StandardEmailButton href={url}>{ctaLabel}</StandardEmailButton>
 		</Section>
 	);
 }

@@ -88,6 +88,14 @@ if (isExplicitProductionIosBuild) {
   ) {
     throw new Error("Enabled production Logly requires a configured HTTPS endpoint.");
   }
+  if (
+    process.env.EXPO_PUBLIC_LOGLY_ENABLED === "true" ||
+    process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true"
+  ) {
+    throw new Error(
+      "Public iOS production builds must disable Logly and Sentry until consent, withdrawal, and provider safeguards are verified.",
+    );
+  }
 }
 
 const variantConfig = isDevelopmentBuild

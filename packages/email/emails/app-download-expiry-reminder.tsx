@@ -73,12 +73,12 @@ export function AppDownloadExpiryReminderEmail({
           </Text>
 
           <Section
-            className="my-[18px] rounded-[10px] p-[14px]"
+            className="email-receipt-panel my-[18px] rounded-[10px] p-[14px]"
             style={{
               borderStyle: "solid",
               borderWidth: 1,
               borderColor: lightStyles.container.borderColor,
-              backgroundColor: "#f8fafc",
+              backgroundColor: "#eaf2ee",
             }}
           >
             <Text className={themeClasses.text}>
@@ -101,7 +101,7 @@ export function AppDownloadExpiryReminderEmail({
 
           <Button
             href={settingsUrl}
-            className={themeClasses.button}
+            className={`${themeClasses.button} email-receipt-button`}
             style={{
               backgroundColor: "#111827",
               color: "#ffffff",

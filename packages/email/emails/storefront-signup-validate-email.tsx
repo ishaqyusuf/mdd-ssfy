@@ -27,7 +27,7 @@ export default function StorefrontSignupValidateEmail({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `Validate your email for GND Millwork`;
+  const previewText = "Validate your email for GND Millwork";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -66,7 +66,7 @@ export default function StorefrontSignupValidateEmail({
           </Text>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={validationLink}>Validate Email</Button>
+            <Button className="email-receipt-button" href={validationLink}>Validate Email</Button>
           </Section>
 
           <Text

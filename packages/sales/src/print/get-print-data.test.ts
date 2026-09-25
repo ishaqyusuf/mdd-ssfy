@@ -214,9 +214,11 @@ describe("getPrintData", () => {
 			const detailedPage = detailed.pages[0];
 			const totalsOnlyPage = totalsOnly.pages[0];
 
-			expect(detailedPage?.sections.some((section) =>
-				section.headers.some((header) => header.title === "Rate"),
-			)).toBe(true);
+			expect(
+				detailedPage?.sections.some((section) =>
+					section.headers.some((header) => header.title === "Rate"),
+				),
+			).toBe(true);
 			expect(
 				totalsOnlyPage?.sections.flatMap((section) =>
 					section.headers.map((header) => header.title),
@@ -428,6 +430,82 @@ describe("getPrintData", () => {
 		expect(doorSection?.rows[0]?.cells[2]?.value).toBe('32" x 84"');
 		expect(doorSection?.rows[0]?.cells[1]?.value).toContain("Flush Door");
 	});
+
+	it.each([
+		{ qty: null, total: 0 },
+		{ qty: 5, total: 500 },
+	])(
+		"prints approved invoice rows against approved parent values: %j",
+		async (legacy) => {
+			const source = createSale();
+			const item = source.items[0];
+			if (!item?.housePackageTool) throw new Error("Expected HPT fixture");
+			const door = item.housePackageTool.doors[0];
+			if (!door) throw new Error("Expected door fixture");
+			const sale = {
+				...source,
+				subTotal: 301.31,
+				grandTotal: 301.31,
+				amountDue: 201.31,
+				items: [{ ...item, ...legacy, rate: 0 }],
+				meta: {
+					newSalesForm: {
+						approvedAdjustmentId: "approved-statement-regression",
+						lineItems: [
+							{
+								id: item.id,
+								qty: 1,
+								unitPrice: 301.31,
+								lineTotal: 301.31,
+								housePackageTool: {
+									totalDoors: 1,
+									totalPrice: 301.31,
+									doors: [
+										{
+											...door,
+											totalQty: 1,
+											unitPrice: 301.31,
+											lineTotal: 301.31,
+										},
+									],
+								},
+							},
+						],
+					},
+				},
+			};
+			const db = {
+				salesOrders: { findMany: async () => [sale] },
+				settings: { findFirst: async () => null },
+			} as unknown as Parameters<typeof getPrintData>[0];
+
+			const result = await getPrintData(db, {
+				ids: [sale.id],
+				mode: "invoice",
+			});
+			const rows = result.pages[0]?.sections.find(
+				(section) => section.kind === "door",
+			)?.rows;
+			expect(rows).toHaveLength(1);
+			expect(JSON.stringify(rows)).toContain("301.31");
+			expect(sale.items[0]).toMatchObject(legacy);
+
+			// Approval does not bypass reconciliation of the snapshot itself.
+			const approvedLine = sale.meta.newSalesForm.lineItems[0];
+			if (!approvedLine) throw new Error("Expected approved line fixture");
+			approvedLine.lineTotal = 302.31;
+			await expect(
+				getPrintData(db, { ids: [sale.id], mode: "invoice" }),
+			).rejects.toThrow("do not reconcile");
+			approvedLine.lineTotal = 301.31;
+
+			// An unapproved draft cannot replace the saved commercial values.
+			sale.meta.newSalesForm.approvedAdjustmentId = "";
+			await expect(
+				getPrintData(db, { ids: [sale.id], mode: "invoice" }),
+			).rejects.toThrow("do not reconcile");
+		},
+	);
 
 	it("orders mixed new-form and legacy sections and excludes grouped rows from generic lines", async () => {
 		const db = {

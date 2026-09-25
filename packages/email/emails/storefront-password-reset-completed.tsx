@@ -27,7 +27,7 @@ export default function StorefrontPasswordResetCompleted({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `Your GND Millwork password has been successfully reset`;
+  const previewText = "Your GND Millwork password has been successfully reset";
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
@@ -65,7 +65,7 @@ export default function StorefrontPasswordResetCompleted({
           </Text>
 
           <Section className="text-center mt-[30px] mb-[40px]">
-            <Button href={loginUrl}>Log In to Your Account</Button>
+            <Button className="email-receipt-button" href={loginUrl}>Log In to Your Account</Button>
           </Section>
 
           <Text

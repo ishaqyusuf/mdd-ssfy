@@ -26,6 +26,6 @@ describe("SalesDailyPaymentReportEmail", () => {
 		expect(html).toContain("2 exceptions");
 		expect(html).toContain("flagged for accounting review");
 		expect(html).toContain("https://example.com/report.xlsx");
-		expect(html).toContain("background-color:#f1f3ef");
+		expect(html).toContain("background-color:#ffffff");
 	});
 });

@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { Column, Heading, Row, Section, Text } from "@react-email/components";
+import { Column, Row, Section, Text } from "@react-email/components";
 import { format } from "date-fns";
 import {
 	DealerProgramBanner,
@@ -11,6 +11,7 @@ import {
 	StandardEmailHero,
 	StandardEmailLayout,
 	StandardEmailMetric,
+	StandardEmailPriorityAction,
 	StandardEmailSignature,
 	standardEmailColors,
 } from "../components/standard-email";
@@ -122,20 +123,15 @@ export default function ComposedSalesDocumentEmail({
 				)}
 			</StandardEmailHero>
 
-			<Section
-				className="gnd-standard-panel gnd-standard-soft-green gnd-standard-border gnd-standard-content mx-[36px] mt-[28px] px-[20px] py-[18px]"
-				style={{
-					backgroundColor: standardEmailColors.softGreen,
-					border: `1px solid ${standardEmailColors.border}`,
-					borderRadius: 6,
-				}}
-			>
+			<StandardEmailPriorityAction
+				actionLabel="Make payment"
+				href={totalDue > 0 ? paymentLink : null}
+				label="Outstanding balance"
+				value={formatCurrency(totalDue)}
+			/>
+
+			<Section className="gnd-standard-content px-[36px] pt-[20px]">
 				<Row>
-					<StandardEmailMetric
-						emphasis
-						label="Outstanding balance"
-						value={formatCurrency(totalDue)}
-					/>
 					<StandardEmailMetric
 						label="Document total"
 						value={formatCurrency(totalAmount)}
@@ -212,56 +208,17 @@ export default function ComposedSalesDocumentEmail({
 				) : null}
 			</Section>
 
-			{(paymentLink && totalDue > 0) || (pdfLink && !hasPdfAttachment) ? (
-				<Section
-					className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-content mx-[36px] my-[30px] px-[22px] py-[22px]"
-					style={{
-						backgroundColor: standardEmailColors.soft,
-						border: `1px solid ${standardEmailColors.border}`,
-						borderRadius: 6,
-					}}
-				>
+			{pdfLink && !hasPdfAttachment ? (
+				<Section className="gnd-standard-content px-[36px] pt-[20px] pb-[24px]">
 					<Text
-						className="gnd-standard-accent-text m-0 text-[12px] font-semibold uppercase tracking-[1px]"
-						style={{ color: standardEmailColors.cypress }}
+						className="gnd-standard-muted m-0 mb-[12px] text-[12px] leading-[19px]"
+						style={{ color: standardEmailColors.muted }}
 					>
-						Next step
+						Download a PDF copy for your records.
 					</Text>
-					<Heading
-						className="gnd-standard-heading m-0 mt-[8px] text-[20px] font-normal leading-[27px]"
-						style={{
-							color: standardEmailColors.ink,
-							fontFamily: "Georgia, 'Times New Roman', serif",
-						}}
-					>
-						Review this sales document
-					</Heading>
-					{paymentLink && totalDue > 0 ? (
-						<Section className="mt-[18px]">
-							<Text
-								className="gnd-standard-text m-0 mb-[12px] text-[14px] leading-[22px]"
-								style={{ color: standardEmailColors.ink }}
-							>
-								Pay the current outstanding balance using GND’s secure checkout.
-							</Text>
-							<StandardEmailButton href={paymentLink}>
-								Make payment
-							</StandardEmailButton>
-						</Section>
-					) : null}
-					{pdfLink && !hasPdfAttachment ? (
-						<Section className="mt-[18px]">
-							<Text
-								className="gnd-standard-text m-0 mb-[12px] text-[14px] leading-[22px]"
-								style={{ color: standardEmailColors.ink }}
-							>
-								Download a PDF copy for your records.
-							</Text>
-							<StandardEmailButton href={pdfLink} variant="secondary">
-								Download PDF
-							</StandardEmailButton>
-						</Section>
-					) : null}
+					<StandardEmailButton href={pdfLink} variant="secondary">
+						Download PDF
+					</StandardEmailButton>
 				</Section>
 			) : null}
 

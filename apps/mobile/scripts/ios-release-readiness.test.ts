@@ -83,6 +83,66 @@ describe("iOS public App Store release readiness", () => {
 		expect(hasDashboardApiAuthRouteContract(`// ${trpc}`, auth)).toBe(false);
 	});
 
+	it("blocks optional telemetry for public iOS while leaving Android and preview unchanged", async () => {
+		const original = {
+			APP_VARIANT: process.env.APP_VARIANT,
+			GND_IOS_PUBLIC_RELEASE: process.env.GND_IOS_PUBLIC_RELEASE,
+			EXPO_PUBLIC_SENTRY_ENABLED: process.env.EXPO_PUBLIC_SENTRY_ENABLED,
+			EXPO_PUBLIC_LOGLY_ENABLED: process.env.EXPO_PUBLIC_LOGLY_ENABLED,
+		};
+		const consentGate = async () =>
+			(await collectIosReleaseReadiness()).find(
+				(item) => item.label === "Public iOS optional telemetry consent gate",
+			)?.ok;
+
+		try {
+			process.env.APP_VARIANT = "production";
+			process.env.GND_IOS_PUBLIC_RELEASE = "true";
+			process.env.EXPO_PUBLIC_LOGLY_ENABLED = "true";
+			process.env.EXPO_PUBLIC_SENTRY_ENABLED = "false";
+			expect(await consentGate()).toBe(false);
+
+			process.env.EXPO_PUBLIC_LOGLY_ENABLED = "false";
+			process.env.EXPO_PUBLIC_SENTRY_ENABLED = "true";
+			expect(await consentGate()).toBe(false);
+
+			process.env.EXPO_PUBLIC_SENTRY_ENABLED = "false";
+			expect(await consentGate()).toBe(true);
+
+			process.env.GND_IOS_PUBLIC_RELEASE = "false";
+			process.env.EXPO_PUBLIC_LOGLY_ENABLED = "true";
+			expect(await consentGate()).toBe(true);
+
+			process.env.APP_VARIANT = "preview";
+			process.env.GND_IOS_PUBLIC_RELEASE = "true";
+			expect(await consentGate()).toBe(true);
+		} finally {
+			for (const [key, value] of Object.entries(original)) {
+				if (value === undefined) delete process.env[key];
+				else process.env[key] = value;
+			}
+		}
+	});
+
+	it("pins optional telemetry off in the iOS store profile without changing Android", async () => {
+		const eas = await Bun.file(new URL("../eas.json", import.meta.url)).json();
+		const iosEnv = eas.build.production.ios.env;
+		const commonEnv = eas.build.production.env;
+		const check = (await collectIosReleaseReadiness()).find(
+			(item) =>
+				item.label === "iOS-only optional telemetry disabled in build profile",
+		);
+
+		expect(check?.ok).toBe(true);
+		expect(iosEnv.EXPO_PUBLIC_LOGLY_ENABLED).toBe("false");
+		expect(iosEnv.EXPO_PUBLIC_SENTRY_ENABLED).toBe("false");
+		expect(iosEnv.SENTRY_DISABLE_AUTO_UPLOAD).toBe("true");
+		expect(commonEnv.EXPO_PUBLIC_LOGLY_ENABLED).toBeUndefined();
+		expect(commonEnv.EXPO_PUBLIC_SENTRY_ENABLED).toBeUndefined();
+		expect(commonEnv.SENTRY_DISABLE_AUTO_UPLOAD).toBeUndefined();
+		expect(eas.build.production.android?.env).toBeUndefined();
+	});
+
 	it("keeps every local release invariant green", async () => {
 		const checks = await collectIosReleaseReadiness();
 		const policyGate = checks.find(
@@ -261,6 +321,20 @@ describe("iOS public App Store release readiness", () => {
 				},
 				"Enabled production Logly requires a configured HTTPS endpoint.",
 			],
+			[
+				{
+					EXPO_PUBLIC_LOGLY_ENABLED: "true",
+					EXPO_PUBLIC_LOGLY_ENDPOINT: "https://example.test/collector",
+				},
+				"Public iOS production builds must disable Logly and Sentry until consent, withdrawal, and provider safeguards are verified.",
+			],
+			[
+				{
+					EXPO_PUBLIC_SENTRY_ENABLED: "true",
+					EXPO_PUBLIC_SENTRY_DSN: "https://example.test/123",
+				},
+				"Public iOS production builds must disable Logly and Sentry until consent, withdrawal, and provider safeguards are verified.",
+			],
 		] as const) {
 			const result = Bun.spawnSync({
 				cmd: [process.execPath, "-e", "import './app.config.ts'"],
@@ -287,6 +361,30 @@ describe("iOS public App Store release readiness", () => {
 			});
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr.toString()).toContain(expectedError);
+		}
+		for (const [variant, publicIos] of [
+			["production", "false"],
+			["preview", "true"],
+		] as const) {
+			const result = Bun.spawnSync({
+				cmd: [process.execPath, "-e", "import './app.config.ts'"],
+				cwd: path.join(import.meta.dir, ".."),
+				env: {
+					...process.env,
+					APP_VARIANT: variant,
+					GND_IOS_PUBLIC_RELEASE: publicIos,
+					EXPO_PUBLIC_BASE_URL: "https://www.gndprodesk.com",
+					EXPO_PUBLIC_EMAIL: "",
+					EXPO_PUBLIC_TOK: "",
+					EXPO_PUBLIC_SENTRY_ENABLED: "true",
+					EXPO_PUBLIC_SENTRY_DSN: "https://example.test/123",
+					EXPO_PUBLIC_SENTRY_DEBUG: "false",
+					EXPO_PUBLIC_SENTRY_SMOKE_TEST: "false",
+					EXPO_PUBLIC_LOGLY_ENABLED: "true",
+					EXPO_PUBLIC_LOGLY_ENDPOINT: "https://example.test/collector",
+				},
+			});
+			expect(result.exitCode).toBe(0);
 		}
 		for (const baseUrl of [
 			"",
