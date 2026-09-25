@@ -3,6 +3,11 @@ import { createHash } from "node:crypto";
 export const EMPLOYEE_DOCUMENT_PRIVATE_MIGRATION =
 	"employee-document-private-storage/v1";
 
+function privateBlobStoreId(token: string | undefined) {
+	const id = /^vercel_blob_rw_([^_]+)_.+$/.exec(token || "")?.[1];
+	return id ? `store_${id}` : null;
+}
+
 export function assertEmployeeDocumentMigrationStorageIsolation(input: {
 	environment: "local" | "production";
 	mode: "preview" | "apply" | "verify";
@@ -18,14 +23,25 @@ export function assertEmployeeDocumentMigrationStorageIsolation(input: {
 			"Local migration refuses the Production private Blob token.",
 		);
 	}
+	const localStoreId = privateBlobStoreId(input.token);
+	const productionStoreId = privateBlobStoreId(input.productionToken);
+	if (
+		!localStoreId ||
+		!productionStoreId ||
+		localStoreId === productionStoreId
+	) {
+		throw new Error(
+			"Local migration requires a distinct private Blob store from Production.",
+		);
+	}
 }
 
 export function assertEmployeeDocumentMigrationBlobStore(input: {
 	token: string;
 	confirmedStoreId: string | null;
 }) {
-	const tokenStoreId = /^vercel_blob_rw_([^_]+)_.+$/.exec(input.token)?.[1];
-	if (!tokenStoreId || input.confirmedStoreId !== `store_${tokenStoreId}`) {
+	const tokenStoreId = privateBlobStoreId(input.token);
+	if (!tokenStoreId || input.confirmedStoreId !== tokenStoreId) {
 		throw new Error("Private Blob token does not match --confirm-store-id.");
 	}
 }
