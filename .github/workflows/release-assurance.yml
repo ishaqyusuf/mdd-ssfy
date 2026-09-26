@@ -1,0 +1,65 @@
+name: Release assurance
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: release-assurance-${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    name: release-assurance-preview
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - name: Refuse external fork Preview verification
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: exit 1
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.9"
+      - name: Verify Preview release evidence
+        uses: ./.release/toolkit/9a324b2c4e759d4713375e7853ef7d791c357552/action
+        env:
+          GND_RELEASE_EVIDENCE_ENVELOPE: ${{ secrets.GND_RELEASE_EVIDENCE_ENVELOPE }}
+          GND_RELEASE_EVIDENCE_HMAC_KEY: ${{ secrets.GND_RELEASE_EVIDENCE_HMAC_KEY }}
+        with:
+          environment: preview
+          repository-root: ${{ github.workspace }}
+
+  production:
+    name: release-assurance-production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refuse a stale master commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/master:refs/remotes/origin/master
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/master)"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.9"
+      - name: Verify Production release evidence
+        uses: ./.release/toolkit/9a324b2c4e759d4713375e7853ef7d791c357552/action
+        env:
+          GND_RELEASE_EVIDENCE_ENVELOPE: ${{ secrets.GND_RELEASE_EVIDENCE_ENVELOPE }}
+          GND_RELEASE_EVIDENCE_HMAC_KEY: ${{ secrets.GND_RELEASE_EVIDENCE_HMAC_KEY }}
+        with:
+          environment: production
+          repository-root: ${{ github.workspace }}
