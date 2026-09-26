@@ -165,17 +165,7 @@ async function loadDatabaseProfile(environment: "local" | "production") {
 	if (!selected.DATABASE_URL) {
 		throw new Error(`Selected ${environment} profile must own DATABASE_URL.`);
 	}
-	const base = parse(
-		await readFile(resolve(root, ".env"), "utf8").catch(
-			(error: NodeJS.ErrnoException) => {
-				if (error.code === "ENOENT") return "";
-				throw error;
-			},
-		),
-	);
-	Object.assign(process.env, base, selected, {
-		DATABASE_URL: selected.DATABASE_URL,
-	});
+	process.env.DATABASE_URL = selected.DATABASE_URL;
 	return selected.DATABASE_URL;
 }
 
