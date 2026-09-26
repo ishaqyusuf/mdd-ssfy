@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { open, readFile } from "node:fs/promises";
-import { basename, extname, resolve } from "node:path";
+import { basename, dirname, extname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Database, TransactionClient } from "@gnd/db";
 import {
 	EMPLOYEE_DOCUMENT_KIND,
@@ -82,6 +83,7 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 		"--manifest",
 		"--confirm-target",
 		"--confirm-store-id",
+		"--token-source",
 		"--document-id",
 		"--limit",
 	]);
@@ -135,6 +137,18 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 	if (values["--confirm-store-id"] && mode === "preview") {
 		throw new Error("--confirm-store-id is for apply and verify only.");
 	}
+	const tokenSource = values["--token-source"] || "profile";
+	if (!["profile", "rehearsal-env"].includes(tokenSource)) {
+		throw new Error("Use --token-source profile|rehearsal-env.");
+	}
+	if (
+		tokenSource === "rehearsal-env" &&
+		(environment !== "local" || mode === "preview")
+	) {
+		throw new Error(
+			"--token-source rehearsal-env is for local apply/verify only.",
+		);
+	}
 	return {
 		environment: environment as "local" | "production",
 		mode: mode as "preview" | "apply" | "verify",
@@ -142,11 +156,22 @@ export function parseEmployeeDocumentMigrationArguments(argv: string[]) {
 		manifest: values["--manifest"] ? resolve(values["--manifest"]) : null,
 		confirmTarget: values["--confirm-target"] || null,
 		confirmStoreId: values["--confirm-store-id"] || null,
+		tokenSource: tokenSource as "profile" | "rehearsal-env",
 		documentId: values["--document-id"]
 			? Number(values["--document-id"])
 			: null,
 		limit: values["--limit"] ? Number(values["--limit"]) : null,
 	};
+}
+
+export function selectEmployeeDocumentMigrationToken(input: {
+	tokenSource: "profile" | "rehearsal-env";
+	profileToken: string | undefined;
+	rehearsalToken: string | undefined;
+}) {
+	return input.tokenSource === "rehearsal-env"
+		? input.rehearsalToken?.trim()
+		: input.profileToken?.trim();
 }
 
 type DbClient = Database | TransactionClient;
@@ -411,31 +436,31 @@ function extensionFor(contentType: string | null, url: string) {
 }
 
 async function loadProfile(environment: "local" | "production") {
-	const root = resolve(import.meta.dir, "..");
+	const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 	const selectedPath = resolve(root, `.env.${environment}`);
 	const selected = parse(await readFile(selectedPath, "utf8"));
-	if (!selected.DATABASE_URL) {
+	const databaseUrl = selected.DATABASE_URL;
+	if (!databaseUrl) {
 		throw new Error(`Selected ${environment} profile must own DATABASE_URL.`);
 	}
-	const base = parse(
-		await readFile(resolve(root, ".env"), "utf8").catch(
-			(error: NodeJS.ErrnoException) => {
-				if (error.code === "ENOENT") return "";
-				throw error;
-			},
-		),
-	);
-	Object.assign(process.env, base, selected, {
-		DATABASE_URL: selected.DATABASE_URL,
-	});
-	return selected.DATABASE_URL;
+	process.env.DATABASE_URL = databaseUrl;
+	return {
+		databaseUrl,
+		privateBlobToken: selected.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim(),
+	};
 }
 
 export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 	const options = parseEmployeeDocumentMigrationArguments(argv);
-	const databaseUrl = await loadProfile(options.environment);
+	// Capture before profile loading so an existing local profile cannot replace
+	// the explicitly selected, ephemeral rehearsal credential.
+	const rehearsalToken =
+		options.tokenSource === "rehearsal-env"
+			? process.env.REHEARSAL_BLOB_READ_WRITE_TOKEN?.trim()
+			: undefined;
+	const profile = await loadProfile(options.environment);
 	const target = employeeDocumentDatabaseTarget(
-		databaseUrl,
+		profile.databaseUrl,
 		options.environment,
 	);
 	process.stdout.write(`${JSON.stringify({ mode: options.mode, target })}\n`);
@@ -447,14 +472,26 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 			"Apply and verify require --confirm-target matching the printed fingerprint.",
 		);
 	}
-	const token = process.env.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim();
+	const token = selectEmployeeDocumentMigrationToken({
+		tokenSource: options.tokenSource,
+		profileToken: profile.privateBlobToken,
+		rehearsalToken,
+	});
 	if (options.mode !== "preview" && !token) {
-		throw new Error("PRIVATE_BLOB_READ_WRITE_TOKEN is required.");
+		throw new Error(
+			options.tokenSource === "rehearsal-env"
+				? "REHEARSAL_BLOB_READ_WRITE_TOKEN is required in the launch environment."
+				: "PRIVATE_BLOB_READ_WRITE_TOKEN is required.",
+		);
 	}
 	if (options.environment === "local" && options.mode !== "preview") {
 		const productionProfile = parse(
 			await readFile(
-				resolve(import.meta.dir, "..", ".env.production"),
+				resolve(
+					dirname(fileURLToPath(import.meta.url)),
+					"..",
+					".env.production",
+				),
 				"utf8",
 			).catch((error: NodeJS.ErrnoException) => {
 				if (error.code === "ENOENT") return "";
@@ -615,6 +652,7 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 		}
 
 		const { del, head, put } = await import("@vercel/blob");
+		if (!token) throw new Error("Private Blob token is required.");
 		for (const candidate of manifest.candidates) {
 			try {
 				const source = await readSource(db, candidate.documentId);
