@@ -129,14 +129,25 @@ export async function inventoryPendingEmployeeDocumentCleanup(
 		for (const stored of rows) {
 			cursor = stored.id;
 			examined += 1;
-			const links = await db.userDocuments.findMany({
-				where: { meta: { path: "$.storedDocumentId", equals: stored.id } },
+			const deletedLinks = await db.userDocuments.findMany({
+				where: {
+					meta: { path: "$.storedDocumentId", equals: stored.id },
+					deletedAt: { not: null },
+				},
 				select: { userId: true, deletedAt: true, meta: true },
 				take: 2,
 			});
+			const liveLinks = await db.userDocuments.findMany({
+				where: {
+					meta: { path: "$.storedDocumentId", equals: stored.id },
+					deletedAt: null,
+				},
+				select: { userId: true, deletedAt: true, meta: true },
+				take: 1,
+			});
 			const result = classifyEmployeeDocumentCleanupCandidate({
 				stored,
-				links,
+				links: [...deletedLinks, ...liveLinks],
 			});
 			if (result === "candidate") candidates.push(stored.id);
 			else held.push({ storedDocumentId: stored.id, reason: result });

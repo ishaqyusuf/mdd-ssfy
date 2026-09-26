@@ -104,7 +104,7 @@ describe("private employee-document cleanup inventory", () => {
 			userDocuments: {
 				findMany: async (input: unknown) => {
 					calls.push(input);
-					return [link];
+					return calls.length === 2 ? [link] : [];
 				},
 			},
 		};
@@ -128,8 +128,41 @@ describe("private employee-document cleanup inventory", () => {
 		});
 		expect(JSON.stringify(calls)).not.toContain("pathname");
 		expect(calls[1]).toMatchObject({
-			where: { meta: { path: "$.storedDocumentId", equals: "stored-1" } },
+			where: {
+				meta: { path: "$.storedDocumentId", equals: "stored-1" },
+				deletedAt: { not: null },
+			},
 			take: 2,
 		});
+		expect(calls[2]).toMatchObject({
+			where: {
+				meta: { path: "$.storedDocumentId", equals: "stored-1" },
+				deletedAt: null,
+			},
+			take: 1,
+		});
+	});
+
+	test("holds a candidate when any active business row still points to it", async () => {
+		let businessQueries = 0;
+		const db = {
+			storedDocument: { findMany: async () => [stored] },
+			userDocuments: {
+				findMany: async () => {
+					businessQueries += 1;
+					return businessQueries === 1
+						? [link]
+						: [{ ...link, deletedAt: null }];
+				},
+			},
+		};
+		const report = await inventoryPendingEmployeeDocumentCleanup(
+			db as never,
+			2,
+		);
+		expect(report.candidates).toEqual([]);
+		expect(report.held).toEqual([
+			{ storedDocumentId: "stored-1", reason: "ambiguous_business_link" },
+		]);
 	});
 });
