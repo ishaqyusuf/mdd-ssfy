@@ -1,0 +1,29 @@
+name: Release assurance gate
+description: Verify a pinned consumer release with provider-backed toolkit evidence
+inputs:
+  environment:
+    description: Preview or production release environment
+    required: true
+  repository-root:
+    description: Exact consumer Git checkout root
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Verify release proof
+      shell: bash
+      env:
+        RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+        RELEASE_REPOSITORY: ${{ inputs.repository-root }}
+        RELEASE_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        toolkit_sha="$(jq -r '.toolkitRevision' "$RELEASE_REPOSITORY/.release/toolkit.lock.json")"
+        expected_action="$(realpath "$RELEASE_REPOSITORY/.release/toolkit/$toolkit_sha/action")"
+        actual_action="$(realpath "$RELEASE_ACTION_PATH")"
+        if [[ "$expected_action" != "$actual_action" ]]; then
+          echo "Release action does not match the pinned toolkit snapshot." >&2
+          exit 2
+        fi
+        bun "$RELEASE_REPOSITORY/.release/toolkit/$toolkit_sha/bin/release-ci.ts" \
+          --env "$RELEASE_ENVIRONMENT" --repo "$RELEASE_REPOSITORY"

@@ -1,0 +1,133 @@
+{
+	"version": 1,
+	"project": "gnd",
+	"targets": [
+		{
+			"id": "database",
+			"kind": "database",
+			"environments": ["preview", "production"],
+			"sourcePaths": [
+				"packages/db/src/schema/**/*.prisma",
+				"packages/db/prisma.config.ts"
+			],
+			"impactTargets": [
+				"dashboard-web",
+				"dealership-web",
+				"storefront-web",
+				"api-web",
+				"jobs"
+			]
+		},
+		{
+			"id": "dashboard-web",
+			"kind": "web",
+			"environments": ["preview", "production"],
+			"sourcePaths": [
+				"apps/dashboard/**",
+				"apps/api/**",
+				"packages/**",
+				"tooling/**",
+				"package.json",
+				"bun.lock",
+				"turbo.json"
+			],
+			"prerequisites": ["database"]
+		},
+		{
+			"id": "dealership-web",
+			"kind": "web",
+			"environments": ["preview", "production"],
+			"sourcePaths": [
+				"apps/dealership/**",
+				"apps/api/**",
+				"packages/**",
+				"tooling/**",
+				"package.json",
+				"bun.lock",
+				"turbo.json"
+			],
+			"prerequisites": ["database"]
+		},
+		{
+			"id": "storefront-web",
+			"kind": "web",
+			"environments": ["preview", "production"],
+			"sourcePaths": [
+				"apps/storefront/**",
+				"apps/api/**",
+				"packages/**",
+				"tooling/**",
+				"package.json",
+				"bun.lock",
+				"turbo.json"
+			],
+			"prerequisites": ["database"]
+		},
+		{
+			"id": "api-web",
+			"kind": "web",
+			"environments": ["preview", "production"],
+			"sourcePaths": [
+				"apps/api/**",
+				"packages/**",
+				"tooling/**",
+				"package.json",
+				"bun.lock",
+				"turbo.json"
+			],
+			"prerequisites": ["database"]
+		},
+		{
+			"id": "mobile",
+			"kind": "mobile",
+			"environments": ["preview", "production"],
+			"sourcePaths": [
+				"apps/mobile/**",
+				"apps/api/**",
+				"packages/dev-logger/**",
+				"packages/errors/**",
+				"packages/events/**",
+				"packages/sales/**",
+				"packages/utils/**",
+				"scripts/eas-account-runner.ts",
+				"scripts/ios-backend-deployment-target.ts",
+				"package.json",
+				"bun.lock",
+				"turbo.json"
+			],
+			"nativeCandidatePaths": [
+				"apps/mobile/app.config.ts",
+				"apps/mobile/eas.json",
+				"apps/mobile/package.json",
+				"apps/mobile/babel.config.js",
+				"apps/mobile/metro.config.js",
+				"apps/mobile/assets/**",
+				"apps/mobile/config/**",
+				"apps/mobile/scripts/**",
+				"apps/mobile/android/**",
+				"apps/mobile/ios/**",
+				"scripts/eas-account-runner.ts",
+				"scripts/ios-backend-deployment-target.ts",
+				"package.json",
+				"bun.lock",
+				"patches/**"
+			],
+			"prerequisites": ["dashboard-web", "api-web"]
+		},
+		{
+			"id": "jobs",
+			"kind": "jobs",
+			"environments": ["preview", "production"],
+			"sourcePaths": [
+				"packages/jobs/**",
+				"apps/api/src/assistant/tasks/**",
+				"packages/**",
+				"scripts/with-trigger-profile.mjs",
+				"package.json",
+				"bun.lock",
+				"turbo.json"
+			],
+			"prerequisites": ["database"]
+		}
+	]
+}

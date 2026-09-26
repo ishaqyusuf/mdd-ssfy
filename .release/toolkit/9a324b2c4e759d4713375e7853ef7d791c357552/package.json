@@ -1,0 +1,19 @@
+{
+  "name": "@ishaq/local-infra-kit",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "@types/pg": "^8.20.0",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "bun@1.2.16",
+  "dependencies": {
+    "pg": "^8.22.0"
+  }
+}
