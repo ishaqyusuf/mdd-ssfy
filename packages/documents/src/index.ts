@@ -24,6 +24,16 @@ export type {
 	UpdateStoredDocumentRecordInput,
 } from "./records";
 export {
+	EMPLOYEE_DOCUMENT_CLEANUP_LEASE_MS,
+	EMPLOYEE_DOCUMENT_CLEANUP_MAX_ATTEMPTS,
+	EMPLOYEE_DOCUMENT_CLEANUP_MIN_AGE_MS,
+	createEmployeeCleanupClaimMeta,
+	finishEmployeeCleanupMeta,
+	inspectPrivateEmployeeCleanup,
+	isSafeEmployeeCleanupPathname,
+	ownsEmployeeCleanupClaim,
+} from "./employee-document-cleanup";
+export {
 	documentKinds,
 	documentOwnerTypes,
 	documentStatuses,
