@@ -16,6 +16,9 @@ const migrationSource = readFileSync(
 	new URL("./employee-document-private-migration.ts", import.meta.url),
 	"utf8",
 );
+const packageScripts = JSON.parse(
+	readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { scripts: Record<string, string> };
 
 describe("employee document private migration contract", () => {
 	test("explicit local rehearsal source cannot fall back to the profile token", () => {
@@ -74,6 +77,15 @@ describe("employee document private migration contract", () => {
 				]),
 			).toThrow("--token-source rehearsal-env is for local apply/verify only");
 		}
+	});
+
+	test("loads only the selected profile and bypasses automatic dotenv loading", () => {
+		expect(migrationSource).toContain("profileToken: profile.privateBlobToken");
+		expect(migrationSource).not.toContain("Object.assign(process.env");
+		expect(migrationSource).not.toContain('resolve(root, ".env")');
+		expect(packageScripts.scripts["employee-documents:private-migrate"]).toBe(
+			"bun --env-file=/dev/null ./scripts/employee-document-private-migration.ts",
+		);
 	});
 
 	test("checks local storage isolation before database access or journal creation", () => {

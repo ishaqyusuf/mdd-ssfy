@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { open, readFile } from "node:fs/promises";
-import { basename, extname, resolve } from "node:path";
+import { basename, dirname, extname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Database, TransactionClient } from "@gnd/db";
 import {
 	EMPLOYEE_DOCUMENT_KIND,
@@ -435,24 +436,18 @@ function extensionFor(contentType: string | null, url: string) {
 }
 
 async function loadProfile(environment: "local" | "production") {
-	const root = resolve(import.meta.dir, "..");
+	const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 	const selectedPath = resolve(root, `.env.${environment}`);
 	const selected = parse(await readFile(selectedPath, "utf8"));
-	if (!selected.DATABASE_URL) {
+	const databaseUrl = selected.DATABASE_URL;
+	if (!databaseUrl) {
 		throw new Error(`Selected ${environment} profile must own DATABASE_URL.`);
 	}
-	const base = parse(
-		await readFile(resolve(root, ".env"), "utf8").catch(
-			(error: NodeJS.ErrnoException) => {
-				if (error.code === "ENOENT") return "";
-				throw error;
-			},
-		),
-	);
-	Object.assign(process.env, base, selected, {
-		DATABASE_URL: selected.DATABASE_URL,
-	});
-	return selected.DATABASE_URL;
+	process.env.DATABASE_URL = databaseUrl;
+	return {
+		databaseUrl,
+		privateBlobToken: selected.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim(),
+	};
 }
 
 export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
@@ -463,9 +458,9 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 		options.tokenSource === "rehearsal-env"
 			? process.env.REHEARSAL_BLOB_READ_WRITE_TOKEN?.trim()
 			: undefined;
-	const databaseUrl = await loadProfile(options.environment);
+	const profile = await loadProfile(options.environment);
 	const target = employeeDocumentDatabaseTarget(
-		databaseUrl,
+		profile.databaseUrl,
 		options.environment,
 	);
 	process.stdout.write(`${JSON.stringify({ mode: options.mode, target })}\n`);
@@ -479,7 +474,7 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 	}
 	const token = selectEmployeeDocumentMigrationToken({
 		tokenSource: options.tokenSource,
-		profileToken: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN,
+		profileToken: profile.privateBlobToken,
 		rehearsalToken,
 	});
 	if (options.mode !== "preview" && !token) {
@@ -492,7 +487,11 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 	if (options.environment === "local" && options.mode !== "preview") {
 		const productionProfile = parse(
 			await readFile(
-				resolve(import.meta.dir, "..", ".env.production"),
+				resolve(
+					dirname(fileURLToPath(import.meta.url)),
+					"..",
+					".env.production",
+				),
 				"utf8",
 			).catch((error: NodeJS.ErrnoException) => {
 				if (error.code === "ENOENT") return "";
@@ -653,6 +652,7 @@ export async function runEmployeeDocumentPrivateMigration(argv: string[]) {
 		}
 
 		const { del, head, put } = await import("@vercel/blob");
+		if (!token) throw new Error("Private Blob token is required.");
 		for (const candidate of manifest.candidates) {
 			try {
 				const source = await readSource(db, candidate.documentId);
