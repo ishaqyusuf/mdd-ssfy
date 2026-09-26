@@ -115,7 +115,7 @@ export function parseEmployeeCleanupOperatorArguments(argv: string[]) {
 	}
 	const tokenSource = values["--token-source"];
 	if (
-		(environment === "local" && tokenSource !== "rehearsal-env") ||
+		(environment === "local" && tokenSource !== "local-profile") ||
 		(environment === "production" && tokenSource !== "production-profile")
 	) {
 		throw new Error("The token source must match the explicit environment.");
@@ -334,6 +334,36 @@ export async function reconcileOnePrivateEmployeeDocument(input: {
 	}
 }
 
+export function resolveEmployeeCleanupProfileToken(input: {
+	environment: "local" | "production";
+	profile: Record<string, string | undefined>;
+	confirmedStoreId: string;
+	productionToken?: string;
+}) {
+	const token = input.profile.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim();
+	if (!token) throw new Error("The selected private Blob token is missing.");
+	if (input.profile.PRIVATE_BLOB_STORE_ID?.trim() !== input.confirmedStoreId) {
+		throw new Error(
+			"The selected profile must own the confirmed private store ID.",
+		);
+	}
+	assertEmployeeCleanupStoreSelection(
+		input.environment,
+		input.confirmedStoreId,
+	);
+	assertEmployeeDocumentMigrationStorageIsolation({
+		environment: input.environment,
+		mode: "apply",
+		token,
+		productionToken: input.productionToken?.trim(),
+	});
+	assertEmployeeDocumentMigrationBlobStore({
+		token,
+		confirmedStoreId: input.confirmedStoreId,
+	});
+	return token;
+}
+
 async function loadProfile(environment: "local" | "production") {
 	const profile = parse(
 		await readFile(resolve(repositoryRoot, `.env.${environment}`), "utf8"),
@@ -347,8 +377,6 @@ async function loadProfile(environment: "local" | "production") {
 
 export async function runEmployeeDocumentCleanupOperator(argv: string[]) {
 	const options = parseEmployeeCleanupOperatorArguments(argv);
-	const launchRehearsalToken =
-		process.env.REHEARSAL_BLOB_READ_WRITE_TOKEN?.trim();
 	const profile = await loadProfile(options.environment);
 	const target = employeeDocumentDatabaseTarget(
 		profile.DATABASE_URL as string,
@@ -358,28 +386,17 @@ export async function runEmployeeDocumentCleanupOperator(argv: string[]) {
 	if (options.confirmTarget !== target.fingerprint) {
 		throw new Error("--confirm-target does not match the selected database.");
 	}
-	const token =
-		options.environment === "production"
-			? profile.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim()
-			: launchRehearsalToken;
-	if (!token) throw new Error("The selected private Blob token is missing.");
-	assertEmployeeCleanupStoreSelection(
-		options.environment,
-		options.confirmStoreId,
-	);
+	let productionToken: string | undefined;
 	if (options.environment === "local") {
 		const production = parse(
 			await readFile(resolve(repositoryRoot, ".env.production"), "utf8"),
 		);
-		assertEmployeeDocumentMigrationStorageIsolation({
-			environment: "local",
-			mode: "apply",
-			token,
-			productionToken: production.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim(),
-		});
+		productionToken = production.PRIVATE_BLOB_READ_WRITE_TOKEN;
 	}
-	assertEmployeeDocumentMigrationBlobStore({
-		token,
+	const token = resolveEmployeeCleanupProfileToken({
+		environment: options.environment,
+		profile,
+		productionToken,
 		confirmedStoreId: options.confirmStoreId,
 	});
 	assertEmployeeCleanupInventoryManifest({

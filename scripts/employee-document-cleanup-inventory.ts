@@ -1,5 +1,6 @@
 import { open, readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Database } from "@gnd/db";
 import {
 	EMPLOYEE_DOCUMENT_KIND,
@@ -158,7 +159,7 @@ export async function inventoryPendingEmployeeDocumentCleanup(
 }
 
 async function loadDatabaseProfile(environment: "local" | "production") {
-	const root = resolve(import.meta.dir, "..");
+	const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 	const selected = parse(
 		await readFile(resolve(root, `.env.${environment}`), "utf8"),
 	);

@@ -5,6 +5,7 @@ import {
 	assertEmployeeCleanupStoreSelection,
 	parseEmployeeCleanupOperatorArguments,
 	reconcileOnePrivateEmployeeDocument,
+	resolveEmployeeCleanupProfileToken,
 } from "./employee-document-cleanup-operator";
 
 const now = new Date("2026-09-26T12:00:00.000Z");
@@ -80,6 +81,105 @@ function makeDb(options?: {
 }
 
 describe("manual private employee cleanup operator", () => {
+	test("fails closed on missing, mismatched and Production local credentials", () => {
+		const input = {
+			environment: "local" as const,
+			confirmedStoreId: "store_dev",
+			profile: {
+				PRIVATE_BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_dev_fake",
+				PRIVATE_BLOB_STORE_ID: "store_dev",
+			},
+			productionToken: "vercel_blob_rw_hwG94qb1mozFw1qD_fake",
+		};
+		expect(resolveEmployeeCleanupProfileToken(input)).toBe(
+			input.profile.PRIVATE_BLOB_READ_WRITE_TOKEN,
+		);
+		for (const profile of [
+			{},
+			{ PRIVATE_BLOB_READ_WRITE_TOKEN: " " },
+			{ ...input.profile, PRIVATE_BLOB_STORE_ID: undefined },
+			{ ...input.profile, PRIVATE_BLOB_STORE_ID: "store_other" },
+			{
+				...input.profile,
+				PRIVATE_BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_other_fake",
+			},
+			{
+				...input.profile,
+				PRIVATE_BLOB_READ_WRITE_TOKEN: input.productionToken,
+			},
+		]) {
+			expect(() =>
+				resolveEmployeeCleanupProfileToken({ ...input, profile }),
+			).toThrow();
+		}
+		expect(() =>
+			resolveEmployeeCleanupProfileToken({
+				...input,
+				productionToken: undefined,
+			}),
+		).toThrow("Cannot verify");
+		const production = {
+			...input,
+			environment: "production" as const,
+			confirmedStoreId: "store_hwG94qb1mozFw1qD",
+			profile: {
+				PRIVATE_BLOB_READ_WRITE_TOKEN: input.productionToken,
+				PRIVATE_BLOB_STORE_ID: "store_hwG94qb1mozFw1qD",
+			},
+		};
+		expect(resolveEmployeeCleanupProfileToken(production)).toBe(
+			input.productionToken,
+		);
+		expect(() =>
+			resolveEmployeeCleanupProfileToken({
+				...production,
+				environment: "local",
+			}),
+		).toThrow("not valid for this environment");
+	});
+
+	test("selects explicit same-name profile credentials, not rehearsal env", () => {
+		const flags = [
+			"--mode",
+			"apply",
+			"--document-id",
+			"stored-1",
+			"--manifest",
+			"/tmp/inventory.json",
+			"--output",
+			"/tmp/result.json",
+			"--confirm-target",
+			"a".repeat(64),
+			"--confirm-store-id",
+			"store_dev",
+		];
+		for (const environment of ["local", "production"]) {
+			expect(
+				parseEmployeeCleanupOperatorArguments([
+					...flags,
+					"--environment",
+					environment,
+					"--token-source",
+					`${environment}-profile`,
+				]).tokenSource,
+			).toBe(`${environment}-profile`);
+			for (const source of [
+				"rehearsal-env",
+				environment === "local" ? "production-profile" : "local-profile",
+			]) {
+				expect(() =>
+					parseEmployeeCleanupOperatorArguments([
+						...flags,
+						"--environment",
+						environment,
+						"--token-source",
+						source,
+					]),
+				).toThrow("token source must match");
+			}
+		}
+	});
+
 	test("binds the exact inventory candidate and Production store", () => {
 		const target = {
 			environment: "production" as const,
