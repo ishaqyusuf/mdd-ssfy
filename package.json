@@ -98,6 +98,7 @@
 		"release:plan": "bun scripts/release.ts plan",
 		"release:status": "bun scripts/release.ts status",
 		"release:check": "bun scripts/release.ts ci",
+		"release:evidence": "bun scripts/collect-release-evidence.ts",
 		"kill:ports": "bun ../../local-infra-kit/bin/kill-ports.ts --profile gnd",
 		"knip": "knip",
 		"lint": "turbo lint && manypkg check",
