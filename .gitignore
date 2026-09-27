@@ -96,6 +96,8 @@ ios
 /.chart-data-*/
 /.codex-artifacts/
 /.codex-finalizer/
+/.codex/
+.vscode/
 /.design-previews/
 /apps/messaging-extension/.output/
 /apps/messaging-extension/.wxt/
