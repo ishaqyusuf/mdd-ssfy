@@ -193,7 +193,7 @@ async function collectVercel(
 				`Vercel token mapping is missing for ${config.targetId}.`,
 			);
 		const token = requiredSecret(tokenName);
-		const url = new URL("https://api.vercel.com/v6/deployments");
+		const url = new URL("https://api.vercel.com/v7/deployments");
 		url.searchParams.set("projectId", config.projectId);
 		url.searchParams.set("teamId", TEAM_ID);
 		url.searchParams.set("limit", "100");
