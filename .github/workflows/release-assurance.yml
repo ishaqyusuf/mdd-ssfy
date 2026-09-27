@@ -1,0 +1,76 @@
+name: Release assurance
+
+on:
+  pull_request_target:
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [master]
+
+concurrency:
+  group: release-assurance-${{ github.event_name == 'pull_request_target' && format('preview-{0}', github.event.pull_request.number) || 'production' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: protected-provider-verification
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'pull_request_target' && 'preview' || 'Production' }}
+    steps:
+      - name: Check out trusted release tooling
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - name: Check out candidate source as release data
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+          path: candidate
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.9"
+      - name: Install trusted dependencies without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Collect protected provider evidence
+        env:
+          GND_RELEASE_DATABASE_URL: ${{ secrets.GND_RELEASE_DATABASE_URL }}
+          GND_RELEASE_EVIDENCE_HMAC_KEY: ${{ secrets.GND_RELEASE_EVIDENCE_HMAC_KEY }}
+          GND_RELEASE_EXPO_TOKEN: ${{ secrets.GND_RELEASE_EXPO_TOKEN }}
+          GND_RELEASE_TRIGGER_TOKEN: ${{ secrets.GND_RELEASE_TRIGGER_TOKEN }}
+          GND_RELEASE_VERCEL_API_TOKEN: ${{ secrets.GND_RELEASE_VERCEL_API_TOKEN }}
+          GND_RELEASE_VERCEL_DASHBOARD_TOKEN: ${{ secrets.GND_RELEASE_VERCEL_DASHBOARD_TOKEN }}
+          GND_RELEASE_VERCEL_DEALERSHIP_TOKEN: ${{ secrets.GND_RELEASE_VERCEL_DEALERSHIP_TOKEN }}
+          GND_RELEASE_VERCEL_STOREFRONT_TOKEN: ${{ secrets.GND_RELEASE_VERCEL_STOREFRONT_TOKEN }}
+        run: >-
+          bun scripts/collect-release-evidence.ts
+          --env "${{ github.event_name == 'pull_request_target' && 'preview' || 'production' }}"
+          --repo "${{ github.workspace }}/candidate"
+          --trusted-repo "${{ github.workspace }}"
+          --revision "${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}"
+          --output ".release/runtime/${{ github.event_name == 'pull_request_target' && 'preview' || 'production' }}.json"
+      - name: Verify signed release evidence with trusted code
+        env:
+          GND_RELEASE_EVIDENCE_HMAC_KEY: ${{ secrets.GND_RELEASE_EVIDENCE_HMAC_KEY }}
+        run: >-
+          bun scripts/run-trusted-release-gate.ts
+          --env "${{ github.event_name == 'pull_request_target' && 'preview' || 'production' }}"
+          --repo "${{ github.workspace }}/candidate"
+          --evidence ".release/runtime/${{ github.event_name == 'pull_request_target' && 'preview' || 'production' }}.json"
+
+  release-gate:
+    name: ${{ github.event_name == 'pull_request_target' && 'release-assurance-preview' || 'release-assurance-production' }}
+    needs: verify
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require trusted provider verification
+        env:
+          PROVIDER_RESULT: ${{ needs.verify.result }}
+        run: test "$PROVIDER_RESULT" = success

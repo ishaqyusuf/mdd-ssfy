@@ -102,3 +102,4 @@ ios
 /apps/messaging-extension/.output/
 /apps/messaging-extension/.wxt/
 .local-db-sync
+.release/runtime/
