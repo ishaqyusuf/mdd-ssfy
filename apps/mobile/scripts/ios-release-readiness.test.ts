@@ -149,15 +149,17 @@ describe("iOS public App Store release readiness", () => {
 			(item) => item.label === "Approved public privacy-policy URL",
 		);
 		expect(policyGate).toBeDefined();
-		expect(policyGate?.ok).toBe(false);
+		expect(policyGate?.ok).toBe(true);
+		expect(
+			checks.find((item) => item.label === "iOS-only public privacy-policy URL")
+				?.ok,
+		).toBe(true);
 		expect(
 			checks.find(
 				(item) => item.label === "Dashboard API/auth route source contract",
 			)?.ok,
 		).toBe(true);
-		expect(
-			checks.filter((item) => !item.ok && item.label !== policyGate?.label),
-		).toEqual([]);
+		expect(checks.filter((item) => !item.ok)).toEqual([]);
 		expect(checks.length).toBeGreaterThanOrEqual(15);
 	});
 
@@ -289,15 +291,12 @@ describe("iOS public App Store release readiness", () => {
 				EXPO_PUBLIC_LOGLY_ENABLED: "false",
 			},
 		});
-		expect(result.exitCode).toBe(1);
+		expect(result.exitCode).toBe(0);
 		expect(result.stdout.toString()).toContain(
-			"FAIL  Approved public privacy-policy URL",
+			"PASS  Approved public privacy-policy URL",
 		);
 		expect(result.stdout.toString()).toContain(
 			"PASS  Canonical public iOS API/auth origin",
-		);
-		expect(result.stdout.toString()).toContain(
-			"The configured privacy URL has no matching GND-approved policy record",
 		);
 		expect(result.stdout.toString()).not.toContain(
 			"release-secret-sentinel-5927",
