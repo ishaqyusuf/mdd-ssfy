@@ -117,6 +117,26 @@ function fingerprintAt(
 	};
 }
 
+export async function providerErrorDetails(response: Response) {
+	let code: string | null = null;
+	try {
+		const payload = (await response.clone().json()) as Record<string, unknown>;
+		const error =
+			payload.error && typeof payload.error === "object"
+				? (payload.error as Record<string, unknown>)
+				: null;
+		const candidate = error?.code ?? payload.code;
+		if (
+			typeof candidate === "string" &&
+			/^[a-z0-9_.:-]{1,64}$/i.test(candidate)
+		)
+			code = candidate;
+	} catch {
+		// Provider response bodies are optional and must never be logged wholesale.
+	}
+	return `HTTP ${response.status}${code ? ` (${code})` : ""}`;
+}
+
 async function providerJson(
 	url: URL,
 	token: string,
@@ -125,7 +145,8 @@ async function providerJson(
 	const response = await fetch(url, {
 		headers: { Authorization: `Bearer ${token}` },
 	});
-	if (!response.ok) throw new Error(message);
+	if (!response.ok)
+		throw new Error(`${message} ${await providerErrorDetails(response)}`);
 	return (await response.json()) as Record<string, unknown>;
 }
 
