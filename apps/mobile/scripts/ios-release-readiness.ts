@@ -64,8 +64,15 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 		await readFile(path.join(APP_ROOT, "ios-policy-approval.json"), "utf8"),
 	) as IosPolicyApproval;
 	const policySources = await readCurrentIosPolicySources(REPOSITORY_ROOT);
+	const isProductionIosCheck =
+		process.env.APP_VARIANT === "production" &&
+		process.env.GND_IOS_PUBLIC_RELEASE === "true";
+	const iosProfilePrivacyPolicyUrl =
+		eas.build?.production?.ios?.env?.EXPO_PUBLIC_PRIVACY_POLICY_URL;
 	const policyApprovalCheck = evaluateIosPolicyApproval(
-		appConfig.extra?.privacyPolicyUrl,
+		isProductionIosCheck
+			? appConfig.extra?.privacyPolicyUrl
+			: appConfig.extra?.privacyPolicyUrl || iosProfilePrivacyPolicyUrl,
 		policyApproval,
 		policySources,
 	);
@@ -120,9 +127,6 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	const loglyEndpointIsHttps = isHttpsEndpoint(
 		process.env.EXPO_PUBLIC_LOGLY_ENDPOINT,
 	);
-	const isProductionIosCheck =
-		process.env.APP_VARIANT === "production" &&
-		process.env.GND_IOS_PUBLIC_RELEASE === "true";
 	return [
 		check(
 			"Expo SDK 54 release dependencies",
@@ -228,6 +232,13 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			typeof infoPlist?.NSPhotoLibraryUsageDescription === "string" &&
 				infoPlist.NSPhotoLibraryUsageDescription.length > 0,
 			String(infoPlist?.NSPhotoLibraryUsageDescription),
+		),
+		check(
+			"iOS-only public privacy-policy URL",
+			iosProfilePrivacyPolicyUrl === policyApproval.approvedUrl &&
+				eas.build?.production?.env?.EXPO_PUBLIC_PRIVACY_POLICY_URL ===
+					undefined,
+			"The iOS store profile pins the GND-approved HTTPS policy URL without changing Android",
 		),
 		check(
 			"Approved public privacy-policy URL",

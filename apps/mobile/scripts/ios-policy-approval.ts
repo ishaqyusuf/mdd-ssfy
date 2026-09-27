@@ -34,7 +34,7 @@ export async function readCurrentIosPolicySources(
 		),
 		readFile(path.join(dashboardRoot, "app/(public)/support/page.tsx"), "utf8"),
 		readFile(
-			path.join(dashboardRoot, "components/legal/legal-draft-layout.tsx"),
+			path.join(dashboardRoot, "components/legal/legal-page-layout.tsx"),
 			"utf8",
 		),
 	]);

@@ -1,19 +1,18 @@
-import { LegalDraftLayout } from "@/components/legal/legal-draft-layout";
+import { LegalPageLayout } from "@/components/legal/legal-page-layout";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-	title: "Privacy Policy (Review Draft) | GND ProDesk",
+	title: "Privacy Policy | GND ProDesk",
 	description:
-		"AI-assisted privacy notice draft for GND Millwork ProDesk, pending company approval.",
-	robots: { index: false, follow: false },
+		"How GND Millwork ProDesk handles information used in company work.",
 };
 
 export default function PrivacyPolicyPage() {
 	return (
-		<LegalDraftLayout
+		<LegalPageLayout
 			title="Privacy Policy"
-			description="How GND Millwork ProDesk handles information used in company work. This AI-assisted draft is published for GND review and is not yet an approved privacy notice."
+			description="How GND Millwork ProDesk handles information used in company work."
 			currentPath="/privacy-policy"
 		>
 			<section className="space-y-4">
@@ -22,8 +21,8 @@ export default function PrivacyPolicyPage() {
 					GND MILLWORK CORP determines how company and employee information is
 					used in ProDesk. ZEROES AND ONE TECH HUB NIG LIMITED develops and
 					maintains the app and related systems for GND and is the Apple App
-					Store seller. The parties are reviewing the final wording of their
-					data-processing roles and access arrangements.
+					Store seller. The parties have signed an arrangement governing the
+					developer&apos;s access to and processing of GND data.
 				</p>
 				<p>
 					The app may be downloaded publicly, but company data and work areas
@@ -75,11 +74,7 @@ export default function PrivacyPolicyPage() {
 					GND uses this information to verify identity, enforce access
 					permissions, run authorized company workflows, maintain business
 					records, respond to requests, investigate misuse, and keep the service
-					reliable. GND has chosen to disable optional Logly app-use analytics
-					and Sentry crash and performance diagnostics for the first public iOS
-					release; the final build still needs verification. The applicable
-					legal bases and any consent-withdrawal process are still under legal
-					review; this draft does not make a final legal-basis claim.
+					reliable.
 				</p>
 			</section>
 			<section className="space-y-4">
@@ -87,7 +82,7 @@ export default function PrivacyPolicyPage() {
 				<p>
 					Authorized GND personnel may access information for company work.
 					ZEROES AND ONE TECH HUB NIG LIMITED develops and maintains ProDesk for
-					GND under arrangements still being documented.
+					GND under a signed processing arrangement.
 				</p>
 				<p>
 					GND uses service providers to operate ProDesk. Vercel hosts
@@ -95,11 +90,9 @@ export default function PrivacyPolicyPage() {
 					configured Production database provider.
 				</p>
 				<p>
-					GND has selected an iOS-only Production build configuration that
-					disables Logly app-use analytics and Sentry diagnostics for the first
-					public iOS release. The release guard blocks a build with either
-					enabled. The exact signed app has not yet been built or verified;
-					Android and other releases may use different settings.
+					The first public iOS release is configured without optional Logly
+					app-use analytics or Sentry diagnostics. Android and other releases
+					may use different settings.
 				</p>
 				<p>
 					When enabled, Logly receives a persistent random installation
@@ -116,20 +109,16 @@ export default function PrivacyPolicyPage() {
 					every diagnostic event is non-personal.
 				</p>
 				<p>
-					GND is verifying each recipient&apos;s operator, processing terms,
-					access and security controls, location, retention/deletion, and
-					subprocessors against the actual release configuration.
+					GND requires Vercel and PlanetScale to protect personal information to
+					the same or an equivalent standard as described in this notice. GND
+					has confirmed that its arrangements with these providers require that
+					protection.
 				</p>
+				<p>Information may also be disclosed when required by law.</p>
 				<p>
-					Until that review is complete, GND does not claim every provider is
-					contractually bound to the same or equivalent protection stated in
-					this notice. Information may also be disclosed when required by law.
-				</p>
-				<p>
-					This draft does not assert that every historical document has already
-					moved into the new private-storage workflow. GND is separately
-					verifying legacy document storage and migration before finalizing the
-					notice.
+					Some historical employee documents may remain in earlier storage
+					configurations until they are migrated or removed. New
+					employee-document uploads use private storage.
 				</p>
 			</section>
 			<section className="space-y-4">
@@ -149,9 +138,9 @@ export default function PrivacyPolicyPage() {
 					be deleted or anonymized. A scoped hold may delay that action.
 				</p>
 				<p>
-					Removing a record from the app may restrict access before provider
-					copies or backups expire. Their exact expiry periods and the
-					legacy-document migration remain under verification.
+					Removing a record from the app may restrict access while copies remain
+					in provider backup systems under their retention practices. A deletion
+					request does not necessarily remove those copies immediately.
 				</p>
 			</section>
 			<section className="space-y-4">
@@ -171,22 +160,12 @@ export default function PrivacyPolicyPage() {
 			<section className="space-y-4">
 				<h2>International processing and changes</h2>
 				<p>
-					Some providers process information outside the user&apos;s country.
-					The specific locations and any applicable transfer safeguards are
-					under review. ProDesk is a business application and is not directed to
-					children. Once approved, this page will identify its effective date
-					and be updated when material practices change.
+					Information may be processed outside the user&apos;s country. GND
+					requires them to protect the information as described above. ProDesk
+					is a business application and is not directed to children. GND will
+					update this notice when material practices change.
 				</p>
 			</section>
-			<section className="rounded-xl border border-[#c6d4c8] bg-[#edf2eb] p-5 space-y-3">
-				<h2>Pending approval</h2>
-				<p>
-					GND must verify the developer/service-provider relationship, provider
-					and regional details, legacy document migration, retention and
-					deletion rules, applicable legal bases, and final app behavior before
-					removing the draft label or using this URL in App Store Connect.
-				</p>
-			</section>
-		</LegalDraftLayout>
+		</LegalPageLayout>
 	);
 }

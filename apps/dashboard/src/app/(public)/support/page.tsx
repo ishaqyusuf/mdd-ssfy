@@ -1,19 +1,18 @@
-import { LegalDraftLayout } from "@/components/legal/legal-draft-layout";
+import { LegalPageLayout } from "@/components/legal/legal-page-layout";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-	title: "Support (Review Draft) | GND ProDesk",
+	title: "Support | GND ProDesk",
 	description:
 		"GND Millwork ProDesk support and privacy request contact information.",
-	robots: { index: false, follow: false },
 };
 
 export default function SupportPage() {
 	return (
-		<LegalDraftLayout
+		<LegalPageLayout
 			title="Support & privacy requests"
-			description="A public contact path for ProDesk users. This page is part of the review draft and has not yet been approved as the final App Store support page."
+			description="A public contact path for ProDesk users."
 			currentPath="/support"
 		>
 			<section className="space-y-4">
@@ -33,8 +32,8 @@ export default function SupportPage() {
 					authority to make a request. Company administrators manage account
 					access; requests concerning employment records may be subject to
 					applicable retention obligations. The{" "}
-					<Link href="/privacy-policy">Privacy Policy review draft</Link>{" "}
-					explains the current proposed handling.
+					<Link href="/privacy-policy">Privacy Policy</Link> explains how GND
+					handles these requests.
 				</p>
 			</section>
 			<section className="space-y-4">
@@ -46,6 +45,6 @@ export default function SupportPage() {
 					downloading the app does not grant company access.
 				</p>
 			</section>
-		</LegalDraftLayout>
+		</LegalPageLayout>
 	);
 }

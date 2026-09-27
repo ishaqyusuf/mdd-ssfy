@@ -92,6 +92,14 @@ ios
 /test-results/
 **/screenshots/
 
-.scratch
+/.scratch/
+/.chart-data-*/
+/.codex-artifacts/
+/.codex-finalizer/
+/.codex/
+.vscode/
+/.design-previews/
+/apps/messaging-extension/.output/
+/apps/messaging-extension/.wxt/
 .local-db-sync
 .release/runtime/
