@@ -1,19 +1,18 @@
-import { LegalDraftLayout } from "@/components/legal/legal-draft-layout";
+import { LegalPageLayout } from "@/components/legal/legal-page-layout";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-	title: "Terms of Use (Review Draft) | GND ProDesk",
+	title: "Terms of Use | GND ProDesk",
 	description:
-		"AI-assisted terms of use draft for GND Millwork ProDesk, pending company approval.",
-	robots: { index: false, follow: false },
+		"Informational guidance for authorized GND Millwork ProDesk users.",
 };
 
 export default function TermsOfUsePage() {
 	return (
-		<LegalDraftLayout
+		<LegalPageLayout
 			title="Terms of Use"
-			description="Proposed rules for using GND Millwork ProDesk. These AI-assisted terms are public for review only; they are not yet approved or in force."
+			description="Guidance for using GND Millwork ProDesk for authorized company work."
 			currentPath="/terms-of-use"
 		>
 			<section className="space-y-4">
@@ -55,8 +54,7 @@ export default function TermsOfUsePage() {
 					evidence, photos, signatures, and notes. These records may be visible
 					to other authorized personnel and may be retained as part of
 					GND&apos;s business or legal records. Personal-information handling is
-					described in the{" "}
-					<Link href="/privacy-policy">Privacy Policy review draft</Link>.
+					described in the <Link href="/privacy-policy">Privacy Policy</Link>.
 				</p>
 			</section>
 			<section className="space-y-4">
@@ -75,22 +73,20 @@ export default function TermsOfUsePage() {
 					The app may be obtained through a third-party app store. Store terms
 					and device-provider terms may also apply. ProDesk may depend on
 					hosting, storage, and diagnostic providers; their involvement is
-					described in the privacy draft and will be verified before final
-					publication.
+					described in the Privacy Policy.
 				</p>
 			</section>
 			<section className="rounded-xl border border-[#c6d4c8] bg-[#edf2eb] p-5 space-y-3">
-				<h2>Pending legal review</h2>
+				<h2>Relationship to GND policies</h2>
 				<p>
 					This page is informational guidance, not a separate contract. GND
 					employment policies and instructions continue to apply.
 				</p>
 				<p>
-					The requested effective date for this guidance is September 24, 2026,
-					pending final publication. No checkbox or app action is treated as
-					acceptance of this draft.
+					This guidance does not replace GND employment policies or
+					instructions.
 				</p>
 			</section>
-		</LegalDraftLayout>
+		</LegalPageLayout>
 	);
 }

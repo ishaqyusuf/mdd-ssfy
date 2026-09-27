@@ -7,7 +7,7 @@ const pages = [
 	{ href: "/support", label: "Support" },
 ];
 
-export function LegalDraftLayout({
+export function LegalPageLayout({
 	title,
 	description,
 	currentPath,
@@ -20,10 +20,6 @@ export function LegalDraftLayout({
 }) {
 	return (
 		<main className="min-h-screen bg-[#f7f6f2] text-[#192b32]">
-			<div className="border-b border-[#d9dedb] bg-[#e9eee8] px-5 py-3 text-center text-sm font-medium text-[#294b40]">
-				AI-assisted draft · Pending review and approval by GND MILLWORK CORP ·
-				Not the final policy or terms
-			</div>
 			<div className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-8">
 				<header className="flex flex-wrap items-center justify-between gap-6 border-b border-[#d9dedb] pb-7">
 					<Link
@@ -58,16 +54,16 @@ export function LegalDraftLayout({
 							A publicly downloadable app for authorized GND company accounts.
 						</p>
 						<div className="mt-8 border-l-2 border-[#9bb09e] pl-4">
-							<p className="font-semibold text-[#192b32]">Review copy</p>
+							<p className="font-semibold text-[#192b32]">Company access</p>
 							<p className="mt-2">
-								This page is public for stakeholder review. It is not yet the
-								approved App Store policy or a binding set of terms.
+								GND issues accounts and controls access to company information.
+								Downloading the app does not grant an account.
 							</p>
 						</div>
 					</aside>
 					<article className="min-w-0 max-w-3xl">
 						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#456a56]">
-							Public review draft · 24 September 2026
+							Last updated · 27 September 2026
 						</p>
 						<h1 className="mt-4 font-serif text-4xl leading-tight tracking-tight sm:text-5xl">
 							{title}
@@ -81,7 +77,7 @@ export function LegalDraftLayout({
 					</article>
 				</div>
 				<footer className="mt-20 flex flex-wrap justify-between gap-3 border-t border-[#d9dedb] pt-6 text-sm text-[#51615a]">
-					<p>© GND MILLWORK CORP · Review draft</p>
+					<p>© GND MILLWORK CORP</p>
 					<a
 						className="underline underline-offset-4"
 						href="mailto:support@gndmillwork.com"
