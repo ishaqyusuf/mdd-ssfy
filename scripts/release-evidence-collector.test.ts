@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
 	providerErrorDetails,
 	providerIso,
+	selectSuccessfulGithubDeploymentStatus,
 } from "../.release/gnd-evidence-collector";
 
 const root = resolve(import.meta.dir, "..");
@@ -36,6 +37,31 @@ describe("GND release evidence normalization", () => {
 		);
 		expect(await providerErrorDetails(response)).toBe("HTTP 401");
 	});
+
+	test("accepts only successful HTTPS Vercel deployment statuses", () => {
+		expect(
+			selectSuccessfulGithubDeploymentStatus([
+				{
+					state: "failure",
+					environment_url: "https://failed.vercel.app",
+					updated_at: "2026-09-27T20:00:00Z",
+				},
+				{
+					state: "success",
+					environment_url: "https://user:secret@example.com",
+					updated_at: "2026-09-27T20:01:00Z",
+				},
+				{
+					state: "success",
+					environment_url: "https://gnd-preview.vercel.app",
+					updated_at: "2026-09-27T20:02:00Z",
+				},
+			]),
+		).toEqual({
+			hostname: "gnd-preview.vercel.app",
+			completedAt: "2026-09-27T20:02:00.000Z",
+		});
+	});
 });
 
 describe("GND release workflow trust boundary", () => {
@@ -50,5 +76,7 @@ describe("GND release workflow trust boundary", () => {
 		expect(workflow).toContain("persist-credentials: false");
 		expect(workflow).toContain("--ignore-scripts");
 		expect(workflow).toContain("--trusted-repo");
+		expect(workflow).toContain("deployments: read");
+		expect(workflow).toContain("GND_RELEASE_GITHUB_TOKEN: ${{ github.token }}");
 	});
 });
