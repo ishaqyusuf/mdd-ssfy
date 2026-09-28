@@ -79,6 +79,15 @@ function git(root: string, args: string[]) {
 	});
 }
 
+export function repositoryHasCommit(root: string, revision: string) {
+	return (
+		spawnSync("git", ["cat-file", "-e", `${revision}^{commit}`], {
+			cwd: root,
+			stdio: "ignore",
+		}).status === 0
+	);
+}
+
 function committedFiles(root: string, revision: string) {
 	return git(root, ["ls-tree", "-r", "--name-only", revision])
 		.split("\n")
@@ -185,6 +194,7 @@ async function githubVercelDeployment(
 	targetId: string,
 	environment: ReleaseEnvironment,
 	githubToken: string,
+	repository: string,
 ) {
 	const project = GITHUB_ENVIRONMENT_BY_TARGET[targetId];
 	if (!project)
@@ -236,7 +246,8 @@ async function githubVercelDeployment(
 		);
 		if (!Array.isArray(statuses)) continue;
 		const selected = selectSuccessfulGithubDeploymentStatus(statuses);
-		if (selected) return { ...selected, id, revision };
+		if (selected && repositoryHasCommit(repository, revision))
+			return { ...selected, id, revision };
 	}
 	return null;
 }
@@ -257,6 +268,7 @@ async function collectVercel(
 			config.targetId,
 			input.environment,
 			githubToken,
+			input.repository,
 		);
 		if (!githubDeployment) continue;
 		const revision = githubDeployment.revision;
