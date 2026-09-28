@@ -31,7 +31,6 @@ type CollectorInput = {
 	now?: Date;
 };
 
-type RawVercelDeployment = Record<string, unknown>;
 type RawExpoBuild = Record<string, unknown>;
 type RawGithubDeployment = Record<string, unknown>;
 type RawGithubDeploymentStatus = Record<string, unknown>;
@@ -160,24 +159,16 @@ async function providerJson<T = Record<string, unknown>>(
 	return (await response.json()) as T;
 }
 
-function rawVercelSha(deployment: RawVercelDeployment) {
-	const meta =
-		deployment.meta && typeof deployment.meta === "object"
-			? (deployment.meta as Record<string, unknown>)
-			: {};
-	const source =
-		deployment.gitSource && typeof deployment.gitSource === "object"
-			? (deployment.gitSource as Record<string, unknown>)
-			: {};
-	const sha = source.sha ?? meta.githubCommitSha;
-	return typeof sha === "string" && SHA.test(sha) ? sha : null;
-}
-
 export function selectSuccessfulGithubDeploymentStatus(
 	statuses: RawGithubDeploymentStatus[],
 ) {
 	for (const status of statuses) {
-		if (status.state !== "success") continue;
+		const creator =
+			status.creator && typeof status.creator === "object"
+				? (status.creator as Record<string, unknown>)
+				: null;
+		if (status.state !== "success" || creator?.login !== "vercel[bot]")
+			continue;
 		const value = status.environment_url ?? status.target_url;
 		if (typeof value !== "string") continue;
 		try {
@@ -197,15 +188,19 @@ export function selectSuccessfulGithubDeploymentStatus(
 	return null;
 }
 
-async function githubPreviewDeployment(targetId: string, githubToken: string) {
+async function githubVercelDeployment(
+	targetId: string,
+	environment: ReleaseEnvironment,
+	githubToken: string,
+) {
 	const project = GITHUB_ENVIRONMENT_BY_TARGET[targetId];
 	if (!project)
 		throw new Error(`GitHub deployment mapping is missing for ${targetId}.`);
-	const environment = `Preview – ${project}`;
+	const githubEnvironment = `${environment === "production" ? "Production" : "Preview"} – ${project}`;
 	const deploymentsUrl = new URL(
 		`https://api.github.com/repos/${GITHUB_REPOSITORY}/deployments`,
 	);
-	deploymentsUrl.searchParams.set("environment", environment);
+	deploymentsUrl.searchParams.set("environment", githubEnvironment);
 	deploymentsUrl.searchParams.set("per_page", "100");
 	const deployments = await providerJson<RawGithubDeployment[]>(
 		deploymentsUrl,
@@ -221,10 +216,16 @@ async function githubPreviewDeployment(targetId: string, githubToken: string) {
 	for (const deployment of deployments) {
 		const id = deployment.id;
 		const revision = deployment.sha;
+		const creator =
+			deployment.creator && typeof deployment.creator === "object"
+				? (deployment.creator as Record<string, unknown>)
+				: null;
 		if (
 			(typeof id !== "number" && typeof id !== "string") ||
 			typeof revision !== "string" ||
-			!SHA.test(revision)
+			!SHA.test(revision) ||
+			deployment.environment !== githubEnvironment ||
+			creator?.login !== "vercel[bot]"
 		)
 			continue;
 		const statusesUrl = new URL(
@@ -242,7 +243,7 @@ async function githubPreviewDeployment(targetId: string, githubToken: string) {
 		);
 		if (!Array.isArray(statuses)) continue;
 		const selected = selectSuccessfulGithubDeploymentStatus(statuses);
-		if (selected) return { ...selected, revision };
+		if (selected) return { ...selected, id, revision };
 	}
 	return null;
 }
@@ -256,10 +257,7 @@ async function collectVercel(
 	const deployments: VercelDeploymentMetadata[] = [];
 	const domains: GndProviderBundle["vercel"]["domains"] = [];
 	const receipts: ReleaseReceipt[] = [];
-	const githubToken =
-		input.environment === "preview"
-			? requiredSecret("GND_RELEASE_GITHUB_TOKEN")
-			: null;
+	const githubToken = requiredSecret("GND_RELEASE_GITHUB_TOKEN");
 
 	for (const config of WEB_TARGETS) {
 		const tokenName = VERCEL_TOKEN_BY_TARGET[config.targetId];
@@ -268,96 +266,66 @@ async function collectVercel(
 				`Vercel token mapping is missing for ${config.targetId}.`,
 			);
 		const token = requiredSecret(tokenName);
-		const preview = githubToken
-			? await githubPreviewDeployment(config.targetId, githubToken)
-			: null;
-		const lookup =
-			input.environment === "production"
-				? config.productionDomain
-				: preview?.hostname;
-		if (!lookup) continue;
-		const detailUrl = new URL(
-			`https://api.vercel.com/v13/deployments/${encodeURIComponent(lookup)}`,
+		const projectUrl = new URL(
+			`https://api.vercel.com/v9/projects/${config.projectId}`,
 		);
-		detailUrl.searchParams.set("teamId", TEAM_ID);
-		const detail = await providerJson(
-			detailUrl,
+		projectUrl.searchParams.set("teamId", TEAM_ID);
+		const project = await providerJson(
+			projectUrl,
 			token,
-			`Vercel deployment is unavailable for ${config.targetId}.`,
+			`Vercel project identity is unavailable for ${config.targetId}.`,
 		);
-		const revision = rawVercelSha(detail);
-		const id = detail.uid ?? detail.id;
-		const projectId = String(detail.projectId ?? "");
-		const readyState = String(detail.readyState ?? detail.state ?? "");
+		if (project.id !== config.projectId)
+			throw new Error(
+				`Vercel project identity is invalid for ${config.targetId}.`,
+			);
+		const githubDeployment = await githubVercelDeployment(
+			config.targetId,
+			input.environment,
+			githubToken,
+		);
+		if (!githubDeployment) continue;
+		const revision = githubDeployment.revision;
+		const id = `vercel_${githubDeployment.id}`;
 		const providerTarget =
-			typeof detail.target === "string" ? detail.target : null;
-		if (
-			!revision ||
-			typeof id !== "string" ||
-			!id ||
-			projectId !== config.projectId ||
-			readyState !== "READY" ||
-			(input.environment === "production"
-				? providerTarget !== "production"
-				: providerTarget === "production" || preview?.revision !== revision)
-		)
-			continue;
+			input.environment === "production" ? "production" : "preview";
 		const target = manifest.targets.find((item) => item.id === config.targetId);
 		if (!target)
 			throw new Error(`Release target is missing for ${config.targetId}.`);
 		const fingerprint = fingerprintAt(input.repository, revision, target);
-		const completedAt =
-			providerIso(detail.ready ?? detail.readyAt ?? detail.createdAt) ??
-			preview?.completedAt ??
-			null;
+		const completedAt = githubDeployment.completedAt;
 		const deployment: VercelDeploymentMetadata = {
 			id,
-			projectId,
-			readyState,
+			projectId: config.projectId,
+			readyState: "READY",
 			target: providerTarget,
-			url: String(detail.url ?? ""),
-			meta:
-				detail.meta && typeof detail.meta === "object"
-					? (detail.meta as Record<string, string>)
-					: undefined,
+			url: githubDeployment.hostname,
+			meta: { githubCommitSha: revision },
 			gitSource: { sha: revision },
-			readySubstate:
-				typeof detail.readySubstate === "string" ? detail.readySubstate : null,
+			readySubstate: input.environment === "production" ? "PROMOTED" : null,
 		};
 		deploymentIds[config.targetId] = id;
 		deployments.push(deployment);
 		if (input.environment === "production" && config.productionDomain) {
-			const assignedAt = providerIso(
-				detail.aliasAssignedAt ??
-					detail.aliasAssigned ??
-					detail.ready ??
-					detail.readyAt,
-			);
-			if (assignedAt) {
-				domains.push({
-					domain: config.productionDomain,
-					assignment: {
-						deploymentId: id,
-						assignedAt,
-					},
-				});
-			}
-		}
-		if (completedAt)
-			receipts.push({
-				version: 1,
-				project: "gnd",
-				targetId: config.targetId,
-				targetKind: "web",
-				environment: input.environment,
-				revision,
-				action: "web-deploy",
-				fingerprint,
-				provider: "vercel",
-				deploymentId: id,
-				result: "succeeded",
-				completedAt,
+			domains.push({
+				domain: config.productionDomain,
+				assignment: { deploymentId: id, assignedAt: completedAt },
 			});
+		}
+		receipts.push({
+			version: 1,
+			project: "gnd",
+			targetId: config.targetId,
+			targetKind: "web",
+			environment: input.environment,
+			revision,
+			action: "web-deploy",
+			fingerprint,
+			provider: "vercel",
+			deploymentId: id,
+			result: "succeeded",
+			completedAt,
+		});
 	}
 	return { deploymentIds, deployments, domains, receipts };
 }

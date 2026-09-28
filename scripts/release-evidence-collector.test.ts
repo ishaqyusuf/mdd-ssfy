@@ -43,16 +43,19 @@ describe("GND release evidence normalization", () => {
 			selectSuccessfulGithubDeploymentStatus([
 				{
 					state: "failure",
+					creator: { login: "vercel[bot]" },
 					environment_url: "https://failed.vercel.app",
 					updated_at: "2026-09-27T20:00:00Z",
 				},
 				{
 					state: "success",
+					creator: { login: "attacker" },
 					environment_url: "https://user:secret@example.com",
 					updated_at: "2026-09-27T20:01:00Z",
 				},
 				{
 					state: "success",
+					creator: { login: "vercel[bot]" },
 					environment_url: "https://gnd-preview.vercel.app",
 					updated_at: "2026-09-27T20:02:00Z",
 				},
