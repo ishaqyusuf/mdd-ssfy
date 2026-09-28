@@ -33,15 +33,24 @@ type CollectorInput = {
 
 type RawVercelDeployment = Record<string, unknown>;
 type RawExpoBuild = Record<string, unknown>;
+type RawGithubDeployment = Record<string, unknown>;
+type RawGithubDeploymentStatus = Record<string, unknown>;
 
 const SHA = /^[0-9a-f]{40}$/i;
 const TEAM_ID = "team_SfkszTPphjtvTMZNm4W2pU8m";
+const GITHUB_REPOSITORY = "ishaqyusuf/mdd-ssfy";
 const EAS_CLI_VERSION = "24.8.0";
 const VERCEL_TOKEN_BY_TARGET: Record<string, string> = {
 	"dashboard-web": "GND_RELEASE_VERCEL_DASHBOARD_TOKEN",
 	"dealership-web": "GND_RELEASE_VERCEL_DEALERSHIP_TOKEN",
 	"storefront-web": "GND_RELEASE_VERCEL_STOREFRONT_TOKEN",
 	"api-web": "GND_RELEASE_VERCEL_API_TOKEN",
+};
+const GITHUB_ENVIRONMENT_BY_TARGET: Record<string, string> = {
+	"dashboard-web": "gndprodesk",
+	"dealership-web": "dealership",
+	"storefront-web": "gnd-storefront",
+	"api-web": "prodesk-api",
 };
 
 function sha256(value: string | Buffer) {
@@ -137,17 +146,18 @@ export async function providerErrorDetails(response: Response) {
 	return `HTTP ${response.status}${code ? ` (${code})` : ""}`;
 }
 
-async function providerJson(
+async function providerJson<T = Record<string, unknown>>(
 	url: URL,
 	token: string,
 	message: string,
-): Promise<Record<string, unknown>> {
+	headers: Record<string, string> = {},
+): Promise<T> {
 	const response = await fetch(url, {
-		headers: { Authorization: `Bearer ${token}` },
+		headers: { ...headers, Authorization: `Bearer ${token}` },
 	});
 	if (!response.ok)
 		throw new Error(`${message} ${await providerErrorDetails(response)}`);
-	return (await response.json()) as Record<string, unknown>;
+	return (await response.json()) as T;
 }
 
 function rawVercelSha(deployment: RawVercelDeployment) {
@@ -163,17 +173,78 @@ function rawVercelSha(deployment: RawVercelDeployment) {
 	return typeof sha === "string" && SHA.test(sha) ? sha : null;
 }
 
-function rawVercelRef(deployment: RawVercelDeployment) {
-	const meta =
-		deployment.meta && typeof deployment.meta === "object"
-			? (deployment.meta as Record<string, unknown>)
-			: {};
-	const source =
-		deployment.gitSource && typeof deployment.gitSource === "object"
-			? (deployment.gitSource as Record<string, unknown>)
-			: {};
-	const ref = source.ref ?? meta.githubCommitRef;
-	return typeof ref === "string" ? ref : null;
+export function selectSuccessfulGithubDeploymentStatus(
+	statuses: RawGithubDeploymentStatus[],
+) {
+	for (const status of statuses) {
+		if (status.state !== "success") continue;
+		const value = status.environment_url ?? status.target_url;
+		if (typeof value !== "string") continue;
+		try {
+			const url = new URL(value);
+			if (
+				url.protocol !== "https:" ||
+				url.username ||
+				url.password ||
+				!url.hostname.endsWith(".vercel.app")
+			)
+				continue;
+			const completedAt = providerIso(status.updated_at ?? status.created_at);
+			if (!completedAt) continue;
+			return { hostname: url.hostname, completedAt };
+		} catch {}
+	}
+	return null;
+}
+
+async function githubPreviewDeployment(targetId: string, githubToken: string) {
+	const project = GITHUB_ENVIRONMENT_BY_TARGET[targetId];
+	if (!project)
+		throw new Error(`GitHub deployment mapping is missing for ${targetId}.`);
+	const environment = `Preview – ${project}`;
+	const deploymentsUrl = new URL(
+		`https://api.github.com/repos/${GITHUB_REPOSITORY}/deployments`,
+	);
+	deploymentsUrl.searchParams.set("environment", environment);
+	deploymentsUrl.searchParams.set("per_page", "100");
+	const deployments = await providerJson<RawGithubDeployment[]>(
+		deploymentsUrl,
+		githubToken,
+		`GitHub deployments are unavailable for ${targetId}.`,
+		{
+			Accept: "application/vnd.github+json",
+			"X-GitHub-Api-Version": "2022-11-28",
+		},
+	);
+	if (!Array.isArray(deployments))
+		throw new Error(`GitHub deployments are invalid for ${targetId}.`);
+	for (const deployment of deployments) {
+		const id = deployment.id;
+		const revision = deployment.sha;
+		if (
+			(typeof id !== "number" && typeof id !== "string") ||
+			typeof revision !== "string" ||
+			!SHA.test(revision)
+		)
+			continue;
+		const statusesUrl = new URL(
+			`https://api.github.com/repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses`,
+		);
+		statusesUrl.searchParams.set("per_page", "100");
+		const statuses = await providerJson<RawGithubDeploymentStatus[]>(
+			statusesUrl,
+			githubToken,
+			`GitHub deployment statuses are unavailable for ${targetId}.`,
+			{
+				Accept: "application/vnd.github+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+		);
+		if (!Array.isArray(statuses)) continue;
+		const selected = selectSuccessfulGithubDeploymentStatus(statuses);
+		if (selected) return { ...selected, revision };
+	}
+	return null;
 }
 
 async function collectVercel(
@@ -185,6 +256,10 @@ async function collectVercel(
 	const deployments: VercelDeploymentMetadata[] = [];
 	const domains: GndProviderBundle["vercel"]["domains"] = [];
 	const receipts: ReleaseReceipt[] = [];
+	const githubToken =
+		input.environment === "preview"
+			? requiredSecret("GND_RELEASE_GITHUB_TOKEN")
+			: null;
 
 	for (const config of WEB_TARGETS) {
 		const tokenName = VERCEL_TOKEN_BY_TARGET[config.targetId];
@@ -193,30 +268,17 @@ async function collectVercel(
 				`Vercel token mapping is missing for ${config.targetId}.`,
 			);
 		const token = requiredSecret(tokenName);
-		const url = new URL("https://api.vercel.com/v7/deployments");
-		url.searchParams.set("projectId", config.projectId);
-		url.searchParams.set("teamId", TEAM_ID);
-		url.searchParams.set("limit", "100");
-		url.searchParams.set("state", "READY");
-		const payload = await providerJson(
-			url,
-			token,
-			`Vercel deployments are unavailable for ${config.targetId}.`,
+		const preview = githubToken
+			? await githubPreviewDeployment(config.targetId, githubToken)
+			: null;
+		const lookup =
+			input.environment === "production"
+				? config.productionDomain
+				: preview?.hostname;
+		if (!lookup) continue;
+		const detailUrl = new URL(
+			`https://api.vercel.com/v13/deployments/${encodeURIComponent(lookup)}`,
 		);
-		const listed = Array.isArray(payload.deployments)
-			? (payload.deployments as RawVercelDeployment[])
-			: [];
-		const selected = listed.find((deployment) => {
-			const target =
-				typeof deployment.target === "string" ? deployment.target : null;
-			return input.environment === "production"
-				? target === "production"
-				: (target === null || target === "preview") &&
-						rawVercelRef(deployment) === "preview";
-		});
-		const id = selected?.uid ?? selected?.id;
-		if (typeof id !== "string" || !id) continue;
-		const detailUrl = new URL(`https://api.vercel.com/v13/deployments/${id}`);
 		detailUrl.searchParams.set("teamId", TEAM_ID);
 		const detail = await providerJson(
 			detailUrl,
@@ -224,19 +286,35 @@ async function collectVercel(
 			`Vercel deployment is unavailable for ${config.targetId}.`,
 		);
 		const revision = rawVercelSha(detail);
-		if (!revision) continue;
+		const id = detail.uid ?? detail.id;
+		const projectId = String(detail.projectId ?? "");
+		const readyState = String(detail.readyState ?? detail.state ?? "");
+		const providerTarget =
+			typeof detail.target === "string" ? detail.target : null;
+		if (
+			!revision ||
+			typeof id !== "string" ||
+			!id ||
+			projectId !== config.projectId ||
+			readyState !== "READY" ||
+			(input.environment === "production"
+				? providerTarget !== "production"
+				: providerTarget === "production" || preview?.revision !== revision)
+		)
+			continue;
 		const target = manifest.targets.find((item) => item.id === config.targetId);
 		if (!target)
 			throw new Error(`Release target is missing for ${config.targetId}.`);
 		const fingerprint = fingerprintAt(input.repository, revision, target);
-		const completedAt = providerIso(
-			detail.ready ?? detail.readyAt ?? detail.createdAt,
-		);
+		const completedAt =
+			providerIso(detail.ready ?? detail.readyAt ?? detail.createdAt) ??
+			preview?.completedAt ??
+			null;
 		const deployment: VercelDeploymentMetadata = {
 			id,
-			projectId: String(detail.projectId ?? config.projectId),
-			readyState: String(detail.readyState ?? detail.state ?? ""),
-			target: typeof detail.target === "string" ? detail.target : null,
+			projectId,
+			readyState,
+			target: providerTarget,
 			url: String(detail.url ?? ""),
 			meta:
 				detail.meta && typeof detail.meta === "object"
@@ -249,27 +327,17 @@ async function collectVercel(
 		deploymentIds[config.targetId] = id;
 		deployments.push(deployment);
 		if (input.environment === "production" && config.productionDomain) {
-			const domainUrl = new URL(
-				`https://api.vercel.com/v13/deployments/${encodeURIComponent(config.productionDomain)}`,
-			);
-			domainUrl.searchParams.set("teamId", TEAM_ID);
-			const assignment = await providerJson(
-				domainUrl,
-				token,
-				`Vercel domain is unavailable for ${config.targetId}.`,
-			);
-			const domainDeploymentId = assignment.id ?? assignment.uid;
 			const assignedAt = providerIso(
-				assignment.aliasAssignedAt ??
-					assignment.aliasAssigned ??
-					assignment.ready ??
-					assignment.readyAt,
+				detail.aliasAssignedAt ??
+					detail.aliasAssigned ??
+					detail.ready ??
+					detail.readyAt,
 			);
-			if (typeof domainDeploymentId === "string" && assignedAt) {
+			if (assignedAt) {
 				domains.push({
 					domain: config.productionDomain,
 					assignment: {
-						deploymentId: domainDeploymentId,
+						deploymentId: id,
 						assignedAt,
 					},
 				});
