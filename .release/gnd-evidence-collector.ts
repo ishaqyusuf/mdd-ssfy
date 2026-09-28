@@ -36,15 +36,8 @@ type RawGithubDeployment = Record<string, unknown>;
 type RawGithubDeploymentStatus = Record<string, unknown>;
 
 const SHA = /^[0-9a-f]{40}$/i;
-const TEAM_ID = "team_SfkszTPphjtvTMZNm4W2pU8m";
 const GITHUB_REPOSITORY = "ishaqyusuf/mdd-ssfy";
 const EAS_CLI_VERSION = "24.8.0";
-const VERCEL_TOKEN_BY_TARGET: Record<string, string> = {
-	"dashboard-web": "GND_RELEASE_VERCEL_DASHBOARD_TOKEN",
-	"dealership-web": "GND_RELEASE_VERCEL_DEALERSHIP_TOKEN",
-	"storefront-web": "GND_RELEASE_VERCEL_STOREFRONT_TOKEN",
-	"api-web": "GND_RELEASE_VERCEL_API_TOKEN",
-};
 const GITHUB_ENVIRONMENT_BY_TARGET: Record<string, string> = {
 	"dashboard-web": "gndprodesk",
 	"dealership-web": "dealership",
@@ -260,25 +253,6 @@ async function collectVercel(
 	const githubToken = requiredSecret("GND_RELEASE_GITHUB_TOKEN");
 
 	for (const config of WEB_TARGETS) {
-		const tokenName = VERCEL_TOKEN_BY_TARGET[config.targetId];
-		if (!tokenName)
-			throw new Error(
-				`Vercel token mapping is missing for ${config.targetId}.`,
-			);
-		const token = requiredSecret(tokenName);
-		const projectUrl = new URL(
-			`https://api.vercel.com/v9/projects/${config.projectId}`,
-		);
-		projectUrl.searchParams.set("teamId", TEAM_ID);
-		const project = await providerJson(
-			projectUrl,
-			token,
-			`Vercel project identity is unavailable for ${config.targetId}.`,
-		);
-		if (project.id !== config.projectId)
-			throw new Error(
-				`Vercel project identity is invalid for ${config.targetId}.`,
-			);
 		const githubDeployment = await githubVercelDeployment(
 			config.targetId,
 			input.environment,
