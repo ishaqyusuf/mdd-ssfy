@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
 	providerErrorDetails,
 	providerIso,
+	repositoryHasCommit,
 	selectSuccessfulGithubDeploymentStatus,
 } from "../.release/gnd-evidence-collector";
 
@@ -64,6 +65,13 @@ describe("GND release evidence normalization", () => {
 			hostname: "gnd-preview.vercel.app",
 			completedAt: "2026-09-27T20:02:00.000Z",
 		});
+	});
+
+	test("treats unreachable historical revisions as unavailable", () => {
+		expect(repositoryHasCommit(root, "HEAD")).toBe(true);
+		expect(
+			repositoryHasCommit(root, "0000000000000000000000000000000000000000"),
+		).toBe(false);
 	});
 });
 
