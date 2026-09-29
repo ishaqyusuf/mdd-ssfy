@@ -42,6 +42,10 @@ import { addDays } from "date-fns";
 import z from "zod";
 import { createPayrollAction } from "./sales";
 import type { SquarePaymentStatus } from "./sales-accounting";
+import {
+	checkoutBuyerPrepopulatedData,
+	type CheckoutBuyerIdentity,
+} from "./checkout-buyer-identity";
 
 function isTokenExpired(expiry?: string | null) {
 	if (!expiry) return true;
@@ -792,6 +796,7 @@ export async function createSalesCheckoutLink(
 	options?: {
 		redirectUrl?: string;
 		idempotencyKey?: string;
+		buyerIdentity?: CheckoutBuyerIdentity;
 	},
 ) {
 	const { db } = ctx;
@@ -871,7 +876,12 @@ export async function createSalesCheckoutLink(
 		const redirectUrl =
 			options?.redirectUrl ||
 			`${getAppUrl()}/checkout/${pendingCheckout.redirectToken}/v2`;
-		const buyerEmail = cust?.email;
+		const prePopulatedData = checkoutBuyerPrepopulatedData({
+			identity: options?.buyerIdentity,
+			email: cust?.email,
+			phone: phoneNo,
+			address: cust?.address,
+		});
 		try {
 			const resp = await squareClient.checkout.paymentLinks.create({
 				idempotencyKey: options?.idempotencyKey || new Date().toISOString(),
@@ -883,13 +893,7 @@ export async function createSalesCheckoutLink(
 						currency: "USD",
 					},
 				},
-				prePopulatedData: {
-					buyerEmail,
-					...(phoneNo ? { buyerPhoneNumber: phoneNo } : {}),
-					buyerAddress: {
-						addressLine1: cust?.address,
-					},
-				},
+				...(prePopulatedData ? { prePopulatedData } : {}),
 				checkoutOptions: {
 					redirectUrl,
 					askForShippingAddress: false,
@@ -977,6 +981,7 @@ export async function verifyPayment(
 										id: true,
 										customerId: true,
 										salesRepId: true,
+										dealerSale: { select: { id: true } },
 									},
 								},
 							},
@@ -998,17 +1003,17 @@ export async function verifyPayment(
 							(typeof squarePayment.orders)[number]["order"]
 						> => Boolean(order),
 					);
-				if (squarePayment?.customerTxs?.length)
+				if (squarePayment?.customerTxs?.length) {
+					await tx.squarePayments.updateMany({
+						where: { id: squarePayment.id, status: "PENDING" },
+						data: { status: "COMPLETED" },
+					});
 					return {
 						status: "COMPLETED" as const,
 						amount: Number(squarePayment.amount || 0),
-						customerReceiptSales: settledOrders.map((order) => ({
-							salesId: order.id,
-							remainingDue: Number(order.amountDue || 0),
-						})),
-						customerAuthorId:
-							squarePayment.createdBy?.id || settledOrders[0]?.salesRepId || 1,
+						settledSalesIds: settledOrders.map((order) => order.id),
 					};
+				}
 				const checkout = squarePayment.checkout;
 				if (!squarePayment.squareOrderId || !checkout?.id) {
 					return {
@@ -1085,6 +1090,7 @@ export async function verifyPayment(
 							squarePaymentId: squarePayment.id,
 							orders: settledOrders.map((order) => ({
 								...order,
+								isDealerSale: Boolean(order.dealerSale),
 							})),
 							tip: resp.tip,
 							amount: resp.amount,
@@ -1103,7 +1109,9 @@ export async function verifyPayment(
 				return {
 					...resp,
 					notifications: Object.values(salesRepsNotifications || {}),
-					customerFailureSales: settledOrders.map((order) => ({
+				customerFailureSales: settledOrders
+					.filter((order) => !order.dealerSale)
+					.map((order) => ({
 						salesId: order.id,
 						remainingDue: Number(order.amountDue || 0),
 					})),
@@ -1129,27 +1137,35 @@ export async function verifyPayment(
 		"notifications" in result ? result.notifications || [] : [];
 	let invoiceDownloadUrl: string | null = null;
 	if (result.status === "COMPLETED") {
-		await sendPaymentSystemNotifications(tasks, ctx, notifications);
+		try {
+			await sendPaymentSystemNotifications(tasks, ctx, notifications);
+		} catch (error) {
+			console.error("Payment settled; staff notification failed", error);
+		}
 		if (
 			"customerReceiptSales" in result &&
 			result.customerReceiptSales?.length
 		) {
-			const payload = await buildSalesCustomerPaymentReceivedPayload(ctx.db, {
-				sales: result.customerReceiptSales,
-				paymentMethod: "online",
-				totalAmount: Number(result.amount || 0),
-			});
-			await new NotificationService(tasks, ctx).send(
-				"sales_customer_payment_received",
-				{
-					author: {
-						id: result.customerAuthorId || 1,
-						role: "employee",
+			try {
+				const payload = await buildSalesCustomerPaymentReceivedPayload(ctx.db, {
+					sales: result.customerReceiptSales,
+					paymentMethod: "online",
+					totalAmount: Number(result.amount || 0),
+				});
+				await new NotificationService(tasks, ctx).send(
+					"sales_customer_payment_received",
+					{
+						author: {
+							id: result.customerAuthorId || 1,
+							role: "employee",
+						},
+						payload,
 					},
-					payload,
-				},
-			);
-			invoiceDownloadUrl = payload.invoiceDownloadUrl || null;
+				);
+				invoiceDownloadUrl = payload.invoiceDownloadUrl || null;
+			} catch (error) {
+				console.error("Payment settled; customer receipt failed", error);
+			}
 		}
 	}
 	if (
@@ -1192,12 +1208,12 @@ export async function verifyPayment(
 	}
 	const appliedSales =
 		result.status === "COMPLETED" &&
-		"customerReceiptSales" in result &&
-		result.customerReceiptSales?.length
+		"settledSalesIds" in result &&
+		result.settledSalesIds?.length
 			? await ctx.db.salesOrders.findMany({
 					where: {
 						id: {
-							in: result.customerReceiptSales.map((sale) => sale.salesId),
+							in: result.settledSalesIds,
 						},
 					},
 					select: {
@@ -1233,7 +1249,7 @@ export async function paymentSuccess(
 		salesAmount?;
 		transactionMeta?;
 		tip;
-		orders: { id; customerId; amountDue; salesRepId }[];
+		orders: { id; customerId; amountDue; salesRepId; isDealerSale: boolean }[];
 		authorId?;
 		checkoutId;
 	},
@@ -1269,6 +1285,10 @@ export async function paymentSuccess(
 			);
 		},
 	});
+	await tx.squarePayments.updateMany({
+		where: { id: p.squarePaymentId, status: "PENDING" },
+		data: { status: "COMPLETED" },
+	});
 	for (const event of settlement.events) {
 		salesRepsNotifications[
 			event.recipientEmail || `${event.recipientEmployeeId}`
@@ -1279,6 +1299,7 @@ export async function paymentSuccess(
 		amount: Number(p.amount || 0),
 		tip: p.tip,
 		status: "COMPLETED" as const,
+		settledSalesIds: p.orders.map((order) => order.id),
 		notifications: Object.values(salesRepsNotifications || {}),
 		customerReceiptSales: p.orders
 			.map((order) => {
@@ -1289,6 +1310,7 @@ export async function paymentSuccess(
 				balance -= amountApplied;
 				return {
 					salesId: order.id,
+					isDealerSale: order.isDealerSale,
 					amountApplied,
 					remainingDue: Math.max(
 						Number(order.amountDue || 0) - amountApplied,
@@ -1296,7 +1318,7 @@ export async function paymentSuccess(
 					),
 				};
 			})
-			.filter((sale) => sale.amountApplied > 0),
+			.filter((sale) => sale.amountApplied > 0 && !sale.isDealerSale),
 		customerAuthorId: p.authorId || p.orders[0]?.salesRepId || 1,
 	};
 }

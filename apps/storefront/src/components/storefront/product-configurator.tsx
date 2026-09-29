@@ -2,7 +2,11 @@
 
 import { useTRPC } from "@/trpc/client";
 import type { StorefrontRouterOutputs } from "@gnd/api/trpc/routers/storefront-app";
-import { percentageMoney, subtractMoney } from "@gnd/sales/payment-system/money";
+import {
+	percentageMoney,
+	subtractMoney,
+} from "@gnd/sales/payment-system/money";
+import { resolveWorkflowComponentImageSrc } from "@gnd/sales/sales-form";
 import { deduplicateStorefrontOptions } from "@gnd/sales/storefront-configuration";
 import {
 	calculateMouldingQuantity,
@@ -85,11 +89,14 @@ function initialSelections(steps: Step[]) {
 }
 
 function ProductGallery({ offer }: { offer: Offer }) {
-	const images = offer.images.length
+	const rawImages = offer.images.length
 		? offer.images
 		: offer.imageUrl
 			? [offer.imageUrl]
 			: [];
+	const images = rawImages
+		.map((image) => resolveWorkflowComponentImageSrc(image))
+		.filter((image): image is string => Boolean(image));
 	const firstImage = images[0] || "";
 	const [selectedImage, setSelectedImage] = useState(firstImage);
 
@@ -197,9 +204,11 @@ function StepOptions({
 							{showImages ? (
 								<>
 									<div className="flex h-20 w-full items-center justify-center bg-white">
-										{component.img ? (
+										{resolveWorkflowComponentImageSrc(component.img) ? (
 											<img
-												src={component.img}
+												src={
+													resolveWorkflowComponentImageSrc(component.img) || ""
+												}
 												alt=""
 												className="size-full object-contain p-1"
 											/>
@@ -237,7 +246,13 @@ function StepOptions({
 	);
 }
 
-export function ProductConfigurator({ slug }: { slug: string }) {
+export function ProductConfigurator({
+	slug,
+	returnTo,
+}: {
+	slug: string;
+	returnTo?: string;
+}) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const { data: offer } = useSuspenseQuery(
@@ -342,6 +357,11 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 			else delete next[step.stepUid];
 			return next;
 		});
+	}
+
+	function selectAddOnStep(step: Step, uid: string | null) {
+		selectStep(step, uid);
+		setActiveAddOnStep("");
 	}
 
 	const configuration = useMemo(
@@ -550,7 +570,7 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 				</Link>
 				<span>/</span>
 				<Link
-					href={`/search?category=${offer.category.slug}`}
+					href={returnTo || `/search?category=${offer.category.slug}`}
 					className="hover:text-gray-900"
 				>
 					{offer.category.title}
@@ -560,7 +580,7 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 			</nav>
 
 			<Button asChild variant="ghost" className="mb-6">
-				<Link href={`/search?category=${offer.category.slug}`}>
+				<Link href={returnTo || `/search?category=${offer.category.slug}`}>
 					<Icons.ArrowLeft className="mr-2 size-4" />
 					Back to Products
 				</Link>
@@ -623,18 +643,14 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 							/>
 						) : null}
 
-						{preview.data ? (
-							primaryOptionSteps.map((step) => (
-								<StepOptions
-									key={step.stepUid}
-									step={step}
-									selectedUid={selections[step.stepUid]}
-									onSelect={(uid) => selectStep(step, uid)}
-								/>
-							))
-						) : (
-							<div className="h-20 animate-pulse rounded-md bg-gray-100" />
-						)}
+						{primaryOptionSteps.map((step) => (
+							<StepOptions
+								key={step.stepUid}
+								step={step}
+								selectedUid={selections[step.stepUid]}
+								onSelect={(uid) => selectStep(step, uid)}
+							/>
+						))}
 
 						{doorSchedule ? (
 							<div className="space-y-4 border-t pt-5">
@@ -807,7 +823,7 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 														selectedUid={selections[step.stepUid]}
 														showImages
 														hideLegend
-														onSelect={(uid) => selectStep(step, uid)}
+														onSelect={(uid) => selectAddOnStep(step, uid)}
 													/>
 												) : null}
 											</AccordionContent>

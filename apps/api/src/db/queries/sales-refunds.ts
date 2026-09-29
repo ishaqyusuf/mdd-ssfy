@@ -3,8 +3,10 @@ import { Prisma } from "@gnd/db";
 import {
 	ACTIVE_REFUND_PROVIDER_STATUSES,
 	assertRefundIntent,
+	assertRefundPrincipalCapacity,
 	createRefundIdempotencyKey,
 	refundTotalCents,
+	refundablePrincipalByOrder,
 	remainingRefundableCents,
 } from "@gnd/sales/payment-system/refunds";
 import { tasks } from "@trigger.dev/sdk/v3";
@@ -87,13 +89,22 @@ export async function getSalesRefundOverview(
 				include: {
 					refunds: {
 						include: {
-							allocations: {
-								where: { salesOrderId: order.id },
-							},
+							allocations: true,
 						},
 						orderBy: { createdAt: "desc" },
 					},
 				},
+			})
+		: [];
+	const originalPayments = legacySquareIds.length
+		? await ctx.db.salesPayments.findMany({
+				where: {
+					squarePaymentsId: { in: legacySquareIds },
+					deletedAt: null,
+					status: "success",
+					amount: { gt: 0 },
+				},
+				select: { squarePaymentsId: true, orderId: true, amount: true },
 			})
 		: [];
 	const paymentOrderLinks = legacySquareIds.length
@@ -155,6 +166,20 @@ export async function getSalesRefundOverview(
 					.reduce((sum, refund) => sum + refund.reservedCents, 0)
 			: 0;
 		const receivedCents = tender?.amountCents || toCents(payment.amount);
+		const remainingPrincipalByOrder = tender?.legacySquarePaymentId
+			? refundablePrincipalByOrder({
+					originalPayments: originalPayments
+						.filter(
+							(original) =>
+								original.squarePaymentsId === tender.legacySquarePaymentId,
+						)
+						.map((original) => ({
+							salesOrderId: original.orderId,
+							principalCents: toCents(original.amount),
+						})),
+					refunds: tender.refunds,
+				})
+			: new Map<number, number>();
 		return {
 			id: `payment:${payment.id}`,
 			salesPaymentId: payment.id,
@@ -198,14 +223,20 @@ export async function getSalesRefundOverview(
 						tipCents: tender.tipCents,
 						currency: tender.currency,
 						paidAt: tender.paidAt,
-						eligibleOrders: eligibleOrdersByLegacyId.get(
-							tender.legacySquarePaymentId || "",
-						) || [
+						eligibleOrders: eligibleOrdersByLegacyId
+							.get(tender.legacySquarePaymentId || "")
+							?.map((eligibleOrder) => ({
+								...eligibleOrder,
+								remainingPrincipalRefundableCents:
+									remainingPrincipalByOrder.get(eligibleOrder.id) || 0,
+							})) || [
 							{
 								id: order.id,
 								orderNo: order.orderId,
 								amountDueCents: toCents(order.amountDue),
 								grandTotalCents: toCents(order.grandTotal),
+								remainingPrincipalRefundableCents:
+									remainingPrincipalByOrder.get(order.id) || 0,
 							},
 						],
 					}
@@ -331,6 +362,7 @@ export async function createSalesSquareRefundIntent(
 								in: ["not_submitted", "pending", "completed"],
 							},
 						},
+						include: { allocations: true },
 					},
 				},
 			});
@@ -348,6 +380,7 @@ export async function createSalesSquareRefundIntent(
 				.filter((item) => item.providerStatus !== "completed")
 				.reduce((sum, item) => sum + item.reservedCents, 0);
 			const allowedOrderIds = new Set<number>();
+			let originalPayments: { orderId: number; amount: number }[] = [];
 			if (tender.legacySquarePaymentId) {
 				const [links, payments] = await Promise.all([
 					tx.squarePaymentOrders.findMany({
@@ -358,10 +391,13 @@ export async function createSalesSquareRefundIntent(
 						where: {
 							squarePaymentsId: tender.legacySquarePaymentId,
 							deletedAt: null,
+							status: "success",
+							amount: { gt: 0 },
 						},
-						select: { orderId: true },
+						select: { orderId: true, amount: true },
 					}),
 				]);
+				originalPayments = payments;
 				for (const link of links) allowedOrderIds.add(link.orderId);
 				for (const payment of payments) allowedOrderIds.add(payment.orderId);
 			}
@@ -390,6 +426,16 @@ export async function createSalesSquareRefundIntent(
 				money,
 				allocations: input.allocations,
 			});
+			assertRefundPrincipalCapacity(
+				input.allocations,
+				refundablePrincipalByOrder({
+					originalPayments: originalPayments.map((payment) => ({
+						salesOrderId: payment.orderId,
+						principalCents: toCents(Number(payment.amount)),
+					})),
+					refunds: tender.refunds,
+				}),
+			);
 			return tx.salesSquareRefund.create({
 				data: {
 					tenderPaymentId: tender.id,
@@ -433,95 +479,120 @@ export async function allocateExternalSalesSquareRefund(
 	ctx: TRPCContext & { userId: number },
 	input: z.infer<typeof allocateExternalSalesSquareRefundSchema>,
 ) {
-	const allocated = await ctx.db.$transaction(async (tx) => {
-		const refund = await tx.salesSquareRefund.findUniqueOrThrow({
-			where: { id: input.refundId },
-			include: { allocations: true, tender: true },
-		});
-		if (
-			refund.origin !== "external" ||
-			refund.providerStatus !== "completed" ||
-			refund.applicationStatus !== "awaiting_allocation"
-		) {
-			throw new Error(
-				"Only an unallocated completed external refund can be assigned.",
-			);
-		}
-		const money = input.allocations.reduce(
-			(acc, allocation) => ({
-				principalCents: acc.principalCents + allocation.principalCents,
-				cccCents: acc.cccCents + allocation.cccCents,
-				tipCents: acc.tipCents + allocation.tipCents,
-			}),
-			{ principalCents: 0, cccCents: 0, tipCents: 0 },
-		);
-		const allowedOrderIds = new Set<number>();
-		if (refund.tender.legacySquarePaymentId) {
-			const [links, payments] = await Promise.all([
-				tx.squarePaymentOrders.findMany({
-					where: {
-						squarePaymentId: refund.tender.legacySquarePaymentId,
-					},
-					select: { orderId: true },
+	const allocated = await ctx.db.$transaction(
+		async (tx) => {
+			const refund = await tx.salesSquareRefund.findUniqueOrThrow({
+				where: { id: input.refundId },
+				include: { allocations: true, tender: true },
+			});
+			if (
+				refund.origin !== "external" ||
+				refund.providerStatus !== "completed" ||
+				refund.applicationStatus !== "awaiting_allocation"
+			) {
+				throw new Error(
+					"Only an unallocated completed external refund can be assigned.",
+				);
+			}
+			const money = input.allocations.reduce(
+				(acc, allocation) => ({
+					principalCents: acc.principalCents + allocation.principalCents,
+					cccCents: acc.cccCents + allocation.cccCents,
+					tipCents: acc.tipCents + allocation.tipCents,
 				}),
-				tx.salesPayments.findMany({
-					where: {
-						squarePaymentsId: refund.tender.legacySquarePaymentId,
-						deletedAt: null,
-					},
-					select: { orderId: true },
+				{ principalCents: 0, cccCents: 0, tipCents: 0 },
+			);
+			const allowedOrderIds = new Set<number>();
+			let originalPayments: { orderId: number; amount: number }[] = [];
+			if (refund.tender.legacySquarePaymentId) {
+				const [links, payments] = await Promise.all([
+					tx.squarePaymentOrders.findMany({
+						where: {
+							squarePaymentId: refund.tender.legacySquarePaymentId,
+						},
+						select: { orderId: true },
+					}),
+					tx.salesPayments.findMany({
+						where: {
+							squarePaymentsId: refund.tender.legacySquarePaymentId,
+							deletedAt: null,
+							status: "success",
+							amount: { gt: 0 },
+						},
+						select: { orderId: true, amount: true },
+					}),
+				]);
+				originalPayments = payments;
+				for (const link of links) allowedOrderIds.add(link.orderId);
+				for (const payment of payments) allowedOrderIds.add(payment.orderId);
+			}
+			if (
+				input.allocations.some(
+					(allocation) => !allowedOrderIds.has(allocation.salesOrderId),
+				)
+			) {
+				throw new Error(
+					"External refund allocation includes an order outside the verified original tender.",
+				);
+			}
+			if (refundTotalCents(money) !== refund.amountCents) {
+				throw new Error(
+					"External refund allocations must equal the Square refund total.",
+				);
+			}
+			assertRefundIntent({
+				paymentStatus: "COMPLETED",
+				paidAt: new Date(),
+				remainingCents: refund.amountCents,
+				money,
+				allocations: input.allocations,
+			});
+			const priorRefunds = await tx.salesSquareRefund.findMany({
+				where: {
+					tenderPaymentId: refund.tenderPaymentId,
+					id: { not: refund.id },
+					providerStatus: { in: ["not_submitted", "pending", "completed"] },
+				},
+				include: { allocations: true },
+			});
+			assertRefundPrincipalCapacity(
+				input.allocations,
+				refundablePrincipalByOrder({
+					originalPayments: originalPayments.map((payment) => ({
+						salesOrderId: payment.orderId,
+						principalCents: toCents(Number(payment.amount)),
+					})),
+					refunds: priorRefunds,
 				}),
-			]);
-			for (const link of links) allowedOrderIds.add(link.orderId);
-			for (const payment of payments) allowedOrderIds.add(payment.orderId);
-		}
-		if (
-			input.allocations.some(
-				(allocation) => !allowedOrderIds.has(allocation.salesOrderId),
-			)
-		) {
-			throw new Error(
-				"External refund allocation includes an order outside the verified original tender.",
 			);
-		}
-		if (refundTotalCents(money) !== refund.amountCents) {
-			throw new Error(
-				"External refund allocations must equal the Square refund total.",
-			);
-		}
-		assertRefundIntent({
-			paymentStatus: "COMPLETED",
-			paidAt: new Date(),
-			remainingCents: refund.amountCents,
-			money,
-			allocations: input.allocations,
-		});
-		await tx.salesSquareRefundAllocation.createMany({
-			data: input.allocations.map((allocation) => ({
-				...allocation,
-				refundId: refund.id,
-			})),
-		});
-		return tx.salesSquareRefund.update({
-			where: { id: refund.id, version: refund.version },
-			data: {
-				principalCents: money.principalCents,
-				cccCents: money.cccCents,
-				tipCents: money.tipCents,
-				applicationStatus: "ready_to_apply",
-				version: { increment: 1 },
-				transitions: {
-					create: {
-						providerStatus: refund.providerStatus,
-						applicationStatus: "ready_to_apply",
-						source: "user",
-						actorId: ctx.userId,
-						message: "External Square refund allocations approved.",
+			await tx.salesSquareRefundAllocation.createMany({
+				data: input.allocations.map((allocation) => ({
+					...allocation,
+					refundId: refund.id,
+				})),
+			});
+			return tx.salesSquareRefund.update({
+				where: { id: refund.id, version: refund.version },
+				data: {
+					principalCents: money.principalCents,
+					cccCents: money.cccCents,
+					tipCents: money.tipCents,
+					applicationStatus: "ready_to_apply",
+					version: { increment: 1 },
+					transitions: {
+						create: {
+							providerStatus: refund.providerStatus,
+							applicationStatus: "ready_to_apply",
+							source: "user",
+							actorId: ctx.userId,
+							message: "External Square refund allocations approved.",
+						},
 					},
 				},
-			},
-		});
-	});
+			});
+		},
+		{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+	);
 	await tasks.trigger("process-square-sales-refund", {
 		refundId: allocated.id,
 	});

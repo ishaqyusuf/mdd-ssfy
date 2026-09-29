@@ -533,6 +533,7 @@ async function resolveDealerPrintBranding(db: Db, salesOrderId: number) {
 		select: {
 			dealerAuth: {
 				select: {
+					email: true,
 					companyName: true,
 					name: true,
 					phoneNo: true,
@@ -559,7 +560,7 @@ export async function getInventoryPrintDocumentData(
 	input: PrintSalesV2Input,
 ) {
 	const { pages, title, firstOrderId } = await getInventoryPrintData(db, input);
-	const dealerBranding = input.ids[0]
+	const dealerBranding = input.pricingMode !== "internal" && input.ids[0]
 		? await resolveDealerPrintBranding(db, input.ids[0])
 		: null;
 

@@ -1,4 +1,5 @@
 import { calculateSalesFormSummary } from "../sales-form/domain";
+import { allocateMoneyByWeight } from "@gnd/utils/allocate-money";
 import {
 	divideMoney,
 	moneyRatio,
@@ -61,6 +62,21 @@ function getDoorQty(door: Record<string, any>) {
 	return explicitTotalQty != null && Number.isFinite(explicitTotalQty)
 		? explicitTotalQty
 		: Number(door.lhQty || 0) + Number(door.rhQty || 0);
+}
+
+function allocateShelfTotals(rows: Record<string, any>[], total: number) {
+	const weights = rows.map((row) => ({
+		weight: Math.round(
+			Number(
+				row.totalPrice ?? Number(row.qty || 0) * Number(row.unitPrice || 0),
+			) * 100,
+		),
+	}));
+	return total >= 0 &&
+		weights.some((row) => row.weight > 0) &&
+		weights.every((row) => Number.isSafeInteger(row.weight) && row.weight >= 0)
+		? allocateMoneyByWeight(weights, total)
+		: null;
 }
 
 function scaleMetadataRows(
@@ -187,7 +203,7 @@ export function resolveDealerPrintPricingSurface<
 		resolvedMode === "customer"
 			? sumMoney([1, percentageMoney(1, getDealerSalesPercentage(sale))])
 			: 1;
-	const items = (sale.items || []).map((item) => {
+	let items = (sale.items || []).map((item) => {
 		const qty = Number(item.qty || 0);
 		const total = multiplyMoney(Number(item.total || 0), dealerMultiplier);
 		const rate =
@@ -210,14 +226,17 @@ export function resolveDealerPrintPricingSurface<
 			sourceShelfTotal,
 			dealerMultiplier,
 		);
+		const shelfCents = allocateShelfTotals(item.shelfItems || [], total);
 		const shelfItems = (item.shelfItems || []).map(
-			(shelfItem: Record<string, any>) => {
+			(shelfItem: Record<string, any>, index: number) => {
 				const shelfQty = Number(shelfItem.qty || 0);
 				const unitPrice = scalePrice(shelfItem.unitPrice, shelfMultiplier);
 				return {
 					...shelfItem,
 					unitPrice,
-					totalPrice: multiplyMoney(shelfQty, unitPrice),
+					totalPrice: shelfCents
+						? (shelfCents[index] || 0) / 100
+						: multiplyMoney(shelfQty, unitPrice),
 				};
 			},
 		);
@@ -254,6 +273,7 @@ export function resolveDealerPrintPricingSurface<
 
 		return {
 			...item,
+			qty: item.qty,
 			rate,
 			total,
 			meta,
@@ -280,14 +300,61 @@ export function resolveDealerPrintPricingSurface<
 		paymentMethod: getPaymentMethod(sale),
 		cccPercentage: getCccPercentage(sale),
 	});
+	const savedCustomerTotal = Number(sale.dealerSale?.grandTotal);
+	const customerTotal = Number.isFinite(savedCustomerTotal)
+		? roundCurrency(savedCustomerTotal)
+		: summary.grandTotal;
+	const roundingDifference = roundCurrency(customerTotal - summary.grandTotal);
+	let customerSubtotal = summary.subTotal;
+	if (Math.abs(roundingDifference) <= 0.02 && roundingDifference !== 0) {
+		const lastPricedIndex = items.findLastIndex(
+			(item) => Number(item.total || 0) > 0,
+		);
+		if (lastPricedIndex >= 0) {
+			items = items.map((item, index) => {
+				if (index !== lastPricedIndex) return item;
+				const total = roundCurrency(
+					Number(item.total || 0) + roundingDifference,
+				);
+				const qty = Number(item.qty || 0);
+				const shelfCents = allocateShelfTotals(item.shelfItems || [], total);
+				return {
+					...item,
+					total,
+					rate: qty > 0 ? divideMoney(total, qty) : item.rate,
+					meta: scaleMetadataRows(item.meta, total, 1) || item.meta,
+					shelfItems: shelfCents
+						? item.shelfItems.map(
+								(shelf: Record<string, any>, rowIndex: number) => ({
+									...shelf,
+									totalPrice: (shelfCents[rowIndex] || 0) / 100,
+								}),
+							)
+						: item.shelfItems,
+				};
+			});
+			customerSubtotal = roundCurrency(customerSubtotal + roundingDifference);
+		}
+	}
 
 	return {
 		...sale,
-		subTotal: summary.subTotal,
+		subTotal: customerSubtotal,
 		tax: summary.taxTotal,
 		taxPercentage: summary.taxRate,
-		grandTotal: summary.grandTotal,
-		amountDue: Number(sale.dealerSale?.dueAmount ?? summary.grandTotal),
+		grandTotal: customerTotal,
+		amountDue: Number(sale.dealerSale?.dueAmount ?? customerTotal),
+		// Office tenders settle the GND balance. They are never payments made by
+		// the dealer's customer and must not appear on the customer invoice.
+		payments: [],
+		dealerCustomerPayment: {
+			paidAmount: Math.max(
+				0,
+				roundCurrency(
+					customerTotal - Number(sale.dealerSale?.dueAmount ?? customerTotal),
+				),
+			),
+		},
 		items,
 	} as TSale;
 }

@@ -1,5 +1,9 @@
 import { formatUSPhoneNumber } from "@gnd/utils/format";
-import type { Database, Prisma } from "..";
+import { Prisma, type Database } from "..";
+import { buildDealerServiceItemProjection } from "./dealer-service-projection";
+import { buildDealerShelfProjection } from "./dealer-shelf-projection";
+import { buildDealerMouldingProjection } from "./dealer-moulding-projection";
+import { buildDealerDoorProjection } from "./dealer-door-projection";
 
 export type DealerListInput = {
 	search?: string | null;
@@ -67,6 +71,7 @@ export type DealerSettingsFormInput = {
 	name?: string | null;
 	companyName?: string | null;
 	phoneNo?: string | null;
+	invoiceEmail?: string | null;
 	logoUrl?: string | null;
 	address1?: string | null;
 	address2?: string | null;
@@ -164,6 +169,9 @@ export type DealerPortalSalesPipelineFilter = {
 
 export type DealerSalesRequestStatus = "pending" | "approved" | "rejected";
 export const DEALER_ORDER_REQUEST_TYPE = "make_order";
+const DEALER_REQUEST_TRANSACTION_OPTIONS = {
+	isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+} as const;
 
 export function getDealerQuoteEditLock(status?: string | null) {
 	if (status === "pending") {
@@ -1500,6 +1508,7 @@ function mapDealerSalesDocument(document: {
 	} | null;
 	invoiceStatus: string | null;
 	createdAt: Date | null;
+	updatedAt?: Date | null;
 	pickup?: {
 		pickupAt: Date | null;
 		deletedAt?: Date | null;
@@ -1507,6 +1516,7 @@ function mapDealerSalesDocument(document: {
 	deliveries?: Array<{
 		status: string | null;
 		deliveredAt: Date | null;
+		exceptions?: Array<{ id: number }>;
 	}>;
 	customer: {
 		id: number;
@@ -1581,12 +1591,16 @@ function getDealerFulfillmentStatus(document: {
 	type?: string | null;
 	deliveredAt?: Date | null;
 	pickup?: { pickupAt: Date | null; deletedAt?: Date | null } | null;
+	deliveries?: Array<{ exceptions?: Array<{ id: number }> }>;
 }) {
 	const status = String(document.status || "")
 		.trim()
 		.toLowerCase()
 		.replace(/[_-]+/g, " ");
 	if (document.type === "quote") return "preparing" as const;
+	if (document.deliveries?.some((delivery) => delivery.exceptions?.length)) {
+		return "exception" as const;
+	}
 	if (
 		document.deliveredAt ||
 		(document.pickup?.pickupAt && !document.pickup.deletedAt) ||
@@ -1649,10 +1663,22 @@ export async function getDealerPortalSalesList(
 				},
 				invoiceStatus: true,
 				createdAt: true,
+				updatedAt: true,
 				pickup: {
 					select: {
 						pickupAt: true,
 						deletedAt: true,
+					},
+				},
+				deliveries: {
+					where: { deletedAt: null },
+					select: {
+						status: true,
+						deliveredAt: true,
+						exceptions: {
+							where: { status: "open", deletedAt: null },
+							select: { id: true },
+						},
 					},
 				},
 				customer: {
@@ -2226,6 +2252,7 @@ export async function getDealerPortalSalesDocuments(
 		select: {
 			id: true,
 			createdAt: true,
+			updatedAt: true,
 			orderId: true,
 			title: true,
 			status: true,
@@ -2246,6 +2273,17 @@ export async function getDealerPortalSalesDocuments(
 				select: {
 					pickupAt: true,
 					deletedAt: true,
+				},
+			},
+			deliveries: {
+				where: { deletedAt: null },
+				select: {
+					status: true,
+					deliveredAt: true,
+					exceptions: {
+						where: { status: "open", deletedAt: null },
+						select: { id: true },
+					},
 				},
 			},
 			customer: {
@@ -2313,6 +2351,7 @@ export async function getDealerPortalSalesDocument(
 		select: {
 			id: true,
 			createdAt: true,
+			updatedAt: true,
 			orderId: true,
 			title: true,
 			status: true,
@@ -2326,10 +2365,35 @@ export async function getDealerPortalSalesDocument(
 			customerProfileId: true,
 			dealerSalesProfileId: true,
 			meta: true,
+			history: {
+				where: {
+					name: "Dealer customer payment status updated",
+					deletedAt: null,
+				},
+				orderBy: { createdAt: "desc" },
+				take: 8,
+				select: {
+					id: true,
+					createdAt: true,
+					authorName: true,
+					data: true,
+				},
+			},
 			pickup: {
 				select: {
 					pickupAt: true,
 					deletedAt: true,
+				},
+			},
+			deliveries: {
+				where: { deletedAt: null },
+				select: {
+					status: true,
+					deliveredAt: true,
+					exceptions: {
+						where: { status: "open", deletedAt: null },
+						select: { id: true },
+					},
 				},
 			},
 			salesProfile: {
@@ -2364,6 +2428,9 @@ export async function getDealerPortalSalesDocument(
 					email: true,
 					customerTypeId: true,
 				},
+			},
+			salesRep: {
+				select: { name: true },
 			},
 			items: {
 				orderBy: {
@@ -2402,6 +2469,7 @@ export async function getDealerPortalSalesDocument(
 	};
 	const {
 		meta: _meta,
+		history: _history,
 		items,
 		pickup: _pickup,
 		deliveredAt: _deliveredAt,
@@ -2438,6 +2506,21 @@ export async function getDealerPortalSalesDocument(
 
 	return {
 		...safeDocument,
+		customerPaymentHistory: (document.history ?? []).map((entry) => {
+			const data = getObjectMeta(entry.data);
+			return {
+				id: entry.id,
+				createdAt: entry.createdAt,
+				authorName: entry.authorName,
+				status:
+					data.status === "paid" || data.status === "unpaid"
+						? data.status
+						: null,
+				previousDue: nullableFiniteNumber(data.previousDue),
+				nextDue: nullableFiniteNumber(data.nextDue),
+				note: typeof data.note === "string" ? data.note : null,
+			};
+		}),
 		officeGrandTotal: Number(document.grandTotal || 0),
 		officeAmountDue: nullableFiniteNumber(document.amountDue),
 		customerPaymentStatus: customerAmountDue <= 0 ? "paid" : "unpaid",
@@ -2577,6 +2660,43 @@ export async function updateDealerPortalCustomerPayment(
 			},
 		});
 
+		// The customer copy derives its balance from DealerSales, while the sales
+		// print cache normally tracks SalesOrders.updatedAt. The office's legacy
+		// PDF action uses the unpriced invoice_pdf key for dealer customer copies.
+		// Invalidate both keys so a changed customer balance cannot print stale.
+		await tx.salesPrintData.updateMany({
+			where: {
+				salesOrderId: dealerSale.salesOrderId,
+				OR: [
+					{ documentType: { startsWith: "invoice_pdf:pricing:customer:" } },
+					{ documentType: "invoice_pdf" },
+				],
+				deletedAt: null,
+			},
+			data: {
+				status: "stale",
+				invalidatedAt: new Date(),
+				reason: "dealer_customer_payment_updated",
+			},
+		});
+		await tx.salesDocumentSnapshot.updateMany({
+			where: {
+				salesOrderId: dealerSale.salesOrderId,
+				OR: [
+					{ documentType: { startsWith: "invoice_pdf:pricing:customer:" } },
+					{ documentType: "invoice_pdf" },
+				],
+				isCurrent: true,
+				deletedAt: null,
+			},
+			data: {
+				generationStatus: "stale",
+				isCurrent: false,
+				invalidatedAt: new Date(),
+				reason: "dealer_customer_payment_updated",
+			},
+		});
+
 		await tx.salesHistory.create({
 			data: {
 				salesId: dealerSale.salesOrderId,
@@ -2672,6 +2792,20 @@ function dealerLineServiceRows(line: DealerPortalQuoteLineItemInput) {
 					Boolean(row) && typeof row === "object" && !Array.isArray(row),
 			)
 		: [];
+}
+
+function dealerLineHasCustomerPricedRows(line: DealerPortalQuoteLineItemInput) {
+	const meta = dealerLineMeta(line);
+	const hpt = line.housePackageTool;
+	return Boolean(
+		line.shelfItems?.length ||
+			(hpt &&
+				typeof hpt === "object" &&
+				(Number(hpt.totalPrice) > 0 ||
+					(Array.isArray(hpt.doors) && hpt.doors.length > 0))) ||
+			(Array.isArray(meta.mouldingRows) && meta.mouldingRows.length) ||
+			(Array.isArray(meta.serviceRows) && meta.serviceRows.length),
+	);
 }
 
 function dealerLineIsTaxable(line: DealerPortalQuoteLineItemInput) {
@@ -2904,6 +3038,7 @@ export function calculateDealerQuotePricing({
 	createdAt,
 	sellerOfRecord = "DEALER",
 	resaleCertificateOnFile = false,
+	structuredLineSurface = "base",
 }: {
 	lineItems: DealerPortalQuoteLineItemInput[];
 	taxRate: number;
@@ -2921,6 +3056,7 @@ export function calculateDealerQuotePricing({
 	createdAt?: string | Date | null;
 	sellerOfRecord?: "DEALER" | "GND";
 	resaleCertificateOnFile?: boolean;
+	structuredLineSurface?: "base" | "customer";
 }) {
 	const internalCoefficient = pricingCoefficient(internalProfile);
 	const dealerCoefficient = pricingCoefficient(dealerProfile);
@@ -2934,6 +3070,26 @@ export function calculateDealerQuotePricing({
 
 	const lines = lineItems.map((line) => {
 		const qty = Number(line.qty ?? 0);
+		if (
+			structuredLineSurface === "customer" &&
+			dealerLineHasCustomerPricedRows(line)
+		) {
+			const dealerLineTotal = roundCurrency(Number(line.lineTotal ?? 0));
+			const internalLineTotal = roundCurrency(
+				dealerLineTotal / (dealerMultiplier > 0 ? dealerMultiplier : 1),
+			);
+			return {
+				uid: line.uid,
+				title: line.title?.trim() || null,
+				description: line.description?.trim() || "",
+				qty,
+				taxable: dealerLineIsTaxable(line),
+				internalUnitPrice: qty > 0 ? roundCurrency(internalLineTotal / qty) : 0,
+				internalLineTotal,
+				dealerUnitPrice: qty > 0 ? roundCurrency(dealerLineTotal / qty) : 0,
+				dealerLineTotal,
+			};
+		}
 		const baseUnitPrice = baseUnitPriceFromDealerLine(line);
 		const internalUnitPrice = roundCurrency(baseUnitPrice * internalMultiplier);
 		const dealerUnitPrice = roundCurrency(internalUnitPrice * dealerMultiplier);
@@ -3064,11 +3220,20 @@ export function calculateDealerApprovalPricing({
 		internalGrandTotal - pricing.internalPricing.grandTotal,
 	);
 
+	const calculatedDealerBaseTotal = roundCurrency(
+		pricing.dealerPricing.grandTotal + nonLineAdjustment,
+	);
+	// The dealer's saved customer quote is the accepted amount. Rebuilding from
+	// rounded internal unit rates can differ by a cent without a price revision.
+	const dealerBaseTotal =
+		Number.isFinite(fallbackDealerGrandTotal) &&
+		Math.abs(calculatedDealerBaseTotal - fallbackDealerGrandTotal) <= 0.02
+			? roundCurrency(fallbackDealerGrandTotal)
+			: calculatedDealerBaseTotal;
+
 	return {
 		internalBaseTotal: pricing.internalPricing.grandTotal,
-		dealerBaseTotal: roundCurrency(
-			pricing.dealerPricing.grandTotal + nonLineAdjustment,
-		),
+		dealerBaseTotal,
 	};
 }
 
@@ -3395,6 +3560,7 @@ export async function saveDealerPortalQuote(
 			lineItems: normalizedLines,
 			sellerOfRecord,
 			resaleCertificateOnFile,
+			structuredLineSurface: "customer",
 		});
 		const dealerMarkupAmount = roundCurrency(
 			pricing.dealerPricing.subTotal - pricing.internalPricing.subTotal,
@@ -3489,6 +3655,18 @@ export async function saveDealerPortalQuote(
 				});
 
 		if (existing) {
+			await tx.dykeSalesDoors.deleteMany({
+				where: { salesOrderId: created.id },
+			});
+			await tx.housePackageTools.deleteMany({
+				where: { salesOrderId: created.id },
+			});
+			await tx.dykeSalesShelfItem.deleteMany({
+				where: { salesOrderItem: { salesOrderId: created.id } },
+			});
+			await tx.dykeStepForm.deleteMany({
+				where: { salesId: created.id },
+			});
 			await tx.salesOrderItems.deleteMany({
 				where: {
 					salesOrderId: created.id,
@@ -3496,26 +3674,187 @@ export async function saveDealerPortalQuote(
 			});
 		}
 
-		await tx.salesOrderItems.createMany({
-			data: normalizedLines.map((line, index) => ({
-				salesOrderId: created.id,
-				description: line.description || line.title,
-				dykeDescription: line.title,
-				qty: line.qty,
-				rate: pricing.lines[index]?.internalUnitPrice || line.unitPrice,
-				total: pricing.lines[index]?.internalLineTotal || line.lineTotal,
-				meta: {
-					uid: line.uid,
-					title: line.title,
-					formSteps: line.formSteps,
-					shelfItems: line.shelfItems,
-					housePackageTool: line.housePackageTool,
-					lineMeta: line.meta,
-					tax: dealerLineIsTaxable(line),
-				} as Prisma.InputJsonValue,
-				dykeProduction: dealerLineIsProduceable(line),
-			})),
-		});
+		const serviceProjections = normalizedLines.map((line, index) =>
+			buildDealerServiceItemProjection({
+				...line,
+				internalLineTotal:
+					pricing.lines[index]?.internalLineTotal ?? line.lineTotal,
+				itemIndex: index,
+			}),
+		);
+		for (const [index, line] of normalizedLines.entries()) {
+			const projection = serviceProjections[index];
+			const shelfProjection = projection
+				? null
+				: buildDealerShelfProjection({
+						...line,
+						internalLineTotal:
+							pricing.lines[index]?.internalLineTotal ?? line.lineTotal,
+					});
+			if (shelfProjection) {
+				const item = await tx.salesOrderItems.create({
+					data: {
+						salesOrderId: created.id,
+						dykeDescription: line.title,
+						description: line.description || line.title,
+						qty: line.qty,
+						rate: pricing.lines[index]?.internalUnitPrice ?? line.unitPrice,
+						total: pricing.lines[index]?.internalLineTotal ?? line.lineTotal,
+						dykeProduction: dealerLineIsProduceable(line),
+						meta: {
+							uid: line.uid,
+							title: line.title,
+							tax: dealerLineIsTaxable(line),
+							meta: { ...line.meta, itemIndex: index },
+						} as Prisma.InputJsonValue,
+					},
+					select: { id: true },
+				});
+				await tx.dykeSalesShelfItem.createMany({
+					data: shelfProjection.shelfItems.map((row) => ({
+						...row,
+						salesOrderItemId: item.id,
+						meta: row.meta as Prisma.InputJsonValue,
+					})),
+				});
+				if (shelfProjection.formSteps.length) {
+					await tx.dykeStepForm.createMany({
+						data: shelfProjection.formSteps.map((step) => ({
+							...step,
+							salesId: created.id,
+							salesItemId: item.id,
+							meta: step.meta as Prisma.InputJsonValue,
+						})),
+					});
+				}
+				continue;
+			}
+			if (!projection) {
+				const doorProjection = buildDealerDoorProjection({
+					...line,
+					customerLineTotal: line.lineTotal,
+					internalLineTotal:
+						pricing.lines[index]?.internalLineTotal ?? line.lineTotal,
+					itemIndex: index,
+				});
+				if (doorProjection) {
+					const item = await tx.salesOrderItems.create({
+						data: {
+							...doorProjection.item,
+							salesOrderId: created.id,
+							meta: doorProjection.item.meta as Prisma.InputJsonValue,
+						},
+						select: { id: true },
+					});
+					const { doors, ...housePackageTool } = doorProjection.housePackageTool;
+					const hpt = await tx.housePackageTools.create({
+						data: {
+							...housePackageTool,
+							salesOrderId: created.id,
+							orderItemId: item.id,
+							meta: housePackageTool.meta as Prisma.InputJsonValue,
+						},
+						select: { id: true },
+					});
+					await tx.dykeSalesDoors.createMany({
+						data: doors.map((door) => ({
+							...door,
+							housePackageToolId: hpt.id,
+							salesOrderId: created.id,
+							salesOrderItemId: item.id,
+							meta: door.meta as Prisma.InputJsonValue,
+						})),
+					});
+					if (doorProjection.formSteps.length) {
+						await tx.dykeStepForm.createMany({
+							data: doorProjection.formSteps.map((step) => ({
+								...step,
+								salesId: created.id,
+								salesItemId: item.id,
+								meta: step.meta as Prisma.InputJsonValue,
+							})),
+						});
+					}
+					continue;
+				}
+				const mouldingProjection = buildDealerMouldingProjection({
+					...line,
+					itemIndex: index,
+					internalLineTotal:
+						pricing.lines[index]?.internalLineTotal ?? line.lineTotal,
+				});
+				if (mouldingProjection) {
+					for (const [rowIndex, row] of mouldingProjection.items.entries()) {
+						const item = await tx.salesOrderItems.create({
+							data: {
+								...row.item,
+								salesOrderId: created.id,
+								meta: row.item.meta as Prisma.InputJsonValue,
+							},
+							select: { id: true },
+						});
+						await tx.housePackageTools.create({
+							data: {
+								...row.housePackageTool,
+								salesOrderId: created.id,
+								orderItemId: item.id,
+								meta: row.housePackageTool.meta as Prisma.InputJsonValue,
+							},
+						});
+						if (rowIndex === 0 && mouldingProjection.formSteps.length) {
+							await tx.dykeStepForm.createMany({
+								data: mouldingProjection.formSteps.map((step) => ({
+									...step,
+									salesId: created.id,
+									salesItemId: item.id,
+									meta: step.meta as Prisma.InputJsonValue,
+								})),
+							});
+						}
+					}
+					continue;
+				}
+				await tx.salesOrderItems.createMany({
+					data: [
+						{
+							salesOrderId: created.id,
+							description: line.description || line.title,
+							dykeDescription: line.title,
+							qty: line.qty,
+							rate: pricing.lines[index]?.internalUnitPrice || line.unitPrice,
+							total: pricing.lines[index]?.internalLineTotal || line.lineTotal,
+							meta: {
+								uid: line.uid,
+								title: line.title,
+								formSteps: line.formSteps,
+								shelfItems: line.shelfItems,
+								housePackageTool: line.housePackageTool,
+								lineMeta: line.meta,
+								tax: dealerLineIsTaxable(line),
+							} as Prisma.InputJsonValue,
+							dykeProduction: dealerLineIsProduceable(line),
+						},
+					],
+				});
+				continue;
+			}
+			for (const [index, item] of projection.items.entries()) {
+				const createdItem = await tx.salesOrderItems.create({
+					data: { ...item, salesOrderId: created.id },
+					select: { id: true },
+				});
+				if (index === 0 && projection.formSteps.length) {
+					await tx.dykeStepForm.createMany({
+						data: projection.formSteps.map((step) => ({
+							...step,
+							meta: step.meta as Prisma.InputJsonValue,
+							salesId: created.id,
+							salesItemId: createdItem.id,
+						})),
+					});
+				}
+			}
+		}
 
 		await (tx as any).dealerSales.upsert({
 			where: {
@@ -3667,6 +4006,12 @@ export async function requestDealerPortalQuoteOrder(
 	quoteId: number,
 ) {
 	return db.$transaction(async (tx) => {
+		await tx.$queryRaw`
+			SELECT id FROM SalesOrders
+			WHERE id = ${quoteId} AND dealerAuthId = ${dealerId}
+				AND deletedAt IS NULL AND type = 'quote'
+			FOR UPDATE
+		`;
 		const quote = (await tx.salesOrders.findFirst({
 			where: {
 				id: quoteId,
@@ -3707,7 +4052,6 @@ export async function requestDealerPortalQuoteOrder(
 					where: {
 						request: DEALER_ORDER_REQUEST_TYPE,
 						deletedAt: null,
-						status: "pending",
 					},
 					orderBy: {
 						createdAt: "desc",
@@ -3727,6 +4071,11 @@ export async function requestDealerPortalQuoteOrder(
 		}
 
 		const existing = quote.requests?.[0] || null;
+		if (existing && existing.status !== "pending") {
+			throw new Error(
+				"This dealer quote already has a decided order request and cannot be submitted again.",
+			);
+		}
 		const quoteMeta = getObjectMeta(quote.meta);
 		const newSalesForm = getObjectMeta(quoteMeta.newSalesForm);
 		const quoteForm = getObjectMeta(newSalesForm.form);
@@ -3854,7 +4203,7 @@ export async function requestDealerPortalQuoteOrder(
 				requestedAt: (request.createdAt || new Date()).toISOString(),
 			},
 		};
-	});
+	}, DEALER_REQUEST_TRANSACTION_OPTIONS);
 }
 
 async function getSalesRequestUserScope(db: Database, userId: number) {
@@ -4246,6 +4595,149 @@ export async function getDealerOrderRequests(
 	};
 }
 
+export async function getDealerPaidOrdersForOffice(
+	db: Database,
+	userId: number,
+) {
+	const scope = await getSalesRequestUserScope(db, userId);
+	const where: Prisma.DealerSalesRequestWhereInput = {
+		AND: [
+			dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
+				status: "approved",
+			}),
+			{
+				sale: {
+					type: "order",
+					deletedAt: null,
+					amountDue: { lte: 0 },
+				},
+			},
+		],
+	};
+	const [rows, count] = await Promise.all([
+		db.dealerSalesRequest.findMany({
+			where,
+			orderBy: { updatedAt: "desc" },
+			take: 25,
+			select: {
+				id: true,
+				updatedAt: true,
+				sale: {
+					select: {
+						id: true,
+						orderId: true,
+						slug: true,
+						status: true,
+						amountDue: true,
+						deliveryOption: true,
+						salesRep: { select: { name: true } },
+						dealerAuth: {
+							select: { name: true, companyName: true },
+						},
+						customer: {
+							select: { name: true, businessName: true },
+						},
+					},
+				},
+			},
+		}),
+		db.dealerSalesRequest.count({ where }),
+	]);
+	return {
+		count,
+		data: rows.map((row) => ({
+			requestId: row.id,
+			salesId: row.sale.id,
+			orderNo: row.sale.orderId,
+			slug: row.sale.slug,
+			status: row.sale.status,
+			amountDue: Number(row.sale.amountDue || 0),
+			deliveryOption: row.sale.deliveryOption,
+			updatedAt: row.updatedAt,
+			dealerName: dealerName(row.sale.dealerAuth || {}),
+			customerName: customerName(row.sale.customer),
+			ownerName: row.sale.salesRep?.name || "Sales Team",
+		})),
+	};
+}
+
+export async function getDealerFulfillmentExceptionsForOffice(
+	db: Database,
+	userId: number,
+) {
+	const scope = await getSalesRequestUserScope(db, userId);
+	const where: Prisma.DealerSalesRequestWhereInput = {
+		AND: [
+			dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
+				status: "approved",
+			}),
+			{
+				sale: {
+					type: "order",
+					deletedAt: null,
+					deliveries: {
+						some: {
+							deletedAt: null,
+							exceptions: { some: { status: "open", deletedAt: null } },
+						},
+					},
+				},
+			},
+		],
+	};
+	const [rows, count] = await Promise.all([
+		db.dealerSalesRequest.findMany({
+			where,
+			orderBy: { updatedAt: "desc" },
+			take: 25,
+			select: {
+				id: true,
+				sale: {
+					select: {
+						id: true,
+						orderId: true,
+						slug: true,
+						salesRep: { select: { name: true } },
+						dealerAuth: { select: { name: true, companyName: true } },
+						deliveries: {
+							where: {
+								deletedAt: null,
+								exceptions: { some: { status: "open", deletedAt: null } },
+							},
+							select: {
+								exceptions: {
+									where: { status: "open", deletedAt: null },
+									select: { id: true, reasonCode: true, reportedAt: true },
+									orderBy: { reportedAt: "desc" },
+								},
+							},
+						},
+					},
+				},
+			},
+		}),
+		db.dealerSalesRequest.count({ where }),
+	]);
+	return {
+		count,
+		data: rows.map((row) => {
+			const latest = row.sale.deliveries
+				.flatMap((delivery) => delivery.exceptions)
+				.sort((a, b) => b.reportedAt.getTime() - a.reportedAt.getTime())[0];
+			return {
+				requestId: row.id,
+				salesId: row.sale.id,
+				orderNo: row.sale.orderId,
+				slug: row.sale.slug,
+				dealerName: dealerName(row.sale.dealerAuth || {}),
+				ownerName: row.sale.salesRep?.name || "Sales Team",
+				reasonCode: latest?.reasonCode || "Needs review",
+				reportedAt: latest?.reportedAt || null,
+			};
+		}),
+	};
+}
+
 export async function getDealerOrderRequest(
 	db: Database,
 	userId: number,
@@ -4320,6 +4812,9 @@ export async function approveDealerOrderRequest(
 			tx as unknown as Database,
 			userId,
 		);
+		const locked = await tx.$queryRaw<Array<{ status: string }>>`
+			SELECT status FROM DealerSalesRequest WHERE id = ${requestId} FOR UPDATE
+		`;
 		const row = (await tx.dealerSalesRequest.findFirst({
 			where: {
 				id: requestId,
@@ -4405,12 +4900,22 @@ export async function approveDealerOrderRequest(
 		if (!row?.sale) {
 			throw new Error("Dealer order request could not be found.");
 		}
+		if (row.status !== locked[0]?.status) {
+			throw new Error(
+				"This dealer order request changed. Refresh the request before deciding it.",
+			);
+		}
 
 		if (row.status === "rejected") {
 			throw new Error("Rejected dealer order requests cannot be approved.");
 		}
 
 		const alreadyApproved = row.status === "approved";
+		if (!alreadyApproved && row.status !== "pending") {
+			throw new Error(
+				"This dealer order request is no longer pending. Refresh the request before deciding it.",
+			);
+		}
 		const deliveryOption = String(row.sale.deliveryOption || "pickup");
 		const deliveryCost =
 			input.deliveryCost == null
@@ -4452,6 +4957,17 @@ export async function approveDealerOrderRequest(
 				row.sale.dealerSale?.grandTotal ?? row.sale.grandTotal ?? 0,
 			),
 		});
+		if (!alreadyApproved) {
+			const claim = await tx.dealerSalesRequest.updateMany({
+				where: { id: row.id, status: "pending", deletedAt: null },
+				data: { status: "approved", approvedById: userId },
+			});
+			if (claim.count !== 1) {
+				throw new Error(
+					"This dealer order request was already decided. Refresh the request to see its current status.",
+				);
+			}
+		}
 
 		let order =
 			row.sale.type === "order"
@@ -4626,7 +5142,7 @@ export async function approveDealerOrderRequest(
 				amountDue: officeAmountDue,
 			},
 		};
-	});
+	}, DEALER_REQUEST_TRANSACTION_OPTIONS);
 }
 
 export async function rejectDealerOrderRequest(
@@ -4640,6 +5156,9 @@ export async function rejectDealerOrderRequest(
 			tx as unknown as Database,
 			userId,
 		);
+		const locked = await tx.$queryRaw<Array<{ status: string }>>`
+			SELECT status FROM DealerSalesRequest WHERE id = ${requestId} FOR UPDATE
+		`;
 		const row = (await tx.dealerSalesRequest.findFirst({
 			where: {
 				id: requestId,
@@ -4677,8 +5196,24 @@ export async function rejectDealerOrderRequest(
 		if (!row?.sale) {
 			throw new Error("Dealer order request could not be found.");
 		}
-		if (row.status === "approved") {
-			throw new Error("Approved dealer order requests cannot be rejected.");
+		if (row.status !== locked[0]?.status) {
+			throw new Error(
+				"This dealer order request changed. Refresh the request before deciding it.",
+			);
+		}
+		if (row.status !== "pending") {
+			throw new Error(
+				"Only pending dealer order requests can be rejected. Refresh the request to see its current status.",
+			);
+		}
+		const claim = await tx.dealerSalesRequest.updateMany({
+			where: { id: row.id, status: "pending", deletedAt: null },
+			data: { status: "rejected", approvedById: userId },
+		});
+		if (claim.count !== 1) {
+			throw new Error(
+				"This dealer order request was already decided. Refresh the request to see its current status.",
+			);
 		}
 
 		const currentMeta =
@@ -4723,7 +5258,7 @@ export async function rejectDealerOrderRequest(
 			customerName: customerName(row.sale.customer),
 			reason: reason?.trim() || null,
 		};
-	});
+	}, DEALER_REQUEST_TRANSACTION_OPTIONS);
 }
 
 export async function getDealerPortalSettings(db: Database, dealerId: number) {
@@ -4881,6 +5416,10 @@ export async function saveDealerPortalSettings(
 				meta: {
 					...currentMeta,
 					logoUrl: input.logoUrl?.trim() || null,
+					invoiceEmail:
+						input.invoiceEmail === undefined
+							? currentMeta.invoiceEmail || null
+							: input.invoiceEmail?.trim().toLowerCase() || null,
 					billingZip: input.zip_code?.trim() || null,
 					brandingVersion: currentBrandingVersion + 1,
 					defaultTaxCode,

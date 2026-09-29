@@ -21,6 +21,8 @@ export type DualPricingLineInput = {
   taxxable?: boolean | null;
   meta?: Record<string, unknown> | null;
   formSteps?: Array<Record<string, any>> | null;
+  shelfItems?: Array<Record<string, any>> | null;
+  housePackageTool?: Record<string, any> | null;
 };
 
 export type DualPricingExtraCostInput = {
@@ -125,18 +127,78 @@ function normalizeDealerLine(
   };
 }
 
+function hasCustomerPricedRows(line: DualPricingLineInput) {
+  const meta = line.meta || {};
+  return Boolean(
+    line.shelfItems?.length ||
+      Number(line.housePackageTool?.totalPrice || 0) > 0 ||
+      (Array.isArray(meta.mouldingRows) && meta.mouldingRows.length) ||
+      (Array.isArray(meta.serviceRows) && meta.serviceRows.length),
+  );
+}
+
+function priceCustomerStructuredLine(
+  line: DualPricingLineInput,
+  dealerMultiplier: number,
+) {
+  const qty = Number(line.qty ?? 0);
+  const dealerLineTotal = roundMoney(
+    calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 0,
+      lineItems: [line],
+      extraCosts: [],
+    }).subTotal,
+  );
+  const internalLineTotal = divideMoney(
+    dealerLineTotal,
+    dealerMultiplier > 0 ? dealerMultiplier : 1,
+  );
+  const internalUnitPrice = qty > 0 ? divideMoney(internalLineTotal, qty) : 0;
+  const dealerUnitPrice = qty > 0 ? divideMoney(dealerLineTotal, qty) : 0;
+  // Summary inputs are flat because nested rows already carry customer prices.
+  const flatLine = {
+    ...line,
+    shelfItems: [],
+    housePackageTool: null,
+    meta: {
+      ...line.meta,
+      mouldingRows: [],
+      serviceRows: [],
+    },
+  };
+  return {
+    internal: {
+      ...flatLine,
+      qty,
+      unitPrice: internalUnitPrice,
+      lineTotal: internalLineTotal,
+    },
+    dealer: {
+      ...flatLine,
+      qty,
+      unitPrice: dealerUnitPrice,
+      lineTotal: dealerLineTotal,
+    },
+  };
+}
+
 export function calculateDualSalesFormPricing(
   input: DualPricingInput,
 ): DualPricingResult {
   const internalMultiplier = coefficientMultiplier(input.internalProfile);
   const dealerMultiplier = salesPercentageMultiplier(input.dealerProfile);
 
-  const internalLines = (input.lineItems || []).map((line) =>
-    normalizeLine(line, internalMultiplier),
+  const pricedLines = (input.lineItems || []).map((line) =>
+    hasCustomerPricedRows(line)
+      ? priceCustomerStructuredLine(line, dealerMultiplier)
+      : (() => {
+          const internal = normalizeLine(line, internalMultiplier);
+          return { internal, dealer: normalizeDealerLine(internal, dealerMultiplier) };
+        })(),
   );
-  const dealerLines = internalLines.map((line) =>
-    normalizeDealerLine(line, dealerMultiplier),
-  );
+  const internalLines = pricedLines.map((line) => line.internal);
+  const dealerLines = pricedLines.map((line) => line.dealer);
 
   return {
     internalProfileId: input.internalProfile?.id ?? null,

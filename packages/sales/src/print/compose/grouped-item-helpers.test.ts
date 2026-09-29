@@ -42,7 +42,7 @@ describe("grouped-item-helpers", () => {
 		expect(isMetadataBackedServiceItem(item)).toBe(false);
 	});
 
-	it("treats grouped moulding rows as authoritative when HPT relations exist", () => {
+	it("uses HPT prices when nested moulding metadata only holds calculator context", () => {
 		const item = createItem({
 			housePackageTool: {
 				doorType: "Moulding",
@@ -50,7 +50,7 @@ describe("grouped-item-helpers", () => {
 			} as PrintSalesItem["housePackageTool"],
 		});
 
-		expect(isMetadataBackedMouldingItem(item)).toBe(true);
+		expect(isMetadataBackedMouldingItem(item)).toBe(false);
 	});
 
 	it("prefers the new-form item sequence over a stale legacy line index", () => {

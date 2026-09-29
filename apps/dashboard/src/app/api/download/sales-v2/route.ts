@@ -14,8 +14,8 @@ import { db } from "@gnd/db";
 import {
 	DEFAULT_SALES_PAGE_BREAK_MODE,
 	type SalesPageBreakMode,
-	renderSalesPdfBuffer,
 } from "@gnd/pdf/sales-v2";
+import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2/render";
 import {
 	buildSalesPrintDocumentTypeKey,
 	createOrRefreshBatchSalesPrintData,
@@ -108,6 +108,7 @@ async function renderSnapshotPdfFallback(input: {
 		templateId: documentData.templateId,
 		companyAddress: documentData.companyAddress,
 		logoUrl: documentData.logoUrl ?? undefined,
+		watermark: input.pricingMode === "customer" ? null : undefined,
 		baseUrl: input.requestUrl.origin,
 		previewUrl: documentData.previewUrl,
 		qrCodeDataUrl: documentData.qrCodeDataUrl,
@@ -290,6 +291,21 @@ export async function GET(req: NextRequest) {
 		templateId: params.templateId,
 		reason: "legacy_batch_pdf_download",
 	});
+	const previewUrl = new URL("/p/sales-document-v2", requestUrl.origin);
+	previewUrl.searchParams.set("token", params.token);
+	if (params.pricingMode) {
+		previewUrl.searchParams.set("pricingMode", params.pricingMode);
+	}
+	if (params.priceDisplay === "totals-only") {
+		previewUrl.searchParams.set("priceDisplay", params.priceDisplay);
+	}
+	previewUrl.searchParams.set("templateId", params.templateId);
+	previewUrl.searchParams.set("pageBreakMode", params.pageBreakMode);
+	previewUrl.searchParams.set("showImages", String(params.showImages));
+	previewUrl.searchParams.set(
+		"headlineFirstPage",
+		String(params.headlineFirstPage),
+	);
 
 	const buffer = await renderSalesPdfBuffer({
 		pages: documentData.pages,
@@ -297,7 +313,9 @@ export async function GET(req: NextRequest) {
 		templateId: params.templateId,
 		companyAddress: documentData.companyAddress,
 		logoUrl: documentData.logoUrl ?? undefined,
+		watermark: params.pricingMode === "customer" ? null : undefined,
 		baseUrl: requestUrl.origin,
+		previewUrl: previewUrl.toString(),
 		config: {
 			pageBreakMode: params.pageBreakMode,
 			showImages: params.showImages,

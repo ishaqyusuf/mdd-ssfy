@@ -7,8 +7,10 @@ import type {
 } from "@api/schemas/new-sales-form";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
+import { getSalesAdjustmentSourceFingerprint } from "@gnd/db/queries";
 import {
 	analyzeSalesFormChange,
+	getSalesReconciliationDetails,
 	calculateSalesAdjustmentSettlement,
 	salesAdjustmentRequiresInboundDisposition,
 } from "@gnd/sales/adjustment-system";
@@ -308,10 +310,31 @@ async function buildNewSalesFormAdjustmentPreview(
 		ctx.db,
 		input.salesId,
 	);
-	const analysis = analyzeSalesFormChange({
+	const reconciliation = baseline.commercialReconciliation;
+	const approvedOrder = reconciliation
+		? await ctx.db.salesOrders.findUnique({
+				where: { id: input.salesId },
+				select: { meta: true },
+			})
+		: null;
+	const approvedLines = readRecord(
+		readRecord(approvedOrder?.meta).newSalesForm,
+	).lineItems;
+	const reconciliationDetails =
+		reconciliation && Array.isArray(approvedLines)
+			? getSalesReconciliationDetails(approvedLines, input.lineItems)
+			: [];
+	const operationalAnalysis = analyzeSalesFormChange({
 		before: baseline,
 		after: input,
 		commitments,
+		reviewAllLines: Boolean(reconciliation),
+	});
+	const analysis = analyzeSalesFormChange({
+		before: reconciliation || baseline,
+		after: input,
+		commitments,
+		reviewAllLines: Boolean(reconciliation),
 	});
 	const settlement = calculateSalesAdjustmentSettlement({
 		beforeGrandTotal: analysis.beforeGrandTotal,
@@ -324,7 +347,7 @@ async function buildNewSalesFormAdjustmentPreview(
 	const commitmentByItemId = new Map(
 		commitments.lines.map((line) => [line.salesOrderItemId, line]),
 	);
-	const blockedLines = analysis.lines.flatMap((line) => {
+	const blockedLines = operationalAnalysis.lines.flatMap((line) => {
 		const commitment =
 			commitmentByUid.get(line.uid) ||
 			(line.id ? commitmentByItemId.get(line.id) : undefined);
@@ -339,14 +362,14 @@ async function buildNewSalesFormAdjustmentPreview(
 				]
 			: [];
 	});
-	const changedCommitments = analysis.lines.flatMap((line) => {
+	const changedCommitments = operationalAnalysis.lines.flatMap((line) => {
 		const commitment =
 			commitmentByUid.get(line.uid) ||
 			(line.id ? commitmentByItemId.get(line.id) : undefined);
 		return commitment ? [commitment] : [];
 	});
 	const requiresInboundDisposition = salesAdjustmentRequiresInboundDisposition({
-		lines: analysis.lines,
+		lines: operationalAnalysis.lines,
 		commitments,
 	});
 	const requiresOperationalAcknowledgement =
@@ -359,7 +382,27 @@ async function buildNewSalesFormAdjustmentPreview(
 				line.fulfilledQty,
 			].some((value) => Number(value || 0) > 0),
 		);
+	const sourceFingerprint = reconciliation
+		? await getSalesAdjustmentSourceFingerprint(ctx.db, input.salesId)
+		: null;
+	const reviewToken = hash(
+		JSON.stringify({
+			sourceFingerprint,
+			version: baseline.version,
+			reconciliation,
+			commitments,
+			lineItems: input.lineItems,
+			summary: input.summary,
+			extraCosts: input.extraCosts,
+			meta: input.meta,
+		}),
+	);
 	return {
+		reconciliation,
+		reconciliationDetails,
+		sourceFingerprint,
+		reviewToken,
+		operationalAnalysis,
 		baseline,
 		proposed: input,
 		commitments,
@@ -376,6 +419,9 @@ export async function previewNewSalesFormAdjustment(
 	input: PreviewNewSalesFormAdjustmentSchema,
 ) {
 	const {
+		reconciliationDetails,
+		reconciliation,
+		reviewToken,
 		commitments,
 		analysis,
 		settlement,
@@ -384,6 +430,9 @@ export async function previewNewSalesFormAdjustment(
 		requiresOperationalAcknowledgement,
 	} = await buildNewSalesFormAdjustmentPreview(ctx, input);
 	return {
+		reconciliationDetails,
+		reconciliation,
+		reviewToken,
 		commitments,
 		analysis,
 		settlement,
@@ -400,7 +449,14 @@ export async function createNewSalesFormAdjustment(
 	if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 	const userId = ctx.userId;
 	const preview = await buildNewSalesFormAdjustmentPreview(ctx, input);
-	if (preview.analysis.direction === "NONE") {
+	if (preview.reconciliation && input.reviewToken !== preview.reviewToken) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message:
+				"The reconciliation review changed. Review the current values before approving.",
+		});
+	}
+	if (preview.analysis.direction === "NONE" && !preview.reconciliation) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "No quantity changes were found.",
@@ -441,9 +497,11 @@ export async function createNewSalesFormAdjustment(
 				"This reduction would create wallet credit, but the sale has no customer and transaction-linked successful payment to reconcile.",
 		});
 	}
-	const sourceHash = hash(JSON.stringify(preview.baseline));
+	const sourceHash =
+		preview.sourceFingerprint || hash(JSON.stringify(preview.baseline));
 	const proposalHash = hash(
 		JSON.stringify({
+			...(preview.reconciliation ? { reviewToken: preview.reviewToken } : {}),
 			lineItems: input.lineItems,
 			extraCosts: input.extraCosts,
 			summary: input.summary,
@@ -517,18 +575,30 @@ export async function createNewSalesFormAdjustment(
 		const created = await tx.salesOrderAdjustment.create({
 			data: {
 				salesOrderId: input.salesId,
-				direction: preview.analysis.direction as
-					| "INCREASE"
-					| "REDUCTION"
-					| "MIXED",
+				direction: (preview.analysis.direction === "NONE"
+					? "MIXED"
+					: preview.analysis.direction) as "INCREASE" | "REDUCTION" | "MIXED",
 				status: "APPROVED",
 				sourceVersion: input.version,
 				sourceHash,
 				idempotencyKey,
 				reason: input.reason,
-				beforeSnapshot: json(preview.baseline),
+				beforeSnapshot: json(
+					preview.reconciliation
+						? { ...preview.baseline, ...preview.reconciliation }
+						: preview.baseline,
+				),
 				proposedSnapshot: json({
 					...input,
+					reconciliation: preview.reconciliation
+						? {
+								approvedAdjustmentId:
+									preview.reconciliation.approvedAdjustmentId,
+								sourceUpdatedAt: preview.reconciliation.sourceUpdatedAt,
+								reviewToken: preview.reviewToken,
+								sourceFingerprint: preview.sourceFingerprint,
+							}
+						: null,
 					requiresOperationalAcknowledgement:
 						preview.requiresOperationalAcknowledgement,
 				}),
@@ -545,7 +615,7 @@ export async function createNewSalesFormAdjustment(
 				submittedAt: approvedAt,
 				approvedAt,
 				lines: {
-					create: preview.analysis.lines.map((line) => ({
+					create: preview.operationalAnalysis.lines.map((line) => ({
 						lineUid: line.uid,
 						salesOrderItemId: Number(line.id),
 						title: line.title,

@@ -221,6 +221,140 @@ for (const [index, product] of testProducts.entries()) {
   });
 }
 
+const mouldingRoot = itemTypeStep.components?.find(
+  (component) => component.uid === "5DcsP",
+);
+const mouldingStep = routeData.stepsByUid["8iDAw"] as RouteStep | undefined;
+const mouldingProduct = mouldingStep?.components?.find(
+  (component) => component.uid === "AGNzW",
+);
+if (!mouldingRoot?.uid || !mouldingStep?.uid || !mouldingProduct?.uid) {
+  throw new Error("Moulding test route is unavailable.");
+}
+
+await Promise.all([
+  db.storefrontComponent.upsert({
+    where: { sourceComponentUid: mouldingRoot.uid },
+    create: {
+      sourceStepUid: itemTypeStep.uid,
+      sourceComponentUid: mouldingRoot.uid,
+      availableOnStorefront: true,
+      title: mouldingRoot.title || "Mouldings",
+      imageUrl: resolveWorkflowComponentImageSrc(mouldingRoot.img),
+      status: "PUBLISHED",
+      createdByUserId: actor.id,
+      updatedByUserId: actor.id,
+    },
+    update: {
+      availableOnStorefront: true,
+      status: "PUBLISHED",
+      deletedAt: null,
+      updatedByUserId: actor.id,
+    },
+  }),
+  db.storefrontComponent.upsert({
+    where: { sourceComponentUid: mouldingProduct.uid },
+    create: {
+      sourceStepUid: mouldingStep.uid,
+      sourceComponentUid: mouldingProduct.uid,
+      availableOnStorefront: true,
+      title: mouldingProduct.title || "Moulding product",
+      imageUrl: resolveWorkflowComponentImageSrc(mouldingProduct.img),
+      status: "PUBLISHED",
+      createdByUserId: actor.id,
+      updatedByUserId: actor.id,
+    },
+    update: {
+      availableOnStorefront: true,
+      status: "PUBLISHED",
+      deletedAt: null,
+      updatedByUserId: actor.id,
+    },
+  }),
+]);
+
+const mouldingCategory = await db.storefrontCategory.upsert({
+  where: { rootComponentUid: mouldingRoot.uid },
+  create: {
+    rootStepUid: itemTypeStep.uid,
+    rootComponentUid: mouldingRoot.uid,
+    listingStepUid: mouldingStep.uid,
+    slug: "mouldings",
+    title: "Mouldings",
+    description: "Browse and configure moulding profiles from the GND catalog.",
+    imageUrl: resolveWorkflowComponentImageSrc(mouldingRoot.img),
+    status: "PUBLISHED",
+    publishedAt: new Date(),
+    sortOrder: 1,
+    createdByUserId: actor.id,
+    updatedByUserId: actor.id,
+  },
+  update: {
+    listingStepUid: mouldingStep.uid,
+    status: "PUBLISHED",
+    publishedAt: new Date(),
+    deletedAt: null,
+    updatedByUserId: actor.id,
+  },
+});
+
+const mouldingOffer = await db.storefrontOffer.upsert({
+  where: { sourceComponentUid: mouldingProduct.uid },
+  create: {
+    categoryId: mouldingCategory.id,
+    sourceStepUid: mouldingStep.uid,
+    sourceComponentUid: mouldingProduct.uid,
+    slug: "flat-casing-1x4x17",
+    title: "Flat Casing 1 x 4 x 17 ft",
+    description: "Primed finger-joint wood flat casing sold by linear length.",
+    imageUrl: resolveWorkflowComponentImageSrc(mouldingProduct.img),
+    availability: { purchasable: true, mode: "STOCK" },
+    status: "DRAFT",
+    featured: false,
+    sortOrder: 0,
+    createdByUserId: actor.id,
+    updatedByUserId: actor.id,
+  },
+  update: {
+    categoryId: mouldingCategory.id,
+    slug: "flat-casing-1x4x17",
+    title: "Flat Casing 1 x 4 x 17 ft",
+    description: "Primed finger-joint wood flat casing sold by linear length.",
+    imageUrl: resolveWorkflowComponentImageSrc(mouldingProduct.img),
+    deletedAt: null,
+    updatedByUserId: actor.id,
+  },
+  include: {
+    stepPolicies: true,
+    componentPolicies: true,
+  },
+});
+const mouldingOverlays = await db.storefrontComponent.findMany({
+  where: { deletedAt: null },
+});
+const mouldingReadiness = projectStorefrontOfferRoute({
+  routeData,
+  rootStepUid: mouldingCategory.rootStepUid,
+  rootComponentUid: mouldingCategory.rootComponentUid,
+  offerSourceStepUid: mouldingStep.uid,
+  offerSourceComponentUid: mouldingProduct.uid,
+  stepPolicies: mouldingOffer.stepPolicies,
+  componentPolicies: mouldingOffer.componentPolicies,
+  components: mouldingOverlays.map((overlay) => ({
+    ...overlay,
+    metadata: (overlay.metadata as Record<string, unknown> | null) || null,
+  })) as StorefrontComponent[],
+});
+if (!mouldingReadiness.ready) {
+  throw new Error(
+    `Moulding test product is not publishable: ${JSON.stringify(mouldingReadiness.issues)}`,
+  );
+}
+await db.storefrontOffer.update({
+  where: { id: mouldingOffer.id },
+  data: { status: "PUBLISHED", publishedAt: new Date() },
+});
+
 const currentSettings = await db.settings.findFirst({
   where: { type: "storefront-settings", deletedAt: null },
   orderBy: { id: "desc" },

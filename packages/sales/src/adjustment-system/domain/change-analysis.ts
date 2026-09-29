@@ -185,26 +185,30 @@ export function analyzeSalesFormChange(input: {
 	before: SalesAdjustmentSnapshotInput;
 	after: SalesAdjustmentSnapshotInput;
 	commitments: SalesAdjustmentCommitments;
+	/** Include prices and unchanged rows when reconciling a historical snapshot. */
+	reviewAllLines?: boolean;
 }) {
+	const identity = (line: SalesAdjustmentLineInput) =>
+		input.reviewAllLines && line.id ? `id:${line.id}` : line.uid;
 	const beforeByUid = new Map(
-		input.before.lineItems.map((line) => [line.uid, line]),
+		input.before.lineItems.map((line) => [identity(line), line]),
 	);
 	const afterByUid = new Map(
-		input.after.lineItems.map((line) => [line.uid, line]),
+		input.after.lineItems.map((line) => [identity(line), line]),
 	);
 	const uids = new Set([...beforeByUid.keys(), ...afterByUid.keys()]);
 	const lines: SalesAdjustmentLineChange[] = [];
 
-	for (const uid of uids) {
-		const before = beforeByUid.get(uid);
-		const after = afterByUid.get(uid);
+	for (const key of uids) {
+		const before = beforeByUid.get(key);
+		const after = afterByUid.get(key);
 		const beforeQty = finite(before?.qty);
 		const afterQty = finite(after?.qty);
-		if (beforeQty === afterQty) continue;
+		if (beforeQty === afterQty && !input.reviewAllLines) continue;
 		const beforeLineTotal = roundMoney(before?.lineTotal);
 		const afterLineTotal = roundMoney(after?.lineTotal);
 		lines.push({
-			uid,
+			uid: after?.uid || before!.uid,
 			id: after?.id ?? before?.id ?? null,
 			title: lineTitle(before, after),
 			beforeQty,

@@ -276,6 +276,7 @@ export type PreviewNewSalesFormAdjustmentSchema = z.infer<
 
 export const createNewSalesFormAdjustmentSchema =
 	previewNewSalesFormAdjustmentSchema.extend({
+		reviewToken: z.string().optional(),
 		reason: z.string().trim().min(3).max(2_000),
 		inboundDisposition: z
 			.enum(["CANCEL_OPEN_INBOUND", "KEEP_IN_WAREHOUSE"])

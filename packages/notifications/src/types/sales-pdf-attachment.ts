@@ -1,5 +1,5 @@
 import type { Db } from "@gnd/db";
-import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
+import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2/render";
 import { getPrintDocumentData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { getAppUrl } from "@gnd/utils/envs";

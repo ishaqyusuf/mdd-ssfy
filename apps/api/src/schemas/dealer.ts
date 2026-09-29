@@ -242,6 +242,7 @@ const dealerLogoUrlSchema = z.string().refine(
 export const dealerPortalSettingsSchema = z.object({
 	name: z.string().optional().nullable(),
 	companyName: z.string().optional().nullable(),
+	invoiceEmail: z.union([z.string().email(), z.literal("")]).optional().nullable(),
 	phoneNo: z
 		.preprocess(
 			(value) => normalizeUSPhoneNumber(value as string | null | undefined),

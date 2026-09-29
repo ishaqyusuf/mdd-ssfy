@@ -413,6 +413,7 @@ export function CustomerFormClient({
   const form = useZodForm(dealerPortalCustomerSchema, {
     defaultValues: getCustomerDefaultValues(customer ?? null, dealerDefaults),
   });
+  const loadedCustomerId = useRef(customer?.id ?? null);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [profileTitle, setProfileTitle] = useState("");
   const [profilePercentage, setProfilePercentage] = useState("");
@@ -453,7 +454,10 @@ export function CustomerFormClient({
   );
 
   useEffect(() => {
-    if (!customer && form.formState.isDirty) return;
+    const customerId = customer?.id ?? null;
+    const customerChanged = loadedCustomerId.current !== customerId;
+    if (!customerChanged && form.formState.isDirty) return;
+    loadedCustomerId.current = customerId;
     form.reset(getCustomerDefaultValues(customer ?? null, dealerDefaults));
   }, [
     customer,

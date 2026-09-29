@@ -7,6 +7,7 @@ import {
 	sumMoney,
 } from "../../payment-system/domain/money";
 import { normalizeHptDoorRowForLegacy } from "./hpt-compatibility";
+import { resolveDealerOfficeMouldingTotal } from "./dealer-office-moulding-total";
 import { readSalesFormObjectMetadata } from "./metadata";
 import { normalizeSalesFormTitle } from "./step-engine";
 
@@ -98,6 +99,17 @@ function normalizeShelfProductRow(
 			: (storedSalesPrice ?? 0);
 	const customPrice = firstFiniteNumber(row?.customPrice, meta?.customPrice);
 	const effectiveUnitPrice = customPrice != null ? customPrice : salesPrice;
+	const savedTotal = readSalesFormObjectMetadata(meta.dealerOfficeTotal);
+	const calculatedTotal = multiplyMoney(qty, effectiveUnitPrice);
+	// Dealer-to-office conversion rounds at the line total. Keep its cent
+	// allocation until a quantity or price edit changes the row's pricing inputs.
+	const preserveSavedTotal =
+		savedTotal &&
+		Number(savedTotal.qty) === qty &&
+		Number(savedTotal.unitPrice) === effectiveUnitPrice &&
+		Number.isFinite(Number(savedTotal.totalPrice)) &&
+		Math.abs(Number(savedTotal.totalPrice) - calculatedTotal) <=
+			qty * 0.005 + 0.000001;
 	return {
 		...row,
 		uid:
@@ -109,9 +121,12 @@ function normalizeShelfProductRow(
 		salesPrice,
 		customPrice,
 		unitPrice: effectiveUnitPrice,
-		totalPrice: multiplyMoney(qty, effectiveUnitPrice),
+		totalPrice: preserveSavedTotal
+			? roundMoney(Number(savedTotal.totalPrice))
+			: calculatedTotal,
 		meta: {
 			...meta,
+			...(savedTotal && !preserveSavedTotal ? { dealerOfficeTotal: null } : {}),
 			basePrice,
 			salesPrice,
 			customPrice,
@@ -798,7 +813,8 @@ export function deriveMouldingRows({
 		const estimateUnit = Number(sharedComponentPrice + componentPrice);
 		const unit =
 			customPrice == null ? estimateUnit + addon : Number(customPrice) + addon;
-		const lineTotal = multiplyMoney(qty, unit);
+		const saved = resolveDealerOfficeMouldingTotal(row, qty, unit);
+		const lineTotal = saved.lineTotal;
 		return {
 			...row,
 			title: row.title || component?.title || "Moulding",
@@ -813,6 +829,9 @@ export function deriveMouldingRows({
 			estimateUnit,
 			unit,
 			lineTotal,
+			...(row.dealerOfficeTotal
+				? { dealerOfficeTotal: saved.dealerOfficeTotal }
+				: {}),
 		};
 	});
 }
@@ -826,7 +845,10 @@ export function summarizeMouldingPersistRows(
 		uid: row.uid,
 		title: row.title,
 		description: row.description,
-		qty: Math.max(row.quantityReview === true ? 0 : 1, Number(row.qty || 0) || 0),
+		qty: Math.max(
+			row.quantityReview === true ? 0 : 1,
+			Number(row.qty || 0) || 0,
+		),
 		addon: Number(row.addon || 0),
 		customPrice:
 			row.customPrice == null || row.customPrice === ""
@@ -843,9 +865,13 @@ export function summarizeMouldingPersistRows(
 			row.customPrice == null
 				? estimateUnit + Number(row.addon || 0)
 				: Number(row.customPrice || 0) + Number(row.addon || 0);
+		const saved = resolveDealerOfficeMouldingTotal(row, Number(row.qty || 0), unit);
 		return {
 			...row,
-			lineTotal: multiplyMoney(Number(row.qty || 0), unit),
+			lineTotal: saved.lineTotal,
+			...(row.dealerOfficeTotal
+				? { dealerOfficeTotal: saved.dealerOfficeTotal }
+				: {}),
 		};
 	});
 	const qtyTotal = calculated.reduce(

@@ -32,16 +32,13 @@ export type DispatchWorkspaceListInput = z.infer<
 const fulfillmentCalendarDateSchema = z
 	.string()
 	.regex(/^\d{4}-\d{2}-\d{2}$/, "Expected a YYYY-MM-DD date")
-	.refine(
-		(value) => {
-			const parsed = new Date(`${value}T00:00:00.000Z`);
-			return (
-				!Number.isNaN(parsed.getTime()) &&
-				parsed.toISOString().slice(0, 10) === value
-			);
-		},
-		"Expected a valid calendar date",
-	);
+	.refine((value) => {
+		const parsed = new Date(`${value}T00:00:00.000Z`);
+		return (
+			!Number.isNaN(parsed.getTime()) &&
+			parsed.toISOString().slice(0, 10) === value
+		);
+	}, "Expected a valid calendar date");
 
 export const fulfillmentCalendarSchema = z
 	.object({
@@ -72,13 +69,18 @@ export type FulfillmentCalendarInput = z.infer<
 	typeof fulfillmentCalendarSchema
 >;
 
-export const dispatchCalendarSchema = dispatchWorkspaceListSchema.and(z.union([
-	fulfillmentCalendarSchema.and(z.object({ unscheduled: z.literal(false).optional().default(false) })),
-	z.object({ unscheduled: z.literal(true) }),
-]));
+export const dispatchCalendarSchema = dispatchWorkspaceListSchema.and(
+	z.union([
+		fulfillmentCalendarSchema.and(
+			z.object({ unscheduled: z.literal(false).optional().default(false) }),
+		),
+		z.object({ unscheduled: z.literal(true) }),
+	]),
+);
 export type DispatchCalendarInput = z.infer<typeof dispatchCalendarSchema>;
 
 export const dispatchBacklogSchema = paginationSchema.extend({
+	candidateMode: z.enum(["backlog", "create"]).optional().default("backlog"),
 	ids: z.array(z.number().int().positive()).max(50).optional().nullable(),
 	deliveryModes: z
 		.array(z.enum(["delivery", "pickup"]))

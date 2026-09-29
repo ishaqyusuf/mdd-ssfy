@@ -130,10 +130,12 @@ import { requireWorkflowComponentEditor } from "@api/utils/workflow-component-ac
 import {
 	advanceSalesWorkflowCatalogRevision,
 	approveDealerOrderRequest,
+	getDealerFulfillmentExceptionsForOffice,
 	getDealerOrderRequest,
 	getDealerOrderRequestAnalytics,
 	getDealerOrderRequestCount,
 	getDealerOrderRequests,
+	getDealerPaidOrdersForOffice,
 	rejectDealerOrderRequest,
 } from "@gnd/db/queries";
 import { Notifications } from "@gnd/notifications";
@@ -151,6 +153,8 @@ import {
 	getCoveredProductionMaterials,
 } from "@gnd/sales";
 import { getSalesCompletionDateContext } from "@gnd/sales";
+import { calibrateSalesOrder } from "@gnd/sales/run-sales-post-save-sync";
+import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import {
 	SALES_PAYMENT_REVIEW_ACTIONS,
@@ -866,6 +870,17 @@ export const salesRouter = createTRPCRouter({
 	dealerOrderRequestAnalytics: protectedProcedure.query(async (props) => {
 		return getDealerOrderRequestAnalytics(props.ctx.db, props.ctx.userId);
 	}),
+	dealerPaidOrdersForOffice: protectedProcedure.query(async (props) => {
+		return getDealerPaidOrdersForOffice(props.ctx.db, props.ctx.userId);
+	}),
+	dealerFulfillmentExceptionsForOffice: protectedProcedure.query(
+		async (props) => {
+			return getDealerFulfillmentExceptionsForOffice(
+				props.ctx.db,
+				props.ctx.userId,
+			);
+		},
+	),
 	dealerOrderRequests: protectedProcedure
 		.input(dealerOrderRequestsSchema)
 		.query(async (props) => {
@@ -923,7 +938,31 @@ export const salesRouter = createTRPCRouter({
 					approverNote: props.input.approverNote,
 				},
 			);
+			const activeControls = result.alreadyApproved
+				? await props.ctx.db.salesItemControl.count({
+						where: { salesId: result.order.id, deletedAt: null },
+					})
+				: 0;
+			if (!result.alreadyApproved || activeControls === 0) {
+				try {
+					// The quote has become an order. Publish its operational quantity
+					// controls before the office treats approval as dispatch-ready.
+					await calibrateSalesOrder(props.ctx.db, result.order.id);
+				} catch (error) {
+					console.error("Dealer order fulfillment calibration failed", error);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message:
+							"The order was approved, but fulfillment setup needs review. Refresh this request and retry approval.",
+					});
+				}
+			}
 			if (!result.alreadyApproved) {
+				await queueSalesInventoryLineItemsSync({
+					salesOrderId: result.order.id,
+					source: "new-form",
+					triggeredByUserId: props.ctx.userId,
+				});
 				await sendDealerApprovalEmail(props.ctx, result);
 			}
 			return result;

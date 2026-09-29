@@ -1,6 +1,7 @@
 import type { CompanyAddress } from "./types";
 
 export type DealerBrandingSource = {
+	email?: string | null;
 	companyName?: string | null;
 	name?: string | null;
 	phoneNo?: string | null;
@@ -63,6 +64,14 @@ export function resolveDealerPrintBrandingFromSource(
 				.filter(Boolean)
 				.join(" "),
 			phone: dealer.phoneNo || "",
+			email:
+				(dealer.meta &&
+				 typeof dealer.meta === "object" &&
+				 !Array.isArray(dealer.meta) &&
+				 typeof (dealer.meta as { invoiceEmail?: unknown }).invoiceEmail ===
+					"string"
+					? String((dealer.meta as { invoiceEmail: string }).invoiceEmail)
+					: dealer.email) || "",
 		} satisfies CompanyAddress,
 	};
 }

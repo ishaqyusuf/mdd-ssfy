@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	getDealerOfficePaymentState,
 	getDealerOrderNextStep,
+	getDealerOrderStatusLabel,
 	getDealerRequestNextStep,
 } from "./dealer-next-step";
 
@@ -39,6 +40,29 @@ describe("getDealerRequestNextStep", () => {
 });
 
 describe("getDealerOrderNextStep", () => {
+	it("uses the same payment and fulfillment status label in list and detail", () => {
+		expect(
+			getDealerOrderStatusLabel(
+				getDealerOrderNextStep({
+					officeAmountDue: 760,
+					customerAmountDue: 950,
+				}),
+			),
+		).toBe("GND payment due");
+		expect(
+			getDealerOrderStatusLabel(
+				getDealerOrderNextStep({ officeAmountDue: 0, customerAmountDue: 0 }),
+			),
+		).toBe("Preparing");
+		expect(
+			getDealerOrderStatusLabel(
+				getDealerOrderNextStep({
+					officeAmountDue: 0,
+					fulfillmentStatus: "ready",
+				}),
+			),
+		).toBe("Ready");
+	});
 	it("uses the GND ledger—not the customer ledger—to gate dealer payment", () => {
 		expect(
 			getDealerOrderNextStep({
@@ -108,7 +132,7 @@ describe("getDealerOrderNextStep", () => {
 		});
 	});
 
-	it("uses explicit readiness for delivery guidance", () => {
+	it("uses shipment wording when a ship order is ready", () => {
 		expect(
 			getDealerOrderNextStep({
 				officeAmountDue: 0,
@@ -118,8 +142,40 @@ describe("getDealerOrderNextStep", () => {
 			}),
 		).toMatchObject({
 			phase: "ready_for_fulfillment",
-			title: "Your order is ready for delivery",
+			title: "Your order is ready for shipment",
 		});
+	});
+
+	it("surfaces an open dispatch exception to the dealer", () => {
+		const guidance = getDealerOrderNextStep({
+			officeAmountDue: 0,
+			customerAmountDue: 65,
+			deliveryOption: "ship",
+			fulfillmentStatus: "exception",
+		});
+		expect(guidance).toMatchObject({
+			phase: "fulfillment_exception",
+			title: "GND is reviewing a fulfillment issue",
+		});
+		expect(getDealerOrderStatusLabel(guidance)).toBe("Needs GND review");
+	});
+
+	it("distinguishes partial fulfillment and transit from readiness", () => {
+		const partial = getDealerOrderNextStep({
+			officeAmountDue: 0,
+			deliveryOption: "ship",
+			fulfillmentStatus: "partial",
+		});
+		expect(partial.phase).toBe("partially_fulfilled");
+		expect(getDealerOrderStatusLabel(partial)).toBe("Partially fulfilled");
+
+		const transit = getDealerOrderNextStep({
+			officeAmountDue: 0,
+			deliveryOption: "ship",
+			fulfillmentStatus: "in_transit",
+		});
+		expect(transit.phase).toBe("in_transit");
+		expect(getDealerOrderStatusLabel(transit)).toBe("In transit");
 	});
 
 	it("recognizes completed pickup and delivery states", () => {
@@ -145,6 +201,13 @@ describe("getDealerOrderNextStep", () => {
 			phase: "fulfilled",
 			title: "Delivery complete",
 		});
+		expect(
+			getDealerOrderNextStep({
+				officeAmountDue: 0,
+				deliveryOption: "ship",
+				fulfillmentStatus: "completed",
+			}),
+		).toMatchObject({ title: "Shipment complete" });
 	});
 
 	it("keeps order cancellation separate from fulfillment state", () => {

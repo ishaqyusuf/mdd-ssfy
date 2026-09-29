@@ -35,19 +35,56 @@ function buildAddressLines(
 	].filter(Boolean) as string[];
 }
 
+function buildDealerBillingLines(dealer: NonNullable<PrintSalesData["dealerAuth"]>) {
+	const address = dealer.primaryBillingAddress;
+	const meta =
+		dealer.meta && typeof dealer.meta === "object" && !Array.isArray(dealer.meta)
+			? (dealer.meta as Record<string, unknown>)
+			: {};
+	const invoiceEmail =
+		typeof meta.invoiceEmail === "string" && meta.invoiceEmail.trim()
+			? meta.invoiceEmail.trim()
+			: dealer.email;
+	const addressMeta =
+		address?.meta && typeof address.meta === "object" && !Array.isArray(address.meta)
+			? (address.meta as Record<string, unknown>)
+			: {};
+	const zipValue = addressMeta.zip_code || meta.billingZip || meta.zip_code;
+	const zip = typeof zipValue === "string" ? zipValue : null;
+	return [
+		(dealer.companyName || dealer.name || "Dealer").toUpperCase(),
+		dealer.phoneNo,
+		invoiceEmail.toLowerCase(),
+		address?.address1,
+		address?.address2,
+		[address?.city, address?.state, zip]
+			.filter(Boolean)
+			.join(" "),
+		address?.country,
+	].filter(Boolean) as string[];
+}
+
 export function composeAddresses(
 	sale: PrintSalesData,
 	mode: PrintMode,
 ): { billing: AddressBlock | null; shipping: AddressBlock | null } {
 	const isQuote = mode === "quote";
+	const isDealerCustomerCopy = Boolean(
+		(sale as PrintSalesData & { dealerCustomerPayment?: unknown })
+			.dealerCustomerPayment,
+	);
+	const isDealerInternal =
+		Boolean(sale.dealerAuthId && sale.dealerAuth) && !isDealerCustomerCopy;
 
 	const billing: AddressBlock = {
 		title: isQuote ? "Customer" : "Sold To",
-		lines: buildAddressLines(
-			sale.customer,
-			sale.billingAddress,
-			sale.customer?.businessName,
-		),
+		lines: isDealerInternal && sale.dealerAuth
+			? buildDealerBillingLines(sale.dealerAuth)
+			: buildAddressLines(
+					sale.customer,
+					sale.billingAddress,
+					sale.customer?.businessName,
+				),
 	};
 
 	const shipping: AddressBlock = {

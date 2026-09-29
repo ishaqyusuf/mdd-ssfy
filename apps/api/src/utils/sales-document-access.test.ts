@@ -24,6 +24,7 @@ function createSnapshot(overrides: Record<string, unknown> = {}) {
 		sourceUpdatedAt: new Date("2026-05-12T10:00:00.000Z"),
 		generatedAt: new Date("2026-05-12T10:00:00.000Z"),
 		meta: {
+			renderVersion: 2026092602,
 			accessToken: "access-token",
 			expiresAt: "2099-01-01T00:00:00.000Z",
 			templateId: "template-2",
@@ -38,6 +39,8 @@ function createSnapshot(overrides: Record<string, unknown> = {}) {
 function createMockDb(input: {
 	snapshot: ReturnType<typeof createSnapshot>;
 	saleUpdatedAt: Date;
+	dealerUpdatedAt?: Date;
+	brandingVersion?: number;
 }) {
 	const calls = {
 		snapshotCreate: 0,
@@ -56,7 +59,15 @@ function createMockDb(input: {
 			findFirst: async () => ({ id: "stored-21438" }),
 		},
 		salesOrders: {
-			findUnique: async () => ({ updatedAt: input.saleUpdatedAt }),
+			findUnique: async () => ({
+				updatedAt: input.saleUpdatedAt,
+				dealerAuth: input.dealerUpdatedAt
+					? {
+						updatedAt: input.dealerUpdatedAt,
+						meta: { brandingVersion: input.brandingVersion ?? 0 },
+					}
+					: null,
+			}),
 		},
 		publicLinkToken: {
 			findFirst: async () => ({
@@ -107,7 +118,7 @@ describe("resolveSalesDocumentAccess", () => {
 				mode: "invoice",
 				pricingMode: "customer",
 			}),
-		).toBe("invoice_pdf:pricing:customer:v3");
+		).toBe("invoice_pdf:pricing:customer:v10");
 	});
 
 	it("forces Template 2 and isolates totals-only HTML preview data", async () => {
@@ -183,6 +194,7 @@ describe("resolveSalesDocumentAccess", () => {
 			snapshot: createSnapshot({
 				documentType,
 				meta: {
+					renderVersion: 2026092602,
 					accessToken: "access-token",
 					expiresAt: "2099-01-01T00:00:00.000Z",
 					templateId: "template-2",
@@ -223,6 +235,49 @@ describe("resolveSalesDocumentAccess", () => {
 				printConfig: {
 					pageBreakMode: "section",
 				},
+				baseUrl: "https://example.com",
+			}),
+		).rejects.toThrow("Snapshot create should not be called on cache hit.");
+		expect(calls.snapshotCreate).toBe(1);
+	});
+
+	it("regenerates a PDF produced by an older renderer", async () => {
+		const { db, calls } = createMockDb({
+			snapshot: createSnapshot({
+				meta: {
+					renderVersion: 20260925,
+					accessToken: "access-token",
+					expiresAt: "2099-01-01T00:00:00.000Z",
+					templateId: "template-2",
+				},
+			}),
+			saleUpdatedAt: new Date("2026-05-12T10:00:00.789Z"),
+		});
+
+		await expect(
+			resolveSalesDocumentAccess({
+				db,
+				salesIds: [21438],
+				mode: "invoice",
+				baseUrl: "https://example.com",
+			}),
+		).rejects.toThrow("Snapshot create should not be called on cache hit.");
+		expect(calls.snapshotCreate).toBe(1);
+	});
+
+	it("regenerates a snapshot when dealer invoice branding changes", async () => {
+		const { db, calls } = createMockDb({
+			snapshot: createSnapshot(),
+			saleUpdatedAt: new Date("2026-05-12T10:00:00.000Z"),
+			dealerUpdatedAt: new Date("2026-05-12T10:01:00.000Z"),
+			brandingVersion: 2,
+		});
+
+		await expect(
+			resolveSalesDocumentAccess({
+				db,
+				salesIds: [21438],
+				mode: "invoice",
 				baseUrl: "https://example.com",
 			}),
 		).rejects.toThrow("Snapshot create should not be called on cache hit.");

@@ -16,7 +16,10 @@ function appendPaidSummary(
 		bold: true,
 	});
 	lines.push({
-		label: "Paid Toward Order",
+		label:
+			paymentState.refunded.principal > 0
+				? "Net Paid Toward Order"
+				: "Paid Toward Order",
 		value: `$${formatCurrency(paymentState.principalPaid)}`,
 		bold: true,
 	});
@@ -30,6 +33,13 @@ function appendPaidSummary(
 					? String(summaryLine.value)
 					: `$${formatCurrency(summaryLine.value)}`,
 		});
+	}
+	for (const [label, amount] of [
+		["Principal Refunded", paymentState.refunded.principal],
+		["C.C.C. Refunded", paymentState.refunded.ccc],
+		["Tip Refunded", paymentState.refunded.tip],
+	] as const) {
+		if (amount > 0) lines.push({ label, value: `$${formatCurrency(amount)}` });
 	}
 	if (!hideBalanceDue) {
 		lines.push({
@@ -124,6 +134,31 @@ export function composeFooter(
 			label: "Delivery",
 			value: `$${formatCurrency(meta?.deliveryCost ?? 0)}`,
 		});
+	}
+	if (
+		"dealerCustomerPayment" in sale &&
+		(sale as { dealerCustomerPayment?: unknown }).dealerCustomerPayment
+	) {
+		lines.push({
+			label: "Order Total",
+			value: `$${formatCurrency(paymentState.orderTotal)}`,
+			bold: true,
+		});
+		if (paymentState.principalPaid > 0) {
+			lines.push({
+				label: "Customer Payment Recorded",
+				value: `$${formatCurrency(paymentState.principalPaid)}`,
+			});
+		}
+		if (!hideBalanceDue) {
+			lines.push({
+				label: "Balance Due",
+				value: `$${formatCurrency(paymentState.amountDue)}`,
+				bold: true,
+				large: true,
+			});
+		}
+		return { lines, notes, suppressDefaultNotes: true };
 	}
 
 	switch (paymentState.kind) {

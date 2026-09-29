@@ -75,3 +75,41 @@ export async function continueSaveAfterCommittedChangeReview<TRecord>(
 		throw error;
 	}
 }
+
+export function isReviewedAdjustmentApplied(
+	record:
+		| {
+				version?: string | null;
+				appliedAdjustmentId?: string | null;
+				activeAdjustment?: unknown;
+		  }
+		| null
+		| undefined,
+	adjustmentId: string | null,
+	sourceVersion: string,
+) {
+	return Boolean(
+		adjustmentId &&
+			record?.version &&
+			record.version !== sourceVersion &&
+			record.appliedAdjustmentId === adjustmentId &&
+			!record.activeAdjustment,
+	);
+}
+
+export function preserveReviewedFormFields<
+	T extends {
+		form?: unknown;
+		extraCosts?: unknown;
+		summary?: unknown;
+		specialOrder?: unknown;
+	},
+>(refreshed: T, reviewed: T): T {
+	return {
+		...refreshed,
+		form: reviewed.form,
+		extraCosts: reviewed.extraCosts,
+		summary: reviewed.summary,
+		specialOrder: reviewed.specialOrder,
+	};
+}

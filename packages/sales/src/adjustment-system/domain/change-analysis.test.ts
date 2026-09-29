@@ -403,3 +403,50 @@ describe("calculateSalesAdjustmentSettlement", () => {
 		});
 	});
 });
+
+describe("historical commercial reconciliation", () => {
+	it("reviews price drift and matches a renamed grouped line by durable ID", () => {
+		const result = analyzeSalesFormChange({
+			before: {
+				lineItems: [
+					{ id: 169423, uid: "sales-item-169423", qty: 8, lineTotal: 1112.4 },
+					{ id: 169426, uid: "sales-item-169426", qty: 80, lineTotal: 641.9 },
+				],
+				summary: { grandTotal: 3507.06 },
+			},
+			after: {
+				lineItems: [
+					{ id: 169423, uid: "sales-item-169423", qty: 8, lineTotal: 1153.68 },
+					{ id: 169426, uid: "m5x4", qty: 125, lineTotal: 1260.2 },
+				],
+				summary: { grandTotal: 4212.81 },
+			},
+			commitments: {},
+			reviewAllLines: true,
+		});
+		expect(result.lines).toHaveLength(2);
+		expect(result.lines[0]?.lineTotalDelta).toBe(41.28);
+		expect(result.lines[1]).toMatchObject({
+			uid: "m5x4",
+			beforeQty: 80,
+			afterQty: 125,
+			quantityDelta: 45,
+		});
+		expect(result.totalDelta).toBe(705.75);
+	});
+	it("retains unchanged lines for structural reconciliation without inventing a quantity change", () => {
+		const snapshot = {
+			lineItems: [{ id: 1, uid: "a", qty: 2, lineTotal: 100 }],
+			summary: { grandTotal: 100 },
+		};
+		const result = analyzeSalesFormChange({
+			before: snapshot,
+			after: snapshot,
+			commitments: {},
+			reviewAllLines: true,
+		});
+		expect(result.lines).toHaveLength(1);
+		expect(result.lines[0]?.quantityDelta).toBe(0);
+		expect(result.direction).toBe("NONE");
+	});
+});

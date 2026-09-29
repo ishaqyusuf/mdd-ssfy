@@ -7,6 +7,7 @@ import {
   sumMoney,
 } from "../../payment-system/domain/money";
 import { newSalesFormSeedMouldingCalculationSchema } from "../contracts/new-sales-form-seed";
+import { resolveDealerOfficeMouldingTotal } from "./dealer-office-moulding-total";
 import { readSalesFormObjectMetadata } from "./metadata";
 import { normalizeSalesFormTitle } from "./step-engine";
 
@@ -128,6 +129,7 @@ function summarizeMouldingRows(rows: Array<Record<string, any>>) {
         ? null
         : Number(row.customPrice || 0);
     const unit = customPrice == null ? salesPrice + addon : customPrice + addon;
+    const saved = resolveDealerOfficeMouldingTotal(row, qty, unit);
     return {
       ...row,
       uid: String(row.uid || "").trim() || `legacy-moulding-row-${index + 1}`,
@@ -139,7 +141,8 @@ function summarizeMouldingRows(rows: Array<Record<string, any>>) {
       customPrice,
       salesPrice,
       basePrice: Number(row.basePrice || 0),
-      lineTotal: multiplyMoney(qty, unit),
+      lineTotal: saved.lineTotal,
+      ...(row.dealerOfficeTotal ? { dealerOfficeTotal: saved.dealerOfficeTotal } : {}),
       stepProductId: row.stepProductId ?? null,
     };
   });
@@ -297,6 +300,7 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
           mouldingTag.salesPrice ?? mouldingTag.price ?? item?.unitPrice ?? 0,
         ),
         basePrice: Number(mouldingTag.basePrice ?? mouldingStep?.basePrice ?? 0),
+        dealerOfficeTotal: mouldingTag.dealerOfficeTotal ?? null,
         unitLabor: mouldingTag.unitLabor ?? null,
         laborQty: mouldingTag.laborQty ?? null,
         stepProductId: hpt?.stepProductId ?? mouldingStep?.componentId ?? null,

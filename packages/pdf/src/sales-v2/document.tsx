@@ -59,7 +59,7 @@ interface SalesPdfDocumentProps {
 	pages: PrintPage[];
 	templateId?: string;
 	baseUrl?: string;
-	watermark?: string;
+	watermark?: string | null;
 	logoUrl?: string;
 	previewUrl?: string;
 	qrCodeDataUrl?: string;
@@ -104,9 +104,7 @@ export function SalesPdfDocument({
 					page={page}
 					baseUrl={baseUrl}
 					watermark={watermark}
-					logoUrl={
-						page.branding ? (page.branding.logoUrl ?? undefined) : logoUrl
-					}
+					logoUrl={page.branding?.logoUrl || logoUrl}
 					previewUrl={i === 0 ? previewUrl : undefined}
 					qrCodeDataUrl={i === 0 ? qrCodeDataUrl : undefined}
 					pageIndex={i}

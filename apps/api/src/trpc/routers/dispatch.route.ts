@@ -14,6 +14,7 @@ import {
 	confirmFulfillmentShortLoadInTransaction,
 } from "@gnd/sales/fulfillment-short-load-confirm";
 import { createFulfillmentAssignmentInTransaction } from "@gnd/sales/fulfillment-assignment-create";
+import { getFulfillmentDispatchCreationOrderIds } from "@gnd/sales/fulfillment-dispatch-creation-query";
 import { whereEmployees } from "@api/prisma-where";
 import {
 	getFulfillmentCompletionReview,
@@ -142,6 +143,7 @@ import {
 	type SalesPipelineCommand,
 	SalesPipelineCommandRejectedError,
 	SalesScheduleMoveError,
+	buildSalesDispatchCreationWhere,
 	fulfillmentScheduleMoveSchema,
 	getSalesPipelineSnapshots,
 	moveFulfillmentSchedule,
@@ -3465,23 +3467,10 @@ export const dispatchRouters = createTRPCRouter({
 				});
 			}
 			const dispatches = await props.ctx.db.$transaction(async (tx) => {
-				const eligibleOrders = await tx.salesOrders.findMany({
-					where: {
-						id: { in: salesIds },
-						deletedAt: null,
-						type: "order",
-						deliveryOption: { in: ["delivery", "pickup"] },
-						deliveredAt: null,
-						deliveries: {
-							none: {
-								deletedAt: null,
-								status: { notIn: ["cancelled"] },
-							},
-						},
-					},
-					select: { id: true },
+				const eligibleIds = await getFulfillmentDispatchCreationOrderIds(tx, {
+					AND: [buildSalesDispatchCreationWhere(), { id: { in: salesIds } }],
 				});
-				if (eligibleOrders.length !== salesIds.length) {
+				if (eligibleIds.length !== salesIds.length) {
 					throw new TRPCError({
 						code: "CONFLICT",
 						message:

@@ -197,6 +197,7 @@ export interface LineItemRow {
 export interface FooterData {
 	lines: FooterLine[];
 	notes: string[];
+	suppressDefaultNotes?: boolean;
 }
 
 export interface FooterLine {
@@ -213,6 +214,7 @@ export interface CompanyAddress {
 	address2: string;
 	phone: string;
 	fax?: string;
+	email?: string;
 }
 
 // ─── Template Props ──────────────────────────────────────────

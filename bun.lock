@@ -858,6 +858,7 @@
         "jose": "^6.0.11",
         "lodash": "^4.17.21",
         "qrcode": "^1.5.4",
+        "sharp": "0.35.3",
         "zod": "catalog:",
       },
       "devDependencies": {

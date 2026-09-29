@@ -1,5 +1,6 @@
 "use client";
 
+import type { SalesReconciliationDetail } from "@gnd/sales/adjustment-system";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -27,6 +28,8 @@ type ChangeLine = {
 };
 
 type ChangeReview = {
+	reconciliationDetails?: SalesReconciliationDetail[];
+	reconciliation?: { approvedAdjustmentId: string } | null;
 	analysis: {
 		direction: string;
 		reviewReasons: Array<"REFUND" | "INBOUND" | "INVENTORY">;
@@ -113,8 +116,33 @@ export function SalesChangeReviewSheet(props: {
 					</div>
 				) : review ? (
 					<div className="mt-6 space-y-5">
+						{review.reconciliation ? (
+							<div className="rounded-xl border bg-muted/50 p-4 text-sm">
+								<p className="font-semibold">
+									Reconcile previously approved changes
+								</p>
+								<p className="mt-1 text-muted-foreground">
+									The saved items differ from the last approval. Approving will
+									update this order to the values below and continue saving.
+									Payment, production, and fulfillment history will be
+									preserved.
+								</p>
+								<p className="mt-3 font-medium">
+									Previously approved {money(review.analysis.beforeGrandTotal)}{" "}
+									→ {money(review.analysis.afterGrandTotal)}
+								</p>
+								<p className="text-muted-foreground">
+									Difference: {money(review.analysis.totalDelta)}. No customer
+									payment will be charged automatically.
+								</p>
+							</div>
+						) : null}
 						<div className="flex flex-wrap gap-2">
-							<Badge variant="outline">{review.analysis.direction}</Badge>
+							<Badge variant="outline">
+								{review.reconciliation
+									? "Reconciliation"
+									: review.analysis.direction}
+							</Badge>
 							{review.commitments.paymentTotal > 0 ? (
 								<Badge variant="secondary">
 									{money(review.commitments.paymentTotal)} paid
@@ -171,6 +199,34 @@ export function SalesChangeReviewSheet(props: {
 								</div>
 							))}
 						</div>
+
+						{review.reconciliationDetails?.length ? (
+							<details className="rounded-xl border p-4 text-sm">
+								<summary className="cursor-pointer font-medium">
+									Affected sizes and components (
+									{review.reconciliationDetails.length})
+								</summary>
+								<div className="mt-3 space-y-3">
+									{review.reconciliationDetails.map((detail) => (
+										<div key={detail.key} className="border-t pt-3">
+											<p className="font-medium">{detail.title}</p>
+											<p className="text-xs text-muted-foreground">
+												Previous:{" "}
+												{detail.before
+													? `${detail.before.qty} qty · ${money(detail.before.total)}${detail.before.handing ? ` · ${detail.before.handing}` : ""}`
+													: "Not in the previous approval"}
+											</p>
+											<p className="text-xs text-muted-foreground">
+												New:{" "}
+												{detail.after
+													? `${detail.after.qty} qty · ${money(detail.after.total)}${detail.after.handing ? ` · ${detail.after.handing}` : ""}`
+													: "Removed"}
+											</p>
+										</div>
+									))}
+								</div>
+							</details>
+						) : null}
 
 						<div className="grid gap-3 sm:grid-cols-3">
 							<div className="rounded-xl border p-3">
@@ -287,7 +343,7 @@ export function SalesChangeReviewSheet(props: {
 									: "Committing changes…"
 								: props.isAwaitingApplication
 									? "Check status"
-									: "Approve"}
+									: "Approve changes and save"}
 						</Button>
 					</div>
 				) : (

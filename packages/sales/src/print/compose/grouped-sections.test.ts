@@ -10,6 +10,29 @@ const config = {
 } as PrintModeConfig;
 
 describe("grouped print sections", () => {
+	it("prints relational moulding quantity and price when metadata is calculator context", () => {
+		const sale = {
+			items: [{
+				id: 10,
+				description: "Casing",
+				dykeDescription: "Moulding",
+				qty: 3,
+				rate: 36.46 / 3,
+				total: 36.46,
+				meta: { meta: { mouldingRows: [{ uid: "casing" }] } },
+				formSteps: [{ step: { title: "Item Type" }, value: "Moulding" }],
+				housePackageTool: {
+					doorType: "Moulding",
+					stepProduct: { name: "Casing" },
+				},
+			}],
+		} as unknown as PrintSalesData;
+		const sections = composeMouldingSections(sale, config, null);
+		expect(sections[0]?.rows[0]?.cells[2]?.value).toBe(3);
+		expect(sections[0]?.rows[0]?.cells[3]?.value).toBe("$12.15");
+		expect(sections[0]?.rows[0]?.cells[4]?.value).toBe("$36.46");
+	});
+
 	it("renders metadata-backed moulding rows with saved descriptions and component images", () => {
 		const sale = {
 			items: [

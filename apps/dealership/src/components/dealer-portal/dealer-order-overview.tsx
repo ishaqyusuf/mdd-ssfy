@@ -3,16 +3,19 @@
 import {
 	getDealerOfficePaymentState,
 	getDealerOrderNextStep,
+	getDealerOrderStatusLabel,
 } from "@/lib/dealer-next-step";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Input } from "@gnd/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, Printer } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { DealerNextStep } from "./dealer-next-step";
 
 type DealerOrder = RouterOutputs["dealerPortal"]["salesDocument"];
@@ -30,6 +33,20 @@ function date(value?: Date | string | null) {
 		month: "short",
 		day: "numeric",
 		year: "numeric",
+		timeZone: "UTC",
+	}).format(new Date(value));
+}
+
+function dateTime(value?: Date | string | null) {
+	if (!value) return "Date unavailable";
+	return new Intl.DateTimeFormat("en", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+		timeZone: "UTC",
+		timeZoneName: "short",
 	}).format(new Date(value));
 }
 
@@ -92,6 +109,7 @@ function progressItems(order?: DealerOrder | null) {
 export function DealerOrderOverview({ orderId }: { orderId: number }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const [customerPaymentNote, setCustomerPaymentNote] = useState("");
 	const orderQuery = useQuery(
 		trpc.dealerPortal.salesDocument.queryOptions({ id: orderId }),
 	);
@@ -137,6 +155,7 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 	const updateCustomerPayment = useMutation(
 		trpc.dealerPortal.updateCustomerPaymentStatus.mutationOptions({
 			onSuccess: async (result) => {
+				setCustomerPaymentNote("");
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: trpc.dealerPortal.salesDocument.pathKey(),
@@ -191,9 +210,22 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 		status: order.status,
 		fulfillmentStatus: order.fulfillmentStatus,
 	});
+	const orderStatusLabel = getDealerOrderStatusLabel(nextStep);
 
 	return (
 		<div className="space-y-6">
+			{createPaymentLink.isError ? (
+				<div
+					role="alert"
+					className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm"
+				>
+					<p className="font-medium">Could not create the GND payment link.</p>
+					<p className="mt-1">{createPaymentLink.error.message}</p>
+					<p className="mt-1">
+						Please retry, or contact GND if this continues.
+					</p>
+				</div>
+			) : null}
 			<div className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-start md:justify-between">
 				<div className="min-w-0 space-y-2">
 					<Button asChild size="sm" variant="ghost">
@@ -204,11 +236,16 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 							<h1 className="text-2xl font-semibold tracking-normal">
 								{order.orderId}
 							</h1>
-							<Badge variant="outline">{order.status || "Open"}</Badge>
+							<Badge variant="outline">{orderStatusLabel}</Badge>
 						</div>
 						<p className="text-sm text-muted-foreground">
 							{customerName(order)} · Created {date(order.createdAt)}
 						</p>
+						{order.updatedAt ? (
+							<p className="text-xs text-muted-foreground">
+								Last order update {dateTime(order.updatedAt)}
+							</p>
+						) : null}
 					</div>
 				</div>
 				<div className="flex flex-wrap gap-2">
@@ -256,6 +293,16 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 			</div>
 
 			<DealerNextStep guidance={nextStep} />
+			<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+				<span>Office contact: {order.salesRep?.name || "GND sales team"}</span>
+				<span aria-hidden="true">·</span>
+				<a
+					className="font-medium text-foreground underline underline-offset-2"
+					href={`mailto:support@gndmillwork.com?subject=${encodeURIComponent(`Dealer order ${order.orderId}`)}`}
+				>
+					Email GND about this order
+				</a>
+			</div>
 
 			<Tabs defaultValue="overview" className="space-y-4">
 				<TabsList className="w-full justify-start">
@@ -349,6 +396,7 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 									updateCustomerPayment.mutate({
 										id: order.id,
 										status: customerHasBalance ? "paid" : "unpaid",
+										note: customerPaymentNote.trim() || null,
 									})
 								}
 								type="button"
@@ -357,6 +405,48 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 								{customerHasBalance ? "Mark customer paid" : "Reopen balance"}
 							</Button>
 						</div>
+						<div className="mt-4 space-y-2">
+							<label
+								className="text-sm font-medium"
+								htmlFor="customer-payment-note"
+							>
+								Note for this change (optional)
+							</label>
+							<Input
+								id="customer-payment-note"
+								maxLength={500}
+								onChange={(event) => setCustomerPaymentNote(event.target.value)}
+								placeholder="For example, payment confirmed by phone"
+								value={customerPaymentNote}
+							/>
+						</div>
+						{order.customerPaymentHistory.length ? (
+							<div className="mt-5 border-t pt-4">
+								<h3 className="text-sm font-semibold">
+									Customer payment history
+								</h3>
+								<ul className="mt-2 space-y-2 text-sm">
+									{order.customerPaymentHistory.map((entry) => (
+										<li className="rounded-md bg-muted/50 p-3" key={entry.id}>
+											<p className="font-medium">
+												{entry.status === "paid"
+													? "Marked paid"
+													: "Balance reopened"}{" "}
+												· {dateTime(entry.createdAt)}
+											</p>
+											<p className="text-muted-foreground">
+												{entry.authorName || "Dealer"} · Balance{" "}
+												{currency(entry.previousDue)} →{" "}
+												{currency(entry.nextDue)}
+											</p>
+											{entry.note ? (
+												<p className="mt-1 break-words">{entry.note}</p>
+											) : null}
+										</li>
+									))}
+								</ul>
+							</div>
+						) : null}
 					</section>
 
 					<section className="rounded-lg border p-4">

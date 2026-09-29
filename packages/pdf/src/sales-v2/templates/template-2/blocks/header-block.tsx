@@ -83,9 +83,11 @@ export function HeaderBlock({
 							Fax: {companyAddress.fax}
 						</Text>
 					) : null}
-					<Text style={{ fontSize: 8, color: TEXT_MUTED }}>
-						support@gndmillwork.com
-					</Text>
+					{companyAddress.email ? (
+						<Text style={{ fontSize: 8, color: TEXT_MUTED }}>
+							{companyAddress.email}
+						</Text>
+					) : null}
 				</View>
 
 				{/* Right: Invoice badge + details */}

@@ -12,10 +12,12 @@ type Props = {
 
 export function OrderHeader({ initialFilterList }: Props) {
 	return (
-		<div className="flex gap-4">
-			<OrderSearchFilter initialFilterList={initialFilterList} />
+		<div className="flex flex-wrap items-center gap-3 lg:gap-4">
+			<div className="w-full min-w-0 lg:w-[350px]">
+				<OrderSearchFilter initialFilterList={initialFilterList} />
+			</div>
 			<SalesCustomTab />
-			<div className="flex-1" />
+			<div className="hidden flex-1 lg:block" />
 			<SalesOrderExport />
 			<CreateSalesBtn />
 		</div>

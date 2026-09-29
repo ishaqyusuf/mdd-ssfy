@@ -5,6 +5,29 @@ import {
 } from "./dual-pricing";
 
 describe("dual sales form pricing", () => {
+  it("keeps structured customer shelf prices out of the GND payable", () => {
+    const result = calculateDualSalesFormPricing({
+      internalProfile: { coefficient: 0.65 },
+      dealerProfile: { salesPercentage: 25 },
+      lineItems: [
+        {
+          uid: "sample-shelf",
+          qty: 2,
+          unitPrice: 475,
+          lineTotal: 950,
+          shelfItems: [{ qty: 2, unitPrice: 475, totalPrice: 950 }],
+        },
+      ],
+    });
+
+    expect(result.lines[0]).toMatchObject({
+      internalLineTotal: 760,
+      dealerLineTotal: 950,
+    });
+    expect(result.internalPricing.grandTotal).toBe(760);
+    expect(result.dealerPricing.grandTotal).toBe(950);
+  });
+
   it("keeps internal and dealer percentage totals separate", () => {
     const result = calculateDualSalesFormPricing({
       taxRate: 10,

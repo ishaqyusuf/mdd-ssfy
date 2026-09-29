@@ -124,10 +124,48 @@ function toPrintItem(
 export function applyPersistedFormPrintFallback(
 	sale: PrintSalesData,
 ): PrintSalesData {
-	if (sale.items.length > 0) return sale;
-
 	const lineItems = getPersistedLineItems(sale);
 	if (!lineItems) return sale;
+
+	if (sale.items.length > 0) {
+		// Dealer quotes persist priced relational items while their form steps and
+		// house-package rows live in the complete form snapshot. Rehydrate only
+		// missing structure and retain the relational GND rates and totals.
+		const snapshotByUid = new Map(
+			lineItems.map((lineItem, index) => [
+				lineItem.uid,
+				toPrintItem(sale, lineItem, index),
+			]),
+		);
+		return {
+			...sale,
+			items: sale.items.map((item) => {
+				const uid = asRecord(item.meta).uid;
+				const snapshot =
+					typeof uid === "string" ? snapshotByUid.get(uid) : null;
+				if (!snapshot) return item;
+				return {
+					...item,
+					meta:
+						!hasMetadataRows(asRecord(item.meta)) &&
+						hasMetadataRows(asRecord(asRecord(snapshot.meta).meta))
+							? {
+								...asRecord(item.meta),
+								meta: asRecord(asRecord(snapshot.meta).meta),
+							} as unknown as PrintSalesItem["meta"]
+							: item.meta,
+					formSteps: item.formSteps.length
+						? item.formSteps
+						: snapshot.formSteps,
+					shelfItems: item.shelfItems.length
+						? item.shelfItems
+						: snapshot.shelfItems,
+					housePackageTool:
+						item.housePackageTool ?? snapshot.housePackageTool,
+				};
+			}),
+		};
+	}
 
 	return {
 		...sale,

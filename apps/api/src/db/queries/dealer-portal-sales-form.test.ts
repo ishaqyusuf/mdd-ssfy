@@ -317,6 +317,14 @@ function createDealerPortalSalesFormContext(
         return { count: 1 };
       },
     },
+    dykeSalesShelfItem: {
+      deleteMany: async () => ({ count: 0 }),
+    },
+    dykeSalesDoors: { deleteMany: async () => ({ count: 0 }) },
+    housePackageTools: { deleteMany: async () => ({ count: 0 }) },
+    dykeStepForm: {
+      deleteMany: async () => ({ count: 0 }),
+    },
     salesOrderItems: {
       deleteMany: async ({ where }: QueryArgs) => {
         state.items = state.items.filter(

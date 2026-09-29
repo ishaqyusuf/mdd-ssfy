@@ -46,9 +46,11 @@ export function HeaderBlock({
 						{companyAddress.fax && (
 							<Text style={cn(`text-sm`)}>Fax: {companyAddress.fax}</Text>
 						)}
-						<Text style={{ ...cn(`text-sm`), textWrap: "nowrap" }}>
-							support@gndmillwork.com
-						</Text>
+						{companyAddress.email ? (
+							<Text style={{ ...cn(`text-sm`), textWrap: "nowrap" }}>
+								{companyAddress.email}
+							</Text>
+						) : null}
 					</View>
 				</View>
 

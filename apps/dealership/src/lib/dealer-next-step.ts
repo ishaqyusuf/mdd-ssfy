@@ -14,12 +14,38 @@ export type DealerNextStepGuidance = {
 		| "gnd_payment_due"
 		| "preparing_fulfillment"
 		| "ready_for_fulfillment"
+		| "in_transit"
+		| "partially_fulfilled"
+		| "fulfillment_exception"
 		| "fulfilled"
 		| "cancelled";
 	title: string;
 	description: string;
 	tone: DealerNextStepTone;
 };
+
+export function getDealerOrderStatusLabel(guidance: DealerNextStepGuidance) {
+	switch (guidance.phase) {
+		case "cancelled":
+			return "Cancelled";
+		case "gnd_payment_review":
+			return "Review with GND";
+		case "fulfillment_exception":
+			return "Needs GND review";
+		case "in_transit":
+			return "In transit";
+		case "partially_fulfilled":
+			return "Partially fulfilled";
+		case "gnd_payment_due":
+			return "GND payment due";
+		case "fulfilled":
+			return "Completed";
+		case "ready_for_fulfillment":
+			return "Ready";
+		default:
+			return "Preparing";
+	}
+}
 
 type DealerRequestNextStepInput = {
 	status?: string | null;
@@ -30,7 +56,14 @@ type DealerOrderNextStepInput = {
 	customerAmountDue?: number | null;
 	deliveryOption?: string | null;
 	status?: string | null;
-	fulfillmentStatus?: "preparing" | "ready" | "completed" | null;
+	fulfillmentStatus?:
+		| "preparing"
+		| "ready"
+		| "completed"
+		| "exception"
+		| "in_transit"
+		| "partial"
+		| null;
 };
 
 function normalized(value?: string | null) {
@@ -84,7 +117,8 @@ function isPickup(deliveryOption?: string | null) {
 }
 
 function fulfillmentNoun(deliveryOption?: string | null) {
-	return isPickup(deliveryOption) ? "pickup" : "delivery";
+	if (isPickup(deliveryOption)) return "pickup";
+	return normalized(deliveryOption) === "ship" ? "shipment" : "delivery";
 }
 
 function finiteAmount(value?: number | null) {
@@ -129,6 +163,16 @@ export function getDealerOrderNextStep({
 		};
 	}
 
+	if (fulfillmentStatus === "exception") {
+		return {
+			phase: "fulfillment_exception",
+			title: "GND is reviewing a fulfillment issue",
+			description:
+				"Contact your GND sales team for the latest pickup, delivery, or shipment plan.",
+			tone: "attention",
+		};
+	}
+
 	if (officePayment.state === "review") {
 		return {
 			phase: "gnd_payment_review",
@@ -152,9 +196,31 @@ export function getDealerOrderNextStep({
 	if (fulfillmentStatus === "completed") {
 		return {
 			phase: "fulfilled",
-			title: isPickup(deliveryOption) ? "Pickup complete" : "Delivery complete",
+			title: isPickup(deliveryOption)
+				? "Pickup complete"
+				: normalized(deliveryOption) === "ship"
+					? "Shipment complete"
+					: "Delivery complete",
 			description: `GND payment and ${fulfillment} are complete.${customerBalanceNote}`,
 			tone: "complete",
+		};
+	}
+
+	if (fulfillmentStatus === "partial") {
+		return {
+			phase: "partially_fulfilled",
+			title: "Part of this order is complete",
+			description: `GND is still working on the remaining ${fulfillment}. Contact your GND sales team for details.${customerBalanceNote}`,
+			tone: "attention",
+		};
+	}
+
+	if (fulfillmentStatus === "in_transit") {
+		return {
+			phase: "in_transit",
+			title: "Your order is in transit",
+			description: `Watch this order for completion updates or contact your GND sales team.${customerBalanceNote}`,
+			tone: "positive",
 		};
 	}
 

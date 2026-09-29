@@ -10,6 +10,18 @@ export function getAppUrl() {
     return `https://${process.env.VERCEL_URL}`;
   }
 
+  const configuredUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configuredUrl) {
+    try {
+      const url = new URL(configuredUrl);
+      if (url.protocol === "https:" || url.protocol === "http:") {
+        return url.origin;
+      }
+    } catch {
+      // Keep the local port fallback when the optional app URL is invalid.
+    }
+  }
+
   return "http://localhost:3010";
 }
 export function getAppApiUrl() {

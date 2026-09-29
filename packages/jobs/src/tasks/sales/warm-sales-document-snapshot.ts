@@ -13,7 +13,10 @@ import {
 	createDocumentService,
 	createVercelBlobProvider,
 } from "@gnd/documents";
-import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
+import {
+	SALES_PDF_RENDER_VERSION,
+	renderSalesPdfBuffer,
+} from "@gnd/pdf/sales-v2/render";
 import {
 	getAuthorizedCanonicalSalesSource,
 	salesDocumentModeRequiresPaymentAccess,
@@ -472,6 +475,7 @@ async function warmSnapshot(
 					isCurrent: true,
 					sourceUpdatedAt,
 					meta: {
+						renderVersion: SALES_PDF_RENDER_VERSION,
 						mode: payload.mode,
 						dispatchId: payload.dispatchId ?? null,
 						scopeKey: buildSalesDocumentScopeKey(payload),
@@ -843,6 +847,7 @@ async function warmSnapshot(
 				errorMessage: null,
 				meta: {
 					...currentMeta,
+					renderVersion: SALES_PDF_RENDER_VERSION,
 					mode: payload.mode,
 					dispatchId: payload.dispatchId ?? null,
 					scopeKey: buildSalesDocumentScopeKey(payload),

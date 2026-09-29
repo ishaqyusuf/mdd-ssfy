@@ -20,6 +20,58 @@ export type RefundMoneyInput = {
 	tipCents?: number;
 };
 
+export function refundablePrincipalByOrder(input: {
+	originalPayments: { salesOrderId: number; principalCents: number }[];
+	refunds: {
+		providerStatus: string;
+		allocations: { salesOrderId: number; principalCents: number }[];
+	}[];
+}) {
+	const remaining = new Map<number, number>();
+	for (const payment of input.originalPayments) {
+		remaining.set(
+			payment.salesOrderId,
+			(remaining.get(payment.salesOrderId) || 0) + payment.principalCents,
+		);
+	}
+	for (const refund of input.refunds) {
+		if (
+			refund.providerStatus !== "completed" &&
+			!ACTIVE_REFUND_PROVIDER_STATUSES.includes(
+				refund.providerStatus as (typeof ACTIVE_REFUND_PROVIDER_STATUSES)[number],
+			)
+		)
+			continue;
+		for (const allocation of refund.allocations) {
+			remaining.set(
+				allocation.salesOrderId,
+				(remaining.get(allocation.salesOrderId) || 0) -
+					allocation.principalCents,
+			);
+		}
+	}
+	for (const [orderId, cents] of remaining) {
+		remaining.set(orderId, Math.max(0, cents));
+	}
+	return remaining;
+}
+
+export function assertRefundPrincipalCapacity(
+	allocations: RefundAllocationInput[],
+	remainingByOrder: ReadonlyMap<number, number>,
+) {
+	for (const allocation of allocations) {
+		if (
+			allocation.principalCents >
+			(remainingByOrder.get(allocation.salesOrderId) || 0)
+		) {
+			throw new Error(
+				"Refund principal exceeds the original payment remaining on this order.",
+			);
+		}
+	}
+}
+
 export function refundTotalCents(input: RefundMoneyInput) {
 	return input.principalCents + (input.cccCents || 0) + (input.tipCents || 0);
 }

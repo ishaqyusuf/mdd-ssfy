@@ -9,6 +9,7 @@ import { Suspense } from "react";
 
 interface Props {
 	params: Promise<{ categorySlug: string; productSlug: string }>;
+	searchParams: Promise<{ returnTo?: string }>;
 }
 
 async function loadOffer(params: Awaited<Props["params"]>) {
@@ -40,7 +41,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page(props: Props) {
 	const params = await props.params;
+	const searchParams = await props.searchParams;
 	const offer = await loadOffer(params);
+	const returnTo =
+		typeof searchParams.returnTo === "string" &&
+		searchParams.returnTo.startsWith("/search")
+			? searchParams.returnTo
+			: `/search?category=${offer.category.slug}`;
 
 	return (
 		<HydrateClient>
@@ -56,7 +63,7 @@ export default async function Page(props: Props) {
 			</script>
 			<ErrorBoundary errorComponent={ErrorFallback}>
 				<Suspense fallback={<ProductSkeleton />}>
-					<ProductConfigurator slug={params.productSlug} />
+					<ProductConfigurator slug={params.productSlug} returnTo={returnTo} />
 				</Suspense>
 			</ErrorBoundary>
 		</HydrateClient>

@@ -8,7 +8,6 @@ export {
 	HEADLINE_FIRST_PAGE,
 	normalizeSalesPageBreakMode,
 } from "./registry";
-export { renderSalesPdfBuffer } from "./render";
 export {
 	extractSignaturePathFromSvg,
 	isSvgImageSource,

@@ -103,3 +103,4 @@ ios
 /apps/messaging-extension/.wxt/
 .local-db-sync
 .release/runtime/
+.gstack/

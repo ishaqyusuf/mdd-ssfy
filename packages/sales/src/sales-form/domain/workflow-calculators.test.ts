@@ -16,6 +16,26 @@ import {
 } from "./workflow-calculators";
 
 describe("workflow-calculators domain", () => {
+	it("preserves allocated dealer office cents on reload and releases them after an edit", () => {
+		const row = {
+			productId: 113,
+			qty: 3,
+			unitPrice: 12.15,
+			totalPrice: 36.46,
+			meta: {
+				basePrice: 7.9,
+				dealerOfficeTotal: { qty: 3, unitPrice: 12.15, totalPrice: 36.46 },
+			},
+		};
+		expect(summarizeShelfRows([row], 0.65).lineTotal).toBe(36.46);
+		const edited = summarizeShelfRows([{ ...row, qty: 4 }], 0.65);
+		expect(edited.lineTotal).toBe(48.6);
+		expect(edited.rows[0].meta.dealerOfficeTotal).toBeNull();
+		expect(
+			summarizeShelfRows([{ ...edited.rows[0], qty: 3 }], 0.65).lineTotal,
+		).toBe(36.45);
+		expect(summarizeShelfRows([row], 0.5).lineTotal).toBe(47.4);
+	});
 	it("parses supplier-dependent size keys", () => {
 		expect(resolveSizeFromPricingKey("2-8 x 7-0 & SUP1", "SUP1")).toBe(
 			"2-8 x 7-0",
@@ -518,6 +538,24 @@ describe("workflow-calculators domain", () => {
 		const summary = summarizeMouldingPersistRows(rows, 5);
 		expect(summary.qtyTotal).toBe(1);
 		expect(summary.total).toBe(25);
+	});
+
+	it("keeps an allocated dealer moulding cent until quantity changes", () => {
+		const row = {
+			uid: "casing",
+			qty: 3,
+			salesPrice: 12.15,
+			customPrice: 12.15,
+			dealerOfficeTotal: { qty: 3, unitPrice: 12.15, totalPrice: 36.46 },
+		};
+		const saved = summarizeMouldingPersistRows([row], 0);
+		expect(saved.total).toBe(36.46);
+		expect(saved.storedRows[0]?.dealerOfficeTotal).toMatchObject({
+			totalPrice: 36.46,
+		});
+		const edited = summarizeMouldingPersistRows([{ ...row, qty: 4 }], 0);
+		expect(edited.total).toBe(48.6);
+		expect(edited.storedRows[0]?.dealerOfficeTotal).toBeNull();
 	});
 
 	it("keeps grouped moulding totals authoritative when the display average cannot recompose", () => {

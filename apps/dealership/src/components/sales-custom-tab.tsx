@@ -30,7 +30,12 @@ export function SalesCustomTab() {
 						variant={path.includes(item) ? "default" : "outline"}
 					>
 						<Link href={`/${item}`}>
-							<span>{index === 0 ? "Dealer Sales" : "Dealer Quotes"}</span>
+							<span className="sm:hidden">
+								{index === 0 ? "Sales" : "Quotes"}
+							</span>
+							<span className="hidden sm:inline">
+								{index === 0 ? "Dealer Sales" : "Dealer Quotes"}
+							</span>
 							{typeof counts[item] === "number" ? (
 								<Badge
 									className="h-5 min-w-5 justify-center rounded-sm px-1"

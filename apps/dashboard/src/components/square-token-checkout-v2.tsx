@@ -164,7 +164,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		: payload?.amount
 			? "Requested amount"
 			: "Amount due";
-	const merchantName = data?.customerName || "gnd";
+	const merchantName = "GND";
 	const hasOrders = orders.length > 0;
 	const hasSelectedOrders = selectedOrders.length > 0;
 	const allOrdersSelected =
@@ -184,6 +184,16 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		isInvalidToken,
 		verifyStatus: verification?.status,
 	});
+	const displayedAmount =
+		state.name === "paid" && Number(verification?.amount) > 0
+			? Number(verification.amount)
+			: amountDue;
+	const displayedAmountLabel =
+		state.name === "paid" ? "Amount paid" : amountLabel;
+	const paidOrders =
+		state.name === "paid" && Array.isArray(verification?.appliedSales)
+			? verification.appliedSales
+			: [];
 	const flexibleAmountValue = Number(flexibleAmount);
 	const isFlexibleAmountValid =
 		Number.isFinite(flexibleAmountValue) &&
@@ -258,8 +268,8 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 						/>
 						<SummaryTile
 							icon={<Icons.CreditCard className="h-4 w-4" />}
-							label={amountLabel}
-							value={currencyFormatter.format(amountDue)}
+							label={displayedAmountLabel}
+							value={currencyFormatter.format(displayedAmount)}
 						/>
 						<SummaryTile
 							icon={<Icons.CreditCard className="h-4 w-4" />}
@@ -343,6 +353,15 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 					) : null}
 
 					<div className="space-y-4">
+						{paidOrders.length ? (
+							<div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-950">
+								<p className="font-semibold">Paid orders</p>
+								<p className="mt-1 break-words">
+									{paidOrders.map((order) => order.orderId).join(", ")}
+								</p>
+							</div>
+						) : (
+						<>
 						<div className="flex items-center justify-between">
 							<h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">
 								Order summary
@@ -406,6 +425,8 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 								</div>
 							)}
 						</div>
+						</>
+						)}
 					</div>
 				</CardContent>
 
@@ -499,9 +520,9 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 									{walletId ?? "N/A"}
 								</span>
 							</div>
-							<div className="flex items-center justify-between">
+							<div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
 								<span>Payment reference</span>
-								<span className="font-medium text-slate-900">
+								<span className="min-w-0 break-all font-medium text-slate-900">
 									{paymentId ?? "Pending"}
 								</span>
 							</div>

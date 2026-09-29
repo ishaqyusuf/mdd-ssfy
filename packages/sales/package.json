@@ -52,6 +52,7 @@
 		"./schema": "./src/schema.ts",
 		"./fulfillment-order-workspace": "./src/fulfillment-order-workspace.ts",
 		"./fulfillment-backlog-query": "./src/fulfillment-backlog-query.ts",
+		"./fulfillment-dispatch-creation-query": "./src/fulfillment-dispatch-creation-query.ts",
 		"./fulfillment-quantities": "./src/fulfillment-quantities.ts",
 		"./fulfillment-assignment-scope": "./src/fulfillment-assignment-scope.ts",
 		"./fulfillment-assignment-update": "./src/fulfillment-assignment-update.ts",

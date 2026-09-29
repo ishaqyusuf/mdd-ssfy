@@ -24,6 +24,7 @@ export type ServiceLineItemsEditorProps<TRow extends ServiceLineItemEditorRow> =
 		rows: TRow[];
 		formatMoney: (value?: number | null) => string | null;
 		canEditPricing?: boolean;
+		canEditUnitPrice?: boolean;
 		createRow: (nextIndex: number) => TRow;
 		onRowsChange: (rows: TRow[]) => void;
 	};
@@ -32,6 +33,7 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 	props: ServiceLineItemsEditorProps<TRow>,
 ) {
 	const canEditPricing = props.canEditPricing !== false;
+	const canEditUnitPrice = props.canEditUnitPrice ?? canEditPricing;
 
 	function patchRow(index: number, patch: Partial<TRow>) {
 		props.onRowsChange(
@@ -145,7 +147,7 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
 										Unit price
 									</p>
-									{canEditPricing ? (
+									{canEditUnitPrice ? (
 										<Input
 											aria-label={`Service line ${index + 1} unit price`}
 											type="number"

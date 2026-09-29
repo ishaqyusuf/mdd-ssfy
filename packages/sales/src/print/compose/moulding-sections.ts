@@ -179,9 +179,12 @@ export function composeMouldingSections(
 			];
 
 			if (config.showPrices) {
+				const printedRate = Number(m.qty || 0) > 0
+					? divideMoney(Number(m.total || 0), Number(m.qty || 0))
+					: Number(m.rate || 0);
 				cells.push(
 					{
-						value: `$${formatCurrency(m.rate ?? 0)}`,
+						value: `$${formatCurrency(printedRate)}`,
 						colSpan: 2.5,
 						align: "right",
 					},

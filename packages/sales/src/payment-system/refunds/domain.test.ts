@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
 	assertRefundIntent,
+	assertRefundPrincipalCapacity,
 	createRefundIdempotencyKey,
 	nextApplicationStatus,
 	normalizeSquareRefundStatus,
+	refundablePrincipalByOrder,
 	remainingRefundableCents,
 } from "./domain";
 
@@ -16,6 +18,57 @@ describe("Square refund domain", () => {
 				reservedRefundCents: 2_000,
 			}),
 		).toBe(15_000);
+	});
+
+	test("limits refund principal to the original order payment, not the fee-inclusive Square charge", () => {
+		const remaining = refundablePrincipalByOrder({
+			originalPayments: [{ salesOrderId: 28225, principalCents: 800 }],
+			refunds: [],
+		});
+		expect(remaining.get(28225)).toBe(800);
+		expect(() =>
+			assertRefundPrincipalCapacity(
+				[{ salesOrderId: 28225, principalCents: 828 }],
+				remaining,
+			),
+		).toThrow("exceeds the original payment");
+		expect(() =>
+			assertRefundPrincipalCapacity(
+				[{ salesOrderId: 28225, principalCents: 800, cccCents: 28 }],
+				remaining,
+			),
+		).not.toThrow();
+	});
+
+	test("reserves principal per order for pending and completed refunds, but releases failed refunds", () => {
+		const remaining = refundablePrincipalByOrder({
+			originalPayments: [
+				{ salesOrderId: 1, principalCents: 1000 },
+				{ salesOrderId: 2, principalCents: 500 },
+			],
+			refunds: [
+				{
+					providerStatus: "completed",
+					allocations: [{ salesOrderId: 1, principalCents: 200 }],
+				},
+				{
+					providerStatus: "pending",
+					allocations: [{ salesOrderId: 1, principalCents: 300 }],
+				},
+				{
+					providerStatus: "failed",
+					allocations: [{ salesOrderId: 2, principalCents: 500 }],
+				},
+			],
+		});
+		expect(remaining.get(1)).toBe(500);
+		expect(remaining.get(2)).toBe(500);
+		expect(() =>
+			assertRefundPrincipalCapacity(
+				[{ salesOrderId: 1, principalCents: 501 }],
+				remaining,
+			),
+		).toThrow();
 	});
 
 	test("requires allocations to match principal, CCC, and tip exactly", () => {

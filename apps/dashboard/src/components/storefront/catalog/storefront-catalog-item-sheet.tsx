@@ -1,7 +1,9 @@
 "use client";
 
 import { useStorefrontCatalogFilterParams } from "@/hooks/use-storefront-catalog-filter-params";
+import { uploadFile } from "@/lib/upload-file";
 import { useTRPC } from "@/trpc/client";
+import { resolveWorkflowComponentImageSrc } from "@gnd/sales/sales-form";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -18,7 +20,7 @@ import { Switch } from "@gnd/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
-import { type FormEvent, useEffect, useState } from "react";
+import { type ChangeEvent, useEffect, useState } from "react";
 
 function readGalleryImages(value: unknown) {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return [];
@@ -48,14 +50,8 @@ export function StorefrontCatalogItemSheet() {
 			{ enabled: Boolean(componentUid) },
 		),
 	);
-	const saveMetadata = useMutation(
-		trpc.storefrontAdmin.catalog.saveMetadata.mutationOptions(),
-	);
-	const setStatus = useMutation(
-		trpc.storefrontAdmin.catalog.setStatus.mutationOptions(),
-	);
-	const setFeatured = useMutation(
-		trpc.storefrontAdmin.catalog.setFeatured.mutationOptions(),
+	const saveProduct = useMutation(
+		trpc.storefrontAdmin.catalog.saveProduct.mutationOptions(),
 	);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
@@ -66,13 +62,23 @@ export function StorefrontCatalogItemSheet() {
 	const [shippingShelfCategoryId, setShippingShelfCategoryId] = useState("");
 	const [online, setOnline] = useState(false);
 	const [featured, setFeaturedValue] = useState(false);
+	const [uploading, setUploading] = useState(false);
 
 	useEffect(() => {
 		if (!detail.data) return;
-		setTitle(detail.data.overlay?.title || detail.data.source.title);
-		setDescription(detail.data.overlay?.description || "");
+		setTitle(
+			detail.data.offer?.title ||
+				detail.data.overlay?.title ||
+				detail.data.source.title,
+		);
+		setDescription(
+			detail.data.offer?.description || detail.data.overlay?.description || "",
+		);
 		setImageUrl(
-			detail.data.overlay?.imageUrl || detail.data.source.imageUrl || "",
+			detail.data.offer?.imageUrl ||
+				detail.data.overlay?.imageUrl ||
+				detail.data.source.imageUrl ||
+				"",
 		);
 		setGalleryImageUrls(readGalleryImages(detail.data.overlay?.metadata));
 		setShippingWeightPerUnitLb(
@@ -104,13 +110,15 @@ export function StorefrontCatalogItemSheet() {
 					componentUid,
 				}),
 			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.storefrontAdmin.categories.products.queryKey(),
+			}),
 		]);
 	}
 
-	async function submit(event: FormEvent) {
-		event.preventDefault();
+	async function submit(status: "DRAFT" | "PUBLISHED") {
 		try {
-			await saveMetadata.mutateAsync({
+			await saveProduct.mutateAsync({
 				componentUid,
 				title: title.trim() || null,
 				description: description.trim() || null,
@@ -131,13 +139,14 @@ export function StorefrontCatalogItemSheet() {
 					!shippingShelfCategoryId
 						? null
 						: Number(shippingShelfCategoryId),
+				status,
+				featured,
 			});
-			await setStatus.mutateAsync({ componentUid, online });
-			if (detail.data?.offer) {
-				await setFeatured.mutateAsync({ componentUid, featured });
-			}
 			await refresh();
-			toast({ title: "Catalog component saved", variant: "success" });
+			toast({
+				title: status === "PUBLISHED" ? "Product published" : "Draft saved",
+				variant: "success",
+			});
 			await setFilters({ catalogItemId: null });
 		} catch (error) {
 			toast({
@@ -149,8 +158,42 @@ export function StorefrontCatalogItemSheet() {
 		}
 	}
 
-	const pending =
-		saveMetadata.isPending || setStatus.isPending || setFeatured.isPending;
+	async function uploadImages(event: ChangeEvent<HTMLInputElement>) {
+		const files = Array.from(event.target.files || []).slice(
+			0,
+			Math.max(0, 13 - galleryImageUrls.length),
+		);
+		if (!files.length) return;
+		setUploading(true);
+		try {
+			const uploaded: string[] = [];
+			for (const file of files) {
+				const formData = new FormData();
+				formData.append("file", file);
+				const result = await uploadFile(formData, "dyke");
+				if (result?.error) throw new Error(result.error.message);
+				const url = String(result?.secure_url || "").trim();
+				if (url) uploaded.push(url);
+			}
+			if (!uploaded.length) throw new Error("No image was uploaded.");
+			setImageUrl((current) => current || uploaded[0] || "");
+			setGalleryImageUrls((current) =>
+				Array.from(new Set([...current, ...uploaded])).slice(0, 12),
+			);
+		} catch (error) {
+			toast({
+				title: "Unable to upload image",
+				description: error instanceof Error ? error.message : "Please try again.",
+				variant: "destructive",
+			});
+		} finally {
+			setUploading(false);
+			event.target.value = "";
+		}
+	}
+
+	const pending = saveProduct.isPending || uploading;
+	const resolvedCover = resolveWorkflowComponentImageSrc(imageUrl);
 
 	return (
 		<Sheet
@@ -176,11 +219,17 @@ export function StorefrontCatalogItemSheet() {
 						{detail.error.message}
 					</div>
 				) : detail.data ? (
-					<form onSubmit={submit} className="space-y-5 p-5">
+					<form
+						onSubmit={(event) => {
+							event.preventDefault();
+							void submit(online ? "PUBLISHED" : "DRAFT");
+						}}
+						className="space-y-5 p-5"
+					>
 						<div className="overflow-hidden rounded-md border bg-muted">
-							{imageUrl ? (
+							{resolvedCover ? (
 								<img
-									src={imageUrl}
+									src={resolvedCover}
 									alt=""
 									className="aspect-[4/3] w-full object-contain p-4"
 								/>
@@ -221,18 +270,11 @@ export function StorefrontCatalogItemSheet() {
 						<div className="space-y-3">
 							<div className="flex items-center justify-between gap-3">
 								<Label>Gallery images</Label>
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									disabled={galleryImageUrls.length >= 12}
-									onClick={() =>
-										setGalleryImageUrls((current) => [...current, ""])
-									}
-								>
-									<Icons.Plus className="mr-2 size-4" />
-									Add image
-								</Button>
+								<label className="inline-flex h-9 cursor-pointer items-center rounded-md border bg-background px-3 text-sm font-medium hover:bg-accent">
+									<Icons.Upload className="mr-2 size-4" />
+									{uploading ? "Uploading…" : "Upload images"}
+									<input type="file" accept="image/*" multiple className="sr-only" disabled={uploading || galleryImageUrls.length >= 12} onChange={uploadImages} />
+								</label>
 							</div>
 							{galleryImageUrls.length ? (
 								<div className="space-y-2">
@@ -242,9 +284,9 @@ export function StorefrontCatalogItemSheet() {
 											className="flex items-center gap-2"
 										>
 											<div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-sm border bg-muted">
-												{image ? (
-													<img
-														src={image}
+											{resolveWorkflowComponentImageSrc(image) ? (
+												<img
+													src={resolveWorkflowComponentImageSrc(image) || ""}
 														alt=""
 														className="size-full object-contain"
 													/>
@@ -252,8 +294,7 @@ export function StorefrontCatalogItemSheet() {
 													<Icons.Image className="size-4 text-muted-foreground" />
 												)}
 											</div>
-											<Input
-												type="url"
+										<Input
 												aria-label={`Gallery image ${index + 1} URL`}
 												value={image}
 												onChange={(event) =>
@@ -266,6 +307,34 @@ export function StorefrontCatalogItemSheet() {
 													)
 												}
 											/>
+											<Button
+												type="button"
+												variant={imageUrl === image ? "default" : "outline"}
+												size="sm"
+												onClick={() => setImageUrl(image)}
+												disabled={!image}
+											>
+												{imageUrl === image ? "Cover" : "Set cover"}
+											</Button>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												aria-label={`Move gallery image ${index + 1} up`}
+												disabled={index === 0}
+												onClick={() =>
+													setGalleryImageUrls((current) => {
+														const next = [...current];
+														[next[index - 1], next[index]] = [
+															next[index] || "",
+															next[index - 1] || "",
+														];
+														return next;
+													})
+												}
+											>
+												<Icons.ChevronUp className="size-4" />
+											</Button>
 											<Button
 												type="button"
 												variant="ghost"
@@ -336,7 +405,7 @@ export function StorefrontCatalogItemSheet() {
 												setShippingWeightPerUnitLb(event.target.value)
 											}
 										/>
-									</div>
+										</div>
 									{detail.data.source.family === "shelf-items" ? (
 										<div className="space-y-2">
 											<Label htmlFor="catalog-shipping-shelf-category">
@@ -389,9 +458,12 @@ export function StorefrontCatalogItemSheet() {
 								onCheckedChange={setFeaturedValue}
 							/>
 						</div>
-						<Button type="submit" disabled={pending} className="w-full">
-							{pending ? "Saving..." : "Save changes"}
-						</Button>
+						<div className="sticky bottom-0 flex gap-2 border-t bg-background py-4">
+							<Button type="button" variant="outline" disabled={pending} className="flex-1" onClick={() => void submit("DRAFT")}>Save draft</Button>
+							<Button type="button" disabled={pending || !detail.data.offer} className="flex-1" onClick={() => void submit("PUBLISHED")}>
+								{pending ? "Saving…" : "Publish"}
+							</Button>
+						</div>
 					</form>
 				) : null}
 			</SheetContent>

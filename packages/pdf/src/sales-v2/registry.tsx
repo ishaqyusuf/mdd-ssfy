@@ -20,7 +20,7 @@ export interface SalesTemplateConfig {
 export interface SalesTemplateRenderProps {
 	page: PrintPage;
 	baseUrl?: string;
-	watermark?: string;
+	watermark?: string | null;
 	logoUrl?: string;
 	previewUrl?: string;
 	qrCodeDataUrl?: string;

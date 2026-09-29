@@ -220,11 +220,17 @@ export function SalesDocumentPreviewPage({
 		data && "isStale" in data ? Boolean(data.isStale) : false;
 
 	useEffect(() => {
-		if (embedded || auth.isPending || !auth.can?.editSales || !editSalesUrl) {
+		if (
+			embedded ||
+			pricingMode ||
+			auth.isPending ||
+			!auth.can?.editSales ||
+			!editSalesUrl
+		) {
 			return;
 		}
 		router.replace(editSalesUrl);
-	}, [auth.can?.editSales, auth.isPending, editSalesUrl, embedded, router]);
+	}, [auth.can?.editSales, auth.isPending, editSalesUrl, embedded, pricingMode, router]);
 
 	async function handlePrint(event?: MouseEvent<HTMLButtonElement>) {
 		if (useSnapshotActions && resolvedSalesOrderId && data?.mode) {
@@ -364,7 +370,7 @@ export function SalesDocumentPreviewPage({
 		);
 	}
 
-	if (!embedded && auth.can?.editSales && editSalesUrl) {
+	if (!embedded && !pricingMode && auth.can?.editSales && editSalesUrl) {
 		return (
 			<div className="mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-10">
 				<div className="rounded-3xl border bg-muted/30 p-6 text-sm text-muted-foreground">

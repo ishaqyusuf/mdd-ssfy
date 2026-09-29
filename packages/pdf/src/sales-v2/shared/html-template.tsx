@@ -60,7 +60,20 @@ export function SalesHtmlTemplatePage({
 				};
 
 	return (
-		<article style={pageStyle}>
+		<article
+			className="sales-html-template-page"
+			style={{ ...pageStyle, minWidth: 0 }}
+		>
+			<style>{`
+				@media (max-width: 640px) {
+					.sales-html-template-page { padding: 16px !important; }
+					.sales-html-header-columns,
+					.sales-html-address-grid { grid-template-columns: minmax(0, 1fr) !important; }
+					.sales-html-header-columns > *,
+					.sales-html-address-grid > * { min-width: 0; }
+					.sales-html-template-page { overflow-wrap: anywhere; }
+				}
+			`}</style>
 			<HeaderBlock
 				meta={page.meta}
 				billing={page.billing}
@@ -266,6 +279,7 @@ function HeaderBlock({
 				}}
 			/>
 			<div
+				className="sales-html-header-columns"
 				style={{
 					display: "grid",
 					gridTemplateColumns: previewUrl ? "1fr 220px 120px" : "1fr 220px",
@@ -276,7 +290,11 @@ function HeaderBlock({
 				<div>
 					<img
 						src={logoSrc}
-						alt="GND"
+						alt={
+							logoUrl
+								? `${companyAddress.address1 || "Company"} logo`
+								: "GND logo"
+						}
 						style={{
 							width: 140,
 							height: 70,
@@ -381,6 +399,7 @@ export function SalesHtmlAddressBlocks({
 }) {
 	return (
 		<div
+			className="sales-html-address-grid"
 			style={{
 				display: "grid",
 				gridTemplateColumns: billing || shipping ? "1fr 1fr" : "1fr",
@@ -826,6 +845,6 @@ function companyAddressToLines(companyAddress: CompanyAddress) {
 		companyAddress.address2,
 		companyAddress.phone,
 		companyAddress.fax ? `Fax: ${companyAddress.fax}` : null,
-		"support@gndmillwork.com",
+		companyAddress.email,
 	].filter(Boolean) as string[];
 }

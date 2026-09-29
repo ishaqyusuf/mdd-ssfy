@@ -1,4 +1,5 @@
 import PageShell from "@/components/page-shell";
+import { SalesRepDealerRequests } from "@/components/sales-rep-dealer-requests";
 import { SalesRepDashboardWorkspace } from "@/components/sales-rep-dashboard/workspace";
 import { ScrollableContent } from "@/components/scrollable-content";
 import { resolveSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
@@ -18,6 +19,16 @@ export default async function SalesRepProfilePage(props: {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
 	const searchParams = await props.searchParams;
+	if (searchParams.tab === "requests") {
+		return (
+			<PageShell className="p-3 sm:p-4 md:p-6 lg:p-8">
+				<ScrollableContent>
+					<PageTitle>Dealer order requests</PageTitle>
+					<SalesRepDealerRequests />
+				</ScrollableContent>
+			</PageShell>
+		);
+	}
 	const params = resolveSalesDashboardParams(searchParams);
 	const input = { from: params.from, to: params.to };
 

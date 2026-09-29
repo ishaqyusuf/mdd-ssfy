@@ -1,5 +1,5 @@
 import { createSalesCheckoutLink } from "@api/db/queries/checkout";
-import { getCanonicalDealerPortalOrders } from "@api/db/queries/dealer-portal-orders";
+import { getCanonicalDealerPortalOrder, getCanonicalDealerPortalOrders } from "@api/db/queries/dealer-portal-orders";
 import { saveDealerPortalQuote } from "@api/db/queries/dealer-portal-sales-form";
 import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
 import {
@@ -58,7 +58,6 @@ import {
 	getDealerPortalDashboard,
 	getDealerPortalInternalSalesProfile,
 	getDealerPortalPrimarySalesProfile,
-	getDealerPortalSalesDocument,
 	getDealerPortalSalesDocuments,
 	getDealerPortalSalesList,
 	getDealerPortalSalesProfiles,
@@ -259,7 +258,7 @@ export const dealerPortalRouter = createTRPCRouter({
 	salesDocument: dealerProtectedProcedure
 		.input(dealerPortalSalesDocumentSchema)
 		.query(({ ctx, input }) => {
-			return getDealerPortalSalesDocument(ctx.db, ctx.dealer.id, input.id);
+			return getCanonicalDealerPortalOrder(ctx.db, ctx.dealer.id, input.id);
 		}),
 	printDocument: dealerProtectedProcedure
 		.input(dealerPortalPrintDocumentSchema)
@@ -371,11 +370,15 @@ export const dealerPortalRouter = createTRPCRouter({
 				amount: amountDue,
 				walletId: wallet.id,
 			} satisfies SalesPaymentTokenSchema);
-			const result = await createSalesCheckoutLink(ctx, {
-				token,
-				amount: input.amount ?? null,
-				selectedSalesIds: [sale.id],
-			});
+			const result = await createSalesCheckoutLink(
+				ctx,
+				{
+					token,
+					amount: input.amount ?? null,
+					selectedSalesIds: [sale.id],
+				},
+				{ buyerIdentity: "payer-enters-at-checkout" },
+			);
 
 			if (!result?.paymentLink) {
 				throw new TRPCError({

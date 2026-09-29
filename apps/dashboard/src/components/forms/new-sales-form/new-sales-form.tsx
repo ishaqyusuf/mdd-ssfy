@@ -94,6 +94,8 @@ import {
 import {
 	type SaveIntent,
 	continueSaveAfterCommittedChangeReview,
+	isReviewedAdjustmentApplied,
+	preserveReviewedFormFields,
 	createSaveContinuationGuard,
 	runCommittedChangeSubmission,
 } from "./save-intent-continuation";
@@ -475,6 +477,8 @@ export function NewSalesForm(props: Props) {
     const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
 	const [changeReviewOpen, setChangeReviewOpen] = useState(false);
+	const reviewedRecordRef = useRef<NewSalesFormRecord | null>(null);
+	const committedAdjustmentIdRef = useRef<string | null>(null);
 	const [pendingUnpricedSaveIntent, setPendingUnpricedSaveIntent] =
 		useState<SaveIntent | null>(null);
 	const [changeReview, setChangeReview] =
@@ -817,8 +821,14 @@ export function NewSalesForm(props: Props) {
 			commitments: loadedChangeProtection,
 		});
 	}, [loadData, loadedChangeProtection, props.mode, props.type, record]);
+	const needsCommercialReconciliation = Boolean(
+		props.type === "order" && loadData &&
+			"commercialReconciliation" in loadData &&
+			loadData.commercialReconciliation,
+	);
 	const hasSalesRepApprovalChange = Boolean(
-		localChangeAnalysis?.requiresSalesRepApproval,
+		needsCommercialReconciliation ||
+			localChangeAnalysis?.requiresSalesRepApproval,
 	);
     const recordPaymentMeta = record as {
         paymentMethodReviewDismissed?: unknown;
@@ -1475,7 +1485,10 @@ export function NewSalesForm(props: Props) {
 			return false;
 		committedChangeContinuationGuardRef.current.status = "idle";
 		committedChangeCreatedRef.current = false;
+		committedAdjustmentIdRef.current = null;
 		setIsAwaitingCommittedChangeApplication(false);
+		setChangeReview(null);
+		reviewedRecordRef.current = structuredClone(candidateRecord);
 		setChangeReviewOpen(true);
 		try {
 			const review = await previewAdjustmentMutation.mutateAsync({
@@ -1505,8 +1518,17 @@ export function NewSalesForm(props: Props) {
 		for (let attempt = 0; attempt < 16; attempt += 1) {
 			await new Promise((resolve) => setTimeout(resolve, 750));
 			const refreshed = await getQuery.refetch();
-			if (refreshed.data?.version && refreshed.data.version !== sourceVersion) {
+			if (
+				isReviewedAdjustmentApplied(
+					refreshed.data,
+					committedAdjustmentIdRef.current,
+					sourceVersion,
+				)
+			) {
 				return refreshed.data as NewSalesFormRecord;
+			}
+			if (committedAdjustmentIdRef.current && refreshed.data && !refreshed.data.activeAdjustment) {
+				throw new Error("This approval is no longer active. The sale changed while applying it. Reload the sale and review your changes again.");
 			}
 		}
 		return null;
@@ -1516,10 +1538,16 @@ export function NewSalesForm(props: Props) {
 		inboundDisposition: "CANCEL_OPEN_INBOUND" | "KEEP_IN_WAREHOUSE" | null;
 		acknowledgeOperationalImpact: boolean;
 	}) {
-		if (!record?.salesId || !record.slug || !record.version) return;
+		const reviewedRecord = reviewedRecordRef.current;
+		if (
+			!reviewedRecord?.salesId ||
+			!reviewedRecord.slug ||
+			!reviewedRecord.version
+		)
+			return;
 		if (committedChangeSubmissionRef.current) return;
 		committedChangeSubmissionRef.current = true;
-		const sourceVersion = record.version;
+		const sourceVersion = reviewedRecord.version;
 		const reasons = changeReview?.analysis.reviewReasons || [];
 		const reason = reasons.length
 			? `Sales representative approved ${reasons
@@ -1531,17 +1559,19 @@ export function NewSalesForm(props: Props) {
 			const submission = await runCommittedChangeSubmission({
 				alreadyCreated: committedChangeCreatedRef.current,
 				createAdjustment: async () => {
-					await createAdjustmentMutation.mutateAsync({
-						...toSaveDraftInput(record, false),
+					const created = await createAdjustmentMutation.mutateAsync({
+						...toSaveDraftInput(reviewedRecord, false),
 						type: "order",
-						salesId: record.salesId,
-						slug: record.slug,
-						version: record.version,
+						salesId: reviewedRecord.salesId,
+						slug: reviewedRecord.slug,
+						version: reviewedRecord.version,
 						autosave: false,
+						reviewToken: changeReview?.reviewToken,
 						reason,
 						inboundDisposition: input.inboundDisposition,
 						acknowledgeOperationalImpact: input.acknowledgeOperationalImpact,
 					});
+					committedAdjustmentIdRef.current = created.id;
 				},
 				pollForRefreshedRecord: () =>
 					waitForAdjustmentApplication(sourceVersion),
@@ -1557,7 +1587,11 @@ export function NewSalesForm(props: Props) {
 				});
 				return;
 			}
-			const pendingIntent = pendingCommittedChangeSaveIntent;
+			const pendingIntent = pendingCommittedChangeSaveIntent || "draft";
+			const continuationRecord = preserveReviewedFormFields(
+				refreshedRecord,
+				reviewedRecord,
+			);
 			setPendingCommittedChangeSaveIntent(null);
 			setChangeReviewOpen(false);
 			setChangeReview(null);
@@ -1567,10 +1601,10 @@ export function NewSalesForm(props: Props) {
 				description: "The sale and affected inventory were updated.",
 				variant: "success",
 			});
-			hydrate(refreshedRecord);
+			hydrate(continuationRecord);
 			await continueSaveAfterCommittedChangeReview({
 				intent: pendingIntent,
-				refreshedRecord,
+				refreshedRecord: continuationRecord,
 				promptForSpecialOrderDeclaration,
 				executeSaveIntent,
 				guard: committedChangeContinuationGuardRef.current,
@@ -1594,19 +1628,20 @@ export function NewSalesForm(props: Props) {
 		candidateRecord: NewSalesFormRecord = record as NewSalesFormRecord,
 	) {
 		const requiresReview =
-			candidateRecord === record
+			needsCommercialReconciliation ||
+			(candidateRecord === record
 				? hasSalesRepApprovalChange
 				: Boolean(
 						props.mode === "edit" &&
-						props.type === "order" &&
-						loadData &&
-						loadedChangeProtection &&
-						analyzeSalesFormChange({
-							before: loadData,
-							after: candidateRecord,
-							commitments: loadedChangeProtection,
-						}).requiresSalesRepApproval,
-					);
+							props.type === "order" &&
+							loadData &&
+							loadedChangeProtection &&
+							analyzeSalesFormChange({
+								before: loadData,
+								after: candidateRecord,
+								commitments: loadedChangeProtection,
+							}).requiresSalesRepApproval,
+					));
 		if (!requiresReview) return false;
 		if (intent) setPendingCommittedChangeSaveIntent(intent);
 		const opened = await openCommittedChangeReview(candidateRecord);
@@ -2587,8 +2622,9 @@ export function NewSalesForm(props: Props) {
 												) : null}
 											</div>
 											<p className="mt-1 text-xs opacity-80">
-												This change creates a refund or affects material already
-												inbound/allocated. Approving commits it automatically.
+												{needsCommercialReconciliation
+													? "Previously approved values differ from the saved items. Review the differences to reconcile and save."
+													: "This change creates a refund or affects material already inbound/allocated. Approving commits it automatically."}
 											</p>
 											{activeAdjustment ? (
 												<p className="mt-1 text-xs font-medium">

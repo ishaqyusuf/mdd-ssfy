@@ -360,6 +360,177 @@ describe("getPrintData", () => {
 		).toEqual([1, 1, 1]);
 	});
 
+	it("rehydrates a dealer house-package quote without replacing its GND price", async () => {
+		const sale = {
+			...createSale(),
+			dealerAuthId: 1,
+			grandTotal: 126.05,
+			amountDue: 126.05,
+			dealerSale: {
+				dealerSalesPercentage: 25,
+				grandTotal: 157.56,
+				dueAmount: 157.56,
+			},
+			items: [
+				{
+					id: 101,
+					description: "Interior pre-hung",
+					dykeDescription: "Interior pre-hung",
+					qty: 1,
+					rate: 126.05,
+					total: 126.05,
+					meta: { uid: "dealer-door", lineIndex: 0 },
+					formSteps: [],
+					shelfItems: [],
+					housePackageTool: null,
+					multiDyke: false,
+				},
+			],
+			meta: {
+				newSalesForm: {
+					lineItems: [
+						{
+							uid: "dealer-door",
+							title: "Interior pre-hung",
+							description: "Interior pre-hung",
+							qty: 1,
+							unitPrice: 157.56,
+							lineTotal: 157.56,
+							formSteps: [
+								{ stepId: 1, value: "Interior pre-hung", step: { id: 1, title: "Item Type" } },
+								{ stepId: 2, value: "PH - Single", step: { id: 2, title: "Door Configuration" } },
+								{ stepId: 3, value: "Carrara", step: { id: 3, title: "Door" } },
+							],
+							housePackageTool: {
+								doors: [
+									{
+										dimension: "2-6 x 6-8",
+										lhQty: 1,
+										rhQty: 0,
+										totalQty: 1,
+										unitPrice: 157.56,
+										lineTotal: 157.56,
+										meta: { componentTitle: "Carrara" },
+									},
+								],
+							},
+						},
+					],
+				},
+			},
+		};
+		const db = {
+			salesOrders: { findMany: async () => [sale] },
+			settings: { findFirst: async () => null },
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const customer = await getPrintData(db, {
+			ids: [1],
+			mode: "quote",
+			pricingMode: "customer",
+		});
+		const internal = await getPrintData(db, {
+			ids: [1],
+			mode: "quote",
+			pricingMode: "internal",
+		});
+		const customerDoor = customer.pages[0]?.sections.find((section) => section.kind === "door");
+		const internalDoor = internal.pages[0]?.sections.find((section) => section.kind === "door");
+		expect(customerDoor?.rows[0]?.cells.map((cell) => cell.value)).toContain("PH - Carrara");
+		expect(customerDoor?.rows[0]?.cells.at(-1)?.value).toBe("$157.56");
+		expect(internalDoor?.rows[0]?.cells.at(-1)?.value).toBe("$126.05");
+	});
+
+	it("prints saved dealer moulding rows and total without a phantom cent payment", async () => {
+		const sale = {
+			...createSale(),
+			dealerAuthId: 1,
+			grandTotal: 36.46,
+			amountDue: 36.46,
+			dealerSale: {
+				dealerSalesPercentage: 25,
+				grandTotal: 45.57,
+				dueAmount: 45.57,
+			},
+			items: [
+				{
+					id: 102,
+					description: "Mouldings",
+					dykeDescription: "Mouldings",
+					qty: 3,
+					rate: 12.15,
+					total: 36.46,
+					meta: { uid: "dealer-moulding", lineMeta: { mouldingRows: [] } },
+					formSteps: [],
+					shelfItems: [],
+					housePackageTool: null,
+					multiDyke: false,
+				},
+			],
+			meta: {
+				newSalesForm: {
+					lineItems: [
+						{
+							uid: "dealer-moulding",
+							title: "Mouldings",
+							description: "Mouldings",
+							qty: 3,
+							unitPrice: 15.19,
+							lineTotal: 45.57,
+							meta: {
+								mouldingRows: [
+									{
+										uid: "casing",
+										title: "FLAT CASING",
+										qty: 3,
+										salesPrice: 15.19,
+										lineTotal: 45.57,
+									},
+								],
+							},
+							formSteps: [
+								{
+									stepId: 1,
+									value: "Mouldings",
+									step: { id: 1, title: "Item Type" },
+								},
+							],
+						},
+					],
+				},
+			},
+		};
+		const db = {
+			salesOrders: { findMany: async () => [sale] },
+			settings: { findFirst: async () => null },
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const customer = await getPrintData(db, {
+			ids: [1],
+			mode: "quote",
+			pricingMode: "customer",
+		});
+		const internal = await getPrintData(db, {
+			ids: [1],
+			mode: "quote",
+			pricingMode: "internal",
+		});
+		const customerPage = customer.pages[0];
+		const customerMoulding = customerPage?.sections.find(
+			(section) => section.kind === "moulding",
+		);
+		const internalMoulding = internal.pages[0]?.sections.find(
+			(section) => section.kind === "moulding",
+		);
+		expect(customerMoulding?.rows[0]?.cells[1]?.value).toBe("FLAT CASING");
+		expect(customerMoulding?.rows[0]?.cells.at(-1)?.value).toBe("$45.57");
+		expect(internalMoulding?.rows[0]?.cells.at(-1)?.value).toBe("$36.46");
+		expect(customerPage?.footer.lines).toContainEqual(
+			expect.objectContaining({ label: "Order Total", value: "$45.57" }),
+		);
+		expect(customerPage?.footer.lines.some((line) => line.label === "Customer Payment Recorded")).toBe(false);
+	});
+
 	it("prints only door sizes retained by an applied adjustment snapshot", async () => {
 		const sale: ReturnType<typeof createSale> & {
 			meta: Record<string, unknown>;

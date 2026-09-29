@@ -140,15 +140,14 @@ export const ERROR_DESCRIPTORS: Record<ErrorCode, ErrorDescriptor> = {
 		transportCode: "INTERNAL_SERVER_ERROR",
 	},
 	SALES_RELATIONAL_REVIEW_REQUIRED: {
-		action: "contact_support",
 		category: "conflict",
 		code: "SALES_RELATIONAL_REVIEW_REQUIRED",
 		publicMessage:
-			"This order cannot be saved because a previously approved change does not match its saved items. Keep this form open and send the error details to your administrator so the order can be reconciled.",
-		reportable: true,
+			"A previously approved change differs from the saved items. Open Review changes in the Sales form, review the differences, then approve the reconciliation to save.",
+		reportable: false,
 		retryable: false,
-		severity: "error",
-		title: "Order needs administrator review",
+		severity: "warning",
+		title: "Review changes before saving",
 		transportCode: "PRECONDITION_FAILED",
 	},
 	SPECIAL_ORDER_APPROVAL_REQUIRED: {

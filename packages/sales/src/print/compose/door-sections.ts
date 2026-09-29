@@ -139,10 +139,16 @@ export function composeDoorSections(
       });
       for (const door of currentDoors) {
         rowNum++;
+        const snapshotDoorTitle =
+          door.meta && typeof door.meta === "object" && !Array.isArray(door.meta)
+            ? (door.meta as { componentTitle?: unknown }).componentTitle
+            : null;
         const doorTitle =
           door?.stepProduct?.name ||
           door?.stepProduct?.door?.title ||
           door?.stepProduct?.product?.title ||
+          (typeof snapshotDoorTitle === "string" ? snapshotDoorTitle.trim() : "") ||
+          currentMultiFormSteps.find((step) => step.step.title === "Door")?.value ||
           "";
         const isPh = currentMultiFormSteps.find((s) =>
           s.value?.toLowerCase()?.startsWith("ph -"),

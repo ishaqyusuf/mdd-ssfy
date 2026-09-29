@@ -2,6 +2,7 @@
 
 import { Badge } from "@gnd/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
+import { resolveWorkflowComponentImageSrc } from "@gnd/sales/sales-form";
 import Link from "next/link";
 
 type StorefrontOfferCardProps = {
@@ -19,20 +20,23 @@ type StorefrontOfferCardProps = {
 		} | null;
 	};
 	showDescription?: boolean;
+	href?: string;
 };
 
 export function StorefrontOfferCard({
 	offer,
 	showDescription = false,
+	href,
 }: StorefrontOfferCardProps) {
+	const image = resolveWorkflowComponentImageSrc(offer.imageUrl);
 	return (
-		<Link href={offer.href} className="group block h-full">
+		<Link href={href || offer.href} className="group block h-full">
 			<Card className="h-full overflow-hidden transition-shadow group-hover:shadow-md">
 				<CardHeader className="relative p-0">
 					<div className="aspect-[4/3] bg-muted">
-						{offer.imageUrl ? (
+						{image ? (
 							<img
-								src={offer.imageUrl}
+								src={image}
 								alt=""
 								loading="lazy"
 								className="size-full object-cover"

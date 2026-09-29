@@ -608,19 +608,30 @@ function RefundSheet({
 	>("customer_request");
 	const [commercialActionId, setCommercialActionId] = useState("");
 	const eligibleOrders = transaction.tender?.eligibleOrders || [];
+	const remainingPrincipalForOrder =
+		eligibleOrders.find((order) => order.id === salesOrderId)
+			?.remainingPrincipalRefundableCents || 0;
 	const [allocations, setAllocations] = useState<Record<number, string>>({});
 	useEffect(() => {
 		if (!open) return;
-		const defaultAmount = (transaction.remainingRefundableCents / 100).toFixed(
-			2,
-		);
+		const defaultAmount = (
+			Math.min(
+				transaction.remainingRefundableCents,
+				remainingPrincipalForOrder,
+			) / 100
+		).toFixed(2);
 		setPrincipal(defaultAmount);
 		setCcc("0.00");
 		setTip("0.00");
 		setCommercialActionType("customer_request");
 		setCommercialActionId("");
 		setAllocations({ [salesOrderId]: defaultAmount });
-	}, [open, salesOrderId, transaction.remainingRefundableCents]);
+	}, [
+		open,
+		salesOrderId,
+		transaction.remainingRefundableCents,
+		remainingPrincipalForOrder,
+	]);
 	const principalCents = Math.round(Number(principal || 0) * 100);
 	const cccCents = Math.round(Number(ccc || 0) * 100);
 	const tipCents = Math.round(Number(tip || 0) * 100);
@@ -658,6 +669,11 @@ function RefundSheet({
 	const valid = Boolean(
 		transaction.tender &&
 			principalCents >= 0 &&
+			eligibleOrders.every(
+				(order) =>
+					Math.round(Number(allocations[order.id] || 0) * 100) <=
+					order.remainingPrincipalRefundableCents,
+			) &&
 			totalCents > 0 &&
 			totalCents <= transaction.remainingRefundableCents &&
 			allocatedCents === principalCents &&
@@ -713,8 +729,9 @@ function RefundSheet({
 					<strong className="font-mono">{money(totalCents)}</strong>
 				</div>
 				<p className="mt-1 text-xs text-muted-foreground">
-					Partial refunds default to principal. Add CCC or tip only when the
-					commercial action requires it.
+					Refund principal can only reverse the original amount applied to the
+					order. Add CCC or tip separately if those were charged and should be
+					returned.
 				</p>
 			</div>
 			<div className="space-y-2">
@@ -732,7 +749,8 @@ function RefundSheet({
 						<div className="min-w-0 flex-1">
 							<p className="font-medium">{order.orderNo}</p>
 							<p className="text-xs text-muted-foreground">
-								Invoice {money(order.grandTotalCents)}
+								Principal available{" "}
+								{money(order.remainingPrincipalRefundableCents)}
 							</p>
 						</div>
 						<Input
@@ -757,7 +775,7 @@ function RefundSheet({
 							: "text-red-700",
 					)}
 				>
-					Allocated {money(allocatedCents)} of {money(principalCents)}
+					Allocated {money(allocatedCents)} of {money(principalCents)} principal
 				</p>
 			</div>
 			<div className="space-y-1.5">

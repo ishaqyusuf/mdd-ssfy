@@ -8,7 +8,7 @@ interface FooterBlockProps {
 }
 
 const DEFAULT_FOOTER_NOTES = [
-  "Note: Payments made with Cards will have an additional 3% charge to cover credit cards merchants fees.",
+  "Note: Card payments may include a processing charge shown at checkout.",
   "1) NO RETURN ON SPECIAL ORDER",
   "2) NO DAMAGED ORDER MAY BE EXCHANGE OR RETURN",
   "3) ONCE SIGN THERE IS NO RETURN OR EXCHANGE.",
@@ -17,7 +17,7 @@ const DEFAULT_FOOTER_NOTES = [
 const BORDER_COLOR = "#9ca3af";
 
 export function FooterBlock({ footer }: FooterBlockProps) {
-  const notes = footer.notes.length > 0 ? footer.notes : DEFAULT_FOOTER_NOTES;
+  const notes = footer.notes.length > 0 ? footer.notes : footer.suppressDefaultNotes ? [] : DEFAULT_FOOTER_NOTES;
   const [leadNote, ...restNotes] = notes;
 
   return (

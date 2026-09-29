@@ -1,4 +1,5 @@
 import { type TransactionClient, db } from "@gnd/db";
+import { getSalesAdjustmentSourceFingerprint } from "@gnd/db/queries";
 import {
 	type SalesAdjustmentInboundDisposition,
 	SalesAdjustmentInboundSnapshotConflictError,
@@ -378,7 +379,12 @@ export async function runApplySalesOrderAdjustment(
 				);
 				return Math.max(completedProductionQty, fulfilledQty) > approvedMinimum;
 			});
-			const staleReason = resolveSalesAdjustmentStaleReason({
+			const reconciliation = record(approvedProposal.reconciliation);
+			const sourceChanged = Boolean(
+				reconciliation.sourceFingerprint &&
+				reconciliation.sourceFingerprint !== await getSalesAdjustmentSourceFingerprint(tx, adjustment.salesOrderId),
+			);
+			const staleReason = sourceChanged ? "SOURCE_VERSION_CHANGED" : resolveSalesAdjustmentStaleReason({
 				sourceVersion: adjustment.sourceVersion,
 				liveVersion,
 				approvedPaymentTotal: Number(adjustment.paymentTotal),
@@ -600,7 +606,7 @@ export async function runApplySalesOrderAdjustment(
 				walletTransactionId,
 				refundSalesPaymentId,
 			};
-		});
+		}, { isolationLevel: "Serializable", timeout: 30_000, maxWait: 10_000 });
 
 		if (result.stale)
 			return { adjustmentId: payload.adjustmentId, status: "STALE" as const };

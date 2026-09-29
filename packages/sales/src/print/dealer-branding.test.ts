@@ -7,12 +7,14 @@ import {
 describe("dealer print branding", () => {
 	it("resolves dealer logo and company address", () => {
 		const branding = resolveDealerPrintBrandingFromSource({
+			email: "login@example.test",
 			companyName: "Dealer Co",
 			name: "Fallback Dealer",
 			phoneNo: "555-2222",
 			meta: {
 				logoUrl: "https://cdn.example.com/dealer-logo.png",
 				billingZip: "100001",
+				invoiceEmail: "invoices@example.test",
 			},
 			primaryBillingAddress: {
 				address1: "123 Dealer St",
@@ -28,7 +30,15 @@ describe("dealer print branding", () => {
 			address1: "Dealer Co",
 			address2: "123 Dealer St Suite 4 Lagos, LA 100001, NG",
 			phone: "555-2222",
+			email: "invoices@example.test",
 		});
+	});
+
+	it("uses the dealer account email until an invoice email is saved", () => {
+		expect(
+			resolveDealerPrintBrandingFromSource({ email: "dealer@example.test" })
+				?.companyAddress.email,
+		).toBe("dealer@example.test");
 	});
 
 	it("ignores empty logo values", () => {

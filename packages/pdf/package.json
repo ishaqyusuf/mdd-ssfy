@@ -12,7 +12,8 @@
     "./*": "./src/*",
     ".": "./src/index.ts",
     "./customer-statement": "./src/customer-statement/index.ts",
-    "./sales-v2": "./src/sales-v2/index.ts"
+    "./sales-v2": "./src/sales-v2/index.ts",
+    "./sales-v2/render": "./src/sales-v2/render.tsx"
   },
 	"dependencies": {
 		"@gnd/contractor-accounting": "workspace:*",
@@ -24,6 +25,7 @@
     "jose": "^6.0.11",
     "lodash": "^4.17.21",
     "qrcode": "^1.5.4",
+    "sharp": "0.35.3",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -39,6 +39,17 @@ export const storefrontCatalogMetadataSchema =
 		shippingShelfCategoryId: z.number().int().positive().nullable(),
 	});
 
+export const storefrontCatalogSaveSchema =
+	storefrontCatalogMetadataSchema.extend({
+		status: z.enum(["DRAFT", "PUBLISHED"]),
+		featured: z.boolean(),
+	});
+
+export const storefrontCategoryProductsSchema = z.object({
+	categoryId: z.string().trim().min(1),
+	query: z.string().trim().max(191).optional(),
+});
+
 export const storefrontCatalogFeaturedSchema =
 	storefrontCatalogDetailSchema.extend({
 		featured: z.boolean(),

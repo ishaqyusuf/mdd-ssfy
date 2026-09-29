@@ -9,12 +9,14 @@ const MIAMI_ADDRESS: CompanyAddress = {
 	address2: "Miami, Fl 33186",
 	phone: "305-278-6555",
 	fax: "305-278-2003",
+	email: "support@gndmillwork.com",
 };
 
 const LAKE_WALES_ADDRESS: CompanyAddress = {
 	address1: "1750 Longleaf Blvd, Suite11",
 	address2: "Lake Wales FL 33859",
 	phone: "863-275-1011",
+	email: "support@gndmillwork.com",
 };
 
 export function resolveSalesCompanyAddress(
@@ -34,6 +36,7 @@ async function resolveDealerPrintBranding(db: Db, salesOrderId: number) {
 		select: {
 			dealerAuth: {
 				select: {
+					email: true,
 					companyName: true,
 					name: true,
 					phoneNo: true,
@@ -58,7 +61,7 @@ async function resolveDealerPrintBranding(db: Db, salesOrderId: number) {
 
 export async function getPrintDocumentData(db: Db, input: PrintSalesV2Input) {
 	const { pages, title, firstOrderId } = await getPrintData(db, input);
-	const dealerBranding = input.ids[0]
+	const dealerBranding = input.pricingMode !== "internal" && input.ids[0]
 		? await resolveDealerPrintBranding(db, input.ids[0])
 		: null;
 

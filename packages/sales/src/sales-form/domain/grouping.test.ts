@@ -6,6 +6,36 @@ import {
 } from "./grouping";
 
 describe("sales form grouped line parity", () => {
+  it("restores allocated office moulding cents from relational price tags", () => {
+    const [line] = collapseLegacyGroupedLines([{
+      id: 1,
+      uid: "casing",
+      title: "Moulding",
+      description: "Casing",
+      multiDykeUid: "moulding-group",
+      multiDyke: true,
+      qty: 3,
+      unitPrice: 12.15,
+      lineTotal: 36.46,
+      meta: {},
+      formSteps: [{ step: { title: "Item Type" }, value: "Moulding" }],
+      housePackageTool: {
+        meta: { priceTags: { moulding: {
+          salesPrice: 12.15,
+          overridePrice: 12.15,
+          dealerOfficeTotal: { qty: 3, unitPrice: 12.15, totalPrice: 36.46 },
+        } } },
+      },
+    }]);
+    expect(line.lineTotal).toBe(36.46);
+    expect(line.meta.mouldingRows[0]).toMatchObject({
+      qty: 3,
+      salesPrice: 12.15,
+      lineTotal: 36.46,
+      dealerOfficeTotal: { totalPrice: 36.46 },
+    });
+  });
+
   it("restores per-row calculator inputs while preserving relational quantity overrides", () => {
     const calculation = { linearFeet: 400, pieceLength: 16, wastePercentage: 20 };
     const storedRows = [

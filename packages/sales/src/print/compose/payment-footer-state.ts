@@ -29,6 +29,7 @@ export interface PrintPaymentFooterState {
 	orderTotal: number;
 	amountDue: number;
 	principalPaid: number;
+	refunded: { principal: number; ccc: number; tip: number };
 	selectedPaymentMethod: string | null;
 	estimatedDueCharge: PrintPaymentChargeDetail | null;
 	recordedCardCharges: PrintPaymentChargeDetail[];
@@ -42,12 +43,16 @@ export interface PrintPaymentFooterSummary {
 }
 
 export function getPrintPaymentFooterSummary(
-	state: Pick<PrintPaymentFooterState, "principalPaid" | "recordedCardCharges">,
+	state: Pick<
+		PrintPaymentFooterState,
+		"principalPaid" | "recordedCardCharges" | "refunded"
+	>,
 ): PrintPaymentFooterSummary {
 	const cardFees = roundMoney(
 		state.recordedCardCharges
 			.filter((charge) => charge.source === "recorded")
-			.reduce((total, charge) => total + charge.cccAmount, 0),
+			.reduce((total, charge) => total + charge.cccAmount, 0) -
+			state.refunded.ccc,
 	);
 
 	return {
@@ -196,11 +201,57 @@ export function getPrintPaymentFooterState(
 ): PrintPaymentFooterState {
 	const orderTotal = roundMoney(sale.grandTotal || 0);
 	const amountDue = roundMoney(sale.amountDue || 0);
-	const payments = (sale.payments || [])
-		.filter((payment) => !payment.deletedAt && isSuccessfulPayment(payment))
-		.filter((payment) => roundMoney(payment.amount || 0) > 0);
+	const dealerCustomerPayment = (
+		sale as PrintSalesData & { dealerCustomerPayment?: { paidAmount: number } }
+	).dealerCustomerPayment;
+	if (dealerCustomerPayment) {
+		return {
+			kind: "unpaid-no-card",
+			orderTotal,
+			amountDue,
+			principalPaid: roundMoney(dealerCustomerPayment.paidAmount),
+			refunded: { principal: 0, ccc: 0, tip: 0 },
+			selectedPaymentMethod: null,
+			estimatedDueCharge: null,
+			recordedCardCharges: [],
+			paymentSummary: getSalesPaymentSummary([]),
+			latestPaymentDate: null,
+		};
+	}
+	const settledPayments = (sale.payments || []).filter(
+		(payment) => !payment.deletedAt && isSuccessfulPayment(payment),
+	);
+	const payments = settledPayments.filter(
+		(payment) => roundMoney(payment.amount || 0) > 0,
+	);
+	const refunds = settledPayments.filter(
+		(payment) =>
+			Number(payment.amount || 0) < 0 || payment.origin === "square_refund",
+	);
+	const refunded = refunds.reduce(
+		(total, payment) => {
+			// Use allocation-level metadata, never the shared multi-order transaction total.
+			const meta = asRecord(payment.meta);
+			return {
+				principal: roundMoney(
+					total.principal + Math.max(0, -Number(payment.amount || 0)),
+				),
+				ccc: roundMoney(
+					total.ccc +
+						(payment.origin === "square_refund"
+							? Math.max(0, finiteNumber(meta?.cccCents) ?? 0) / 100
+							: 0),
+				),
+				tip: roundMoney(total.tip + Math.max(0, -Number(payment.tip || 0))),
+			};
+		},
+		{ principal: 0, ccc: 0, tip: 0 },
+	);
 	const principalPaid = roundMoney(
-		payments.reduce((total, payment) => total + Number(payment.amount || 0), 0),
+		payments.reduce(
+			(total, payment) => total + Number(payment.amount || 0),
+			0,
+		) - refunded.principal,
 	);
 	const paymentSummary = getSalesPaymentSummary(payments);
 	const selectedPaymentMethod = getSelectedPaymentMethod(sale);
@@ -209,7 +260,7 @@ export function getPrintPaymentFooterState(
 		.map(getRecordedCardCharge)
 		.filter((detail): detail is PrintPaymentChargeDetail => Boolean(detail));
 	const latestPaymentDate =
-		payments
+		settledPayments
 			.map((payment) => payment.createdAt)
 			.filter((date): date is Date => date instanceof Date)
 			.sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
@@ -219,12 +270,13 @@ export function getPrintPaymentFooterState(
 		cccPercentage,
 	});
 
-	if (!payments.length) {
+	if (!payments.length && !refunds.length) {
 		return {
 			kind: estimatedDueCharge ? "unpaid-card-estimate" : "unpaid-no-card",
 			orderTotal,
 			amountDue,
 			principalPaid,
+			refunded,
 			selectedPaymentMethod,
 			estimatedDueCharge,
 			recordedCardCharges,
@@ -234,7 +286,7 @@ export function getPrintPaymentFooterState(
 	}
 
 	const isPaid = amountDue <= 0;
-	const hasSinglePayment = payments.length === 1;
+	const hasSinglePayment = payments.length === 1 && refunds.length === 0;
 	const singlePayment = payments[0];
 	const singleRecordedCharge = recordedCardCharges[0] ?? null;
 	const singlePaymentMethod = singlePayment
@@ -258,6 +310,7 @@ export function getPrintPaymentFooterState(
 			orderTotal,
 			amountDue,
 			principalPaid,
+			refunded,
 			selectedPaymentMethod,
 			estimatedDueCharge: null,
 			recordedCardCharges: fullCardCharge ? [fullCardCharge] : [],
@@ -271,6 +324,7 @@ export function getPrintPaymentFooterState(
 		orderTotal,
 		amountDue,
 		principalPaid,
+		refunded,
 		selectedPaymentMethod,
 		estimatedDueCharge: null,
 		recordedCardCharges,

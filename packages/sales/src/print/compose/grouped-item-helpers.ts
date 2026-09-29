@@ -312,12 +312,21 @@ export function getMetaRows<T = Record<string, unknown>>(
 
 export function isMetadataBackedMouldingItem(item: PrintSalesItem) {
 	const type = normalizeTitle(getSalesItemType(item));
+	const rows = getMetaRows<Record<string, unknown>>(item, "mouldingRows");
 	return (
 		(type === "moulding" ||
 			type === "mouldings" ||
 			type === "molding" ||
 			type === "moldings") &&
-		getMetaRows(item, "mouldingRows").length > 0
+		rows.length > 0 &&
+		(!item.housePackageTool ||
+			rows.every(
+				(row) =>
+					row.qty != null &&
+					(row.salesPrice != null ||
+						row.customPrice != null ||
+						row.lineTotal != null),
+			))
 	);
 }
 

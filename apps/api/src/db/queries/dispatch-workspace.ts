@@ -1,4 +1,3 @@
-import { getFulfillmentBacklogOrderIds } from "@gnd/sales/fulfillment-backlog-query";
 import { whereEmployees } from "@api/prisma-where";
 import type {
 	DispatchBacklogInput,
@@ -13,21 +12,24 @@ import {
 	type SalesControlField,
 	type SalesPipelineSnapshot,
 	buildOpenDispatchFulfillmentCandidateWhere,
-	dispatchFulfillmentCountAdjustment,
-	isTrustedDispatchFulfillmentProjection,
-	isSalesPipelineFulfillmentCompleted,
 	buildSalesDispatchBacklogWhere,
+	buildSalesDispatchCreationWhere,
+	dispatchFulfillmentCountAdjustment,
 	getSalesPipelineSnapshots,
+	isSalesPipelineFulfillmentCompleted,
+	isTrustedDispatchFulfillmentProjection,
 	salesOrderListProjectionVersion,
 	withSalesListControl,
 } from "@gnd/sales";
-import type { Db } from "@gnd/sales/types";
 import { getDispatchDueBucket } from "@gnd/sales/dispatch-manifest/driver-work-queue";
 import {
 	projectDispatchOperationalRecord,
 	projectDispatchOrderStage,
 } from "@gnd/sales/dispatch-manifest/status";
 import { isDispatchWorkspaceSectionMatch } from "@gnd/sales/dispatch-manifest/workspace";
+import { getFulfillmentBacklogOrderIds } from "@gnd/sales/fulfillment-backlog-query";
+import { getFulfillmentDispatchCreationOrderIds } from "@gnd/sales/fulfillment-dispatch-creation-query";
+import type { Db } from "@gnd/sales/types";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { TRPCError } from "@trpc/server";
 import {
@@ -61,11 +63,23 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 			select: {
 				id: true,
 				salesOrderId: true,
-				order: { select: { type: true, deletedAt: true, deliveryOption: true, listProjection: { select: {
-					state: true, version: true, pipelineContractVersion: true,
-					pipelineRevision: true, pipelineFulfillmentState: true,
-					pipelineFulfillmentApplicability: true,
-				} } } },
+				order: {
+					select: {
+						type: true,
+						deletedAt: true,
+						deliveryOption: true,
+						listProjection: {
+							select: {
+								state: true,
+								version: true,
+								pipelineContractVersion: true,
+								pipelineRevision: true,
+								pipelineFulfillmentState: true,
+								pipelineFulfillmentApplicability: true,
+							},
+						},
+					},
+				},
 				status: true,
 				meta: true,
 				driverId: true,
@@ -79,7 +93,10 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 				},
 			},
 		}),
-		getFulfillmentBacklogOrderIds(ctx.db, buildSalesDispatchBacklogWhere()).then((ids) => ids.length),
+		getFulfillmentBacklogOrderIds(
+			ctx.db,
+			buildSalesDispatchBacklogWhere(),
+		).then((ids) => ids.length),
 		ctx.db.salesOrderListProjection.count({
 			where: {
 				state: "ready",
@@ -131,19 +148,34 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 
 	const timeZone =
 		process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York";
-	const unavailableOrderIds = [...new Set(dispatches.filter((row) =>
-		!isTrustedDispatchFulfillmentProjection(row.order?.listProjection)
-	).map((row) => row.salesOrderId))];
+	const unavailableOrderIds = [
+		...new Set(
+			dispatches
+				.filter(
+					(row) =>
+						!isTrustedDispatchFulfillmentProjection(row.order?.listProjection),
+				)
+				.map((row) => row.salesOrderId),
+		),
+	];
 	const fallbackStates = new Map<number, SalesPipelineSnapshot>();
 	for (let offset = 0; offset < unavailableOrderIds.length; offset += 100) {
-		const batch = await getSalesPipelineSnapshots(ctx.db, unavailableOrderIds.slice(offset, offset + 100));
+		const batch = await getSalesPipelineSnapshots(
+			ctx.db,
+			unavailableOrderIds.slice(offset, offset + 100),
+		);
 		for (const [id, snapshot] of batch) fallbackStates.set(id, snapshot);
 	}
 	let completedAdjustment = 0;
 	let allAdjustment = 0;
-	const distinctOrders = new Map(dispatches.map((row) => [row.salesOrderId, row.order]));
+	const distinctOrders = new Map(
+		dispatches.map((row) => [row.salesOrderId, row.order]),
+	);
 	for (const [id, snapshot] of fallbackStates) {
-		const adjustment = dispatchFulfillmentCountAdjustment(distinctOrders.get(id), snapshot.fulfillment);
+		const adjustment = dispatchFulfillmentCountAdjustment(
+			distinctOrders.get(id),
+			snapshot.fulfillment,
+		);
 		allAdjustment += adjustment.all;
 		completedAdjustment += adjustment.completed;
 	}
@@ -165,9 +197,16 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		Array<ReturnType<typeof projectDispatchOperationalRecord>["stage"]>
 	>();
 	for (const row of dispatches) {
-		const fulfillmentState = fallbackStates.get(row.salesOrderId)?.fulfillment.state;
-		const applicability = fallbackStates.get(row.salesOrderId)?.fulfillment.applicability ?? row.order?.listProjection?.pipelineFulfillmentApplicability;
-		if (isSalesPipelineFulfillmentCompleted(fulfillmentState) || applicability === "not_required") continue;
+		const fulfillmentState = fallbackStates.get(row.salesOrderId)?.fulfillment
+			.state;
+		const applicability =
+			fallbackStates.get(row.salesOrderId)?.fulfillment.applicability ??
+			row.order?.listProjection?.pipelineFulfillmentApplicability;
+		if (
+			isSalesPipelineFulfillmentCompleted(fulfillmentState) ||
+			applicability === "not_required"
+		)
+			continue;
 		// OrderDelivery is the canonical dispatch lifecycle record. Rebuilding
 		// status from every historical item control made this summary unbounded
 		// and could mask explicit states (for example, "missing items") with the
@@ -250,12 +289,19 @@ export async function getDispatchBacklog(
 	ctx: TRPCContext,
 	input: DispatchBacklogInput,
 ) {
+	const createCandidates = input.candidateMode === "create";
 	const where: Prisma.SalesOrdersWhereInput = {
-		...buildSalesDispatchBacklogWhere(
-			input.deliveryModes?.length
-				? input.deliveryModes
-				: ["delivery", "pickup"],
-		),
+		...(createCandidates
+			? buildSalesDispatchCreationWhere(
+					input.deliveryModes?.length
+						? input.deliveryModes
+						: ["delivery", "pickup"],
+				)
+			: buildSalesDispatchBacklogWhere(
+					input.deliveryModes?.length
+						? input.deliveryModes
+						: ["delivery", "pickup"],
+				)),
 		...(input.ids?.length ? { id: { in: input.ids } } : {}),
 		...(input.q
 			? {
@@ -272,8 +318,13 @@ export async function getDispatchBacklog(
 				}
 			: {}),
 	};
-	const backlogIds = await getFulfillmentBacklogOrderIds(ctx.db, where);
-	where.AND = [...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []), { id: { in: backlogIds } }];
+	const eligibleIds = createCandidates
+		? await getFulfillmentDispatchCreationOrderIds(ctx.db, where)
+		: await getFulfillmentBacklogOrderIds(ctx.db, where);
+	where.AND = [
+		...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+		{ id: { in: eligibleIds } },
+	];
 	const { response, searchMeta } = await composeQueryData(
 		input,
 		where,

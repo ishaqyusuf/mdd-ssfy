@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
 	continueSaveAfterCommittedChangeReview,
+	isReviewedAdjustmentApplied,
+	preserveReviewedFormFields,
 	createSaveContinuationGuard,
 	resolveCommittedChangeSubmissionAction,
 	runCommittedChangeSubmission,
@@ -226,4 +228,58 @@ describe("new sales form save intent continuation", () => {
 		);
 		expect(reviewGuardSource).toContain("return true");
 	});
+});
+
+test("waits for this adjustment and completed inventory work, not an unrelated version update", () => {
+	expect(
+		isReviewedAdjustmentApplied(
+			{ version: "v2", appliedAdjustmentId: "other" },
+			"approved",
+			"v1",
+		),
+	).toBe(false);
+	expect(
+		isReviewedAdjustmentApplied(
+			{
+				version: "v2",
+				appliedAdjustmentId: "approved",
+				activeAdjustment: { status: "APPLYING" },
+			},
+			"approved",
+			"v1",
+		),
+	).toBe(false);
+	expect(
+		isReviewedAdjustmentApplied(
+			{
+				version: "v2",
+				appliedAdjustmentId: "approved",
+				activeAdjustment: null,
+			},
+			"approved",
+			"v1",
+		),
+	).toBe(true);
+});
+
+test("keeps reviewed header changes while using the applied version and assigned child IDs", () => {
+	const reviewed = {
+		version: "v1",
+		form: { po: "edited" },
+		lineItems: [{ doorId: null as number | null }],
+		extraCosts: [{ amount: 200 }],
+		summary: { grandTotal: 500 },
+	};
+	const refreshed = {
+		...reviewed,
+		version: "v2",
+		form: { po: "old" },
+		lineItems: [{ doorId: 12 }],
+		extraCosts: [{ amount: 150 }],
+	};
+	const result = preserveReviewedFormFields(refreshed, reviewed);
+	expect(result.version).toBe("v2");
+	expect(result.lineItems[0]?.doorId).toBe(12);
+	expect(result.form.po).toBe("edited");
+	expect(result.extraCosts[0]?.amount).toBe(200);
 });

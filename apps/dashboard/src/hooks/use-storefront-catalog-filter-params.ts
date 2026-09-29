@@ -16,6 +16,7 @@ export const storefrontCatalogFilterParams = {
 	status: parseAsStringEnum([...statuses]),
 	featured: parseAsBoolean,
 	profileId: parseAsInteger,
+	categoryId: parseAsString,
 	catalogItemId: parseAsString,
 };
 

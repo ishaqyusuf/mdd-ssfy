@@ -3,7 +3,11 @@ import { networkInterfaces } from "node:os";
 import type { Db, Prisma } from "@gnd/db";
 import { buildShortUrl, findOrCreateShortLinkForTarget } from "@gnd/db/queries";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
-import { generateQrCodeDataUrl, renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
+import { generateQrCodeDataUrl } from "@gnd/pdf/sales-v2";
+import {
+	SALES_PDF_RENDER_VERSION,
+	renderSalesPdfBuffer,
+} from "@gnd/pdf/sales-v2/render";
 import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
@@ -63,6 +67,7 @@ const SALES_DOCUMENT_BASE_TYPES = {
 } as const satisfies Record<PrintMode, string>;
 
 type SalesDocumentMeta = {
+	renderVersion?: number | null;
 	accessToken?: string | null;
 	expiresAt?: string | null;
 	templateId?: string | null;
@@ -514,19 +519,39 @@ async function getSalesOrderSourceUpdatedAt(input: {
 		},
 		select: {
 			updatedAt: true,
+			dealerAuth: {
+				select: {
+					updatedAt: true,
+					meta: true,
+				},
+			},
 		},
 	});
 
-	return sale?.updatedAt ?? null;
+	const timestamps = [sale?.updatedAt, sale?.dealerAuth?.updatedAt].filter(
+		(value): value is Date => value instanceof Date,
+	);
+	if (!timestamps.length) return null;
+	const brandingVersion = Number(
+		(sale?.dealerAuth?.meta as { brandingVersion?: unknown } | null)
+			?.brandingVersion || 0,
+	);
+	return new Date(
+		Math.max(...timestamps.map((value) => value.getTime())) +
+			(Number.isFinite(brandingVersion) ? brandingVersion * 1000 : 0),
+	);
 }
 
 async function isSalesSnapshotStale(input: {
 	db: Db;
 	snapshot: Pick<
 		SalesDocumentSnapshotRecord,
-		"salesOrderId" | "sourceUpdatedAt"
+		"salesOrderId" | "sourceUpdatedAt" | "meta"
 	>;
 }) {
+	if (getSnapshotMeta(input.snapshot.meta).renderVersion !== SALES_PDF_RENDER_VERSION) {
+		return true;
+	}
 	const saleUpdatedAt = await getSalesOrderSourceUpdatedAt({
 		db: input.db,
 		salesOrderId: input.snapshot.salesOrderId,
@@ -810,6 +835,7 @@ async function createSalesPdfSnapshot(input: {
 		isCurrent: true,
 		sourceUpdatedAt,
 		meta: {
+			renderVersion: SALES_PDF_RENDER_VERSION,
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? null,
 			priceDisplay,
@@ -874,6 +900,7 @@ async function createSalesPdfSnapshot(input: {
 			templateId: printConfig.templateId,
 			companyAddress: documentData.companyAddress,
 			logoUrl: documentData.logoUrl ?? undefined,
+			watermark: input.pricingMode === "customer" ? null : undefined,
 			baseUrl: resolveBaseUrl(input.baseUrl),
 			previewUrl: accessUrls.previewUrl,
 			qrCodeDataUrl,
@@ -943,6 +970,7 @@ async function createSalesPdfSnapshot(input: {
 			generatedAt: new Date(),
 			errorMessage: null,
 			meta: {
+				renderVersion: SALES_PDF_RENDER_VERSION,
 				mode: input.mode,
 				pricingMode: input.pricingMode ?? null,
 				priceDisplay,
@@ -1065,6 +1093,7 @@ export async function resolveSalesDocumentAccess(
 		const printConfigMatches =
 			JSON.stringify(snapshotPrintConfig) === JSON.stringify(printConfig) &&
 			snapshotPriceDisplay === priceDisplay;
+		const rendererMatches = meta.renderVersion === SALES_PDF_RENDER_VERSION;
 		const storedDocument =
 			current?.storedDocumentId != null
 				? await input.db.storedDocument.findFirst({
@@ -1091,7 +1120,8 @@ export async function resolveSalesDocumentAccess(
 			meta.accessToken &&
 			isFutureIso(meta.expiresAt) &&
 			!snapshotStale?.isStale &&
-			printConfigMatches
+			printConfigMatches &&
+			rendererMatches
 		) {
 			logSalesDocumentAccess("pdfSnapshotHit", {
 				salesOrderId,
@@ -1151,9 +1181,11 @@ export async function resolveSalesDocumentAccess(
 							? "expired-access-token"
 							: !printConfigMatches
 								? "print-config-changed"
-								: snapshotStale?.isStale
-									? snapshotStale.reason
-									: "unknown",
+								: !rendererMatches
+									? "renderer-changed"
+									: snapshotStale?.isStale
+										? snapshotStale.reason
+										: "unknown",
 			snapshotStale: snapshotStale?.isStale ?? false,
 			staleReason: snapshotStale?.reason ?? null,
 			snapshotId: current?.id ?? null,

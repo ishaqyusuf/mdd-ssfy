@@ -1,7 +1,7 @@
 "use client";
 
+import { dealerFulfillmentOptions } from "@/lib/dealer-fulfillment-options";
 import { useTRPC } from "@/trpc/client";
-import { salesFormDeliveryOptions } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
@@ -52,6 +52,14 @@ function getBillingZip(meta: unknown) {
 	return typeof value === "string" ? value : "";
 }
 
+function getInvoiceEmail(meta: unknown, fallback?: string | null) {
+	if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+		const value = (meta as { invoiceEmail?: unknown }).invoiceEmail;
+		if (typeof value === "string" && value.trim()) return value;
+	}
+	return fallback || "";
+}
+
 export function DealerSettings() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -90,6 +98,7 @@ export function DealerSettings() {
 		saveSettings.mutate({
 			name: String(form.get("name") || ""),
 			companyName: String(form.get("companyName") || ""),
+			invoiceEmail: String(form.get("invoiceEmail") || ""),
 			phoneNo: String(form.get("phoneNo") || ""),
 			logoUrl: logoUrl || "",
 			address1: String(form.get("address1") || ""),
@@ -155,7 +164,7 @@ export function DealerSettings() {
 		<section className="rounded-lg border bg-background p-4">
 			<form
 				className="space-y-6"
-				key={settingsQuery.dataUpdatedAt || "dealer-settings"}
+				key={settings?.id ?? "dealer-settings"}
 				onSubmit={onSubmit}
 			>
 				<div className="grid gap-3 md:grid-cols-2">
@@ -173,6 +182,11 @@ export function DealerSettings() {
 						defaultValue={settings?.phoneNo || ""}
 						label="Phone"
 						name="phoneNo"
+					/>
+					<Field
+						defaultValue={getInvoiceEmail(settings?.meta, settings?.email)}
+						label="Invoice email"
+						name="invoiceEmail"
 					/>
 					<div className="space-y-2">
 						<Label htmlFor="logoUrlDisplay">Logo URL</Label>
@@ -298,7 +312,7 @@ export function DealerSettings() {
 							defaultValue={defaults.defaultFulfillmentMode}
 							name="defaultFulfillmentMode"
 						>
-							{salesFormDeliveryOptions.map((mode) => (
+							{dealerFulfillmentOptions.map((mode) => (
 								<option key={mode} value={mode}>
 									{mode}
 								</option>

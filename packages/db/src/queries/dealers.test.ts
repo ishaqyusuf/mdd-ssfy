@@ -4,30 +4,62 @@ import {
 	calculateDealerApprovalPricing,
 	calculateDealerQuotePricing,
 	convertDealerPortalQuoteToOrder,
-	getDealerPortalSalesDocument,
-	getDealerPortalSalesDocuments,
+	deleteDealerPortalCustomer,
+	getDealerFulfillmentExceptionsForOffice,
+	getDealerOrderRequestCount,
+	getDealerPaidOrdersForOffice,
 	getDealerPortalCustomerOverview,
 	getDealerPortalCustomers,
-	getDealerOrderRequestCount,
-	getDealerRequestSla,
-	getDealerPortalSettings,
-	getDealerPortalSalesProfiles,
+	getDealerPortalSalesDocument,
+	getDealerPortalSalesDocuments,
 	getDealerPortalSalesList,
+	getDealerPortalSalesProfiles,
+	getDealerPortalSettings,
 	getDealerQuoteEditLock,
+	getDealerRequestSla,
 	mergeDealerApprovalDeliveryMeta,
-	deleteDealerPortalCustomer,
-	saveDealerPortalQuote,
-	saveDealerPortalCustomer,
-	saveDealerPortalSettings,
-	saveDealerPortalSalesProfile,
-	summarizeDealerRequestSla,
 	requestDealerPortalQuoteOrder,
-	updateDealerSalesProfile,
-	updateDealerPortalCustomerPayment,
+	saveDealerPortalCustomer,
+	saveDealerPortalQuote,
+	saveDealerPortalSalesProfile,
+	saveDealerPortalSettings,
+	summarizeDealerRequestSla,
 	updateDealerPortalCustomerOfficeVisibility,
+	updateDealerPortalCustomerPayment,
+	updateDealerSalesProfile,
 } from "./dealers";
 
 describe("dealer portal pricing", () => {
+	it("preserves customer-priced shelf rows when saving a dealer quote", () => {
+		const result = calculateDealerQuotePricing({
+			taxRate: 0,
+			internalProfile: { coefficient: 0.65 },
+			dealerProfile: { salesPercentage: 25 },
+			structuredLineSurface: "customer",
+			lineItems: [
+				{
+					uid: "sample-shelf",
+					title: "Shelf Items",
+					qty: 2,
+					unitPrice: 475,
+					lineTotal: 950,
+					shelfItems: [
+						{ qty: 2, unitPrice: 475, totalPrice: 950, basePrice: 247 },
+					],
+				},
+			],
+		});
+
+		expect(result.lines[0]).toMatchObject({
+			internalUnitPrice: 380,
+			internalLineTotal: 760,
+			dealerUnitPrice: 475,
+			dealerLineTotal: 950,
+		});
+		expect(result.internalPricing.grandTotal).toBe(760);
+		expect(result.dealerPricing.grandTotal).toBe(950);
+	});
+
 	it("rebuilds customer pricing after the office completes a dealer quote", () => {
 		const result = calculateDealerApprovalPricing({
 			lineItems: [
@@ -75,6 +107,21 @@ describe("dealer portal pricing", () => {
 			internalBaseTotal: 300,
 			dealerBaseTotal: 360,
 		});
+	});
+
+	it("does not add a phantom cent when approving a saved moulding quote", () => {
+		const result = calculateDealerApprovalPricing({
+			lineItems: [
+				{ uid: "casing", qty: 3, unitPrice: 12.15, lineTotal: 36.46 },
+			],
+			taxRate: 0,
+			internalGrandTotal: 36.46,
+			internalCoefficient: 1,
+			dealerSalesPercentage: 25,
+			fallbackDealerGrandTotal: 45.57,
+		});
+
+		expect(result.dealerBaseTotal).toBe(45.57);
 	});
 
 	it("keeps internal and dealer customer pricing snapshots separate", () => {
@@ -330,10 +377,88 @@ describe("dealer order request visibility", () => {
 		});
 	});
 
+	it("scopes paid office follow-up orders to approved dealer orders with no GND balance", async () => {
+		let capturedWhere: Record<string, unknown> | undefined;
+		const db = {
+			users: {
+				findUnique: async () => ({ roles: [{ role: { name: "Sales Team" } }] }),
+			},
+			dealerSalesRequest: {
+				findMany: async ({ where }: { where: Record<string, unknown> }) => {
+					capturedWhere = where;
+					return [];
+				},
+				count: async () => 0,
+			},
+		};
+		expect(await getDealerPaidOrdersForOffice(db as never, 69)).toEqual({
+			count: 0,
+			data: [],
+		});
+		expect(capturedWhere).toMatchObject({
+			AND: [
+				{
+					status: "approved",
+					OR: [{ sale: { salesRepId: 69 } }, { sale: { salesRepId: null } }],
+				},
+				{
+					sale: {
+						type: "order",
+						deletedAt: null,
+						amountDue: { lte: 0 },
+					},
+				},
+			],
+		});
+	});
+
+	it("scopes office fulfillment exceptions to approved dealer orders with open dispatch issues", async () => {
+		let capturedWhere: Record<string, unknown> | undefined;
+		const db = {
+			users: {
+				findUnique: async () => ({ roles: [{ role: { name: "Sales Team" } }] }),
+			},
+			dealerSalesRequest: {
+				findMany: async ({ where }: { where: Record<string, unknown> }) => {
+					capturedWhere = where;
+					return [];
+				},
+				count: async () => 0,
+			},
+		};
+		expect(
+			await getDealerFulfillmentExceptionsForOffice(db as never, 69),
+		).toEqual({
+			count: 0,
+			data: [],
+		});
+		expect(capturedWhere).toMatchObject({
+			AND: [
+				{
+					status: "approved",
+					OR: [{ sale: { salesRepId: 69 } }, { sale: { salesRepId: null } }],
+				},
+				{
+					sale: {
+						type: "order",
+						deletedAt: null,
+						deliveries: {
+							some: {
+								deletedAt: null,
+								exceptions: { some: { status: "open", deletedAt: null } },
+							},
+						},
+					},
+				},
+			],
+		});
+	});
+
 	it("captures an immutable direct-ship recipient snapshot on submission", async () => {
 		let addressData: Record<string, any> | undefined;
 		const saleUpdates: Record<string, any>[] = [];
 		const tx = {
+			$queryRaw: async () => [{ id: 81 }],
 			salesOrders: {
 				findFirst: async () => ({
 					id: 81,
@@ -429,6 +554,64 @@ describe("dealer order request visibility", () => {
 			address1: "123 Main St",
 		});
 	});
+
+	it("returns the existing pending request without creating a second one", async () => {
+		const existing = {
+			id: 700,
+			status: "pending",
+			createdAt: new Date("2026-07-19T12:00:00.000Z"),
+		};
+		let creates = 0;
+		const tx = {
+			$queryRaw: async () => [{ id: 81 }],
+			salesOrders: {
+				findFirst: async () => ({
+					id: 81,
+					orderId: "DPP-81",
+					meta: {},
+					deliveryOption: "pickup",
+					salesRepId: 9,
+					dealerAuth: { salesRepId: 9, companyName: "Dealer Co" },
+					customer: { name: "Test Customer" },
+					requests: [existing],
+				}),
+			},
+			dealerSalesRequest: {
+				create: async () => {
+					creates += 1;
+					return existing;
+				},
+			},
+		};
+		const db = {
+			$transaction: async (callback: (value: typeof tx) => unknown) =>
+				callback(tx),
+		};
+		const result = await requestDealerPortalQuoteOrder(db as never, 10, 81);
+		expect(result.request.id).toBe(existing.id);
+		expect(result.alreadyPending).toBe(true);
+		expect(creates).toBe(0);
+	});
+
+	it("refuses a new request after a prior office rejection", async () => {
+		const tx = {
+			$queryRaw: async () => [{ id: 81 }],
+			salesOrders: {
+				findFirst: async () => ({
+					id: 81,
+					orderId: "DPP-81",
+					requests: [{ id: 700, status: "rejected" }],
+				}),
+			},
+		};
+		const db = {
+			$transaction: async (callback: (value: typeof tx) => unknown) =>
+				callback(tx),
+		};
+		await expect(
+			requestDealerPortalQuoteOrder(db as never, 10, 81),
+		).rejects.toThrow("already has a decided order request");
+	});
 });
 
 describe("dealer approval delivery metadata", () => {
@@ -497,6 +680,10 @@ function createDealerQuoteTestDb(options: {
 	let createdOrderData: Record<string, unknown> | null = null;
 	let updatedOrderData: Record<string, unknown> | null = null;
 	let createdItemData: Array<Record<string, unknown>> = [];
+	const createdStepData: Array<Record<string, unknown>> = [];
+	const createdShelfData: Array<Record<string, unknown>> = [];
+	const createdHptData: Array<Record<string, unknown>> = [];
+	const createdDoorData: Array<Record<string, unknown>> = [];
 	let dealerSalesData: Record<string, unknown> | null = null;
 	let sequenceCountWhere: Record<string, unknown> | null = null;
 
@@ -610,12 +797,48 @@ function createDealerQuoteTestDb(options: {
 		},
 		salesOrderItems: {
 			deleteMany: async () => ({ count: 1 }),
+			create: async ({ data }: { data: Record<string, unknown> }) => {
+				createdItemData.push(data);
+				return { id: createdItemData.length };
+			},
 			createMany: async ({
 				data,
 			}: {
 				data: Array<Record<string, unknown>>;
 			}) => {
-				createdItemData = data;
+				createdItemData.push(...data);
+				return { count: data.length };
+			},
+		},
+		dykeSalesShelfItem: {
+			deleteMany: async () => ({ count: 0 }),
+			createMany: async ({
+				data,
+			}: { data: Array<Record<string, unknown>> }) => {
+				createdShelfData.push(...data);
+				return { count: data.length };
+			},
+		},
+		dykeSalesDoors: {
+			deleteMany: async () => ({ count: 0 }),
+			createMany: async ({ data }: { data: Array<Record<string, unknown>> }) => {
+				createdDoorData.push(...data);
+				return { count: data.length };
+			},
+		},
+		housePackageTools: {
+			deleteMany: async () => ({ count: 0 }),
+			create: async ({ data }: { data: Record<string, unknown> }) => {
+		createdHptData.push(data);
+				return { id: createdHptData.length };
+			},
+		},
+		dykeStepForm: {
+			deleteMany: async () => ({ count: 0 }),
+			createMany: async ({
+				data,
+			}: { data: Array<Record<string, unknown>> }) => {
+				createdStepData.push(...data);
 				return { count: data.length };
 			},
 		},
@@ -638,6 +861,10 @@ function createDealerQuoteTestDb(options: {
 		db,
 		getCreatedOrderData: () => createdOrderData,
 		getCreatedItemData: () => createdItemData,
+		getCreatedStepData: () => createdStepData,
+		getCreatedShelfData: () => createdShelfData,
+		getCreatedHptData: () => createdHptData,
+		getCreatedDoorData: () => createdDoorData,
 		getDealerSalesData: () => dealerSalesData,
 		getUpdatedOrderData: () => updatedOrderData,
 		getSequenceCountWhere: () => sequenceCountWhere,
@@ -661,6 +888,245 @@ function dealerQuoteInput(overrides: Record<string, unknown> = {}) {
 }
 
 describe("dealer portal DPP identities", () => {
+	it("persists a dealer door as office-priced HPT rows and selected steps", async () => {
+		const testDb = createDealerQuoteTestDb({
+			dealerProfile: { id: 30, title: "Retail", salesPercentage: 25 },
+		});
+		await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput({
+				lineItems: [
+					{
+						uid: "door-line",
+						title: "Interior pre-hung",
+						qty: 1,
+						unitPrice: 157.56,
+						lineTotal: 157.56,
+						formSteps: [
+							{ stepId: 1, componentId: 1, prodUid: "root" },
+							{ stepId: 51, componentId: 978, prodUid: "door", price: 100.96 },
+						],
+						housePackageTool: {
+							doors: [
+								{
+									dimension: "2-6 x 6-8",
+									lhQty: 1,
+									totalQty: 1,
+									unitPrice: 157.56,
+									lineTotal: 157.56,
+									stepProductId: 978,
+									meta: { sharedDoorSurcharge: 56.6 },
+								},
+							],
+						},
+					},
+				],
+			}),
+		);
+		expect(testDb.getCreatedItemData()).toMatchObject([
+			{ total: 126.05, qty: 1 },
+		]);
+		expect(testDb.getCreatedHptData()).toMatchObject([
+			{ totalPrice: 126.05, totalDoors: 1 },
+		]);
+		expect(testDb.getCreatedDoorData()).toMatchObject([
+			{ dimension: "2-6 x 6-8", lineTotal: 126.05, unitPrice: 126.05 },
+		]);
+		expect(testDb.getCreatedStepData()).toMatchObject([
+			{ stepId: 1, prodUid: "root" },
+			{ stepId: 51, prodUid: "door", price: 80.77 },
+		]);
+		expect(
+			(testDb.getCreatedOrderData()?.meta as any).newSalesForm.lineItems[0]
+				.housePackageTool.doors[0].lineTotal,
+		).toBe(157.56);
+	});
+	it("persists moulding product relations with grouped GND prices and customer recipe intact", async () => {
+		const testDb = createDealerQuoteTestDb({
+			dealerProfile: { id: 30, title: "Retail", salesPercentage: 25 },
+		});
+		await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput({
+				lineItems: [
+					{
+						uid: "moulding",
+						title: "Mouldings",
+						qty: 3,
+						unitPrice: 15.19,
+						lineTotal: 45.57,
+						meta: {
+							mouldingRows: [
+								{
+									uid: "product",
+									title: "Casing",
+									qty: 3,
+									basePrice: 7.9,
+									salesPrice: 15.19,
+									lineTotal: 45.57,
+								},
+							],
+						},
+						formSteps: [
+							{ stepId: 1, prodUid: "mouldings" },
+							{
+								stepId: 215,
+								componentId: 888,
+								prodUid: "product",
+								meta: { selectedComponents: [{ id: 888, uid: "product" }] },
+							},
+							{ stepId: 217 },
+						],
+					},
+				],
+			}),
+		);
+		expect(testDb.getCreatedItemData()).toMatchObject([
+			{ qty: 3, total: 36.46, multiDykeUid: "moulding", multiDyke: true },
+		]);
+		expect(testDb.getCreatedHptData()).toMatchObject([
+			{
+				stepProductId: 888,
+				totalPrice: 36.46,
+				meta: { priceTags: { moulding: { basePrice: 7.9 } } },
+			},
+		]);
+		expect(testDb.getCreatedStepData()).toHaveLength(3);
+		expect(
+			(testDb.getCreatedOrderData()?.meta as any).newSalesForm.lineItems[0]
+				.lineTotal,
+		).toBe(45.57);
+	});
+	it("persists shelf route and office-priced product rows without changing the customer recipe", async () => {
+		const testDb = createDealerQuoteTestDb({
+			dealerProfile: { id: 30, title: "Retail", salesPercentage: 25 },
+		});
+		await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput({
+				lineItems: [
+					{
+						uid: "shelf",
+						title: "Shelf Items",
+						qty: 2,
+						unitPrice: 475,
+						lineTotal: 950,
+						formSteps: [
+							{
+								stepId: 1,
+								componentId: 683,
+								prodUid: "2K7Mz",
+								value: "Shelf Items",
+							},
+							{ stepId: 211 },
+						],
+						shelfItems: [
+							{
+								uid: "shelf-row",
+								qty: 2,
+								categoryId: 16,
+								productId: 113,
+								unitPrice: 475,
+								totalPrice: 950,
+								meta: {
+									basePrice: 247,
+									salesPrice: 475,
+									categoryIds: [1, 16],
+									sectionUid: "section",
+								},
+							},
+						],
+					},
+				],
+			}),
+		);
+		expect(testDb.getCreatedStepData()).toMatchObject([
+			{ stepId: 1, prodUid: "2K7Mz" },
+			{ stepId: 211 },
+		]);
+		expect(testDb.getCreatedShelfData()).toMatchObject([
+			{
+				categoryId: 16,
+				productId: 113,
+				qty: 2,
+				unitPrice: 380,
+				totalPrice: 760,
+				meta: {
+					basePrice: 247,
+					salesPrice: 380,
+					categoryIds: [1, 16],
+					lineUid: "section",
+					productUid: "shelf-row",
+				},
+			},
+		]);
+		expect(
+			(testDb.getCreatedOrderData()?.meta as any).newSalesForm.lineItems[0]
+				.shelfItems[0].unitPrice,
+		).toBe(475);
+	});
+	it("persists service steps and office-priced grouped rows for office editor reload", async () => {
+		const testDb = createDealerQuoteTestDb({
+			dealerProfile: { id: 30, title: "Retail", salesPercentage: 25 },
+		});
+		await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput({
+				lineItems: [
+					{
+						uid: "service-line",
+						title: "Services",
+						qty: 1,
+						unitPrice: 10,
+						lineTotal: 10,
+						meta: {
+							serviceRows: [
+								{
+									uid: "service-row",
+									service: "Install",
+									qty: 1,
+									unitPrice: 10,
+									lineTotal: 10,
+								},
+							],
+						},
+						formSteps: [
+							{
+								stepId: 1,
+								componentId: 907,
+								prodUid: "UOxks",
+								value: "Services",
+							},
+							{ stepId: 217 },
+						],
+					},
+				],
+			}),
+		);
+		expect(testDb.getCreatedItemData()).toMatchObject([
+			{
+				description: "Install",
+				qty: 1,
+				rate: 8,
+				total: 8,
+				multiDyke: true,
+				multiDykeUid: "service-line",
+			},
+		]);
+		expect(testDb.getCreatedStepData()).toMatchObject([
+			{ salesId: 55, salesItemId: 1, stepId: 1, prodUid: "UOxks" },
+			{ salesId: 55, salesItemId: 1, stepId: 217 },
+		]);
+		expect(
+			(testDb.getCreatedOrderData()?.meta as any).newSalesForm.lineItems[0].meta
+				.serviceRows[0].unitPrice,
+		).toBe(10);
+	});
+
 	it("assigns the first DPP serial to a new dealer quote", async () => {
 		const testDb = createDealerQuoteTestDb({
 			activeDppCount: 0,
@@ -707,7 +1173,9 @@ describe("dealer portal DPP identities", () => {
 						qty: 1,
 						unitPrice: 100,
 						meta: {
-							serviceRows: [{ uid: "svc-1", service: "Install" }],
+							serviceRows: [
+								{ uid: "svc-1", service: "Install", qty: 1, unitPrice: 100 },
+							],
 						},
 						formSteps: [{ stepId: 10, prodUid: "door-a", value: "Door A" }],
 						shelfItems: [{ uid: "shelf-1", qty: 2 }],
@@ -841,6 +1309,9 @@ describe("dealer portal DPP identities", () => {
 						shelfItems: [
 							{
 								uid: "shelf-1",
+								qty: 1,
+								unitPrice: 100,
+								totalPrice: 100,
 								productId: 99,
 								categoryId: 20,
 							},
@@ -873,6 +1344,8 @@ describe("dealer portal DPP identities", () => {
 								{
 									uid: "svc-1",
 									service: "Install",
+									qty: 1,
+									unitPrice: 100,
 									taxxable: true,
 									produceable: true,
 								},
@@ -1309,6 +1782,7 @@ describe("dealer portal isolation", () => {
 			name: "Dealer",
 			companyName: "Dealer Co",
 			phoneNo: "555-111-2222",
+			invoiceEmail: "Invoices@Example.com",
 			logoUrl: "https://example.com/logo.png",
 			zip_code: "32801",
 			defaultCustomerProfileId: 45,
@@ -1317,6 +1791,7 @@ describe("dealer portal isolation", () => {
 		});
 
 		expect(savedMeta).toMatchObject({
+			invoiceEmail: "invoices@example.com",
 			logoUrl: "https://example.com/logo.png",
 			billingZip: "32801",
 			brandingVersion: 1,
@@ -1613,11 +2088,19 @@ describe("dealer portal isolation", () => {
 
 	it("does not expose raw sales order item metadata in dealer document detail", async () => {
 		let capturedWhere: Record<string, unknown> | null = null;
+		let capturedHistoryWhere: Record<string, unknown> | null = null;
 		const document = await getDealerPortalSalesDocument(
 			{
 				salesOrders: {
-					findFirst: async ({ where }: { where: Record<string, unknown> }) => {
+					findFirst: async ({
+						where,
+						select,
+					}: {
+						where: Record<string, unknown>;
+						select: { history: { where: Record<string, unknown> } };
+					}) => {
 						capturedWhere = where;
+						capturedHistoryWhere = select.history.where;
 						return {
 							id: 55,
 							orderId: "DQ-55",
@@ -1634,6 +2117,20 @@ describe("dealer portal isolation", () => {
 							customerProfileId: 30,
 							dealerSalesProfileId: 40,
 							meta: {},
+							history: [
+								{
+									id: "history-1",
+									createdAt: new Date("2026-09-26T12:00:00.000Z"),
+									authorName: "Dealer 10",
+									data: {
+										status: "paid",
+										previousDue: 150,
+										nextDue: 0,
+										note: "Cash",
+										internalSecret: "hidden",
+									},
+								},
+							],
 							pickup: null,
 							deliveries: [
 								{
@@ -1682,12 +2179,28 @@ describe("dealer portal isolation", () => {
 			dealerAuthId: 10,
 			deletedAt: null,
 		});
+		expect(capturedHistoryWhere).toMatchObject({
+			name: "Dealer customer payment status updated",
+			deletedAt: null,
+		});
 		expect("meta" in document).toBe(false);
 		expect("items" in document).toBe(false);
 		expect("deliveries" in document).toBe(false);
 		expect("pickup" in document).toBe(false);
 		expect("prodStatus" in document).toBe(false);
 		expect("deliveredAt" in document).toBe(false);
+		expect("history" in document).toBe(false);
+		expect(document.customerPaymentHistory).toEqual([
+			{
+				id: "history-1",
+				createdAt: new Date("2026-09-26T12:00:00.000Z"),
+				authorName: "Dealer 10",
+				status: "paid",
+				previousDue: 150,
+				nextDue: 0,
+				note: "Cash",
+			},
+		]);
 		expect(document).toMatchObject({
 			grandTotal: 150,
 			amountDue: 150,
@@ -1712,6 +2225,8 @@ describe("dealer portal isolation", () => {
 	it("updates only the active dealer's customer-payment ledger and records history", async () => {
 		let updatedDue: number | null = null;
 		let historyData: Record<string, unknown> | null = null;
+		let printInvalidation: Record<string, unknown> | null = null;
+		let snapshotInvalidation: Record<string, unknown> | null = null;
 		const tx = {
 			dealerSales: {
 				findFirst: async () => ({
@@ -1733,6 +2248,18 @@ describe("dealer portal isolation", () => {
 				create: async ({ data }: { data: Record<string, unknown> }) => {
 					historyData = data;
 					return data;
+				},
+			},
+			salesPrintData: {
+				updateMany: async (input: Record<string, unknown>) => {
+					printInvalidation = input;
+					return { count: 1 };
+				},
+			},
+			salesDocumentSnapshot: {
+				updateMany: async (input: Record<string, unknown>) => {
+					snapshotInvalidation = input;
+					return { count: 1 };
 				},
 			},
 		};
@@ -1758,6 +2285,27 @@ describe("dealer portal isolation", () => {
 				previousDue: 150,
 				nextDue: 0,
 			},
+		});
+		expect(printInvalidation).toMatchObject({
+			where: {
+				salesOrderId: 55,
+				OR: [
+					{ documentType: { startsWith: "invoice_pdf:pricing:customer:" } },
+					{ documentType: "invoice_pdf" },
+				],
+			},
+			data: { status: "stale" },
+		});
+		expect(snapshotInvalidation).toMatchObject({
+			where: {
+				salesOrderId: 55,
+				OR: [
+					{ documentType: { startsWith: "invoice_pdf:pricing:customer:" } },
+					{ documentType: "invoice_pdf" },
+				],
+				isCurrent: true,
+			},
+			data: { generationStatus: "stale", isCurrent: false },
 		});
 	});
 
@@ -2100,6 +2648,29 @@ describe("dealer portal isolation", () => {
 								createdAt: new Date("2026-05-18T00:00:00.000Z"),
 								customer: null,
 							},
+							{
+								id: 59,
+								orderId: "DQ-59",
+								status: "New",
+								type: "order",
+								deliveredAt: null,
+								deliveryOption: "ship",
+								grandTotal: 100,
+								amountDue: 0,
+								meta: {},
+								dealerSale: null,
+								invoiceStatus: null,
+								pickup: null,
+								deliveries: [
+									{
+										status: "queue",
+										deliveredAt: null,
+										exceptions: [{ id: 1 }],
+									},
+								],
+								createdAt: new Date("2026-05-18T00:00:00.000Z"),
+								customer: null,
+							},
 						];
 					},
 				},
@@ -2121,6 +2692,8 @@ describe("dealer portal isolation", () => {
 		expect(documents[1]?.fulfillmentStatus).toBe("ready");
 		expect(documents[2]?.fulfillmentStatus).toBe("completed");
 		expect(documents[3]?.fulfillmentStatus).toBe("preparing");
+		expect(documents[4]?.fulfillmentStatus).toBe("exception");
+		expect("deliveries" in documents[4]!).toBe(false);
 		expect("meta" in documents[0]!).toBe(false);
 		expect("deliveries" in documents[0]!).toBe(false);
 		expect("pickup" in documents[0]!).toBe(false);

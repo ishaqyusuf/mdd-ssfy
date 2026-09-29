@@ -40,7 +40,14 @@ export function SalesHtmlDocument({
 	};
 
 	return (
-		<div className="sales-html-document" style={{ display: "grid", gap: 24 }}>
+		<div
+			className="sales-html-document"
+			style={{
+				display: "grid",
+				gridTemplateColumns: "minmax(0, 1fr)",
+				gap: 24,
+			}}
+		>
 			{pages.map((page, index) => (
 				<HtmlTemplate
 					key={`${page.meta.salesNo}-${page.meta.date}-${page.meta.title}-${page.meta.po || index}`}

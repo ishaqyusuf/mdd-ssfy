@@ -11,9 +11,11 @@ type Props = {
 
 export function QuoteHeader({ initialFilterList }: Props) {
 	return (
-		<div className="flex items-center gap-4">
-			<QuoteSearchFilter initialFilterList={initialFilterList} />
-			<div className="flex-1" />
+		<div className="flex flex-wrap items-center gap-3 lg:gap-4">
+			<div className="w-full min-w-0 lg:w-[350px]">
+				<QuoteSearchFilter initialFilterList={initialFilterList} />
+			</div>
+			<div className="hidden flex-1 lg:block" />
 			<SalesCustomTab />
 			<CreateSalesBtn quote />
 		</div>

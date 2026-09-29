@@ -1,11 +1,13 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
 import { DealerRequestDecisionActions } from "./dealer-request-decision-actions";
 
@@ -31,6 +33,52 @@ function ageLabel(hours?: number | null) {
 	if (value < 1) return "<1h old";
 	if (value < 48) return `${Math.round(value)}h old`;
 	return `${Math.round(value / 24)}d old`;
+}
+
+function OfficeDocumentPreviewAction({
+	salesId,
+	mode,
+}: {
+	salesId: number;
+	mode: "quote" | "invoice";
+}) {
+	const [isLoading, setIsLoading] = useState(false);
+
+	async function openPreview() {
+		if (isLoading) return;
+		setIsLoading(true);
+		try {
+			const { prepareSalesHtmlPreview } = await import(
+				"@/modules/sales-print/application/sales-print-service"
+			);
+			const previewUrl = await prepareSalesHtmlPreview({
+				salesIds: [salesId],
+				mode,
+				pricingMode: "internal",
+			});
+			window.location.assign(previewUrl);
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Could not open the GND quote.",
+			);
+			setIsLoading(false);
+		}
+	}
+
+	return (
+		<Button
+			disabled={isLoading}
+			onClick={openPreview}
+			size="sm"
+			type="button"
+			variant="outline"
+		>
+			<Icons.Printer className="mr-2 size-4" />
+			{isLoading ? "Opening..." : `GND ${mode} preview`}
+		</Button>
+	);
 }
 
 function RequestAnalytics({
@@ -93,6 +141,168 @@ function fulfillmentRecipient(value: unknown) {
 	};
 }
 
+type PaidDealerOrder =
+	RouterOutputs["sales"]["dealerPaidOrdersForOffice"]["data"][number];
+type DealerFulfillmentException =
+	RouterOutputs["sales"]["dealerFulfillmentExceptionsForOffice"]["data"][number];
+
+function DealerFulfillmentExceptions({
+	orders,
+	count,
+	loading,
+	error,
+	onRetry,
+}: {
+	orders: DealerFulfillmentException[];
+	count: number;
+	loading: boolean;
+	error?: string | null;
+	onRetry: () => void;
+}) {
+	return (
+		<section className="space-y-3 rounded-lg border bg-card p-4">
+			<div>
+				<h2 className="text-base font-semibold">
+					Dealer fulfillment exceptions
+				</h2>
+				<p className="text-xs text-muted-foreground">
+					Open dispatch issues that need office follow-up.
+				</p>
+			</div>
+			{error ? (
+				<div
+					role="alert"
+					className="flex flex-wrap items-center gap-2 text-sm text-destructive"
+				>
+					<span>Could not load exceptions: {error}</span>
+					<Button onClick={onRetry} size="sm" type="button" variant="outline">
+						Retry
+					</Button>
+				</div>
+			) : loading ? (
+				<p className="text-sm text-muted-foreground">Loading exceptions...</p>
+			) : orders.length ? (
+				<>
+					<div className="grid gap-2 lg:grid-cols-2">
+						{orders.map((order) => (
+							<div
+								className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+								key={order.requestId}
+							>
+								<div className="min-w-0 text-sm">
+									<p className="font-medium">
+										{order.orderNo} · {order.dealerName}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										{order.reasonCode} · Owner: {order.ownerName}
+									</p>
+								</div>
+								<Button asChild size="sm" variant="outline">
+									<Link
+										href={`/sales-form/edit-order/${order.slug}?dealerRequestId=${order.requestId}`}
+									>
+										Review order
+									</Link>
+								</Button>
+							</div>
+						))}
+					</div>
+					{count > orders.length ? (
+						<p className="text-xs text-muted-foreground">
+							Showing the latest {orders.length} of {count} exceptions.
+						</p>
+					) : null}
+				</>
+			) : (
+				<p className="text-sm text-muted-foreground">
+					No open dealer fulfillment exceptions.
+				</p>
+			)}
+		</section>
+	);
+}
+
+function PaidDealerOrders({
+	orders,
+	count,
+	loading,
+	error,
+	onRetry,
+}: {
+	orders: PaidDealerOrder[];
+	count: number;
+	loading: boolean;
+	error?: string | null;
+	onRetry: () => void;
+}) {
+	return (
+		<section className="space-y-3 rounded-lg border bg-card p-4">
+			<div>
+				<h2 className="text-base font-semibold">Paid dealer orders</h2>
+				<p className="text-xs text-muted-foreground">
+					Review fulfillment and any outstanding follow-up with the assigned
+					office owner.
+				</p>
+			</div>
+			{error ? (
+				<div
+					role="alert"
+					className="flex flex-wrap items-center gap-2 text-sm text-destructive"
+				>
+					<span>Could not load paid dealer orders: {error}</span>
+					<Button onClick={onRetry} size="sm" type="button" variant="outline">
+						Retry
+					</Button>
+				</div>
+			) : loading ? (
+				<p className="text-sm text-muted-foreground">Loading paid orders...</p>
+			) : orders.length ? (
+				<>
+					<div className="grid gap-2 lg:grid-cols-2">
+						{orders.map((order) => (
+							<div
+								className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+								key={order.requestId}
+							>
+								<div className="min-w-0 text-sm">
+									<p className="font-medium">
+										{order.orderNo} · {order.dealerName}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										{order.customerName} · {order.deliveryOption || "pickup"} ·{" "}
+										{order.status || "New"}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										Owner: {order.ownerName} · GND due{" "}
+										{currency(order.amountDue)}
+									</p>
+								</div>
+								<Button asChild size="sm" variant="outline">
+									<Link
+										href={`/sales-form/edit-order/${order.slug}?dealerRequestId=${order.requestId}`}
+									>
+										Review order
+									</Link>
+								</Button>
+							</div>
+						))}
+					</div>
+					{count > orders.length ? (
+						<p className="text-xs text-muted-foreground">
+							Showing the latest {orders.length} of {count} paid orders. Use
+							Sales Orders for older records.
+						</p>
+					) : null}
+				</>
+			) : (
+				<p className="text-sm text-muted-foreground">
+					No paid dealer orders are awaiting review.
+				</p>
+			)}
+		</section>
+	);
+}
+
 export function SalesRepDealerRequests() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -105,6 +315,14 @@ export function SalesRepDealerRequests() {
 	const analyticsQuery = useQuery(
 		trpc.sales.dealerOrderRequestAnalytics.queryOptions(),
 	);
+	const paidOrdersQuery = useQuery({
+		...trpc.sales.dealerPaidOrdersForOffice.queryOptions(),
+		refetchInterval: 30_000,
+	});
+	const exceptionsQuery = useQuery({
+		...trpc.sales.dealerFulfillmentExceptionsForOffice.queryOptions(),
+		refetchInterval: 30_000,
+	});
 	const approve = useMutation(
 		trpc.sales.approveDealerSalesRequest.mutationOptions({
 			onSuccess: async () => {
@@ -145,6 +363,24 @@ export function SalesRepDealerRequests() {
 	);
 
 	const requests = requestsQuery.data?.data || [];
+	const paidOrdersSection = (
+		<PaidDealerOrders
+			orders={paidOrdersQuery.data?.data || []}
+			count={paidOrdersQuery.data?.count || 0}
+			loading={paidOrdersQuery.isPending}
+			error={paidOrdersQuery.error?.message}
+			onRetry={() => void paidOrdersQuery.refetch()}
+		/>
+	);
+	const exceptionsSection = (
+		<DealerFulfillmentExceptions
+			orders={exceptionsQuery.data?.data || []}
+			count={exceptionsQuery.data?.count || 0}
+			loading={exceptionsQuery.isPending}
+			error={exceptionsQuery.error?.message}
+			onRetry={() => void exceptionsQuery.refetch()}
+		/>
+	);
 	if (requestsQuery.isPending) {
 		return (
 			<div className="rounded-lg border p-6 text-sm text-muted-foreground">
@@ -157,6 +393,8 @@ export function SalesRepDealerRequests() {
 		return (
 			<div className="space-y-4">
 				<RequestAnalytics analytics={analyticsQuery.data} />
+				{paidOrdersSection}
+				{exceptionsSection}
 				<div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
 					No dealer order requests yet.
 				</div>
@@ -167,6 +405,8 @@ export function SalesRepDealerRequests() {
 	return (
 		<div className="space-y-4">
 			<RequestAnalytics analytics={analyticsQuery.data} />
+			{paidOrdersSection}
+			{exceptionsSection}
 			{requests.map((request) => {
 				const isPending = request.status === "pending";
 				const recipient = fulfillmentRecipient(request.fulfillmentRecipient);
@@ -218,8 +458,10 @@ export function SalesRepDealerRequests() {
 							{recipient ? (
 								<div className="mt-2 rounded-md border bg-muted/30 p-3 text-xs">
 									<div className="font-medium text-foreground">
-										Direct-ship recipient:{" "}
-										{recipient.name || request.customerName}
+										{request.deliveryOption === "ship"
+											? "Shipping recipient"
+											: "Delivery recipient"}
+										: {recipient.name || request.customerName}
 									</div>
 									<div className="mt-1 text-muted-foreground">
 										{[recipient.phoneNo, recipient.email, recipient.address]
@@ -250,6 +492,10 @@ export function SalesRepDealerRequests() {
 									Review
 								</Link>
 							</Button>
+							<OfficeDocumentPreviewAction
+								mode={request.orderType === "order" ? "invoice" : "quote"}
+								salesId={request.salesId}
+							/>
 							{isPending ? (
 								<DealerRequestDecisionActions
 									request={request}

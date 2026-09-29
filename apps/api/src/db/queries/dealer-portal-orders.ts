@@ -1,6 +1,7 @@
 import type { Database } from "@gnd/db";
 import {
 	type DealerPortalSalesListInput,
+	getDealerPortalSalesDocument,
 	getDealerPortalSalesList,
 } from "@gnd/db/queries";
 import {
@@ -10,6 +11,51 @@ import {
 	projectSalesPipelineForAudience,
 	projectUnavailableSalesPipelineForAudience,
 } from "@gnd/sales";
+
+export function projectDealerFulfillmentStatus(input: {
+	orderStatus: "preparing" | "ready" | "completed" | "exception";
+	statusCode: string;
+	fulfillmentState: string;
+}) {
+	if (input.orderStatus === "exception") return "exception" as const;
+	if (
+		input.statusCode === "delivered" ||
+		["fulfilled", "administratively_completed"].includes(input.fulfillmentState)
+	) {
+		return "completed" as const;
+	}
+	if (input.fulfillmentState === "partially_fulfilled")
+		return "partial" as const;
+	if (
+		input.statusCode === "in-transit" ||
+		input.fulfillmentState === "in_transit"
+	) {
+		return "in_transit" as const;
+	}
+	return input.orderStatus;
+}
+
+function withCanonicalDealerPipeline<
+	T extends {
+		id: number;
+		fulfillmentStatus: "preparing" | "ready" | "completed" | "exception";
+	},
+>(order: T, snapshot?: Parameters<typeof projectSalesPipelineForAudience>[0]) {
+	const pipeline = snapshot
+		? projectSalesPipelineForAudience(snapshot, "dealer")
+		: projectUnavailableSalesPipelineForAudience();
+	return {
+		...order,
+		pipeline,
+		status: pipeline.status.code,
+		statusLabel: pipeline.status.label,
+		fulfillmentStatus: projectDealerFulfillmentStatus({
+			orderStatus: order.fulfillmentStatus,
+			statusCode: pipeline.status.code,
+			fulfillmentState: pipeline.fulfillment.state,
+		}),
+	};
+}
 
 /**
  * Dealer order lifecycle adapter. Keeping membership and presentation together
@@ -39,23 +85,19 @@ export async function getCanonicalDealerPortalOrders(
 	);
 	return {
 		...result,
-		data: result.data.map((order) => {
-			const snapshot = snapshots.get(order.id);
-			const pipeline = snapshot
-				? projectSalesPipelineForAudience(snapshot, "dealer")
-				: projectUnavailableSalesPipelineForAudience();
-			return {
-				...order,
-				pipeline,
-				status: pipeline.status.code,
-				statusLabel: pipeline.status.label,
-				fulfillmentStatus:
-					pipeline.status.code === "delivered"
-						? "completed"
-						: pipeline.status.code === "in-transit"
-							? "ready"
-							: "preparing",
-			};
-		}),
+		data: result.data.map((order) =>
+			withCanonicalDealerPipeline(order, snapshots.get(order.id)),
+		),
 	};
+}
+
+export async function getCanonicalDealerPortalOrder(
+	db: Database,
+	dealerId: number,
+	id: number,
+) {
+	const order = await getDealerPortalSalesDocument(db, dealerId, id);
+	if (order.type === "quote") return order;
+	const snapshots = await getSalesPipelineSnapshots(db, [order.id]);
+	return withCanonicalDealerPipeline(order, snapshots.get(order.id));
 }

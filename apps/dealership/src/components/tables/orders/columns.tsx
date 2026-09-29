@@ -1,6 +1,9 @@
 "use client";
 
-import { getDealerOrderNextStep } from "@/lib/dealer-next-step";
+import {
+	getDealerOrderNextStep,
+	getDealerOrderStatusLabel,
+} from "@/lib/dealer-next-step";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import { Badge } from "@gnd/ui/badge";
@@ -30,6 +33,20 @@ function date(value?: Date | string | null) {
 		month: "short",
 		day: "numeric",
 		year: "numeric",
+		timeZone: "UTC",
+	}).format(new Date(value));
+}
+
+function dateTime(value?: Date | string | null) {
+	if (!value) return "-";
+	return new Intl.DateTimeFormat("en", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+		timeZone: "UTC",
+		timeZoneName: "short",
 	}).format(new Date(value));
 }
 
@@ -39,6 +56,18 @@ function customerName(item: Item) {
 		item.customer?.name ||
 		item.customer?.email ||
 		"-"
+	);
+}
+
+function orderStatusLabel(item: Item) {
+	return getDealerOrderStatusLabel(
+		getDealerOrderNextStep({
+			officeAmountDue: item.officeAmountDue,
+			customerAmountDue: item.amountDue,
+			deliveryOption: item.deliveryOption,
+			status: item.status,
+			fulfillmentStatus: item.fulfillmentStatus,
+		}),
 	);
 }
 
@@ -177,7 +206,7 @@ export const columns: Column[] = [
 		accessorKey: "status",
 		cell: ({ row: { original: item } }) => (
 			<Badge className="capitalize" variant="outline">
-				{item.status || "open"}
+				{orderStatusLabel(item)}
 			</Badge>
 		),
 	},
@@ -209,6 +238,15 @@ export const columns: Column[] = [
 		accessorKey: "amountDue",
 		cell: ({ row: { original: item } }) => (
 			<span className="whitespace-nowrap">{currency(item.amountDue)}</span>
+		),
+	},
+	{
+		header: "Last update",
+		accessorKey: "updatedAt",
+		cell: ({ row: { original: item } }) => (
+			<span className="whitespace-nowrap text-muted-foreground">
+				{dateTime(item.updatedAt)}
+			</span>
 		),
 	},
 	{
@@ -246,6 +284,10 @@ export const mobileColumn: Column[] = [
 							text={customerName(item)}
 						/>
 					</ItemUi.Description>
+					<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+						<Badge variant="outline">{orderStatusLabel(item)}</Badge>
+						<span>Customer balance {currency(item.amountDue)}</span>
+					</div>
 					<div className="mt-2">
 						<DealerNextStep
 							compact
@@ -265,7 +307,7 @@ export const mobileColumn: Column[] = [
 				<div className="shrink-0 text-right">
 					<p className="text-sm font-medium">{currency(item.grandTotal)}</p>
 					<p className="text-xs text-muted-foreground">
-						{date(item.createdAt)}
+						Updated {dateTime(item.updatedAt || item.createdAt)}
 					</p>
 				</div>
 			</div>

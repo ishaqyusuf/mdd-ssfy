@@ -238,7 +238,7 @@ export function DealerRequestDecisionActions({
 									maxLength={1000}
 									placeholder={
 										decision === "reject"
-											? "Explain what the dealer needs to change before requesting again."
+											? "Explain why this request was rejected and what the dealer should do next."
 											: "Record delivery pricing context or approval conditions."
 									}
 									value={note}

@@ -45,7 +45,9 @@ import {
 	storefrontCatalogImageSchema,
 	storefrontCatalogListSchema,
 	storefrontCatalogMetadataSchema,
+	storefrontCatalogSaveSchema,
 	storefrontCatalogStatusSchema,
+	storefrontCategoryProductsSchema,
 } from "@api/schemas/storefront-admin";
 import {
 	storefrontPromotionIdSchema,
@@ -203,32 +205,45 @@ export const storefrontAdminRouter = createTRPCRouter({
 						message: "Catalog component not found.",
 					});
 				}
-				const component = await ctx.db.storefrontComponent.upsert({
-					where: { sourceComponentUid: input.componentUid },
-					create: {
-						sourceComponentUid: input.componentUid,
-						sourceStepUid: source.step.uid,
-						availableOnStorefront: input.online,
-						status: input.online ? "PUBLISHED" : "DRAFT",
-						createdByUserId: ctx.userId,
-						updatedByUserId: ctx.userId,
-					},
-					update: {
-						sourceStepUid: source.step.uid,
-						availableOnStorefront: input.online,
-						status: input.online ? "PUBLISHED" : "DRAFT",
-						updatedByUserId: ctx.userId,
-						deletedAt: null,
-					},
-				});
-				await ctx.db.storefrontAuditEvent.create({
-					data: {
-						actorUserId: ctx.userId,
-						action: input.online ? "component.online" : "component.offline",
-						entityType: "StorefrontComponent",
-						entityId: component.id,
-						requestId: ctx.requestId,
-					},
+				const sourceStepUid = source.step.uid;
+				await ctx.db.$transaction(async (tx) => {
+					const component = await tx.storefrontComponent.upsert({
+						where: { sourceComponentUid: input.componentUid },
+						create: {
+							sourceComponentUid: input.componentUid,
+							sourceStepUid,
+							availableOnStorefront: input.online,
+							status: input.online ? "PUBLISHED" : "DRAFT",
+							createdByUserId: ctx.userId,
+							updatedByUserId: ctx.userId,
+						},
+						update: {
+							sourceStepUid,
+							availableOnStorefront: input.online,
+							status: input.online ? "PUBLISHED" : "DRAFT",
+							updatedByUserId: ctx.userId,
+							deletedAt: null,
+						},
+					});
+					await tx.storefrontOffer.updateMany({
+						where: {
+							sourceComponentUid: input.componentUid,
+							deletedAt: null,
+						},
+						data: {
+							...publicationDates(input.online ? "PUBLISHED" : "DRAFT"),
+							updatedByUserId: ctx.userId,
+						},
+					});
+					await tx.storefrontAuditEvent.create({
+						data: {
+							actorUserId: ctx.userId,
+							action: input.online ? "component.online" : "component.offline",
+							entityType: "StorefrontComponent",
+							entityId: component.id,
+							requestId: ctx.requestId,
+						},
+					});
 				});
 				return { ok: true };
 			}),
@@ -326,6 +341,105 @@ export const storefrontAdminRouter = createTRPCRouter({
 				});
 				return { ok: true };
 			}),
+		saveProduct: protectedProcedure
+			.input(storefrontCatalogSaveSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission:
+						input.status === "PUBLISHED"
+							? "publishStorefront"
+							: "editStorefront",
+				});
+				const [source, existing, offer] = await Promise.all([
+					ctx.db.dykeStepProducts.findUnique({
+						where: { uid: input.componentUid },
+						select: { step: { select: { uid: true } } },
+					}),
+					ctx.db.storefrontComponent.findUnique({
+						where: { sourceComponentUid: input.componentUid },
+						select: { metadata: true },
+					}),
+					ctx.db.storefrontOffer.findUnique({
+						where: { sourceComponentUid: input.componentUid },
+						select: { id: true },
+					}),
+				]);
+				if (!source?.step.uid) throw new TRPCError({ code: "NOT_FOUND" });
+				const sourceStepUid = source.step.uid;
+				if (input.status === "PUBLISHED" && !offer) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: "Assign this catalog item to a storefront category before publishing it.",
+					});
+				}
+				const existingMetadata =
+					existing?.metadata &&
+					typeof existing.metadata === "object" &&
+					!Array.isArray(existing.metadata)
+						? existing.metadata
+						: {};
+				const existingShipping =
+					existingMetadata.shipping &&
+					typeof existingMetadata.shipping === "object" &&
+					!Array.isArray(existingMetadata.shipping)
+						? existingMetadata.shipping
+						: {};
+				const metadata = asJson({
+					...existingMetadata,
+					galleryImages: input.galleryImageUrls,
+					shipping: {
+						...existingShipping,
+						weightPerUnitLb: input.shippingWeightPerUnitLb,
+						lbPerLinearFoot: input.shippingLbPerLinearFoot,
+						shelfCategoryId: input.shippingShelfCategoryId,
+					},
+				});
+				await ctx.db.$transaction(async (tx) => {
+					await tx.storefrontComponent.upsert({
+						where: { sourceComponentUid: input.componentUid },
+						create: {
+							sourceComponentUid: input.componentUid,
+							sourceStepUid,
+							title: input.title,
+							description: input.description,
+							imageUrl: input.imageUrl,
+							metadata,
+							availableOnStorefront: input.status === "PUBLISHED",
+							status: input.status,
+							createdByUserId: ctx.userId,
+							updatedByUserId: ctx.userId,
+						},
+						update: {
+							sourceStepUid,
+							title: input.title,
+							description: input.description,
+							imageUrl: input.imageUrl,
+							metadata,
+							availableOnStorefront: input.status === "PUBLISHED",
+							status: input.status,
+							updatedByUserId: ctx.userId,
+							deletedAt: null,
+						},
+					});
+					if (offer) {
+						await tx.storefrontOffer.update({
+							where: { id: offer.id },
+							data: {
+								title: input.title || undefined,
+								description: input.description,
+								imageUrl: input.imageUrl,
+								featured: input.featured,
+								featuredOrder: input.featured ? 0 : null,
+								...publicationDates(input.status),
+								updatedByUserId: ctx.userId,
+							},
+						});
+					}
+				});
+				return { ok: true };
+			}),
 		setFeatured: protectedProcedure
 			.input(storefrontCatalogFeaturedSchema)
 			.mutation(async ({ ctx, input }) => {
@@ -384,32 +498,43 @@ export const storefrontAdminRouter = createTRPCRouter({
 					where: { uid: { in: input.componentUids }, deletedAt: null },
 					select: { uid: true, step: { select: { uid: true } } },
 				});
-				await ctx.db.$transaction(
-					sources.flatMap((source) =>
-						source.uid && source.step.uid
-							? [
-									ctx.db.storefrontComponent.upsert({
-										where: { sourceComponentUid: source.uid },
-										create: {
-											sourceComponentUid: source.uid,
-											sourceStepUid: source.step.uid,
-											availableOnStorefront: publishing,
-											status: publishing ? "PUBLISHED" : "DRAFT",
-											createdByUserId: ctx.userId,
-											updatedByUserId: ctx.userId,
-										},
-										update: {
-											sourceStepUid: source.step.uid,
-											availableOnStorefront: publishing,
-											status: publishing ? "PUBLISHED" : "DRAFT",
-											updatedByUserId: ctx.userId,
-											deletedAt: null,
-										},
-									}),
-								]
-							: [],
-					),
-				);
+				await ctx.db.$transaction(async (tx) => {
+					for (const source of sources) {
+						if (!source.uid || !source.step.uid) continue;
+						await tx.storefrontComponent.upsert({
+							where: { sourceComponentUid: source.uid },
+							create: {
+								sourceComponentUid: source.uid,
+								sourceStepUid: source.step.uid,
+								availableOnStorefront: publishing,
+								status: publishing ? "PUBLISHED" : "DRAFT",
+								createdByUserId: ctx.userId,
+								updatedByUserId: ctx.userId,
+							},
+							update: {
+								sourceStepUid: source.step.uid,
+								availableOnStorefront: publishing,
+								status: publishing ? "PUBLISHED" : "DRAFT",
+								updatedByUserId: ctx.userId,
+								deletedAt: null,
+							},
+						});
+					}
+					await tx.storefrontOffer.updateMany({
+						where: {
+							sourceComponentUid: {
+								in: sources
+									.map((source) => source.uid)
+									.filter((uid): uid is string => Boolean(uid)),
+							},
+							deletedAt: null,
+						},
+						data: {
+							...publicationDates(publishing ? "PUBLISHED" : "DRAFT"),
+							updatedByUserId: ctx.userId,
+						},
+					});
+				});
 				return {
 					updated: sources.length,
 					skipped: input.componentUids.length - sources.length,
@@ -440,6 +565,81 @@ export const storefrontAdminRouter = createTRPCRouter({
 				},
 			});
 		}),
+		products: protectedProcedure
+			.input(storefrontCategoryProductsSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefront",
+				});
+				const offers = await ctx.db.storefrontOffer.findMany({
+					where: {
+						categoryId: input.categoryId,
+						deletedAt: null,
+						...(input.query
+							? {
+								OR: [
+									{ title: { contains: input.query } },
+									{ description: { contains: input.query } },
+								],
+							}
+							: {}),
+					},
+					orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+					take: 500,
+					select: {
+						id: true,
+						sourceComponentUid: true,
+						slug: true,
+						title: true,
+						description: true,
+						imageUrl: true,
+						status: true,
+						featured: true,
+						category: { select: { slug: true, status: true } },
+					},
+				});
+				const overlays = offers.length
+					? await ctx.db.storefrontComponent.findMany({
+							where: {
+								sourceComponentUid: {
+									in: offers.map((offer) => offer.sourceComponentUid),
+								},
+								deletedAt: null,
+							},
+							select: {
+								sourceComponentUid: true,
+								title: true,
+								description: true,
+								imageUrl: true,
+								status: true,
+								availableOnStorefront: true,
+							},
+						})
+					: [];
+				const overlayByUid = new Map(
+					overlays.map((overlay) => [overlay.sourceComponentUid, overlay]),
+				);
+				return offers.map((offer) => {
+					const overlay = overlayByUid.get(offer.sourceComponentUid);
+					const published =
+						offer.status === "PUBLISHED" &&
+						overlay?.status === "PUBLISHED" &&
+						Boolean(overlay.availableOnStorefront);
+					return {
+						...offer,
+						title: offer.title || overlay?.title,
+						description: offer.description || overlay?.description,
+						imageUrl: offer.imageUrl || overlay?.imageUrl,
+						published,
+						storefrontPath:
+							published && offer.category.status === "PUBLISHED"
+								? `/product/${offer.category.slug}/${offer.slug}`
+								: null,
+					};
+				});
+			}),
 		setStatus: protectedProcedure
 			.input(
 				idSchema.extend({

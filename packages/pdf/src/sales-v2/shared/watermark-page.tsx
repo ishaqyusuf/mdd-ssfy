@@ -5,7 +5,7 @@ import { cn } from "../../utils/tw";
 
 interface WatermarkPageProps extends PageProps {
 	children: React.ReactNode;
-	watermarkSrc?: string;
+	watermarkSrc?: string | null;
 	watermarkText?: string;
 	baseUrl?: string;
 }
@@ -18,31 +18,37 @@ export function WatermarkPage({
 	baseUrl,
 	...pageProps
 }: WatermarkPageProps) {
+	const resolvedWatermarkSrc =
+		watermarkSrc === null
+			? null
+			: watermarkSrc || `${baseUrl}/logo-grayscale.png`;
 	return (
 		<Page {...pageProps} style={{ ...cn("relative"), ...(style as object) }}>
-			<View
-				fixed
-				style={{
-					position: "absolute",
-					top: "30%",
-					left: "10%",
-					width: "60%",
-					opacity: 0.2,
-					transform: "rotate(-30deg)",
-					zIndex: 0,
-				}}
-			>
-				<View>
-					<Image
-						src={watermarkSrc || `${baseUrl}/logo-grayscale.png`}
-						style={{
-							width: 420,
-							height: 420,
-							objectFit: "contain",
-						}}
-					/>
+			{resolvedWatermarkSrc ? (
+				<View
+					fixed
+					style={{
+						position: "absolute",
+						top: "30%",
+						left: "10%",
+						width: "60%",
+						opacity: 0.2,
+						transform: "rotate(-30deg)",
+						zIndex: 0,
+					}}
+				>
+					<View>
+						<Image
+							src={resolvedWatermarkSrc}
+							style={{
+								width: 420,
+								height: 420,
+								objectFit: "contain",
+							}}
+						/>
+					</View>
 				</View>
-			</View>
+			) : null}
 			{watermarkText ? (
 				<View
 					fixed

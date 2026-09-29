@@ -12,8 +12,8 @@ import { appendActivityTags } from "@gnd/notifications/activities";
 import {
 	extractSignaturePathFromSvg,
 	isSvgImageSource,
-	renderSalesPdfBuffer,
 } from "@gnd/pdf/sales-v2";
+import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2/render";
 import { getPrintDocumentData } from "@gnd/sales/print";
 import type { PrintPage } from "@gnd/sales/print/types";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";

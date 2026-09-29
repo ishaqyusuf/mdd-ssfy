@@ -431,13 +431,13 @@ describe("sales print data cache", () => {
 				mode: "invoice",
 				pricingMode: "customer",
 			}),
-		).toBe("invoice_pdf:pricing:customer:v3");
+		).toBe("invoice_pdf:pricing:customer:v10");
 		expect(
 			buildSalesPrintDocumentTypeKey({
 				mode: "invoice",
 				pricingMode: "internal",
 			}),
-		).toBe("invoice_pdf:pricing:internal:v3");
+		).toBe("invoice_pdf:pricing:internal:v10");
 	});
 
 	it("isolates totals-only invoice and quote data without changing detailed keys", () => {

@@ -292,6 +292,12 @@ export const mobileColumn: Column[] = [
 								status: item.requestStatus,
 							})}
 						/>
+						<DealerRequestTimeline
+							status={item.requestStatus}
+							requestedAt={item.requestCreatedAt}
+							decisionAt={item.requestDecisionAt}
+							decisionNote={item.requestDecisionNote}
+						/>
 					</div>
 					<div className="mt-3">
 						<QuoteActions item={item} />

@@ -48,8 +48,27 @@ const financialInclude = {
 
 const dealerSaleSelect = {
 	dealerSalesPercentage: true,
+	grandTotal: true,
 	dueAmount: true,
 } as const satisfies Prisma.DealerSalesSelect;
+
+const dealerAuthSelect = {
+	companyName: true,
+	name: true,
+	phoneNo: true,
+	email: true,
+	meta: true,
+	primaryBillingAddress: {
+		select: {
+			address1: true,
+			address2: true,
+			city: true,
+			state: true,
+			meta: true,
+			country: true,
+		},
+	},
+} as const satisfies Prisma.DealerAuthSelect;
 
 /**
  * Isolated Prisma include for print — only what the V2 print pipeline needs.
@@ -120,6 +139,7 @@ export function buildPrintSalesInclude(mode: PrintMode | PrintMode[] | string) {
 		shippingAddress: { where: excludeDeletedWhere },
 		salesRep: { where: excludeDeletedWhere },
 		dealerSale: { select: dealerSaleSelect },
+		dealerAuth: { select: dealerAuthSelect },
 		...(needsFinancials ? financialInclude : {}),
 		...(needsPacking ? packingInclude : {}),
 	} satisfies Prisma.SalesOrdersInclude;
@@ -135,6 +155,7 @@ export const PrintSalesInclude = {
 	shippingAddress: { where: excludeDeletedWhere },
 	salesRep: { where: excludeDeletedWhere },
 	dealerSale: { select: dealerSaleSelect },
+	dealerAuth: { select: dealerAuthSelect },
 	...financialInclude,
 	...packingInclude,
 } satisfies Prisma.SalesOrdersInclude;

@@ -1386,6 +1386,27 @@ function toBootstrapPayload(
 		paymentTotal,
 		paymentCount: order.payments?.length || 0,
 		paymentMethodReviewDismissed,
+		appliedAdjustmentId: persisted?.approvedAdjustmentId
+			? String(persisted.approvedAdjustmentId)
+			: null,
+		commercialReconciliation: hasUnprojectedApprovedCommercialSnapshot(
+			container,
+			lineItems,
+		)
+			? {
+					approvedAdjustmentId: String(persisted?.approvedAdjustmentId),
+					sourceUpdatedAt: order.updatedAt?.toISOString() || null,
+					lineItems: (persisted?.lineItems || []).map((line) => ({
+						id: line.id,
+						uid: line.uid,
+						title: line.title,
+						description: line.description,
+						qty: line.qty,
+						lineTotal: line.lineTotal,
+					})),
+					summary: savedFinancialSummary,
+				}
+			: null,
 		financialReconciliation: {
 			hasDifference: Object.values(financialDifference).some(
 				(value) => value !== 0,
@@ -3830,7 +3851,7 @@ async function saveNewSalesFormInternal(
 				throw new AppError({
 					code: "SALES_RELATIONAL_REVIEW_REQUIRED",
 					internalMessage:
-						"SALES_RELATIONAL_REVIEW_REQUIRED: An approved adjustment was not projected into the relational sales rows. This document is locked until the migration review reconciles it.",
+						"SALES_RELATIONAL_REVIEW_REQUIRED: An approved adjustment was not projected into the relational sales rows. Review and reconcile the approved snapshot in the Sales form before saving.",
 				});
 			}
 			if (

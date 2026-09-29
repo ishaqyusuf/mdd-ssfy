@@ -29,6 +29,8 @@ const isExplicitProductionBuild =
   normalizedEasBuildProfile === "production";
 const isExplicitProductionIosBuild =
   isExplicitProductionBuild && process.env.GND_IOS_PUBLIC_RELEASE === "true";
+const isExplicitPublicAndroidBuild =
+  isExplicitProductionBuild && process.env.GND_ANDROID_PUBLIC_RELEASE === "true";
 const exposedDevCredentialKeys = [
   "EXPO_PUBLIC_EMAIL",
   "EXPO_PUBLIC_TOK",
@@ -98,6 +100,23 @@ if (isExplicitProductionIosBuild) {
   }
 }
 
+if (isExplicitPublicAndroidBuild) {
+  if (!isCanonicalIosReleaseOrigin(process.env.EXPO_PUBLIC_BASE_URL)) {
+    throw new Error("Public Android Play builds require the canonical HTTPS API/auth origin.");
+  }
+  if (privacyPolicyUrl !== "https://www.gndprodesk.com/privacy-policy") {
+    throw new Error("Public Android Play builds require the approved Privacy Policy URL.");
+  }
+  if (
+    process.env.EXPO_PUBLIC_LOGLY_ENABLED === "true" ||
+    process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true" ||
+    process.env.EXPO_PUBLIC_SENTRY_DEBUG === "true" ||
+    process.env.EXPO_PUBLIC_SENTRY_SMOKE_TEST === "true"
+  ) {
+    throw new Error("Public Android Play builds must disable optional Logly and Sentry telemetry.");
+  }
+}
+
 const variantConfig = isDevelopmentBuild
   ? {
       name: "GND Dev",
@@ -163,6 +182,15 @@ const config: ExpoConfig = {
   android: {
     // buildType: "apk",
     // gradleCommand: ":app:assembleRelease",
+    ...(isExplicitPublicAndroidBuild
+      ? {
+          blockedPermissions: [
+            "android.permission.CAMERA",
+            "android.permission.RECORD_AUDIO",
+            "android.permission.SYSTEM_ALERT_WINDOW",
+          ],
+        }
+      : {}),
     adaptiveIcon: {
       backgroundColor: variantConfig.iconBackgroundColor,
       foregroundImage: variantConfig.icons.adaptive,

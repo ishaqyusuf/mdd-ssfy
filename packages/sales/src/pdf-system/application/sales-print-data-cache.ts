@@ -13,7 +13,7 @@ import type { CompanyAddress, PrintMode, PrintPage } from "../../print/types";
 import { isSalesSourceStale } from "./source-freshness";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
-const DEALER_PRICING_CACHE_VERSION = "v3";
+const DEALER_PRICING_CACHE_VERSION = "v10";
 const RECONCILIATION_RETRY_DELAY_MS = 250;
 
 export const SALES_PRINT_DOCUMENT_BASE_TYPES = {

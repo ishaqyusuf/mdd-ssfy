@@ -13,6 +13,15 @@ export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
 let browserQueryClient: QueryClient;
 
+function getTRPCUrl() {
+	if (typeof window !== "undefined") return "/api/storefront/trpc";
+	const baseUrl =
+		process.env.STOREFRONT_APP_URL ||
+		(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+		"http://localhost:3018";
+	return `${baseUrl.replace(/\/$/, "")}/api/storefront/trpc`;
+}
+
 function getQueryClient() {
 	if (isServer) {
 		return makeQueryClient();
@@ -33,7 +42,7 @@ export function TRPCReactProvider(
 		createTRPCClient<AppRouter>({
 			links: [
 				httpBatchLink({
-					url: "/api/storefront/trpc",
+					url: getTRPCUrl(),
 					transformer: superjson as never,
 					fetch(url, options) {
 						return fetch(url, { ...options, credentials: "include" });

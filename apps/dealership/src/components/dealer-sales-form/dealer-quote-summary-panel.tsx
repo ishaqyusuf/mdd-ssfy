@@ -1,12 +1,12 @@
 "use client";
 
+import { dealerFulfillmentOptions } from "@/lib/dealer-fulfillment-options";
 import {
 	SalesFormDealerProfileCard,
 	SalesFormInvoiceDetailsPanel,
 	SalesFormPricingOverview,
 	type SalesFormSelectOption,
 	buildSalesFormSelectOptions,
-	salesFormDeliveryOptions,
 	salesFormPaymentMethods,
 	salesFormPaymentTerms,
 } from "@gnd/sales/sales-form";
@@ -85,7 +85,7 @@ function formatPercent(value?: number | null) {
 
 export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
 	const paymentTermOptions = buildSalesFormSelectOptions(salesFormPaymentTerms);
-	const deliveryOptions = buildSalesFormSelectOptions(salesFormDeliveryOptions);
+	const deliveryOptions = buildSalesFormSelectOptions(dealerFulfillmentOptions);
 	const paymentMethodOptions = buildSalesFormSelectOptions(
 		salesFormPaymentMethods,
 	);
