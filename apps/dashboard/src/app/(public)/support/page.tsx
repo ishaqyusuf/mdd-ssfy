@@ -14,6 +14,7 @@ export default function SupportPage() {
 			title="Support & privacy requests"
 			description="A public contact path for ProDesk users."
 			currentPath="/support"
+			lastUpdated="29 September 2026"
 		>
 			<section className="space-y-4">
 				<h2>Contact GND</h2>
@@ -27,13 +28,12 @@ export default function SupportPage() {
 			<section className="space-y-4">
 				<h2>Privacy and account requests</h2>
 				<p>
-					You may ask about access to, correction of, or deletion of personal
-					information at the same address. GND may verify your identity and your
-					authority to make a request. Company administrators manage account
-					access; requests concerning employment records may be subject to
-					applicable retention obligations. The{" "}
-					<Link href="/privacy-policy">Privacy Policy</Link> explains how GND
-					handles these requests.
+					You may ask about access to or correction of personal information at
+					the same address. GND may verify your identity and authority. Company
+					administrators manage accounts and offboarding; ProDesk does not offer
+					user-requested account or data deletion, and GND retains company work
+					records. The <Link href="/privacy-policy">Privacy Policy</Link>{" "}
+					explains how GND handles these requests.
 				</p>
 			</section>
 			<section className="space-y-4">

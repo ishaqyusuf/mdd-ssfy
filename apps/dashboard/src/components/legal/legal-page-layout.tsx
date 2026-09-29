@@ -11,11 +11,13 @@ export function LegalPageLayout({
 	title,
 	description,
 	currentPath,
+	lastUpdated = "27 September 2026",
 	children,
 }: {
 	title: string;
 	description: string;
 	currentPath: string;
+	lastUpdated?: string;
 	children: ReactNode;
 }) {
 	return (
@@ -63,7 +65,7 @@ export function LegalPageLayout({
 					</aside>
 					<article className="min-w-0 max-w-3xl">
 						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#456a56]">
-							Last updated · 27 September 2026
+							Last updated · {lastUpdated}
 						</p>
 						<h1 className="mt-4 font-serif text-4xl leading-tight tracking-tight sm:text-5xl">
 							{title}

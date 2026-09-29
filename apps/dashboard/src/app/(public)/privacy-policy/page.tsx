@@ -14,6 +14,7 @@ export default function PrivacyPolicyPage() {
 			title="Privacy Policy"
 			description="How GND Millwork ProDesk handles information used in company work."
 			currentPath="/privacy-policy"
+			lastUpdated="29 September 2026"
 		>
 			<section className="space-y-4">
 				<h2>Who this notice is for</h2>
@@ -129,32 +130,31 @@ export default function PrivacyPolicyPage() {
 					path.
 				</p>
 				<p>
-					GND keeps account, work, document, security, and diagnostic records
-					while access is active and while a documented operational, accounting,
-					dispute, security, or legal need exists.
+					GND retains company account, work, document, security, and diagnostic
+					records for operational, accounting, dispute, security, and legal
+					purposes. Offboarding can end an employee&apos;s access without
+					erasing company work records.
 				</p>
 				<p>
-					After a verified request, GND assesses whether an eligible record can
-					be deleted or anonymized. A scoped hold may delay that action.
+					ProDesk does not offer user-requested account or data deletion.
+					Company administrators manage account access and records under
+					GND&apos;s retention practices and applicable requirements.
 				</p>
 				<p>
-					Removing a record from the app may restrict access while copies remain
-					in provider backup systems under their retention practices. A deletion
-					request does not necessarily remove those copies immediately.
+					Provider backup systems may retain additional copies under their
+					retention practices.
 				</p>
 			</section>
 			<section className="space-y-4">
 				<h2>Your choices and requests</h2>
 				<p>
-					For access, correction, deletion, or another applicable privacy
-					request, email{" "}
+					For questions about access, correction, or privacy practices, email{" "}
 					<a href="mailto:support@gndmillwork.com">support@gndmillwork.com</a>.
-					GND may need to verify your identity and authority, and some work
-					records may need to be retained for a legitimate obligation. Company
-					administrators manage account access and offboarding; the app does not
-					offer public self-registration. See{" "}
-					<Link href="/support">Support and privacy requests</Link> for the
-					contact route.
+					GND may need to verify your identity and authority. Company
+					administrators create accounts by invitation and manage offboarding;
+					the app does not offer public self-registration or deletion on
+					request. See <Link href="/support">Support and privacy requests</Link>{" "}
+					for the contact route.
 				</p>
 			</section>
 			<section className="space-y-4">
