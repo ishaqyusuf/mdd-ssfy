@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createHmac } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
 	type GndProviderBundle,
@@ -36,15 +36,36 @@ afterEach(() => {
 });
 
 function revision() {
-	const head = readFileSync(resolve(root, ".git/HEAD"), "utf8").trim();
+	const dotGit = resolve(root, ".git");
+	let gitDirectory = dotGit;
+	let commonDirectory = dotGit;
+	if (!lstatSync(dotGit).isDirectory()) {
+		const pointer = readFileSync(dotGit, "utf8").trim();
+		if (!pointer.startsWith("gitdir: ")) {
+			throw new Error("Could not resolve test Git directory.");
+		}
+		gitDirectory = resolve(root, pointer.slice("gitdir: ".length));
+		try {
+			commonDirectory = resolve(
+				gitDirectory,
+				readFileSync(resolve(gitDirectory, "commondir"), "utf8").trim(),
+			);
+		} catch {
+			commonDirectory = gitDirectory;
+		}
+	}
+	const head = readFileSync(resolve(gitDirectory, "HEAD"), "utf8").trim();
 	if (/^[0-9a-f]{40}$/i.test(head)) return head;
 	if (!head.startsWith("ref: "))
 		throw new Error("Could not resolve test Git SHA.");
 	const ref = head.slice("ref: ".length);
 	try {
-		return readFileSync(resolve(root, ".git", ref), "utf8").trim();
+		return readFileSync(resolve(commonDirectory, ref), "utf8").trim();
 	} catch {
-		const packed = readFileSync(resolve(root, ".git/packed-refs"), "utf8");
+		const packed = readFileSync(
+			resolve(commonDirectory, "packed-refs"),
+			"utf8",
+		);
 		return (
 			packed
 				.split("\n")
