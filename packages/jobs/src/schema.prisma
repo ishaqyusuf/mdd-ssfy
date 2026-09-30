@@ -227,6 +227,14 @@ model Settings {
     updatedAt DateTime? @updatedAt
 }
 
+// A committed change to the shared sales component/routing catalog advances this
+// revision so caches never rely on best-effort Redis invalidation for freshness.
+model SalesWorkflowCatalogRevision {
+    scope     String   @id @db.VarChar(191)
+    revision  Int      @default(0)
+    updatedAt DateTime @updatedAt
+}
+
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model ProductCategories {
     id         Int       @unique @default(autoincrement())
@@ -384,6 +392,7 @@ model Notifications {
     createdAt   DateTime? @default(now()) @db.Timestamp(0)
     updatedAt   DateTime? @updatedAt
     deletedAt   DateTime?
+    assistantDeliveryKey String? @unique(map: "notifications_assistant_delivery_uq") @db.Char(64)
 
     @@index([createdAt, deletedAt, userId, seenAt, archivedAt])
     @@index([userId])
@@ -815,7 +824,6 @@ model SalesOrders {
     specialOrderEvidence SpecialOrderApprovalEvidence[] @relation(name: "SpecialOrderEvidence")
     handoffActionEpochs SalesHandoffActionEpoch[]
     salesTaxLedgerEntries SalesTaxLedgerEntry[]
-
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
 
@@ -1064,6 +1072,7 @@ model SalesOrderListProjection {
     @@index([orgId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_scope")
     @@index([salesRepId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_rep")
     @@index([state, version, projectedAt], name: "idx_sales_order_list_health")
+    @@index([state, version, pipelineContractVersion, salesOrderId], name: "idx_sales_order_pipeline_shadow_scan")
     @@index([state, version, pipelineHeadline, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_headline")
     @@index([state, version, pipelineProductionApplicability, pipelineProductionState, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_production")
     @@index([state, version, pipelineFulfillmentApplicability, pipelineFulfillmentState, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_fulfillment")
@@ -1637,6 +1646,7 @@ model DykeStepProducts {
     img               String?
     redirectUid       String?
     custom            Boolean?            @default(false)
+    isDefault         Boolean             @default(false)
     sortIndex         Int?
     dykeProductId     Int?
     doorId            Int?
@@ -1657,6 +1667,7 @@ model DykeStepProducts {
 
     @@index([doorId])
     @@index([dykeStepId])
+    @@index([dykeStepId, isDefault])
     @@index([dykeProductId])
 }
 
@@ -2054,6 +2065,122 @@ model SalesHandoffActionEscalationRecipient {
     @@unique([actionEpochId, recipientUserId], name: "uq_sales_handoff_escalation_recipient")
     @@index([notificationActivityId], name: "idx_sales_handoff_notification_activity")
     @@index([recipientUserId, acknowledgedAt, notifiedAt], name: "idx_sales_handoff_recipient_ack")
+}
+
+// ---- reliability.prisma ----
+model ReliabilityIncident {
+    id             String                  @id @default(cuid())
+    problemKey     String                  @unique @db.VarChar(64)
+    serviceId      String                  @db.VarChar(160)
+    owner          String                  @db.VarChar(160)
+    severity       String                  @db.VarChar(16)
+    status         String                  @db.VarChar(40)
+    revision       Int                     @default(1)
+    occurrenceCount Int                    @default(1)
+    firstSeenAt    DateTime                 @db.DateTime(3)
+    lastSeenAt     DateTime                 @db.DateTime(3)
+    resolvedAt     DateTime?                @db.DateTime(3)
+    observation    Json?
+    analysis       Json?
+    createdAt      DateTime                 @default(now()) @db.DateTime(3)
+    updatedAt      DateTime                 @updatedAt @db.DateTime(3)
+    occurrences    ReliabilityOccurrence[]
+    deliveries     ReliabilityDelivery[]
+    transitions    ReliabilityTransition[]
+
+    @@index([status, severity, lastSeenAt])
+    @@index([serviceId, lastSeenAt])
+}
+
+model ReliabilityOccurrence {
+    id             String              @id @default(cuid())
+    occurrenceKey  String              @unique @db.VarChar(64)
+    incidentId     String
+    provider       String              @db.VarChar(32)
+    account        String              @db.VarChar(160)
+    project        String              @db.VarChar(160)
+    environment    String              @db.VarChar(32)
+    providerEventId String             @db.VarChar(160)
+    providerGroupId String             @db.VarChar(160)
+    operation      String              @db.VarChar(160)
+    impact         String              @db.VarChar(40)
+    occurredAt     DateTime            @db.DateTime(3)
+    receivedAt     DateTime            @default(now()) @db.DateTime(3)
+    evidence       Json?
+    incident       ReliabilityIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+
+    @@index([incidentId, occurredAt])
+    @@index([provider, receivedAt])
+}
+
+model ReliabilityDelivery {
+    id             String              @id @default(cuid())
+    actionKey      String              @unique @db.VarChar(64)
+    incidentId     String
+    destination    String              @db.VarChar(32)
+    action         String              @db.VarChar(40)
+    revision       Int
+    status         String              @default("PENDING") @db.VarChar(32)
+    attempts       Int                 @default(0)
+    nextAttemptAt  DateTime            @default(now()) @db.DateTime(3)
+    leaseId        String?             @db.VarChar(64)
+    leaseExpiresAt DateTime?           @db.DateTime(3)
+    remoteId       String?             @db.VarChar(255)
+    lastErrorCode  String?             @db.VarChar(80)
+    completedAt    DateTime?           @db.DateTime(3)
+    createdAt      DateTime            @default(now()) @db.DateTime(3)
+    updatedAt      DateTime            @updatedAt @db.DateTime(3)
+    incident       ReliabilityIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+
+    @@index([status, nextAttemptAt])
+    @@index([incidentId, destination, revision])
+    @@index([leaseExpiresAt])
+}
+
+model ReliabilityTransition {
+    id             String              @id @default(cuid())
+    actionKey      String              @unique @db.VarChar(64)
+    incidentId     String
+    actor          String              @db.VarChar(160)
+    action         String              @db.VarChar(40)
+    fromStatus     String?             @db.VarChar(40)
+    toStatus       String              @db.VarChar(40)
+    revision       Int
+    occurredAt     DateTime            @default(now()) @db.DateTime(3)
+    incident       ReliabilityIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+
+    @@index([incidentId, revision])
+}
+
+model ReliabilityRunWatch {
+    id             String    @id @default(cuid())
+    watchKey       String    @unique @db.VarChar(64)
+    serviceId      String    @db.VarChar(160)
+    account        String    @db.VarChar(160)
+    project        String    @db.VarChar(160)
+    environment    String    @db.VarChar(32)
+    runId          String    @db.VarChar(160)
+    providerStatus String    @db.VarChar(40)
+    terminal       Boolean   @default(false)
+    providerCreatedAt DateTime @db.DateTime(3)
+    providerUpdatedAt DateTime? @db.DateTime(3)
+    lastCheckedAt  DateTime?  @db.DateTime(3)
+    nextCheckAt    DateTime   @default(now()) @db.DateTime(3)
+    createdAt      DateTime   @default(now()) @db.DateTime(3)
+    updatedAt      DateTime   @updatedAt @db.DateTime(3)
+
+    @@index([terminal, nextCheckAt])
+}
+
+model ReliabilityCursor {
+    id             String    @id @db.VarChar(64)
+    watermark      DateTime? @db.DateTime(3)
+    lastSuccessAt  DateTime? @db.DateTime(3)
+    lastErrorCode  String?   @db.VarChar(80)
+    leaseId        String?   @db.VarChar(64)
+    leaseExpiresAt DateTime? @db.DateTime(3)
+    checkpoint     Json?
+    updatedAt      DateTime  @updatedAt @db.DateTime(3)
 }
 
 // ---- storefront.prisma ----
@@ -2815,6 +2942,355 @@ model SalesEmailAttempt {
     @@index([originalAttemptId])
     @@index([taskRunId])
     @@index([deletedAt])
+}
+
+// ---- messaging.prisma ----
+// Marketplace messaging is separate from private Assistant conversations.
+// Relation mode is `prisma`: writers must check scope and clean up explicitly.
+model MessagingConnection {
+    id                  String   @id @default(cuid()) @db.VarChar(191)
+    organizationId      Int
+    sourceKind          String   @db.VarChar(40)
+    externalAccountId   String   @db.VarChar(191)
+    externalAccountHash String   @db.Char(64)
+    canonicalInboxUrl   String   @db.Text
+    status              String   @default("disabled") @db.VarChar(30)
+    configRevision      Int      @default(1)
+    rulesetId           String?  @db.VarChar(191)
+    approverIdentityId  String?  @db.VarChar(191)
+    senderReference     String?  @db.VarChar(191)
+    scanIntervalSeconds Int      @default(900)
+    pollIntervalSeconds Int      @default(60)
+    quietWindowSeconds  Int      @default(30)
+    overlapWindowSeconds Int     @default(300)
+    maxConversationsPerScan Int  @default(50)
+    maxMessagesPerScan  Int      @default(500)
+    maxSendsPerHour     Int      @default(30)
+    retentionDays       Int?
+    sendPolicy          String   @default("off") @db.VarChar(30)
+    createdAt           DateTime @default(now()) @db.DateTime(3)
+    updatedAt           DateTime @updatedAt @db.DateTime(3)
+
+    organization Organization             @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    devices      MessagingDeviceGrant[]
+    connectionCodes MessagingConnectionCode[]
+    customers    MessagingCustomer[]
+    conversations MessagingConversation[]
+    rulesets     MessagingRuleSetVersion[]
+
+    @@unique([organizationId, sourceKind, externalAccountHash], map: "msg_connection_source_uq")
+    @@unique([id, organizationId], map: "msg_connection_scope_uq")
+    @@index([organizationId, status, updatedAt], map: "msg_connection_status_idx")
+}
+
+model MessagingDevice {
+    id               String    @id @default(cuid()) @db.VarChar(191)
+    employeeId       Int
+    label            String    @default("Chrome extension") @db.VarChar(100)
+    tokenHash        String?   @unique(map: "msg_device_token_hash_uq") @db.Char(64)
+    extensionVersion String    @db.VarChar(50)
+    expiresAt        DateTime? @db.DateTime(3)
+    lastSeenAt       DateTime? @db.DateTime(3)
+    revokedAt        DateTime? @db.DateTime(3)
+    createdAt        DateTime  @default(now()) @db.DateTime(3)
+    updatedAt        DateTime  @updatedAt @db.DateTime(3)
+    employee         Users     @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    grants           MessagingDeviceGrant[]
+    sendJobs         MessagingSendJob[]
+    sendAttempts     MessagingSendAttempt[]
+
+    @@index([employeeId, revokedAt], map: "msg_device_employee_idx")
+}
+
+model MessagingDeviceGrant {
+    deviceId     String   @db.VarChar(191)
+    connectionId String   @db.VarChar(191)
+    grantedAt    DateTime @default(now()) @db.DateTime(3)
+    revokedAt    DateTime? @db.DateTime(3)
+    device       MessagingDevice @relation(fields: [deviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    connection   MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@id([deviceId, connectionId])
+    @@index([connectionId, revokedAt], map: "msg_device_grant_connection_idx")
+}
+
+// One-time issuance evidence. The code is never stored in plaintext.
+model MessagingConnectionCode {
+    id             String    @id @default(cuid()) @db.VarChar(191)
+    connectionId   String    @db.VarChar(191)
+    issuerUserId   Int
+    codeHash       String    @unique(map: "msg_connection_code_hash_uq") @db.Char(64)
+    expiresAt      DateTime  @db.DateTime(3)
+    consumedAt     DateTime? @db.DateTime(3)
+    failedAttempts Int       @default(0)
+    createdAt      DateTime  @default(now()) @db.DateTime(3)
+    connection     MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    issuer         Users @relation(fields: [issuerUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([connectionId, expiresAt], map: "msg_connection_code_expiry_idx")
+    @@index([issuerUserId, createdAt], map: "msg_connection_code_issuer_idx")
+}
+
+model MessagingCustomer {
+    id                     String   @id @default(cuid()) @db.VarChar(191)
+    organizationId         Int
+    connectionId           String   @db.VarChar(191)
+    externalCustomerId     String?  @db.VarChar(191)
+    externalCustomerHash   String?  @db.Char(64)
+    provisionalIdentityKey String?  @db.VarChar(191)
+    provisionalIdentityHash String? @db.Char(64)
+    identityConfidence     String   @db.VarChar(24)
+    displayName            String?  @db.VarChar(255)
+    sourceProfileUrl       String?  @db.Text
+    internalCustomerId     Int?
+    linkRevision           Int      @default(0)
+    retentionUntil         DateTime? @db.DateTime(3)
+    deletedAt              DateTime? @db.DateTime(3)
+    createdAt              DateTime @default(now()) @db.DateTime(3)
+    lastSeenAt             DateTime @default(now()) @db.DateTime(3)
+    connection             MessagingConnection @relation(fields: [connectionId, organizationId], references: [id, organizationId], onDelete: NoAction, onUpdate: NoAction)
+    internalCustomer       Customers? @relation(fields: [internalCustomerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    conversations          MessagingConversation[]
+    linkEvents             MessagingCustomerLinkEvent[]
+
+    @@unique([connectionId, externalCustomerHash], map: "msg_customer_external_uq")
+    @@unique([connectionId, provisionalIdentityHash], map: "msg_customer_provisional_uq")
+    @@unique([id, connectionId], map: "msg_customer_connection_uq")
+    @@index([organizationId, internalCustomerId], map: "msg_customer_crm_idx")
+    @@index([connectionId, lastSeenAt], map: "msg_customer_recent_idx")
+    @@index([retentionUntil, deletedAt], map: "msg_customer_retention_idx")
+}
+
+model MessagingCustomerLinkEvent {
+    id                         String @id @default(cuid()) @db.VarChar(191)
+    messagingCustomerId        String @db.VarChar(191)
+    revision                   Int
+    previousInternalCustomerId Int?
+    newInternalCustomerId      Int?
+    actorId                    Int
+    reason                     String? @db.VarChar(500)
+    occurredAt                 DateTime @default(now()) @db.DateTime(3)
+    customer                   MessagingCustomer @relation(fields: [messagingCustomerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    actor                      Users @relation(fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([messagingCustomerId, revision], map: "msg_customer_link_revision_uq")
+    @@index([actorId, occurredAt], map: "msg_customer_link_actor_idx")
+}
+
+model MessagingConversation {
+    id                  String @id @default(cuid()) @db.VarChar(191)
+    connectionId        String @db.VarChar(191)
+    messagingCustomerId String @db.VarChar(191)
+    externalThreadKey   String @db.VarChar(191)
+    externalThreadHash  String @db.Char(64)
+    sourceThreadUrl     String @db.Text
+    listingId           String? @db.VarChar(191)
+    listingTitle        String? @db.VarChar(500)
+    historyRevision     Int @default(0)
+    latestInboundKey    String? @db.VarChar(191)
+    lastObservedAt      DateTime @default(now()) @db.DateTime(3)
+    retentionUntil      DateTime? @db.DateTime(3)
+    deletedAt           DateTime? @db.DateTime(3)
+    createdAt           DateTime @default(now()) @db.DateTime(3)
+    updatedAt           DateTime @updatedAt @db.DateTime(3)
+    connection          MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    customer            MessagingCustomer @relation(fields: [messagingCustomerId, connectionId], references: [id, connectionId], onDelete: NoAction, onUpdate: NoAction)
+    messages            MessagingMessage[]
+    batches             MessagingBatch[]
+    sendJobs            MessagingSendJob[]
+
+    @@unique([connectionId, externalThreadHash], map: "msg_conversation_thread_uq")
+    @@index([connectionId, lastObservedAt], map: "msg_conversation_inbox_idx")
+    @@index([messagingCustomerId, lastObservedAt], map: "msg_conversation_customer_idx")
+    @@index([retentionUntil, deletedAt], map: "msg_conversation_retention_idx")
+}
+
+model MessagingMessage {
+    id                 String @id @default(cuid()) @db.VarChar(191)
+    conversationId     String @db.VarChar(191)
+    sourceMessageId    String? @db.VarChar(191)
+    sourceMessageHash  String? @db.Char(64)
+    dedupKey           String @db.VarChar(191)
+    dedupHash          String @db.Char(64)
+    identityConfidence String @db.VarChar(24)
+    direction          String @db.VarChar(16)
+    senderExternalId   String? @db.VarChar(191)
+    text               String? @db.LongText
+    attachmentMetadata Json? @db.Json
+    sourceCreatedAt    DateTime? @db.DateTime(3)
+    observedAt         DateTime @default(now()) @db.DateTime(3)
+    orderingAnchor     String @db.VarChar(191)
+    retentionUntil     DateTime? @db.DateTime(3)
+    deletedAt          DateTime? @db.DateTime(3)
+    conversation       MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([conversationId, sourceMessageHash], map: "msg_message_source_uq")
+    @@unique([conversationId, dedupHash], map: "msg_message_dedup_uq")
+    @@index([conversationId, observedAt, id], map: "msg_message_timeline_idx")
+    @@index([retentionUntil, deletedAt], map: "msg_message_retention_idx")
+}
+
+model MessagingBatch {
+    id                String @id @default(cuid()) @db.VarChar(191)
+    conversationId    String @db.VarChar(191)
+    revision          Int
+    orderedMessageIds Json @db.Json
+    contextMessageIds Json @db.Json
+    contextRevision   Int
+    dueAt             DateTime @db.DateTime(3)
+    state             String @db.VarChar(30)
+    supersededById    String? @db.VarChar(191)
+    createdAt         DateTime @default(now()) @db.DateTime(3)
+    updatedAt         DateTime @updatedAt @db.DateTime(3)
+    conversation      MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    drafts            MessagingDraft[]
+    approvalRequests  MessagingApprovalRequest[]
+
+    @@unique([conversationId, revision], map: "msg_batch_revision_uq")
+    @@index([state, dueAt], map: "msg_batch_due_idx")
+}
+
+model MessagingRuleSetVersion {
+    id                 String @id @default(cuid()) @db.VarChar(191)
+    connectionId       String @db.VarChar(191)
+    rulesetId          String @db.VarChar(191)
+    revision           Int
+    validatedRulesJson Json @db.Json
+    publishedBy        Int
+    publishedAt        DateTime @default(now()) @db.DateTime(3)
+    disabledAt         DateTime? @db.DateTime(3)
+    connection         MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    drafts             MessagingDraft[]
+
+    @@unique([connectionId, rulesetId, revision], map: "msg_ruleset_version_uq")
+}
+
+model MessagingDraft {
+    id                String @id @default(cuid()) @db.VarChar(191)
+    batchId           String @db.VarChar(191)
+    version           Int
+    responseText      String @db.LongText
+    textHash          String @db.Char(64)
+    ruleVersionId     String? @db.VarChar(191)
+    modelId           String? @db.VarChar(100)
+    factReferences    Json @db.Json
+    missingInformation Json @db.Json
+    needsHumanReview  Boolean @default(true)
+    createdAt         DateTime @default(now()) @db.DateTime(3)
+    batch             MessagingBatch @relation(fields: [batchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    ruleVersion       MessagingRuleSetVersion? @relation(fields: [ruleVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    approvalRequests  MessagingApprovalRequest[]
+
+    @@unique([batchId, version], map: "msg_draft_version_uq")
+}
+
+model MessagingApprovalRequest {
+    id                        String @id @default(cuid()) @db.VarChar(191)
+    batchId                   String @db.VarChar(191)
+    draftId                   String @db.VarChar(191)
+    expectedContextRevision   Int
+    expectedTextHash          String @db.Char(64)
+    ownerWaId                 String @db.VarChar(191)
+    senderReference           String @db.VarChar(191)
+    requestToken              String @unique(map: "msg_approval_token_uq") @db.VarChar(191)
+    outboundProviderMessageId String? @db.VarChar(191)
+    outboundProviderMessageHash String? @db.Char(64)
+    notificationState         String @default("queued") @db.VarChar(30)
+    approvalState             String @default("pending") @db.VarChar(30)
+    expiresAt                 DateTime @db.DateTime(3)
+    attemptCount              Int @default(0)
+    nextAttemptAt             DateTime? @db.DateTime(3)
+    createdAt                 DateTime @default(now()) @db.DateTime(3)
+    updatedAt                 DateTime @updatedAt @db.DateTime(3)
+    batch                     MessagingBatch @relation(fields: [batchId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    draft                     MessagingDraft @relation(fields: [draftId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    decisions                 MessagingApprovalDecision[]
+
+    @@unique([senderReference, outboundProviderMessageHash], map: "msg_approval_outbound_uq")
+    @@index([notificationState, nextAttemptAt], map: "msg_approval_outbox_idx")
+    @@index([batchId, approvalState], map: "msg_approval_batch_idx")
+}
+
+model MessagingApprovalDecision {
+    id                       String @id @default(cuid()) @db.VarChar(191)
+    approvalRequestId        String @db.VarChar(191)
+    inboundProviderMessageId String @db.VarChar(191)
+    inboundProviderMessageHash String @db.Char(64)
+    replyContextId           String @db.VarChar(191)
+    actorWaId                String @db.VarChar(191)
+    command                  String @db.VarChar(24)
+    approvedText             String? @db.LongText
+    approvedTextHash         String? @db.Char(64)
+    decidedAt                DateTime @default(now()) @db.DateTime(3)
+    rejectionReason          String? @db.VarChar(500)
+    request                  MessagingApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    sendJob                  MessagingSendJob?
+
+    @@unique([actorWaId, inboundProviderMessageHash], map: "msg_decision_inbound_uq")
+    @@index([approvalRequestId, decidedAt], map: "msg_decision_request_idx")
+}
+
+model MessagingSendJob {
+    id                      String @id @default(cuid()) @db.VarChar(191)
+    decisionId              String @unique(map: "msg_job_decision_uq") @db.VarChar(191)
+    conversationId          String @db.VarChar(191)
+    expectedContextRevision Int
+    approvedTextHash        String @db.Char(64)
+    state                   String @default("queued") @db.VarChar(30)
+    deviceId                String? @db.VarChar(191)
+    leaseExpiresAt          DateTime? @db.DateTime(3)
+    fence                   Int @default(0)
+    nextAttemptAt           DateTime? @db.DateTime(3)
+    attemptCount            Int @default(0)
+    createdAt               DateTime @default(now()) @db.DateTime(3)
+    updatedAt               DateTime @updatedAt @db.DateTime(3)
+    decision                MessagingApprovalDecision @relation(fields: [decisionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    conversation            MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    device                  MessagingDevice? @relation(fields: [deviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    attempts                MessagingSendAttempt[]
+
+    @@index([state, nextAttemptAt], map: "msg_job_queue_idx")
+    @@index([conversationId, state], map: "msg_job_conversation_idx")
+    @@index([deviceId, leaseExpiresAt], map: "msg_job_lease_idx")
+}
+
+model MessagingSendAttempt {
+    id                      String @id @default(cuid()) @db.VarChar(191)
+    jobId                   String @db.VarChar(191)
+    deviceId                String @db.VarChar(191)
+    fence                   Int
+    preparedAt              DateTime? @db.DateTime(3)
+    submissionStartedAt     DateTime? @db.DateTime(3)
+    completedAt             DateTime? @db.DateTime(3)
+    outcome                 String @db.VarChar(30)
+    observedSourceMessageId String? @db.VarChar(191)
+    evidenceJson            Json? @db.Json
+    errorCode               String? @db.VarChar(100)
+    job                     MessagingSendJob @relation(fields: [jobId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    device                  MessagingDevice @relation(fields: [deviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([jobId, fence], map: "msg_attempt_fence_uq")
+    @@index([deviceId, preparedAt], map: "msg_attempt_device_idx")
+}
+
+model MessagingProviderEvent {
+    id                String @id @default(cuid()) @db.VarChar(191)
+    senderReference   String @db.VarChar(191)
+    eventKey          String @db.VarChar(191)
+    eventKeyHash      String @db.Char(64)
+    eventType         String @db.VarChar(40)
+    providerMessageId String? @db.VarChar(191)
+    contextId         String? @db.VarChar(191)
+    actorWaId         String? @db.VarChar(191)
+    boundedPayload    Json @db.Json
+    receivedAt        DateTime @default(now()) @db.DateTime(3)
+    processedAt       DateTime? @db.DateTime(3)
+    processingState   String @default("queued") @db.VarChar(30)
+    lastError         String? @db.VarChar(500)
+
+    @@unique([senderReference, eventKeyHash], map: "msg_provider_event_uq")
+    @@index([processingState, receivedAt], map: "msg_provider_pending_idx")
+    @@index([senderReference, providerMessageId], map: "msg_provider_message_idx")
 }
 
 // ---- sales.accounting.prisma ----
@@ -4390,6 +4866,7 @@ model SalesDocumentSnapshot {
     id               String   @id @default(cuid())
     salesOrderId     Int
     storedDocumentId String?  @db.VarChar(191)
+    providerJobId    String?  @unique(map: "sales_doc_provider_job_uq") @db.VarChar(191)
     documentType     String   @db.VarChar(100)
     version          Int      @default(1)
     generationStatus String   @default("pending") @db.VarChar(50)
@@ -4722,6 +5199,29 @@ enum BugReportTranscriptionStatus {
     FAILED
 }
 
+enum BugReportUploadMediaKind {
+    VIDEO
+    SCREENSHOT
+    AUDIO
+}
+
+enum BugReportUploadIntentState {
+    PENDING
+    READY
+    CONSUMED
+    EXPIRED
+}
+
+enum BugReportDeliveryState {
+    PENDING
+    PROCESSING
+    CREATED
+    RETRY_WAIT
+    FAILED
+    UNCONFIGURED
+    UNCERTAIN
+}
+
 model BugReport {
     id                  String          @id @default(cuid())
     createdById         Int
@@ -4730,6 +5230,8 @@ model BugReport {
     description         String?         @db.Text
     currentUrl          String?         @db.VarChar(2048)
     userAgent           String?         @db.Text
+    submissionId        String?         @db.VarChar(64)
+    submissionFingerprint String?       @db.VarChar(191)
     source              String          @default("web") @db.VarChar(50)
     recordingDocumentId String?         @db.VarChar(191)
     durationMs          Int?
@@ -4746,8 +5248,11 @@ model BugReport {
     updatedAt           DateTime?       @updatedAt
     deletedAt           DateTime?       @db.Timestamp(0)
     followUps           BugReportFollowUp[]
+    uploadIntents       BugReportUploadIntent[]
+    delivery            BugReportDelivery?
 
     @@index([createdById, createdAt])
+    @@unique([createdById, submissionId])
     @@index([status, createdAt])
     @@index([recordingDocumentId])
     @@index([externalIssueProvider, externalIssueKey])
@@ -4775,6 +5280,56 @@ model BugReportFollowUp {
     @@index([audioDocumentId])
     @@index([transcriptionStatus, createdAt])
     @@index([deletedAt])
+}
+
+model BugReportUploadIntent {
+    id                  String   @id @default(cuid())
+    createdById         Int
+    mediaKind           BugReportUploadMediaKind
+    pathname            String   @unique @db.VarChar(512)
+    expectedMimeType    String   @db.VarChar(255)
+    expectedSize        Int
+    verifiedMimeType    String?  @db.VarChar(255)
+    verifiedSize        Int?
+    verifiedStorageUrl  String?  @db.VarChar(512)
+    state               BugReportUploadIntentState @default(PENDING)
+    expiresAt           DateTime @db.Timestamp(0)
+    consumedReportId    String?  @db.VarChar(191)
+    createdAt           DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime? @updatedAt
+    report              BugReport? @relation(fields: [consumedReportId], references: [id])
+
+    @@index([createdById, state, expiresAt])
+    @@index([consumedReportId])
+}
+
+model BugReportDelivery {
+    id                  String   @id @default(cuid())
+    reportId           String   @unique @db.VarChar(191)
+    provider           String   @db.VarChar(50)
+    repository          String   @db.VarChar(191)
+    actionKey           String   @unique @db.VarChar(191)
+    state               BugReportDeliveryState @default(PENDING)
+    attempts            Int      @default(0)
+    nextAttemptAt       DateTime? @db.Timestamp(0)
+    leaseId             String?  @db.VarChar(191)
+    leaseExpiresAt      DateTime? @db.Timestamp(0)
+    lastErrorCode       String?  @db.VarChar(100)
+    remoteIssueNumber   Int?
+    remoteIssueKey      String?  @db.VarChar(191)
+    remoteIssueUrl      String?  @db.VarChar(512)
+    scanCursor          String?  @db.VarChar(191)
+    scanCompletedAt     DateTime? @db.Timestamp(0)
+    firstAttemptAt      DateTime? @db.Timestamp(0)
+    lastAttemptAt       DateTime? @db.Timestamp(0)
+    sentAt              DateTime? @db.Timestamp(0)
+    createdAt           DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime? @updatedAt
+    report              BugReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+    @@index([state, nextAttemptAt])
+    @@index([provider, repository])
+    @@index([leaseExpiresAt])
 }
 
 // ---- master-password-login-audits.prisma ----
@@ -4821,6 +5376,70 @@ model MasterPasswordLoginAudit {
     @@index([resourceType, resourceId])
     @@index([sessionId])
     @@index([deletedAt])
+}
+
+// ---- mobile-access.prisma ----
+enum MobileAccessPlatform {
+    ANDROID
+    IOS
+}
+
+enum MobileAccessRequestStatus {
+    REQUESTED
+    APPROVED
+    INVITED
+    ACCEPTED
+    INSTALLED
+    REJECTED
+    CANCELLED
+}
+
+model MobileAccessRequest {
+    id                  Int                       @id @default(autoincrement())
+    userId              Int
+    platform            MobileAccessPlatform
+    status              MobileAccessRequestStatus @default(REQUESTED)
+    employeeNote        String?                   @db.Text
+    statusNote          String?                   @db.Text
+    internalNote        String?                   @db.Text
+    invitationProvider  String?                   @db.VarChar(80)
+    externalReference   String?                   @db.VarChar(255)
+    requestedAt         DateTime                  @default(now())
+    approvedAt          DateTime?
+    invitedAt           DateTime?
+    acceptedAt          DateTime?
+    installedAt         DateTime?
+    rejectedAt          DateTime?
+    cancelledAt         DateTime?
+    reviewedById        Int?
+    lastStatusChangedAt DateTime                  @default(now())
+    createdAt           DateTime                  @default(now())
+    updatedAt           DateTime                  @updatedAt
+
+    requester Users  @relation(name: "mobileAccessRequester", fields: [userId], references: [id])
+    reviewedBy Users? @relation(name: "mobileAccessReviewer", fields: [reviewedById], references: [id])
+    events     MobileAccessRequestEvent[]
+
+    @@unique([userId, platform])
+    @@index([status, platform, requestedAt])
+    @@index([reviewedById])
+}
+
+model MobileAccessRequestEvent {
+    id         Int                       @id @default(autoincrement())
+    requestId  Int
+    actorId    Int
+    fromStatus MobileAccessRequestStatus?
+    toStatus   MobileAccessRequestStatus
+    note       String?                   @db.Text
+    meta       Json?                     @db.Json
+    createdAt  DateTime                  @default(now())
+
+    request MobileAccessRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+    actor   Users               @relation(name: "mobileAccessEventActor", fields: [actorId], references: [id])
+
+    @@index([requestId, createdAt])
+    @@index([actorId, createdAt])
 }
 
 // ---- notes.prisma ----
@@ -5002,6 +5621,290 @@ model NoteChannelRole {
     @@index([roleId])
 }
 
+// ---- sales-request-mailbox.prisma ----
+model SalesRequestMailboxOAuthAttempt {
+  stateDigest           String    @id @db.VarChar(80)
+  organizationId        Int
+  ownerUserId           Int
+  employeeProfileId     Int
+  officeAuthorityKey    String    @db.VarChar(191)
+  provider              String    @db.VarChar(32)
+  redirectKey           String    @db.VarChar(64)
+  issuedAt              DateTime  @db.DateTime(3)
+  expiresAt             DateTime  @db.DateTime(3)
+  salesSettingsId       Int
+  salesSettingsRevision Int
+  policyRevision        Int
+  authorityRevision     String    @db.VarChar(191)
+  consumedAt            DateTime? @db.DateTime(3)
+  terminalAt            DateTime? @db.DateTime(3)
+  terminalReason        String?   @db.VarChar(64)
+  createdAt             DateTime  @default(now()) @db.DateTime(3)
+  updatedAt             DateTime  @updatedAt @db.DateTime(3)
+
+  @@index([ownerUserId, provider, issuedAt], name: "sales_req_mailbox_oauth_owner_idx")
+  @@index([expiresAt, consumedAt], name: "sales_req_mailbox_oauth_expiry_idx")
+  @@index([terminalAt], name: "sales_req_mailbox_oauth_terminal_idx")
+}
+
+model SalesRequestMailboxConnection {
+  id                         String    @id @default(cuid()) @db.VarChar(191)
+  organizationId             Int
+  ownerUserId                Int
+  employeeProfileId          Int
+  officeAuthorityKey         String    @db.VarChar(191)
+  authorityRevision          String    @db.VarChar(191)
+  salesSettingsId            Int
+  salesSettingsRevision      Int
+  policyRevision             Int
+  provider                   String    @db.VarChar(32)
+  providerAccountId          String?   @db.VarChar(255)
+  providerAccountIdentityHash String?  @db.Char(64)
+  accountEmail               String?   @db.VarChar(320)
+  displayName                String?   @db.VarChar(255)
+  grantedScopes              Json?
+  scopeFingerprint           String?   @db.VarChar(69)
+  accessTokenEnvelope        Json?
+  refreshTokenEnvelope       Json?
+  tokenExpiresAt             DateTime? @db.DateTime(3)
+  revision                   Int       @default(1)
+  state                      String    @default("active") @db.VarChar(32)
+  automationMode             String    @default("manual") @db.VarChar(32)
+  notifyOnNeedsReview        Boolean   @default(false)
+  excludedSenders            Json
+  excludedDomains            Json
+  syncBlocked                Boolean   @default(false)
+  lastSyncAt                 DateTime? @db.DateTime(3)
+  healthOperationId          String?   @unique(map: "sales_req_mailbox_health_work_uq") @db.VarChar(255)
+  healthOperationReason      String?   @db.VarChar(32)
+  healthOperationConnectionRevision Int?
+  healthStatus               String    @default("healthy") @db.VarChar(40)
+  healthLeaseId              String?   @db.VarChar(255)
+  healthLeaseEpoch           Int       @default(0)
+  healthLeaseExpiresAt       DateTime? @db.DateTime(3)
+  healthRetryAttempt         Int       @default(0)
+  healthNextAttemptAt        DateTime? @db.DateTime(3)
+  healthCheckedAt            DateTime? @db.DateTime(3)
+  healthRefreshedAt          DateTime? @db.DateTime(3)
+  healthErrorCode            String?   @db.VarChar(80)
+  disconnectId               String?   @unique(map: "sales_req_mailbox_disconnect_work_uq") @db.VarChar(255)
+  disconnectPhase            String?   @db.VarChar(40)
+  disconnectPreviousRevision Int?
+  disconnectStartedAt        DateTime? @db.DateTime(3)
+  disconnectCompletedAt      DateTime? @db.DateTime(3)
+  disconnectFailurePhase     String?   @db.VarChar(40)
+  disconnectFailureReason    String?   @db.VarChar(80)
+  disconnectFailureAt        DateTime? @db.DateTime(3)
+  providerRevokedAt          DateTime? @db.DateTime(3)
+  disconnectedAt             DateTime? @db.DateTime(3)
+  createdAt                  DateTime  @default(now()) @db.DateTime(3)
+  updatedAt                  DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([provider, providerAccountIdentityHash], name: "sales_req_mailbox_provider_account_uq")
+  @@index([ownerUserId, organizationId, state, updatedAt], name: "sales_req_mailbox_owner_state_idx")
+  @@index([organizationId, state, healthStatus, updatedAt], name: "sales_req_mailbox_admin_health_idx")
+  @@index([state, syncBlocked, healthNextAttemptAt], name: "sales_req_mailbox_health_due_idx")
+  @@index([disconnectPhase, disconnectStartedAt], name: "sales_req_mailbox_disconnect_idx")
+}
+
+model SalesRequestMailboxSource {
+  id               String   @id @default(cuid()) @db.VarChar(191)
+  connectionId     String   @db.VarChar(191)
+  kind             String   @db.VarChar(32)
+  providerSourceId           String   @db.VarChar(255)
+  providerSourceIdentityHash String   @db.Char(64)
+  sourceKey                  String   @db.VarChar(255)
+  sourceKeyIdentityHash      String   @db.Char(64)
+  selected         Boolean  @default(true)
+  revision         Int      @default(1)
+  createdAt        DateTime @default(now()) @db.DateTime(3)
+  updatedAt        DateTime @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, sourceKeyIdentityHash], name: "sales_req_mailbox_source_uq")
+  @@unique([connectionId, kind, providerSourceIdentityHash], name: "sales_req_mailbox_provider_source_uq")
+  @@index([connectionId, selected, revision], name: "sales_req_mailbox_source_selected_idx")
+}
+
+model SalesRequestMailboxSyncStream {
+  id                       String    @id @default(cuid()) @db.VarChar(191)
+  connectionId             String    @db.VarChar(191)
+  sourceId                 String    @db.VarChar(191)
+  status                   String    @default("queued") @db.VarChar(32)
+  checkpointMode           String?   @db.VarChar(32)
+  checkpointCursor         String?   @db.Text
+  checkpointPageToken      String?   @db.Text
+  checkpointSince          DateTime? @db.DateTime(3)
+  checkpointRetryAttempts  Int       @default(0)
+  checkpointCursorResets   Int       @default(0)
+  continuationFingerprints Json?
+  checkpointHash           String?   @db.VarChar(80)
+  runId                    String?   @db.VarChar(255)
+  leaseId                  String?   @db.VarChar(255)
+  leaseEpoch               Int       @default(0)
+  leaseExpiresAt           DateTime? @db.DateTime(3)
+  leasedConnectionRevision Int?
+  leasedPolicyRevision     Int?
+  nextAttemptAt            DateTime  @default(now()) @db.DateTime(3)
+  failureCode              String?   @db.VarChar(80)
+  failureEvidence          Json?
+  lastPagesFetched         Int       @default(0)
+  lastMessagesProjected    Int       @default(0)
+  lastMessagesSuppressed   Int       @default(0)
+  lastTombstonesProjected  Int       @default(0)
+  completedAt              DateTime? @db.DateTime(3)
+  createdAt                DateTime  @default(now()) @db.DateTime(3)
+  updatedAt                DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, sourceId], name: "sales_req_mailbox_stream_uq")
+  @@index([status, nextAttemptAt, leaseExpiresAt], name: "sales_req_mailbox_stream_due_idx")
+  @@index([leaseId, leaseEpoch], name: "sales_req_mailbox_stream_lease_idx")
+}
+
+model SalesRequestMailboxMessageSummary {
+  id                String    @id @default(cuid()) @db.VarChar(191)
+  connectionId      String    @db.VarChar(191)
+  sourceId          String    @db.VarChar(191)
+  provider          String    @db.VarChar(32)
+  providerMessageId           String    @db.VarChar(255)
+  providerMessageIdentityHash String    @db.Char(64)
+  providerThreadId  String?   @db.VarChar(255)
+  providerFolderId  String?   @db.VarChar(255)
+  providerLabelIds  Json
+  fromEmail         String    @db.VarChar(320)
+  fromName          String?   @db.VarChar(255)
+  subject           String?   @db.VarChar(998)
+  receivedAt        DateTime  @db.DateTime(3)
+  hasAttachments    Boolean   @default(false)
+  automationHeaders Json
+  projectionHash    String    @db.VarChar(80)
+  summaryRevision   Int       @default(1)
+  disposition       String    @default("accepted") @db.VarChar(32)
+  exclusionReason   String?   @db.VarChar(64)
+  active            Boolean   @default(true)
+  detailStatus      String    @default("queued") @db.VarChar(32)
+  tombstonedAt      DateTime? @db.DateTime(3)
+  projectedAt       DateTime  @default(now()) @db.DateTime(3)
+  createdAt         DateTime  @default(now()) @db.DateTime(3)
+  updatedAt         DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, sourceId, providerMessageIdentityHash], name: "sales_req_mailbox_summary_uq")
+  @@index([detailStatus, active, projectedAt], name: "sales_req_mailbox_summary_detail_idx")
+  @@index([connectionId, providerMessageIdentityHash], name: "sales_req_mailbox_summary_message_idx")
+}
+
+model SalesRequestMailboxMessageLease {
+  id                       String    @id @default(cuid()) @db.VarChar(191)
+  connectionId             String    @db.VarChar(191)
+  providerMessageId        String    @db.VarChar(255)
+  providerMessageIdentityHash String @db.Char(64)
+  sourceId                 String    @db.VarChar(191)
+  claimedSummaryId         String?   @db.VarChar(191)
+  claimedSummaryRevision   Int?
+  sourceMembershipIdentity String?   @db.VarChar(69)
+  status                   String    @default("queued") @db.VarChar(32)
+  runId                    String?   @db.VarChar(255)
+  leaseId                  String?   @db.VarChar(255)
+  leaseEpoch               Int       @default(0)
+  leaseExpiresAt           DateTime? @db.DateTime(3)
+  leasedConnectionRevision Int?
+  leasedPolicyRevision     Int?
+  retryAttempts            Int       @default(0)
+  nextAttemptAt            DateTime  @default(now()) @db.DateTime(3)
+  failureCode              String?   @db.VarChar(80)
+  failureEvidence          Json?
+  completedAt              DateTime? @db.DateTime(3)
+  createdAt                DateTime  @default(now()) @db.DateTime(3)
+  updatedAt                DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, providerMessageIdentityHash], name: "sales_req_mailbox_lease_uq")
+  @@index([status, nextAttemptAt, leaseExpiresAt], name: "sales_req_mailbox_lease_due_idx")
+  @@index([leaseId, leaseEpoch], name: "sales_req_mailbox_lease_fence_idx")
+}
+
+model SalesRequestMailboxSourceMembership {
+  id                String    @id @db.VarChar(69)
+  connectionId      String    @db.VarChar(191)
+  sourceId          String    @db.VarChar(191)
+  messageSummaryId  String    @db.VarChar(191)
+  snapshotId                  String    @db.VarChar(191)
+  providerMessageId           String    @db.VarChar(255)
+  providerMessageIdentityHash String    @db.Char(64)
+  summaryRevision   Int
+  state             String    @default("active") @db.VarChar(32)
+  activeKey         String?   @unique(map: "sales_req_mailbox_membership_active_uq") @db.VarChar(512)
+  activatedAt       DateTime  @default(now()) @db.DateTime(3)
+  deactivatedAt     DateTime? @db.DateTime(3)
+  withdrawalReason  String?   @db.VarChar(80)
+  createdAt         DateTime  @default(now()) @db.DateTime(3)
+  updatedAt         DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([sourceId, providerMessageIdentityHash, summaryRevision], name: "sales_req_mailbox_membership_revision_uq")
+  @@index([connectionId, providerMessageIdentityHash, state], name: "sales_req_mailbox_membership_active_idx")
+  @@index([snapshotId, state], name: "sales_req_mailbox_membership_snapshot_idx")
+}
+
+model SalesRequestMailboxMessageSnapshot {
+  id                String   @id @default(cuid()) @db.VarChar(191)
+  connectionId      String   @db.VarChar(191)
+  provider          String   @db.VarChar(32)
+  providerMessageId           String   @db.VarChar(255)
+  providerMessageIdentityHash String   @db.Char(64)
+  providerThreadId  String?  @db.VarChar(255)
+  schemaVersion     Int      @default(1)
+  contentHash       String   @db.VarChar(69)
+  capturedAt        DateTime @db.DateTime(3)
+  receivedAt        DateTime @db.DateTime(3)
+  expiresAt         DateTime @db.DateTime(3)
+  fromEmail         String   @db.VarChar(320)
+  fromName          String?  @db.VarChar(255)
+  subject           String?  @db.VarChar(998)
+  toEmails          Json
+  ccEmails          Json
+  hasAttachments    Boolean  @default(false)
+  displayText       String   @db.LongText
+  modelInput        String   @db.LongText
+  createdAt         DateTime @default(now()) @db.DateTime(3)
+
+  @@unique([connectionId, providerMessageIdentityHash, schemaVersion, contentHash], name: "sales_req_mailbox_snapshot_uq")
+  @@index([expiresAt], name: "sales_req_mailbox_snapshot_expiry_idx")
+  @@index([connectionId, providerMessageIdentityHash, receivedAt], name: "sales_req_mailbox_snapshot_message_idx")
+}
+
+model SalesRequestMailboxQueueProjection {
+  id                    String    @id @default(cuid()) @db.VarChar(191)
+  queueIdentity         String    @unique(map: "sales_req_mailbox_queue_identity_uq") @db.VarChar(80)
+  connectionId          String    @db.VarChar(191)
+  organizationId        Int
+  ownerUserId           Int
+  provider              String    @db.VarChar(32)
+  providerMessageId     String    @db.VarChar(255)
+  providerMessageIdentityHash String @db.Char(64)
+  snapshotId            String    @db.VarChar(191)
+  sourceMembershipId    String    @db.VarChar(69)
+  sourceKey             String    @db.VarChar(255)
+  sourceSummaryRevision Int
+  snapshotSchemaVersion Int       @default(1)
+  contentHash           String    @db.VarChar(69)
+  status                String    @default("new") @db.VarChar(32)
+  statusRevision        Int       @default(1)
+  statusUpdatedAt       DateTime  @default(now()) @db.DateTime(3)
+  failureCode           String?   @db.VarChar(80)
+  receivedAt            DateTime  @db.DateTime(3)
+  fromEmail             String    @db.VarChar(320)
+  fromName              String?   @db.VarChar(255)
+  subject               String?   @db.VarChar(998)
+  hasAttachments        Boolean   @default(false)
+  withdrawnAt           DateTime? @db.DateTime(3)
+  createdAt             DateTime  @default(now()) @db.DateTime(3)
+  updatedAt             DateTime  @updatedAt @db.DateTime(3)
+
+  @@unique([connectionId, providerMessageIdentityHash], name: "sales_req_mailbox_current_queue_uq")
+  @@index([ownerUserId, organizationId, connectionId, status, receivedAt, queueIdentity], name: "sales_req_mailbox_inbox_idx")
+  @@index([ownerUserId, organizationId, connectionId, receivedAt, queueIdentity], name: "sales_req_mailbox_inbox_all_idx")
+  @@index([snapshotId], name: "sales_req_mailbox_queue_snapshot_idx")
+  @@index([sourceMembershipId], name: "sales_req_mailbox_queue_membership_idx")
+}
+
 // ---- sales.tax-ledger.prisma ----
 enum SalesTaxLedgerEntryType {
     SALE
@@ -5050,6 +5953,9 @@ model SalesTaxLedgerEntry {
 
 // ---- users.prisma ----
 model Users {
+    messagingDevices MessagingDevice[]
+    messagingConnectionCodes MessagingConnectionCode[]
+    messagingCustomerLinkEvents MessagingCustomerLinkEvent[]
     id                          Int                              @unique @default(autoincrement())
     // id2               String?    @default(cuid()) // for Better Auth
     slug                        String?
@@ -5078,6 +5984,9 @@ model Users {
     roles                       ModelHasRoles[]
     notifications               Notifications[]                  @relation(name: "notifications")
     sentNotifications           Notifications[]                  @relation(name: "fromUser")
+    mobileAccessRequests        MobileAccessRequest[]             @relation(name: "mobileAccessRequester")
+    reviewedMobileAccessRequests MobileAccessRequest[]            @relation(name: "mobileAccessReviewer")
+    mobileAccessRequestEvents   MobileAccessRequestEvent[]        @relation(name: "mobileAccessEventActor")
     inbox                       Inbox[]
     jobs                        Jobs[]                           @relation(name: "installer")
     coWorkerJobs                Jobs[]                           @relation(name: "co-worker")
@@ -5136,6 +6045,7 @@ model Users {
     payrollHistory              PayrollHistory[]
     customer                    Customers?
     webAuthUser                 WebAuthUser?
+    assistantEntitlement       AssistantUserEntitlement?
 
     @@index([createdAt, deletedAt, name])
     @@index([employeeProfileId])
@@ -5238,7 +6148,7 @@ model WebAuthAccount {
 model WebAuthVerification {
     id         String    @id
     identifier String
-    value      String
+    value      String    @db.Text
     expiresAt  DateTime
     createdAt  DateTime?
     updatedAt  DateTime?
@@ -5808,6 +6718,7 @@ model Customers {
     createdAt      DateTime?             @default(now()) @db.Timestamp(0)
     updatedAt      DateTime?             @updatedAt
     salesOrders    SalesOrders[]
+    messagingSourceCustomers MessagingCustomer[]
     dealerSales    DealerSales[]
     profile        CustomerTypes?        @relation(fields: [customerTypeId], references: [id])
     addressBooks   AddressBooks[]        @relation(name: "addressBooks")
@@ -5944,6 +6855,711 @@ model DealerSalesRequest {
 
     @@index([salesId])
     @@index([approvedById])
+}
+
+// ---- assistant.prisma ----
+// Diagnostic references intentionally survive missing/deleted chats; reads reauthorize context.
+model AssistantDiagnostic {
+    reference       String   @id @db.VarChar(32)
+    fingerprint     String   @db.Char(64)
+    requestId       String?  @db.VarChar(191)
+    conversationId  String?  @db.VarChar(191)
+    runId           String?  @db.VarChar(191)
+    toolCallId      String?  @db.VarChar(191)
+    actorUserId     Int?
+    scopeType       String?  @db.VarChar(32)
+    scopeId         String?  @db.VarChar(191)
+    stage           String   @db.VarChar(32)
+    operation       String   @db.VarChar(120)
+    code            String   @db.VarChar(100)
+    severity        String   @db.VarChar(16)
+    outcome         String   @db.VarChar(32)
+    publicMessage   String   @db.VarChar(500)
+    environment     String   @db.VarChar(32)
+    release         String?  @db.VarChar(64)
+    provider        String?  @db.VarChar(32)
+    model           String?  @db.VarChar(100)
+    durationMs      Int?
+    details         Json?    @db.Json
+    status          String   @default("new") @db.VarChar(20)
+    createdAt       DateTime @default(now()) @db.DateTime(3)
+    expiresAt       DateTime @db.DateTime(3)
+    reviews         AssistantDiagnosticReview[]
+
+    @@index([status, createdAt])
+    @@index([fingerprint, createdAt])
+    @@index([conversationId, createdAt])
+    @@index([runId, createdAt])
+    @@index([expiresAt])
+}
+
+model AssistantDiagnosticReview {
+    id             String   @id @default(cuid()) @db.VarChar(191)
+    reference      String   @db.VarChar(32)
+    reviewerId     Int
+    fromStatus     String   @db.VarChar(20)
+    status         String   @db.VarChar(20)
+    note           String   @db.Text
+    createdAt      DateTime @default(now()) @db.DateTime(3)
+    diagnostic     AssistantDiagnostic @relation(fields: [reference], references: [reference], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([reference, createdAt])
+}
+
+model AssistantConversation {
+    id             String             @id @default(cuid()) @db.VarChar(191)
+    ownerUserId    Int
+    scopeType      String             @default("user") @db.VarChar(50)
+    scopeId        String?            @db.VarChar(191)
+    title          String?            @db.VarChar(500)
+    preferences    Json?              @db.Json
+    lastSequence   Int                @default(0)
+    retentionUntil DateTime?          @db.Timestamp(0)
+    archivedAt     DateTime?          @db.Timestamp(0)
+    deletedAt      DateTime?          @db.Timestamp(0)
+    createdAt      DateTime           @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime           @updatedAt
+    messages       AssistantMessage[]
+    runs           AssistantRun[]
+    featureRequests AssistantFeatureRequest[]
+    salesRequestSession AssistantSalesRequestSession?
+
+    @@index([ownerUserId, archivedAt, deletedAt, updatedAt], map: "asst_conv_owner_active_idx")
+    @@index([ownerUserId, scopeType, scopeId, deletedAt], map: "asst_conv_scope_idx")
+    @@index([retentionUntil, deletedAt], map: "asst_conv_retention_idx")
+}
+
+/// Private source, clarification and final preview for one Sales Request conversation.
+model AssistantSalesRequestSession {
+    id                    String                @id @default(cuid()) @db.VarChar(191)
+    conversationId        String                @unique(map: "asst_sales_request_conversation_uq") @db.VarChar(191)
+    ownerUserId           Int
+    scopeType             String                @db.VarChar(50)
+    scopeId               String                @db.VarChar(191)
+    saleType              String                @db.VarChar(16)
+    sourceText            String                @db.LongText
+    sourceFingerprint     String                @db.Char(64)
+    requestId             String                @db.VarChar(191)
+    provider              String                @db.VarChar(40)
+    model                 String                @db.VarChar(100)
+    status                String                @default("processing") @db.VarChar(24)
+    revision              Int                   @default(1)
+    clarificationId       String?               @db.VarChar(36)
+    generationId          String?               @db.VarChar(36)
+    pendingPreview        Json?                 @db.Json
+    finalPreview          Json?                 @db.Json
+    errorMessage          String?               @db.VarChar(500)
+    completedAt           DateTime?             @db.Timestamp(0)
+    createdAt             DateTime              @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime              @updatedAt
+    conversation          AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([ownerUserId, requestId], map: "asst_sales_request_idempotency_uq")
+    @@index([ownerUserId, scopeType, scopeId, status], map: "asst_sales_request_owner_scope_idx")
+    @@index([generationId, ownerUserId], map: "asst_sales_request_generation_owner_idx")
+}
+
+model AssistantUserEntitlement {
+    id              String                      @id @default(cuid()) @db.VarChar(191)
+    userId          Int                         @unique(map: "asst_entitlement_user_uq")
+    enabled         Boolean                     @default(false)
+    expiresAt       DateTime?                   @db.Timestamp(0)
+    reason          String?                     @db.VarChar(500)
+    createdByUserId Int
+    updatedByUserId Int
+    version         Int                         @default(1)
+    createdAt       DateTime                    @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime                    @updatedAt
+    user            Users                       @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    events          AssistantEntitlementEvent[]
+
+    @@index([enabled, expiresAt, updatedAt], map: "asst_entitlement_state_idx")
+    @@index([updatedByUserId, updatedAt], map: "asst_entitlement_admin_idx")
+}
+
+model AssistantRuntimeSetting {
+    key             String                         @id @db.VarChar(50)
+    provider        String                         @db.VarChar(40)
+    model           String                         @db.VarChar(100)
+    version         Int                            @default(1)
+    updatedByUserId Int
+    createdAt       DateTime                       @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime                       @updatedAt
+}
+
+model AssistantRuntimeSettingEvent {
+    id          String                  @id @default(cuid()) @db.VarChar(191)
+    settingKey  String                  @db.VarChar(50)
+    provider    String                  @db.VarChar(40)
+    model       String                  @db.VarChar(100)
+    version     Int
+    actorUserId Int
+    createdAt   DateTime                @default(now()) @db.Timestamp(0)
+
+    @@unique([settingKey, version], map: "asst_runtime_setting_event_version_uq")
+    @@index([actorUserId, createdAt], map: "asst_runtime_setting_event_actor_idx")
+}
+
+model AssistantEntitlementEvent {
+    id              String                   @id @default(cuid()) @db.VarChar(191)
+    entitlementId   String                   @db.VarChar(191)
+    userId          Int
+    type            String                   @db.VarChar(32)
+    enabled         Boolean
+    expiresAt       DateTime?                @db.Timestamp(0)
+    reason          String?                  @db.VarChar(500)
+    actorUserId     Int?
+    entitlementVersion Int
+    createdAt       DateTime                 @default(now()) @db.Timestamp(0)
+    entitlement     AssistantUserEntitlement @relation(fields: [entitlementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([entitlementId, entitlementVersion], map: "asst_entitlement_event_version_uq")
+    @@index([userId, createdAt], map: "asst_entitlement_event_user_idx")
+    @@index([actorUserId, createdAt], map: "asst_entitlement_event_actor_idx")
+}
+
+model AssistantFeatureRequest {
+    id                 String   @id @default(cuid()) @db.VarChar(191)
+    ownerUserId        Int
+    scopeType          String   @db.VarChar(50)
+    scopeId            String   @db.VarChar(191)
+    conversationId     String?  @db.VarChar(191)
+    canonicalKey       String   @db.Char(64)
+    summary            String   @db.VarChar(500)
+    category           String   @db.VarChar(50)
+    capabilityKey      String?  @db.VarChar(191)
+    classifierVersion  String   @db.VarChar(64)
+    status             String   @default("submitted") @db.VarChar(32)
+    occurrenceCount    Int      @default(1)
+    lastEventSequence  Int      @default(0)
+    analysisStatus     String   @default("queued") @db.VarChar(32)
+    analysis            Json?    @db.Json
+    analysisRevision   String?   @db.VarChar(64)
+    knowledgeSnapshot  Json      @db.Json
+    assignedToUserId   Int?
+    mergedIntoId       String?   @db.VarChar(191)
+    releaseId          String?   @db.VarChar(191)
+    reviewedAnalysisAt DateTime? @db.Timestamp(0)
+    reviewedByUserId   Int?
+    createdAt          DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime  @updatedAt
+    conversation       AssistantConversation? @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    mergedInto         AssistantFeatureRequest? @relation("assistantFeatureRequestMerge", fields: [mergedIntoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    mergedRequests     AssistantFeatureRequest[] @relation("assistantFeatureRequestMerge")
+    release            AssistantCapabilityRelease? @relation(fields: [releaseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    submissions        AssistantFeatureRequestSubmission[]
+    subscriptions      AssistantFeatureSubscription[]
+    events             AssistantFeatureRequestEvent[]
+    analysisJobs       AssistantFeatureAnalysisJob[]
+    outbox             AssistantFeatureNotificationOutbox[]
+
+    @@unique([scopeType, scopeId, canonicalKey], map: "asst_feature_request_scope_key_uq")
+    @@index([scopeType, scopeId, status, updatedAt], map: "asst_feature_request_scope_status_idx")
+    @@index([analysisStatus, updatedAt], map: "asst_feature_request_analysis_idx")
+    @@index([assignedToUserId, status, updatedAt], map: "asst_feature_request_owner_idx")
+    @@index([conversationId, createdAt], map: "asst_feature_request_conversation_idx")
+    @@index([mergedIntoId], map: "asst_feature_request_merge_idx")
+    @@index([releaseId], map: "asst_feature_request_release_idx")
+}
+
+model AssistantFeatureRequestSubmission {
+    id                 String   @id @default(cuid()) @db.VarChar(191)
+    requestId          String   @db.VarChar(191)
+    reporterUserId     Int
+    scopeType          String   @db.VarChar(50)
+    scopeId            String   @db.VarChar(191)
+    clientRequestId    String   @db.VarChar(191)
+    summary            String   @db.VarChar(500)
+    evidence           Json     @db.Json
+    consentVersion     String   @db.VarChar(64)
+    releaseOptIn       Boolean  @default(false)
+    createdAt          DateTime @default(now()) @db.Timestamp(0)
+    request            AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([reporterUserId, scopeType, scopeId, clientRequestId], map: "asst_feature_submission_request_uq")
+    @@index([reporterUserId, scopeType, scopeId, createdAt], map: "asst_feature_submission_reporter_idx")
+    @@index([requestId, createdAt], map: "asst_feature_submission_feature_idx")
+}
+
+model AssistantFeatureSubscription {
+    id               String    @id @default(cuid()) @db.VarChar(191)
+    requestId        String    @db.VarChar(191)
+    userId           Int
+    scopeType        String    @db.VarChar(50)
+    scopeId          String    @db.VarChar(191)
+    consentVersion   String    @db.VarChar(64)
+    consentEvidence  Json      @db.Json
+    activeKey        String    @default("active") @db.VarChar(191)
+    unsubscribedAt   DateTime? @db.Timestamp(0)
+    createdAt        DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime  @updatedAt
+    request          AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    outbox            AssistantFeatureNotificationOutbox[]
+
+    @@unique([requestId, userId, scopeType, scopeId, activeKey], map: "asst_feature_subscription_active_uq")
+    @@index([userId, scopeType, scopeId, unsubscribedAt], map: "asst_feature_subscription_user_idx")
+}
+
+model AssistantFeatureRequestEvent {
+    id          String   @id @default(cuid()) @db.VarChar(191)
+    requestId   String   @db.VarChar(191)
+    sequence    Int
+    type        String   @db.VarChar(50)
+    actorUserId Int?
+    payload     Json?    @db.Json
+    createdAt   DateTime @default(now()) @db.Timestamp(0)
+    request     AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([requestId, sequence], map: "asst_feature_event_sequence_uq")
+    @@index([requestId, createdAt], map: "asst_feature_event_request_idx")
+}
+
+model AssistantFeatureAnalysisJob {
+    id                String    @id @default(cuid()) @db.VarChar(191)
+    requestId         String    @db.VarChar(191)
+    revision          Int       @default(1)
+    status            String    @default("queued") @db.VarChar(32)
+    attempts          Int       @default(0)
+    maxAttempts       Int       @default(3)
+    claimedAt         DateTime? @db.Timestamp(0)
+    completedAt       DateTime? @db.Timestamp(0)
+    lastErrorCode     String?   @db.VarChar(100)
+    createdAt         DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime  @updatedAt
+    request           AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([requestId, revision], map: "asst_feature_analysis_revision_uq")
+    @@index([status, createdAt], map: "asst_feature_analysis_queue_idx")
+}
+
+model AssistantCapabilityRelease {
+    id                String    @id @default(cuid()) @db.VarChar(191)
+    capabilityKey     String    @db.VarChar(191)
+    version           String    @db.VarChar(64)
+    title             String    @db.VarChar(200)
+    status            String    @default("draft") @db.VarChar(32)
+    requiredGrants    Json      @db.Json
+    rolloutEvidence   Json?     @db.Json
+    verifiedAt        DateTime? @db.Timestamp(0)
+    verifiedByUserId  Int?
+    publishedAt       DateTime? @db.Timestamp(0)
+    publishedByUserId Int?
+    createdAt         DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime  @updatedAt
+    requests          AssistantFeatureRequest[]
+    outbox            AssistantFeatureNotificationOutbox[]
+
+    @@unique([capabilityKey, version], map: "asst_capability_release_version_uq")
+    @@index([status, verifiedAt, publishedAt], map: "asst_capability_release_status_idx")
+}
+
+model AssistantFeatureNotificationOutbox {
+    id             String    @id @default(cuid()) @db.VarChar(191)
+    requestId      String    @db.VarChar(191)
+    subscriptionId String?   @db.VarChar(191)
+    releaseId      String?   @db.VarChar(191)
+    kind           String    @db.VarChar(40)
+    dedupeKey      String    @unique(map: "asst_feature_notice_dedupe_uq") @db.Char(64)
+    status         String    @default("pending") @db.VarChar(32)
+    attempts       Int       @default(0)
+    availableAt    DateTime  @default(now()) @db.Timestamp(0)
+    deliveredAt    DateTime? @db.Timestamp(0)
+    lastErrorCode  String?   @db.VarChar(100)
+    createdAt      DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime  @updatedAt
+    request        AssistantFeatureRequest @relation(fields: [requestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    subscription   AssistantFeatureSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    release        AssistantCapabilityRelease? @relation(fields: [releaseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([status, availableAt], map: "asst_feature_notice_queue_idx")
+    @@index([requestId, kind, createdAt], map: "asst_feature_notice_request_idx")
+    @@index([subscriptionId], map: "asst_feature_notice_subscription_idx")
+    @@index([releaseId], map: "asst_feature_notice_release_idx")
+}
+
+model AssistantMessage {
+    id              String                @id @default(cuid()) @db.VarChar(191)
+    conversationId  String                @db.VarChar(191)
+    sequence        Int
+    role            String                @db.VarChar(20)
+    parts           Json                  @db.Json
+    searchText      String?               @db.Text
+    clientRequestId String?               @db.VarChar(191)
+    requestFingerprint String?            @db.Char(64)
+    generatedRunId  String?               @unique(map: "asst_msg_generated_run_uq") @db.VarChar(191)
+    parentMessageId String?               @db.VarChar(191)
+    createdByUserId Int?
+    createdAt       DateTime              @default(now()) @db.Timestamp(0)
+    conversation    AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    parentMessage   AssistantMessage?     @relation("assistantMessageReplies", fields: [parentMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    replies         AssistantMessage[]    @relation("assistantMessageReplies")
+    runs            AssistantRun[]        @relation("assistantRunTrigger")
+
+    @@unique([conversationId, sequence], map: "asst_msg_seq_uq")
+    @@unique([conversationId, clientRequestId], map: "asst_msg_request_uq")
+    @@index([conversationId, createdAt], map: "asst_msg_created_idx")
+    @@index([parentMessageId], map: "asst_msg_parent_idx")
+    @@index([createdByUserId, createdAt], map: "asst_msg_actor_idx")
+}
+
+model AssistantRun {
+    id               String                   @id @default(cuid()) @db.VarChar(191)
+    conversationId   String                   @db.VarChar(191)
+    triggerMessageId String?                  @db.VarChar(191)
+    actorUserId      Int
+    requestId        String                   @db.VarChar(191)
+    requestFingerprint String                 @db.Char(64)
+    catalogVersion   String                   @db.VarChar(64)
+    model            String                   @db.VarChar(100)
+    promptVersion    String                   @db.VarChar(64)
+    status           String                   @default("queued") @db.VarChar(32)
+    checkpoint       Json?                    @db.Json
+    terminalResult   Json?                    @db.Json
+    usage            Json?                    @db.Json
+    lastSequence     Int                      @default(0)
+    errorCode        String?                  @db.VarChar(100)
+    errorMessage     String?                  @db.Text
+    startedAt        DateTime?                @db.Timestamp(0)
+    completedAt      DateTime?                @db.Timestamp(0)
+    createdAt        DateTime                 @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime                 @updatedAt
+    conversation     AssistantConversation    @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    triggerMessage   AssistantMessage?        @relation("assistantRunTrigger", fields: [triggerMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    toolExecutions   AssistantToolExecution[]
+    actionProposals  AssistantActionProposal[]
+    usageEvents      AssistantUsageEvent[]
+
+    @@unique([actorUserId, requestId], map: "asst_run_request_uq")
+    @@index([conversationId, status, createdAt], map: "asst_run_status_idx")
+    @@index([conversationId, updatedAt], map: "asst_run_updated_idx")
+    @@index([triggerMessageId], map: "asst_run_trigger_idx")
+}
+
+model AssistantUsageEvent {
+    id                  String       @id @default(cuid()) @db.VarChar(191)
+    runId               String       @db.VarChar(191)
+    providerRequestId   String       @unique(map: "asst_usage_provider_request_uq") @db.VarChar(191)
+    actorUserId         Int
+    scopeType           String       @db.VarChar(50)
+    scopeId             String       @db.VarChar(191)
+    provider            String       @db.VarChar(40)
+    model               String       @db.VarChar(100)
+    requestClass        String       @default("chat") @db.VarChar(40)
+    inputTokens         Int?
+    cachedInputTokens   Int?
+    outputTokens        Int?
+    reasoningTokens     Int?
+    totalTokens         Int?
+    toolCallCount       Int          @default(0)
+    durationMs          Int?
+    outcome             String       @db.VarChar(32)
+    estimatedCostMicros BigInt?
+    priceVersion        String?      @db.VarChar(64)
+    accountingStatus    String       @default("unknown") @db.VarChar(32)
+    reconciledAt        DateTime?    @db.Timestamp(0)
+    startedAt           DateTime?    @db.Timestamp(0)
+    completedAt         DateTime     @db.Timestamp(0)
+    createdAt           DateTime     @default(now()) @db.Timestamp(0)
+    run                 AssistantRun @relation(fields: [runId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    reconciliations     AssistantUsageReconciliation[]
+
+    @@index([actorUserId, completedAt], map: "asst_usage_actor_time_idx")
+    @@index([runId, completedAt], map: "asst_usage_run_time_idx")
+    @@index([scopeType, scopeId, completedAt], map: "asst_usage_scope_time_idx")
+    @@index([provider, model, completedAt], map: "asst_usage_model_time_idx")
+    @@index([outcome, completedAt], map: "asst_usage_outcome_time_idx")
+}
+
+model AssistantModelPrice {
+    id                        String    @id @default(cuid()) @db.VarChar(191)
+    provider                  String    @db.VarChar(40)
+    model                     String    @db.VarChar(100)
+    version                   String    @db.VarChar(64)
+    inputPerMillionMicros     BigInt
+    cachedPerMillionMicros    BigInt
+    outputPerMillionMicros    BigInt
+    reasoningPerMillionMicros BigInt
+    effectiveFrom             DateTime  @db.Timestamp(0)
+    effectiveTo               DateTime? @db.Timestamp(0)
+    createdByUserId           Int
+    createdAt                 DateTime  @default(now()) @db.Timestamp(0)
+
+    @@unique([provider, model, version], map: "asst_price_model_version_uq")
+    @@index([provider, model, effectiveFrom], map: "asst_price_effective_idx")
+}
+
+model AssistantUsageReconciliation {
+    id             String              @id @default(cuid()) @db.VarChar(191)
+    usageEventId   String              @db.VarChar(191)
+    actorUserId    Int?
+    previousUsage  Json
+    nextUsage      Json
+    note           String              @db.Text
+    createdAt      DateTime            @default(now()) @db.Timestamp(0)
+    usageEvent     AssistantUsageEvent @relation(fields: [usageEventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([usageEventId, createdAt], map: "asst_usage_reconcile_event_idx")
+}
+
+model AssistantQuotaPolicy {
+    id                     String    @id @default(cuid()) @db.VarChar(191)
+    userId                 Int?
+    name                   String    @db.VarChar(120)
+    kind                   String    @default("user") @db.VarChar(32)
+    sourceTemplateId       String?   @db.VarChar(191)
+    dailyRequestLimit      Int?
+    monthlyRequestLimit    Int?
+    dailyTokenLimit        BigInt?
+    monthlyTokenLimit      BigInt?
+    concurrentRunLimit     Int?
+    dailyCostLimitMicros   BigInt?
+    monthlyCostLimitMicros BigInt?
+    warningPercent         Int       @default(80)
+    timezone               String    @default("UTC") @db.VarChar(64)
+    enforcementMode        String    @default("hard") @db.VarChar(24)
+    effectiveFrom          DateTime  @db.Timestamp(0)
+    effectiveTo            DateTime? @db.Timestamp(0)
+    createdByUserId        Int
+    updatedByUserId        Int
+    version                Int       @default(1)
+    createdAt              DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt              DateTime  @updatedAt
+
+    @@index([userId, effectiveFrom, effectiveTo], map: "asst_quota_user_effective_idx")
+    @@index([kind, effectiveFrom, effectiveTo], map: "asst_quota_kind_effective_idx")
+    @@index([sourceTemplateId], map: "asst_quota_template_idx")
+}
+
+model AssistantQuotaReservation {
+    id                 String    @id @default(cuid()) @db.VarChar(191)
+    runId              String    @unique(map: "asst_quota_reservation_run_uq") @db.VarChar(191)
+    actorUserId        Int
+    scopeType          String    @db.VarChar(50)
+    scopeId            String    @db.VarChar(191)
+    policyId           String?   @db.VarChar(191)
+    policySnapshot     Json      @db.Json
+    status             String    @default("reserved") @db.VarChar(24)
+    requestUnits       Int       @default(1)
+    reservedTokens     BigInt    @default(0)
+    reservedCostMicros BigInt    @default(0)
+    actualTokens       BigInt?
+    actualCostMicros   BigInt?
+    dayWindowStart     DateTime  @db.Timestamp(0)
+    monthWindowStart   DateTime  @db.Timestamp(0)
+    expiresAt          DateTime  @db.Timestamp(0)
+    settledAt          DateTime? @db.Timestamp(0)
+    createdAt          DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime  @updatedAt
+
+    @@index([actorUserId, dayWindowStart, status], map: "asst_quota_actor_day_idx")
+    @@index([actorUserId, monthWindowStart, status], map: "asst_quota_actor_month_idx")
+    @@index([actorUserId, status, expiresAt], map: "asst_quota_actor_active_idx")
+    @@index([policyId, createdAt], map: "asst_quota_policy_usage_idx")
+}
+
+model AssistantToolExecution {
+    id               String       @id @default(cuid()) @db.VarChar(191)
+    runId            String       @db.VarChar(191)
+    toolCallId       String       @db.VarChar(191)
+    step             Int
+    ordinal          Int          @default(0)
+    eventSequence    Int
+    toolId           String       @db.VarChar(191)
+    toolVersion      Int
+    effect           String       @db.VarChar(32)
+    status           String       @default("running") @db.VarChar(32)
+    inputFingerprint String       @db.Char(64)
+    input            Json?        @db.Json
+    result           Json?        @db.Json
+    errorCode        String?      @db.VarChar(100)
+    durationMs       Int?
+    idempotencyKey   String?      @unique(map: "asst_tool_idempotency_uq") @db.VarChar(191)
+    startedAt        DateTime     @default(now()) @db.Timestamp(0)
+    completedAt      DateTime?    @db.Timestamp(0)
+    createdAt        DateTime     @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime     @updatedAt
+    run              AssistantRun @relation(fields: [runId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([runId, toolCallId], map: "asst_tool_call_uq")
+    @@unique([runId, step, ordinal], map: "asst_tool_step_uq")
+    @@unique([runId, eventSequence], map: "asst_tool_event_uq")
+    @@index([runId, status, createdAt], map: "asst_tool_status_idx")
+    @@index([toolId, toolVersion, createdAt], map: "asst_tool_version_idx")
+}
+
+model AssistantActionProposal {
+    id               String       @id @default(cuid()) @db.VarChar(191)
+    runId            String       @db.VarChar(191)
+    actorUserId      Int
+    toolId           String       @db.VarChar(191)
+    toolVersion      Int
+    effect           String       @db.VarChar(32)
+    payloadHash      String       @db.Char(64)
+    payload          Json         @db.Json
+    targetRevision   String?      @db.VarChar(191)
+    diff             Json?        @db.Json
+    status           String       @default("pending") @db.VarChar(32)
+    expiresAt        DateTime     @db.Timestamp(0)
+    nonceHash        String       @unique(map: "asst_proposal_nonce_uq") @db.Char(64)
+    idempotencyKey   String       @db.VarChar(191)
+    eventSequence    Int
+    confirmedAt      DateTime?    @db.Timestamp(0)
+    confirmationRequestId String? @unique(map: "asst_proposal_confirmation_request_uq") @db.VarChar(191)
+    executionStartedAt DateTime?  @db.Timestamp(0)
+    executionCompletedAt DateTime? @db.Timestamp(0)
+    consumedAt       DateTime?    @db.Timestamp(0)
+    rejectedAt       DateTime?    @db.Timestamp(0)
+    result           Json?        @db.Json
+    errorCode        String?      @db.VarChar(100)
+    createdAt        DateTime     @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime     @updatedAt
+    run              AssistantRun @relation(fields: [runId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@unique([actorUserId, idempotencyKey], map: "asst_proposal_idempotency_uq")
+    @@unique([runId, eventSequence], map: "asst_proposal_event_uq")
+    @@index([runId, status, createdAt], map: "asst_proposal_run_idx")
+    @@index([actorUserId, status, expiresAt], map: "asst_proposal_actor_idx")
+    @@index([toolId, toolVersion, createdAt], map: "asst_proposal_tool_idx")
+}
+
+model AssistantPreference {
+    id               String   @id @default(cuid()) @db.VarChar(191)
+    ownerUserId      Int
+    scopeType        String   @default("user") @db.VarChar(50)
+    scopeId          String   @db.VarChar(191)
+    responseStyle    String   @default("balanced") @db.VarChar(32)
+    responseDetail   String   @default("standard") @db.VarChar(32)
+    chartPresentation String  @default("auto") @db.VarChar(32)
+    version          Int      @default(1)
+    createdAt        DateTime @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime @updatedAt
+
+    @@unique([ownerUserId, scopeType, scopeId], map: "asst_pref_owner_scope_uq")
+    @@index([ownerUserId, updatedAt], map: "asst_pref_owner_idx")
+}
+
+model AssistantPersonalMemory {
+    id          String    @id @default(cuid()) @db.VarChar(191)
+    ownerUserId Int
+    scopeType   String    @default("user") @db.VarChar(50)
+    scopeId     String    @db.VarChar(191)
+    content     String    @db.VarChar(500)
+    version     Int       @default(1)
+    deletedAt   DateTime? @db.Timestamp(0)
+    createdAt   DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime  @updatedAt
+
+    @@index([ownerUserId, scopeType, scopeId, deletedAt, updatedAt], map: "asst_memory_scope_idx")
+}
+
+model AssistantSavedAction {
+    id                    String    @id @default(cuid()) @db.VarChar(191)
+    ownerUserId           Int
+    scopeType             String    @default("user") @db.VarChar(50)
+    scopeId               String    @db.VarChar(191)
+    name                  String    @db.VarChar(120)
+    kind                  String    @db.VarChar(24)
+    promptTemplate        String?   @db.Text
+    toolId                String?   @db.VarChar(191)
+    toolVersion           Int?
+    effect                String?   @db.VarChar(32)
+    inputTemplate         Json?     @db.Json
+    parameterDefinitions  Json?     @db.Json
+    outputBindings        Json?     @db.Json
+    compatibilityRevision String    @db.VarChar(191)
+    activeKey             String    @default("active") @db.VarChar(191)
+    displayOrder          Int       @default(0)
+    version               Int       @default(1)
+    lastRunStatus         String?   @db.VarChar(32)
+    lastRunAt             DateTime? @db.Timestamp(0)
+    deletedAt             DateTime? @db.Timestamp(0)
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+
+    @@unique([ownerUserId, scopeType, scopeId, name, activeKey], map: "asst_saved_action_name_uq")
+    @@index([ownerUserId, scopeType, scopeId, deletedAt, displayOrder], map: "asst_saved_action_scope_idx")
+    @@index([toolId, toolVersion, deletedAt], map: "asst_saved_action_tool_idx")
+}
+
+// ---- sales-request-telemetry.prisma ----
+/// Metadata-only pilot run telemetry. A retained successful run may reference the
+/// native Sales row it created solely for atomic idempotency; anonymization clears
+/// that binding. Never add source text, images, contacts, provider bodies/errors,
+/// credentials, or generated seed payloads to this model.
+model SalesRequestGenerationRun {
+    generationId                    String    @id @db.VarChar(36)
+    actorUserId                     Int?
+    scope                           String    @db.VarChar(191)
+    configurationRevision           String    @db.VarChar(128)
+    // Zero is the legacy sentinel. New pilot runs persist the exact revisions
+    // captured before provider work; zero cannot authorize rollout advancement.
+    pilotSettingsRevision             Int       @default(0)
+    providerBenchmarkApprovalRevision Int      @default(0)
+    provider                        String    @db.VarChar(32)
+    model                           String    @db.VarChar(100)
+    promptVersion                   String?   @db.VarChar(64)
+    schemaVersion                   Int?
+    requestComplexityVersion        String?   @db.VarChar(64)
+    requestComplexityStratum        String?   @db.VarChar(16)
+    seedDigest                     String?   @db.VarChar(67)
+    consumedSalesId                Int?
+    status                          String    @db.VarChar(32)
+    failureStage                    String?   @db.VarChar(32)
+    hasText                         Boolean   @default(false)
+    latencyMs                       Int?
+    providerAttemptedAt             DateTime? @db.Timestamp(0)
+    providerLatencyMs               Int?
+    inputTokens                     Int?
+    outputTokens                    Int?
+    issueCounts                     Json?     @db.Json
+    applyOutcome                    String?   @db.VarChar(32)
+    applyAt                         DateTime? @db.Timestamp(0)
+    saveDraftOutcome                String?   @db.VarChar(32)
+    saveDraftAt                     DateTime? @db.Timestamp(0)
+    saveFinalOutcome                String?   @db.VarChar(32)
+    saveFinalAt                     DateTime? @db.Timestamp(0)
+    feedbackOutcome                 String?   @db.VarChar(32)
+    feedbackIssueCategories         Json?     @db.Json
+    feedbackChangedFieldCategories  Json?     @db.Json
+    feedbackAt                      DateTime? @db.Timestamp(0)
+    correctionMs                    Int?
+    startedAt                       DateTime  @db.Timestamp(0)
+    completedAt                     DateTime? @db.Timestamp(0)
+    retentionUntil                  DateTime  @db.Timestamp(0)
+    createdAt                       DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt                       DateTime  @updatedAt
+    deletedAt                       DateTime? @db.Timestamp(0)
+
+    @@index([status, createdAt], map: "sales_req_gen_status_created_idx")
+    @@index([actorUserId, createdAt], map: "sales_req_gen_actor_created_idx")
+    @@index([scope, createdAt], map: "sales_req_gen_scope_created_idx")
+    @@index([startedAt, deletedAt], map: "sales_req_gen_started_deleted_idx")
+    @@index([retentionUntil, deletedAt], map: "sales_req_gen_retention_idx")
+    @@index([consumedSalesId], map: "sales_req_gen_consumed_sales_idx")
+}
+
+/// Immutable, aggregate-only weekly review evidence. Never store request text,
+/// generated/provider payloads, contacts, credentials, or per-representative rows.
+model SalesRequestPilotReviewDecision {
+    id                    Int      @id @default(autoincrement())
+    settingId             Int
+    periodStart           DateTime @db.Timestamp(0)
+    periodEnd             DateTime @db.Timestamp(0)
+    decision              String   @db.VarChar(16)
+    authority             Json     @db.Json
+    authorityDigest       String   @db.VarChar(71)
+    evidence              Json     @db.Json
+    evidenceDigest        String   @db.VarChar(71)
+    thresholdPolicy       Json     @db.Json
+    thresholdPolicyDigest String   @db.VarChar(71)
+    thresholdPolicyVersion String  @db.VarChar(64)
+    signoff               Json     @db.Json
+    reviewerUserId        Int
+    reviewedAt            DateTime @db.Timestamp(0)
+    createdAt             DateTime @default(now()) @db.Timestamp(0)
+
+    @@unique([settingId, periodStart], map: "sales_req_pilot_review_period_key")
+    @@index([settingId, periodStart], map: "sales_req_pilot_review_setting_period_idx")
 }
 
 // ---- sales.wallet.prisma ----
@@ -6284,6 +7900,7 @@ model Organization {
     sales        SalesOrders[]
     userProfiles ModelHasRoles[]
     workOrders   WorkOrders[]
+    messagingConnections MessagingConnection[]
 }
 
 // ---- account.prisma ----
@@ -6931,6 +8548,25 @@ model InboxAttachments {
     inbox     Inbox     @relation(fields: [inboxId], references: [id])
 
     @@index([inboxId])
+}
+
+// ---- sales-request-clarification.prisma ----
+/// Private customer request content and confirmed answers, separate from telemetry.
+model SalesRequestClarificationSession {
+    id                    String   @id @db.VarChar(36)
+    actorUserId           Int
+    saleType              String   @db.VarChar(16)
+    scope                 String   @db.VarChar(191)
+    configurationRevision String   @db.VarChar(128)
+    sourceText            String   @db.LongText
+    revision              Int      @default(1)
+    status                String   @db.VarChar(24)
+    questions             Json     @db.Json
+    answers               Json     @db.Json
+    createdAt             DateTime @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime @updatedAt
+
+    @@index([actorUserId, scope, updatedAt], map: "sales_req_clarification_owner_idx")
 }
 
 // ---- sales.dispatch.prisma ----
