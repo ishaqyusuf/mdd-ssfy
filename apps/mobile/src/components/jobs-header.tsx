@@ -1,7 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity, TextInput } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation } from "expo-router/react-navigation";
 import { Text } from "@/components/ui/text";
 import { useJobsStore } from "@/stores/use-jobs-store";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

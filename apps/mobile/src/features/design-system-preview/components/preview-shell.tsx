@@ -62,7 +62,6 @@ export function PreviewShell({
 	return (
 		<View style={{ backgroundColor: system.colors.background, flex: 1 }}>
 			<StatusBar
-				backgroundColor={system.colors.header}
 				style={headerIsLight ? "dark" : "light"}
 			/>
 			<View

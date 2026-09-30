@@ -66,6 +66,20 @@ function resolveAppSingleton(context, moduleName, platform) {
   const packageSubpath = moduleName.slice(packageName.length);
   const resolvedModuleName = `${resolvedPackageName}${packageSubpath}`;
 
+  if (!packageSubpath && platform !== "web") {
+    const packageJsonPath = require.resolve(`${resolvedPackageName}/package.json`, {
+      paths: [__dirname],
+    });
+    const nativeEntry = require(packageJsonPath)["react-native"];
+    if (typeof nativeEntry === "string") {
+      return context.resolveRequest(
+        { ...context, originModulePath: packageJsonPath },
+        `./${nativeEntry.replace(/^\.\//, "")}`,
+        platform,
+      );
+    }
+  }
+
   try {
     return {
       type: "sourceFile",

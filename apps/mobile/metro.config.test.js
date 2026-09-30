@@ -46,9 +46,9 @@ const NODE_RESOLUTION_PROBE = String.raw`
       ".native.js",
       ".js",
     ];
-    const filePath = extensions
-      .map((extension) => basePath + extension)
-      .find(existsSync);
+    const filePath = existsSync(basePath)
+      ? basePath
+      : extensions.map((extension) => basePath + extension).find(existsSync);
 
     assert.ok(filePath, "Unable to resolve " + moduleName + " from " + basePath);
     return { type: "sourceFile", filePath };
@@ -75,10 +75,34 @@ const NODE_RESOLUTION_PROBE = String.raw`
   );
   assert.equal(
     realpathSync(bareResolution.filePath),
-    realpathSync(require.resolve("react-native-reanimated", {
-      paths: [dirname(${JSON.stringify(CONFIG_PATH)})],
-    })),
+    realpathSync(resolve(reanimatedPackageRoot, "src/index.ts")),
   );
+
+  for (const moduleName of [
+    "react-native-screens",
+    "react-native-safe-area-context",
+    "react-native-svg",
+  ]) {
+    const packageJsonPath = require.resolve(moduleName + "/package.json", {
+      paths: [dirname(${JSON.stringify(CONFIG_PATH)})],
+    });
+    const nativeEntry = require(packageJsonPath)["react-native"];
+    const expectedNativeEntry = resolveLikeMetro(
+      { originModulePath: packageJsonPath },
+      "./" + nativeEntry.replace(/^\.\//, ""),
+      "ios",
+    );
+    const nativeContext = moduleName === "react-native-safe-area-context"
+      ? {
+          ...context,
+          originModulePath: require.resolve("react-native-css/components/react-native-safe-area-context", {
+            paths: [dirname(${JSON.stringify(CONFIG_PATH)})],
+          }),
+        }
+      : context;
+    const resolution = config.resolver.resolveRequest(nativeContext, moduleName, "ios");
+    assert.equal(realpathSync(resolution.filePath), realpathSync(expectedNativeEntry.filePath));
+  }
 
   for (const [moduleName, expectedPackageRoot] of [
     ["react", expectedReactPackageRoot],
@@ -91,7 +115,7 @@ const NODE_RESOLUTION_PROBE = String.raw`
     );
     assert.ok(
       realpathSync(resolution.filePath).startsWith(realpathSync(expectedPackageRoot)),
-      moduleName + " did not resolve to the SDK 54 mobile alias",
+      moduleName + " did not resolve to the SDK 57 mobile alias",
     );
   }
 

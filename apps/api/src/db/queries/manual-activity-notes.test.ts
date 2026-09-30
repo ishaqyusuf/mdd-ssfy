@@ -49,3 +49,7 @@ describe("manual activity note permissions", () => {
 		).toBe(false);
 	});
 });
+
+it("keeps saved sales change records immutable even for Super Admin", () => {
+	expect(canManageManualActivityNote({ channel: "sales_info", activityType: "sales_form_change", actorUserId: 7, authorUserId: 7, isSuperAdmin: true })).toBe(false);
+});

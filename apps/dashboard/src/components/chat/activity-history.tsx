@@ -1,5 +1,7 @@
 "use client";
 
+import { SalesChangeActivity } from "./sales-change-activity";
+import type { SalesItemChangeSummary } from "@gnd/sales/sales-change-history";
 import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
@@ -47,6 +49,7 @@ import { type ReactNode, useMemo, useState } from "react";
 export type ActivityTagFilter = SharedActivityTagFilter;
 
 type ActivityNode = {
+	salesChangeSummary?: SalesItemChangeSummary | null;
 	id: number;
 	createdAt: Date | string | null;
 	subject: string | null;
@@ -99,6 +102,9 @@ function activityHeadline(node: ActivityNode) {
 }
 
 function activityDescription(node: ActivityNode) {
+	if (node.tags.changeHistoryId) return node.salesChangeSummary?.itemCount
+		? `${node.salesChangeSummary.itemCount} ${node.salesChangeSummary.itemCount === 1 ? "item" : "items"} changed`
+		: null;
 	return node.headline || node.description || null;
 }
 
@@ -221,17 +227,20 @@ function ActivityTreeItem({
 					{activityAuthor(node)}
 				</span>
 			</p>
-			{node.note ? (
+			{node.note && !node.tags.changeHistoryId ? (
 				<div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
 					<p
 						className={cn(
-							"text-sm leading-6 text-foreground/90",
+							"whitespace-pre-line text-sm leading-6 text-foreground/90",
 							node.deletedAt && "line-through opacity-70",
 						)}
 					>
 						{node.note}
 					</p>
 				</div>
+			) : null}
+			{node.tags.changeHistoryId ? (
+				<SalesChangeActivity activityId={node.id} tags={node.tags} summary={node.salesChangeSummary} />
 			) : null}
 			{attachments.length ? (
 				<div className="mt-3 flex flex-wrap gap-2">
@@ -358,7 +367,10 @@ export function ActivityHistory({
 	);
 	const canManageNote = (node: ActivityNode) => {
 		if (!canManageManualNotes || node.deletedAt || !node.note) return false;
-		if (node.tags?.type === "activity_note_revision") return false;
+		if (
+			node.tags?.type === "activity_note_revision" ||
+			node.tags?.type === "sales_form_change"
+		) return false;
 		const channel = node.tags?.channel ?? node.tags?.type;
 		if (channel !== "sales_info" && channel !== "inventory_inbound")
 			return false;
@@ -393,7 +405,7 @@ export function ActivityHistory({
 			pageSize,
 			maxDepth,
 			includeDeleted: auth.roleTitle === "Super Admin",
-		}),
+		}, { enabled: data === undefined }),
 	);
 	const rows = data ?? ((query.data?.data || []) as ActivityNode[]);
 	const isPending = isPendingOverride ?? (!data && query.isPending);

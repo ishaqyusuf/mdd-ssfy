@@ -159,6 +159,16 @@ export function NotificationCenter({
 	const salesOverview = useSalesOverviewOpen();
 	const legacySalesOverview = useSalesOverviewQuery();
 	const handlers = createNotificationHandlers<{ close: () => void }>({
+		sales_form_change: (data, notification, context) => {
+			context.close();
+			legacySalesOverview.setParams({
+				"sales-overview-id": data.salesNo,
+				"sales-type": data.salesType,
+				mode: data.salesType === "quote" ? "quote" : "sales",
+				salesTab: "activity",
+				salesActivity: Number(notification.id),
+			});
+		},
 		inventory_inbound_activity: (data, _notification, context) => {
 			context.close();
 			setInboundViewParams({

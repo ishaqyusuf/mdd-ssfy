@@ -1,3 +1,5 @@
+import { salesChangeActivityStatus, type SalesItemChangeSummary } from "@gnd/sales/sales-change-history";
+import { z } from "zod";
 import {
 	type CommunityDocumentsTags,
 	type CommunityUnitProductionBatchUpdatedTags,
@@ -66,6 +68,7 @@ import {
 } from "./schemas";
 
 export type RawNotificationItem = {
+	salesChangeSummary?: SalesItemChangeSummary | null;
 	id: string | number;
 	subject?: string | null;
 	headline?: string | null;
@@ -91,6 +94,7 @@ export type RawNotificationItem = {
 };
 
 type NotificationActionPayloadMap = {
+	sales_form_change: { salesId: string; salesNo: string; salesType: "order" | "quote" };
 	job_submitted: Omit<JobSubmittedTags, "type">;
 	job_task_configure_request: Omit<JobTaskConfigureRequestTags, "type">;
 	employee_document_review: Omit<EmployeeDocumentReviewTags, "type">;
@@ -209,6 +213,11 @@ function parseAction(
 	tags: Record<string, unknown>,
 ): NotificationAction | undefined {
 	const type = parseType(tags);
+	if (type === "sales_form_change") {
+		const parsed = z.object({ salesId: z.string().regex(/^\d+$/), salesNo: z.string().min(1), salesType: z.enum(["order", "quote"]) }).safeParse(tags);
+		if (!parsed.success) return undefined;
+		return { type: "sales_form_change", label: "View changes", data: parsed.data };
+	}
 
 	if (type === "job_submitted") {
 		const parsed = jobSubmittedTags.safeParse(tags);
@@ -488,19 +497,25 @@ export function transformNotifications(
 		const type = parseType(tags);
 		const action = parseAction(tags);
 		const createdAt = item.createdAt ?? item.created_at ?? null;
+		const salesStatus = type === "sales_form_change"
+			? salesChangeActivityStatus(String(tags.changeStatus || "APPROVED"), tags.applicationFailed === "true")
+			: null;
+		const salesDescription = item.salesChangeSummary?.messages.join("; ") || "Sale details updated";
 
 		return {
 			id: item.id,
 			type,
 			title: item.subject || "Notification",
-			description: item.headline || "No details available.",
+			description: type === "sales_form_change"
+				? `${String(tags.salesNo || "Sale")}: ${salesDescription}${salesStatus ? ` · ${salesStatus}` : ""}`
+				: item.headline || "No details available.",
 			createdAt,
 			notificationDate: formatNotificationDate(createdAt),
 			status: statusFromRaw(item),
 			isClickable: Boolean(action),
 			action,
 			tags,
-			note: item.note ?? null,
+			note: type === "sales_form_change" ? null : item.note ?? null,
 			documents: item.documents,
 		};
 	});

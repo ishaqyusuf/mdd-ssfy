@@ -14,6 +14,7 @@ export function canManageManualActivityNote(input: {
 }) {
 	return (
 		input.activityType !== "activity_note_revision" &&
+		input.activityType !== "sales_form_change" &&
 		typeof input.channel === "string" &&
 		MANUAL_CHANNELS.has(input.channel) &&
 		(input.isSuperAdmin || input.authorUserId === input.actorUserId)

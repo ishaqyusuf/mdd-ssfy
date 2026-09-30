@@ -5,8 +5,6 @@
     // "module": "ESNext",
     // "forceConsistentCasingInFileNames": true,
 
-    "baseUrl": ".",
-
     "strict": true,
     "noImplicitAny": false,
 

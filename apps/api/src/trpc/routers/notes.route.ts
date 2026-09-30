@@ -2,6 +2,7 @@ import {
   deleteManualActivityNoteQuery,
   updateManualActivityNoteQuery,
 } from "@api/db/queries/manual-activity-notes";
+import { getSalesChangeHistoryAccess } from "@api/db/queries/sales-form-change-history";
 import {
   addNotificationChannelSubscriber,
   deleteNotification,
@@ -635,7 +636,9 @@ export const notesRouter = createTRPCRouter({
           });
         }
       }
-      return getActivityTree(ctx.db, input as GetActivityTreeQuery);
+      return getActivityTree(ctx.db, input as GetActivityTreeQuery, {
+        salesChangeAccess: salesIds => getSalesChangeHistoryAccess(ctx, salesIds),
+      });
     }),
   activityTagSuggestions: publicProcedure
     .input(

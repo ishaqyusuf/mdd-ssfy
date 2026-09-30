@@ -3,13 +3,8 @@ import { Tabs, Stack } from "expo-router";
 import {
   BottomTabBarButtonProps,
   useBottomTabBarHeight,
-} from "@react-navigation/bottom-tabs";
-import { PlatformPressable } from "@react-navigation/elements";
-import {
-  NativeTabs,
-  Label,
-  Icon as NtIcon,
-} from "expo-router/unstable-native-tabs";
+} from "expo-router/js-tabs";
+import { PlatformPressable } from "expo-router/react-navigation";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import {

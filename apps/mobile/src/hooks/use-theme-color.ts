@@ -10,7 +10,7 @@ import {
   DarkTheme as _DarkTheme,
   DefaultTheme,
   Theme,
-} from "@react-navigation/native";
+} from "expo-router/react-navigation";
 const DarkTheme: Theme = {
   ..._DarkTheme,
   colors: {

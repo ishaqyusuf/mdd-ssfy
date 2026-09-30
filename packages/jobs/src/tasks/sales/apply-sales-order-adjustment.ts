@@ -1,3 +1,4 @@
+import { updateSalesFormChangeActivity } from "@gnd/notifications/sales-form-change-activity";
 import { type TransactionClient, db } from "@gnd/db";
 import { getSalesAdjustmentSourceFingerprint } from "@gnd/db/queries";
 import {
@@ -251,6 +252,7 @@ export async function runApplySalesOrderAdjustment(
 	}
 
 	try {
+		await db.$transaction(tx => updateSalesFormChangeActivity(tx, { adjustmentId: payload.adjustmentId, status: "APPLYING" }));
 		const result = await db.$transaction(async (tx) => {
 			const adjustment = await tx.salesOrderAdjustment.findUnique({
 				where: { id: payload.adjustmentId },
@@ -616,8 +618,10 @@ export async function runApplySalesOrderAdjustment(
 			};
 		}, { isolationLevel: "Serializable", timeout: 30_000, maxWait: 10_000 });
 
-		if (result.stale)
+		if (result.stale) {
+			await db.$transaction(tx => updateSalesFormChangeActivity(tx, { adjustmentId: payload.adjustmentId, status: "STALE" }));
 			return { adjustmentId: payload.adjustmentId, status: "STALE" as const };
+		}
 
 		await runSalesInventoryProjectionSync(db, {
 			salesOrderId: result.adjustment.salesOrderId,
@@ -633,7 +637,8 @@ export async function runApplySalesOrderAdjustment(
 				disposition: result.disposition,
 			});
 		}
-		await db.salesOrderAdjustment.update({
+		await db.$transaction(async tx => {
+		await tx.salesOrderAdjustment.update({
 			where: { id: result.adjustment.id },
 			data: {
 				status: result.status,
@@ -641,6 +646,8 @@ export async function runApplySalesOrderAdjustment(
 				walletTransactionId: result.walletTransactionId,
 				refundSalesPaymentId: result.refundSalesPaymentId,
 			},
+		});
+			return updateSalesFormChangeActivity(tx, { adjustmentId: result.adjustment.id, status: result.status });
 		});
 		if (result.adjustment.order.salesRepId) {
 			await db.notifications
@@ -710,6 +717,11 @@ export async function runApplySalesOrderAdjustment(
 				failedAt: new Date(),
 			},
 		});
+		await db.$transaction(tx => updateSalesFormChangeActivity(tx, {
+			adjustmentId: payload.adjustmentId,
+			status: snapshotConflict ? "STALE" : "APPROVED",
+			applicationFailed: !snapshotConflict,
+		})).catch(activityError => console.warn("Unable to update sales change activity", activityError));
 		throw error;
 	}
 }

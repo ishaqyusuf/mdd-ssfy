@@ -56,6 +56,7 @@ export function useSalesOverviewQuery() {
             "packing",
         ] as const),
         // refreshTok: parseAsString,
+        salesActivity: parseAsInteger,
         dispatchOverviewId: parseAsInteger,
         reviewId: parseAsInteger,
         packingReview: parseAsBoolean,

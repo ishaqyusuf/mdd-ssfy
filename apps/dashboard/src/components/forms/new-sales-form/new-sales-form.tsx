@@ -690,6 +690,10 @@ export function NewSalesForm(props: Props) {
     const invalidatePackingQueries = useCallback(
         async (salesId?: number | null) => {
             await Promise.all([
+                queryClient.invalidateQueries({ queryKey: trpc.notes.activityTree.pathKey() }),
+                queryClient.invalidateQueries({ queryKey: trpc.notes.listMine.pathKey() }),
+                queryClient.invalidateQueries({ queryKey: trpc.notes.unreadNotificationCount.pathKey() }),
+                queryClient.invalidateQueries({ queryKey: trpc.newSalesForm.getChangeHistory.pathKey() }),
                 queryClient.invalidateQueries({
                     queryKey: trpc.dispatch.packingList.pathKey(),
                 }),

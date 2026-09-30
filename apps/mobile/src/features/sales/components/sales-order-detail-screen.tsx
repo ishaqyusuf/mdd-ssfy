@@ -4,7 +4,7 @@ import { Icon, type IconKeys } from "@/components/ui/icon";
 import { Pressable as AppPressable } from "@/components/ui/pressable";
 import { useSalesDocumentOverview } from "@/features/sales/api/use-sales-order-overview";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { type Href, useRouter } from "expo-router";

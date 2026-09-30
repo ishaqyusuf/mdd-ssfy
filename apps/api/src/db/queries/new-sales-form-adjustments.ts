@@ -1,3 +1,4 @@
+import { recordSalesFormChanges } from "./sales-form-change-history";
 import { createHash } from "node:crypto";
 import type {
 	CreateNewSalesFormAdjustmentSchema,
@@ -18,11 +19,7 @@ import { projectLegacyOrderPayments } from "@gnd/sales/payment-system";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 import { getNewSalesForm } from "./new-sales-form";
-import {
-	buildSalesFormAdjustmentActivity,
-	createSalesFormTimelineActivity,
-	getSalesActivitySenderContactId,
-} from "./sales-form-activity";
+import { getSalesActivitySenderContactId } from "./sales-form-activity";
 
 const ACTIVE_ADJUSTMENT_STATUSES = [
 	"DRAFT",
@@ -637,17 +634,28 @@ export async function createNewSalesFormAdjustment(
 			},
 			select: { id: true, status: true },
 		});
-		await createSalesFormTimelineActivity(tx as unknown as TRPCContext["db"], {
+		await recordSalesFormChanges(tx as unknown as TRPCContext["db"], {
 			salesId: input.salesId,
 			orderId,
+			salesType: "order",
+			actorUserId: userId,
 			senderContactId,
-			copy: buildSalesFormAdjustmentActivity({
-				orderId,
-				direction: preview.analysis.direction,
-				beforeGrandTotal: preview.analysis.beforeGrandTotal,
-				afterGrandTotal: preview.analysis.afterGrandTotal,
-				lines: preview.analysis.lines,
-			}),
+			adjustmentId: created.id,
+			sourceVersion: input.version,
+			reason: input.reason,
+			before: {
+				...preview.baseline,
+				...(preview.reconciliation || {}),
+				form: preview.baseline.form,
+			},
+			after: {
+				status: preview.baseline.status,
+				inventoryStatus: preview.baseline.inventoryStatus,
+				form: input.meta,
+				lineItems: input.lineItems,
+				extraCosts: input.extraCosts,
+				summary: input.summary,
+			},
 		});
 		return created;
 	});

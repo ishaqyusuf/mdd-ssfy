@@ -1,3 +1,5 @@
+import { getSalesFormChangeHistory } from "@api/db/queries/sales-form-change-history";
+import { z } from "zod";
 import {
 	bootstrapNewSalesForm,
 	deleteNewSalesFormLineItem,
@@ -73,6 +75,12 @@ import { requireAnyOperationalPermission } from "@api/utils/operational-route-ac
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
 export const newSalesFormRouter = createTRPCRouter({
+	getChangeHistory: protectedProcedure
+		.input(z.object({
+			salesId: z.number().int().positive(),
+			activityId: z.number().int().positive(),
+		}))
+		.query(({ ctx, input }) => getSalesFormChangeHistory(ctx, input)),
 	adoptionPing: protectedProcedure
 		.input(salesFormUsageSchema)
 		.mutation(async ({ ctx, input }) => {

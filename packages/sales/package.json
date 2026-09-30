@@ -10,6 +10,7 @@
 	},
 	"exports": {
 		".": "./src/exports.ts",
+		"./sales-change-history": "./src/sales-change-history.ts",
 		"./constants": "./src/constants.ts",
 		"./filter-constants": "./src/filter-constants.ts",
 		"./order-status": "./src/order-status.ts",

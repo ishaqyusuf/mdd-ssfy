@@ -6,6 +6,7 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { Input } from "@gnd/ui/input";
 import { InputGroup } from "@gnd/ui/namespace";
+import { useState } from "react";
 import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
 
 export type ServiceLineItemEditorRow = {
@@ -28,6 +29,30 @@ export type ServiceLineItemsEditorProps<TRow extends ServiceLineItemEditorRow> =
 		createRow: (nextIndex: number) => TRow;
 		onRowsChange: (rows: TRow[]) => void;
 	};
+
+function ServiceNameInput(props: {
+	index: number;
+	value: string;
+	onChange: (value: string) => void;
+}) {
+	const [draft, setDraft] = useState<string | null>(null);
+
+	return (
+		<InputGroup.Input
+			aria-label={`Service line ${props.index + 1} name`}
+			value={draft ?? props.value}
+			onFocus={() => setDraft(props.value)}
+			onChange={(event) => {
+				const value = event.currentTarget.value;
+				setDraft(value);
+				props.onChange(value);
+			}}
+			onBlur={() => setDraft(null)}
+			placeholder="Service"
+			className="h-8 w-full uppercase max-lg:h-10"
+		/>
+	);
+}
 
 export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 	props: ServiceLineItemsEditorProps<TRow>,
@@ -98,16 +123,14 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 														{index + 1}.
 													</InputGroup.Text>
 												</InputGroup.Addon>
-												<InputGroup.Input
-													aria-label={`Service line ${index + 1} name`}
+												<ServiceNameInput
+													index={index}
 													value={row.service || ""}
-													onChange={(e) =>
+													onChange={(value) =>
 														patchRow(index, {
-															service: e.target.value,
+															service: value,
 														} as Partial<TRow>)
 													}
-													placeholder="Service"
-													className="h-8 w-full max-lg:h-10"
 												/>
 											</InputGroup>
 										</div>

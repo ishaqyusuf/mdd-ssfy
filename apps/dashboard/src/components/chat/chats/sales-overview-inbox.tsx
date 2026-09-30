@@ -236,6 +236,8 @@ export function SalesOverviewInbox({
 			pageSize: 40,
 			maxDepth: 4,
 			includeDeleted: auth.roleTitle === "Super Admin",
+		}, {
+			refetchInterval: query => query.state.data?.data.some(node => node.tags.changeHistoryId && ["APPROVED", "APPLYING"].includes(String(node.tags.changeStatus))) ? 5000 : false,
 		}),
 	);
 	const activityRows = useMemo(

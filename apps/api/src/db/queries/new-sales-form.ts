@@ -52,6 +52,7 @@ import {
 	getSalesRequestServiceVocabulary as loadSalesRequestServiceVocabulary,
 	getSalesRequestServiceVocabularyNames as loadSalesRequestServiceVocabularyNames,
 } from "@api/services/sales-request-service-vocabulary";
+import { recordSalesFormChanges } from "./sales-form-change-history";
 import type { TRPCContext } from "@api/trpc/init";
 import { salesAddressLines } from "@api/utils/sales";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
@@ -121,7 +122,6 @@ import { hasUnprojectedApprovedCommercialSnapshot } from "./sales-commercial-con
 import { getStepComponents } from "./sales-form";
 import { getFreshNewSalesFormStepRouting } from "./new-sales-form-routing";
 import {
-	buildSalesFormUpdateActivity,
 	buildSpecialOrderEnrollmentActivity,
 	buildSpecialOrderRevisionInvalidatedActivity,
 	createSalesFormTimelineActivity,
@@ -3828,10 +3828,7 @@ async function saveNewSalesFormInternal(
 			}
 			let canonicalBefore: Awaited<ReturnType<typeof getNewSalesForm>> | null =
 				null;
-			if (
-				order &&
-				(payload.type === "order" || !currentMeta.newSalesForm?.form)
-			) {
+			if (order) {
 				canonicalBefore = await getNewSalesForm(
 					{
 						...ctx,
@@ -3872,6 +3869,12 @@ async function saveNewSalesFormInternal(
 					normalizedPo(payload.meta.po) !==
 					normalizedPo(canonicalBefore.form.po)
 				) {
+					if (activitySenderContactId && ctx.userId) await recordSalesFormChanges(tx as unknown as TRPCContext["db"], {
+						salesId: order.id, orderId: order.orderId, salesType: payload.type,
+						actorUserId: ctx.userId, senderContactId: activitySenderContactId,
+						before: { form: { po: canonicalBefore.form.po } }, after: { form: { po: payload.meta.po } },
+						sourceVersion: currentVersion, autosave: payload.autosave,
+					});
 					await tx.salesOrders.update({
 						where: { id: order.id },
 						data: {
@@ -4736,37 +4739,21 @@ async function saveNewSalesFormInternal(
 			}
 
 			if (!isNew && activitySenderContactId) {
-				const beforeLines = currentMeta.newSalesForm?.lineItems?.length
-					? currentMeta.newSalesForm.lineItems
-					: order!.items.map((item) => ({
-							id: item.id,
-							uid:
-								(typeof safeRecord(item.meta).uid === "string" &&
-									String(safeRecord(item.meta).uid)) ||
-								item.multiDykeUid ||
-								`sales-item-${item.id}`,
-							title: item.dykeDescription || item.description || "Line item",
-							description: item.description,
-							qty: Number(item.qty || 0),
-						}));
-				await createSalesFormTimelineActivity(
-					tx as unknown as TRPCContext["db"],
-					{
-						salesId: currentId,
-						orderId: order!.orderId,
-						senderContactId: activitySenderContactId,
-						copy: buildSalesFormUpdateActivity({
-							salesType: payload.type,
-							orderId: order!.orderId,
-							status: nextOrderStatus || "Unspecified",
-							autosave: payload.autosave,
-							beforeGrandTotal: Number(order!.grandTotal || 0),
-							afterGrandTotal: persistedSummary.grandTotal,
-							beforeLines,
-							afterLines: hydratedLineItems,
-						}),
+				await recordSalesFormChanges(tx as unknown as TRPCContext["db"], {
+					salesId: currentId, orderId: order!.orderId, salesType: payload.type,
+					actorUserId: ctx.userId!, senderContactId: activitySenderContactId,
+					autosave: payload.autosave, sourceVersion: currentVersion, targetVersion: nextVersion,
+					before: {
+						...(canonicalBefore || currentMeta.newSalesForm),
+						form: canonicalBefore?.form || currentMeta.newSalesForm?.form,
+						lineItems: canonicalBefore?.lineItems || currentMeta.newSalesForm?.lineItems || [],
+						extraCosts: canonicalBefore?.extraCosts || [],
+						summary: { ...(canonicalBefore?.summary || {}), grandTotal: Number(order!.grandTotal || 0) },
+						status: order!.status,
+						specialOrderDeclaration: order!.specialOrderDeclaration,
 					},
-				);
+					after: { form: nextFormMeta, lineItems: hydratedLineItems, extraCosts: hydratedExtraCosts, summary: persistedSummary, status: nextOrderStatus, inventoryStatus: payload.type === "order" ? payload.inventoryStatus || order!.inventoryStatus || null : null, specialOrderDeclaration: nextSpecialOrderDeclaration },
+				});
 				if (manuallyEnrolledExistingOrder) {
 					await createSalesFormTimelineActivity(
 						tx as unknown as TRPCContext["db"],

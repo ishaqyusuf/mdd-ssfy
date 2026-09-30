@@ -4,7 +4,7 @@ import { useColorScheme } from "@/hooks/use-color";
 import { nativewindThemeVars } from "@/lib/nativewind-theme-vars";
 import { NAV_THEME } from "@/lib/theme";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { ThemeProvider } from "@react-navigation/native";
+import { ThemeProvider } from "expo-router/react-navigation";
 import { VariableContextProvider } from "nativewind";
 import { type PropsWithChildren, useMemo } from "react";
 import { View } from "react-native";

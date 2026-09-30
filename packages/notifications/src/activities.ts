@@ -6,6 +6,7 @@ import {
 } from "./channel-subscribers";
 import type { CreateActivityInput } from "./schemas";
 import { explodeTagEntries, mergeTagRows } from "./tag-values";
+import { attachSalesItemChangeSummaries } from "./sales-form-change-activity";
 
 export type CreateNoteInput = Omit<CreateActivityInput, "tags"> & {
 	tags: {
@@ -421,9 +422,10 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
 	const documentsById = new Map(
 		documents.map((document) => [document.id, normalizeDocument(document)]),
 	);
+	const summarizedActivities = await attachSalesItemChangeSummaries(db, mergedActivities);
 
 	return {
-		data: mergedActivities.map((activity) => {
+		data: summarizedActivities.map((activity) => {
 			const documentIds = collectDocumentIds(activity.tags);
 			return {
 				...activity,

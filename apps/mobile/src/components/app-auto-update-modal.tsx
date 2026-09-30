@@ -44,7 +44,6 @@ export function AppAutoUpdateModal() {
 		>
 			<SafeArea style={{ backgroundColor: colors.background }}>
 				<StatusBar
-					backgroundColor={colors.background}
 					style={colors.background === "rgb(15, 23, 42)" ? "light" : "dark"}
 				/>
 				<View style={styles.content}>

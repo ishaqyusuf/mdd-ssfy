@@ -21,13 +21,13 @@ const EXPECTED_PROJECT_ID = "8ea2eecb-4109-453c-827f-9b2de2e3a9aa";
 const EXPECTED_TEAM_ID = "ZXC78SPCV4";
 const EXPECTED_ASC_APP_ID = "6811442922";
 const EXPECTED_SDK_DEPENDENCIES = {
-	"@react-native-community/netinfo": "11.4.1",
-	expo: "~54.0.37",
-	"expo-constants": "~18.0.14",
-	"expo-file-system": "~19.0.24",
-	"expo-updates": "~29.0.20",
-	"react-mobile": "npm:react@19.1.0",
-	"react-dom-mobile": "npm:react-dom@19.1.0",
+	"@react-native-community/netinfo": "12.0.1",
+	expo: "~57.0.26",
+	"expo-constants": "~57.0.20",
+	"expo-file-system": "~57.0.7",
+	"expo-updates": "~57.0.24",
+	"react-mobile": "npm:react@19.2.7",
+	"react-dom-mobile": "npm:react-dom@19.2.7",
 } as const;
 
 function hasGetAndPost(exportNames: string | undefined): boolean {
@@ -129,7 +129,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 	);
 	return [
 		check(
-			"Expo SDK 54 release dependencies",
+			"Expo SDK 57 release dependencies",
 			dependencyVersionsMatch,
 			Object.entries(EXPECTED_SDK_DEPENDENCIES)
 				.map(
@@ -143,7 +143,7 @@ export async function collectIosReleaseReadiness(): Promise<Check[]> {
 			["react", "react-dom", "@types/react"].every((name) =>
 				validationExclusions?.includes(name),
 			),
-			"Root overrides serve Next.js; Metro tests enforce the SDK 54 React 19.1 aliases",
+			"Root overrides serve Next.js; Metro tests enforce the SDK 57 React 19.2 aliases",
 		),
 		check(
 			"Native-module resolution alignment",

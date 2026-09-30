@@ -164,7 +164,6 @@ const config: ExpoConfig = {
   // icon: "./assets/images/icon.png",
   scheme: variantConfig.scheme,
   userInterfaceStyle: "automatic",
-  newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: variantConfig.iosBundleIdentifier,
@@ -209,6 +208,7 @@ const config: ExpoConfig = {
     isDriverPlatformMode
       ? ["expo-router", { root: "src/driver-app" }]
       : "expo-router",
+    ["expo-build-properties", { ios: { enableSceneSupport: true } }],
     [
       "@sentry/react-native/expo",
       {
@@ -219,6 +219,9 @@ const config: ExpoConfig = {
       },
     ],
     "expo-font",
+    "expo-image",
+    "expo-secure-store",
+    "expo-status-bar",
     "expo-web-browser",
     [
       "expo-navigation-bar",

@@ -20,7 +20,7 @@ export async function collectAndroidPlayReadiness(): Promise<Check[]> {
   });
 
   return [
-    check("Expo SDK 54", mobile.dependencies?.expo === "~54.0.37", String(mobile.dependencies?.expo)),
+    check("Expo SDK 57", mobile.dependencies?.expo === "~57.0.26", String(mobile.dependencies?.expo)),
     check("Android package", appConfig.android?.package === "com.gnd.prodesk", String(appConfig.android?.package)),
     check("EAS owner and project", appConfig.owner === "pcruz321" && appConfig.extra?.eas?.projectId === projectId, `${appConfig.owner}/${appConfig.extra?.eas?.projectId}`),
     check("Production Updates linkage", appConfig.updates?.url === `https://u.expo.dev/${projectId}` && eas.build?.production?.channel === "production", `${appConfig.updates?.url} / ${eas.build?.production?.channel}`),

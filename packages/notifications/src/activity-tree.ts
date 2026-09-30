@@ -1,4 +1,6 @@
 import type { Db, NoteStatus } from "@gnd/db";
+import type { SalesItemChangeSummary } from "@gnd/sales/sales-change-history";
+import { attachSalesItemChangeSummaries } from "./sales-form-change-activity";
 import type { NoteTagNames } from "@gnd/utils/constants";
 import { channelNames } from "./channels";
 import type {
@@ -125,6 +127,7 @@ export type GetActivityTreeQuery = {
 };
 
 export type ActivityTreeNode = {
+	salesChangeSummary?: SalesItemChangeSummary | null;
 	id: number;
 	createdAt: Date | null;
 	subject: string | null;
@@ -516,7 +519,17 @@ async function fetchActivitiesByIds(
 	return attachSenderNames(db, rows);
 }
 
-export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
+export async function getActivityTree(db: Db, query: GetActivityTreeQuery, options?: {
+	salesChangeAccess: (salesIds: number[]) => Promise<number[]>;
+}) {
+	const summarize = async (activities: ActivityTreeNode[]) => {
+		const salesIds = [...new Set(activities
+			.filter(activity => activity.tags.type === "sales_form_change")
+			.map(activity => Number(activity.tags.salesId))
+			.filter(id => Number.isSafeInteger(id) && id > 0))];
+		const allowed = options && salesIds.length ? await options.salesChangeAccess(salesIds) : undefined;
+		return attachSalesItemChangeSummaries(db, activities, allowed);
+	};
 	const tagFilterMode = query.tagFilterMode ?? "all";
 	const pageSize = query.pageSize ?? 50;
 	const includeChildren = query.includeChildren ?? true;
@@ -594,9 +607,9 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 
 	if (!includeChildren || !rootIds.length) {
 		return {
-			data: rootIds
+			data: await summarize(rootIds
 				.map((id) => nodes.get(id))
-				.filter((node): node is ActivityTreeNode => Boolean(node)),
+				.filter((node): node is ActivityTreeNode => Boolean(node))),
 		};
 	}
 
@@ -649,6 +662,8 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 		depth += 1;
 	}
 
+	const summarizedNodes = await summarize([...nodes.values()]);
+	for (const node of summarizedNodes) nodes.set(node.id, node);
 	for (const link of links) {
 		const parent = nodes.get(link.parentId);
 		const child = nodes.get(link.childId);

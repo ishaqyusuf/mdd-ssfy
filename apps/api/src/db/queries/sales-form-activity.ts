@@ -239,6 +239,11 @@ export async function createSalesFormTimelineActivity(
 		orderId: string;
 		senderContactId: number;
 		copy: SalesActivityCopy;
+		changeHistoryId?: string;
+		adjustmentId?: string | null;
+		salesType?: "order" | "quote";
+		changeCount?: number;
+		recipientContactIds?: number[];
 	},
 ) {
 	return db.notePad.create({
@@ -247,13 +252,21 @@ export async function createSalesFormTimelineActivity(
 			headline: fitNotePadText(input.copy.headline),
 			note: fitNotePadText(input.copy.note),
 			senderContactId: input.senderContactId,
+			recipients: input.recipientContactIds?.length ? { createMany: { data: [...new Set(input.recipientContactIds)].map(notePadContactId => ({ notePadContactId, status: "unread" as const })) } } : undefined,
 			tags: {
 				createMany: {
 					data: [
-						{ tagName: "channel", tagValue: "Sales" },
+						{ tagName: "channel", tagValue: input.changeHistoryId ? "sales_info" : "Sales" },
 						{ tagName: "salesId", tagValue: String(input.salesId) },
 						{ tagName: "salesNo", tagValue: input.orderId },
-						{ tagName: "type", tagValue: "system" },
+						{ tagName: "type", tagValue: input.changeHistoryId ? "sales_form_change" : "system" },
+						...(input.changeHistoryId ? [
+							{ tagName: "changeHistoryId", tagValue: input.changeHistoryId },
+							{ tagName: "salesType", tagValue: input.salesType || "order" },
+							{ tagName: "changeCount", tagValue: String(input.changeCount || 0) },
+							{ tagName: "changeStatus", tagValue: input.adjustmentId ? "APPROVED" : "APPLIED" },
+						] : []),
+						...(input.adjustmentId ? [{ tagName: "adjustmentId", tagValue: input.adjustmentId }] : []),
 						{ tagName: "status", tagValue: "public" },
 						{
 							tagName: "activity",
