@@ -26,6 +26,7 @@ import Image from "next/image";
 import {
 	type FormEvent,
 	type ReactNode,
+	type RefObject,
 	createContext,
 	useCallback,
 	useContext,
@@ -76,6 +77,11 @@ type ChatState = {
 	noteColor: string;
 };
 
+export type ChatDraft = Pick<
+	ChatState,
+	"channel" | "message" | "meta" | "payload" | "attachments" | "noteColor"
+>;
+
 type ChatContextValue = {
 	state: ChatState;
 	setChannel: (value: string) => void;
@@ -114,6 +120,8 @@ type TransformSubmitData = (
 
 export type ChatProps = {
 	children: ReactNode;
+	variant?: "default" | "simple";
+	draftRef?: RefObject<ChatDraft | null>;
 	className?: string;
 	channel?: string;
 	names?: readonly string[];
@@ -261,7 +269,7 @@ function getAttachmentKind(pathname: string) {
 	return "file";
 }
 
-function getAttachmentAccept(
+export function getAttachmentAccept(
 	attachmentType: NonNullable<ChatProps["attachmentType"]>,
 ) {
 	if (attachmentType === "image") {
@@ -819,6 +827,8 @@ function ChatSendButton({ className, label = "Send" }: ChatSendButtonProps) {
 
 function ChatRoot({
 	children,
+	variant = "default",
+	draftRef,
 	className,
 	channel,
 	names,
@@ -852,7 +862,7 @@ function ChatRoot({
 		return defaultChannelOptions[0]?.value || "";
 	}, [channel, defaultChannelOptions]);
 
-	const [state, setState] = useState<ChatState>({
+	const [state, setState] = useState<ChatState>(() => ({
 		channel: resolvedDefaultChannel,
 		message: "",
 		meta: {},
@@ -864,7 +874,22 @@ function ChatRoot({
 		errors: {},
 		isSubmitting: false,
 		noteColor: "#000000",
-	});
+		...draftRef?.current,
+	}));
+
+	useEffect(() => {
+		if (draftRef) {
+			const { channel, message, meta, payload, attachments, noteColor } = state;
+			draftRef.current = {
+				channel,
+				message,
+				meta,
+				payload,
+				attachments,
+				noteColor,
+			};
+		}
+	}, [draftRef, state]);
 
 	const [metaFieldConfigs, setMetaFieldConfigs] = useState<
 		Record<string, OptionFieldConfig>
@@ -1013,6 +1038,7 @@ function ChatRoot({
 				});
 			}
 
+			if (draftRef) draftRef.current = null;
 			setState((prev) => ({
 				...prev,
 				message: "",
@@ -1039,6 +1065,7 @@ function ChatRoot({
 		}
 	}, [
 		attachmentName,
+		draftRef,
 		fallbackMutation,
 		messageRequired,
 		metaFieldConfigs,
@@ -1211,7 +1238,8 @@ function ChatRoot({
 		<ChatContext.Provider value={contextValue}>
 			<form
 				className={cn(
-					"space-y-1 overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-[border-color,box-shadow] focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20",
+					variant === "default" &&
+						"space-y-1 overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-[border-color,box-shadow] focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20",
 					className,
 				)}
 				onSubmit={handleSubmit}

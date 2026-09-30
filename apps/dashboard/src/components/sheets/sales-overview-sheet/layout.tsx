@@ -340,7 +340,15 @@ export function LegacySalesOverviewPanels({
 	return (
 		<>
 			{tabs.map((tab) => (
-				<TabsContent key={tab.value} value={tab.value}>
+				<TabsContent
+					key={tab.value}
+					value={tab.value}
+					className={
+						tab.value === "activity" && activeTab === "activity"
+							? "flex min-h-0 flex-1 flex-col"
+							: undefined
+					}
+				>
 					{tab.value === activeTab ? (tab.content ?? null) : null}
 				</TabsContent>
 			))}

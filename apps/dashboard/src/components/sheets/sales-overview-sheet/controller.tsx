@@ -1,12 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
-
-import { SalesOverviewInbox } from "@/components/chat";
 import { SalesOverviewInventoryContent } from "@/components/sales-overview-system/tabs/inventory-tab";
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 
+import {
+	SalesOverviewActivity,
+	type SalesOverviewActivityProps,
+} from "./activity-tab";
 import { useSaleOverview } from "./context";
 import { DispatchTab } from "./dispatch-tab";
 import type { GeneralTabProps } from "./general-tab";
@@ -17,7 +18,6 @@ import { TransactionsTab } from "./transactions-tab";
 import type {
 	LegacySalesOverviewMode,
 	LegacySalesOverviewTabDefinition,
-	LegacySalesOverviewTabId,
 } from "./types";
 export { resolveLegacySalesOverviewMode } from "./mode";
 
@@ -42,28 +42,12 @@ function LegacySalesOverviewInventoryTab({
 	);
 }
 
-export function resolveLegacySalesOverviewActiveTab({
-	currentTab,
-	tabs,
-}: {
-	currentTab?: string | null;
-	tabs: LegacySalesOverviewTabDefinition[];
-}): LegacySalesOverviewTabId {
-	const normalizedCurrentTab =
-		currentTab === "inbound" ? "activity" : currentTab;
-
-	return (
-		tabs.find((tab) => tab.value === normalizedCurrentTab && !tab.hidden)
-			?.value ??
-		tabs.find((tab) => !tab.hidden)?.value ??
-		"general"
-	);
-}
+export { resolveLegacySalesOverviewActiveTab } from "./tab-navigation";
 
 export function createLegacySalesOverviewTabs({
 	mode,
 	isQuote,
-	prodQty,
+	tabCounts,
 	saleId,
 	orderId,
 	onEditAddress,
@@ -75,10 +59,11 @@ export function createLegacySalesOverviewTabs({
 	onCreatePayment,
 	packItemsOpen,
 	onPackItemsOpenChange,
+	activityDraftRef,
 }: {
 	mode: LegacySalesOverviewMode;
 	isQuote: boolean;
-	prodQty: number;
+	tabCounts?: { productionQty: number; transactions: number; dispatch: number };
 	saleId?: number | null;
 	orderId?: string | null;
 	onEditAddress?: GeneralTabProps["onEditAddress"];
@@ -90,8 +75,12 @@ export function createLegacySalesOverviewTabs({
 	onCreatePayment?: () => void;
 	packItemsOpen: boolean;
 	onPackItemsOpenChange: (open: boolean) => void;
+	activityDraftRef?: SalesOverviewActivityProps["draftRef"];
 }): LegacySalesOverviewTabDefinition[] {
-	const prodBadge = prodQty > 0 ? prodQty : 0;
+	const productionNavigation = {
+		badge: tabCounts?.productionQty,
+		disabled: tabCounts?.productionQty === 0,
+	};
 
 	switch (mode) {
 		case "assigned-production":
@@ -99,6 +88,7 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "production",
 					label: "Productions",
+					...productionNavigation,
 					content: <ProductionTabGateway onCreateInbound={onCreateInbound} onViewInbound={onViewInbound} />,
 				},
 				{
@@ -120,6 +110,7 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "production",
 					label: "Productions",
+					...productionNavigation,
 					content: <ProductionTabGateway onCreateInbound={onCreateInbound} onViewInbound={onViewInbound} />,
 				},
 				{
@@ -160,13 +151,14 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "production",
 					label: "Productions",
+					...productionNavigation,
 					hidden: isQuote,
-					badge: prodBadge ? (prodBadge as ReactNode) : undefined,
 					content: <ProductionTabGateway onCreateInbound={onCreateInbound} onViewInbound={onViewInbound} />,
 				},
 				{
 					value: "transactions",
 					label: "Transactions",
+					badge: tabCounts?.transactions || undefined,
 					hidden: isQuote,
 					content: (
 						<TransactionsTab
@@ -180,16 +172,10 @@ export function createLegacySalesOverviewTabs({
 					value: "activity",
 					label: "Activity",
 					content: (
-						<div className="p-1">
-							<SalesOverviewInbox
-								saleData={{
-									id: saleId,
-									orderId,
-								}}
-								variant="activity"
-								onOpenInbound={onViewInbound}
-							/>
-						</div>
+						<SalesOverviewActivity
+							draftRef={activityDraftRef}
+							onOpenInbound={onViewInbound}
+						/>
 					),
 				},
 				{
@@ -207,6 +193,7 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "dispatch",
 					label: "Dispatch",
+					badge: tabCounts?.dispatch || undefined,
 					hidden: isQuote,
 					content: <DispatchTab />,
 				},

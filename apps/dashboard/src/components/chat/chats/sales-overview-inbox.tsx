@@ -14,9 +14,10 @@ import {
 } from "@notifications/activity-tree";
 import { getChannelsOptionList, isChannelName } from "@notifications/channels";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { type RefObject, useEffect, useMemo, useState } from "react";
 import { ActivityHistory, type ActivityHistoryNode } from "../activity-history";
-import { Chat, useChat } from "../chat";
+import { Chat, type ChatDraft, useChat } from "../chat";
+import { ChatComposer } from "../chat-composer";
 import { buildSalesOverviewActivityFilter } from "./sales-overview-activity-filter";
 
 const channelNames = [
@@ -53,11 +54,7 @@ function SalesInboxComposer() {
 
 	return (
 		<>
-			<Chat.Header>
-				<Chat.ChannelsOption names={channelNames} />
-			</Chat.Header>
-
-			<Chat.Content
+			<ChatComposer
 				placeholder={
 					isReminderChannel
 						? "Add internal note for this reminder (optional)..."
@@ -65,9 +62,15 @@ function SalesInboxComposer() {
 							? "Add an inbound receiving note or receipt context..."
 							: "Write a sales activity note..."
 				}
+				sendLabel={
+					isReminderChannel
+						? "Send reminder"
+						: isInventoryInboundChannel
+							? "Send inbound note"
+							: "Send note"
+				}
 			/>
-			<Chat.Footer>
-				<Chat.ColorPicker />
+			<Chat.Options className={isReminderChannel ? undefined : "hidden"}>
 				<Chat.PayloadOption
 					show={isReminderChannel}
 					required={isReminderChannel}
@@ -82,22 +85,13 @@ function SalesInboxComposer() {
 					label="invoice pdf"
 					options={invoiceDownloadOptions}
 				/>
-				<div className="flex-1" />
-				<Chat.SendButton
-					label={
-						isReminderChannel
-							? "Send reminder"
-							: isInventoryInboundChannel
-								? "Send inbound note"
-								: "Send note"
-					}
-				/>
-			</Chat.Footer>
+			</Chat.Options>
 		</>
 	);
 }
 
 type SalesOverviewInboxProps = {
+	draftRef?: RefObject<ChatDraft | null>;
 	saleData?: {
 		id?: number | string | null;
 		orderId?: number | string | null;
@@ -205,6 +199,7 @@ function ActivityChannelFilter({
 
 export function SalesOverviewInbox({
 	saleData,
+	draftRef,
 	variant = "all",
 	onOpenInbound,
 }: SalesOverviewInboxProps) {
@@ -229,16 +224,26 @@ export function SalesOverviewInbox({
 		: salesFilter;
 	const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
 	const activityQuery = useQuery(
-		trpc.notes.activityTree.queryOptions({
-			filter: activityFilter,
-			tagFilterMode: "all",
-			includeChildren: true,
-			pageSize: 40,
-			maxDepth: 4,
-			includeDeleted: auth.roleTitle === "Super Admin",
-		}, {
-			refetchInterval: query => query.state.data?.data.some(node => node.tags.changeHistoryId && ["APPROVED", "APPLYING"].includes(String(node.tags.changeStatus))) ? 5000 : false,
-		}),
+		trpc.notes.activityTree.queryOptions(
+			{
+				filter: activityFilter,
+				tagFilterMode: "all",
+				includeChildren: true,
+				pageSize: 40,
+				maxDepth: 4,
+				includeDeleted: auth.roleTitle === "Super Admin",
+			},
+			{
+				refetchInterval: (query) =>
+					query.state.data?.data.some(
+						(node) =>
+							node.tags.changeHistoryId &&
+							["APPROVED", "APPLYING"].includes(String(node.tags.changeStatus)),
+					)
+						? 5000
+						: false,
+			},
+		),
 	);
 	const activityRows = useMemo(
 		() => (activityQuery.data?.data || []) as ActivityHistoryNode[],
@@ -261,82 +266,101 @@ export function SalesOverviewInbox({
 		[activityRows, isActivityView, selectedChannel],
 	);
 
+	const composer = (
+		<div className={cn(isActivityView && "shrink-0 border-t pt-4")}>
+			<Chat
+				variant="simple"
+				draftRef={draftRef}
+				channel={isInboundOnly ? "inventory_inbound" : "sales_info"}
+				names={isInboundOnly ? ["inventory_inbound"] : channelNames}
+				attachmentName="attachment"
+				attachmentType="mixed"
+				attachmentChannels={["inventory_inbound", "sales_info"]}
+				multiAttachmentSupport
+				payload={{
+					salesId: saleData.id,
+					salesNo: saleData.orderId,
+				}}
+				defaultPayloads={defaultPayloads}
+				transformSubmitData={async (payload) => {
+					const paymentLinkOption = payload.paymentLinkOption;
+					const invoiceDownload = payload.invoiceDownload;
+					const isReminderTransform =
+						typeof paymentLinkOption === "string" ||
+						typeof invoiceDownload === "string";
+
+					if (!isReminderTransform || !saleData?.id) {
+						return {};
+					}
+
+					const payPlanMap: Record<string, 25 | 50 | 75 | 100 | null> = {
+						none: null,
+						"25": 25,
+						"50": 50,
+						"75": 75,
+						full: 100,
+					};
+
+					return {
+						salesId: saleData.id,
+						payPlan: payPlanMap[paymentLinkOption] ?? null,
+						attachInvoice: invoiceDownload === "yes",
+					};
+				}}
+				className={cn(!isActivityView && "mb-3")}
+			>
+				<SalesInboxComposer />
+			</Chat>
+		</div>
+	);
+	const history = (
+		<div
+			className={cn(
+				isActivityView && "min-h-0 flex-1 overflow-y-auto pb-4 pr-1",
+			)}
+		>
+			<ActivityHistory
+				data={filteredActivityRows}
+				isPending={activityQuery.isPending}
+				isError={activityQuery.isError}
+				emptyText={isInboundOnly ? "No inbound activity yet" : null}
+				headerAction={
+					isActivityView && fetchedChannels.length ? (
+						<ActivityChannelFilter
+							value={selectedChannel}
+							onChange={setSelectedChannel}
+							channels={fetchedChannels}
+						/>
+					) : null
+				}
+				title={isActivityView ? "Activity History" : "Activity Timeline"}
+				onOpenActivity={(node) => {
+					const inboundId = resolveInboundActivityId(node.tags);
+					if (inboundId) onOpenInbound?.(inboundId);
+				}}
+				className={cn("min-h-[180px]")}
+			/>
+		</div>
+	);
+
 	return (
 		<div
 			className={cn(
 				"flex flex-col",
-				isActivityView &&
-					"h-[calc(100svh-15rem)] min-h-[28rem] overflow-hidden",
+				isActivityView && "min-h-0 flex-1 overflow-hidden",
 			)}
 		>
-			<div className={cn(isActivityView && "shrink-0 pb-3")}>
-				<Chat
-					channel={isInboundOnly ? "inventory_inbound" : "sales_info"}
-					names={isInboundOnly ? ["inventory_inbound"] : channelNames}
-					attachmentName="attachment"
-					attachmentType="mixed"
-					attachmentChannels={["inventory_inbound", "sales_info"]}
-					multiAttachmentSupport
-					payload={{
-						salesId: saleData.id,
-						salesNo: saleData.orderId,
-					}}
-					defaultPayloads={defaultPayloads}
-					transformSubmitData={async (payload) => {
-						const paymentLinkOption = payload.paymentLinkOption;
-						const invoiceDownload = payload.invoiceDownload;
-						const isReminderTransform =
-							typeof paymentLinkOption === "string" ||
-							typeof invoiceDownload === "string";
-
-						if (!isReminderTransform || !saleData?.id) {
-							return {};
-						}
-
-						const payPlanMap: Record<string, 25 | 50 | 75 | 100 | null> = {
-							none: null,
-							"25": 25,
-							"50": 50,
-							"75": 75,
-							full: 100,
-						};
-
-						return {
-							salesId: saleData.id,
-							payPlan: payPlanMap[paymentLinkOption] ?? null,
-							attachInvoice: invoiceDownload === "yes",
-						};
-					}}
-					className={cn(!isActivityView && "mb-3")}
-				>
-					<SalesInboxComposer />
-				</Chat>
-			</div>
-			<div
-				className={cn(isActivityView && "min-h-0 flex-1 overflow-y-auto pr-1")}
-			>
-				<ActivityHistory
-					data={filteredActivityRows}
-					isPending={activityQuery.isPending}
-					isError={activityQuery.isError}
-					emptyText={isInboundOnly ? "No inbound activity yet" : null}
-					headerAction={
-						isActivityView && fetchedChannels.length ? (
-							<ActivityChannelFilter
-								value={selectedChannel}
-								onChange={setSelectedChannel}
-								channels={fetchedChannels}
-							/>
-						) : null
-					}
-					title={isActivityView ? "Activity History" : "Activity Timeline"}
-					onOpenActivity={(node) => {
-						const inboundId = resolveInboundActivityId(node.tags);
-						if (inboundId) onOpenInbound?.(inboundId);
-					}}
-					className={cn("min-h-[180px]")}
-				/>
-			</div>
+			{isActivityView ? (
+				<>
+					{history}
+					{composer}
+				</>
+			) : (
+				<>
+					{composer}
+					{history}
+				</>
+			)}
 		</div>
 	);
 }

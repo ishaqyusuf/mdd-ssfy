@@ -49,6 +49,7 @@ import { payrollUid } from "@sales/utils/utils";
 import z from "zod";
 import { getSalesInventoryInboundOwnership } from "./sales-inventory-inbound-ownership";
 import { getSalesSetting } from "./settings";
+import { buildSalesOverviewTabCounts } from "./sales-overview-tab-counts";
 
 function isControlReadParityEnabled() {
 	return ["1", "true", "yes", "on"].includes(
@@ -253,7 +254,12 @@ export async function getSaleOverview(
 
 	const overview = salesOverviewDto(sale, salesType);
 
-	if (salesType === "quote") return overview;
+	if (salesType === "quote") {
+		return {
+			...overview,
+			tabCounts: buildSalesOverviewTabCounts(sale._count, null),
+		};
+	}
 
 	const [inventoryInboundOwnership, documentSnapshot, pipelineSnapshots] =
 		await Promise.all([
@@ -290,6 +296,7 @@ export async function getSaleOverview(
 	const pipeline = canonicalPipeline;
 	const overviewWithInventoryInboundOwnership = {
 		...overview,
+		tabCounts: buildSalesOverviewTabCounts(sale._count, pipeline),
 		pipeline,
 		canonicalStatus: pipeline?.headline.code ?? "unknown",
 		statusLabel: pipeline?.headline.label ?? "Unknown",

@@ -1,12 +1,13 @@
-import { getSalesOrderStatusPresentation } from "@gnd/sales/order-status";
 import { salesOverviewDto } from "@api/dto/sales-dto";
 import type { GetSaleOverviewSchema } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import type { SalesType } from "@api/type";
 import { SalesOverviewInclude } from "@api/utils/sales";
+import { getSalesOrderStatusPresentation } from "@gnd/sales/order-status";
 import { resolveSalesOverviewDocumentReadiness } from "@gnd/sales/pdf-system";
 import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
 import { getSalesInventoryInboundOwnership } from "./sales-inventory-inbound-ownership";
+import { buildSalesOverviewTabCounts } from "./sales-overview-tab-counts";
 
 const {
 	items: _items,
@@ -55,7 +56,11 @@ export async function getSaleOverviewGeneralV2(
 	if (!sale) return null;
 
 	const overview = salesOverviewDto(sale as never, salesType);
-	if (salesType === "quote") return overview;
+	if (salesType === "quote")
+		return {
+			...overview,
+			tabCounts: buildSalesOverviewTabCounts(sale._count, null),
+		};
 
 	const [inventoryInboundOwnership, documentSnapshot, pipelineSnapshots] =
 		await Promise.all([
@@ -84,6 +89,7 @@ export async function getSaleOverviewGeneralV2(
 
 	return {
 		...overview,
+		tabCounts: buildSalesOverviewTabCounts(sale._count, pipeline),
 		archivedAt: sale.archivedAt,
 		pipeline,
 		canonicalStatus: pipeline?.headline.code ?? "unknown",

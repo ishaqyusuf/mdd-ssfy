@@ -1,4 +1,5 @@
 import { type Item, statToKeyValueDto } from "@api/dto/sales-dto";
+import { salesOverviewTabCountsSelect } from "@api/db/queries/sales-overview-tab-counts";
 import type { SalesQueryParamsSchema } from "@api/schemas/sales";
 import type {
 	AddressBookMeta,
@@ -216,6 +217,7 @@ export const SalesListInclude = {
 
 export const SalesOverviewInclude = {
 	...SalesListInclude,
+	_count: { select: salesOverviewTabCountsSelect },
 	taxes: {
 		where: {
 			deletedAt: null,

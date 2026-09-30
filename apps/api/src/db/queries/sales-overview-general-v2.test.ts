@@ -14,6 +14,7 @@ describe("Sales Overview General V2 projection", () => {
 			"taxes",
 			"payments",
 			"deliveries",
+			"_count",
 		]) {
 			expect(dependency in SalesOverviewGeneralV2Include).toBe(true);
 		}

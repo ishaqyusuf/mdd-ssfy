@@ -7,6 +7,7 @@ export * from "./assistant-sales-request-session";
 export * from "./bug-report-delivery";
 export * from "./assistant-operations";
 export * from "./contractor-accounting";
+export * from "./contractor-job-earning";
 export * from "./contractor-accounting-workspace";
 export * from "./dealers";
 export * from "./dealer-program";

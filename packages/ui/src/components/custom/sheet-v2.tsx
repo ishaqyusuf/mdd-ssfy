@@ -62,9 +62,13 @@ export const CustomSheetV2Context = createContext<
 >(undefined);
 export const SheetV2Provider = CustomSheetV2Context.Provider;
 
-function useCustomSheetContextValue(props: Props): CustomSheetContextValue {
-	const primarySize = props.primarySize ?? "default";
-	const secondarySize = props.secondarySize ?? primarySize;
+export function useSheetV2SideBySide({
+	primarySize = "default",
+	secondarySize = primarySize,
+}: {
+	primarySize?: CustomSheetV2Size;
+	secondarySize?: CustomSheetV2Size;
+}) {
 	const requiredLayout = useMemo(
 		() =>
 			resolveCustomSheetLayout({
@@ -75,9 +79,15 @@ function useCustomSheetContextValue(props: Props): CustomSheetContextValue {
 			}),
 		[primarySize, secondarySize],
 	);
-	const isSideBySide = useMediaQuery({
+	return useMediaQuery({
 		query: `(min-width: ${requiredLayout.sideBySideMinViewportRem}rem)`,
 	});
+}
+
+function useCustomSheetContextValue(props: Props): CustomSheetContextValue {
+	const primarySize = props.primarySize ?? "default";
+	const secondarySize = props.secondarySize ?? primarySize;
+	const isSideBySide = useSheetV2SideBySide({ primarySize, secondarySize });
 	const layout = resolveCustomSheetLayout({
 		isSideBySide,
 		primarySize,
@@ -286,14 +296,37 @@ export function CustomSheetContent({
 	className = "",
 	contentClassName,
 	secondary = false,
+	scrollable = true,
 }: {
 	children?: ReactNode;
 	Header?: ReactNode;
 	className?: string;
 	contentClassName?: string;
 	secondary?: boolean;
+	scrollable?: boolean;
 }) {
 	const sheet = useSheetV2();
+	if (!scrollable) {
+		return (
+			<>
+				{Header}
+				<div
+					id={
+						secondary
+							? `${sheet.scrollContentId}-secondary`
+							: sheet.scrollContentId
+					}
+					className={cn(
+						"flex min-h-0 flex-1 flex-col overflow-hidden",
+						className,
+						contentClassName,
+					)}
+				>
+					{children}
+				</div>
+			</>
+		);
+	}
 
 	return (
 		<>
@@ -330,13 +363,14 @@ export function MultiSheetContent({
 	const durationMs = sheet.secondaryOpened
 		? CUSTOM_SHEET_OPEN_MS
 		: CUSTOM_SHEET_CLOSE_MS;
-	const primaryBasis = sheet.fullscreen && !sheet.secondaryOpened
-		? "100%"
-		: sheet.isSideBySide
-		? "var(--sheet-primary-pane-width)"
-		: sheet.secondaryOpened
-			? "0rem"
-			: "100%";
+	const primaryBasis =
+		sheet.fullscreen && !sheet.secondaryOpened
+			? "100%"
+			: sheet.isSideBySide
+				? "var(--sheet-primary-pane-width)"
+				: sheet.secondaryOpened
+					? "0rem"
+					: "100%";
 	const secondaryBasis = sheet.isSideBySide
 		? sheet.secondaryOpened
 			? "var(--sheet-secondary-pane-width)"
@@ -496,11 +530,13 @@ export function SecondarySheetContent({
 	className,
 	Footer = null,
 	Header = null,
+	scrollable = true,
 }: {
 	children?: ReactNode;
 	className?: string | null;
 	Footer?: ReactNode;
 	Header?: ReactNode;
+	scrollable?: boolean;
 }) {
 	const sheet = useSheetV2();
 
@@ -511,6 +547,7 @@ export function SecondarySheetContent({
 					Header={Header}
 					className={cn("flex flex-col", className)}
 					secondary
+					scrollable={scrollable}
 				>
 					{children}
 				</CustomSheetContent>

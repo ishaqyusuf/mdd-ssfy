@@ -14,7 +14,10 @@ import type { Accept } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
 
 type Props = {
-	children?: ReactNode;
+	children?:
+		| ReactNode
+		| ((controls: { open: () => void; isUploading: boolean }) => ReactNode);
+	disabled?: boolean;
 	onUploadComplete?: (results: UploadedBlobResult[]) => void;
 	path: BlobPath;
 	label?: string;
@@ -64,6 +67,7 @@ const defaultAccept: Accept = {
 
 export function FileUpload({
 	children,
+	disabled = false,
 	path,
 	label,
 	onUploadComplete,
@@ -202,6 +206,8 @@ export function FileUpload({
 		maxFiles,
 		accept,
 		noClick: true,
+		noKeyboard: typeof children === "function",
+		disabled: disabled || showProgress,
 	});
 
 	return (
@@ -227,17 +233,21 @@ export function FileUpload({
 				</div>
 
 				<input className="hidden" {...getInputProps()} id="upload-files" />
-				<button
-					type="button"
-					className="block w-full text-left"
-					onClick={(event) => {
-						event.preventDefault();
-						event.stopPropagation();
-						open();
-					}}
-				>
-					{children}
-				</button>
+				{typeof children === "function" ? (
+					children({ open, isUploading: showProgress })
+				) : (
+					<button
+						type="button"
+						className="block w-full text-left"
+						onClick={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+							open();
+						}}
+					>
+						{children}
+					</button>
+				)}
 			</div>
 		</div>
 	);

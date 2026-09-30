@@ -12,6 +12,7 @@ import {
 } from "@gnd/contractor-accounting";
 import type { Prisma } from "@gnd/db";
 import {
+	ensureContractorJobEarning,
 	postContractorLedgerEntry,
 	reverseContractorLedgerEntry,
 } from "@gnd/db/queries";
@@ -1921,11 +1922,15 @@ export async function createPaymentPortal(
 			},
 		});
 
-		await db.jobs.updateMany({
+		const claimedJobs = await db.jobs.updateMany({
 			where: {
 				id: {
 					in: input.jobIds,
 				},
+				userId: input.userId,
+				deletedAt: null,
+				paymentId: null,
+				NOT: [{ status: "Paid" }],
 			},
 			data: {
 				paymentId: createdPayment.id,
@@ -1933,6 +1938,9 @@ export async function createPaymentPortal(
 				statusDate: accountingDate,
 			},
 		});
+		if (claimedJobs.count !== input.jobIds.length) {
+			throw new Error("Some selected jobs are no longer available for payment");
+		}
 		if (autoApprovedJobs.length) {
 			await db.jobs.updateMany({
 				where: {
@@ -1950,15 +1958,10 @@ export async function createPaymentPortal(
 			const effectiveAt = autoApprovedJobIds.has(job.id)
 				? accountingDate
 				: job.approvedAt ?? job.statusDate ?? job.createdAt ?? accountingDate;
-			await postContractorLedgerEntry(db, {
+			await ensureContractorJobEarning(db, {
 				contractorId: input.userId,
-				type: "JOB_EARNED",
 				amount: job.amount,
-				liabilityDelta: job.amount,
 				effectiveAt,
-				sourceType: "JOB",
-				sourceId: String(job.id),
-				sourceKey: `JOB:${job.id}`,
 				description: job.description || job.title || `Job #${job.id}`,
 				jobId: job.id,
 				createdById: payerId,

@@ -1,6 +1,6 @@
 "use client";
 
-import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
+import type { ChatDraft } from "@/components/chat/chat";
 import {
 	inventoryCreateInboundParamForClose,
 	inventoryCreateInboundParamForOpen,
@@ -8,10 +8,12 @@ import {
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOverviewUi } from "@/store/sales-overview-ui";
-import Sheet from "@gnd/ui/custom/sheet-v2";
+import Sheet, { useSheetV2SideBySide } from "@gnd/ui/custom/sheet-v2";
 import { Tabs } from "@gnd/ui/tabs";
 import { useEffect, useRef, useState } from "react";
 
+import { resolveSalesOverviewActivityPresentation } from "./activity-pane-state";
+import { SalesOverviewActivityPane } from "./activity-tab";
 import { SalesOverviewProvider, useSaleOverview } from "./context";
 import {
 	createLegacySalesOverviewTabs,
@@ -43,7 +45,9 @@ type SalesOverviewPane =
 export default function SalesOverviewSheet() {
 	const query = useSalesOverviewQuery();
 
-	return query["sales-overview-id"] ? <Modal /> : null;
+	return query["sales-overview-id"] ? (
+		<Modal key={`${query["sales-type"]}-${query["sales-overview-id"]}`} />
+	) : null;
 }
 function Modal() {
 	return (
@@ -60,6 +64,12 @@ function Content() {
 	const setExpanded = useSalesOverviewUi((state) => state.setExpanded);
 	const [pane, setPane] = useState<SalesOverviewPane | null>(null);
 	const [paneOpened, setPaneOpened] = useState(false);
+	const [activityDismissed, setActivityDismissed] = useState(false);
+	const activityDraftRef = useRef<ChatDraft | null>(null);
+	const isSideBySide = useSheetV2SideBySide({
+		primarySize: "3xl",
+		secondarySize: "2xl",
+	});
 	const paneTriggerRef = useRef<HTMLElement | null>(null);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: changing sales must discard any open secondary pane
 	useEffect(() => {
@@ -122,6 +132,16 @@ function Content() {
 		});
 	};
 	const closePane = () => {
+		if (!pane) {
+			paneTriggerRef.current =
+				Array.from(
+					document.querySelectorAll<HTMLElement>(
+						'#custom-sheet-sales-overview-sheet [data-sales-overview-initial-focus="true"]',
+					),
+				).find((target) => target.offsetParent !== null) ?? null;
+			setActivityDismissed(true);
+			return;
+		}
 		if (query.salesRefund) {
 			query.setParams({ salesRefund: null });
 			return;
@@ -198,7 +218,10 @@ function Content() {
 	const isQuote =
 		data?.type === "quote" || query.params["sales-type"] === "quote";
 	const addressEditingLocked =
-		data != null && getSalesOverviewDocumentStatus(data).status === "fulfilled";
+		!isQuote &&
+		data != null &&
+		"pipeline" in data &&
+		data.pipeline?.headline?.code === "fulfilled";
 	const mode = resolveLegacySalesOverviewMode({
 		assignedTo: query.assignedTo,
 		requestedMode: query.params.mode,
@@ -207,7 +230,7 @@ function Content() {
 	const tabs = createLegacySalesOverviewTabs({
 		mode,
 		isQuote,
-		prodQty: 0,
+		tabCounts: data?.tabCounts,
 		saleId: data?.id,
 		orderId: data?.orderId,
 		onEditAddress: openAddressPane,
@@ -219,11 +242,38 @@ function Content() {
 		onCreatePayment: openPaymentCreatePane,
 		packItemsOpen: pane?.kind === "packing",
 		onPackItemsOpenChange: setPackItemsOpen,
+		activityDraftRef,
 	});
-	const activeTab = resolveLegacySalesOverviewActiveTab({
+	const routeTab = resolveLegacySalesOverviewActiveTab({
 		currentTab: query?.params?.salesTab,
 		tabs,
 	});
+	const activity = resolveSalesOverviewActivityPresentation({
+		mode,
+		activeTab: routeTab,
+		isSideBySide,
+		hasSale: Boolean(data?.id),
+		dismissed: activityDismissed,
+		hasWorkflowPane: Boolean(
+			pane || query.salesPayment === "new" || query.salesTransaction,
+		),
+	});
+	const activeTab = activity.primaryTab;
+	const navigationTabs = activity.hideActivityTab
+		? tabs.filter((tab) => tab.value !== "activity")
+		: tabs;
+	useEffect(() => {
+		if (activeTab !== "general") setActivityDismissed(false);
+	}, [activeTab]);
+	useEffect(() => {
+		if (
+			activity.hideActivityTab &&
+			(query.salesTab === "activity" || query.salesTab === "inbound")
+		) {
+			setActivityDismissed(false);
+			query.setParams({ salesTab: "general" });
+		}
+	}, [activity.hideActivityTab, query.salesTab, query.setParams]);
 	const isGeneralV2 = activeTab === "general";
 	const setActiveTab = (tab: LegacySalesOverviewTabId) => {
 		const navigation = buildLegacySalesOverviewTabNavigation(tab, pane?.kind);
@@ -253,7 +303,7 @@ function Content() {
 			onOpenChange={query.close}
 			primarySize="3xl"
 			secondarySize="2xl"
-			secondaryOpened={paneOpened}
+			secondaryOpened={paneOpened || activity.showActivityPane}
 			onCloseSecondary={closePane}
 			onSecondaryExited={handlePaneExited}
 			tabletFullscreen={Boolean(query.assignedTo)}
@@ -267,7 +317,7 @@ function Content() {
 						}}
 					>
 						<LegacySalesOverviewHeader
-							tabs={tabs}
+							tabs={navigationTabs}
 							activeTab={activeTab as LegacySalesOverviewTabId}
 							mode={mode}
 							expanded={expanded}
@@ -277,13 +327,28 @@ function Content() {
 					</Tabs>
 					<Sheet.Content
 						key={activeTab}
+						scrollable={activeTab !== "activity"}
 						contentClassName={isGeneralV2 ? "pb-0 sm:pb-0" : undefined}
 					>
-						<Tabs value={activeTab}>
+						<Tabs
+							value={activeTab}
+							className={
+								activeTab === "activity"
+									? "flex min-h-0 flex-1 flex-col"
+									: undefined
+							}
+						>
 							<LegacySalesOverviewPanels activeTab={activeTab} tabs={tabs} />
 						</Tabs>
 					</Sheet.Content>
 				</Sheet.PrimaryContent>
+				{activity.showActivityPane ? (
+					<SalesOverviewActivityPane
+						draftRef={activityDraftRef}
+						onOpenInbound={openInboundDetailPane}
+						onClose={closePane}
+					/>
+				) : null}
 				{pane?.kind === "address" && data?.id && data.customerId ? (
 					<SalesAddressPane
 						key={`${pane.addressType}-${pane.addressId ?? "new"}`}
@@ -320,7 +385,9 @@ function Content() {
 					<InboundDetailPane
 						key={`inbound-${pane.inboundId}`}
 						inboundId={pane.inboundId}
-						workerSalesOrderId={mode === "assigned-production" ? data?.id : undefined}
+						workerSalesOrderId={
+							mode === "assigned-production" ? data?.id : undefined
+						}
 					/>
 				) : null}
 				{pane?.kind === "payment" && data?.orderId ? (
