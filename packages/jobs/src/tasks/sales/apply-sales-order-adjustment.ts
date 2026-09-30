@@ -416,6 +416,13 @@ export async function runApplySalesOrderAdjustment(
 			const proposedLines = Array.isArray(proposed.lineItems)
 				? proposed.lineItems.map(record)
 				: [];
+			const beforeSnapshot = record(adjustment.beforeSnapshot);
+			const beforeLines = Array.isArray(beforeSnapshot.lineItems)
+				? beforeSnapshot.lineItems.map(record)
+				: [];
+			const beforeByUid = new Map(
+				beforeLines.map((line) => [String(line.uid || ""), line]),
+			);
 			const proposedByUid = new Map(
 				proposedLines.map((line) => [String(line.uid || ""), line]),
 			);
@@ -450,6 +457,7 @@ export async function runApplySalesOrderAdjustment(
 					tx,
 					salesOrderId: adjustment.salesOrderId,
 					line: proposedLine,
+					beforeLine: beforeByUid.get(String(proposedLine.uid || "")),
 					persistedItemIds,
 				});
 				if (groupedProjectionHandled) continue;

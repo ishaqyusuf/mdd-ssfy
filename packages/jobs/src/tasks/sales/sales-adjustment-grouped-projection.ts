@@ -80,10 +80,69 @@ export async function projectApprovedGroupedSalesLine(input: {
 	tx: TransactionClient;
 	salesOrderId: number;
 	line: Record<string, unknown>;
+	beforeLine?: Record<string, unknown>;
 	persistedItemIds: Set<number>;
 }) {
 	const expanded = expandGroupedLineForLegacySave(input.line);
 	if (!expanded.some((entry) => entry.kind != null)) return false;
+	const beforeEntries = input.beforeLine
+		? expandGroupedLineForLegacySave(input.beforeLine)
+		: [];
+	const seenUids = new Set<string>();
+	const newServiceEntries = expanded.filter((entry) => {
+		if (!entry.kind || !entry.row) return false;
+		const row = record(entry.row);
+		const uid = String(row.uid || "").trim();
+		if (uid && seenUids.has(uid)) {
+			throw new Error(
+				"Approved grouped line contains duplicate child identities.",
+			);
+		}
+		if (uid) seenUids.add(uid);
+		if (input.persistedItemIds.has(Number(row.salesItemId || 0))) return false;
+		const retainedParent = beforeEntries.some(
+			(before) =>
+				before.kind === "service" &&
+				before.groupUid === entry.groupUid &&
+				Number(before.row?.salesItemId) === Number(input.line.id) &&
+				input.persistedItemIds.has(Number(input.line.id)),
+		);
+		const isNewService =
+			entry.kind === "service" &&
+			row.salesItemId == null &&
+			uid &&
+			!entry.primaryGroupItem &&
+			Number(input.beforeLine?.id) === Number(input.line.id) &&
+			retainedParent &&
+			!beforeEntries.some(
+				(before) => String(before.row?.uid || "").trim() === uid,
+			);
+		if (!isNewService) {
+			throw new Error(
+				`Approved grouped ${entry.kind} row is missing its persisted sales-item identity.`,
+			);
+		}
+		return true;
+	});
+	// Resolve every new identity before projecting metadata for any sibling.
+	// The caller's transaction and commercial checkpoint make worker retries atomic.
+	for (const entry of newServiceEntries) {
+		const row = record(entry.row);
+		const created = await input.tx.salesOrderItems.create({
+			data: {
+				salesOrderId: input.salesOrderId,
+				dykeDescription: String(input.line.title || "Services"),
+				description: groupedRowDescription("service", row),
+				multiDykeUid: entry.groupUid,
+				multiDyke: false,
+			},
+			select: { id: true },
+		});
+		row.salesItemId = created.id;
+		row.groupUid = entry.groupUid;
+		row.primaryGroupItem = false;
+		input.persistedItemIds.add(created.id);
+	}
 	const retainedItemIdsByGroup = new Map<string, Set<number>>();
 
 	for (const entry of expanded) {
