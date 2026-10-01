@@ -11,9 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/react-router": "^1.168.22",
-    "@tanstack/react-start": "^1.167.40",
     "@tanstack/react-query": "^5.90.3",
+    "@tanstack/react-router": "1.170.41",
+    "@tanstack/react-start": "1.168.60",
     "react": "catalog:",
     "react-dom": "catalog:",
     "zod": "catalog:"
