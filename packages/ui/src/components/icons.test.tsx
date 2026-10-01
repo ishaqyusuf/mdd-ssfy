@@ -33,4 +33,12 @@ describe("Icons", () => {
 
 		expect(shieldCheckMarkup).not.toBe(searchMarkup);
 	});
+
+	it("renders History without falling back to the search glyph", () => {
+		const historyMarkup = renderToStaticMarkup(<Icons.History />);
+		const searchMarkup = renderToStaticMarkup(<Icons.Search />);
+
+		expect(historyMarkup).toContain("<svg");
+		expect(historyMarkup).not.toBe(searchMarkup);
+	});
 });

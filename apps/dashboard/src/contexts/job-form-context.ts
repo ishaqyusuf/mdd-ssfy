@@ -7,9 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useMemo, useState } from "react";
 
 type JobFormContextProps = ReturnType<typeof useCreateJobFormContext>;
-const JobFormContext = createContext<JobFormContextProps>(
-	undefined as any,
-);
+const JobFormContext = createContext<JobFormContextProps>(undefined as any);
 export const JobFormProvider = JobFormContext.Provider;
 export const useCreateJobFormContext = () => {
 	const { ...params } = useJobFormParams();
@@ -20,10 +18,11 @@ export const useCreateJobFormContext = () => {
 	const isDirectCustomJob = params.builderTaskId === -1;
 	const isProjectlessCustomJob = isDirectCustomJob && !params.projectId;
 	const canLoadForm =
-		(!isDirectCustomJob &&
-			!!params.unitId &&
-			!!params.builderTaskId &&
-			!!params.modelId) &&
+		(!!params.jobId ||
+			(!isDirectCustomJob &&
+				!!params.unitId &&
+				!!params.builderTaskId &&
+				!!params.modelId)) &&
 		(formType === "submit" || !!params.userId);
 	const { data: queriedDefaultValues, isPending } = useQuery(
 		trpc.community.getJobForm.queryOptions(
@@ -40,11 +39,13 @@ export const useCreateJobFormContext = () => {
 			},
 		),
 	);
-	const { data: jobSettings } = useQuery(trpc.settings.getJobSettings.queryOptions());
+	const { data: jobSettings } = useQuery(
+		trpc.settings.getJobSettings.queryOptions(),
+	);
 	const [markAsComplete, setMarkAsComplete] = useState(formType === "submit");
 	const customDefaultValues = useMemo(
 		() =>
-			isDirectCustomJob
+			isDirectCustomJob && !params.jobId
 				? {
 						unit: undefined,
 						user: {
@@ -68,7 +69,7 @@ export const useCreateJobFormContext = () => {
 							isCustom: true,
 							status: "Assigned",
 						},
-				  }
+					}
 				: undefined,
 		[
 			auth.id,
@@ -80,27 +81,32 @@ export const useCreateJobFormContext = () => {
 		],
 	);
 	const defaultValues = customDefaultValues ?? queriedDefaultValues;
+	const settingsMeta: {
+		showTaskQty?: boolean;
+		allowCustomJobs?: boolean;
+		allowCustomProject?: boolean;
+	} = jobSettings?.meta;
 	const state = useMemo(
 		() => ({
-			showTaskQty: isAdmin || !!jobSettings?.meta?.showTaskQty,
-			allowCustomProject: !!jobSettings?.meta?.allowCustomProject,
+			showTaskQty: isAdmin || !!settingsMeta?.showTaskQty,
+			allowCustomProject: !!settingsMeta?.allowCustomProject,
 			allowCustomJobs:
 				isAdmin ||
-				!!jobSettings?.meta?.allowCustomJobs ||
+				!!settingsMeta?.allowCustomJobs ||
 				!!auth.can?.submitCustomJob,
 		}),
 		[
 			auth.can?.submitCustomJob,
 			isAdmin,
-			jobSettings?.meta?.allowCustomProject,
-			jobSettings?.meta?.allowCustomJobs,
-			jobSettings?.meta?.showTaskQty,
+			settingsMeta?.allowCustomProject,
+			settingsMeta?.allowCustomJobs,
+			settingsMeta?.showTaskQty,
 		],
 	);
 
 	return {
 		defaultValues,
-		isPending: isDirectCustomJob ? false : isPending,
+		isPending: customDefaultValues ? false : isPending,
 		jobSettings,
 		state,
 		markAsComplete,

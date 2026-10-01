@@ -1,9 +1,11 @@
 import { LazyPaymentPortal } from "@/components/payment-dashboard/lazy-payment-dashboard";
 import { ScrollableContent } from "@/components/scrollable-content";
+import { readJobPaymentContext } from "@/lib/job-payment-portal";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
+import type { SearchParams } from "nuqs/server";
 
 import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
@@ -14,18 +16,34 @@ export async function generateMetadata() {
 	});
 }
 
-export default async function ContractorsPaymentPortalPage() {
+export default async function ContractorsPaymentPortalPage({
+	searchParams,
+}: { searchParams: Promise<SearchParams> }) {
+	const values = await searchParams;
+	const context = readJobPaymentContext({
+		get: (key) => (typeof values[key] === "string" ? values[key] : null),
+	});
 	const paymentPortalJobsInitialSettings = await getInitialTableSettings(
 		"payment-portal-jobs",
 	);
 
-	batchPrefetch([trpc.jobs.paymentDashboard.queryOptions({})]);
+	await batchPrefetch([
+		trpc.jobs.paymentDashboard.queryOptions({}),
+		...(context.contractorId
+			? [
+					trpc.jobs.paymentPortal.queryOptions({
+						userId: context.contractorId,
+						status: context.status,
+					}),
+				]
+			: []),
+	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
 				<ScrollableContent>
-					<PageTitle>Contractor Payment Portal</PageTitle>
+					<PageTitle>Payment portal</PageTitle>
 					<LazyPaymentPortal
 						paymentPortalJobsInitialSettings={paymentPortalJobsInitialSettings}
 					/>

@@ -32,9 +32,17 @@ export function OpenJobSheet({
 			className={cn(className)}
 			disabled={disabled}
 			title={disabled ? disabledReason : undefined}
+			aria-label={label || "New job"}
 			onClick={() =>
 				setParams({
 					step: 1,
+					jobId: null,
+					redirectStep: null,
+					userId: null,
+					projectId: null,
+					unitId: null,
+					modelId: null,
+					builderTaskId: null,
 				})
 			}
 		>

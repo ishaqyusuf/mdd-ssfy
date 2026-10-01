@@ -67,7 +67,7 @@ const jobColumn: Column = {
 	id: "job",
 	header: "Job",
 	accessorFn: (row) => row.jobId,
-	...sizes.custom(150, 260, 180),
+	...sizes.custom(140, 260, 150),
 	enableResizing: true,
 	enableHiding: false,
 	meta: {
@@ -75,7 +75,7 @@ const jobColumn: Column = {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Job",
 		className: sizeClass(
-			sizes.custom(150, 260, 180),
+			sizes.custom(140, 260, 150),
 			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
@@ -106,12 +106,12 @@ const descriptionColumn: Column = {
 	id: "description",
 	header: "Description",
 	accessorFn: (row) => row.title,
-	...sizes.custom(260, 560, 360),
+	...sizes.custom(220, 560, 240),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-56" },
 		headerLabel: "Description",
-		className: sizeClass(sizes.custom(260, 560, 360)),
+		className: sizeClass(sizes.custom(220, 560, 240)),
 	},
 	cell: ({ row }) => {
 		const job = row.original;
@@ -153,12 +153,12 @@ const contractorColumn: Column = {
 	id: "contractor",
 	header: "Contractor",
 	accessorFn: (row) => row.user?.name,
-	...sizes.custom(180, 320, 220),
+	...sizes.custom(170, 320, 180),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "avatar-text", width: "w-36" },
 		headerLabel: "Contractor",
-		className: sizeClass(sizes.custom(180, 320, 220)),
+		className: sizeClass(sizes.custom(170, 320, 180)),
 	},
 	cell: ({ row }) => (
 		<div className="flex min-w-0 items-center gap-2">
@@ -182,12 +182,12 @@ const projectColumn: Column = {
 	id: "project",
 	header: "Project / Unit",
 	accessorFn: (row) => row.project?.title,
-	...sizes.custom(200, 420, 260),
+	...sizes.custom(170, 420, 180),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Project / Unit",
-		className: sizeClass(sizes.custom(200, 420, 260)),
+		className: sizeClass(sizes.custom(170, 420, 180)),
 	},
 	cell: ({ row }) => {
 		const job = row.original;
@@ -239,12 +239,12 @@ const amountColumn: Column = {
 	id: "amount",
 	header: "Amount",
 	accessorFn: (row) => row.amount,
-	...sizes.custom(120, 200, 140),
+	...sizes.custom(100, 200, 110),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Amount",
-		className: sizeClass(sizes.custom(120, 200, 140), "text-right"),
+		className: sizeClass(sizes.custom(100, 200, 110), "text-right"),
 		contentClassName: "text-right",
 	},
 	cell: ({ row }) => (
@@ -257,7 +257,7 @@ const amountColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "Actions",
-	...sizes.custom(180, 240, 210),
+	...sizes.custom(160, 240, 176),
 	enableResizing: false,
 	enableHiding: false,
 	meta: {
@@ -266,7 +266,7 @@ const actionsColumn: Column = {
 		headerLabel: "Actions",
 		skeleton: { type: "button", width: "w-28" },
 		className: sizeClass(
-			sizes.custom(180, 240, 210),
+			sizes.custom(160, 240, 176),
 			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
@@ -424,7 +424,8 @@ function Actions({ item }: { item: JobRow }) {
 	const { setParams } = useJobFormParams();
 	const isAdmin = useJobRole().isAdmin;
 	const isLocked = !isAdmin && isLockedWorkerJob(item);
-	const canDelete = item.deletionEligibility?.canDelete ?? !isLockedWorkerJob(item);
+	const canDelete =
+		item.deletionEligibility?.canDelete ?? !isLockedWorkerJob(item);
 
 	return (
 		<div className="relative z-10 flex items-center justify-end gap-2">
@@ -434,6 +435,7 @@ function Actions({ item }: { item: JobRow }) {
 				onClick={() => {
 					setParams({
 						jobId: item.id,
+						userId: item.user?.id,
 						step: isAdmin ? 5 : 4,
 						projectId: item?.project?.id,
 						unitId: item?.home?.id,

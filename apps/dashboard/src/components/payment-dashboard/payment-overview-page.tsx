@@ -38,42 +38,44 @@ export function PaymentOverviewPage({
 				<Button asChild variant="outline">
 					<Link href="/contractors/jobs/payments">
 						<Icons.ArrowLeft data-icon="inline-start" />
-						Back to payments
+						Back to payouts
 					</Link>
 				</Button>
-				<div className="flex items-center gap-2">
-					{data?.isCancelled ? (
-						<ReverseContractorPayoutButton
-							paymentId={paymentId}
-							isCancelled={data.isCancelled}
-							variant="outline"
-						/>
-					) : (
-						<CancelContractorPayoutButton
-							paymentId={paymentId}
-							isCancelled={data?.isCancelled}
-							variant="outline"
-						/>
-					)}
-					<Button
-						variant="outline"
-						className="gap-2"
-						disabled={!paymentId}
-						onClick={() =>
-							printContractorPayoutReport({
-								paymentIds: [paymentId],
-							})
-						}
-					>
-						<Icons.Printer className="size-4" />
-						Print Report
-					</Button>
-				</div>
 			</div>
 			<PaymentOverviewContent
 				data={data}
 				isPending={isPending}
 				includedJobsInitialSettings={includedJobsInitialSettings}
+				actions={
+					<div className="flex flex-wrap items-center gap-2">
+						{data?.isCancelled ? (
+							<ReverseContractorPayoutButton
+								paymentId={paymentId}
+								isCancelled={data.isCancelled}
+								variant="outline"
+							/>
+						) : (
+							<CancelContractorPayoutButton
+								paymentId={paymentId}
+								isCancelled={data?.isCancelled}
+								variant="outline"
+							/>
+						)}
+						<Button
+							variant="outline"
+							className="gap-2"
+							disabled={!data || isPending}
+							onClick={() =>
+								printContractorPayoutReport({
+									paymentIds: [paymentId],
+								})
+							}
+						>
+							<Icons.Printer className="size-4" />
+							Print receipt
+						</Button>
+					</div>
+				}
 			/>
 		</div>
 	);

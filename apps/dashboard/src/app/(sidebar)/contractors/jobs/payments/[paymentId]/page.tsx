@@ -3,6 +3,7 @@ import { PaymentOverviewPage } from "@/components/payment-dashboard/payment-over
 import { ScrollableContent } from "@/components/scrollable-content";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 
 export async function generateMetadata({
@@ -28,7 +29,7 @@ export default async function ContractorPaymentOverviewRoute({
 		"contractor-payout-overview-jobs",
 	);
 
-	batchPrefetch([
+	await batchPrefetch([
 		trpc.jobs.contractorPayoutOverview.queryOptions({
 			paymentId: numericPaymentId,
 		}),
@@ -38,6 +39,7 @@ export default async function ContractorPaymentOverviewRoute({
 		<PageShell>
 			<HydrateClient>
 				<ScrollableContent>
+					<PageTitle>Payout receipt</PageTitle>
 					<PaymentOverviewPage
 						paymentId={numericPaymentId}
 						includedJobsInitialSettings={includedJobsInitialSettings}

@@ -33,7 +33,7 @@ export function JobScope() {
 				</Card.Title>
 
 				{job?.isCustom ? (
-					<span className="text-[10px] font-black uppercase tracking-widest bg-purple-100 text-purple-700 px-2 py-1 rounded border border-purple-200">
+					<span className="text-[10px] font-medium uppercase tracking-widest bg-purple-100 text-purple-700 px-2 py-1 rounded border border-purple-200">
 						Custom Job
 					</span>
 				) : (
@@ -64,12 +64,12 @@ export function JobScope() {
 
 			{/* Table */}
 			{job?.isCustom ? (
-				<div className="border-t py-12 text-center">
-					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted text-primary">
-						<Icons.PackageOpen className="h-8 w-8" />
+				<div className="border-t py-6 text-center">
+					<div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-muted text-primary">
+						<Icons.PackageOpen className="size-5" />
 					</div>
 
-					<h4 className="text-lg font-bold text-foreground">Custom Task</h4>
+					<h4 className="text-sm font-medium text-foreground">Custom Task</h4>
 
 					<p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
 						This job was submitted as a custom task with manual pricing. The

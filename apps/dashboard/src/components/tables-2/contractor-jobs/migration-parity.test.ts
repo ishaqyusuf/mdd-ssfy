@@ -14,7 +14,7 @@ describe("Contractor Jobs Sales Orders table migration parity", () => {
 		const source = readSource("app/(sidebar)/hrm/contractors/jobs/page.tsx");
 
 		expect(source.includes("ScrollableContent")).toBe(true);
-		expect(source.includes("<PageTitle>Job</PageTitle>")).toBe(true);
+		expect(source.includes("<PageTitle>Jobs</PageTitle>")).toBe(true);
 		expect(source.includes("<JobHeader />")).toBe(true);
 		expect(source.includes("<JobsKpiWidget />")).toBe(true);
 		expect(

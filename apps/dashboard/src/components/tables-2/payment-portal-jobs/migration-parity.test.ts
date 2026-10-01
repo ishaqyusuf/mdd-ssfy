@@ -56,23 +56,28 @@ describe("Payment Portal jobs table migration parity", () => {
 		expect(lazySource.includes("paymentPortalJobsInitialSettings")).toBe(true);
 	});
 
-	it("keeps table-owned scroll, DnD, resize, and row-open behavior", () => {
+	it("keeps page scrolling, responsive rows, DnD, resize, and row-open behavior", () => {
 		const source = readSource(
 			"components/tables-2/payment-portal-jobs/data-table.tsx",
 		);
 
-		expect(source.includes("useScrollHeader(parentRef)")).toBe(true);
+		expect(source.includes("useScrollHeader(parentRef)")).toBe(false);
+		expect(source.includes("VirtualRecordList")).toBe(false);
+		expect(source.includes("overscroll-contain")).toBe(false);
+		expect(source.includes("useVirtualizer")).toBe(false);
 		expect(source.includes("useTableDnd(table)")).toBe(true);
 		expect(source.includes("<DndContext")).toBe(true);
 		expect(source.includes('id="payment-portal-jobs-table-dnd"')).toBe(true);
 		expect(source.includes("collisionDetection={closestCenter}")).toBe(true);
 		expect(source.includes("onRowSelectionChange: setRowSelection")).toBe(true);
 		expect(source.includes("rowHeight={tableConfig.rowHeight}")).toBe(true);
-		expect(source.includes("estimateSize: () => tableConfig.rowHeight")).toBe(
-			true,
-		);
+		expect(source.includes("overflow-x-auto")).toBe(true);
+		expect(source.includes("md:hidden")).toBe(true);
+		expect(source.includes("md:block")).toBe(true);
 		expect(source.includes("onOpen(row.original)")).toBe(true);
-		expect(source.includes('height: "var(--header-offset, 0px)"')).toBe(true);
+		expect(
+			source.includes("virtualStart={index * tableConfig.rowHeight}"),
+		).toBe(true);
 	});
 
 	it("keeps compact tailored widths, sticky actions, and table registration", () => {

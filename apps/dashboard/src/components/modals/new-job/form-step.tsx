@@ -41,7 +41,8 @@ export function FormStep() {
 	const { defaultValues, isPending } = useJobFormContext();
 	const isDirectCustomJob = params.builderTaskId === -1;
 	const isReadyToLoadForm =
-		(isDirectCustomJob ||
+		(!!params.jobId ||
+			isDirectCustomJob ||
 			(!!params.unitId && !!params.builderTaskId && !!params.modelId)) &&
 		(formType === "submit" || !!params.userId);
 
@@ -49,7 +50,7 @@ export function FormStep() {
 		return (
 			<div className="space-y-4">
 				<StepTitle title="Configure Job Details" />
-				<div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+				<div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
 					Complete the previous steps first so job details can load.
 				</div>
 			</div>
@@ -217,7 +218,7 @@ function FormContent() {
 
 	return (
 		<>
-			<div className="flex h-full min-w-0 w-full max-w-full flex-col space-y-6">
+			<div className="flex h-full min-w-0 w-full max-w-full flex-col space-y-4">
 				<div className="flex flex-wrap gap-2 text-xs">
 					<span className="flex min-w-0 max-w-full items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-muted-foreground">
 						<Icons.User className="size-3 shrink-0" />
@@ -244,7 +245,7 @@ function FormContent() {
 						</span>
 					)}
 				</div>
-				<div className="min-w-0 max-w-full flex-1 space-y-6 overflow-x-hidden overflow-y-auto pr-2">
+				<div className="min-w-0 max-w-full flex-1 space-y-4 overflow-x-hidden overflow-y-auto pr-2">
 					{params.builderTaskId === -1 || !state.allowCustomJobs ? null : (
 						<div className="space-y-2">
 							<Controller
@@ -282,7 +283,7 @@ function FormContent() {
 										name="job.title"
 										render={({ field, fieldState }) => (
 											<Field>
-												<Field.Label>Project Name</Field.Label>
+												<Field.Label htmlFor="job-project-name">Project name</Field.Label>
 												<InputGroup
 													className={cn(
 														fieldState.error && "border-destructive",
@@ -297,7 +298,8 @@ function FormContent() {
 																form.clearErrors("job.title");
 															}
 														}}
-														placeholder="Enter project name"
+														id="job-project-name"
+                                                placeholder="Enter project name"
 													/>
 												</InputGroup>
 												{fieldState.error?.message ? (
@@ -316,14 +318,15 @@ function FormContent() {
 									name="job.description"
 									render={({ field, fieldState }) => (
 										<Field>
-											<Field.Label>Job Description</Field.Label>
+											<Field.Label htmlFor="job-description">Job description</Field.Label>
 											<InputGroup
 												className={cn(fieldState.error && "border-destructive")}
 											>
 												<InputGroup.TextArea
 													{...field}
 													className={cn("min-h-[100px] resize-none")}
-													placeholder="Additional instructions for the custom task..."
+													id="job-description"
+                                                placeholder="Additional instructions for the custom task..."
 												/>
 											</InputGroup>
 										</Field>
@@ -337,7 +340,7 @@ function FormContent() {
 									name="job.meta.additional_cost"
 									render={({ field, fieldState }) => (
 										<Field>
-											<Field.Label>Total Cost</Field.Label>
+											<Field.Label htmlFor="job-total-cost">Total cost</Field.Label>
 											<InputGroup
 												className={cn(fieldState.error && "border-destructive")}
 											>
@@ -349,7 +352,8 @@ function FormContent() {
 													onChange={(e) =>
 														field.onChange(handleNumberInput(e.target.value))
 													}
-													type="number"
+													id="job-total-cost"
+                                            type="number"
 												/>
 											</InputGroup>
 										</Field>
@@ -359,19 +363,19 @@ function FormContent() {
 						</div>
 					) : (
 						/* Builder Task Form */
-						<div className="min-w-0 max-w-full space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+						<div className="min-w-0 max-w-full space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
 							{/* Total Estimate Block */}
 							<AdminJobFormContent>
-								<div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center">
+								<div className="flex flex-col items-start justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center">
 									<div className="flex flex-col">
-										<span className="text-xs font-bold text-primary uppercase tracking-wider mb-0.5">
+										<span className="text-xs font-medium text-primary uppercase tracking-wider mb-0.5">
 											Total Install Estimate
 										</span>
 										<span className="text-[10px] text-muted-foreground">
 											Calculated based on max quantities
 										</span>
 									</div>
-									<div className="text-2xl font-black text-primary">
+									<div className="text-2xl font-semibold text-primary">
 										${maxPotentialValue.toFixed(2)}
 									</div>
 								</div>
@@ -380,11 +384,11 @@ function FormContent() {
 							<InstallTasksList form={form} />
 
 							{/* <div className="space-y-2">
-                                <label className="text-xs font-bold text-muted-foreground uppercase">
+                                <label className="text-xs font-medium text-muted-foreground uppercase">
                                     Job Description
                                 </label>
                                 <textarea
-                                    className="w-full p-4 bg-background border border-border rounded-xl text-sm min-h-[100px] focus:ring-2 focus:ring-primary outline-none resize-none"
+                                    className="w-full p-4 bg-background border border-border rounded-lg text-sm min-h-[100px] focus:ring-2 focus:ring-primary outline-none resize-none"
                                     placeholder="Additional instructions for the builder task..."
                                     value={jobDescription}
                                     onChange={(e) =>
@@ -394,11 +398,11 @@ function FormContent() {
                             </div> */}
 
 							{/* Totals Section */}
-							<div className="bg-muted/30 p-4 rounded-xl border border-border space-y-3">
+							<div className="bg-muted/30 p-4 rounded-lg border border-border space-y-3">
 								<div className="flex justify-between text-sm">
 									<span className="text-muted-foreground">Subtotal</span>
-									<span className="font-bold text-foreground">
-										${tasksSubTotal}
+									<span className="font-medium text-foreground">
+										${tasksSubTotal.toFixed(2)}
 									</span>
 								</div>
 								<div className="flex justify-between text-sm">
@@ -421,17 +425,17 @@ function FormContent() {
 											</Button>
 										) : null}
 									</span>
-									<span className="font-bold text-foreground">
-										${addonValue}
+									<span className="font-medium text-foreground">
+										${addonValue.toFixed(2)}
 									</span>
 								</div>
 								<div className="h-px bg-border my-1" />
 								<div className="flex justify-between items-center">
-									<span className="font-bold text-foreground uppercase text-xs">
+									<span className="font-medium text-foreground uppercase text-xs">
 										Grand Total
 									</span>
-									<span className="font-black text-xl text-primary">
-										${total}
+									<span className="font-semibold text-xl text-primary">
+										${total.toFixed(2)}
 									</span>
 								</div>
 							</div>
@@ -449,12 +453,12 @@ function FormContent() {
 									<Field.Label htmlFor="finder-pref-9k2-sync-folders-nep">
 										{isSubmitMode
 											? "Mark job as submitted for review."
-											: "Mark job as completed."}
+											: "Submit job for review."}
 									</Field.Label>
 									<Field.Description>
 										{isSubmitMode
 											? "This will submit the job for admin review."
-											: "This will set the job status to completed"}
+											: "This sends the completed work for approval."}
 									</Field.Description>
 								</Field.Content>
 							</Field>

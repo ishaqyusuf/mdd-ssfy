@@ -17,14 +17,14 @@ type PaymentPortalProps = {
 const PaymentDashboard = dynamic(
 	() => import("./index").then((module) => module.PaymentDashboard),
 	{
-		loading: () => <ContractorPayoutsSkeleton rowCount={8} />,
+		loading: () => <ContractorPayoutsSkeleton records rowCount={8} />,
 	},
 );
 
 const PaymentPortal = dynamic(
 	() => import("./payment-portal").then((module) => module.PaymentPortal),
 	{
-		loading: () => <ContractorPayoutsSkeleton rowCount={8} />,
+		loading: () => <ContractorPayoutsSkeleton records rowCount={8} />,
 	},
 );
 

@@ -1,260 +1,164 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-
 import { DataTable as ContractorQueueTable } from "@/components/tables-2/payment-dashboard-contractors/data-table";
 import { DataTable as RecentPaymentsTable } from "@/components/tables-2/payment-dashboard-recent-payments/data-table";
-import { cn } from "@/lib/utils";
+import { generatePayrollReport } from "@/lib/job-print";
 import { useTRPC } from "@/trpc/client";
 import type { TableSettings } from "@/utils/table-settings";
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@gnd/ui/card";
+import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
 import Link from "next/link";
-import type { ComponentType } from "react";
-
-function formatCurrency(value?: number | null) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(Number(value || 0));
-}
-
-type PaymentDashboardProps = {
-	contractorQueueInitialSettings?: Partial<TableSettings>;
-	recentPaymentsInitialSettings?: Partial<TableSettings>;
-};
+import { useState } from "react";
+import { formatPaymentAmount as money } from "./payment-format";
 
 export function PaymentDashboard({
 	contractorQueueInitialSettings,
 	recentPaymentsInitialSettings,
-}: PaymentDashboardProps) {
+}: {
+	contractorQueueInitialSettings?: Partial<TableSettings>;
+	recentPaymentsInitialSettings?: Partial<TableSettings>;
+}) {
 	const trpc = useTRPC();
-	const { data, isPending } = useQuery(
+	const { data, isPending, isError, refetch } = useQuery(
 		trpc.jobs.paymentDashboard.queryOptions(
 			{},
-			{
-				refetchOnWindowFocus: false,
-				staleTime: 60 * 1000,
-			},
+			{ refetchOnWindowFocus: false, staleTime: 60 * 1000 },
 		),
 	);
-
+	const [reveal, setReveal] = useState(false);
 	const contractors = data?.contractors || [];
 	const recentPayments = data?.recentPayments || [];
-
+	const approvedAmount = contractors.reduce(
+		(total, contractor) => total + contractor.subTotal,
+		0,
+	);
 	return (
-		<div className="flex flex-col gap-6 pb-8">
-			<section className="relative overflow-hidden rounded-3xl border bg-card">
-				<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.15),transparent_34%)]" />
-				<div className="relative flex flex-col gap-6 p-6 md:p-8">
-					<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-						<div className="max-w-2xl">
-							<Badge variant="secondary" className="mb-3">
-								Contractor payments
-							</Badge>
-							<h1 className="text-3xl font-semibold tracking-tight text-foreground">
-								Payment dashboard
-							</h1>
-							<p className="mt-2 text-sm text-muted-foreground md:text-base">
-								Monitor unpaid contractor work, spot insurance blockers, and
-								jump into the pay portal when finance is ready to batch jobs.
+		<div className="min-w-0 space-y-6 pb-8">
+			<header className="flex flex-wrap items-start justify-between gap-4">
+				<div>
+					<h1 className="text-2xl font-semibold tracking-tight">
+						Contractor payments
+					</h1>
+					<p className="mt-1 text-sm text-muted-foreground">
+						What’s ready to pay and what needs your attention.
+					</p>
+				</div>
+				<Button asChild variant="outline">
+					<Link href="/contractors/jobs/payments">
+						<Icons.ReceiptText className="size-4" />
+						Payout history
+					</Link>
+				</Button>
+			</header>
+			{isError ? (
+				<div
+					role="alert"
+					className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-5"
+				>
+					<p className="text-sm">Payment information could not be loaded.</p>
+					<Button variant="outline" onClick={() => refetch()}>
+						Try again
+					</Button>
+				</div>
+			) : (
+				<div className="grid min-w-0 gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
+					<aside className="space-y-5">
+						<section className="rounded-2xl bg-[#18283f] p-6 text-white">
+							<p className="text-sm text-slate-300">Unpaid contractor work</p>
+							{isPending ? (
+								<Skeleton className="mt-3 h-10 w-44 bg-white/15" />
+							) : (
+								<p className="mt-3 text-4xl font-semibold tracking-tight tabular-nums">
+									{money(data?.summary.pendingBill)}
+								</p>
+							)}
+							<p className="mt-2 text-xs text-slate-300">
+								{data?.summary.pendingJobs || 0} jobs across{" "}
+								{contractors.length} contractors
 							</p>
-						</div>
-						<div className="flex flex-col gap-3 sm:flex-row">
+							<dl className="my-7 space-y-4 border-y border-white/15 py-5 text-sm">
+								<div className="flex justify-between gap-3">
+									<dt className="text-slate-300">Approved work</dt>
+									<dd className="font-medium tabular-nums">
+										{money(approvedAmount)}
+									</dd>
+								</div>
+								<div className="flex justify-between gap-3">
+									<dt className="text-slate-300">Awaiting review</dt>
+									<dd className="font-medium">
+										{data?.summary.pendingReviewCount || 0} jobs
+									</dd>
+								</div>
+								<div className="flex items-center justify-between gap-3">
+									<dt className="text-slate-300">Paid this month</dt>
+									<dd>
+										<button
+											type="button"
+											aria-pressed={reveal}
+											onClick={() => setReveal(!reveal)}
+											className="min-h-8 rounded px-1 text-sm font-medium underline decoration-white/30 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+										>
+											{reveal
+												? money(data?.summary.currentMonthAmount)
+												: "Reveal amount"}
+										</button>
+									</dd>
+								</div>
+							</dl>
 							<Button
 								asChild
-								size="lg"
-								variant="outline"
-								className="min-w-[180px]"
+								className="w-full bg-white text-[#18283f] hover:bg-slate-100"
 							>
-								<Link href="/contractors/jobs/payments">
-									<Icons.ReceiptText data-icon="inline-start" />
-									View payouts
-								</Link>
-							</Button>
-							<Button asChild size="lg" className="min-w-[220px]">
 								<Link href="/contractors/jobs/payment-portal">
-									<Icons.CreditCard data-icon="inline-start" />
-									Open payment portal
+									Prepare a payout <Icons.ArrowRight className="size-4" />
 								</Link>
 							</Button>
-						</div>
-					</div>
-
-					<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-						<MetricCard
-							icon={Icons.Wallet}
-							label="Pending bill"
-							value={formatCurrency(data?.summary.pendingBill)}
-							isPending={isPending}
-						/>
-						<MetricCard
-							icon={Icons.BadgeCheck}
-							label="Ready to pay"
-							value={String(data?.summary.readyToPayCount || 0)}
-							isPending={isPending}
-						/>
-						<MetricCard
-							icon={Icons.ReceiptText}
-							label="Pending review"
-							value={String(data?.summary.pendingReviewCount || 0)}
-							isPending={isPending}
-						/>
-						<MetricCard
-							icon={Icons.CreditCard}
-							label="This month payouts"
-							value={formatCurrency(data?.summary.currentMonthAmount)}
-							isPending={isPending}
-							maskUntilHover
-						/>
-					</div>
-				</div>
-			</section>
-
-			<div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
-				<Card>
-					<CardHeader>
-						<CardTitle>Ready for payout</CardTitle>
-						<CardDescription>
-							All contractors with pending review or ready-to-pay work.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="p-0">
-						<div className="p-4 md:p-6">
-							<ContractorQueueTable
-								data={contractors}
-								initialSettings={contractorQueueInitialSettings}
-								isLoading={isPending}
-							/>
-						</div>
-					</CardContent>
-				</Card>
-
-				<div className="grid gap-6">
-					<Card>
-						<CardHeader>
-							<CardTitle>Finance checklist</CardTitle>
-							<CardDescription>
-								The clean path for every contractor payout batch.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="grid gap-3">
-							<ChecklistItem
-								icon={Icons.ShieldCheck}
-								title="Check insurance"
-								description="See missing, pending, expired, and approved insurance before you pay."
-							/>
-							<ChecklistItem
-								icon={Icons.ReceiptText}
-								title="Review jobs"
-								description="Mark only the jobs you want in the batch and open overview before paying."
-							/>
-							<ChecklistItem
-								icon={Icons.CreditCard}
-								title="Finalize payout"
-								description="Apply adjustment or discount, choose payment method, add check number, and save."
-							/>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader>
-							<CardTitle>Recent payments</CardTitle>
-							<CardDescription>
-								The latest contractor payout batches recorded in the system.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="grid gap-3">
-							<RecentPaymentsTable
-								data={recentPayments}
-								initialSettings={recentPaymentsInitialSettings}
-								isLoading={isPending}
-							/>
-							<Button asChild variant="outline" className="w-full" size="lg">
-								<Link href="/contractors/jobs/payments">
-									<Icons.ReceiptText data-icon="inline-start" />
-									View all payouts
-								</Link>
+						</section>
+						<div className="px-1">
+							<p className="text-sm font-medium">Payroll report</p>
+							<p className="mt-1 text-xs leading-5 text-muted-foreground">
+								A full breakdown of unpaid work by contractor.
+							</p>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="mt-2 px-0"
+								disabled={isPending || !contractors.length}
+								onClick={() => generatePayrollReport()}
+							>
+								<Icons.Printer className="size-4" />
+								Generate report
 							</Button>
-						</CardContent>
-					</Card>
-				</div>
-			</div>
-		</div>
-	);
-}
-
-function MetricCard({
-	icon: Icon,
-	label,
-	value,
-	isPending,
-	maskUntilHover = false,
-}: {
-	icon: ComponentType<{ className?: string }>;
-	label: string;
-	value: string;
-	isPending?: boolean;
-	maskUntilHover?: boolean;
-}) {
-	return (
-		<div className="group rounded-2xl border bg-background/85 p-4 shadow-sm backdrop-blur">
-			<div className="flex items-center justify-between gap-3">
-				<p className="text-sm text-muted-foreground">{label}</p>
-				<Icon className="h-4 w-4 text-muted-foreground" />
-			</div>
-			{isPending ? (
-				<Skeleton className="mt-3 h-8 w-28 rounded-md" />
-			) : (
-				<div className="relative mt-3">
-					<p
-						className={cn(
-							"text-xl font-semibold text-foreground transition duration-200",
-							maskUntilHover && "select-none blur-sm group-hover:blur-0",
-						)}
-					>
-						{value}
-					</p>
-					{maskUntilHover ? (
-						<p className="pointer-events-none absolute inset-0 flex items-center text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground transition group-hover:opacity-0">
-							Hover to reveal
-						</p>
-					) : null}
+						</div>
+					</aside>
+					<div className="min-w-0">
+						<ContractorQueueTable
+							tasks
+							data={contractors}
+							initialSettings={contractorQueueInitialSettings}
+							isLoading={isPending}
+						/>
+					</div>
 				</div>
 			)}
-		</div>
-	);
-}
-
-function ChecklistItem({
-	icon: Icon,
-	title,
-	description,
-}: {
-	icon: ComponentType<{ className?: string }>;
-	title: string;
-	description: string;
-}) {
-	return (
-		<div className="rounded-2xl border p-4">
-			<div className="flex items-start gap-3">
-				<div className="rounded-full bg-primary/10 p-2 text-primary">
-					<Icon className="h-4 w-4" />
+			<section className="min-w-0">
+				<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+					<h2 className="font-semibold">Recent payouts</h2>
+					<Button asChild variant="ghost" size="sm">
+						<Link href="/contractors/jobs/payments">
+							View all <Icons.ArrowRight className="size-4" />
+						</Link>
+					</Button>
 				</div>
-				<div className="space-y-1">
-					<p className="font-medium text-foreground">{title}</p>
-					<p className="text-sm text-muted-foreground">{description}</p>
-				</div>
-			</div>
+				<RecentPaymentsTable
+					records
+					data={recentPayments}
+					initialSettings={recentPaymentsInitialSettings}
+					isLoading={isPending}
+				/>
+			</section>
 		</div>
 	);
 }

@@ -1,11 +1,18 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
+import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
-import { Checkbox } from "@gnd/ui/checkbox";
+import {
+	Field,
+	FieldContent,
+	FieldDescription,
+	FieldGroup,
+	FieldLabel,
+	FieldLegend,
+	FieldSet,
+} from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
-import { Label } from "@gnd/ui/label";
-import { Separator } from "@gnd/ui/separator";
 import {
 	Sheet,
 	SheetContent,
@@ -14,6 +21,8 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@gnd/ui/sheet";
+import { Skeleton } from "@gnd/ui/skeleton";
+import { Switch } from "@gnd/ui/switch";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -23,136 +32,174 @@ type SettingsMeta = {
 	allowCustomJobs: boolean;
 	showTaskQty: boolean;
 };
+const options: {
+	key: keyof SettingsMeta;
+	label: string;
+	description: string;
+}[] = [
+	{
+		key: "showTaskQty",
+		label: "Show task quantity details",
+		description:
+			"Show configured rates, maximum quantities and totals in the contractor web form.",
+	},
+	{
+		key: "allowCustomJobs",
+		label: "Allow custom jobs",
+		description: "Offer one-off tasks with a description and manual pricing.",
+	},
+	{
+		key: "allowCustomProject",
+		label: "Allow custom projects",
+		description:
+			"Offer a projectless custom job with a project name and manual pricing.",
+	},
+];
+function readSettings(meta?: Partial<SettingsMeta> | null): SettingsMeta {
+	return {
+		showTaskQty: !!meta?.showTaskQty,
+		allowCustomJobs: !!meta?.allowCustomJobs,
+		allowCustomProject: !!meta?.allowCustomProject,
+	};
+}
 
 export function JobSettingsSheet() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
-	const { data: jobSettings, isPending } = useQuery(
-		trpc.settings.getJobSettings.queryOptions(),
+	const {
+		data: jobSettings,
+		isPending,
+		isError,
+	} = useQuery(
+		trpc.settings.getJobSettings.queryOptions(undefined, { enabled: open }),
 	);
-	const [meta, setMeta] = useState<SettingsMeta>({
-		allowCustomProject: false,
-		allowCustomJobs: false,
-		showTaskQty: false,
-	});
-
+	const [meta, setMeta] = useState<SettingsMeta>(readSettings());
 	useEffect(() => {
-		if (!jobSettings) return;
-		setMeta({
-			allowCustomProject: !!jobSettings.meta?.allowCustomProject,
-			allowCustomJobs: !!jobSettings.meta?.allowCustomJobs,
-			showTaskQty: !!jobSettings.meta?.showTaskQty,
-		});
+		if (jobSettings) setMeta(readSettings(jobSettings.meta));
 	}, [jobSettings]);
-
 	const updateSetting = useMutation(
 		trpc.settings.updateSetting.mutationOptions({
 			async onSuccess() {
 				await queryClient.invalidateQueries({
 					queryKey: trpc.settings.getJobSettings.queryKey(),
 				});
-				toast({
-					title: "Job settings saved",
-					variant: "success",
-				});
+				toast({ title: "Job settings saved", variant: "success" });
 				setOpen(false);
+			},
+			onError() {
+				toast({ title: "Unable to save job settings", variant: "destructive" });
 			},
 		}),
 	);
-
 	return (
 		<>
-			<Button variant="outline" onClick={() => setOpen(true)}>
-				<Icons.Settings2 className="mr-2 h-4 w-4" />
-				<span>Settings</span>
+			<Button
+				variant="outline"
+				onClick={() => {
+					setMeta(readSettings(jobSettings?.meta));
+					setOpen(true);
+				}}
+			>
+				<Icons.Settings2 data-icon="inline-start" />
+				Settings
 			</Button>
 			<Sheet open={open} onOpenChange={setOpen}>
-				<SheetContent side="right" className="w-full sm:max-w-md">
-					<SheetHeader>
-						<SheetTitle>Job Settings</SheetTitle>
+				<SheetContent
+					className="flex h-[100dvh] w-full flex-col gap-0 p-0 sm:max-w-[560px]"
+					onOpenAutoFocus={(event) => {
+						event.preventDefault();
+						document
+							.querySelector<HTMLElement>("[data-job-settings-title]")
+							?.focus();
+					}}
+				>
+					<SheetHeader className="shrink-0 p-5 pr-12 text-left">
+						<SheetTitle data-job-settings-title tabIndex={-1}>
+							Job settings
+						</SheetTitle>
 						<SheetDescription>
-							Control what contractors can submit and how task quantities are
-							displayed in the web job flow.
+							Control the contractor web form and the work they can submit.
 						</SheetDescription>
 					</SheetHeader>
-
-					<div className="space-y-6 py-6">
-						<div className="space-y-3 rounded-xl border border-border bg-card p-4">
-							<div className="flex items-start justify-between gap-3">
-								<div className="space-y-1">
-									<Label htmlFor="job-setting-show-task-qty">
-										Show task qty details
-									</Label>
-									<p className="text-sm text-muted-foreground">
-										Show rate, max qty, and totals to contractors in the web job
-										submit form.
-									</p>
-								</div>
-								<Checkbox
-									id="job-setting-show-task-qty"
-									checked={meta.showTaskQty}
-									onCheckedChange={(checked) =>
-										setMeta((current) => ({
-											...current,
-											showTaskQty: !!checked,
-										}))
-									}
-								/>
+					<div className="min-h-0 flex-1 overflow-y-auto p-5 pt-0">
+						{isError ? (
+							<Alert variant="destructive">
+								<AlertDescription>
+									Job settings could not load. Close this panel and try again.
+								</AlertDescription>
+							</Alert>
+						) : isPending ? (
+							<div className="flex flex-col gap-4">
+								<Skeleton className="h-24 w-full" />
+								<Skeleton className="h-24 w-full" />
+								<Skeleton className="h-24 w-full" />
 							</div>
-						</div>
-
-						<div className="space-y-3 rounded-xl border border-border bg-card p-4">
-							<div className="flex items-start justify-between gap-3">
-								<div className="space-y-1">
-									<Label htmlFor="job-setting-allow-custom">
-										Allow custom jobs
-									</Label>
-									<p className="text-sm text-muted-foreground">
-										Let contractors choose one-off custom tasks with manual
-										pricing.
-									</p>
-								</div>
-								<Checkbox
-									id="job-setting-allow-custom"
-									checked={meta.allowCustomJobs}
-									onCheckedChange={(checked) =>
-										setMeta((current) => ({
-											...current,
-											allowCustomJobs: !!checked,
-										}))
-									}
-								/>
-							</div>
-						</div>
-
-						<div className="space-y-3 rounded-xl border border-border bg-card p-4">
-							<div className="flex items-start justify-between gap-3">
-								<div className="space-y-1">
-									<Label htmlFor="job-setting-allow-custom-project">
-										Allow custom project
-									</Label>
-									<p className="text-sm text-muted-foreground">
-										Let contractors submit a projectless custom job with manual
-										pricing.
-									</p>
-								</div>
-								<Checkbox
-									id="job-setting-allow-custom-project"
-									checked={meta.allowCustomProject}
-									onCheckedChange={(checked) =>
-										setMeta((current) => ({
-											...current,
-											allowCustomProject: !!checked,
-										}))
-									}
-								/>
-							</div>
-						</div>
+						) : (
+							<FieldSet>
+								<FieldLegend variant="label">
+									Submission preferences
+								</FieldLegend>
+								<FieldGroup className="gap-0 rounded-lg border">
+									{options.map((option) => (
+										<Field
+											key={option.key}
+											orientation="horizontal"
+											className="border-b p-4 last:border-b-0"
+											data-disabled={updateSetting.isPending}
+										>
+											<FieldContent>
+												<FieldLabel htmlFor={`job-setting-${option.key}`}>
+													{option.label}
+												</FieldLabel>
+												<FieldDescription
+													id={`job-setting-${option.key}-description`}
+												>
+													{option.description}
+												</FieldDescription>
+											</FieldContent>
+											<Switch
+												id={`job-setting-${option.key}`}
+												aria-describedby={`job-setting-${option.key}-description`}
+												checked={meta[option.key]}
+												disabled={updateSetting.isPending}
+												onCheckedChange={(checked) =>
+													setMeta((current) => ({
+														...current,
+														[option.key]: checked,
+													}))
+												}
+											/>
+										</Field>
+									))}
+								</FieldGroup>
+								<Alert>
+									<Icons.FileText />
+									<AlertDescription>
+										<span className="font-medium">Contractor form preview</span>
+										<ul className="mt-2 flex flex-col gap-1">
+											<li>
+												{meta.showTaskQty
+													? "Rates, maximum quantities and totals are visible."
+													: "Task quantities can be entered with pricing details hidden."}
+											</li>
+											<li>
+												{meta.allowCustomJobs
+													? "Custom tasks are available."
+													: "Configured builder tasks are offered."}
+											</li>
+											<li>
+												{meta.allowCustomProject
+													? "A named custom project can be submitted."
+													: "An existing project and unit are required."}
+											</li>
+										</ul>
+									</AlertDescription>
+								</Alert>
+							</FieldSet>
+						)}
 					</div>
-
-					<Separator />
-					<SheetFooter className="mt-4">
+					<SheetFooter className="shrink-0 flex-row gap-2 border-t p-4">
 						<Button
 							variant="outline"
 							onClick={() => setOpen(false)}
@@ -168,9 +215,9 @@ export function JobSettingsSheet() {
 									updateType: "full",
 								})
 							}
-							disabled={isPending || updateSetting.isPending}
+							disabled={isPending || isError || updateSetting.isPending}
 						>
-							{updateSetting.isPending ? "Saving..." : "Save Settings"}
+							{updateSetting.isPending ? "Saving…" : "Save settings"}
 						</Button>
 					</SheetFooter>
 				</SheetContent>

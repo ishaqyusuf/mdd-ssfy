@@ -1197,7 +1197,7 @@ const dynamicHugeIconAliases = {
   Hammer: "Hammer",
   HardHat: "HelmetIcon",
   Heart: "Favourite",
-  History: "ClockReverseIcon",
+  History: "History",
   Home: "House",
   ImageIcon: "Image",
   Key: "Key01Icon",

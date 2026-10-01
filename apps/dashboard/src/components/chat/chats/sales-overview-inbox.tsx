@@ -5,6 +5,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@gnd/ui/empty";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu as Dropdown } from "@gnd/ui/namespace";
 import {
@@ -324,6 +331,24 @@ export function SalesOverviewInbox({
 				isPending={activityQuery.isPending}
 				isError={activityQuery.isError}
 				emptyText={isInboundOnly ? "No inbound activity yet" : null}
+				emptyNode={
+					isActivityView ? (
+						<Empty className="h-full min-h-[180px]">
+							<EmptyHeader>
+								<EmptyMedia variant="icon">
+									<Icons.History
+										aria-hidden="true"
+										className="text-muted-foreground"
+									/>
+								</EmptyMedia>
+								<EmptyTitle>No activity yet</EmptyTitle>
+								<EmptyDescription>
+									Notes and order updates will appear here.
+								</EmptyDescription>
+							</EmptyHeader>
+						</Empty>
+					) : undefined
+				}
 				headerAction={
 					isActivityView && fetchedChannels.length ? (
 						<ActivityChannelFilter

@@ -1,4 +1,5 @@
 import { TableSkeleton } from "@/components/tables-2/core";
+import { RecordListSkeleton } from "@/components/tables-2/core/record-list-skeleton";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableSettings } from "@/utils/table-settings";
 
@@ -7,6 +8,7 @@ import { columns } from "./columns";
 const tableConfig = TABLE_CONFIGS["contractor-payouts"];
 
 type Props = {
+	records?: boolean;
 	initialSettings?: Partial<TableSettings>;
 	rowCount?: number;
 	isEmpty?: boolean;
@@ -16,7 +18,9 @@ export function ContractorPayoutsSkeleton({
 	initialSettings,
 	rowCount = 12,
 	isEmpty,
+	records,
 }: Props) {
+	if (records) return <RecordListSkeleton />;
 	return (
 		<TableSkeleton
 			columns={columns}

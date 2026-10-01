@@ -1,6 +1,9 @@
 "use client";
 
+import { PaymentTableViewToggle } from "@/components/payment-dashboard/payment-table-view-toggle";
 import { VirtualRow } from "@/components/tables-2/core";
+import { RecordListSkeleton } from "@/components/tables-2/core/record-list-skeleton";
+import { VirtualRecordList } from "@/components/tables-2/core/virtual-record-list";
 import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
@@ -10,9 +13,13 @@ import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { Table, TableBody } from "@gnd/ui/table";
-import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+	flexRender,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
 	type ContractorPayoutOverviewJobRow,
@@ -48,6 +55,8 @@ export function DataTable({
 	isLoading,
 }: Props) {
 	const parentRef = useRef<HTMLDivElement>(null);
+	const [tableView, setTableView] = useState(false);
+	const showRecords = !tableView;
 	const { setColumns, bindShowColumnDividers } =
 		useContractorPayoutOverviewJobsTableStore();
 
@@ -104,10 +113,19 @@ export function DataTable({
 	});
 	const rows = table.getRowModel().rows;
 	const rowVirtualizer = useVirtualizer({
-		count: rows.length,
+		count: showRecords ? 0 : rows.length,
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => tableConfig.rowHeight,
 		overscan: 8,
+	});
+
+	const recordsVirtualizer = useVirtualizer<HTMLDivElement, Element>({
+		count: rows.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => 160,
+		getItemKey: (index) => rows[index]?.id || index,
+		overscan: 6,
+		enabled: showRecords,
 	});
 
 	useEffect(() => {
@@ -119,6 +137,7 @@ export function DataTable({
 	}, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
 
 	if (isLoading) {
+		if (showRecords) return <RecordListSkeleton />;
 		return (
 			<ContractorPayoutOverviewJobsSkeleton initialSettings={initialSettings} />
 		);
@@ -128,10 +147,51 @@ export function DataTable({
 		return <EmptyState text={emptyText} />;
 	}
 
+	if (showRecords) {
+		return (
+			<div className="relative min-w-0">
+				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
+				<VirtualRecordList
+					rows={rows}
+					virtualizer={recordsVirtualizer}
+					scrollRef={parentRef}
+					renderRow={(row) => {
+						const cell = (id: string) => {
+							const value = row
+								.getAllCells()
+								.find((item) => item.column.id === id);
+							return value
+								? flexRender(value.column.columnDef.cell, value.getContext())
+								: null;
+						};
+						return (
+							<div className="min-w-0 space-y-3 p-4">
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0 flex-1">{cell("job")}</div>
+									<div className="shrink-0">{cell("amount")}</div>
+								</div>
+								<div className="min-w-0 text-xs text-muted-foreground">
+									{cell("location")}
+								</div>
+								<div className="flex flex-wrap items-center justify-between gap-3">
+									{cell("status")}
+									<span className="text-xs text-muted-foreground">
+										{cell("created")}
+									</span>
+								</div>
+							</div>
+						);
+					}}
+				/>
+			</div>
+		);
+	}
+
 	const virtualItems = rowVirtualizer.getVirtualItems();
 
 	return (
-		<div className="relative">
+		<div className="relative min-w-0">
+			<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
 			<div className="w-full">
 				<div
 					ref={(element) => {

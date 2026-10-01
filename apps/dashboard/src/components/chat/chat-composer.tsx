@@ -66,6 +66,17 @@ export function ChatComposer({
 		attachmentsEnabled &&
 		(multiAttachmentSupport || state.attachments.length === 0);
 	const hasContent = Boolean(state.message.trim() || state.attachments.length);
+	const selectedChannel = chat.channelOptions.find(
+		(option) => option.value === state.channel,
+	);
+	const defaultChannel =
+		chat.channelOptions.find((option) => option.value === "sales_info") ??
+		chat.channelOptions[0];
+	const selectedColor = noteColors.find(
+		(color) => color.value === state.noteColor,
+	);
+	const channelLabel = selectedChannel?.label ?? state.channel;
+	const colorLabel = selectedColor?.label ?? "Custom color";
 
 	return (
 		<FileUpload
@@ -222,6 +233,51 @@ export function ChatComposer({
 										</DropdownMenuSub>
 									</DropdownMenuContent>
 								</DropdownMenu>
+								<div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+									<InputGroupButton
+										type="button"
+										variant="ghost"
+										size="xs"
+										className="group min-w-0 max-w-full gap-1 rounded-md text-xs font-normal"
+										aria-label={`Remove ${channelLabel} channel`}
+										title={`Reset channel to ${defaultChannel?.label ?? "Sales Info"}`}
+										disabled={state.isSubmitting || isUploading}
+										onClick={() =>
+											chat.setChannel(defaultChannel?.value ?? "sales_info")
+										}
+									>
+										<Hash
+											className="size-3.5 shrink-0 group-hover:hidden group-focus-visible:hidden"
+											aria-hidden="true"
+										/>
+										<X
+											className="hidden size-3.5 shrink-0 group-hover:block group-focus-visible:block"
+											aria-hidden="true"
+										/>
+										<span className="truncate">{channelLabel}</span>
+									</InputGroupButton>
+									<InputGroupButton
+										type="button"
+										variant="ghost"
+										size="xs"
+										className="group gap-1 rounded-md text-xs font-normal"
+										aria-label={`Remove ${colorLabel} color`}
+										title="Reset color to Black"
+										disabled={state.isSubmitting || isUploading}
+										onClick={() => chat.setNoteColor("#000000")}
+									>
+										<span
+											className="size-3 shrink-0 rounded-full border group-hover:hidden group-focus-visible:hidden"
+											style={{ backgroundColor: state.noteColor }}
+											aria-hidden="true"
+										/>
+										<X
+											className="hidden size-3.5 shrink-0 group-hover:block group-focus-visible:block"
+											aria-hidden="true"
+										/>
+										{colorLabel}
+									</InputGroupButton>
+								</div>
 								{isUploading ? <output>Attaching files…</output> : null}
 								<InputGroupButton
 									type="submit"

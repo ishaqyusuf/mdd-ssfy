@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props) {
 	return constructMetadata({
-		title: "Job | GND",
+		title: "Jobs | GND",
 	});
 }
 type Props = {
@@ -45,16 +45,19 @@ export default async function Page(props: Props) {
 		<PageShell>
 			<HydrateClient>
 				<ScrollableContent>
-					<div className="flex flex-col gap-6">
-						<PageTitle>Job</PageTitle>
-						<JobHeader />
+					<div className="flex min-w-0 flex-col gap-5">
+						<div className="flex flex-col gap-1">
+							<PageTitle>Jobs</PageTitle>
+							<p className="text-sm text-muted-foreground">
+								Assign work, review submissions and prepare contractor payments.
+							</p>
+						</div>
 						<JobsKpiWidget />
+						<JobHeader />
 						<ErrorBoundary errorComponent={ErrorFallback}>
 							<Suspense
 								fallback={
-									<ContractorJobsSkeleton
-										initialSettings={initialSettings}
-									/>
+									<ContractorJobsSkeleton initialSettings={initialSettings} />
 								}
 							>
 								<DataTable initialSettings={initialSettings} />

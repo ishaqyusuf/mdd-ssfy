@@ -72,7 +72,7 @@ describe("Payment Dashboard table migration parity", () => {
 		expect(lazySource.includes("components/tables/skeleton")).toBe(false);
 	});
 
-	it("keeps table-owned scroll, DnD, resize, and compact row-height behavior", () => {
+	it("keeps contractor virtualization and page-scrolling recent payouts with table controls", () => {
 		const contractorSource = readSource(
 			"components/tables-2/payment-dashboard-contractors/data-table.tsx",
 		);
@@ -98,7 +98,9 @@ describe("Payment Dashboard table migration parity", () => {
 		expect(
 			contractorSource.includes('height: "var(--header-offset, 0px)"'),
 		).toBe(true);
-		expect(source.includes("useScrollHeader(parentRef)")).toBe(true);
+		expect(source.includes("useScrollHeader(parentRef)")).toBe(false);
+		expect(source.includes("VirtualRecordList")).toBe(false);
+		expect(source.includes("overscroll-contain")).toBe(false);
 		expect(source.includes("useTableDnd(table)")).toBe(true);
 		expect(source.includes("<DndContext")).toBe(true);
 		expect(
@@ -106,10 +108,10 @@ describe("Payment Dashboard table migration parity", () => {
 		).toBe(true);
 		expect(source.includes("collisionDetection={closestCenter}")).toBe(true);
 		expect(source.includes("rowHeight={tableConfig.rowHeight}")).toBe(true);
-		expect(source.includes("estimateSize: () => tableConfig.rowHeight")).toBe(
-			true,
-		);
-		expect(source.includes('height: "var(--header-offset, 0px)"')).toBe(true);
+		expect(source.includes("overflow-x-auto")).toBe(true);
+		expect(
+			source.includes("virtualStart={index * tableConfig.rowHeight}"),
+		).toBe(true);
 	});
 
 	it("keeps compact tailored widths, draggable headers, and table settings registration", () => {

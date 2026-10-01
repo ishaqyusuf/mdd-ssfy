@@ -1,342 +1,244 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-
-import { ActivityHistory } from "@/components/chat/activity-history";
 import { DataTable as ContractorPayoutOverviewJobsTable } from "@/components/tables-2/contractor-payout-overview-jobs/data-table";
 import type { TableSettings } from "@/utils/table-settings";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@gnd/ui/card";
-import { Separator } from "@gnd/ui/separator";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { format } from "date-fns";
-import type { ComponentType } from "react";
+import dynamic from "next/dynamic";
+import { type ReactNode, useState } from "react";
+import {
+	formatPaymentDate as date,
+	formatPaymentAmount as money,
+} from "./payment-format";
 
-function formatCurrency(value?: number | null) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(Number(value || 0));
-}
-
+const ActivityHistory = dynamic(
+	() =>
+		import("@/components/chat/activity-history").then(
+			(module) => module.ActivityHistory,
+		),
+	{ loading: () => <Skeleton className="h-28" /> },
+);
 type PaymentOverviewData = RouterOutputs["jobs"]["contractorPayoutOverview"];
 
 export function PaymentOverviewContent({
 	data,
 	includedJobsInitialSettings,
 	isPending,
+	actions,
 }: {
 	data?: PaymentOverviewData | null;
 	includedJobsInitialSettings?: Partial<TableSettings>;
 	isPending?: boolean;
+	actions?: ReactNode;
 }) {
-	if (isPending) {
+	const [activityOpen, setActivityOpen] = useState(false);
+	const [adjustmentsOpen, setAdjustmentsOpen] = useState(false);
+	if (isPending)
 		return (
-			<div className="grid gap-6">
-				<Skeleton className="h-36 rounded-3xl" />
-				<div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_360px]">
-					<Skeleton className="h-[420px] rounded-3xl" />
-					<Skeleton className="h-[420px] rounded-3xl" />
-				</div>
+			<div className="mx-auto w-full max-w-4xl space-y-4">
+				<Skeleton className="h-60 rounded-xl" />
+				<Skeleton className="h-96 rounded-xl" />
 			</div>
 		);
-	}
-
-	if (!data) {
+	if (!data)
 		return (
-			<Card className="rounded-3xl border-dashed">
-				<CardContent className="py-12 text-center text-sm text-muted-foreground">
-					Payment details could not be loaded.
-				</CardContent>
-			</Card>
+			<div
+				role="alert"
+				className="rounded-xl border border-dashed p-12 text-center text-sm text-muted-foreground"
+			>
+				Payment details could not be loaded.
+			</div>
 		);
-	}
-
 	return (
-		<div className="grid gap-6">
-			<section className="relative overflow-hidden rounded-3xl border bg-card">
-				<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.18),transparent_34%),radial-gradient(circle_at_bottom_right,hsl(var(--accent)/0.18),transparent_30%)]" />
-				<div className="relative flex flex-col gap-6 p-6 md:p-8">
-					<div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-						<div className="max-w-3xl">
-							<div className="mb-3 flex flex-wrap items-center gap-2">
-								<Badge variant="secondary">Payment overview</Badge>
-								{data.isCancelled ? (
-									<Badge variant="outline">Cancelled</Badge>
-								) : null}
-							</div>
-							<h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-								Payout #{data.id}
-							</h1>
-							<p className="mt-2 text-sm text-muted-foreground md:text-base">
-								{data.isCancelled ? "Originally recorded" : "Recorded"}{" "}
-								{format(new Date(data.createdAt), "MMMM d, yyyy")} for{" "}
-								{data.paidTo?.name || "Unknown contractor"}.
-							</p>
-							{data.isCancelled ? (
-								<div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-									<p className="font-medium">This payout has been cancelled.</p>
-									<p className="mt-1 text-amber-800">
-										{data.cancelledAt
-											? `Cancelled ${format(new Date(data.cancelledAt), "MMMM d, yyyy")}`
-											: "Cancelled"}{" "}
-										{data.cancelledBy?.name
-											? `by ${data.cancelledBy.name}`
-											: ""}
-										.
-									</p>
-									{data.cancellationReason ? (
-										<p className="mt-1 text-amber-800">
-											Reason: {data.cancellationReason}
-										</p>
-									) : null}
-								</div>
-							) : null}
-							{!data.isCancelled && data.reversedAt ? (
-								<div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-									<p className="font-medium">
-										This payout was reversed back to active.
-									</p>
-									<p className="mt-1 text-emerald-800">
-										Reversed {format(new Date(data.reversedAt), "MMMM d, yyyy")}
-										{data.reversedBy?.name ? ` by ${data.reversedBy.name}` : ""}
-										.
-									</p>
-									{data.reversalReason ? (
-										<p className="mt-1 text-emerald-800">
-											Reason: {data.reversalReason}
-										</p>
-									) : null}
-								</div>
-							) : null}
-						</div>
-
-						<div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
-							<HeroMetric
-								label="Total paid"
-								value={formatCurrency(data.amount)}
-							/>
-							<HeroMetric
-								label="Jobs included"
-								value={`${data.jobCount} job${data.jobCount === 1 ? "" : "s"}`}
-							/>
-						</div>
-					</div>
-
-					<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-						<InfoPill
-							icon={Icons.User2}
-							label="Paid to"
-							value={data.paidTo?.name || "Unknown contractor"}
-							description={data.paidTo?.email || "No email on file"}
-						/>
-						<InfoPill
-							icon={Icons.ShieldCheck}
-							label="Authorized by"
-							value={data.authorizedBy?.name || "Unknown payer"}
-						/>
-						<InfoPill
-							icon={Icons.CreditCard}
-							label="Method"
-							value={data.paymentMethod}
-							description={
-								data.checkNo ? `Check ${data.checkNo}` : "No check number"
-							}
-						/>
-						<InfoPill
-							icon={Icons.BadgeDollarSign}
-							label="Charges"
-							value={formatCurrency(data.charges)}
-							description={`Subtotal ${formatCurrency(data.subTotal)}`}
-						/>
-					</div>
+		<article className="mx-auto w-full min-w-0 max-w-4xl overflow-hidden rounded-2xl border bg-card">
+			<header className="px-5 py-8 text-center sm:px-8">
+				<div
+					className={`mx-auto mb-4 flex size-12 items-center justify-center rounded-full ${data.isCancelled ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"}`}
+				>
+					{data.isCancelled ? (
+						<Icons.XCircle className="size-6" />
+					) : (
+						<Icons.CheckCircle2 className="size-6" />
+					)}
+				</div>
+				<p className="text-xs text-muted-foreground">
+					Payout #{data.id} · {date(data.createdAt)}
+				</p>
+				<p className="mt-3 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
+					{money(data.amount)}
+				</p>
+				<h1 className="mt-3 text-xl font-semibold">
+					{data.paidTo?.name || "Unknown contractor"}
+				</h1>
+				<Badge variant="outline" className="mt-3">
+					{data.isCancelled ? "Cancelled" : "Recorded"}
+				</Badge>
+				<p className="mt-2 text-xs text-muted-foreground">
+					{data.isCancelled
+						? "Original payment amount"
+						: `${data.jobCount} jobs included in this payout`}
+				</p>
+			</header>
+			{data.isCancelled ? (
+				<div className="mx-5 mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 sm:mx-8 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+					<p className="font-medium">
+						This payout was cancelled. Included jobs are now unpaid.
+					</p>
+					<p className="mt-1">
+						{data.cancelledAt
+							? `Cancelled ${date(data.cancelledAt)}`
+							: "Cancelled"}
+						{data.cancelledBy?.name ? ` by ${data.cancelledBy.name}` : ""}.
+					</p>
+					{data.cancellationReason ? (
+						<p className="mt-1">Reason: {data.cancellationReason}</p>
+					) : null}
+				</div>
+			) : data.reversedAt ? (
+				<div className="mx-5 mb-6 rounded-lg border bg-muted/30 p-4 text-sm sm:mx-8">
+					<p className="font-medium">
+						Restored to active {date(data.reversedAt)}
+						{data.reversedBy?.name ? ` by ${data.reversedBy.name}` : ""}.
+					</p>
+					{data.reversalReason ? (
+						<p className="mt-1 text-muted-foreground">
+							Reason: {data.reversalReason}
+						</p>
+					) : null}
+				</div>
+			) : null}
+			<dl className="grid gap-5 border-y bg-muted/20 px-5 py-5 sm:grid-cols-3 sm:px-8">
+				<ReceiptFact
+					label="Payment method"
+					value={`${data.paymentMethod}${data.checkNo ? ` · Check ${data.checkNo}` : ""}`}
+				/>
+				<ReceiptFact
+					label="Authorized by"
+					value={data.authorizedBy?.name || "Unknown payer"}
+				/>
+				<ReceiptFact
+					label="Contractor email"
+					value={data.paidTo?.email || "No email on file"}
+				/>
+			</dl>
+			<section className="min-w-0 space-y-4 px-4 py-6 sm:px-8">
+				<h2 className="font-semibold">
+					Included jobs{" "}
+					<span className="ml-2 text-xs font-normal text-muted-foreground">
+						{data.jobCount}
+					</span>
+				</h2>
+				<ContractorPayoutOverviewJobsTable
+					data={data.jobs}
+					emptyText="No jobs were attached to this payout."
+					initialSettings={includedJobsInitialSettings}
+				/>
+			</section>
+			<section className="space-y-3 border-t px-5 py-6 sm:px-8">
+				<ReceiptLine label="Subtotal" value={money(data.subTotal)} />
+				<ReceiptLine label="Charges / discounts" value={money(data.charges)} />
+				<div className="border-t pt-3">
+					<ReceiptLine
+						label={data.isCancelled ? "Original payout" : "Total paid"}
+						value={money(data.amount)}
+						emphasis
+					/>
 				</div>
 			</section>
-
-			<div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_360px]">
-				<Card className="rounded-3xl">
-					<CardHeader>
-						<CardTitle>Included jobs</CardTitle>
-						<CardDescription>
-							{data.isCancelled
-								? "Jobs originally bundled into this payout, now restored to unpaid status."
-								: "Every job bundled into this payout batch."}
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<ContractorPayoutOverviewJobsTable
-							data={data.jobs}
-							emptyText="No jobs were attached to this payout."
-							initialSettings={includedJobsInitialSettings}
+			<section className="border-t">
+				<Button
+					variant="ghost"
+					className="h-auto w-full justify-between rounded-none px-5 py-4 sm:px-8"
+					aria-expanded={adjustmentsOpen}
+					aria-controls="payout-adjustments"
+					onClick={() => setAdjustmentsOpen(!adjustmentsOpen)}
+				>
+					Adjustments{" "}
+					<span className="flex items-center gap-2 text-xs text-muted-foreground">
+						{data.adjustments.length || "None"}
+						<Icons.ChevronDown
+							className={`size-4 transition-transform ${adjustmentsOpen ? "rotate-180" : ""}`}
 						/>
-					</CardContent>
-				</Card>
-
-				<div className="grid gap-6">
-					<Card className="rounded-3xl">
-						<CardHeader>
-							<CardTitle>Payout breakdown</CardTitle>
-							<CardDescription>
-								Summary of how the batch total was computed.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="grid gap-3">
-							<DetailRow
-								label="Subtotal"
-								value={formatCurrency(data.subTotal)}
-							/>
-							<DetailRow
-								label="Charges / discounts"
-								value={formatCurrency(data.charges)}
-							/>
-							<DetailRow label="Method" value={data.paymentMethod} />
-							<DetailRow label="Check no" value={data.checkNo || "N/A"} />
-							<Separator className="my-1" />
-							<DetailRow
-								label="Total paid"
-								value={formatCurrency(data.amount)}
-								emphasis
-							/>
-						</CardContent>
-					</Card>
-
-					<Card className="rounded-3xl">
-						<CardHeader>
-							<CardTitle>Adjustments</CardTitle>
-							<CardDescription>
-								Any extra payout lines stored with this batch.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="grid gap-3">
-							{data.adjustments.length ? (
-								data.adjustments.map((item) => (
-									<div
-										key={item.id}
-										className="rounded-2xl border bg-background/70 p-4"
-									>
-										<div className="flex items-start justify-between gap-3">
-											<div>
-												<p className="font-medium text-foreground">
-													{item.description || item.type}
-												</p>
-												<p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-													{item.type}
-												</p>
-											</div>
-											<p className="shrink-0 text-sm font-semibold text-foreground">
-												{formatCurrency(item.amount)}
-											</p>
-										</div>
-										<p className="mt-3 text-xs text-muted-foreground">
-											Added {format(new Date(item.createdAt), "MMM d, yyyy")}
-										</p>
-									</div>
-								))
-							) : (
-								<p className="text-sm text-muted-foreground">
-									No adjustments were recorded for this payout.
-								</p>
-							)}
-						</CardContent>
-					</Card>
-
-					<Card className="rounded-3xl">
-						<CardHeader>
-							<CardTitle>Activity history</CardTitle>
-							<CardDescription>
-								Cancellation, reversal, and payout issue events for this batch.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<ActivityHistory
-								className="py-0"
-								tags={[
-									{
-										tagName: "paymentId",
-										tagValue: String(data.id),
-									},
-								]}
-								emptyText="No payout activity yet"
-							/>
-						</CardContent>
-					</Card>
-				</div>
-			</div>
-		</div>
-	);
-}
-
-function HeroMetric({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur">
-			<p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-				{label}
-			</p>
-			<p className="mt-2 text-xl font-semibold text-foreground">{value}</p>
-		</div>
-	);
-}
-
-function InfoPill({
-	icon: Icon,
-	label,
-	value,
-	description,
-}: {
-	icon: ComponentType<{ className?: string }>;
-	label: string;
-	value: string;
-	description?: string;
-}) {
-	return (
-		<div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur">
-			<div className="flex items-center gap-2 text-muted-foreground">
-				<Icon className="h-4 w-4" />
-				<p className="text-xs uppercase tracking-[0.18em]">{label}</p>
-			</div>
-			<p className="mt-3 truncate font-medium text-foreground">{value}</p>
-			{description ? (
-				<p className="mt-1 truncate text-sm text-muted-foreground">
-					{description}
-				</p>
+					</span>
+				</Button>
+				{adjustmentsOpen ? (
+					<div id="payout-adjustments" className="space-y-4 px-5 pb-5 sm:px-8">
+						{data.adjustments.length ? (
+							data.adjustments.map((item) => (
+								<div key={item.id} className="space-y-1">
+									<ReceiptLine
+										label={item.description || item.type}
+										value={money(item.amount)}
+									/>
+									<p className="text-xs text-muted-foreground">
+										{item.type} · Added {date(item.createdAt)}
+									</p>
+								</div>
+							))
+						) : (
+							<p className="text-sm text-muted-foreground">
+								No adjustments were recorded.
+							</p>
+						)}
+					</div>
+				) : null}
+			</section>
+			<section className="border-t">
+				<Button
+					variant="ghost"
+					className="h-auto w-full justify-between rounded-none px-5 py-4 sm:px-8"
+					aria-expanded={activityOpen}
+					aria-controls="payout-activity"
+					onClick={() => setActivityOpen(!activityOpen)}
+				>
+					Activity history{" "}
+					<Icons.ChevronDown
+						className={`size-4 transition-transform ${activityOpen ? "rotate-180" : ""}`}
+					/>
+				</Button>
+				{activityOpen ? (
+					<div id="payout-activity" className="px-5 pb-5 sm:px-8">
+						<ActivityHistory
+							className="py-0"
+							tags={[{ tagName: "paymentId", tagValue: String(data.id) }]}
+							emptyText="No payout activity yet"
+						/>
+					</div>
+				) : null}
+			</section>
+			{actions ? (
+				<footer className="flex flex-wrap items-center justify-end gap-2 border-t px-5 py-5 sm:px-8">
+					{actions}
+				</footer>
 			) : null}
+		</article>
+	);
+}
+function ReceiptFact({ label, value }: { label: string; value: string }) {
+	return (
+		<div className="min-w-0">
+			<dt className="text-xs text-muted-foreground">{label}</dt>
+			<dd className="mt-1 break-words text-sm font-medium">{value}</dd>
 		</div>
 	);
 }
-
-function DetailRow({
+function ReceiptLine({
 	label,
 	value,
-	emphasis = false,
-}: {
-	label: string;
-	value: string;
-	emphasis?: boolean;
-}) {
+	emphasis,
+}: { label: string; value: string; emphasis?: boolean }) {
 	return (
-		<div className="flex items-center justify-between gap-3">
+		<div className="flex items-start justify-between gap-4">
 			<p
-				className={
-					emphasis
-						? "font-medium text-foreground"
-						: "text-sm text-muted-foreground"
-				}
+				className={emphasis ? "font-semibold" : "text-sm text-muted-foreground"}
 			>
 				{label}
 			</p>
 			<p
-				className={
-					emphasis
-						? "text-base font-semibold text-foreground"
-						: "text-sm font-medium text-foreground"
-				}
+				className={`shrink-0 tabular-nums ${emphasis ? "text-lg font-semibold" : "text-sm font-medium"}`}
 			>
 				{value}
 			</p>

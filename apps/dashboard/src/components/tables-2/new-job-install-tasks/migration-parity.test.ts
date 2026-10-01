@@ -22,20 +22,26 @@ function assertNotContains(source: string, search: string) {
 }
 
 describe("New Job install task table migration parity", () => {
-	it("keeps the new job modal full screen through the small breakpoint", () => {
-		const source = readSource("components/modals/new-job/index.tsx");
-
+	it("keeps the URL-owned job sheet full width on phones with a fixed footer", () => {
+		const wrapper = readSource("components/modals/new-job/index.tsx");
+		const source = readSource(
+			"components/modals/new-job/job-sheet-content.tsx",
+		);
+		assertContains(wrapper.replace(/\s+/g, ""), "<Sheetopen={opened}");
+		assertContains(wrapper, "JobFormProvider");
 		assertContains(source, "h-[100dvh]");
 		assertContains(source, "w-screen");
 		assertContains(source, "max-w-none");
-		assertContains(source, "md:h-auto");
-		assertContains(source, "md:max-w-xl");
-		assertContains(source, "max-h-none min-h-0");
-		assertContains(source, "md:max-h-[60vh]");
+		assertContains(source, "sm:max-w-[640px]");
+		assertContains(source, "overflow-y-auto");
+		assertContains(source, "<NewJobFooter />");
+		assertContains(source, "<ActiveStep />");
 	});
 
 	it("keeps the final job form contained and usable on extra-small screens", () => {
-		const modalSource = readSource("components/modals/new-job/index.tsx");
+		const modalSource = readSource(
+			"components/modals/new-job/job-sheet-content.tsx",
+		);
 		const formSource = readSource("components/modals/new-job/form-step.tsx");
 		const footerSource = readSource(
 			"components/modals/new-job/new-job-footer.tsx",
@@ -47,14 +53,8 @@ describe("New Job install task table migration parity", () => {
 			"components/tables-2/new-job-install-tasks/data-table.tsx",
 		);
 
-		assertContains(modalSource, 'className="min-w-0 w-full max-w-full"');
+		assertContains(modalSource, "min-w-0 w-full max-w-full");
 		assertContains(modalSource, "overflow-x-hidden");
-		assertContains(
-			modalSource,
-			"[&_[data-radix-scroll-area-viewport]>div]:!min-w-0",
-		);
-		assertContains(modalSource, "-mx-4");
-		assertContains(modalSource, "md:-mx-0");
 		assertContains(formSource, "min-w-0 w-full max-w-full");
 		assertContains(footerSource, "flex-row");
 		assertNotContains(submitSource, "{...form}");

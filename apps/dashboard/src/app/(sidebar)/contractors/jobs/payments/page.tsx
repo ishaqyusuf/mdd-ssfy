@@ -5,6 +5,7 @@ import { loadSortParams } from "@/hooks/use-sort-params";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
 import type { RouterInputs } from "@api/trpc/routers/_app";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import type { SearchParams } from "nuqs";
 
@@ -31,7 +32,8 @@ export default async function ContractorsPaymentsPage(props: Props) {
 		sort,
 	} as RouterInputs["jobs"]["contractorPayouts"];
 
-	batchPrefetch([
+	await batchPrefetch([
+		trpc.jobs.paymentDashboard.queryOptions({}),
 		trpc.filters.contractorPayout.queryOptions(),
 		trpc.jobs.contractorPayouts.infiniteQueryOptions(queryInput, {
 			getNextPageParam: ({ meta }) =>
@@ -43,6 +45,7 @@ export default async function ContractorsPaymentsPage(props: Props) {
 		<PageShell>
 			<HydrateClient>
 				<ScrollableContent>
+					<PageTitle>Payout history</PageTitle>
 					<div className="pt-2">
 						<PaymentsHistoryView initialSettings={initialSettings} />
 					</div>

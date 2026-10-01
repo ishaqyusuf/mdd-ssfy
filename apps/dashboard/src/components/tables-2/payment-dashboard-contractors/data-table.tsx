@@ -1,6 +1,8 @@
 "use client";
 
+import { PaymentTableViewToggle } from "@/components/payment-dashboard/payment-table-view-toggle";
 import { VirtualRow } from "@/components/tables-2/core";
+import { RecordListSkeleton } from "@/components/tables-2/core/record-list-skeleton";
 import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
@@ -13,7 +15,8 @@ import { Table, TableBody } from "@gnd/ui/table";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ContractorTaskQueues } from "./task-queues";
 
 import {
 	type PaymentDashboardContractorRow,
@@ -31,14 +34,21 @@ const COLUMN_IDS = getColumnIds(columns);
 const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 type Props = {
+	tasks?: boolean;
 	data: PaymentDashboardContractorRow[];
 	initialSettings?: Partial<TableSettings>;
 	isLoading?: boolean;
 };
 
-export function DataTable({ data, initialSettings, isLoading }: Props) {
+export function DataTable({
+	data,
+	initialSettings,
+	isLoading,
+	tasks = false,
+}: Props) {
 	const router = useRouter();
 	const parentRef = useRef<HTMLDivElement>(null);
+	const [tableView, setTableView] = useState(false);
 	const { setColumns, bindShowColumnDividers } =
 		usePaymentDashboardContractorsTableStore();
 
@@ -108,6 +118,7 @@ export function DataTable({ data, initialSettings, isLoading }: Props) {
 	}, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
 
 	if (isLoading) {
+		if (tasks && !tableView) return <RecordListSkeleton />;
 		return (
 			<PaymentDashboardContractorsSkeleton initialSettings={initialSettings} />
 		);
@@ -117,10 +128,20 @@ export function DataTable({ data, initialSettings, isLoading }: Props) {
 		return <EmptyState />;
 	}
 
+	if (tasks && !tableView)
+		return (
+			<div className="min-w-0">
+				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
+				<ContractorTaskQueues rows={rows} />
+			</div>
+		);
 	const virtualItems = rowVirtualizer.getVirtualItems();
 
 	return (
-		<div className="relative">
+		<div className="relative min-w-0">
+			{tasks ? (
+				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
+			) : null}
 			<div className="w-full">
 				<div
 					ref={(element) => {

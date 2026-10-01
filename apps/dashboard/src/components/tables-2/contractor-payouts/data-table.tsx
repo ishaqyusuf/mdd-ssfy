@@ -1,6 +1,9 @@
 "use client";
 
+import { PaymentTableViewToggle } from "@/components/payment-dashboard/payment-table-view-toggle";
+import { PayoutRecord } from "@/components/payment-dashboard/payout-record";
 import { VirtualRow } from "@/components/tables-2/core";
+import { VirtualRecordList } from "@/components/tables-2/core/virtual-record-list";
 import { useContractorPayoutFilterParams } from "@/hooks/use-contractor-payout-filter-params";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useScrollHeader } from "@/hooks/use-scroll-header";
@@ -14,6 +17,7 @@ import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { DndContext, closestCenter } from "@dnd-kit/core";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { Table, TableBody } from "@gnd/ui/table";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import {
@@ -24,7 +28,7 @@ import {
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BottomBar } from "./bottom-bar";
 import {
@@ -50,6 +54,7 @@ type ContractorPayoutsPage = {
 };
 
 type Props = {
+	records?: boolean;
 	initialSettings?: Partial<TableSettings>;
 	defaultFilters?: ContractorPayoutsInput;
 	singlePage?: boolean;
@@ -59,12 +64,15 @@ export function DataTable({
 	initialSettings,
 	defaultFilters,
 	singlePage,
+	records = false,
 }: Props) {
 	const router = useRouter();
 	const trpc = useTRPC();
 	const { filters, hasFilters } = useContractorPayoutFilterParams();
 	const { params } = useSortParams();
 	const parentRef = useRef<HTMLDivElement>(null);
+	const [tableView, setTableView] = useState(false);
+	const showRecords = records && !tableView;
 	const { rowSelection, setRowSelection, setColumns, bindShowColumnDividers } =
 		useContractorPayoutsTableStore();
 
@@ -140,10 +148,19 @@ export function DataTable({
 	});
 	const rows = table.getRowModel().rows;
 	const rowVirtualizer = useVirtualizer({
-		count: rows.length,
+		count: showRecords ? 0 : rows.length,
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => tableConfig.rowHeight,
 		overscan: 10,
+	});
+
+	const recordsVirtualizer = useVirtualizer<HTMLDivElement, Element>({
+		count: rows.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => 160,
+		getItemKey: (index) => rows[index]?.id || index,
+		overscan: 6,
+		enabled: showRecords,
 	});
 
 	useEffect(() => {
@@ -156,7 +173,7 @@ export function DataTable({
 
 	useInfiniteScroll<HTMLDivElement>({
 		scrollRef: parentRef,
-		rowVirtualizer,
+		rowVirtualizer: showRecords ? recordsVirtualizer : rowVirtualizer,
 		rowCount: rows.length,
 		hasNextPage: singlePage ? false : hasNextPage,
 		isFetchingNextPage,
@@ -171,11 +188,53 @@ export function DataTable({
 		return <EmptyState />;
 	}
 
+	if (showRecords) {
+		return (
+			<div className="relative min-w-0">
+				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
+				<VirtualRecordList
+					rows={rows}
+					virtualizer={recordsVirtualizer}
+					scrollRef={parentRef}
+					renderRow={(row) => (
+						<PayoutRecord
+							id={row.original.id}
+							name={row.original.paidTo || "Unknown contractor"}
+							amount={row.original.amount}
+							createdAt={row.original.createdAt}
+							paymentMethod={row.original.paymentMethod || "Unknown"}
+							checkNo={row.original.checkNo}
+							jobCount={row.original.jobCount}
+							isCancelled={row.original.isCancelled}
+							selection={
+								<Checkbox
+									aria-label={`Select payout ${row.id}`}
+									checked={row.getIsSelected()}
+									onCheckedChange={(checked) =>
+										row.toggleSelected(checked === true)
+									}
+								/>
+							}
+						/>
+					)}
+				/>
+				<AnimatePresence>
+					{Object.values(rowSelection).some(Boolean) ? (
+						<BottomBar data={tableData} />
+					) : null}
+				</AnimatePresence>
+			</div>
+		);
+	}
+
 	const virtualItems = rowVirtualizer.getVirtualItems();
 	const showBottomBar = Object.keys(rowSelection).length > 0;
 
 	return (
-		<div className="relative">
+		<div className="relative min-w-0">
+			{records ? (
+				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
+			) : null}
 			<div className="w-full">
 				<div
 					ref={(element) => {

@@ -1,1012 +1,611 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-import dynamic from "next/dynamic";
-
 import { DataTable as PaymentPortalJobsTable } from "@/components/tables-2/payment-portal-jobs/data-table";
-import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { generatePayrollReport, printSelectedJobs } from "@/lib/job-print";
 import { cn } from "@/lib/utils";
-import { useTRPC } from "@/trpc/client";
 import type { TableSettings } from "@/utils/table-settings";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@gnd/ui/alert-dialog";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@gnd/ui/card";
+import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
-	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
-import { toast } from "@gnd/ui/use-toast";
-import type { RowSelectionState } from "@tanstack/react-table";
-import { useSearchParams } from "next/navigation";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useState } from "react";
+import { formatPaymentAmount as money } from "./payment-format";
+import {
+	getInsuranceTone,
+	paymentMethods,
+	statusOptions,
+	usePaymentPortal,
+} from "./use-payment-portal";
 
-const JobOverviewModal = dynamic(() =>
-	import("@/components/modals/job-overview").then(
-		(module) => module.JobOverviewModal,
-	),
-);
-
-const paymentMethods = ["Check", "ACH", "Zelle", "Cash"] as const;
-const statusOptions = [
-	{ label: "All concerning jobs", value: "all" },
-	{ label: "Pending review", value: "pending-review" },
-	{ label: "Ready to pay", value: "ready-to-pay" },
-	{ label: "Approved", value: "approved" },
-	{ label: "Completed", value: "completed" },
-	{ label: "Payment cancelled", value: "payment-cancelled" },
-] as const;
-
-function formatCurrency(value?: number | null) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(Number(value || 0));
-}
-
-function canSelectJob(job: { paymentStage?: string | null }) {
-	return !!job.paymentStage;
-}
-
-function canSelectForReview(job: { paymentStage?: string | null }) {
-	return job.paymentStage === "pending-review";
-}
-
-function requiresAutoApproval(job: { status?: string | null }) {
-	return !READY_TO_PAY_STATUSES.has(String(job.status || ""));
-}
-
-const READY_TO_PAY_STATUSES = new Set(["Approved", "Completed"]);
-
-function getInsuranceTone(state?: string | null) {
-	switch (state) {
-		case "valid":
-			return "default" as const;
-		case "expiring_soon":
-			return "secondary" as const;
-		default:
-			return "destructive" as const;
-	}
-}
-
-type PaymentPortalProps = {
-	paymentPortalJobsInitialSettings?: Partial<TableSettings>;
-};
+const steps = ["Contractor", "Select jobs", "Payment details"];
 
 export function PaymentPortal({
 	paymentPortalJobsInitialSettings,
-}: PaymentPortalProps) {
-	const trpc = useTRPC();
-	const queryClient = useQueryClient();
-	const { opened: jobOverviewOpen, setParams } = useJobParams();
-	const searchParams = useSearchParams();
-	const [contractorSearch, setContractorSearch] = useState("");
-	const [selectedContractorId, setSelectedContractorId] = useState<
-		number | null
-	>(null);
-	const [jobSearch, setJobSearch] = useState("");
-	const [status, setStatus] =
-		useState<(typeof statusOptions)[number]["value"]>("all");
-	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-	const [paymentMethod, setPaymentMethod] =
-		useState<(typeof paymentMethods)[number]>("Check");
-	const [checkNo, setCheckNo] = useState("");
-
-	const dashboardQuery = useQuery(
-		trpc.jobs.paymentDashboard.queryOptions({
-			q: contractorSearch || undefined,
-		}),
+}: { paymentPortalJobsInitialSettings?: Partial<TableSettings> }) {
+	const flow = usePaymentPortal();
+	const { step, portal, jobs, selectedJobIds, rowSelection, setRowSelection } =
+		flow;
+	const contractor =
+		portal?.contractor ||
+		flow.contractors.find((item) => item.id === flow.selectedContractorId);
+	const [confirmOpen, setConfirmOpen] = useState(false);
+	const busy = flow.createPaymentMutation.isPending;
+	const matchingContractors = flow.contractors.filter((contractor) =>
+		`${contractor.name} ${contractor.email || ""}`
+			.toLowerCase()
+			.includes(flow.contractorSearch.trim().toLowerCase()),
 	);
-
-	const contractors = dashboardQuery.data?.contractors || [];
-
-	useEffect(() => {
-		if (!contractors.length) {
-			setSelectedContractorId(null);
-			return;
-		}
-
-		const hasSelectedContractor = contractors.some(
-			(item) => item.id === selectedContractorId,
-		);
-
-		const searchParamContractorId = Number(
-			searchParams.get("contractorId") || 0,
-		);
-		const preferredContractorId = contractors.some(
-			(item) => item.id === searchParamContractorId,
-		)
-			? searchParamContractorId
-			: contractors[0]?.id || null;
-
-		if (!hasSelectedContractor) {
-			setRowSelection({});
-			setSelectedContractorId(preferredContractorId);
-		}
-	}, [contractors, searchParams, selectedContractorId]);
-
-	const portalQuery = useQuery(
-		trpc.jobs.paymentPortal.queryOptions(
-			{
-				userId: selectedContractorId || 0,
-				q: jobSearch || undefined,
-				status,
-			},
-			{
-				enabled: !!selectedContractorId,
-			},
-		),
+	const jobsTable = (reviewOnly = false) => (
+		<PaymentPortalJobsTable
+			data={reviewOnly ? flow.selectedJobs : jobs}
+			emptyText="No unpaid jobs match these filters."
+			initialSettings={paymentPortalJobsInitialSettings}
+			isLoading={flow.portalQuery.isPending}
+			isPendingReviewMode={flow.isPendingReviewMode}
+			isReviewPending={flow.reviewMutation.isPending}
+			rowSelection={rowSelection}
+			setRowSelection={setRowSelection}
+			readOnly={reviewOnly}
+			onOpen={(job) => flow.setParams({ openJobId: job.id })}
+			onMarkSubmitted={flow.handleMarkSubmitted}
+			onApprove={(jobId) => flow.handleRowReview(jobId, "approve")}
+			onReject={(jobId) => flow.handleRowReview(jobId, "reject")}
+		/>
 	);
-
-	const portal = portalQuery.data;
-	const jobs = portal?.jobs || [];
-	const isPendingReviewMode = status === "pending-review";
-	const selectedJobIds = useMemo(
-		() =>
-			Object.entries(rowSelection)
-				.filter(([, selected]) => !!selected)
-				.map(([key]) => Number(key)),
-		[rowSelection],
-	);
-	const selectedJobs = useMemo(
-		() => jobs.filter((job) => selectedJobIds.includes(job.id)),
-		[jobs, selectedJobIds],
-	);
-	const selectedTotal = useMemo(
-		() =>
-			Number(
-				selectedJobs
-					.reduce((sum, job) => sum + Number(job.amount || 0), 0)
-					.toFixed(2),
-			),
-		[selectedJobs],
-	);
-	const chargePercentage = Number(portal?.contractor.chargePercentage || 0);
-	const discountValue = Number(
-		(selectedTotal * (chargePercentage / 100)).toFixed(2),
-	);
-	const totalPayout = Number((selectedTotal - discountValue).toFixed(2));
-	const createPaymentMutation = useMutation(
-		trpc.jobs.createPaymentPortal.mutationOptions({
-			onSuccess: async (data) => {
-				await Promise.all([
-					queryClient.invalidateQueries({
-						queryKey: trpc.jobs.paymentDashboard.queryKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.jobs.paymentPortal.queryKey({
-							userId: selectedContractorId || 0,
-							q: jobSearch || undefined,
-							status,
-						}),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.jobs.getJobs.infiniteQueryKey(),
-					}),
-				]);
-
-				setRowSelection({});
-				setCheckNo("");
-
-				toast({
-					title: "Payment portal completed",
-					description: `Payment batch #${data.id} was created for ${formatCurrency(
-						data.totalPayout,
-					)}.`,
-				});
-			},
-		}),
-	);
-
-	const reviewMutation = useMutation(
-		trpc.jobs.jobReview.mutationOptions({
-			onSuccess: async (_, variables) => {
-				if (!variables) return;
-
-				await Promise.all([
-					queryClient.invalidateQueries({
-						queryKey: trpc.jobs.paymentDashboard.queryKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.jobs.paymentPortal.queryKey({
-							userId: selectedContractorId || 0,
-							q: jobSearch || undefined,
-							status,
-						}),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.jobs.getJobs.infiniteQueryKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.jobs.overview.queryKey({
-							jobId: variables.jobId,
-						}),
-					}),
-				]);
-
-				setRowSelection((current) => {
-					const next = { ...current };
-					delete next[String(variables.jobId)];
-					return next;
-				});
-
-				toast({
-					title:
-						variables.action === "submit"
-							? "Job marked as submitted"
-							: variables.action === "approve"
-								? "Job approved"
-								: "Job rejected",
-					variant: variables.action === "reject" ? "destructive" : "success",
-				});
-			},
-			onError: () => {
-				toast({
-					title: "Failed to update job status. Please try again.",
-					variant: "destructive",
-				});
-			},
-		}),
-	);
-
-	const canSubmitPayment =
-		!!selectedContractorId && selectedJobIds.length > 0 && totalPayout >= 0;
-	const pendingReviewJobs =
-		portal?.jobs.filter((job) => job.paymentStage === "pending-review")
-			.length || 0;
-	const readyToPayJobs =
-		portal?.jobs.filter((job) => job.paymentStage === "ready-to-pay").length ||
-		0;
-	const selectedPendingReviewJobs = selectedJobs.filter((job) =>
-		canSelectForReview(job),
-	);
-	const selectionWarnings = useMemo(() => {
-		const warningMap = new Map<
-			string,
-			{ status: string; count: number; jobIds: number[] }
-		>();
-
-		for (const job of selectedJobs) {
-			if (!requiresAutoApproval(job)) continue;
-			const status = String(job.status || "Unknown");
-			const current = warningMap.get(status) || {
-				status,
-				count: 0,
-				jobIds: [],
-			};
-			current.count += 1;
-			current.jobIds.push(job.id);
-			warningMap.set(status, current);
-		}
-
-		return Array.from(warningMap.values()).sort((left, right) =>
-			left.status.localeCompare(right.status),
-		);
-	}, [selectedJobs]);
-
-	const markableJobs = jobs.filter((job) =>
-		isPendingReviewMode ? canSelectForReview(job) : canSelectJob(job),
-	);
-
-	const runBulkReview = (action: "approve" | "reject") => {
-		for (const job of selectedPendingReviewJobs) {
-			reviewMutation.mutate({
-				action,
-				jobId: job.id,
-				note:
-					action === "approve"
-						? "Approved from payment portal."
-						: "Rejected from payment portal.",
-			});
-		}
-	};
-
-	const handleRowReview = (jobId: number, action: "approve" | "reject") => {
-		reviewMutation.mutate({
-			action,
-			jobId,
-			note:
-				action === "approve"
-					? "Approved from payment portal."
-					: "Rejected from payment portal.",
-		});
-	};
-
-	const handleMarkSubmitted = (jobId: number) => {
-		reviewMutation.mutate({
-			action: "submit",
-			jobId,
-			note: "Marked as submitted from payment portal.",
-		});
-	};
 
 	return (
-		<div className="flex flex-col gap-6 py-6 pb-8">
-			<Card className="border-dashed bg-muted/10">
-				<CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-					<div className="space-y-1">
-						<p className="text-sm font-semibold text-foreground">
-							Generate full payroll report
-						</p>
-						<p className="text-sm text-muted-foreground">
-							Create a PDF summary of all unpaid jobs across contractors,
-							starting with the overall totals before the
-							contractor-by-contractor breakdown.
-						</p>
-					</div>
-					<div className="flex flex-wrap items-center gap-3">
-						<div className="rounded-xl border bg-background px-4 py-2 text-sm">
-							<p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-								Unpaid Jobs
-							</p>
-							<p className="mt-1 font-semibold text-foreground">
-								{dashboardQuery.data?.summary.pendingJobs || 0}
-							</p>
-						</div>
-						<div className="rounded-xl border bg-background px-4 py-2 text-sm">
-							<p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-								Total Payable
-							</p>
-							<p className="mt-1 font-semibold text-foreground">
-								{formatCurrency(dashboardQuery.data?.summary.totalPay)}
+		<div className="min-w-0 space-y-6 pb-6">
+			<header className="flex flex-wrap items-start justify-between gap-4">
+				<div>
+					<h1 className="text-2xl font-semibold tracking-tight">
+						Prepare a payout
+					</h1>
+					<p className="mt-1 text-sm text-muted-foreground">
+						Choose a contractor, select work, and review the payment.
+					</p>
+				</div>
+				<Button asChild variant="outline">
+					<Link href="/contractors/jobs/payments">
+						Payout history <Icons.ArrowRight className="size-4" />
+					</Link>
+				</Button>
+			</header>
+			<nav aria-label="Payout steps" className="grid grid-cols-3 border-b pb-4">
+				{steps.map((label, index) => (
+					<button
+						key={label}
+						type="button"
+						aria-current={index === step ? "step" : undefined}
+						disabled={
+							busy || index > step || (index === 2 && !flow.canSubmitPayment)
+						}
+						onClick={() => flow.setStep(index)}
+						className={cn(
+							"flex min-h-12 min-w-0 items-center gap-2 text-left text-xs font-medium text-muted-foreground sm:text-sm disabled:cursor-default",
+							index === step && "text-foreground",
+						)}
+					>
+						<span
+							className={cn(
+								"flex size-7 shrink-0 items-center justify-center rounded-full border",
+								index === step &&
+									"border-primary bg-primary text-primary-foreground",
+								index < step &&
+									"border-emerald-600 bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+							)}
+						>
+							{index < step ? <Icons.Check className="size-3.5" /> : index + 1}
+						</span>
+						<span>{label}</span>
+					</button>
+				))}
+			</nav>
+
+			{step === 0 ? (
+				<section className="space-y-5">
+					<div className="flex flex-wrap items-end justify-between gap-3">
+						<div>
+							<h2 className="text-lg font-semibold">Who are you paying?</h2>
+							<p className="mt-1 text-sm text-muted-foreground">
+								Contractors with unpaid work.
 							</p>
 						</div>
 						<Button
+							variant="outline"
 							onClick={() => generatePayrollReport()}
-							disabled={dashboardQuery.isPending || !contractors.length}
+							disabled={
+								flow.dashboardQuery.isPending || !flow.contractors.length
+							}
 						>
-							<Icons.Printer data-icon="inline-start" />
-							Generate Payroll Report
+							<Icons.Printer className="size-4" />
+							Payroll report
 						</Button>
 					</div>
-				</CardContent>
-			</Card>
-
-			<div className="grid min-w-0 gap-6 xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:items-start">
-				<Card className="hidden overflow-hidden xl:sticky xl:top-6 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
-					<CardHeader className="gap-4 border-b bg-muted/30">
-						<div>
-							<CardTitle>Contractors</CardTitle>
-							<CardDescription>
-								Choose a contractor to inspect pending review and ready-to-pay
-								jobs in one place.
-							</CardDescription>
+					<div className="relative max-w-md">
+						<Icons.Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+						<Input
+							aria-label="Search contractors"
+							placeholder="Search contractor"
+							className="pl-9"
+							value={flow.contractorSearch}
+							onChange={(event) => flow.setContractorSearch(event.target.value)}
+						/>
+					</div>
+					{flow.dashboardQuery.isError ? (
+						<QueryError onRetry={() => flow.dashboardQuery.refetch()} />
+					) : flow.dashboardQuery.isPending ? (
+						<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+							{[1, 2, 3].map((id) => (
+								<Skeleton key={id} className="h-48 rounded-xl" />
+							))}
 						</div>
-						<div className="relative">
-							<Icons.Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-							<Input
-								value={contractorSearch}
-								onChange={(event) => setContractorSearch(event.target.value)}
-								placeholder="Search contractor"
-								className="pl-9"
-							/>
+					) : !matchingContractors.length ? (
+						<div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+							{flow.contractorSearch
+								? "No contractors match your search."
+								: "There is no unpaid contractor work."}
 						</div>
-					</CardHeader>
-					<CardContent className="p-0 xl:flex-1 xl:min-h-0">
-						{dashboardQuery.isPending ? (
-							<div className="flex flex-col gap-3 p-4">
-								{["a", "b", "c", "d", "e"].map((item) => (
-									<Skeleton key={item} className="h-24 rounded-2xl" />
-								))}
-							</div>
-						) : !contractors.length ? (
-							<div className="flex min-h-[320px] flex-col items-center justify-center gap-2 p-6 text-center">
-								<p className="text-sm font-medium text-foreground">
-									No contractors are waiting for payment.
-								</p>
-								<p className="text-sm text-muted-foreground">
-									Once approved jobs are unpaid, they will show up here
-									automatically.
-								</p>
-							</div>
-						) : (
-							<ScrollArea className="h-[560px] xl:h-full">
-								<div className="flex flex-col gap-2 p-3">
-									{contractors.map((contractor) => {
-										const isActive = contractor.id === selectedContractorId;
-
-										return (
-											<button
-												type="button"
-												key={contractor.id}
-												onClick={() => {
-													setRowSelection({});
-													setSelectedContractorId(contractor.id);
-												}}
-												className={cn(
-													"flex w-full min-w-0 max-w-full overflow-hidden box-border flex-col gap-2 rounded-xl border px-3 py-3 text-left transition hover:border-primary/40 hover:bg-muted/40",
-													isActive &&
-														"border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20",
-												)}
-											>
-												<div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-													<div className="min-w-0 flex-1">
-														<p className="max-w-full truncate text-sm font-medium text-foreground">
-															{contractor.name}
-														</p>
-														<p className="truncate text-xs text-muted-foreground">
-															{contractor.email || "No email on file"}
-														</p>
-													</div>
-													<Badge
-														variant={getInsuranceTone(
-															contractor.insurance.state,
-														)}
-														className="w-fit max-w-full shrink-0"
-													>
-														{contractor.insurance.state.replace("_", " ")}
-													</Badge>
-												</div>
-												<div className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-													<span>
-														{contractor.pendingReviewCount} pending review
-													</span>
-													<span className="text-border">•</span>
-													<span>{contractor.readyToPayCount} ready to pay</span>
-												</div>
-												<div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-													<p className="min-w-0 text-[11px] text-muted-foreground break-words">
-														{contractor.lastProjectTitle
-															? `Recent project: ${contractor.lastProjectTitle}`
-															: "No recent project yet"}
-													</p>
-													<p className="shrink-0 text-sm font-semibold text-foreground">
-														{formatCurrency(contractor.totalPay)}
-													</p>
-												</div>
-											</button>
-										);
-									})}
-								</div>
-							</ScrollArea>
-						)}
-					</CardContent>
-				</Card>
-
-				<Card className="min-w-0 overflow-hidden xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
-					<CardHeader className="gap-4 border-b bg-muted/20">
-						{portal ? (
-							<div className="flex flex-col gap-4">
-								<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-									<div>
-										<CardTitle>{portal.contractor.name}</CardTitle>
-										<CardDescription>
-											{portal.contractor.email || "No email on file"}
-										</CardDescription>
-									</div>
-									<div className="flex flex-wrap items-center gap-2">
-										<Badge
-											variant={getInsuranceTone(
-												portal.contractor.insurance.state,
-											)}
-										>
-											{portal.contractor.insurance.message}
-										</Badge>
-										<Badge variant="secondary">
-											{formatCurrency(portal.contractor.pendingBill)} pending
-										</Badge>
-									</div>
-								</div>
-								<div className="grid gap-3 md:grid-cols-3">
-									<MiniInfoCard
-										label="Pending review"
-										value={String(portal.contractor.pendingReviewCount)}
-									/>
-									<MiniInfoCard
-										label="Ready to pay"
-										value={String(portal.contractor.readyToPayCount)}
-									/>
-									<MiniInfoCard
-										label="Total pay"
-										value={formatCurrency(portal.contractor.totalPay)}
-									/>
-								</div>
-							</div>
-						) : (
-							<div>
-								<CardTitle>Portal workspace</CardTitle>
-								<CardDescription>
-									Select a contractor to load payable jobs and payout controls.
-								</CardDescription>
-							</div>
-						)}
-					</CardHeader>
-
-					<CardContent className="p-0 xl:flex-1 xl:min-h-0">
-						<ScrollArea className="h-full">
-							<div className="flex flex-col gap-4 p-4 md:p-6">
-								<div className="xl:hidden">
-									<FieldBlock label="Contractor">
-										<Select
-											value={
-												selectedContractorId ? String(selectedContractorId) : ""
-											}
-											onValueChange={(value) => {
-												setRowSelection({});
-												setSelectedContractorId(Number(value));
-											}}
-											disabled={!contractors.length}
-										>
-											<SelectTrigger>
-												<SelectValue placeholder="Select contractor" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													{contractors.map((contractor) => (
-														<SelectItem
-															key={contractor.id}
-															value={String(contractor.id)}
-														>
-															{contractor.name}
-														</SelectItem>
-													))}
-												</SelectGroup>
-											</SelectContent>
-										</Select>
-									</FieldBlock>
-								</div>
-								<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-									<div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
-										<div className="relative">
-											<Icons.Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-											<Input
-												value={jobSearch}
-												onChange={(event) => setJobSearch(event.target.value)}
-												placeholder="Filter jobs, project, lot, or model"
-												className="pl-9"
-												disabled={!selectedContractorId}
-											/>
+					) : (
+						<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+							{matchingContractors.map((contractor) => (
+								<button
+									key={contractor.id}
+									type="button"
+									onClick={() => flow.chooseContractor(contractor.id)}
+									className="group min-w-0 rounded-xl border bg-card p-5 text-left transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<div className="flex items-start gap-3">
+										<span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+											{contractor.name
+												?.split(" ")
+												.map((part) => part[0])
+												.slice(0, 2)
+												.join("")}
+										</span>
+										<div className="min-w-0">
+											<p className="truncate font-semibold">
+												{contractor.name}
+											</p>
+											<p className="truncate text-xs text-muted-foreground">
+												{contractor.email || "No email on file"}
+											</p>
 										</div>
-										<Select
-											value={status}
-											onValueChange={(value) =>
-												setStatus(
-													value as (typeof statusOptions)[number]["value"],
-												)
-											}
-											disabled={!selectedContractorId}
-										>
-											<SelectTrigger>
-												<SelectValue placeholder="Filter status" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													{statusOptions.map((option) => (
-														<SelectItem key={option.value} value={option.value}>
-															{option.label}
-														</SelectItem>
-													))}
-												</SelectGroup>
-											</SelectContent>
-										</Select>
 									</div>
-
-									<div className="flex items-center gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() =>
-												printSelectedJobs({
-													jobIds: selectedJobIds,
-													context: "payment-portal",
-												})
-											}
-											disabled={!selectedJobIds.length}
-										>
-											<Icons.Printer data-icon="inline-start" />
-											Print Selected
-										</Button>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() =>
-												setRowSelection(
-													Object.fromEntries(
-														markableJobs.map((job) => [String(job.id), true]),
-													),
-												)
-											}
-											disabled={!markableJobs.length}
-										>
-											Mark all
-										</Button>
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => setRowSelection({})}
-											disabled={!selectedJobIds.length}
-										>
-											Clear
-										</Button>
+									<Badge
+										variant={getInsuranceTone(contractor.insurance.state)}
+										className="mt-4 max-w-full whitespace-normal"
+									>
+										{contractor.insurance.message}
+									</Badge>
+									<div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+										<span>{contractor.readyToPayCount} ready to pay</span>
+										<span>{contractor.pendingReviewCount} need review</span>
 									</div>
-								</div>
-
-								<div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border bg-muted/10 px-4 py-3">
-									<InlineMetric
-										label="Pending review"
-										value={String(pendingReviewJobs)}
-									/>
-									<InlineMetric
-										label="Ready to pay"
-										value={String(readyToPayJobs)}
-									/>
-									<InlineMetric
-										label="Selected payout"
-										value={formatCurrency(selectedTotal)}
-										emphasis
-									/>
-								</div>
-
-								{isPendingReviewMode && selectedPendingReviewJobs.length > 0 ? (
-									<div className="flex flex-col gap-3 rounded-2xl border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+									<div className="mt-5 flex items-center justify-between gap-2 border-t pt-4">
 										<div>
-											<p className="text-sm font-medium text-foreground">
-												{selectedPendingReviewJobs.length} pending review job
-												{selectedPendingReviewJobs.length === 1 ? "" : "s"}{" "}
-												marked
+											<p className="text-xs text-muted-foreground">
+												Unpaid work
 											</p>
-											<p className="text-sm text-muted-foreground">
-												Approve or reject the marked submissions directly from
-												this view.
+											<p className="mt-1 font-semibold tabular-nums">
+												{money(contractor.pendingBill)}
 											</p>
 										</div>
-										<div className="flex items-center gap-2">
-											<Button
-												variant="outline"
-												onClick={() => runBulkReview("reject")}
-												disabled={reviewMutation.isPending}
-											>
-												<Icons.XCircle data-icon="inline-start" />
-												Reject Marked
-											</Button>
-											<Button
-												onClick={() => runBulkReview("approve")}
-												disabled={reviewMutation.isPending}
-											>
-												<Icons.CheckCircle2 data-icon="inline-start" />
-												Approve Marked
-											</Button>
-										</div>
+										<span className="flex items-center gap-1 text-sm font-medium">
+											Select <Icons.ArrowRight className="size-4" />
+										</span>
 									</div>
+								</button>
+							))}
+						</div>
+					)}
+				</section>
+			) : (
+				<>
+					<section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3">
+						<div className="min-w-0">
+							<p className="font-semibold">
+								{contractor?.name || "Loading contractor…"}
+							</p>
+							<p className="text-xs text-muted-foreground">
+								{contractor?.email || "Contractor payout"}
+							</p>
+						</div>
+						<div className="flex flex-wrap items-center gap-2">
+							{contractor ? (
+								<Badge
+									variant={getInsuranceTone(contractor.insurance.state)}
+									className="whitespace-normal"
+								>
+									{contractor.insurance.message}
+								</Badge>
+							) : null}
+							<Button
+								variant="ghost"
+								size="sm"
+								disabled={busy}
+								onClick={() => flow.setStep(0)}
+							>
+								Change contractor
+							</Button>
+						</div>
+					</section>
+					{flow.paymentContext.jobId && !flow.handoffDismissed ? (
+						<div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-muted/20 p-4">
+							<div className="min-w-0">
+								<p className="text-sm font-medium">
+									Job #{flow.paymentContext.jobId}
+								</p>
+								<p className="mt-1 text-xs text-muted-foreground">
+									{flow.portalQuery.isFetching
+										? "Checking this job’s current payment status…"
+										: !flow.contextJob
+											? "This job is no longer in the current unpaid view. Nothing was selected automatically."
+											: flow.contextJob.paymentStage === "pending-review"
+												? "This submission needs review. Open the job to inspect it before approving or paying."
+												: selectedJobIds.includes(flow.contextJob.id)
+													? "This unpaid job is selected for your payout."
+													: "This job is available to inspect in the payment portal."}
+								</p>
+							</div>
+							<div className="flex gap-2">
+								{flow.contextJob ? (
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() =>
+											flow.setParams({ openJobId: flow.contextJob?.id })
+										}
+									>
+										View job
+									</Button>
 								) : null}
-
-								<PaymentPortalJobsTable
-									data={jobs}
-									emptyText={
-										selectedContractorId
-											? "No payable jobs match the current filters."
-											: "Select a contractor to open the payment portal."
-									}
-									initialSettings={paymentPortalJobsInitialSettings}
-									isLoading={portalQuery.isPending}
-									isPendingReviewMode={isPendingReviewMode}
-									isReviewPending={reviewMutation.isPending}
-									rowSelection={rowSelection}
-									setRowSelection={setRowSelection}
-									onOpen={(job) => {
-										setParams({
-											openJobId: job.id,
-										});
-									}}
-									onMarkSubmitted={handleMarkSubmitted}
-									onApprove={(jobId) => handleRowReview(jobId, "approve")}
-									onReject={(jobId) => handleRowReview(jobId, "reject")}
-								/>
-							</div>
-						</ScrollArea>
-					</CardContent>
-				</Card>
-
-				<div className="xl:sticky xl:top-6 xl:h-[calc(100vh-7rem)]">
-					<PaymentSidebar
-						selectedJobIds={selectedJobIds}
-						selectedTotal={selectedTotal}
-						chargePercentage={chargePercentage}
-						discountValue={discountValue}
-						totalPayout={totalPayout}
-						paymentMethod={paymentMethod}
-						setPaymentMethod={setPaymentMethod}
-						checkNo={checkNo}
-						setCheckNo={setCheckNo}
-						canSubmitPayment={canSubmitPayment}
-						isPendingReviewMode={isPendingReviewMode}
-						selectedPendingReviewCount={selectedPendingReviewJobs.length}
-						selectionWarnings={selectionWarnings}
-						isSubmitting={createPaymentMutation.isPending}
-						onRemoveWarningJobs={(jobIds) =>
-							setRowSelection((current) => {
-								const next = { ...current };
-								for (const jobId of jobIds) {
-									delete next[String(jobId)];
-								}
-								return next;
-							})
-						}
-						onSubmit={() => {
-							if (!selectedContractorId) return;
-
-							createPaymentMutation.mutate({
-								userId: selectedContractorId,
-								jobIds: selectedJobIds,
-								adjustment: 0,
-								discount: discountValue,
-								paymentMethod,
-								checkNo: checkNo || undefined,
-							});
-						}}
-					/>
-				</div>
-			</div>
-
-			{jobOverviewOpen ? <JobOverviewModal /> : null}
-		</div>
-	);
-}
-
-function MiniInfoCard({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="rounded-2xl border bg-background p-4">
-			<p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-				{label}
-			</p>
-			<p className="mt-2 text-base font-semibold text-foreground">{value}</p>
-		</div>
-	);
-}
-
-function InlineMetric({
-	label,
-	value,
-	emphasis = false,
-}: {
-	label: string;
-	value: string;
-	emphasis?: boolean;
-}) {
-	return (
-		<div className="flex items-baseline gap-2">
-			<p className="text-sm text-muted-foreground">{label}</p>
-			<p
-				className={cn(
-					"text-sm font-medium text-foreground",
-					emphasis && "text-base font-semibold",
-				)}
-			>
-				{value}
-			</p>
-		</div>
-	);
-}
-
-function FieldBlock({
-	label,
-	children,
-}: {
-	label: string;
-	children: ReactNode;
-}) {
-	return (
-		<div className="grid gap-2">
-			<Label>{label}</Label>
-			{children}
-		</div>
-	);
-}
-
-function PaymentSidebar({
-	selectedJobIds,
-	selectedTotal,
-	chargePercentage,
-	discountValue,
-	totalPayout,
-	paymentMethod,
-	setPaymentMethod,
-	checkNo,
-	setCheckNo,
-	canSubmitPayment,
-	isPendingReviewMode,
-	selectedPendingReviewCount,
-	selectionWarnings,
-	isSubmitting,
-	onRemoveWarningJobs,
-	onSubmit,
-}: {
-	selectedJobIds: number[];
-	selectedTotal: number;
-	chargePercentage: number;
-	discountValue: number;
-	totalPayout: number;
-	paymentMethod: (typeof paymentMethods)[number];
-	setPaymentMethod: (value: (typeof paymentMethods)[number]) => void;
-	checkNo: string;
-	setCheckNo: (value: string) => void;
-	canSubmitPayment: boolean;
-	isPendingReviewMode: boolean;
-	selectedPendingReviewCount: number;
-	selectionWarnings: {
-		status: string;
-		count: number;
-		jobIds: number[];
-	}[];
-	isSubmitting: boolean;
-	onRemoveWarningJobs: (jobIds: number[]) => void;
-	onSubmit: () => void;
-}) {
-	return (
-		<Card className="overflow-hidden xl:flex xl:h-full xl:flex-col">
-			<CardHeader className="border-b bg-muted/20">
-				<CardTitle>Payout Summary</CardTitle>
-				<CardDescription>
-					{isPendingReviewMode
-						? "Review mode is active. Selected jobs can still be paid, and any non-approved items will be approved automatically during payout."
-						: "Finalize payment details for the selected unpaid jobs."}
-				</CardDescription>
-			</CardHeader>
-			<CardContent className="p-0 xl:flex-1 xl:min-h-0">
-				<ScrollArea className="max-h-[520px] xl:h-full">
-					<div className="grid gap-4 p-4 md:p-5">
-						<div className="rounded-2xl border bg-muted/20 p-4">
-							<div className="flex items-baseline justify-between gap-3">
-								<div>
-									<p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-										Total payout
-									</p>
-									<p className="mt-1 text-2xl font-semibold text-foreground">
-										{formatCurrency(totalPayout)}
-									</p>
-								</div>
-								<div className="text-right text-xs text-muted-foreground">
-									<p>
-										{selectedJobIds.length} job
-										{selectedJobIds.length === 1 ? "" : "s"}
-									</p>
-									<p>{chargePercentage.toFixed(0)}% discount</p>
-								</div>
-							</div>
-							<div className="mt-4 grid gap-2 text-sm">
-								<CompactSummaryRow
-									label="Subtotal"
-									value={formatCurrency(selectedTotal)}
-								/>
-								<CompactSummaryRow
-									label={`Discount (${chargePercentage.toFixed(0)}%)`}
-									value={`- ${formatCurrency(discountValue)}`}
-								/>
-								<div className="h-px bg-border" />
-								<CompactSummaryRow
-									label="Payout"
-									value={formatCurrency(totalPayout)}
-									emphasis
-								/>
+								<Button variant="ghost" size="sm" onClick={flow.dismissHandoff}>
+									Dismiss
+								</Button>
 							</div>
 						</div>
-
-						<div className="grid gap-3">
-							<FieldBlock label="Payment method">
+					) : null}
+					{flow.portalQuery.isError ? (
+						<QueryError onRetry={() => flow.portalQuery.refetch()} />
+					) : step === 1 ? (
+						<section className="min-w-0 space-y-4">
+							<div>
+								<h2 className="text-lg font-semibold">
+									Select jobs to include
+								</h2>
+								<p className="mt-1 text-sm text-muted-foreground">
+									Open a job to inspect the work. Unapproved jobs will be
+									approved when paid.
+								</p>
+							</div>
+							<div className="flex flex-wrap items-center gap-3">
+								<div className="relative min-w-0 flex-1 basis-60">
+									<Icons.Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+									<Input
+										aria-label="Search jobs"
+										placeholder="Search work, project, lot or model"
+										className="pl-9"
+										value={flow.jobSearch}
+										onChange={(event) => flow.setJobSearch(event.target.value)}
+									/>
+								</div>
 								<Select
-									value={paymentMethod}
+									value={flow.status}
 									onValueChange={(value) =>
-										setPaymentMethod(value as (typeof paymentMethods)[number])
+										flow.setStatus(value as typeof flow.status)
 									}
 								>
-									<SelectTrigger>
+									<SelectTrigger
+										aria-label="Job status"
+										className="w-full sm:w-48"
+									>
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectGroup>
-											{paymentMethods.map((method) => (
-												<SelectItem key={method} value={method}>
-													{method}
-												</SelectItem>
-											))}
-										</SelectGroup>
+										{statusOptions.map((option) => (
+											<SelectItem key={option.value} value={option.value}>
+												{option.label}
+											</SelectItem>
+										))}
 									</SelectContent>
 								</Select>
-							</FieldBlock>
-
-							<FieldBlock label="Check no">
-								<Input
-									value={checkNo}
-									onChange={(event) => setCheckNo(event.target.value)}
-									placeholder="Optional"
-								/>
-							</FieldBlock>
-						</div>
-
-						{selectionWarnings.length ? (
-							<div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-								<p className="font-semibold">Warning</p>
-								<div className="mt-3 grid gap-2">
-									{selectionWarnings.map((warning) => (
-										<div
-											key={warning.status}
-											className="flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-white/70 px-3 py-2"
-										>
-											<p className="flex-1 leading-6">
-												{warning.count === 1
-													? `A job with status "${warning.status}" is part of selection, proceeding will mark this job as approved.`
-													: `${warning.count} jobs with status "${warning.status}" are part of selection, proceeding will mark these jobs as approved.`}
-											</p>
-											<Button
-												type="button"
-												size="sm"
-												variant="ghost"
-												onClick={() => onRemoveWarningJobs(warning.jobIds)}
-											>
-												Remove
-											</Button>
-										</div>
-									))}
+							</div>
+							<div className="flex flex-wrap items-center justify-between gap-2">
+								<div className="flex gap-1">
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={
+											!flow.markableJobs.length || flow.portalQuery.isFetching
+										}
+										onClick={() =>
+											setRowSelection(
+												Object.fromEntries(
+													flow.markableJobs.map((job) => [
+														String(job.id),
+														true,
+													]),
+												),
+											)
+										}
+									>
+										Select all
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										disabled={!selectedJobIds.length}
+										onClick={() => setRowSelection({})}
+									>
+										Clear
+									</Button>
 								</div>
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={!selectedJobIds.length}
+									onClick={() =>
+										printSelectedJobs({
+											jobIds: selectedJobIds,
+											context: "payment-portal",
+										})
+									}
+								>
+									<Icons.Printer className="size-4" />
+									Print selected
+								</Button>
 							</div>
-						) : null}
-
-						{isPendingReviewMode ? (
-							<div className="rounded-2xl border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
-								{selectedPendingReviewCount > 0
-									? `${selectedPendingReviewCount} marked job${selectedPendingReviewCount === 1 ? "" : "s"} are pending review. You can still pay them, but they will be approved automatically as part of payout.`
-									: "Pending review mode is primarily for approval decisions, but selected jobs can still be included in payout."}
-							</div>
-						) : null}
-
-						<Button
-							size="lg"
-							onClick={onSubmit}
-							disabled={!canSubmitPayment || isSubmitting}
-							className="w-full"
+							{flow.isPendingReviewMode &&
+							flow.selectedPendingReviewJobs.length ? (
+								<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-3">
+									<p className="text-sm">
+										{flow.selectedPendingReviewJobs.length} submissions selected
+									</p>
+									<div className="flex gap-2">
+										<Button
+											size="sm"
+											variant="outline"
+											disabled={flow.reviewMutation.isPending}
+											onClick={() => flow.runBulkReview("reject")}
+										>
+											Reject selected
+										</Button>
+										<Button
+											size="sm"
+											disabled={flow.reviewMutation.isPending}
+											onClick={() => flow.runBulkReview("approve")}
+										>
+											Approve selected
+										</Button>
+									</div>
+								</div>
+							) : null}
+							{jobsTable()}
+							<footer
+								className="sticky bottom-0 z-30 flex items-center justify-between gap-3 rounded-xl border bg-background/95 p-4 pr-20 shadow-sm backdrop-blur sm:pr-4 supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))]"
+								aria-live="polite"
+							>
+								<div>
+									<p className="text-xs text-muted-foreground">
+										{selectedJobIds.length} jobs selected
+									</p>
+									<p className="text-xl font-semibold tabular-nums">
+										{money(flow.totalPayout)}
+									</p>
+								</div>
+								<Button
+									disabled={!flow.canSubmitPayment}
+									onClick={() => flow.setStep(2)}
+								>
+									Continue <Icons.ArrowRight className="size-4" />
+								</Button>
+							</footer>
+						</section>
+					) : (
+						<div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+							<section className="min-w-0 space-y-4">
+								<div className="flex items-center justify-between gap-3">
+									<div>
+										<h2 className="text-lg font-semibold">
+											Review your payout
+										</h2>
+										<p className="mt-1 text-sm text-muted-foreground">
+											{selectedJobIds.length} included jobs
+										</p>
+									</div>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={busy}
+										onClick={() => flow.setStep(1)}
+									>
+										Edit jobs
+									</Button>
+								</div>
+								{jobsTable(true)}
+							</section>
+							<section className="space-y-5 rounded-xl border bg-card p-5 lg:sticky lg:top-4">
+								<h2 className="font-semibold">Payment details</h2>
+								<fieldset disabled={busy} className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor="payout-method">Payment method</Label>
+										<Select
+											value={flow.paymentMethod}
+											onValueChange={(value) =>
+												flow.setPaymentMethod(
+													value as typeof flow.paymentMethod,
+												)
+											}
+											disabled={busy}
+										>
+											<SelectTrigger id="payout-method">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												{paymentMethods.map((method) => (
+													<SelectItem key={method} value={method}>
+														{method}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+									{flow.paymentMethod === "Check" ? (
+										<div className="space-y-2">
+											<Label htmlFor="payout-check">
+												Check number{" "}
+												<span className="font-normal text-muted-foreground">
+													(optional)
+												</span>
+											</Label>
+											<Input
+												id="payout-check"
+												value={flow.checkNo}
+												onChange={(event) =>
+													flow.setCheckNo(event.target.value)
+												}
+												placeholder="e.g. 1042"
+											/>
+										</div>
+									) : null}
+								</fieldset>
+								<div className="space-y-3 border-y py-4 text-sm">
+									<SummaryLine
+										label="Job subtotal"
+										value={money(flow.selectedTotal)}
+									/>
+									<SummaryLine
+										label={`Profile discount (${flow.chargePercentage}%)`}
+										value={`− ${money(flow.discountValue)}`}
+									/>
+									<div className="flex items-center justify-between gap-3 pt-2">
+										<span className="font-medium">Total payout</span>
+										<span className="text-2xl font-semibold tabular-nums">
+											{money(flow.totalPayout)}
+										</span>
+									</div>
+								</div>
+								{flow.selectionWarnings.length ? (
+									<div className="space-y-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+										<p className="font-semibold">
+											Automatic approval on payout
+										</p>
+										{flow.selectionWarnings.map((warning) => (
+											<div key={warning.status}>
+												<p>
+													{warning.count} {warning.status.toLowerCase()} job
+													{warning.count === 1 ? "" : "s"} will be approved when
+													this payout is recorded.
+												</p>
+												<Button
+													variant="ghost"
+													size="sm"
+													className="mt-1 h-auto px-0 text-inherit underline"
+													disabled={busy}
+													onClick={() =>
+														setRowSelection((current) => {
+															const next = { ...current };
+															for (const id of warning.jobIds)
+																delete next[String(id)];
+															return next;
+														})
+													}
+												>
+													Remove these jobs
+												</Button>
+											</div>
+										))}
+									</div>
+								) : null}
+								<p className="text-xs leading-5 text-muted-foreground">
+									Record the payment after paying your contractor using the
+									selected method.
+								</p>
+								<Button
+									className="w-full"
+									size="lg"
+									disabled={!flow.canSubmitPayment || busy}
+									onClick={() => setConfirmOpen(true)}
+								>
+									{busy ? "Recording payout…" : "Review and record payout"}
+									<Icons.ArrowRight className="size-4" />
+								</Button>
+							</section>
+						</div>
+					)}
+				</>
+			)}
+			<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							Record {money(flow.totalPayout)} for {portal?.contractor.name}?
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							{selectedJobIds.length} jobs · {flow.paymentMethod}
+							{flow.paymentMethod === "Check" && flow.checkNo
+								? ` · Check ${flow.checkNo}`
+								: ""}
+							.{" "}
+							{flow.selectionWarnings.length
+								? "The unapproved jobs shown in your review will also be approved. "
+								: ""}
+							This records the payout in GND.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Back to review</AlertDialogCancel>
+						<AlertDialogAction
+							disabled={!flow.canSubmitPayment || busy}
+							onClick={flow.submitPayment}
 						>
-							<Icons.BanknoteArrowDown data-icon="inline-start" />
-							{isSubmitting ? "Creating payment..." : "Make payment"}
-						</Button>
-					</div>
-				</ScrollArea>
-			</CardContent>
-		</Card>
+							Record payout
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</div>
 	);
 }
 
-function CompactSummaryRow({
-	label,
-	value,
-	emphasis = false,
-}: {
-	label: string;
-	value: string;
-	emphasis?: boolean;
-}) {
+function SummaryLine({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="flex items-center justify-between gap-3">
-			<p
-				className={cn(
-					"text-sm text-muted-foreground",
-					emphasis && "font-medium text-foreground",
-				)}
-			>
-				{label}
-			</p>
-			<p
-				className={cn(
-					"text-sm font-medium text-foreground",
-					emphasis && "text-base font-semibold",
-				)}
-			>
-				{value}
-			</p>
+			<span className="text-muted-foreground">{label}</span>
+			<span className="font-medium tabular-nums">{value}</span>
+		</div>
+	);
+}
+function QueryError({ onRetry }: { onRetry: () => void }) {
+	return (
+		<div
+			role="alert"
+			className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-5"
+		>
+			<p className="text-sm">Payment information could not be loaded.</p>
+			<Button variant="outline" onClick={onRetry}>
+				Try again
+			</Button>
 		</div>
 	);
 }

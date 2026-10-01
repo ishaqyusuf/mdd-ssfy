@@ -1,7 +1,10 @@
 "use client";
 
+import { PaymentTableViewToggle } from "@/components/payment-dashboard/payment-table-view-toggle";
+import { PayoutRecord } from "@/components/payment-dashboard/payout-record";
 import { VirtualRow } from "@/components/tables-2/core";
-import { useScrollHeader } from "@/hooks/use-scroll-header";
+import { RecordList } from "@/components/tables-2/core/record-list";
+import { RecordListSkeleton } from "@/components/tables-2/core/record-list-skeleton";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
@@ -11,9 +14,8 @@ import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { Table, TableBody } from "@gnd/ui/table";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
 	type PaymentDashboardRecentPaymentRow,
@@ -31,18 +33,24 @@ const COLUMN_IDS = getColumnIds(columns);
 const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 type Props = {
+	records?: boolean;
 	data: PaymentDashboardRecentPaymentRow[];
 	initialSettings?: Partial<TableSettings>;
 	isLoading?: boolean;
 };
 
-export function DataTable({ data, initialSettings, isLoading }: Props) {
+export function DataTable({
+	data,
+	initialSettings,
+	isLoading,
+	records = false,
+}: Props) {
 	const router = useRouter();
 	const parentRef = useRef<HTMLDivElement>(null);
+	const [tableView, setTableView] = useState(false);
+	const showRecords = records && !tableView;
 	const { setColumns, bindShowColumnDividers } =
 		usePaymentDashboardRecentPaymentsTableStore();
-
-	useScrollHeader(parentRef);
 
 	const {
 		columnVisibility,
@@ -92,12 +100,6 @@ export function DataTable({ data, initialSettings, isLoading }: Props) {
 		startFromColumn: 1,
 	});
 	const rows = table.getRowModel().rows;
-	const rowVirtualizer = useVirtualizer({
-		count: rows.length,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => tableConfig.rowHeight,
-		overscan: 8,
-	});
 
 	useEffect(() => {
 		setColumns(table.getAllLeafColumns());
@@ -108,6 +110,7 @@ export function DataTable({ data, initialSettings, isLoading }: Props) {
 	}, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
 
 	if (isLoading) {
+		if (showRecords) return <RecordListSkeleton />;
 		return (
 			<PaymentDashboardRecentPaymentsSkeleton
 				initialSettings={initialSettings}
@@ -119,21 +122,40 @@ export function DataTable({ data, initialSettings, isLoading }: Props) {
 		return <EmptyState />;
 	}
 
-	const virtualItems = rowVirtualizer.getVirtualItems();
+	if (showRecords) {
+		return (
+			<div className="relative min-w-0">
+				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
+				<RecordList
+					rows={rows}
+					renderRow={(row) => (
+						<PayoutRecord
+							id={row.original.id}
+							name={row.original.contractor || "Unknown contractor"}
+							amount={row.original.amount}
+							createdAt={row.original.createdAt}
+							paymentMethod={row.original.paymentMethod || "Unknown"}
+							checkNo={row.original.checkNo}
+							jobCount={row.original.jobCount}
+						/>
+					)}
+				/>
+			</div>
+		);
+	}
 
 	return (
-		<div className="relative">
+		<div className="relative min-w-0">
+			{records ? (
+				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
+			) : null}
 			<div className="w-full">
 				<div
 					ref={(element) => {
 						parentRef.current = element;
 						tableScroll.containerRef.current = element;
 					}}
-					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
-					style={{
-						height:
-							"clamp(260px, calc(100vh - 560px + var(--header-offset, 0px)), 380px)",
-					}}
+					className="overflow-x-auto border-b border-l border-r border-border"
 				>
 					<DndContext
 						id="payment-dashboard-recent-payments-table-dnd"
@@ -150,19 +172,16 @@ export function DataTable({ data, initialSettings, isLoading }: Props) {
 							<TableBody
 								className="block border-l-0 border-r-0"
 								style={{
-									height: `${rowVirtualizer.getTotalSize()}px`,
+									height: `${rows.length * tableConfig.rowHeight}px`,
 									position: "relative",
 								}}
 							>
-								{virtualItems.map((virtualRow: VirtualItem) => {
-									const row = rows[virtualRow.index];
-									if (!row) return null;
-
+								{rows.map((row, index) => {
 									return (
 										<VirtualRow
 											key={row.id}
 											row={row}
-											virtualStart={virtualRow.start}
+											virtualStart={index * tableConfig.rowHeight}
 											rowHeight={tableConfig.rowHeight}
 											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
@@ -182,13 +201,6 @@ export function DataTable({ data, initialSettings, isLoading }: Props) {
 							</TableBody>
 						</Table>
 					</DndContext>
-					<div
-						style={{
-							height: "var(--header-offset, 0px)",
-							flexShrink: 0,
-						}}
-						aria-hidden
-					/>
 				</div>
 			</div>
 		</div>

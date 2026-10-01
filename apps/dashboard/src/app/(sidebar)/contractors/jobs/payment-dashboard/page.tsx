@@ -2,6 +2,7 @@ import { LazyPaymentDashboard } from "@/components/payment-dashboard/lazy-paymen
 import { ScrollableContent } from "@/components/scrollable-content";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 
 import PageShell from "@/components/page-shell";
@@ -20,12 +21,13 @@ export default async function ContractorsPaymentDashboardPage() {
 			getInitialTableSettings("payment-dashboard-recent-payments"),
 		]);
 
-	batchPrefetch([trpc.jobs.paymentDashboard.queryOptions({})]);
+	await batchPrefetch([trpc.jobs.paymentDashboard.queryOptions({})]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
 				<ScrollableContent>
+					<PageTitle>Contractor payments</PageTitle>
 					<LazyPaymentDashboard
 						contractorQueueInitialSettings={contractorQueueInitialSettings}
 						recentPaymentsInitialSettings={recentPaymentsInitialSettings}

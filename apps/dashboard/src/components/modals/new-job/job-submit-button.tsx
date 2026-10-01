@@ -1,3 +1,4 @@
+import { getJobSaveAction } from "@/lib/job-form-actions";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobStepInfo } from "@/hooks/use-job-step-info";
@@ -35,8 +36,15 @@ export function JobSubmitButton({
 	...buttonProps
 }: Props & Omit<React.ComponentProps<typeof Button>, "form">) {
 	const { defaultValues, markAsComplete } = useJobFormContext();
-	const { setParams, userId, projectId, unitId, builderTaskId, modelId } =
-		useJobFormParams();
+	const {
+		setParams,
+		jobId,
+		userId,
+		projectId,
+		unitId,
+		builderTaskId,
+		modelId,
+	} = useJobFormParams();
 	const { formType } = useJobStepInfo();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -145,8 +153,11 @@ export function JobSubmitButton({
 					if (normalizedValues.requestTaskConfig) {
 						normalizedValues.action = "request-task-config";
 					} else {
-						normalizedValues.action =
-							isSubmitMode || markAsComplete ? "submit" : "re-assign";
+						normalizedValues.action = getJobSaveAction({
+							isSubmitMode,
+							markAsComplete,
+							jobId,
+						});
 					}
 					saveJob(normalizedValues);
 					// Here you would typically call a mutation to save the job details
@@ -171,8 +182,10 @@ export function JobSubmitButton({
 							{isConfigRequestedStatus
 								? "Configuration Requested"
 								: isSubmitMode || markAsComplete
-									? "Submit"
-									: "Assign"}
+									? "Submit for review"
+									: jobId
+										? "Save changes"
+										: "Assign job"}
 						</span>
 					</div>
 				)}
