@@ -87,6 +87,11 @@ import {
 } from "./assistant-order-draft-canvas";
 import { AssistantOutcomeHelp } from "./assistant-outcome-help";
 import { AssistantReconnectActivity } from "./assistant-reconnect-activity";
+import {
+	findAssistantSalesRequestOffer,
+	isAssistantSalesRequestConfirmation,
+} from "./assistant-sales-request-intent";
+import { AssistantSalesRequestOfferCard } from "./assistant-sales-request-offer";
 import { AssistantSalesRequestQuestionnaire } from "./assistant-sales-request-questionnaire";
 import { AssistantSavedActionsDialog } from "./assistant-saved-actions-dialog";
 import styles from "./assistant.module.css";
@@ -179,6 +184,7 @@ function AssistantConversation(props: {
 	}) => void;
 	initialSalesRequestType: "order" | "quote" | null;
 }) {
+	const trpc = useTRPC();
 	const client = useTRPCClient();
 	const [input, setInput] = useState("");
 	const [salesRequestType, setSalesRequestType] = useState(
@@ -190,6 +196,8 @@ function AssistantConversation(props: {
 	);
 	const [salesRequestRefresh, setSalesRequestRefresh] = useState(0);
 	const salesRequestIdRef = useRef<string | null>(null);
+	const salesRequestSourceRef = useRef<string | null>(null);
+	const [dismissedOfferId, setDismissedOfferId] = useState<string | null>(null);
 	const [online, setOnline] = useState(
 		() => typeof navigator === "undefined" || navigator.onLine,
 	);
@@ -353,6 +361,22 @@ function AssistantConversation(props: {
 		},
 		onFinish: () => props.onChanged(),
 	});
+	const salesRequestSession = useQuery({
+		...trpc.assistant.salesRequestSession.queryOptions({
+			conversationId: props.conversation.id,
+		}),
+		staleTime: 0,
+	});
+	const suggestedSalesRequest = useMemo(
+		() => findAssistantSalesRequestOffer(chat.messages),
+		[chat.messages],
+	);
+	const salesRequestOffer =
+		salesRequestSession.isSuccess &&
+		!salesRequestSession.data &&
+		suggestedSalesRequest?.messageId !== dismissedOfferId
+			? suggestedSalesRequest
+			: null;
 	const documentArtifact = useMemo(
 		() =>
 			findAssistantDocumentEntity(
@@ -495,49 +519,74 @@ function AssistantConversation(props: {
 
 	const send = useCallback(
 		(promptOverride?: string, forceSalesRequest = false) => {
-			const source = promptOverride ?? input;
+			const submitted = promptOverride ?? input;
+			const confirmedOffer =
+				!forceSalesRequest &&
+				!salesRequestType &&
+				isAssistantSalesRequestConfirmation(submitted)
+					? salesRequestOffer
+					: null;
+			const source = confirmedOffer?.sourceText ?? submitted;
 			const value = source.trim();
 			const attachments = promptOverride ? [] : attachmentState.attachments;
 			if (
 				(!value && !attachments.length) ||
 				!online ||
 				attachmentState.uploading ||
+				salesRequestBusy ||
 				chat.status === "streaming" ||
 				chat.status === "submitted"
 			)
 				return;
 			if (
-				(forceSalesRequest || salesRequestType) &&
+				(forceSalesRequest || salesRequestType || confirmedOffer) &&
 				value &&
 				!attachments.length
 			) {
-				const requestId = salesRequestIdRef.current ?? crypto.randomUUID();
+				const type =
+					salesRequestType ??
+					(confirmedOffer && /\bquote\b/i.test(submitted)
+						? "quote"
+						: confirmedOffer && /\border\b/i.test(submitted)
+							? "order"
+							: (confirmedOffer?.type ??
+								(forceSalesRequest ? salesRequestOffer?.type : null) ??
+								"order"));
+				const requestSource = JSON.stringify([type, source]);
+				const requestId =
+					salesRequestSourceRef.current === requestSource &&
+					salesRequestIdRef.current
+						? salesRequestIdRef.current
+						: crypto.randomUUID();
 				salesRequestIdRef.current = requestId;
+				salesRequestSourceRef.current = requestSource;
 				setSalesRequestBusy(true);
 				setSalesRequestError(null);
 				void client.assistant.startSalesRequest
 					.mutate({
 						conversationId: props.conversation.id,
 						requestId,
-						type: salesRequestType ?? "order",
+						type,
 						text: source,
 					})
 					.then(async () => {
 						setInput("");
 						setSalesRequestType(null);
 						setSalesRequestRefresh((value) => value + 1);
+						await salesRequestSession.refetch();
 						const updated = await client.assistant.get.query({
 							conversationId: props.conversation.id,
 						});
 						chat.setMessages(persistedMessagesToUi(updated.messages));
 						props.onChanged();
 					})
-					.catch((cause) => {
+					.catch(async (cause) => {
 						setSalesRequestError(
 							cause instanceof Error
 								? cause.message
 								: "Sales Request could not be started.",
 						);
+						await salesRequestSession.refetch();
 					})
 					.finally(() => setSalesRequestBusy(false));
 				return;
@@ -555,7 +604,18 @@ function AssistantConversation(props: {
 			if (!promptOverride) attachmentState.clear();
 			props.onIntegrationsSent();
 		},
-		[chat, client, input, online, attachmentState, props, salesRequestType],
+		[
+			chat,
+			client,
+			input,
+			online,
+			attachmentState,
+			props,
+			salesRequestType,
+			salesRequestBusy,
+			salesRequestOffer,
+			salesRequestSession.refetch,
+		],
 	);
 	const retryLatest = useCallback(() => {
 		const latestUser = [...chat.messages]
@@ -993,6 +1053,13 @@ function AssistantConversation(props: {
 					void attachmentState.addFiles(Array.from(event.dataTransfer.files));
 				}}
 			>
+				{salesRequestOffer && !salesRequestType ? (
+					<AssistantSalesRequestOfferCard
+						disabled={busy || salesRequestBusy || !online}
+						onCreate={() => send(salesRequestOffer.sourceText, true)}
+						onDismiss={() => setDismissedOfferId(salesRequestOffer.messageId)}
+					/>
+				) : null}
 				{!online ? (
 					<div className={styles.liveWarning} role="alert">
 						<WifiOff size={14} /> You’re offline. Your draft is safe; reconnect
@@ -1729,6 +1796,7 @@ export function LiveAssistantWorkspace() {
 							)
 						}
 						onChanged={() => {
+							setActionError(null);
 							void loadConversation(conversation.id, {
 								showLoading: false,
 							});

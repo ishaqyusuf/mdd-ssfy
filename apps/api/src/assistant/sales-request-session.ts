@@ -12,6 +12,7 @@ import { salesRequestConfigurationCache } from "@gnd/cache/sales-request-configu
 import { projectSalesRequestPartialNativeSeed, verifySalesRequestNativeSeedCompatibility } from "@api/services/request-generation/native-compatibility";
 import { SALES_REQUEST_PROMPT_VERSION } from "@gnd/sales/sales-form/request-generation";
 import { type Database, Prisma } from "@gnd/db";
+import { AppError } from "@gnd/errors";
 import {
 	appendAssistantUserMessage,
 	createAssistantSalesRequestSession,
@@ -419,30 +420,33 @@ export async function startAssistantSalesRequest(
 	actor: AssistantToolActor,
 	input: z.infer<typeof startAssistantSalesRequestSchema>,
 	signal: AbortSignal,
+	dependencies = {
+		configuration: getAssistantRuntimeConfiguration,
+		preview: createAssistantSalesRequestPreviewDependencies,
+		generate: beginSalesRequestClarification,
+	},
 ) {
 	await requireConversation(db, actor, input.conversationId);
-	const selection = (await getAssistantRuntimeConfiguration(db)).selection;
-	const dependencies = createAssistantSalesRequestPreviewDependencies(
+	const selection = (await dependencies.configuration(db)).selection;
+	const previewDependencies = dependencies.preview(
 		actor,
 		input,
 		db,
 		selection,
 	);
-	await dependencies.authorize();
+	await previewDependencies.authorize();
 	const processingSignal = salesRequestClaimedSignal(signal);
 	const created = await createAssistantSalesRequestSession(db, actor, {
 		...input,
 		selection,
 	});
 	if (!created.created) {
-		if (
-			created.session.sourceFingerprint !== created.fingerprint ||
-			created.session.requestId !== input.requestId
-		)
-			throw new TRPCError({
+		if (created.session.sourceFingerprint !== created.fingerprint)
+			throw new AppError({
 				code: "CONFLICT",
-				message:
+				publicMessage:
 					"This chat already has a different Sales Request. Start a new chat.",
+				reportable: false,
 			});
 		return readAssistantSalesRequestSession(db, actor, input.conversationId);
 	}
@@ -455,13 +459,13 @@ export async function startAssistantSalesRequest(
 			clientRequestId: `sales-request:${input.requestId}`,
 			parts: [{ type: "text", text: input.text }],
 		});
-		const result = await beginSalesRequestClarification({
+		const result = await dependencies.generate({
 			db: db as unknown as ClarificationDatabase,
 			actorUserId: actor.userId,
 			type: input.type,
 			text: input.text,
 			signal: processingSignal,
-			dependencies,
+			dependencies: previewDependencies,
 		});
 		return await publishAssistantSalesRequestResult(db, actor, created.session, result);
 	} catch (error) {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { SalesRequestProviderExecutionError } from "../services/sales-request-provider";
+import { getTrpcPublicError } from "../trpc/error-contract";
 import {
 	type AssistantDraftRuntime,
 	type AssistantSalesRequestDraftDependencies,
@@ -19,6 +20,21 @@ afterEach(() => {
 });
 
 describe("Assistant Sales Request orchestration", () => {
+	test("a disabled Sales Request reports its setup requirement instead of a record conflict", async () => {
+		try {
+			await createAssistantSalesRequestDraft(
+				{ userId: 42, scopeType: "organization", scopeId: "7", grants: { editOrders: true } },
+				{ type: "order", text: "Two configured doors." },
+				new AbortController().signal,
+				{} as never,
+			);
+			throw new Error("Disabled generation must be refused");
+		} catch (error) {
+			const publicError = getTrpcPublicError(error);
+			expect(publicError.message).toContain("Sales request generation is currently disabled");
+			expect(publicError.code).toBe("VALIDATION_FAILED");
+		}
+	});
 	test("fails at pilot authorization before reading configuration or invoking a provider", async () => {
 		let transactionCalls = 0;
 		await expect(

@@ -34,8 +34,9 @@ import {
 	isSalesRequestCatalogPublicationCurrent,
 	isSalesRequestProviderBenchmarkApprovalCurrent,
 } from "@gnd/settings";
-import type { AssistantToolActor } from "./registry";
+import { TRPCError } from "@trpc/server";
 import { assertAssistantProviderEnabled, getAssistantApiKey } from "./provider-controls";
+import type { AssistantToolActor } from "./registry";
 import type { AssistantRuntimeSelection } from "./runtime";
 
 type AssistantDraftDatabase = typeof db & ConfigurationDatabase;
@@ -146,11 +147,24 @@ function requireAssistantSalesRequestKey(
 
 const defaultAssistantDraftRuntime: AssistantDraftRuntime = {
 	authorize: async (actor, input, database) => {
-		await requireSalesRequestPilotAccess({
-			db: database,
-			userId: actor.userId,
-			surface: input.type,
-		});
+		try {
+			await requireSalesRequestPilotAccess({
+				db: database,
+				userId: actor.userId,
+				surface: input.type,
+			});
+		} catch (error) {
+			if (error instanceof TRPCError && error.code === "PRECONDITION_FAILED") {
+				throw new AppError({
+					code: "VALIDATION_FAILED",
+					publicMessage: error.message,
+					transportCode: "PRECONDITION_FAILED",
+					reportable: false,
+					cause: error,
+				});
+			}
+			throw error;
+		}
 		await requireStorefrontQuoteCreationPermission({
 			db: database,
 			userId: actor.userId,

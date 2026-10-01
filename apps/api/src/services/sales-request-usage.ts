@@ -1,6 +1,7 @@
 import { resolveCacheNamespace } from "@gnd/cache/redis-client";
 import { getSharedRedisClient } from "@gnd/cache/shared-redis";
 import { sendUpstashRestCommand } from "@gnd/cache/upstash-rest";
+import { AppError } from "@gnd/errors";
 import { TRPCError } from "@trpc/server";
 
 const incrementWindow =
@@ -37,10 +38,16 @@ export async function requireSalesRequestUsage(
 		if (!Number.isSafeInteger(count) || count < 1)
 			throw new Error("Invalid usage response");
 	} catch {
+		const message =
+			"Request generation usage checks are unavailable. Try again shortly.";
 		throw new TRPCError({
 			code: "SERVICE_UNAVAILABLE",
-			message:
-				"Request generation usage checks are unavailable. Try again shortly.",
+			message,
+			cause: new AppError({
+				code: "NETWORK_UNAVAILABLE",
+				publicMessage: message,
+				reportable: false,
+			}),
 		});
 	} finally {
 		clearTimeout(timer);

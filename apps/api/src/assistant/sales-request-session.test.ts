@@ -9,7 +9,40 @@ import {
 	publishAssistantSalesRequestResult,
 	readAssistantSalesRequestSession,
 	salesRequestClaimedSignal,
+	startAssistantSalesRequest,
 } from "./sales-request-session";
+import { assistantSalesRequestFingerprint } from "@gnd/db/queries";
+
+test("resubmitting the same owned Sales Request after reload returns its session without a second generation", async () => {
+	const text = "Doors Rough Opening\nHallway closet: Double doors 62” x 81” total\n(Louvres)";
+	const actor = { userId: 42, scopeType: "organization", scopeId: "7", grants: { editOrders: true } };
+	const session = {
+		id: "session-1", conversationId: "chat-1", ownerUserId: 42,
+		scopeType: "organization", scopeId: "7", status: "processing", revision: 1,
+		saleType: "order", sourceText: text, sourceFingerprint: assistantSalesRequestFingerprint("order", text),
+		requestId: "11111111-1111-4111-8111-111111111111", updatedAt: new Date(),
+		clarificationId: null, generationId: null, finalPreview: null, pendingPreview: null,
+	};
+	let authorizations = 0;
+	const db = {
+		assistantConversation: { findFirst: async () => ({ messages: [], archivedAt: null }) },
+		assistantSalesRequestSession: { findFirst: async () => session },
+	};
+	const dependencies = {
+		configuration: async () => ({ selection: { provider: "deepseek", model: "deepseek-flash" } }) as never,
+		preview: () => ({ authorize: async () => { authorizations++; } }) as never,
+		generate: async () => { throw new Error("A replay must not call the provider"); },
+	};
+	const input = { conversationId: "chat-1", requestId: "22222222-2222-4222-8222-222222222222", type: "order" as const, text };
+	expect(await startAssistantSalesRequest(db as never, actor, input, new AbortController().signal, dependencies)).toMatchObject({ id: "session-1", status: "processing" });
+	expect(authorizations).toBe(1);
+	await expect(startAssistantSalesRequest(db as never, actor, { ...input, text: "Different doors" }, new AbortController().signal, dependencies)).rejects.toMatchObject({ code: "CONFLICT" });
+	await expect(startAssistantSalesRequest(db as never, actor, { ...input, type: "quote" }, new AbortController().signal, dependencies)).rejects.toMatchObject({ code: "CONFLICT" });
+	await expect(startAssistantSalesRequest(db as never, actor, input, new AbortController().signal, {
+		...dependencies,
+		preview: () => ({ authorize: async () => { throw new Error("Access revoked"); } }) as never,
+	})).rejects.toThrow("Access revoked");
+});
 
 test("a claimed Sales Request survives its initiating browser connection closing", () => {
 	const connection = new AbortController();
