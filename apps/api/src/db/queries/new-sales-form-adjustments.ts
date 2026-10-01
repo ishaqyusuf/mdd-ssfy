@@ -14,6 +14,7 @@ import {
 	getSalesReconciliationDetails,
 	calculateSalesAdjustmentSettlement,
 	salesAdjustmentRequiresInboundDisposition,
+	getApprovedNewHousePackageLines,
 } from "@gnd/sales/adjustment-system";
 import { projectLegacyOrderPayments } from "@gnd/sales/payment-system";
 import { tasks } from "@trigger.dev/sdk/v3";
@@ -476,11 +477,16 @@ export async function createNewSalesFormAdjustment(
 				"Choose whether open inbound quantity should be cancelled or kept for warehouse stock.",
 		});
 	}
-	if (preview.analysis.lines.some((line) => !line.id)) {
+	try {
+		getApprovedNewHousePackageLines({
+			beforeLines: preview.baseline.lineItems,
+			proposedLines: input.lineItems,
+		});
+	} catch (cause) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
-			message:
-				"Sales-rep-approved changes currently support quantity edits to existing sale items only.",
+			message: cause instanceof Error ? cause.message : "Invalid new approved sale line.",
+			cause,
 		});
 	}
 	if (
@@ -614,7 +620,7 @@ export async function createNewSalesFormAdjustment(
 				lines: {
 					create: preview.operationalAnalysis.lines.map((line) => ({
 						lineUid: line.uid,
-						salesOrderItemId: Number(line.id),
+						salesOrderItemId: line.id || null,
 						title: line.title,
 						beforeQty: line.beforeQty,
 						proposedQty: line.afterQty,

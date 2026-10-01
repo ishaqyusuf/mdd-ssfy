@@ -30,6 +30,7 @@ import {
 	resolveSalesAdjustmentApplyRecovery,
 } from "./sales-adjustment-apply-recovery";
 import { projectApprovedGroupedSalesLine } from "./sales-adjustment-grouped-projection";
+import { createApprovedNewHousePackageLines } from "./sales-adjustment-new-house-package";
 import {
 	getApprovedRemovedSalesLines,
 	projectApprovedSalesTaxes,
@@ -425,6 +426,21 @@ export async function runApplySalesOrderAdjustment(
 			const beforeByUid = new Map(
 				beforeLines.map((line) => [String(line.uid || ""), line]),
 			);
+			const addedItemIds = await createApprovedNewHousePackageLines({
+				tx,
+				salesOrderId: adjustment.salesOrderId,
+				beforeLines,
+				proposedLines,
+			});
+			for (const line of adjustment.lines) {
+				const assignedId = addedItemIds.get(line.lineUid);
+				if (!assignedId) continue;
+				await tx.salesOrderAdjustmentLine.update({
+					where: { id: line.id },
+					data: { salesOrderItemId: assignedId },
+				});
+				line.salesOrderItemId = assignedId;
+			}
 			const proposedByUid = new Map(
 				proposedLines.map((line) => [String(line.uid || ""), line]),
 			);
@@ -441,7 +457,7 @@ export async function runApplySalesOrderAdjustment(
 				});
 			}
 			const persistedItemIds = new Set(
-				adjustment.order.items.map((item) => item.id),
+				[...adjustment.order.items.map((item) => item.id), ...addedItemIds.values()],
 			);
 			const adjustedItemIds = new Set(
 				adjustment.lines.map((line) => Number(line.salesOrderItemId || 0)),
