@@ -37,28 +37,37 @@ export function Header() {
 						<Icons.Logo />
 					</Link>
 				) : null}
-				<div id="goBackSlot" />
+				<div id="goBackSlot" className="empty:hidden" />
 				<div className="flex min-w-0 items-center space-x-4 whitespace-nowrap lg:space-x-0">
-					<h1 className="font-bold whitespace-nowrap" id="pageTitle">
+					<h1 className="min-w-0 truncate font-bold" id="pageTitle">
 						<span className="sr-only">Current page</span>
 					</h1>
 				</div>
 				<div
 					id="headerTitleSlot"
-					className="hidden md:flex items-center space-x-1 whitespace-nowrap"
+					className="hidden items-center space-x-1 whitespace-nowrap empty:hidden md:flex"
 				/>
-				<div id="headerNav" className="hidden md:flex items-center space-x-1" />
+				<div
+					id="headerNav"
+					className="hidden items-center space-x-1 empty:hidden md:flex"
+				/>
 				<div
 					id="breadCrumb"
-					className="hidden md:flex items-center space-x-1"
+					className="hidden items-center space-x-1 empty:hidden md:flex"
 				/>
-				<div className="hidden sm:contents">
+				<div className="hidden md:contents">
 					<OpenSearchButton />
 				</div>
 				<div className="flex-1" />
-				<div className="hidden md:flex mx-4  gap-4 " id="navRightSlot" />
-				<div className="hidden md:inline-flex gap-4" id="actionNav" />
-				<div className="hidden sm:flex items-center gap-2">
+				<div
+					className="mx-4 hidden gap-4 empty:hidden md:flex"
+					id="navRightSlot"
+				/>
+				<div
+					className="hidden gap-4 empty:hidden md:inline-flex"
+					id="actionNav"
+				/>
+				<div className="hidden items-center gap-2 md:flex">
 					<HeaderActions />
 				</div>
 				<UserNav links={linkModules} />

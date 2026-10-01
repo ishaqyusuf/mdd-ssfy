@@ -1,14 +1,12 @@
 "use client";
 
 import { formatPaymentAmount } from "@/components/payment-dashboard/payment-format";
-import { VirtualRecordList } from "@/components/tables-2/core/virtual-record-list";
+import { RecordList } from "@/components/tables-2/core/record-list";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import type { Row } from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
-import { useRef } from "react";
 import type { PaymentDashboardContractorRow } from "./columns";
 
 export function ContractorTaskQueues({
@@ -32,14 +30,6 @@ function TaskQueue({
 	rows,
 	review,
 }: { rows: Row<PaymentDashboardContractorRow>[]; review: boolean }) {
-	const scrollRef = useRef<HTMLDivElement>(null);
-	const virtualizer = useVirtualizer<HTMLDivElement, Element>({
-		count: rows.length,
-		getScrollElement: () => scrollRef.current,
-		estimateSize: () => 120,
-		getItemKey: (index) => rows[index]?.id || index,
-		overscan: 5,
-	});
 	const count = rows.reduce(
 		(total, row) =>
 			total +
@@ -79,11 +69,8 @@ function TaskQueue({
 						: "No approved work is waiting for payment."}
 				</div>
 			) : (
-				<VirtualRecordList
+				<RecordList
 					rows={rows}
-					virtualizer={virtualizer}
-					scrollRef={scrollRef}
-					height={`${Math.min(360, Math.max(130, rows.length * 130))}px`}
 					renderRow={(row) => {
 						const contractor = row.original;
 						return (

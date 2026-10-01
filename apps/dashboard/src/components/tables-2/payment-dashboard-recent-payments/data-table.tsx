@@ -155,7 +155,7 @@ export function DataTable({
 						parentRef.current = element;
 						tableScroll.containerRef.current = element;
 					}}
-					className="overflow-x-auto border-b border-l border-r border-border"
+					className="overflow-x-auto overflow-y-hidden border-b border-l border-r border-border"
 				>
 					<DndContext
 						id="payment-dashboard-recent-payments-table-dnd"

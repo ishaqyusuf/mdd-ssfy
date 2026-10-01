@@ -24,7 +24,7 @@ export default async function ContractorsPaymentDashboardPage() {
 	await batchPrefetch([trpc.jobs.paymentDashboard.queryOptions({})]);
 
 	return (
-		<PageShell>
+		<PageShell className="min-w-0 p-4 sm:p-6">
 			<HydrateClient>
 				<ScrollableContent>
 					<PageTitle>Contractor payments</PageTitle>

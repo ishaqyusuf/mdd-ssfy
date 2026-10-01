@@ -2,9 +2,8 @@
 
 import { PaymentTableViewToggle } from "@/components/payment-dashboard/payment-table-view-toggle";
 import { VirtualRow } from "@/components/tables-2/core";
+import { RecordList } from "@/components/tables-2/core/record-list";
 import { RecordListSkeleton } from "@/components/tables-2/core/record-list-skeleton";
-import { VirtualRecordList } from "@/components/tables-2/core/virtual-record-list";
-import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
@@ -18,7 +17,6 @@ import {
 	getCoreRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -59,8 +57,6 @@ export function DataTable({
 	const showRecords = !tableView;
 	const { setColumns, bindShowColumnDividers } =
 		useContractorPayoutOverviewJobsTableStore();
-
-	useScrollHeader(parentRef);
 
 	const columnIds = useMemo(() => getColumnIds(columns), []);
 
@@ -112,21 +108,6 @@ export function DataTable({
 		startFromColumn: 1,
 	});
 	const rows = table.getRowModel().rows;
-	const rowVirtualizer = useVirtualizer({
-		count: showRecords ? 0 : rows.length,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => tableConfig.rowHeight,
-		overscan: 8,
-	});
-
-	const recordsVirtualizer = useVirtualizer<HTMLDivElement, Element>({
-		count: rows.length,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => 160,
-		getItemKey: (index) => rows[index]?.id || index,
-		overscan: 6,
-		enabled: showRecords,
-	});
 
 	useEffect(() => {
 		setColumns(table.getAllLeafColumns());
@@ -151,10 +132,8 @@ export function DataTable({
 		return (
 			<div className="relative min-w-0">
 				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
-				<VirtualRecordList
+				<RecordList
 					rows={rows}
-					virtualizer={recordsVirtualizer}
-					scrollRef={parentRef}
 					renderRow={(row) => {
 						const cell = (id: string) => {
 							const value = row
@@ -187,8 +166,6 @@ export function DataTable({
 		);
 	}
 
-	const virtualItems = rowVirtualizer.getVirtualItems();
-
 	return (
 		<div className="relative min-w-0">
 			<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
@@ -198,11 +175,7 @@ export function DataTable({
 						parentRef.current = element;
 						tableScroll.containerRef.current = element;
 					}}
-					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
-					style={{
-						height:
-							"clamp(260px, calc(100vh - 480px + var(--header-offset, 0px)), 520px)",
-					}}
+					className="overflow-x-auto overflow-y-hidden border-b border-l border-r border-border"
 				>
 					<DndContext
 						id="contractor-payout-overview-jobs-table-dnd"
@@ -219,19 +192,16 @@ export function DataTable({
 							<TableBody
 								className="block border-l-0 border-r-0"
 								style={{
-									height: `${rowVirtualizer.getTotalSize()}px`,
+									height: `${rows.length * tableConfig.rowHeight}px`,
 									position: "relative",
 								}}
 							>
-								{virtualItems.map((virtualRow: VirtualItem) => {
-									const row = rows[virtualRow.index];
-									if (!row) return null;
-
+								{rows.map((row, index) => {
 									return (
 										<VirtualRow
 											key={row.id}
 											row={row}
-											virtualStart={virtualRow.start}
+											virtualStart={index * tableConfig.rowHeight}
 											rowHeight={tableConfig.rowHeight}
 											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
@@ -248,13 +218,6 @@ export function DataTable({
 							</TableBody>
 						</Table>
 					</DndContext>
-					<div
-						style={{
-							height: "var(--header-offset, 0px)",
-							flexShrink: 0,
-						}}
-						aria-hidden
-					/>
 				</div>
 			</div>
 		</div>

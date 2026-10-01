@@ -40,7 +40,7 @@ export default async function ContractorsPaymentPortalPage({
 	]);
 
 	return (
-		<PageShell>
+		<PageShell className="min-w-0 p-4 sm:p-6">
 			<HydrateClient>
 				<ScrollableContent>
 					<PageTitle>Payment portal</PageTitle>

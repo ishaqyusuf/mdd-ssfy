@@ -42,7 +42,7 @@ export default async function ContractorsPaymentsPage(props: Props) {
 	]);
 
 	return (
-		<PageShell>
+		<PageShell className="min-w-0 p-4 sm:p-6">
 			<HydrateClient>
 				<ScrollableContent>
 					<PageTitle>Payout history</PageTitle>

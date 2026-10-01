@@ -3,7 +3,6 @@
 import { PaymentTableViewToggle } from "@/components/payment-dashboard/payment-table-view-toggle";
 import { VirtualRow } from "@/components/tables-2/core";
 import { RecordListSkeleton } from "@/components/tables-2/core/record-list-skeleton";
-import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
@@ -13,7 +12,6 @@ import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { Table, TableBody } from "@gnd/ui/table";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ContractorTaskQueues } from "./task-queues";
@@ -51,8 +49,6 @@ export function DataTable({
 	const [tableView, setTableView] = useState(false);
 	const { setColumns, bindShowColumnDividers } =
 		usePaymentDashboardContractorsTableStore();
-
-	useScrollHeader(parentRef);
 
 	const {
 		columnVisibility,
@@ -102,12 +98,6 @@ export function DataTable({
 		startFromColumn: 1,
 	});
 	const rows = table.getRowModel().rows;
-	const rowVirtualizer = useVirtualizer({
-		count: rows.length,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => tableConfig.rowHeight,
-		overscan: 8,
-	});
 
 	useEffect(() => {
 		setColumns(table.getAllLeafColumns());
@@ -135,7 +125,6 @@ export function DataTable({
 				<ContractorTaskQueues rows={rows} />
 			</div>
 		);
-	const virtualItems = rowVirtualizer.getVirtualItems();
 
 	return (
 		<div className="relative min-w-0">
@@ -148,11 +137,7 @@ export function DataTable({
 						parentRef.current = element;
 						tableScroll.containerRef.current = element;
 					}}
-					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
-					style={{
-						height:
-							"clamp(300px, calc(100vh - 560px + var(--header-offset, 0px)), 460px)",
-					}}
+					className="overflow-x-auto overflow-y-hidden border-b border-l border-r border-border"
 				>
 					<DndContext
 						id="payment-dashboard-contractors-table-dnd"
@@ -169,19 +154,16 @@ export function DataTable({
 							<TableBody
 								className="block border-l-0 border-r-0"
 								style={{
-									height: `${rowVirtualizer.getTotalSize()}px`,
+									height: `${rows.length * tableConfig.rowHeight}px`,
 									position: "relative",
 								}}
 							>
-								{virtualItems.map((virtualRow: VirtualItem) => {
-									const row = rows[virtualRow.index];
-									if (!row) return null;
-
+								{rows.map((row, index) => {
 									return (
 										<VirtualRow
 											key={row.id}
 											row={row}
-											virtualStart={virtualRow.start}
+											virtualStart={index * tableConfig.rowHeight}
 											rowHeight={tableConfig.rowHeight}
 											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
@@ -203,13 +185,6 @@ export function DataTable({
 							</TableBody>
 						</Table>
 					</DndContext>
-					<div
-						style={{
-							height: "var(--header-offset, 0px)",
-							flexShrink: 0,
-						}}
-						aria-hidden
-					/>
 				</div>
 			</div>
 		</div>

@@ -36,7 +36,7 @@ export default async function ContractorPaymentOverviewRoute({
 	]);
 
 	return (
-		<PageShell>
+		<PageShell className="min-w-0 p-4 sm:p-6">
 			<HydrateClient>
 				<ScrollableContent>
 					<PageTitle>Payout receipt</PageTitle>

@@ -3,10 +3,8 @@
 import { PaymentTableViewToggle } from "@/components/payment-dashboard/payment-table-view-toggle";
 import { PayoutRecord } from "@/components/payment-dashboard/payout-record";
 import { VirtualRow } from "@/components/tables-2/core";
-import { VirtualRecordList } from "@/components/tables-2/core/virtual-record-list";
+import { RecordList } from "@/components/tables-2/core/record-list";
 import { useContractorPayoutFilterParams } from "@/hooks/use-contractor-payout-filter-params";
-import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useSortParams } from "@/hooks/use-sort-params";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
@@ -17,6 +15,7 @@ import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { DndContext, closestCenter } from "@dnd-kit/core";
+import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Table, TableBody } from "@gnd/ui/table";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
@@ -25,10 +24,10 @@ import {
 	getCoreRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useInView } from "react-intersection-observer";
 
 import { BottomBar } from "./bottom-bar";
 import {
@@ -71,12 +70,11 @@ export function DataTable({
 	const { filters, hasFilters } = useContractorPayoutFilterParams();
 	const { params } = useSortParams();
 	const parentRef = useRef<HTMLDivElement>(null);
+	const { ref: loadMoreRef, inView } = useInView({ rootMargin: "320px" });
 	const [tableView, setTableView] = useState(false);
 	const showRecords = records && !tableView;
 	const { rowSelection, setRowSelection, setColumns, bindShowColumnDividers } =
 		useContractorPayoutsTableStore();
-
-	useScrollHeader(parentRef);
 
 	const {
 		columnVisibility,
@@ -108,10 +106,15 @@ export function DataTable({
 		},
 	);
 
-	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-		useSuspenseInfiniteQuery<ContractorPayoutsPage>(
-			infiniteQueryOptions as never,
-		);
+	const {
+		data,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+		isFetchNextPageError,
+	} = useSuspenseInfiniteQuery<ContractorPayoutsPage>(
+		infiniteQueryOptions as never,
+	);
 
 	const tableData = useMemo(() => {
 		return data?.pages.flatMap((page) => page?.data ?? []) ?? [];
@@ -147,21 +150,6 @@ export function DataTable({
 		startFromColumn: 2,
 	});
 	const rows = table.getRowModel().rows;
-	const rowVirtualizer = useVirtualizer({
-		count: showRecords ? 0 : rows.length,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => tableConfig.rowHeight,
-		overscan: 10,
-	});
-
-	const recordsVirtualizer = useVirtualizer<HTMLDivElement, Element>({
-		count: rows.length,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => 160,
-		getItemKey: (index) => rows[index]?.id || index,
-		overscan: 6,
-		enabled: showRecords,
-	});
 
 	useEffect(() => {
 		setColumns(table.getAllLeafColumns());
@@ -171,14 +159,41 @@ export function DataTable({
 		bindShowColumnDividers(showColumnDividers, setShowColumnDividers);
 	}, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
 
-	useInfiniteScroll<HTMLDivElement>({
-		scrollRef: parentRef,
-		rowVirtualizer: showRecords ? recordsVirtualizer : rowVirtualizer,
-		rowCount: rows.length,
-		hasNextPage: singlePage ? false : hasNextPage,
+	useEffect(() => {
+		if (
+			inView &&
+			!singlePage &&
+			hasNextPage &&
+			!isFetchingNextPage &&
+			!isFetchNextPageError
+		) {
+			void fetchNextPage();
+		}
+	}, [
+		inView,
+		singlePage,
+		hasNextPage,
 		isFetchingNextPage,
+		isFetchNextPageError,
 		fetchNextPage,
-	});
+	]);
+
+	const loadMore =
+		!singlePage && hasNextPage ? (
+			<div ref={loadMoreRef} className="flex justify-center py-4">
+				<Button
+					variant="outline"
+					disabled={isFetchingNextPage}
+					onClick={() => void fetchNextPage()}
+				>
+					{isFetchingNextPage
+						? "Loading payouts…"
+						: isFetchNextPageError
+							? "Retry loading payouts"
+							: "Load more payouts"}
+				</Button>
+			</div>
+		) : null;
 
 	if (hasFilters && tableData.length === 0) {
 		return <NoResults />;
@@ -192,10 +207,8 @@ export function DataTable({
 		return (
 			<div className="relative min-w-0">
 				<PaymentTableViewToggle tableView={tableView} onChange={setTableView} />
-				<VirtualRecordList
+				<RecordList
 					rows={rows}
-					virtualizer={recordsVirtualizer}
-					scrollRef={parentRef}
 					renderRow={(row) => (
 						<PayoutRecord
 							id={row.original.id}
@@ -218,6 +231,7 @@ export function DataTable({
 						/>
 					)}
 				/>
+				{loadMore}
 				<AnimatePresence>
 					{Object.values(rowSelection).some(Boolean) ? (
 						<BottomBar data={tableData} />
@@ -227,7 +241,6 @@ export function DataTable({
 		);
 	}
 
-	const virtualItems = rowVirtualizer.getVirtualItems();
 	const showBottomBar = Object.keys(rowSelection).length > 0;
 
 	return (
@@ -241,11 +254,7 @@ export function DataTable({
 						parentRef.current = element;
 						tableScroll.containerRef.current = element;
 					}}
-					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
-					style={{
-						height:
-							"max(360px, calc(100vh - 420px + var(--header-offset, 0px)))",
-					}}
+					className="overflow-x-auto overflow-y-hidden border-b border-l border-r border-border"
 				>
 					<DndContext
 						id="contractor-payouts-table-dnd"
@@ -263,19 +272,16 @@ export function DataTable({
 							<TableBody
 								className="block border-l-0 border-r-0"
 								style={{
-									height: `${rowVirtualizer.getTotalSize()}px`,
+									height: `${rows.length * tableConfig.rowHeight}px`,
 									position: "relative",
 								}}
 							>
-								{virtualItems.map((virtualRow: VirtualItem) => {
-									const row = rows[virtualRow.index];
-									if (!row) return null;
-
+								{rows.map((row, index) => {
 									return (
 										<VirtualRow
 											key={row.id}
 											row={row}
-											virtualStart={virtualRow.start}
+											virtualStart={index * tableConfig.rowHeight}
 											rowHeight={tableConfig.rowHeight}
 											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
@@ -296,16 +302,10 @@ export function DataTable({
 							</TableBody>
 						</Table>
 					</DndContext>
-					<div
-						style={{
-							height: "var(--header-offset, 0px)",
-							flexShrink: 0,
-						}}
-						aria-hidden
-					/>
 				</div>
 			</div>
 
+			{loadMore}
 			<AnimatePresence>
 				{showBottomBar ? <BottomBar data={tableData} /> : null}
 			</AnimatePresence>

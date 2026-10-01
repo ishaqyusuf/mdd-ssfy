@@ -72,7 +72,7 @@ describe("Payment Dashboard table migration parity", () => {
 		expect(lazySource.includes("components/tables/skeleton")).toBe(false);
 	});
 
-	it("keeps contractor virtualization and page-scrolling recent payouts with table controls", () => {
+	it("keeps contractors and recent payouts in page flow with table controls", () => {
 		const contractorSource = readSource(
 			"components/tables-2/payment-dashboard-contractors/data-table.tsx",
 		);
@@ -80,7 +80,7 @@ describe("Payment Dashboard table migration parity", () => {
 			"components/tables-2/payment-dashboard-recent-payments/data-table.tsx",
 		);
 
-		expect(contractorSource.includes("useScrollHeader(parentRef)")).toBe(true);
+		expect(contractorSource.includes("useScrollHeader(parentRef)")).toBe(false);
 		expect(contractorSource.includes("useTableDnd(table)")).toBe(true);
 		expect(contractorSource.includes("<DndContext")).toBe(true);
 		expect(
@@ -93,11 +93,9 @@ describe("Payment Dashboard table migration parity", () => {
 			true,
 		);
 		expect(
-			contractorSource.includes("estimateSize: () => tableConfig.rowHeight"),
+			contractorSource.includes("virtualStart={index * tableConfig.rowHeight}"),
 		).toBe(true);
-		expect(
-			contractorSource.includes('height: "var(--header-offset, 0px)"'),
-		).toBe(true);
+		expect(contractorSource.includes("overflow-x-auto")).toBe(true);
 		expect(source.includes("useScrollHeader(parentRef)")).toBe(false);
 		expect(source.includes("VirtualRecordList")).toBe(false);
 		expect(source.includes("overscroll-contain")).toBe(false);

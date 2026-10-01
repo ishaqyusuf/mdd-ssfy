@@ -84,23 +84,24 @@ describe("Contractor Payouts Sales Orders table migration parity", () => {
 		expect(contentSource.includes("getPayoutJobDisplay")).toBe(false);
 	});
 
-	it("keeps table-owned scroll, selection, DnD, and payout bottom-bar behavior", () => {
+	it("keeps page scrolling, selection, DnD, and payout bottom-bar behavior", () => {
 		const source = readSource(
 			"components/tables-2/contractor-payouts/data-table.tsx",
 		);
 
-		expect(source.includes("useScrollHeader(parentRef)")).toBe(true);
+		expect(source.includes("useScrollHeader(parentRef)")).toBe(false);
 		expect(source.includes("useTableDnd(table)")).toBe(true);
 		expect(source.includes("<DndContext")).toBe(true);
 		expect(source.includes('id="contractor-payouts-table-dnd"')).toBe(true);
 		expect(source.includes("collisionDetection={closestCenter}")).toBe(true);
 		expect(source.includes("onRowSelectionChange: setRowSelection")).toBe(true);
 		expect(source.includes("<BottomBar data={tableData} />")).toBe(true);
-		expect(source.includes('height: "var(--header-offset, 0px)"')).toBe(true);
+		expect(source.includes("useInView")).toBe(true);
+		expect(source.includes("VirtualRecordList")).toBe(false);
 		expect(source.includes("rowHeight={tableConfig.rowHeight}")).toBe(true);
-		expect(source.includes("estimateSize: () => tableConfig.rowHeight")).toBe(
-			true,
-		);
+		expect(
+			source.includes("virtualStart={index * tableConfig.rowHeight}"),
+		).toBe(true);
 	});
 
 	it("keeps compact tailored columns, header sorting, and table settings registration", () => {
@@ -143,7 +144,7 @@ describe("Contractor Payouts Sales Orders table migration parity", () => {
 		const configSource = readSource("utils/table-configs.ts");
 
 		expect(tableSource.includes("VirtualRow")).toBe(true);
-		expect(tableSource.includes("useScrollHeader(parentRef)")).toBe(true);
+		expect(tableSource.includes("useScrollHeader(parentRef)")).toBe(false);
 		expect(tableSource.includes("useTableDnd(table)")).toBe(true);
 		expect(tableSource.includes("<DndContext")).toBe(true);
 		expect(
@@ -160,7 +161,7 @@ describe("Contractor Payouts Sales Orders table migration parity", () => {
 			true,
 		);
 		expect(
-			tableSource.includes("estimateSize: () => tableConfig.rowHeight"),
+			tableSource.includes("virtualStart={index * tableConfig.rowHeight}"),
 		).toBe(true);
 		expect(tableSource.includes("startFromColumn: 1")).toBe(true);
 		expect(headerSource.includes("SortableContext")).toBe(true);
