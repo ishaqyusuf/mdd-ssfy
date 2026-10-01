@@ -108,7 +108,6 @@ function dependencies(input?: {
 		};
 	const values = {
 		getPilotAccess: dbAware({
-			featureEnabled: true,
 			pilotEnabled: true,
 			eligible: true,
 			cohortMember: true,

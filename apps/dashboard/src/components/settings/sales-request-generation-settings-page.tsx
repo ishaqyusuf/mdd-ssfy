@@ -247,7 +247,6 @@ export function SalesRequestGenerationSettingsPage() {
 			<SalesRequestPilotSettingsSection
 				pilot={persistedPilot}
 				pilotSource={settingsQuery.data.requestGeneration.pilotSource}
-				featureEnabled={settingsQuery.data.requestGeneration.featureEnabled}
 				draft={pilotDraft}
 				isSaving={updatePilotSettings.isPending}
 				onDraftChange={setPilotDraft}

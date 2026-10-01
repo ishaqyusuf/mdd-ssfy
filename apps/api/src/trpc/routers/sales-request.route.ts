@@ -213,7 +213,6 @@ async function readAISettingsSurface(
 		),
 		requestGeneration: {
 			configurationRevision: requestGeneration,
-			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
 			pilot: pilot.settings,
 			pilotSource: pilot.source,
 			pilotReviewPolicy: pilotReviewPolicy.policy,
@@ -259,7 +258,6 @@ async function readAISettingsSurfaceWithSelection(
 		),
 		requestGeneration: {
 			configurationRevision: requestGeneration,
-			featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
 			pilot: pilot.settings,
 			pilotSource: pilot.source,
 			pilotReviewPolicy: pilotReviewPolicy.policy,
@@ -749,11 +747,6 @@ export const salesRequestRouter = createTRPCRouter({
 				if (!access.enabled) {
 					throw new TRPCError({ code: "FORBIDDEN", message: "Assistant access is required." });
 				}
-			} else if (process.env.SALES_REQUEST_AI_ENABLED !== "true") {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Sales request generation is not enabled.",
-				});
 			}
 			await requireSalesRequestPilotAccess({
 				db: ctx.db,
@@ -866,7 +859,6 @@ export const salesRequestRouter = createTRPCRouter({
 						const reviewAuthority =
 							await resolveSalesRequestPilotReviewAuthority({
 								db: tx,
-								featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
 								reviewerUserId: ctx.userId,
 							});
 						const summary = await getSalesRequestGenerationPilotSummary(
@@ -973,7 +965,6 @@ export const salesRequestRouter = createTRPCRouter({
 					const reviewAuthority = await resolveSalesRequestPilotReviewAuthority(
 						{
 							db: tx,
-							featureEnabled: process.env.SALES_REQUEST_AI_ENABLED === "true",
 						},
 					);
 					const summary = await getSalesRequestGenerationPilotSummary(

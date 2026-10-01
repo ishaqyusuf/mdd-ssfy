@@ -44,12 +44,6 @@ export async function authorizeSalesRequestPreview(input: {
 	userId: number;
 	type: SaleType;
 }) {
-	if (process.env.SALES_REQUEST_AI_ENABLED !== "true") {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: "Sales request generation is not enabled.",
-		});
-	}
 	await requireSalesRequestPilotAccess({
 		db: input.db,
 		userId: input.userId,

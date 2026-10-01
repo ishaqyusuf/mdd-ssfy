@@ -373,7 +373,6 @@ test("AI settings query includes only the structural revision and rollout contro
 	const result = await caller.getAISettings();
 
 	expect(result.requestGeneration).toMatchObject({
-		featureEnabled: false,
 		pilotSource: "default",
 		mailboxSource: "default",
 	});
@@ -385,35 +384,21 @@ test("AI settings query includes only the structural revision and rollout contro
 	);
 });
 
-test("preview validation rejects a disabled feature before reading permissions or configuration", async () => {
-	let databaseRead = false;
+test("preview validation rejects an unconfigured pilot before reading the catalog", async () => {
+	let snapshotRead = false;
+	const fixture = requestContext();
 	const caller = salesRequestRouter.createCaller({
-		userId: 19,
-		db: {
-			users: {
-				findFirst: async () => {
-					databaseRead = true;
-					return superAdmin();
-				},
-			},
-		},
+		...fixture.ctx,
+		db: { ...fixture.ctx.db, $transaction: async () => {
+			snapshotRead = true;
+			throw new Error("An excluded pilot must not read the catalog");
+		} },
 	} as unknown as SalesRequestCallerContext);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "false";
-
-	await expect(
-		caller.validatePreview({
-			type: "order",
-			configurationScope: "sales-settings:7",
-			configurationRevision: "a".repeat(64),
-			provider: "openai",
-			model: "gpt-5-mini",
-		}),
-	).rejects.toBeDefined();
-	if (previousFlag === undefined)
-		process.env.SALES_REQUEST_AI_ENABLED = undefined;
-	else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	expect(databaseRead).toBe(false);
+	await expect(caller.validatePreview({
+		type: "order", configurationScope: "sales-settings:7",
+		configurationRevision: "a".repeat(64), provider: "openai", model: "gpt-5-mini",
+	})).rejects.toBeDefined();
+	expect(snapshotRead).toBe(false);
 });
 
 test("preview validation accepts only the current server-derived identity", async () => {
@@ -439,8 +424,6 @@ test("preview validation accepts only the current server-derived identity", asyn
 	};
 	const fixture = requestContext(meta);
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
 	const transaction = fixture.transaction as Parameters<
 		typeof getSalesRequestConfigurationContext
 	>[0];
@@ -458,24 +441,18 @@ test("preview validation accepts only the current server-derived identity", asyn
 	};
 	await setCatalogPublication(fixture, snapshot.revision);
 
-	try {
-		await expect(caller.validatePreview(current)).resolves.toEqual(current);
-		await setCatalogPublication(fixture, snapshot.revision, "stale");
-		await expect(caller.validatePreview(current)).rejects.toMatchObject({
-			code: "CONFLICT",
-		});
-		await setCatalogPublication(fixture, snapshot.revision);
-		await expect(
-			caller.validatePreview({
-				...current,
-				configurationRevision: "0".repeat(64),
-			}),
-		).rejects.toMatchObject({ code: "CONFLICT" });
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	await expect(caller.validatePreview(current)).resolves.toEqual(current);
+	await setCatalogPublication(fixture, snapshot.revision, "stale");
+	await expect(caller.validatePreview(current)).rejects.toMatchObject({
+		code: "CONFLICT",
+	});
+	await setCatalogPublication(fixture, snapshot.revision);
+	await expect(
+		caller.validatePreview({
+			...current,
+			configurationRevision: "0".repeat(64),
+		}),
+	).rejects.toMatchObject({ code: "CONFLICT" });
 });
 
 test("manual preview and Apply work without manufacturing a provider benchmark approval", async () => {
@@ -499,8 +476,6 @@ test("manual preview and Apply work without manufacturing a provider benchmark a
 	};
 	const fixture = requestContext(meta);
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
 	const snapshot = await getSalesRequestConfigurationContext(
 		fixture.transaction as Parameters<
 			typeof getSalesRequestConfigurationContext
@@ -509,34 +484,28 @@ test("manual preview and Apply work without manufacturing a provider benchmark a
 	);
 	await setCatalogPublication(fixture, snapshot.revision);
 
-	try {
-		const deps = createSalesRequestPreviewDependencies({
-			db: fixture.ctx.db,
-			userId: 19,
+	const deps = createSalesRequestPreviewDependencies({
+		db: fixture.ctx.db,
+		userId: 19,
+		type: "order",
+	});
+	await expect(deps.readSnapshot()).resolves.toMatchObject({
+		providerBenchmarkApprovalRevision: 0,
+	});
+	await setCatalogPublication(fixture, snapshot.revision, "stale");
+	await expect(deps.readSnapshot()).rejects.toMatchObject({
+		publicMessage: "Regenerate the AI component configuration in Sales Settings before creating a request draft.",
+	});
+	await setCatalogPublication(fixture, snapshot.revision);
+	await expect(
+		caller.validatePreview({
 			type: "order",
-		});
-		await expect(deps.readSnapshot()).resolves.toMatchObject({
-			providerBenchmarkApprovalRevision: 0,
-		});
-		await setCatalogPublication(fixture, snapshot.revision, "stale");
-		await expect(deps.readSnapshot()).rejects.toMatchObject({
-			publicMessage: "Regenerate the AI component configuration in Sales Settings before creating a request draft.",
-		});
-		await setCatalogPublication(fixture, snapshot.revision);
-		await expect(
-			caller.validatePreview({
-				type: "order",
-				configurationScope: snapshot.scope,
-				configurationRevision: snapshot.revision,
-				provider: "openai",
-				model: "gpt-5-mini",
-			}),
-		).resolves.toMatchObject({ configurationRevision: snapshot.revision });
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+			configurationScope: snapshot.scope,
+			configurationRevision: snapshot.revision,
+			provider: "openai",
+			model: "gpt-5-mini",
+		}),
+	).resolves.toMatchObject({ configurationRevision: snapshot.revision });
 });
 
 test("text pilot rejects image payloads before database or provider work", async () => {
@@ -841,26 +810,17 @@ test("pilot access exposes only safe eligibility state for a configured create f
 		},
 	});
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
 
-	try {
-		await expect(
-			caller.getPilotAccess({ type: "order" }),
-		).resolves.toMatchObject({
-			featureEnabled: true,
-			pilotEnabled: true,
-			eligible: true,
-			cohortMember: true,
-			reviewer: false,
-			settingsRevision: 2,
-			reason: "eligible",
-		});
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	await expect(
+		caller.getPilotAccess({ type: "order" }),
+	).resolves.toMatchObject({
+		pilotEnabled: true,
+		eligible: true,
+		cohortMember: true,
+		reviewer: false,
+		settingsRevision: 2,
+		reason: "eligible",
+	});
 });
 
 test("pilot access hides generation from enrolled users without native sales authority", async () => {
@@ -879,22 +839,14 @@ test("pilot access hides generation from enrolled users without native sales aut
 		{ roles: [] },
 	);
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
 
-	try {
-		await expect(
-			caller.getPilotAccess({ type: "quote" }),
-		).resolves.toMatchObject({
-			eligible: false,
-			cohortMember: true,
-			reason: "permission",
-		});
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	await expect(
+		caller.getPilotAccess({ type: "quote" }),
+	).resolves.toMatchObject({
+		eligible: false,
+		cohortMember: true,
+		reason: "permission",
+	});
 });
 
 test("pilot settings mutation is Super Admin-only and preserves existing sales metadata", async () => {
@@ -1027,22 +979,14 @@ test("pilot rollback can disable even when prior named users are no longer activ
 test("preview refuses an unconfigured pilot before any provider work", async () => {
 	const fixture = requestContext();
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
 
-	try {
-		await expect(
-			caller.generatePreview({ type: "quote", text: "request text" }),
-		).rejects.toMatchObject({
-			code: "CONFLICT",
-			message:
-				"This record changed before your request completed. Refresh and try again.",
-		});
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	await expect(
+		caller.generatePreview({ type: "quote", text: "request text" }),
+	).rejects.toMatchObject({
+		code: "CONFLICT",
+		message:
+			"This record changed before your request completed. Refresh and try again.",
+	});
 });
 
 test("generation outcome writes are actor-bound and expose no source payload", async () => {
@@ -1172,27 +1116,19 @@ test("pilot review rejects a requested pass when server thresholds fail", async 
 		}),
 	];
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
-	try {
-		await expect(
-			caller.recordPilotReviewDecision({
-				periodStart,
-				decision: "pass",
-				signoff: {
-					unsafeApplyCount: 0,
-					ambiguousUnsupportedFactCount: 0,
-					ambiguousUnsupportedVisibleCount: 0,
-					saveReopenCheckedCount: 1,
-					saveReopenSucceededCount: 1,
-				},
-			}),
-		).rejects.toMatchObject({ code: "CONFLICT" });
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	await expect(
+		caller.recordPilotReviewDecision({
+			periodStart,
+			decision: "pass",
+			signoff: {
+				unsafeApplyCount: 0,
+				ambiguousUnsupportedFactCount: 0,
+				ambiguousUnsupportedVisibleCount: 0,
+				saveReopenCheckedCount: 1,
+				saveReopenSucceededCount: 1,
+			},
+		}),
+	).rejects.toMatchObject({ code: "CONFLICT" });
 	expect(fixture.getPilotReviewRows()).toHaveLength(0);
 });
 
@@ -1242,29 +1178,21 @@ test("named pilot reviewers write one immutable server-derived review per period
 			saveReopenSucceededCount: 1,
 		},
 	};
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
-	try {
-		await expect(
-			caller.recordPilotReviewDecision(input),
-		).resolves.toMatchObject({
-			decision: "pass",
-			thresholdEvaluation: { status: "pass" },
-			advancement: {
-				eligible: false,
-				blockers: ["exactly-two-periods-required"],
-			},
-		});
-		await expect(caller.recordPilotReviewDecision(input)).rejects.toMatchObject(
-			{
-				code: "CONFLICT",
-			},
-		);
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	await expect(
+		caller.recordPilotReviewDecision(input),
+	).resolves.toMatchObject({
+		decision: "pass",
+		thresholdEvaluation: { status: "pass" },
+		advancement: {
+			eligible: false,
+			blockers: ["exactly-two-periods-required"],
+		},
+	});
+	await expect(caller.recordPilotReviewDecision(input)).rejects.toMatchObject(
+		{
+			code: "CONFLICT",
+		},
+	);
 	expect(fixture.getPilotReviewRows()).toHaveLength(1);
 	const storedReview = fixture.getPilotReviewRows()[0];
 	expect((storedReview?.reviewedAt as Date).getUTCMilliseconds()).toBe(0);
@@ -1300,27 +1228,19 @@ test("pilot review rejects an active cohort member who is not a named reviewer",
 		roles: [{ role: { name: "Sales", RoleHasPermissions: [] } }],
 	});
 	const caller = salesRequestRouter.createCaller(fixture.ctx);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
-	try {
-		await expect(
-			caller.recordPilotReviewDecision({
-				periodStart: "2026-09-01",
-				decision: "fail",
-				signoff: {
-					unsafeApplyCount: 0,
-					ambiguousUnsupportedFactCount: 0,
-					ambiguousUnsupportedVisibleCount: 0,
-					saveReopenCheckedCount: 0,
-					saveReopenSucceededCount: 0,
-				},
-			}),
-		).rejects.toMatchObject({ code: "FORBIDDEN" });
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	await expect(
+		caller.recordPilotReviewDecision({
+			periodStart: "2026-09-01",
+			decision: "fail",
+			signoff: {
+				unsafeApplyCount: 0,
+				ambiguousUnsupportedFactCount: 0,
+				ambiguousUnsupportedVisibleCount: 0,
+				saveReopenCheckedCount: 0,
+				saveReopenSucceededCount: 0,
+			},
+		}),
+	).rejects.toMatchObject({ code: "FORBIDDEN" });
 });
 
 test("two adjacent server-derived passing reviews unlock advancement", async () => {
@@ -1381,30 +1301,22 @@ test("two adjacent server-derived passing reviews unlock advancement", async () 
 		saveReopenCheckedCount: 1,
 		saveReopenSucceededCount: 1,
 	};
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
-	try {
-		await expect(
-			caller.recordPilotReviewDecision({
-				periodStart: firstStart,
-				decision: "pass",
-				signoff,
-			}),
-		).resolves.toMatchObject({ advancement: { eligible: false } });
-		await expect(
-			caller.recordPilotReviewDecision({
-				periodStart: secondStart,
-				decision: "pass",
-				signoff,
-			}),
-		).resolves.toMatchObject({
-			advancement: { eligible: true, blockers: [] },
-		});
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	await expect(
+		caller.recordPilotReviewDecision({
+			periodStart: firstStart,
+			decision: "pass",
+			signoff,
+		}),
+	).resolves.toMatchObject({ advancement: { eligible: false } });
+	await expect(
+		caller.recordPilotReviewDecision({
+			periodStart: secondStart,
+			decision: "pass",
+			signoff,
+		}),
+	).resolves.toMatchObject({
+		advancement: { eligible: true, blockers: [] },
+	});
 });
 
 test("pilot summary remains Super Admin-only and aggregate-only", async () => {
@@ -1456,16 +1368,7 @@ test("pilot summary remains Super Admin-only and aggregate-only", async () => {
 	const fixture = requestContext(meta);
 	await installCurrentBenchmarkApproval(fixture, meta);
 	const admin = salesRequestRouter.createCaller(fixture.ctx);
-	const previousFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "true";
-	let result: Awaited<ReturnType<typeof admin.pilotSummary>>;
-	try {
-		result = await admin.pilotSummary({ periodStart: closedPeriodStart });
-	} finally {
-		if (previousFlag === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
-		else process.env.SALES_REQUEST_AI_ENABLED = previousFlag;
-	}
+	const result = await admin.pilotSummary({ periodStart: closedPeriodStart });
 	expect(result).toMatchObject({
 		coverage: { complete: true, truncated: false, returnedRowCount: 0 },
 		eligibleForAdvancement: false,

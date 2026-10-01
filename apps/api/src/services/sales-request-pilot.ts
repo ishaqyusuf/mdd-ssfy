@@ -9,7 +9,6 @@ export type SalesRequestPilotSurface = "order" | "quote";
 
 export type SalesRequestPilotAccessReason =
 	| "eligible"
-	| "feature-disabled"
 	| "pilot-disabled"
 	| "pilot-invalid"
 	| "actor-inactive"
@@ -19,7 +18,6 @@ export type SalesRequestPilotAccessReason =
 
 export type SalesRequestPilotAccess = {
 	surface: SalesRequestPilotSurface | null;
-	featureEnabled: boolean;
 	pilotEnabled: boolean;
 	eligible: boolean;
 	cohortMember: boolean;
@@ -83,7 +81,6 @@ export async function getSalesRequestPilotAccess(input: {
 	surface?: SalesRequestPilotSurface | null;
 }): Promise<SalesRequestPilotAccess> {
 	const surface = isPilotSurface(input.surface) ? input.surface : null;
-	const featureEnabled = process.env.SALES_REQUEST_AI_ENABLED === "true";
 	const settings = await readActivePilotSettings(input.db);
 	const pilotSettings =
 		settings?.settings ?? DEFAULT_SALES_REQUEST_PILOT_SETTINGS;
@@ -111,7 +108,6 @@ export async function getSalesRequestPilotAccess(input: {
 
 	let reason: SalesRequestPilotAccessReason;
 	if (!surface) reason = "surface-not-supported";
-	else if (!featureEnabled) reason = "feature-disabled";
 	else if (settings?.source === "invalid") reason = "pilot-invalid";
 	else if (!pilotEnabled) reason = "pilot-disabled";
 	else if (!actorActive) reason = "actor-inactive";
@@ -120,7 +116,6 @@ export async function getSalesRequestPilotAccess(input: {
 
 	return {
 		surface,
-		featureEnabled,
 		pilotEnabled,
 		eligible: reason === "eligible",
 		cohortMember,
@@ -141,13 +136,6 @@ export async function requireSalesRequestPilotAccess(input: {
 	surface?: SalesRequestPilotSurface | null;
 }) {
 	if (!input.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-	if (process.env.SALES_REQUEST_AI_ENABLED !== "true") {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: "Sales request generation is currently disabled.",
-		});
-	}
-
 	const access = await getSalesRequestPilotAccess(input);
 	if (access.reason === "surface-not-supported") {
 		throw new TRPCError({

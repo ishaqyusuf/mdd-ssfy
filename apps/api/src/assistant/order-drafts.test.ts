@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { SalesRequestProviderExecutionError } from "../services/sales-request-provider";
 import { getTrpcPublicError } from "../trpc/error-contract";
 import {
@@ -8,30 +8,36 @@ import {
 	executeAssistantSalesRequestDraft,
 } from "./order-drafts";
 
-let previousFeatureFlag: string | undefined;
-
-beforeEach(() => {
-	previousFeatureFlag = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = "false";
-});
-
-afterEach(() => {
-	process.env.SALES_REQUEST_AI_ENABLED = previousFeatureFlag;
-});
+function disabledPilotDatabase() {
+	return {
+		settings: {
+			findMany: async () => [{ id: 7 }],
+			findFirst: async () => ({ id: 7, meta: {} }),
+		},
+		users: { findFirst: async () => ({ id: 42 }) },
+	};
+}
 
 describe("Assistant Sales Request orchestration", () => {
 	test("a disabled Sales Request reports its setup requirement instead of a record conflict", async () => {
 		try {
 			await createAssistantSalesRequestDraft(
-				{ userId: 42, scopeType: "organization", scopeId: "7", grants: { editOrders: true } },
+				{
+					userId: 42,
+					scopeType: "organization",
+					scopeId: "7",
+					grants: { editOrders: true },
+				},
 				{ type: "order", text: "Two configured doors." },
 				new AbortController().signal,
-				{} as never,
+				disabledPilotDatabase() as never,
 			);
 			throw new Error("Disabled generation must be refused");
 		} catch (error) {
 			const publicError = getTrpcPublicError(error);
-			expect(publicError.message).toContain("Sales request generation is currently disabled");
+			expect(publicError.message).toContain(
+				"Sales request generation is not enabled for the internal pilot",
+			);
 			expect(publicError.code).toBe("VALIDATION_FAILED");
 		}
 	});
@@ -48,13 +54,14 @@ describe("Assistant Sales Request orchestration", () => {
 				{ type: "order", text: "Two configured doors for delivery." },
 				new AbortController().signal,
 				{
+					...disabledPilotDatabase(),
 					$transaction: async () => {
 						transactionCalls += 1;
 						throw new Error("snapshot should not be read");
 					},
 				} as never,
 			),
-		).rejects.toThrow("currently disabled");
+		).rejects.toThrow("not enabled for the internal pilot");
 		expect(transactionCalls).toBe(0);
 	});
 

@@ -64,12 +64,10 @@ function sameIds(left: readonly number[], right: readonly number[]) {
 function getPilotStatus({
 	pilot,
 	source,
-	featureEnabled,
 	staleUserIds,
 }: {
 	pilot: SalesRequestPilotDraft;
 	source: SalesRequestPilotSettingsSource;
-	featureEnabled: boolean;
 	staleUserIds: number[];
 }): PilotStatus {
 	if (source === "invalid") {
@@ -78,14 +76,6 @@ function getPilotStatus({
 			variant: "destructive",
 			description:
 				"The stored pilot record is invalid, so request generation remains unavailable until it is replaced.",
-		};
-	}
-	if (!featureEnabled) {
-		return {
-			label: "Disabled by server kill switch",
-			variant: "outline",
-			description:
-				"The server-wide feature flag is off. Saving this pilot does not enable provider calls by itself.",
 		};
 	}
 	if (!pilot.enabled) {
@@ -233,7 +223,6 @@ function PilotUserSelection({
 export function SalesRequestPilotSettingsSection({
 	pilot,
 	pilotSource,
-	featureEnabled,
 	draft,
 	isSaving,
 	onDraftChange,
@@ -242,7 +231,6 @@ export function SalesRequestPilotSettingsSection({
 }: {
 	pilot: SalesRequestPilotSettings;
 	pilotSource: SalesRequestPilotSettingsSource;
-	featureEnabled: boolean;
 	draft: SalesRequestPilotDraft | null;
 	isSaving: boolean;
 	onDraftChange: (draft: SalesRequestPilotDraft) => void;
@@ -266,7 +254,6 @@ export function SalesRequestPilotSettingsSection({
 	const status = getPilotStatus({
 		pilot: selected,
 		source: pilotSource,
-		featureEnabled,
 		staleUserIds,
 	});
 	const missingAudience =

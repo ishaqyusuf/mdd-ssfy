@@ -109,16 +109,13 @@ function benchmarkIsCurrent(input: {
 
 export async function resolveSalesRequestPilotReviewAuthority(input: {
 	db: ReviewAuthorityDatabase;
-	featureEnabled: boolean;
 	reviewerUserId: number;
 }): Promise<CurrentSalesRequestPilotReviewAuthorityResolution>;
 export async function resolveSalesRequestPilotReviewAuthority(input: {
 	db: ReviewAuthorityDatabase;
-	featureEnabled: boolean;
 }): Promise<SalesRequestPilotReviewAuthorityResolution>;
 export async function resolveSalesRequestPilotReviewAuthority(input: {
 	db: ReviewAuthorityDatabase;
-	featureEnabled: boolean;
 	reviewerUserId?: number;
 }): Promise<SalesRequestPilotReviewAuthorityResolution> {
 	const rows = await input.db.settings.findMany({
@@ -135,7 +132,6 @@ export async function resolveSalesRequestPilotReviewAuthority(input: {
 		]);
 
 	const pilotCurrent =
-		input.featureEnabled &&
 		pilot.source === "persisted" &&
 		pilot.settings.enabled &&
 		pilot.settings.revision > 0;
@@ -187,7 +183,7 @@ export async function resolveSalesRequestPilotReviewAuthority(input: {
 	}
 
 	const authorityBlockers: SalesRequestPilotAuthorityBlocker[] = [];
-	if (!input.featureEnabled || !pilot.settings.enabled) {
+	if (!pilot.settings.enabled) {
 		authorityBlockers.push("pilot-disabled");
 	}
 	if (pilot.source !== "persisted" || pilot.settings.revision <= 0) {

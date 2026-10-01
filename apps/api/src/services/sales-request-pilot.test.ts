@@ -45,12 +45,12 @@ function pilotMeta(overrides?: Record<string, unknown>) {
 	};
 }
 
-function withFlag(value: string | undefined) {
+function withoutLegacyFlag() {
 	const previous = process.env.SALES_REQUEST_AI_ENABLED;
-	process.env.SALES_REQUEST_AI_ENABLED = value;
+	Reflect.deleteProperty(process.env, "SALES_REQUEST_AI_ENABLED");
 	return () => {
 		if (previous === undefined)
-			process.env.SALES_REQUEST_AI_ENABLED = undefined;
+			Reflect.deleteProperty(process.env, "SALES_REQUEST_AI_ENABLED");
 		else process.env.SALES_REQUEST_AI_ENABLED = previous;
 	};
 }
@@ -69,164 +69,126 @@ describe("sales request pilot access", () => {
 		});
 	});
 
-	it("fails closed when the global rollback flag is off", async () => {
-		const restore = withFlag("false");
+	it("admits a configured pilot without the retired environment switch", async () => {
+		const restore = withoutLegacyFlag();
 		try {
-			const access = await getSalesRequestPilotAccess({
-				db: createDatabase({ meta: pilotMeta() }),
-				userId: 19,
-				surface: "order",
-			});
-			expect(access).toMatchObject({
-				featureEnabled: false,
-				pilotEnabled: true,
-				eligible: false,
-				reason: "feature-disabled",
-			});
 			await expect(
 				requireSalesRequestPilotAccess({
 					db: createDatabase({ meta: pilotMeta() }),
 					userId: 19,
 					surface: "order",
 				}),
-			).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+			).resolves.toMatchObject({
+				eligible: true,
+				cohortMember: true,
+				reason: "eligible",
+			});
 		} finally {
 			restore();
 		}
 	});
 
 	it("keeps an absent pilot configuration disabled", async () => {
-		const restore = withFlag("true");
-		try {
-			expect(
-				await getSalesRequestPilotAccess({
-					db: createDatabase({}),
-					userId: 19,
-					surface: "quote",
-				}),
-			).toMatchObject({
-				featureEnabled: true,
-				pilotEnabled: false,
-				eligible: false,
-				reason: "pilot-disabled",
-			});
-		} finally {
-			restore();
-		}
+		expect(
+			await getSalesRequestPilotAccess({
+				db: createDatabase({}),
+				userId: 19,
+				surface: "quote",
+			}),
+		).toMatchObject({
+			pilotEnabled: false,
+			eligible: false,
+			reason: "pilot-disabled",
+		});
 	});
 
 	it("admits only named cohort/reviewer users on both create surfaces", async () => {
-		const restore = withFlag("true");
-		try {
-			for (const surface of ["order", "quote"] as const) {
-				await expect(
-					requireSalesRequestPilotAccess({
-						db: createDatabase({ meta: pilotMeta() }),
-						userId: 19,
-						surface,
-					}),
-				).resolves.toMatchObject({
-					eligible: true,
-					cohortMember: true,
-					reviewer: false,
-					reason: "eligible",
-				});
-				await expect(
-					requireSalesRequestPilotAccess({
-						db: createDatabase({ meta: pilotMeta() }),
-						userId: 42,
-						surface,
-					}),
-				).resolves.toMatchObject({
-					eligible: true,
-					cohortMember: false,
-					reviewer: true,
-					reason: "eligible",
-				});
-			}
-		} finally {
-			restore();
+		for (const surface of ["order", "quote"] as const) {
+			await expect(
+				requireSalesRequestPilotAccess({
+					db: createDatabase({ meta: pilotMeta() }),
+					userId: 19,
+					surface,
+				}),
+			).resolves.toMatchObject({
+				eligible: true,
+				cohortMember: true,
+				reviewer: false,
+				reason: "eligible",
+			});
+			await expect(
+				requireSalesRequestPilotAccess({
+					db: createDatabase({ meta: pilotMeta() }),
+					userId: 42,
+					surface,
+				}),
+			).resolves.toMatchObject({
+				eligible: true,
+				cohortMember: false,
+				reviewer: true,
+				reason: "eligible",
+			});
 		}
 	});
 
 	it("rejects an active user outside the named lists", async () => {
-		const restore = withFlag("true");
-		try {
-			await expect(
-				requireSalesRequestPilotAccess({
-					db: createDatabase({ meta: pilotMeta() }),
-					userId: 7,
-					surface: "order",
-				}),
-			).rejects.toMatchObject({
-				code: "FORBIDDEN",
-				message:
-					"Sales request generation is limited to the configured internal pilot cohort.",
-			});
-		} finally {
-			restore();
-		}
+		await expect(
+			requireSalesRequestPilotAccess({
+				db: createDatabase({ meta: pilotMeta() }),
+				userId: 7,
+				surface: "order",
+			}),
+		).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message:
+				"Sales request generation is limited to the configured internal pilot cohort.",
+		});
 	});
 
 	it("does not admit missing or inactive actors", async () => {
-		const restore = withFlag("true");
-		try {
-			await expect(
-				requireSalesRequestPilotAccess({
-					db: createDatabase({ meta: pilotMeta() }),
-					surface: "order",
-				}),
-			).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-			await expect(
-				requireSalesRequestPilotAccess({
-					db: createDatabase({ meta: pilotMeta(), activeUserIds: [] }),
-					userId: 19,
-					surface: "order",
-				}),
-			).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-		} finally {
-			restore();
-		}
+		await expect(
+			requireSalesRequestPilotAccess({
+				db: createDatabase({ meta: pilotMeta() }),
+				surface: "order",
+			}),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		await expect(
+			requireSalesRequestPilotAccess({
+				db: createDatabase({ meta: pilotMeta(), activeUserIds: [] }),
+				userId: 19,
+				surface: "order",
+			}),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 	});
 
 	it("rejects an absent creation surface before eligibility", async () => {
-		const restore = withFlag("true");
-		try {
-			const access = await getSalesRequestPilotAccess({
+		const access = await getSalesRequestPilotAccess({
+			db: createDatabase({ meta: pilotMeta() }),
+			userId: 19,
+			surface: null,
+		});
+		expect(access).toMatchObject({
+			eligible: false,
+			reason: "surface-not-supported",
+		});
+		await expect(
+			requireSalesRequestPilotAccess({
 				db: createDatabase({ meta: pilotMeta() }),
 				userId: 19,
 				surface: null,
-			});
-			expect(access).toMatchObject({
-				eligible: false,
-				reason: "surface-not-supported",
-			});
-			await expect(
-				requireSalesRequestPilotAccess({
-					db: createDatabase({ meta: pilotMeta() }),
-					userId: 19,
-					surface: null,
-				}),
-			).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
-		} finally {
-			restore();
-		}
+			}),
+		).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
 	});
 
 	it("rejects malformed enabled configuration", async () => {
-		const restore = withFlag("true");
-		try {
-			await expect(
-				requireSalesRequestPilotAccess({
-					db: createDatabase({
-						meta: pilotMeta({ reviewerUserIds: [] }),
-					}),
-					userId: 19,
-					surface: "quote",
+		await expect(
+			requireSalesRequestPilotAccess({
+				db: createDatabase({
+					meta: pilotMeta({ reviewerUserIds: [] }),
 				}),
-			).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
-		} finally {
-			restore();
-		}
+				userId: 19,
+				surface: "quote",
+			}),
+		).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
 	});
 });
