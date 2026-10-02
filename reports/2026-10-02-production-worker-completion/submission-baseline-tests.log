@@ -1,0 +1,58 @@
+bun test v1.3.0 (b0a6feca)
+
+apps/dashboard/src/actions/production-submission-auth.test.ts:
+(pass) production submission authentication boundary > replaces client author identity before dispatching the background task [0.94ms]
+(pass) production submission authentication boundary > notifies the order sales rep directly when material review is pending [0.21ms]
+(pass) production submission authentication boundary > derives the on-behalf sales-rep exception from order ownership [0.05ms]
+
+apps/dashboard/src/actions/production-submission-authority.test.ts:
+(pass) production submission authority > requires editProduction for assignment mutations
+(pass) production submission authority > allows an assigned production worker without submit-for-others authority
+(pass) production submission authority > preserves elevated and production edit authority for submit-for-others
+(pass) production submission authority > rejects an authenticated actor without production capability
+(pass) production submission authority > allows the order sales rep to submit on behalf without global production edit access
+
+packages/sales/src/production-submission-review/policy.test.ts:
+(pass) production submission material review policy > finalizes immediately only when every scoped material is ready
+(pass) production submission material review policy > routes unresolved inbound to review without blocking submission
+(pass) production submission material review policy > routes missing or unreadable material evidence to review
+(pass) production submission material review policy > pending review consumes reported quantity but not finalized quantity [0.24ms]
+(pass) production submission material review policy > rejected, cancelled, and deleted submissions do not consume quantity [0.04ms]
+(pass) production submission material review policy > a finalized submission cannot become deliverable for another sales order [0.04ms]
+
+packages/sales/src/production-submission-review/service.test.ts:
+(pass) production submission material review service > evaluates exact submitted items and exposes eligibility conflict provenance [2.60ms]
+(pass) production submission material review service > repairs received inbound application before evaluating submission materials [0.56ms]
+(pass) production submission material review service > auto-approves ready submissions while retaining an idempotent batch [0.21ms]
+(pass) production submission material review service > persists one pending review with bounded scoped evidence [0.20ms]
+(pass) production submission material review service > approves unresolved evidence when an authorized operator submits on behalf [0.17ms]
+(pass) production submission material review service > routes awaiting inbound worker evidence to durable review [0.13ms]
+(pass) production submission material review service > routes awaiting allocation worker evidence to durable review [0.07ms]
+(pass) production submission material review service > routes configured unavailable worker evidence to durable review [0.03ms]
+(pass) production submission material review service > routes temporarily unavailable worker evidence to durable review [0.04ms]
+(pass) production submission material review service > holds a mixed scope when any scoped item has no material configuration [0.34ms]
+(pass) createPendingMaterialReview > returns the existing batch for an idempotent retry
+(pass) createPendingMaterialReview > rejects reuse of an idempotency key for another assignment scope [0.42ms]
+(pass) refreshProductionSubmissionAssignmentScope > records the post-submission assignment revision used for stale checks
+
+packages/sales/src/production-submission-review/submission.test.ts:
+(pass) submitProductionAssignmentInTransaction > treats only an authorized submission for another assignee as approval [0.05ms]
+(pass) submitProductionAssignmentInTransaction > does not let a worker submit an unassigned job [0.48ms]
+(pass) submitProductionAssignmentInTransaction > allows an authorized supervisor to submit for the assigned worker
+(pass) submitProductionAssignmentInTransaction > does not trust a quantity larger than the remaining assignment [0.14ms]
+(pass) submitProductionAssignmentInTransaction > locks the assignment before reading remaining quantity [0.04ms]
+(pass) submitProductionAssignmentInTransaction > does not accept a submission for a deleted assignment [0.06ms]
+(pass) submitProductionAssignmentInTransaction > returns an existing pending review before rechecking consumed quantity
+(pass) submitProductionAssignmentInTransaction > replays an approved request after its assignment was deleted or reassigned
+(pass) submitProductionAssignmentInTransaction > rejects an idempotency key reused for another worker
+(pass) submitProductionAssignmentInTransaction > rejects zero quantity before material classification
+
+apps/dashboard/src/components/sheets/sales-overview-sheet/production-worker-policy.test.ts:
+(pass) production worker item policy > uses reported worker quantity for the submissions label
+(pass) production worker item policy > keeps material review silent across submission surfaces [1.18ms]
+(pass) production worker item policy > uses the assignment ledger presentation for worker submissions [0.05ms]
+
+ 40 pass
+ 0 fail
+ 99 expect() calls
+Ran 40 tests across 6 files. [651.00ms]

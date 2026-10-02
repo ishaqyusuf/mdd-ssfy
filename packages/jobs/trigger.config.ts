@@ -4,6 +4,8 @@ import { esbuildPlugin } from "@trigger.dev/build/extensions";
 import { additionalPackages } from "@trigger.dev/build/extensions/core";
 import { prismaExtension } from "@trigger.dev/build/extensions/prisma";
 import { defineConfig } from "@trigger.dev/sdk/v3";
+import { lstat, realpath, symlink, unlink } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { getSentrySourceMapUploadConfig } from "./src/observability/sentry";
 
 const sentrySourceMapUpload = getSentrySourceMapUploadConfig({
@@ -33,6 +35,20 @@ export default defineConfig({
   },
   build: {
     extensions: [
+      {
+        name: "sharp-local-package-root",
+        async onBuildComplete(context, manifest) {
+          if (context.target !== "dev") return;
+          // Trigger 4.5 resolves Sharp's exported entry inside dist as its package root.
+          const packageRoot = await realpath(resolve(context.workingDir, "../pdf/node_modules/sharp"));
+          const link = join(manifest.outputPath, "node_modules/sharp");
+          const current = await lstat(link).catch(() => null);
+          if (current && !current.isSymbolicLink()) return;
+          if (current && await realpath(link) === packageRoot) return;
+          if (current) await unlink(link);
+          await symlink(packageRoot, link, "dir");
+        },
+      },
       additionalPackages({ packages: ["vercel@54.4.1"] }),
       ...(sentrySourceMapUpload
         ? [

@@ -1,0 +1,324 @@
+[
+  {
+    "id": 13,
+    "name": "Samuel Gonzalez",
+    "email": "samuel65@gmail.com",
+    "role": "Production",
+    "can": {
+      "viewProduction": true,
+      "editProduction": false
+    },
+    "pending": [],
+    "pendingCountInRecent100": 0
+  },
+  {
+    "id": 44,
+    "name": "Izri",
+    "email": "icloud@archway.cc",
+    "role": "Production",
+    "can": {
+      "viewProduction": true,
+      "editProduction": false
+    },
+    "pending": [
+      {
+        "id": 13955,
+        "orderId": 28112,
+        "itemId": 176831,
+        "salesItemControlUid": "door-69901-2-8 x 6-8",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 0,
+        "rhQty": 1,
+        "dueDate": null,
+        "order": {
+          "orderId": "09869LM",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 1
+      },
+      {
+        "id": 13954,
+        "orderId": 28026,
+        "itemId": 176557,
+        "salesItemControlUid": "door-69690-2-8 x 6-8",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 0,
+        "rhQty": 1,
+        "dueDate": "2026-09-29T12:00:00.000Z",
+        "order": {
+          "orderId": "09845PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 1
+      },
+      {
+        "id": 13953,
+        "orderId": 28026,
+        "itemId": 176556,
+        "salesItemControlUid": "door-69689-2-8 x 6-8",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 0,
+        "rhQty": 1,
+        "dueDate": "2026-09-29T12:00:00.000Z",
+        "order": {
+          "orderId": "09845PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 1
+      },
+      {
+        "id": 13949,
+        "orderId": 27781,
+        "itemId": 175920,
+        "salesItemControlUid": "door-69127-2-4 x 6-8",
+        "qtyAssigned": 2,
+        "qtyCompleted": null,
+        "lhQty": 0,
+        "rhQty": 2,
+        "dueDate": "2026-09-29T12:00:00.000Z",
+        "order": {
+          "orderId": "09788AD",
+          "status": "Active"
+        },
+        "submissions": [],
+        "remaining": 2
+      },
+      {
+        "id": 13867,
+        "orderId": 28007,
+        "itemId": 176517,
+        "salesItemControlUid": "door-69644-2-0 x 8-0",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 0,
+        "rhQty": 1,
+        "dueDate": "2026-09-28T12:00:00.000Z",
+        "order": {
+          "orderId": "09840PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 1
+      },
+      {
+        "id": 13866,
+        "orderId": 28007,
+        "itemId": 176517,
+        "salesItemControlUid": "door-69643-2-8 x 8-0",
+        "qtyAssigned": 6,
+        "qtyCompleted": null,
+        "lhQty": 2,
+        "rhQty": 4,
+        "dueDate": "2026-09-28T12:00:00.000Z",
+        "order": {
+          "orderId": "09840PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 6
+      },
+      {
+        "id": 13865,
+        "orderId": 28007,
+        "itemId": 176516,
+        "salesItemControlUid": "door-69642-2-8 x 8-0",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 1,
+        "rhQty": 0,
+        "dueDate": "2026-09-28T12:00:00.000Z",
+        "order": {
+          "orderId": "09840PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 1
+      },
+      {
+        "id": 13832,
+        "orderId": 27801,
+        "itemId": 175975,
+        "salesItemControlUid": "door-69200-2-10 x 8-0",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 0,
+        "rhQty": 1,
+        "dueDate": "2026-09-22T12:00:00.000Z",
+        "order": {
+          "orderId": "09791PC",
+          "status": "Active"
+        },
+        "submissions": [],
+        "remaining": 1
+      }
+    ],
+    "pendingCountInRecent100": 19
+  },
+  {
+    "id": 54,
+    "name": "CARLOS",
+    "email": "R.CARLOS22@ICLOUD.COM",
+    "role": "Production",
+    "can": {
+      "viewProduction": true,
+      "editProduction": false
+    },
+    "pending": [
+      {
+        "id": 12155,
+        "orderId": 24605,
+        "itemId": 166559,
+        "salesItemControlUid": "door-60495-2-4 x 8-0",
+        "qtyAssigned": 3,
+        "qtyCompleted": null,
+        "lhQty": 2,
+        "rhQty": 1,
+        "dueDate": "2026-07-21T13:42:46.000Z",
+        "order": {
+          "orderId": "08950PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 3
+      },
+      {
+        "id": 12154,
+        "orderId": 24605,
+        "itemId": 166559,
+        "salesItemControlUid": "door-60494-2-6 x 8-0",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 0,
+        "rhQty": 1,
+        "dueDate": "2026-07-21T13:42:46.000Z",
+        "order": {
+          "orderId": "08950PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 1
+      },
+      {
+        "id": 12153,
+        "orderId": 24605,
+        "itemId": 166559,
+        "salesItemControlUid": "door-60493-2-8 x 8-0",
+        "qtyAssigned": 6,
+        "qtyCompleted": null,
+        "lhQty": 2,
+        "rhQty": 4,
+        "dueDate": "2026-07-21T13:42:46.000Z",
+        "order": {
+          "orderId": "08950PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 6
+      },
+      {
+        "id": 11847,
+        "orderId": 23988,
+        "itemId": 164842,
+        "salesItemControlUid": "door-58970-2-8 x 6-8",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 0,
+        "rhQty": 1,
+        "dueDate": "2026-07-07T11:44:19.000Z",
+        "order": {
+          "orderId": "08771PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 1
+      },
+      {
+        "id": 11846,
+        "orderId": 23988,
+        "itemId": 164842,
+        "salesItemControlUid": "door-58969-2-6 x 6-8",
+        "qtyAssigned": 3,
+        "qtyCompleted": null,
+        "lhQty": 3,
+        "rhQty": 0,
+        "dueDate": "2026-07-07T11:44:19.000Z",
+        "order": {
+          "orderId": "08771PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 3
+      },
+      {
+        "id": 11845,
+        "orderId": 23988,
+        "itemId": 164842,
+        "salesItemControlUid": "door-58968-2-0 x 6-8",
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "lhQty": 1,
+        "rhQty": 0,
+        "dueDate": "2026-07-07T11:44:19.000Z",
+        "order": {
+          "orderId": "08771PC",
+          "status": null
+        },
+        "submissions": [],
+        "remaining": 1
+      },
+      {
+        "id": 11732,
+        "orderId": 23697,
+        "itemId": 163896,
+        "salesItemControlUid": "door-58073-2-8 x 6-8",
+        "qtyAssigned": 19,
+        "qtyCompleted": null,
+        "lhQty": 10,
+        "rhQty": 9,
+        "dueDate": "2026-06-30T11:36:58.000Z",
+        "order": {
+          "orderId": "08695AD",
+          "status": ""
+        },
+        "submissions": [],
+        "remaining": 19
+      },
+      {
+        "id": 11731,
+        "orderId": 23697,
+        "itemId": 163896,
+        "salesItemControlUid": "door-58072-2-6 x 6-8",
+        "qtyAssigned": 3,
+        "qtyCompleted": null,
+        "lhQty": 3,
+        "rhQty": 0,
+        "dueDate": "2026-06-30T11:36:58.000Z",
+        "order": {
+          "orderId": "08695AD",
+          "status": ""
+        },
+        "submissions": [],
+        "remaining": 3
+      }
+    ],
+    "pendingCountInRecent100": 19
+  },
+  {
+    "id": 71,
+    "name": "Martin Lautaro",
+    "email": "porte2468@gmail.com",
+    "role": "Production",
+    "can": {
+      "viewProduction": true,
+      "editProduction": false
+    },
+    "pending": [],
+    "pendingCountInRecent100": 0
+  }
+]

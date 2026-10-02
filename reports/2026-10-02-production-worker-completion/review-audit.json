@@ -1,0 +1,165 @@
+[
+  {
+    "id": 1980,
+    "salesOrderId": 28096,
+    "status": "PENDING",
+    "submittedById": 44,
+    "assignmentScope": [
+      {
+        "laborCost": null,
+        "controlUid": "door-69854-2-0 x 6-8",
+        "salesItemId": 176771,
+        "assignedToId": 44,
+        "assignmentId": 13963,
+        "assignmentUpdatedAt": "2026-09-30T19:11:35.581Z"
+      }
+    ],
+    "classificationReason": "NOT_CONFIGURED",
+    "submissions": [
+      {
+        "id": 14970,
+        "qty": 1,
+        "lhQty": 0,
+        "rhQty": 1,
+        "createdAt": "2026-10-02T16:03:41.000Z",
+        "deletedAt": null,
+        "salesOrderId": 28096,
+        "salesOrderItemId": 176771,
+        "assignmentId": 13963,
+        "materialReviewId": 1980,
+        "submittedById": 44,
+        "meta": {},
+        "assignment": {
+          "id": 13963,
+          "orderId": 28096,
+          "itemId": 176771,
+          "assignedToId": 44,
+          "laborCost": null,
+          "salesItemControlUid": "door-69854-2-0 x 6-8",
+          "qtyAssigned": 1,
+          "lhQty": 0,
+          "rhQty": 1,
+          "deletedAt": null,
+          "updatedAt": "2026-09-30T19:11:35.581Z"
+        }
+      }
+    ],
+    "validation": {
+      "assignmentScope": [
+        {
+          "controlUid": "door-69854-2-0 x 6-8",
+          "salesItemId": 176771,
+          "assignmentId": 13963,
+          "assignedToId": 44,
+          "assignmentUpdatedAt": "2026-09-30T19:11:35.581Z",
+          "laborCost": null
+        }
+      ],
+      "scopeMode": "modern",
+      "staleReasons": []
+    }
+  },
+  {
+    "id": 1981,
+    "salesOrderId": 28096,
+    "status": "PENDING",
+    "submittedById": 44,
+    "assignmentScope": [
+      {
+        "laborCost": null,
+        "controlUid": "door-69855-2-6 x 6-8",
+        "salesItemId": 176771,
+        "assignedToId": 44,
+        "assignmentId": 13964,
+        "assignmentUpdatedAt": "2026-09-30T19:11:35.581Z"
+      },
+      {
+        "laborCost": null,
+        "controlUid": "door-69860-2-0 x 6-8",
+        "salesItemId": 176777,
+        "assignedToId": 44,
+        "assignmentId": 13965,
+        "assignmentUpdatedAt": "2026-09-30T19:11:35.581Z"
+      }
+    ],
+    "classificationReason": "NOT_CONFIGURED",
+    "submissions": [
+      {
+        "id": 14971,
+        "qty": 1,
+        "lhQty": 0,
+        "rhQty": 1,
+        "createdAt": "2026-10-02T16:05:48.000Z",
+        "deletedAt": null,
+        "salesOrderId": 28096,
+        "salesOrderItemId": 176771,
+        "assignmentId": 13964,
+        "materialReviewId": 1981,
+        "submittedById": 44,
+        "meta": {},
+        "assignment": {
+          "id": 13964,
+          "orderId": 28096,
+          "itemId": 176771,
+          "assignedToId": 44,
+          "laborCost": null,
+          "salesItemControlUid": "door-69855-2-6 x 6-8",
+          "qtyAssigned": 1,
+          "lhQty": 0,
+          "rhQty": 1,
+          "deletedAt": null,
+          "updatedAt": "2026-09-30T19:11:35.581Z"
+        }
+      },
+      {
+        "id": 14972,
+        "qty": 1,
+        "lhQty": 0,
+        "rhQty": 1,
+        "createdAt": "2026-10-02T16:05:48.000Z",
+        "deletedAt": null,
+        "salesOrderId": 28096,
+        "salesOrderItemId": 176777,
+        "assignmentId": 13965,
+        "materialReviewId": 1981,
+        "submittedById": 44,
+        "meta": {},
+        "assignment": {
+          "id": 13965,
+          "orderId": 28096,
+          "itemId": 176777,
+          "assignedToId": 44,
+          "laborCost": null,
+          "salesItemControlUid": "door-69860-2-0 x 6-8",
+          "qtyAssigned": 1,
+          "lhQty": 0,
+          "rhQty": 1,
+          "deletedAt": null,
+          "updatedAt": "2026-09-30T19:11:35.581Z"
+        }
+      }
+    ],
+    "validation": {
+      "assignmentScope": [
+        {
+          "controlUid": "door-69855-2-6 x 6-8",
+          "salesItemId": 176771,
+          "assignmentId": 13964,
+          "assignedToId": 44,
+          "assignmentUpdatedAt": "2026-09-30T19:11:35.581Z",
+          "laborCost": null
+        },
+        {
+          "controlUid": "door-69860-2-0 x 6-8",
+          "salesItemId": 176777,
+          "assignmentId": 13965,
+          "assignedToId": 44,
+          "assignmentUpdatedAt": "2026-09-30T19:11:35.581Z",
+          "laborCost": null
+        }
+      ],
+      "scopeMode": "modern",
+      "staleReasons": []
+    }
+  }
+]

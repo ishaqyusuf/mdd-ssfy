@@ -1,0 +1,1781 @@
+{
+  "version": 1,
+  "updatedAt": "2026-10-01T16:13:39.811Z",
+  "tables": {
+    "AddressBooks": {
+      "cursorValue": "2026-10-01 15:15:51.406",
+      "keyValues": {
+        "id": 6242
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:21.678Z"
+    },
+    "CommunityModelInstallTask": {
+      "cursorValue": "2026-09-30 19:18:44.759",
+      "keyValues": {
+        "id": 130
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:44.560Z"
+    },
+    "CommunityModelPivot": {
+      "cursorValue": "2026-09-22 19:52:22.247",
+      "keyValues": {
+        "id": 1618
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T20:59:55.964Z"
+    },
+    "CommunityModels": {
+      "cursorValue": "2026-10-01 12:50:47.562",
+      "keyValues": {
+        "id": 1964
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:45.932Z"
+    },
+    "CommunityTemplateHistory": {
+      "cursorValue": "2026-10-01 12:50:47.557",
+      "keyValues": {
+        "id": 5336
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:46.867Z"
+    },
+    "ContractorLedgerEntry": {
+      "cursorValue": "2026-09-30 15:31:20.240",
+      "keyValues": {
+        "id": "cmuo9j6sv000cgm0aojtw34si"
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:51.069Z"
+    },
+    "CustomerTaxProfiles": {
+      "cursorValue": "2026-10-01 15:15:51.359",
+      "keyValues": {
+        "id": 2403
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:53.691Z"
+    },
+    "CustomerTransaction": {
+      "cursorValue": "2026-10-01 16:01:31.866",
+      "keyValues": {
+        "id": 12415
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:54.199Z"
+    },
+    "CustomerWallet": {
+      "cursorValue": "2026-10-01 15:16:53.092",
+      "keyValues": {
+        "accountNo": "754-422-6641"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:55.526Z"
+    },
+    "Customers": {
+      "cursorValue": "2026-10-01 15:15:51.359",
+      "keyValues": {
+        "id": 3590
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:55.976Z"
+    },
+    "DykeSalesDoors": {
+      "cursorValue": "2026-10-01 15:56:09.549",
+      "keyValues": {
+        "activeIdentity": null
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:06.976Z"
+    },
+    "DykeSalesShelfItem": {
+      "cursorValue": "2026-10-01 14:36:42.649",
+      "keyValues": {
+        "id": 436
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:08.666Z"
+    },
+    "DykeStepForm": {
+      "cursorValue": "2026-10-01 15:56:09.549",
+      "keyValues": {
+        "id": 441191
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:11.905Z"
+    },
+    "DykeStepProducts": {
+      "cursorValue": "2026-10-01 15:32:14.124",
+      "keyValues": {
+        "id": 1443
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:12.672Z"
+    },
+    "Event": {
+      "cursorValue": "2026-10-01 15:07:17",
+      "keyValues": {
+        "id": 85
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:15.283Z"
+    },
+    "HomeTasks": {
+      "cursorValue": "2026-10-01 14:46:03.678",
+      "keyValues": {
+        "id": 181006
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:18.412Z"
+    },
+    "Homes": {
+      "cursorValue": "2026-10-01 14:44:27.237",
+      "keyValues": {
+        "id": 17726
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:19.472Z"
+    },
+    "HousePackageTools": {
+      "cursorValue": "2026-09-28 20:25:38.831",
+      "keyValues": {
+        "id": 66389
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:51.969Z"
+    },
+    "InboundDemand": {
+      "cursorValue": "2026-10-01 15:56:16.569",
+      "keyValues": {
+        "id": 9543
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:00.415Z"
+    },
+    "InboundShipment": {
+      "cursorValue": "2026-10-01 15:42:23.738",
+      "keyValues": {
+        "id": 425
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:00.986Z"
+    },
+    "InboundShipmentItem": {
+      "cursorValue": "2026-10-01 15:42:23.809",
+      "keyValues": {
+        "id": 1109
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:02.300Z"
+    },
+    "Inventory": {
+      "cursorValue": "2026-10-01 14:32:38.681",
+      "keyValues": {
+        "id": 837
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:04.643Z"
+    },
+    "InventoryCategory": {
+      "cursorValue": "2026-09-16 18:55:16.619",
+      "keyValues": {
+        "id": 37
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:01:01.479Z"
+    },
+    "InventoryImage": {
+      "cursorValue": "2026-09-21 16:34:54.634",
+      "keyValues": {
+        "id": 621
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:01:02.749Z"
+    },
+    "InventoryLog": {
+      "cursorValue": "2026-10-01 15:07:17.026",
+      "keyValues": {
+        "id": 597
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:07.410Z"
+    },
+    "InventoryStock": {
+      "cursorValue": "2026-10-01 15:07:16.977",
+      "keyValues": {
+        "id": 352
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:07.861Z"
+    },
+    "InventoryVariant": {
+      "cursorValue": "2026-10-01 14:32:38.706",
+      "keyValues": {
+        "id": 2779
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:08.786Z"
+    },
+    "InventoryVariantAttribute": {
+      "cursorValue": "2026-09-29 17:17:05.143",
+      "keyValues": {
+        "id": 8241
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:09.262Z"
+    },
+    "InventoryVariantPricing": {
+      "cursorValue": "2026-09-29 13:08:32.174",
+      "keyValues": {
+        "id": 4026
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:09.766Z"
+    },
+    "JobInstallTasks": {
+      "cursorValue": "2026-09-29 16:36:19.238",
+      "keyValues": {
+        "id": 5364
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:10.704Z"
+    },
+    "JobPayments": {
+      "cursorValue": "2026-09-30 15:31:20.155",
+      "keyValues": {
+        "id": 2745
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:11.675Z"
+    },
+    "Jobs": {
+      "cursorValue": "2026-10-01 02:26:19.745",
+      "keyValues": {
+        "id": 22612
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:12.353Z"
+    },
+    "LineItem": {
+      "cursorValue": "2026-09-09 20:47:30.991",
+      "keyValues": {
+        "id": 7554
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-09T20:58:29.771Z"
+    },
+    "MasterPasswordLoginAudit": {
+      "cursorValue": "2026-10-01 15:28:34.722",
+      "keyValues": {
+        "id": "cmupovhr60001o606yn5qwrhq"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:15.568Z"
+    },
+    "NotePad": {
+      "cursorValue": "2026-10-01 16:01:36",
+      "keyValues": {
+        "id": 50555
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:22.267Z"
+    },
+    "NotePadContacts": {
+      "cursorValue": "2026-09-30 19:39:39",
+      "keyValues": {
+        "id": 885
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:22.734Z"
+    },
+    "NoteRecipients": {
+      "cursorValue": "2026-10-01 15:45:05",
+      "keyValues": {
+        "id": 22678
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:24.091Z"
+    },
+    "NoteTags": {
+      "cursorValue": "2026-09-09 13:19:00",
+      "keyValues": {
+        "id": 226932
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-09T20:58:53.641Z"
+    },
+    "Notifications": {
+      "cursorValue": "2026-10-01 12:44:38.391",
+      "keyValues": {
+        "assistantDeliveryKey": null
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:26.031Z"
+    },
+    "OrderDelivery": {
+      "cursorValue": "2026-09-29 15:34:28.340",
+      "keyValues": {
+        "id": 4714
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:26.497Z"
+    },
+    "OrderItemDelivery": {
+      "cursorValue": "2026-09-29 12:23:09.629",
+      "keyValues": {
+        "id": 3850
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:26.951Z"
+    },
+    "OrderItemProductionAssignments": {
+      "cursorValue": "2026-10-01 15:42:40.252",
+      "keyValues": {
+        "id": 13971
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:27.455Z"
+    },
+    "OrderProductionSubmissions": {
+      "cursorValue": "2026-10-01 00:13:12.964",
+      "keyValues": {
+        "id": 13940
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:28.618Z"
+    },
+    "PageView": {
+      "cursorValue": "2026-10-01 15:56:09",
+      "keyValues": {
+        "id": 272531
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:30.690Z"
+    },
+    "PaymentAllocation": {
+      "cursorValue": "2026-10-01 16:01:32.000",
+      "keyValues": {
+        "id": "allocation_fe21df650b134f7c95aa39835473c95f"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:31.590Z"
+    },
+    "PaymentLedgerEntry": {
+      "cursorValue": "2026-10-01 16:01:32.000",
+      "keyValues": {
+        "id": "ledger_d29f2506fb9a444aabfef1afc46805c1"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:32.064Z"
+    },
+    "PaymentProjection": {
+      "cursorValue": "2026-10-01 16:01:32.000",
+      "keyValues": {
+        "salesOrderId": 28306
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:32.543Z"
+    },
+    "Payroll": {
+      "cursorValue": "2026-10-01 16:01:32.125",
+      "keyValues": {
+        "id": 5409
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:33.439Z"
+    },
+    "PriceHistory": {
+      "cursorValue": "2026-09-29 13:08:32.187",
+      "keyValues": {
+        "id": 4126
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:34.804Z"
+    },
+    "Projects": {
+      "cursorValue": "2026-09-22 19:27:38.224",
+      "keyValues": {
+        "id": 236
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:43.786Z"
+    },
+    "QtyControl": {
+      "cursorValue": "2026-10-01 15:56:13.773",
+      "keyValues": {
+        "itemControlUid": "door-70489-2-4 x 6-8",
+        "type": "qty"
+      },
+      "cursorColumns": [
+        "updatedAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:40.966Z"
+    },
+    "ResolutionAction": {
+      "cursorValue": "2026-10-01 12:20:00.111",
+      "keyValues": {
+        "id": "6fdd8d77-5cf6-4f2d-b1c2-0492f370e3aa"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:44.539Z"
+    },
+    "ResolutionCase": {
+      "cursorValue": "2026-10-01 15:56:09.728",
+      "keyValues": {
+        "id": "sales-doc-28307-a5386282e378774b8702e24d"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:45.552Z"
+    },
+    "SalesCheckout": {
+      "cursorValue": "2026-10-01 15:42:51.837",
+      "keyValues": {
+        "id": "cmuppdv3x0003s2060halg608"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:47.330Z"
+    },
+    "SalesCompletionRecord": {
+      "cursorValue": "2026-10-01 15:00:34.675",
+      "keyValues": {
+        "id": "cmupnvhf60003l6048yuoz51g"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:48.213Z"
+    },
+    "SalesDocumentSnapshot": {
+      "cursorValue": "2026-10-01 12:45:00.520",
+      "keyValues": {
+        "id": "cmupj0vej0000bj0ib2vlevwg"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:48.799Z"
+    },
+    "SalesEmailAttempt": {
+      "cursorValue": "2026-10-01 15:16:58.362",
+      "keyValues": {
+        "id": "cmupogk170001aw0iv4gm5b6b"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:49.276Z"
+    },
+    "SalesHandoffActionEpoch": {
+      "cursorValue": "2026-10-01 16:01:32.548",
+      "keyValues": {
+        "id": "cmupq1vus0005o206tqnpmm4d"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:50.174Z"
+    },
+    "SalesHandoffActionEscalationRecipient": {
+      "cursorValue": "2026-10-01 15:45:05.533",
+      "keyValues": {
+        "id": "cmuppgq9p0000c40iwqhtnbcc"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:50.632Z"
+    },
+    "SalesHistory": {
+      "cursorValue": "2026-10-01 15:07:17.506",
+      "keyValues": {
+        "id": "fb21a7a4-6ede-4a16-87fe-0df0c4ee38ef"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:51.303Z"
+    },
+    "SalesInventoryProjectionState": {
+      "cursorValue": "2026-10-01 15:56:16.719",
+      "keyValues": {
+        "id": 3027
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:51.781Z"
+    },
+    "SalesOrderAdjustment": {
+      "cursorValue": "2026-10-01 12:44:38.355",
+      "keyValues": {
+        "id": "cmupj0el30001lf040ftp5t8d"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:53.304Z"
+    },
+    "SalesOrderAdjustmentLine": {
+      "cursorValue": "2026-10-01 12:44:26.188",
+      "keyValues": {
+        "id": "cmupj0el70002lf041ovhn59a"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:54.227Z"
+    },
+    "SalesOrderItems": {
+      "cursorValue": "2026-10-01 15:56:09.549",
+      "keyValues": {
+        "id": 177478
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:55.464Z"
+    },
+    "SalesOrderListProjection": {
+      "cursorValue": "2026-10-01 15:56:17.541",
+      "keyValues": {
+        "id": 8276
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:57.737Z"
+    },
+    "SalesOrders": {
+      "cursorValue": "2026-09-28 20:44:54.340",
+      "keyValues": {
+        "currentSpecialOrderApprovalId": null
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:19.093Z"
+    },
+    "SalesPayments": {
+      "cursorValue": "2026-10-01 16:01:31.866",
+      "keyValues": {
+        "id": 9669
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:00.697Z"
+    },
+    "SalesPrintData": {
+      "cursorValue": "2026-10-01 16:01:34.850",
+      "keyValues": {
+        "id": "cmupq1xmq0006o2067yev26g4"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:03.135Z"
+    },
+    "SalesProductionSubmissionMaterialReview": {
+      "cursorValue": "2026-10-01 00:13:12.927",
+      "keyValues": {
+        "id": 767
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:04.131Z"
+    },
+    "SalesStat": {
+      "cursorValue": "2026-10-01 15:56:14",
+      "keyValues": {
+        "salesId": 28307,
+        "type": "prodCompleted"
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:11.702Z"
+    },
+    "SalesTaxLedgerEntry": {
+      "cursorValue": "2026-09-29 12:23:10.370",
+      "keyValues": {
+        "id": "cmumndctd00015z0irt7i2x24"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:12.597Z"
+    },
+    "SalesTaxes": {
+      "cursorValue": "2026-10-01 15:56:09.448",
+      "keyValues": {
+        "id": "cmuppuyjt0000cz0ik2h8tp8v"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:13.107Z"
+    },
+    "ScheduleHistory": {
+      "cursorValue": "2026-10-01 12:01:32.929",
+      "keyValues": {
+        "id": 5457
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:14.563Z"
+    },
+    "ShortLink": {
+      "cursorValue": "2026-10-01 16:02:23.323",
+      "keyValues": {
+        "id": "cmupq2z170000mq068uoj4zoq"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:16.765Z"
+    },
+    "SpecialOrderApprovalEvidence": {
+      "cursorValue": "2026-09-29 20:29:04",
+      "keyValues": {
+        "id": "be34ff43-eb01-49a9-9501-d8f3b97b2c82"
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:18.577Z"
+    },
+    "SpecialOrderApprovalRequest": {
+      "cursorValue": "2026-09-29 20:29:03.830",
+      "keyValues": {
+        "id": "063ca568-35d3-4b4e-9422-1610fbee53a6"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:19.033Z"
+    },
+    "SpecialOrderNotificationDelivery": {
+      "cursorValue": "2026-09-29 20:29:04.441",
+      "keyValues": {
+        "id": "cmun4q7vy0002gm0bcao0rpj7"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:19.501Z"
+    },
+    "SquarePayments": {
+      "cursorValue": "2026-10-01 15:42:52.253",
+      "keyValues": {
+        "id": "cmuppdv3x0000s2068jhbv23d"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:20.832Z"
+    },
+    "SquareTenderPayment": {
+      "cursorValue": "2026-10-01 12:46:41.267",
+      "keyValues": {
+        "id": "cmupj3asy0005lf04klgpe44n"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:22.150Z"
+    },
+    "StockAllocation": {
+      "cursorValue": "2026-10-01 15:07:17.150",
+      "keyValues": {
+        "id": 5378
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:22.716Z"
+    },
+    "StockMovement": {
+      "cursorValue": "2026-10-01 15:07:16.997",
+      "keyValues": {
+        "id": 597
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:23.200Z"
+    },
+    "StoredDocument": {
+      "cursorValue": "2026-10-01 14:50:14.967",
+      "keyValues": {
+        "id": "cmupnhvab0002k104yct9fx5f"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:23.699Z"
+    },
+    "SubComponents": {
+      "cursorValue": "2026-10-01 15:56:16.485",
+      "keyValues": {
+        "id": 702
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:33.452Z"
+    },
+    "Supplier": {
+      "cursorValue": "2026-10-01 15:32:17.264",
+      "keyValues": {
+        "id": 6
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:33.906Z"
+    },
+    "TaskRunDiagnostic": {
+      "cursorValue": "2026-10-01 15:56:10.773",
+      "keyValues": {
+        "id": "cmuppuvsm0001l1042rsneo79"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:34.922Z"
+    },
+    "Users": {
+      "cursorValue": "2026-09-28 18:20:28.539",
+      "keyValues": {
+        "id": 19
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:06:08.933Z"
+    },
+    "WebAuthAccount": {
+      "cursorValue": "2026-10-01 15:28:34.606",
+      "keyValues": {
+        "id": "157b134d-70b1-4361-9f86-0be809e830d5"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:37.556Z"
+    },
+    "WebAuthSession": {
+      "cursorValue": "2026-10-01 15:28:34.682",
+      "keyValues": {
+        "id": "iQxnozIeSSa16oG7l6rJRWkwBMnldVrT"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:38.008Z"
+    },
+    "WebAuthUser": {
+      "cursorValue": "2026-10-01 15:28:34.557",
+      "keyValues": {
+        "id": "e9330bea-6aa5-45b0-ae14-517b29ad49bf"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:38.460Z"
+    },
+    "WorkOrders": {
+      "cursorValue": "2026-10-01 14:26:25.853",
+      "keyValues": {
+        "id": 2108
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:39.793Z"
+    },
+    "BuilderTaskInstallCost": {
+      "cursorValue": "2026-08-17 17:37:35.939",
+      "keyValues": {
+        "id": 96
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T20:59:45.553Z"
+    },
+    "CommunityModelCost": {
+      "cursorValue": "2026-10-01 14:34:19.463",
+      "keyValues": {
+        "id": 2992
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:43.662Z"
+    },
+    "CustomerTransactionStatus": {
+      "cursorValue": "2026-09-16 16:51:05.308",
+      "keyValues": {
+        "id": 81
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:10.186Z"
+    },
+    "CustomerTypes": {
+      "cursorValue": "2026-05-22 17:04:06.223",
+      "keyValues": {
+        "id": 5
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:10.816Z"
+    },
+    "DealerAuth": {
+      "cursorValue": "2026-05-22 16:57:32.394",
+      "keyValues": {
+        "authUserId": "GiskcoOeEXN7yvViC79SirjR7OTvt0fL"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:12.761Z"
+    },
+    "DealerAuthAccount": {
+      "cursorValue": "2026-05-22 16:57:32.287",
+      "keyValues": {
+        "id": "xa3BycNcamnuyiTU4nd5yRPT4Or6SN9B"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:13.400Z"
+    },
+    "DealerAuthSession": {
+      "cursorValue": "2026-07-20 15:20:04.661",
+      "keyValues": {
+        "id": "h45kz9mJlOpcSlzippQLTRLKWzKef5QQ"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:14.051Z"
+    },
+    "DealerAuthUser": {
+      "cursorValue": "2026-05-22 16:57:32.251",
+      "keyValues": {
+        "id": "GiskcoOeEXN7yvViC79SirjR7OTvt0fL"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:14.682Z"
+    },
+    "DealerSales": {
+      "cursorValue": "2026-06-03 22:31:29.661",
+      "keyValues": {
+        "id": 1
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:19.706Z"
+    },
+    "DealerStatusHistory": {
+      "cursorValue": "2026-05-22 16:55:03",
+      "keyValues": {
+        "id": 4
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:21.271Z"
+    },
+    "DykePricingSystem": {
+      "cursorValue": "2026-09-29 17:17:00.986",
+      "keyValues": {
+        "id": 3266
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:04.416Z"
+    },
+    "DykeShelfProducts": {
+      "cursorValue": "2026-08-24 12:54:36.514",
+      "keyValues": {
+        "id": 766
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:31.769Z"
+    },
+    "DykeSteps": {
+      "cursorValue": "2026-09-11 15:28:18.953",
+      "keyValues": {
+        "id": 137
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:41.516Z"
+    },
+    "EmailTokenLogin": {
+      "cursorValue": "2026-09-29 00:45:07.610",
+      "keyValues": {
+        "id": "cmulyfnve0001l1043oqsbm2b"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:10:13.976Z"
+    },
+    "ImageGallery": {
+      "cursorValue": "2026-09-15 18:48:34.688",
+      "keyValues": {
+        "id": 256
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:00:52.739Z"
+    },
+    "InventoryCategoryVariantAttribute": {
+      "cursorValue": "2026-07-01 18:19:03.727",
+      "keyValues": {
+        "id": 19
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:01:02.114Z"
+    },
+    "InventoryItemSubCategory": {
+      "cursorValue": "2026-10-01 15:31:46.720",
+      "keyValues": {
+        "id": 493
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:06.460Z"
+    },
+    "InventoryItemSubCategoryValue": {
+      "cursorValue": "2026-10-01 15:31:46.807",
+      "keyValues": {
+        "id": 825
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:06.969Z"
+    },
+    "NoteChannelRole": {
+      "cursorValue": "2026-05-14 17:19:17",
+      "keyValues": {
+        "id": 24
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:21.925Z"
+    },
+    "NoteChannels": {
+      "cursorValue": "2026-09-22 13:35:06",
+      "keyValues": {
+        "channelName": "sales_dispatch_updated"
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:22.453Z"
+    },
+    "NoteComments": {
+      "cursorValue": "2026-08-25 13:03:25",
+      "keyValues": {
+        "id": 2
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:23.250Z"
+    },
+    "PageTabIndex": {
+      "cursorValue": "2026-08-18 20:30:53.803",
+      "keyValues": {
+        "id": "4d91f512-0f40-4335-a9fb-cd54a2694279"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:32.607Z"
+    },
+    "PageTabs": {
+      "cursorValue": "2026-08-18 20:30:53.803",
+      "keyValues": {
+        "id": 15
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:33.140Z"
+    },
+    "PasswordResets": {
+      "cursorValue": "2026-09-28 18:18:58",
+      "keyValues": {
+        "id": 42
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:34.688Z"
+    },
+    "PaymentTerminals": {
+      "cursorValue": "2026-06-29 15:14:29.744",
+      "keyValues": {
+        "terminalId": "device:240CS149B2001451"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:36.990Z"
+    },
+    "Permissions": {
+      "cursorValue": "2026-09-29 08:04:49.466",
+      "keyValues": {
+        "id": 103
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:12:33.888Z"
+    },
+    "PublicLinkToken": {
+      "cursorValue": "2026-05-19 12:20:32.754",
+      "keyValues": {
+        "id": "cmpclpoj50001la04tc03l2o6"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:44.444Z"
+    },
+    "ResolutionFinding": {
+      "cursorValue": "2026-09-16 16:51:05.000",
+      "keyValues": {
+        "id": "finding_9a4f2d1ee4274e37a24fb30377cada42"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:53.778Z"
+    },
+    "Roles": {
+      "cursorValue": "2026-08-27 20:39:01.172",
+      "keyValues": {
+        "id": 3
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:55.098Z"
+    },
+    "SalesFormPreference": {
+      "cursorValue": "2026-08-25 20:34:57.197",
+      "keyValues": {
+        "userId": 1
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:04:58.543Z"
+    },
+    "SalesOrderAdjustmentApproval": {
+      "cursorValue": "2026-08-05 16:21:34.829",
+      "keyValues": {
+        "id": "cmsgao3jj000ejr04vafn6k0k"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:03.809Z"
+    },
+    "SalesResolution": {
+      "cursorValue": "2026-09-16 16:51:05.452",
+      "keyValues": {
+        "id": 242
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:33.300Z"
+    },
+    "SalesWorkflowCancellation": {
+      "cursorValue": "2026-09-16 12:39:42",
+      "keyValues": {
+        "id": 2
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:38.281Z"
+    },
+    "SalesWorkflowCatalogRevision": {
+      "cursorValue": "2026-10-01 15:32:14.158",
+      "keyValues": {
+        "scope": "shared-sales-workflow"
+      },
+      "cursorColumns": [
+        "updatedAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:13.990Z"
+    },
+    "Settings": {
+      "cursorValue": "2026-08-24 21:00:53.494",
+      "keyValues": {
+        "id": 3
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:40.710Z"
+    },
+    "SpecialOrderPolicyVersion": {
+      "cursorValue": "2026-08-14 11:04:09.822",
+      "keyValues": {
+        "id": "cmssuakbh0001jq04xwdavyl0"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:46.744Z"
+    },
+    "SquarePaymentLink": {
+      "cursorValue": "2026-05-06 23:47:22.291",
+      "keyValues": {
+        "id": "67a6dae6-103e-432c-ad1c-96975acf4156"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:47.286Z"
+    },
+    "StorefrontAuditEvent": {
+      "cursorValue": "2026-09-22 19:51:03",
+      "keyValues": {
+        "id": "cmud3addb0001gm0avmircof9"
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:52.304Z"
+    },
+    "StorefrontCommerceCollection": {
+      "cursorValue": "2026-09-22 19:49:17.594",
+      "keyValues": {
+        "id": "cmud383vd0002jp04liolp9lv"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:53.895Z"
+    },
+    "StorefrontComponent": {
+      "cursorValue": "2026-09-22 19:51:03.186",
+      "keyValues": {
+        "id": "cmud39hxc0000gm0az0rk6222"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:05:54.957Z"
+    },
+    "SupplierVariant": {
+      "cursorValue": "2026-10-01 15:32:19.238",
+      "keyValues": {
+        "id": 17
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:13:34.350Z"
+    },
+    "UserDocuments": {
+      "cursorValue": "2026-09-25 18:59:36.618",
+      "keyValues": {
+        "id": 48
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:06:08.400Z"
+    },
+    "WebAuthVerification": {
+      "cursorValue": "2026-09-28 18:11:01.024",
+      "keyValues": {
+        "id": "4TVZeEHFr6puxEbcluuWAKL01s6QObCY"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-09-28T21:06:11.685Z"
+    },
+    "AssistantConversation": {
+      "cursorValue": "2026-09-30 23:28:25.756",
+      "keyValues": {
+        "id": "cmuoqkp1r0002pe067p2qv9ni"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:22.999Z"
+    },
+    "AssistantDiagnostic": {
+      "cursorValue": "2026-09-30 23:28:25.680",
+      "keyValues": {
+        "reference": "ERR-84E42AF397"
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:23.456Z"
+    },
+    "AssistantMessage": {
+      "cursorValue": "2026-09-30 23:28:26",
+      "keyValues": {
+        "id": "cmuoqkqex0005ny06ycx33pwu"
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:27.351Z"
+    },
+    "AssistantRun": {
+      "cursorValue": "2026-09-30 23:28:25.850",
+      "keyValues": {
+        "id": "cmuoqkq0k0003ny06w1m6lg1z"
+      },
+      "cursorColumns": [
+        "updatedAt",
+        "createdAt"
+      ],
+      "mode": "incremental",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:29.952Z"
+    },
+    "AssistantUsageEvent": {
+      "cursorValue": "2026-09-30 23:28:26",
+      "keyValues": {
+        "id": "cmuoqkqin0007ny06uasy4vxp"
+      },
+      "cursorColumns": [
+        "createdAt"
+      ],
+      "mode": "insert-only",
+      "completedFullScan": true,
+      "syncedAt": "2026-10-01T16:09:32.564Z"
+    }
+  }
+}

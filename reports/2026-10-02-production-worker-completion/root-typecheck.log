@@ -1,0 +1,55 @@
+$ turbo typecheck
+turbo 2.5.8
+
+ WARNING  Unable to calculate transitive closures: No lockfile entry found for '@npmcli/fs'
+• Packages in scope: @gnd/api, @gnd/app-store, @gnd/auth, @gnd/bug-reports, @gnd/cache, @gnd/community, @gnd/contractor-accounting, @gnd/dashboard, @gnd/db, @gnd/dealership, @gnd/dev-logger, @gnd/documents, @gnd/email, @gnd/errors, @gnd/events, @gnd/inventory, @gnd/jobs, @gnd/logger, @gnd/messaging, @gnd/messaging-extension, @gnd/mobile, @gnd/notifications, @gnd/observability, @gnd/pdf, @gnd/sales, @gnd/sales-request-mailbox, @gnd/settings, @gnd/site-nav, @gnd/square, @gnd/storefront, @gnd/tsconfig, @gnd/ui, @gnd/utils, @gnd/web
+• Running typecheck in 34 packages
+• Remote caching disabled
+@gnd/messaging:typecheck: cache miss, executing 10c93c94c489f763
+@gnd/contractor-accounting:typecheck: cache miss, executing 92484a392e9d4554
+@gnd/dev-logger:typecheck: cache miss, executing 50ad3d618cade308
+@gnd/messaging:typecheck: $ tsc --noEmit
+@gnd/contractor-accounting:typecheck: $ tsc --noEmit
+@gnd/errors:typecheck: cache miss, executing 0b665e64194b2a96
+@gnd/dev-logger:typecheck: $ tsc --noEmit
+@gnd/bug-reports:typecheck: cache miss, executing 313492b985725d65
+@gnd/documents:typecheck: cache miss, executing 8c36601de9a2b570
+@gnd/sales-request-mailbox:typecheck: cache miss, executing 49e81abb117c8912
+@gnd/errors:typecheck: $ tsc --noEmit
+@gnd/bug-reports:typecheck: $ tsc --noEmit
+@gnd/utils:typecheck: cache miss, executing e1139fc57510cb44
+@gnd/logger:typecheck: cache miss, executing 972a86b42a46f4c4
+@gnd/documents:typecheck: $ tsc --noEmit
+@gnd/web:typecheck: cache miss, executing e52c91f75611d789
+@gnd/sales-request-mailbox:typecheck: $ tsc --noEmit
+@gnd/utils:typecheck: $ tsc --noEmit
+@gnd/logger:typecheck: $ tsc --noEmit
+@gnd/web:typecheck: $ tsc --noEmit
+@gnd/events:typecheck: cache miss, executing ed1dabd6eab3b5b5
+@gnd/events:typecheck: $ tsc --noEmit
+@gnd/ui:typecheck: cache miss, executing d9aba0b6b012ec59
+@gnd/ui:typecheck: $ tsc --noEmit
+@gnd/observability:typecheck: cache miss, executing 1e09ded26ffb2da3
+@gnd/observability:typecheck: $ tsc --noEmit
+@gnd/app-store:typecheck: cache miss, executing a0eab18ea3ef9a1a
+@gnd/app-store:typecheck: $ tsc --noEmit
+@gnd/cache:typecheck: cache miss, executing 0d4d5b5f9ca22f2f
+@gnd/cache:typecheck: $ tsc --noEmit
+@gnd/email:typecheck: cache miss, executing 5b4f45df1fc5d620
+@gnd/email:typecheck: $ tsc --noEmit
+@gnd/messaging-extension:typecheck: cache miss, executing 41c154552db763d3
+@gnd/messaging-extension:typecheck: $ tsc --noEmit
+@gnd/site-nav:typecheck: cache miss, executing db9e4f0522892a28
+@gnd/site-nav:typecheck: $ tsc --noEmit
+@gnd/db:typecheck: cache miss, executing e7a82154fc768f45
+@gnd/db:typecheck: $ tsc --noEmit && tsc -p tsconfig.transactions-test.json
+@gnd/utils:typecheck: src/envs.test.ts(1,10): error TS2305: Module '"bun:test"' has no exported member 'afterEach'.
+@gnd/utils:typecheck: ERROR: command finished with error: command (/Users/M1PRO/Documents/code/_turbo/gnd/packages/utils) /opt/homebrew/bin/bun run typecheck exited (2)
+@gnd/utils#typecheck: command (/Users/M1PRO/Documents/code/_turbo/gnd/packages/utils) /opt/homebrew/bin/bun run typecheck exited (2)
+
+ Tasks:    9 successful, 19 total
+Cached:    0 cached, 19 total
+  Time:    6.088s 
+Failed:    @gnd/utils#typecheck
+
+ ERROR  run failed: command  exited (2)

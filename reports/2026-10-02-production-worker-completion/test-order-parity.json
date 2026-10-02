@@ -1,0 +1,66 @@
+[
+  {
+    "orderNo": "09865DB",
+    "salesId": 28096,
+    "sameBefore": true,
+    "parentRefreshed": false,
+    "tableChecks": [
+      {
+        "table": "OrderItemProductionAssignments",
+        "sourceRows": 3,
+        "localRows": 3,
+        "equal": true
+      },
+      {
+        "table": "OrderProductionSubmissions",
+        "sourceRows": 0,
+        "localRows": 0,
+        "equal": true
+      },
+      {
+        "table": "SalesOrderItems",
+        "sourceRows": 7,
+        "localRows": 7,
+        "equal": true
+      },
+      {
+        "table": "SalesProductionSubmissionMaterialReview",
+        "sourceRows": 0,
+        "localRows": 0,
+        "equal": true
+      }
+    ]
+  },
+  {
+    "orderNo": "09344AD",
+    "salesId": 26027,
+    "sameBefore": true,
+    "parentRefreshed": false,
+    "tableChecks": [
+      {
+        "table": "OrderItemProductionAssignments",
+        "sourceRows": 2,
+        "localRows": 2,
+        "equal": true
+      },
+      {
+        "table": "OrderProductionSubmissions",
+        "sourceRows": 0,
+        "localRows": 0,
+        "equal": true
+      },
+      {
+        "table": "SalesOrderItems",
+        "sourceRows": 1,
+        "localRows": 1,
+        "equal": true
+      },
+      {
+        "table": "SalesProductionSubmissionMaterialReview",
+        "sourceRows": 0,
+        "localRows": 0,
+        "equal": true
+      }
+    ]
+  }
+]

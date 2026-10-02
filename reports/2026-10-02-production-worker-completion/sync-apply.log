@@ -1,0 +1,1253 @@
+$ bun --env-file=/dev/null ../../local-infra-kit/bin/db-sync.ts --profile gnd --from-prod --to-local -- --on-duplicate ignore
+db:sync --from-prod --to-local
+Starting local dev services: mysql
+ Container gnd-mysql Running 
+ Container gnd-redis Running 
+Local MySQL is ready.
+$ bun scripts/sync-prod-to-local.ts --state-file "/Users/M1PRO/Documents/code/_turbo/gnd/.local-db-sync/gnd-prod-to-local.json" --target-mode local --on-duplicate prompt --on-duplicate ignore
+Syncing production DB to local...
+Source: mysql://<redacted>@aws.connect.psdb.cloud/gndprodesk
+Target: mysql://<redacted>@127.0.0.1:3307/gnd-prisma2
+State file: /Users/M1PRO/Documents/code/_turbo/gnd/.local-db-sync/gnd-prod-to-local.json
+Initial cursor floor: 2026-05-04 23:59:59.999
+Duplicate recovery: ignore
+[   0.1s] Inspecting source schema...
+[   3.1s] Found 358 tables to inspect.
+[   3.1s] START incremental    Account                         
+[   3.6s] DONE  incremental    Account                          read=0 written=0
+[   3.6s] START incremental    AddressBooks                    
+[   4.0s] BATCH incremental    AddressBooks                     read=6 written=6 cursor=2026-10-02 14:51:33.720
+[   4.0s] DONE  incremental    AddressBooks                     read=6 written=6
+[   4.0s] START skip           AssignedUserNoteChannel         
+[   4.0s] SKIP  skip           AssignedUserNoteChannel          No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[   4.0s] DONE  skip           AssignedUserNoteChannel          read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[   4.0s] START incremental    AssistantActionProposal         
+[   4.5s] DONE  incremental    AssistantActionProposal          read=0 written=0
+[   4.5s] START incremental    AssistantCapabilityRelease      
+[   4.9s] DONE  incremental    AssistantCapabilityRelease       read=0 written=0
+[   4.9s] START incremental    AssistantConversation           
+[   5.4s] BATCH incremental    AssistantConversation            read=7 written=7 cursor=2026-10-01 17:37:24.953
+[   5.4s] DONE  incremental    AssistantConversation            read=7 written=7
+[   5.4s] START insert-only    AssistantDiagnostic             
+[   5.8s] BATCH insert-only    AssistantDiagnostic              read=6 written=6 cursor=2026-10-01 17:34:40.991
+[   5.8s] DONE  insert-only    AssistantDiagnostic              read=6 written=6 - No updatedAt column; new rows are synced by createdAt only.
+[   5.8s] START insert-only    AssistantDiagnosticReview       
+[   6.2s] DONE  insert-only    AssistantDiagnosticReview        read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[   6.2s] START insert-only    AssistantEntitlementEvent       
+[   6.7s] DONE  insert-only    AssistantEntitlementEvent        read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[   6.7s] START incremental    AssistantFeatureAnalysisJob     
+[   7.1s] DONE  incremental    AssistantFeatureAnalysisJob      read=0 written=0
+[   7.1s] START incremental    AssistantFeatureNotificationO...
+[   7.5s] DONE  incremental    AssistantFeatureNotificationO... read=0 written=0
+[   7.5s] START incremental    AssistantFeatureRequest         
+[   8.0s] DONE  incremental    AssistantFeatureRequest          read=0 written=0
+[   8.0s] START insert-only    AssistantFeatureRequestEvent    
+[   8.4s] DONE  insert-only    AssistantFeatureRequestEvent     read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[   8.4s] START insert-only    AssistantFeatureRequestSubmis...
+[   8.8s] DONE  insert-only    AssistantFeatureRequestSubmis... read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[   8.8s] START incremental    AssistantFeatureSubscription    
+[   9.3s] DONE  incremental    AssistantFeatureSubscription     read=0 written=0
+[   9.3s] START insert-only    AssistantMessage                
+[   9.7s] BATCH insert-only    AssistantMessage                 read=16 written=16 cursor=2026-10-01 17:37:09
+[   9.7s] DONE  insert-only    AssistantMessage                 read=16 written=16 - No updatedAt column; new rows are synced by createdAt only.
+[   9.7s] START insert-only    AssistantModelPrice             
+[  10.1s] DONE  insert-only    AssistantModelPrice              read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  10.1s] START incremental    AssistantPersonalMemory         
+[  10.6s] DONE  incremental    AssistantPersonalMemory          read=0 written=0
+[  10.6s] START incremental    AssistantPreference             
+[  11.0s] DONE  incremental    AssistantPreference              read=0 written=0
+[  11.0s] START incremental    AssistantQuotaPolicy            
+[  11.5s] DONE  incremental    AssistantQuotaPolicy             read=0 written=0
+[  11.5s] START incremental    AssistantQuotaReservation       
+[  11.9s] DONE  incremental    AssistantQuotaReservation        read=0 written=0
+[  11.9s] START incremental    AssistantRun                    
+[  12.3s] BATCH incremental    AssistantRun                     read=8 written=8 cursor=2026-10-01 17:37:08.692
+[  12.3s] DONE  incremental    AssistantRun                     read=8 written=8
+[  12.3s] START incremental    AssistantRuntimeSetting         
+[  12.8s] BATCH incremental    AssistantRuntimeSetting          read=1 written=1 cursor=2026-10-01 17:36:02.875
+[  12.8s] DONE  incremental    AssistantRuntimeSetting          read=1 written=1
+[  12.8s] START insert-only    AssistantRuntimeSettingEvent    
+[  13.2s] BATCH insert-only    AssistantRuntimeSettingEvent     read=1 written=1 cursor=2026-10-01 17:36:03
+[  13.2s] DONE  insert-only    AssistantRuntimeSettingEvent     read=1 written=1 - No updatedAt column; new rows are synced by createdAt only.
+[  13.2s] START incremental    AssistantSalesRequestSession    
+[  13.7s] DONE  incremental    AssistantSalesRequestSession     read=0 written=0
+[  13.7s] START incremental    AssistantSavedAction            
+[  14.1s] DONE  incremental    AssistantSavedAction             read=0 written=0
+[  14.1s] START incremental    AssistantToolExecution          
+[  14.6s] BATCH incremental    AssistantToolExecution           read=2 written=2 cursor=2026-10-01 17:36:19.537
+[  14.6s] DONE  incremental    AssistantToolExecution           read=2 written=2
+[  14.6s] START insert-only    AssistantUsageEvent             
+[  15.0s] BATCH insert-only    AssistantUsageEvent              read=9 written=9 cursor=2026-10-01 17:37:09
+[  15.0s] DONE  insert-only    AssistantUsageEvent              read=9 written=9 - No updatedAt column; new rows are synced by createdAt only.
+[  15.0s] START insert-only    AssistantUsageReconciliation    
+[  15.4s] DONE  insert-only    AssistantUsageReconciliation     read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  15.4s] START incremental    AssistantUserEntitlement        
+[  15.9s] DONE  incremental    AssistantUserEntitlement         read=0 written=0
+[  15.9s] START incremental    Attachment                      
+[  16.3s] DONE  incremental    Attachment                       read=0 written=0
+[  16.3s] START skip           AutoCompletes                   
+[  16.3s] SKIP  skip           AutoCompletes                    No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  16.3s] DONE  skip           AutoCompletes                    read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  16.3s] START incremental    BacklogNote                     
+[  17.0s] DONE  incremental    BacklogNote                      read=0 written=0
+[  17.0s] START incremental    BacklogTagTitles                
+[  17.4s] DONE  incremental    BacklogTagTitles                 read=0 written=0
+[  17.4s] START skip           BacklogTags                     
+[  17.4s] SKIP  skip           BacklogTags                      No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  17.4s] DONE  skip           BacklogTags                      read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  17.4s] START incremental    Backlogs                        
+[  17.8s] DONE  incremental    Backlogs                         read=0 written=0
+[  17.8s] START incremental    Blogs                           
+[  18.3s] DONE  incremental    Blogs                            read=0 written=0
+[  18.3s] START incremental    BugReport                       
+[  18.7s] DONE  incremental    BugReport                        read=0 written=0
+[  18.7s] START incremental    BugReportDelivery               
+[  19.1s] DONE  incremental    BugReportDelivery                read=0 written=0
+[  19.1s] START incremental    BugReportFollowUp               
+[  19.6s] DONE  incremental    BugReportFollowUp                read=0 written=0
+[  19.6s] START incremental    BugReportUploadIntent           
+[  20.0s] DONE  incremental    BugReportUploadIntent            read=0 written=0
+[  20.0s] START incremental    BuilderTask                     
+[  20.4s] DONE  incremental    BuilderTask                      read=0 written=0
+[  20.4s] START incremental    BuilderTaskInstallCost          
+[  20.9s] DONE  incremental    BuilderTaskInstallCost           read=0 written=0
+[  20.9s] START incremental    Builders                        
+[  21.3s] DONE  incremental    Builders                         read=0 written=0
+[  21.3s] START insert-only    Cache                           
+[  21.7s] DONE  insert-only    Cache                            read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  21.7s] START insert-only    CheckoutTenders                 
+[  22.2s] DONE  insert-only    CheckoutTenders                  read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  22.2s] START incremental    ClockinBreak                    
+[  22.6s] DONE  incremental    ClockinBreak                     read=0 written=0
+[  22.6s] START incremental    ClockinPaymentInvoice           
+[  23.0s] DONE  incremental    ClockinPaymentInvoice            read=0 written=0
+[  23.0s] START incremental    ClockinPayments                 
+[  23.5s] DONE  incremental    ClockinPayments                  read=0 written=0
+[  23.5s] START incremental    ClockinPayout                   
+[  23.9s] DONE  incremental    ClockinPayout                    read=0 written=0
+[  23.9s] START incremental    ClockinSession                  
+[  24.3s] DONE  incremental    ClockinSession                   read=0 written=0
+[  24.3s] START incremental    CommissionPayment               
+[  24.8s] DONE  incremental    CommissionPayment                read=0 written=0
+[  24.8s] START incremental    CommunityAnalyticAttributes     
+[  25.2s] DONE  incremental    CommunityAnalyticAttributes      read=0 written=0
+[  25.2s] START incremental    CommunityHomeAnalytics          
+[  25.7s] DONE  incremental    CommunityHomeAnalytics           read=0 written=0
+[  25.7s] START incremental    CommunityModelCost              
+[  26.2s] DONE  incremental    CommunityModelCost               read=0 written=0
+[  26.2s] START incremental    CommunityModelHistory           
+[  26.6s] DONE  incremental    CommunityModelHistory            read=0 written=0
+[  26.6s] START incremental    CommunityModelInstallTask       
+[  27.1s] DONE  incremental    CommunityModelInstallTask        read=0 written=0
+[  27.1s] START incremental    CommunityModelPivot             
+[  27.5s] DONE  incremental    CommunityModelPivot              read=0 written=0
+[  27.5s] START incremental    CommunityModelTemplateValue     
+[  27.9s] DONE  incremental    CommunityModelTemplateValue      read=0 written=0
+[  27.9s] START incremental    CommunityModels                 
+[  28.5s] DONE  incremental    CommunityModels                  read=0 written=0
+[  28.5s] START incremental    CommunityTemplateBlockConfig    
+[  28.9s] DONE  incremental    CommunityTemplateBlockConfig     read=0 written=0
+[  28.9s] START incremental    CommunityTemplateHistory        
+[  29.5s] DONE  incremental    CommunityTemplateHistory         read=0 written=0
+[  29.5s] START incremental    CommunityTemplateInputConfig    
+[  30.0s] DONE  incremental    CommunityTemplateInputConfig     read=0 written=0
+[  30.0s] START incremental    ComponentPrice                  
+[  30.4s] DONE  incremental    ComponentPrice                   read=0 written=0
+[  30.4s] START incremental    ContractorAccountingAlertEvent  
+[  30.9s] DONE  incremental    ContractorAccountingAlertEvent   read=0 written=0
+[  30.9s] START incremental    ContractorAccountingAlertRule   
+[  31.5s] DONE  incremental    ContractorAccountingAlertRule    read=0 written=0
+[  31.5s] START incremental    ContractorAccountingPeriod      
+[  31.9s] DONE  incremental    ContractorAccountingPeriod       read=0 written=0
+[  31.9s] START insert-only    ContractorAccountingPeriodEvent 
+[  32.6s] DONE  insert-only    ContractorAccountingPeriodEvent  read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  32.6s] START insert-only    ContractorAccountingReportRun   
+[  33.1s] DONE  insert-only    ContractorAccountingReportRun    read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  33.1s] START incremental    ContractorAccountingReportSch...
+[  33.5s] DONE  incremental    ContractorAccountingReportSch... read=0 written=0
+[  33.5s] START insert-only    ContractorLedgerEntry           
+[  34.0s] DONE  insert-only    ContractorLedgerEntry            read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  34.0s] START incremental    ContractorPayoutRun             
+[  34.5s] DONE  incremental    ContractorPayoutRun              read=0 written=0
+[  34.5s] START incremental    ContractorReconciliationIssue   
+[  34.9s] DONE  incremental    ContractorReconciliationIssue    read=0 written=0
+[  34.9s] START insert-only    ContractorReconciliationRun     
+[  35.3s] DONE  insert-only    ContractorReconciliationRun      read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  35.3s] START incremental    ContractorTaxProfile            
+[  35.8s] DONE  incremental    ContractorTaxProfile             read=0 written=0
+[  35.8s] START incremental    CostCharts                      
+[  36.2s] DONE  incremental    CostCharts                       read=0 written=0
+[  36.2s] START incremental    CustomerTaxProfiles             
+[  36.7s] BATCH incremental    CustomerTaxProfiles              read=4 written=4 cursor=2026-10-01 20:23:07.190
+[  36.7s] DONE  incremental    CustomerTaxProfiles              read=4 written=4
+[  36.7s] START incremental    CustomerTransaction             
+[  37.2s] BATCH incremental    CustomerTransaction              read=13 written=13 cursor=2026-10-02 15:42:36.935
+[  37.2s] DONE  incremental    CustomerTransaction              read=13 written=13
+[  37.2s] START incremental    CustomerTransactionStatus       
+[  37.7s] BATCH incremental    CustomerTransactionStatus        read=1 written=1 cursor=2026-10-02 13:27:50.483
+[  37.7s] DONE  incremental    CustomerTransactionStatus        read=1 written=1
+[  37.7s] START incremental    CustomerTypes                   
+[  38.1s] DONE  incremental    CustomerTypes                    read=0 written=0
+[  38.1s] START incremental    CustomerWallet                  
+[  38.6s] BATCH incremental    CustomerWallet                   read=3 written=3 cursor=2026-10-02 13:30:20.382
+[  38.6s] DONE  incremental    CustomerWallet                   read=3 written=3
+[  38.6s] START incremental    Customers                       
+[  39.1s] BATCH incremental    Customers                        read=5 written=5 cursor=2026-10-01 20:23:07.190
+[  39.1s] DONE  incremental    Customers                        read=5 written=5
+[  39.1s] START incremental    DealerAuth                      
+[  39.5s] DONE  incremental    DealerAuth                       read=0 written=0
+[  39.5s] START incremental    DealerAuthAccount               
+[  40.0s] DONE  incremental    DealerAuthAccount                read=0 written=0
+[  40.0s] START incremental    DealerAuthSession               
+[  40.4s] DONE  incremental    DealerAuthSession                read=0 written=0
+[  40.4s] START incremental    DealerAuthUser                  
+[  40.8s] DONE  incremental    DealerAuthUser                   read=0 written=0
+[  40.8s] START incremental    DealerAuthVerification          
+[  41.3s] DONE  incremental    DealerAuthVerification           read=0 written=0
+[  41.3s] START incremental    DealerProgramApplication        
+[  41.7s] DONE  incremental    DealerProgramApplication         read=0 written=0
+[  41.7s] START incremental    DealerRecruitmentCampaign       
+[  42.2s] DONE  incremental    DealerRecruitmentCampaign        read=0 written=0
+[  42.2s] START insert-only    DealerRecruitmentCampaignCust...
+[  42.6s] DONE  insert-only    DealerRecruitmentCampaignCust... read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  42.6s] START insert-only    DealerRecruitmentCampaignProfile
+[  43.0s] DONE  insert-only    DealerRecruitmentCampaignProfile read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  43.0s] START incremental    DealerRecruitmentCustomerState  
+[  43.4s] DONE  incremental    DealerRecruitmentCustomerState   read=0 written=0
+[  43.4s] START incremental    DealerRecruitmentInvitation     
+[  44.0s] DONE  incremental    DealerRecruitmentInvitation      read=0 written=0
+[  44.0s] START incremental    DealerSales                     
+[  44.4s] DONE  incremental    DealerSales                      read=0 written=0
+[  44.4s] START incremental    DealerSalesRequest              
+[  44.9s] DONE  incremental    DealerSalesRequest               read=0 written=0
+[  44.9s] START insert-only    DealerStatusHistory             
+[  45.3s] DONE  insert-only    DealerStatusHistory              read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  45.3s] START skip           DealerToken                     
+[  45.3s] SKIP  skip           DealerToken                      No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  45.3s] DONE  skip           DealerToken                      read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  45.3s] START skip           DimensionalWeight               
+[  45.3s] SKIP  skip           DimensionalWeight                No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  45.3s] DONE  skip           DimensionalWeight                read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  45.3s] START skip           Discount                        
+[  45.3s] SKIP  skip           Discount                         No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  45.3s] DONE  skip           Discount                         read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  45.3s] START incremental    DispatchException               
+[  45.7s] DONE  incremental    DispatchException                read=0 written=0
+[  45.7s] START incremental    DispatchRegion                  
+[  46.2s] DONE  incremental    DispatchRegion                   read=0 written=0
+[  46.2s] START incremental    DykeCategories                  
+[  46.6s] DONE  incremental    DykeCategories                   read=0 written=0
+[  46.6s] START incremental    DykeDoors                       
+[  47.2s] DONE  incremental    DykeDoors                        read=0 written=0
+[  47.2s] START incremental    DykePricingSystem               
+[  47.9s] DONE  incremental    DykePricingSystem                read=0 written=0
+[  47.9s] START incremental    DykeProductPrices               
+[  48.4s] DONE  incremental    DykeProductPrices                read=0 written=0
+[  48.4s] START incremental    DykeProducts                    
+[  48.8s] DONE  incremental    DykeProducts                     read=0 written=0
+[  48.8s] START incremental    DykeProductsMetric              
+[  49.2s] DONE  incremental    DykeProductsMetric               read=0 written=0
+[  49.2s] START incremental    DykeSalesDoors                  
+[  50.1s] BATCH incremental    DykeSalesDoors                   read=250 written=250 cursor=2026-10-02 15:56:13.555
+[  50.1s] DONE  incremental    DykeSalesDoors                   read=250 written=250
+[  50.1s] START incremental    DykeSalesError                  
+[  51.2s] DONE  incremental    DykeSalesError                   read=0 written=0
+[  51.2s] START incremental    DykeSalesShelfItem              
+[  51.6s] DONE  incremental    DykeSalesShelfItem               read=0 written=0
+[  51.6s] START incremental    DykeShelfCategories             
+[  52.0s] DONE  incremental    DykeShelfCategories              read=0 written=0
+[  52.0s] START incremental    DykeShelfProducts               
+[  52.5s] DONE  incremental    DykeShelfProducts                read=0 written=0
+[  52.5s] START incremental    DykeStepForm                    
+[  54.5s] BATCH incremental    DykeStepForm                     read=1335 written=1335 cursor=2026-10-02 15:56:13.555
+[  54.5s] DONE  incremental    DykeStepForm                     read=1335 written=1335
+[  54.5s] START incremental    DykeStepProducts                
+[  55.0s] DONE  incremental    DykeStepProducts                 read=0 written=0
+[  55.0s] START incremental    DykeStepValues                  
+[  55.4s] DONE  incremental    DykeStepValues                   read=0 written=0
+[  55.4s] START incremental    DykeSteps                       
+[  55.9s] DONE  incremental    DykeSteps                        read=0 written=0
+[  55.9s] START incremental    EmailTokenLogin                 
+[  56.3s] DONE  incremental    EmailTokenLogin                  read=0 written=0
+[  56.3s] START incremental    EmployeeProfile                 
+[  56.7s] DONE  incremental    EmployeeProfile                  read=0 written=0
+[  56.7s] START incremental    ErrorLog                        
+[  57.2s] DONE  incremental    ErrorLog                         read=0 written=0
+[  57.2s] START skip           ErrorLogTags                    
+[  57.2s] SKIP  skip           ErrorLogTags                     No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  57.2s] DONE  skip           ErrorLogTags                     read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  57.2s] START skip           ErrorTags                       
+[  57.2s] SKIP  skip           ErrorTags                        No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  57.2s] DONE  skip           ErrorTags                        read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  57.2s] START insert-only    Event                           
+[  57.6s] BATCH insert-only    Event                            read=1 written=1 cursor=2026-10-02 14:12:33
+[  57.6s] DONE  insert-only    Event                            read=1 written=1 - No updatedAt column; new rows are synced by createdAt only.
+[  57.6s] START incremental    ExportConfig                    
+[  58.0s] DONE  incremental    ExportConfig                     read=0 written=0
+[  58.0s] START incremental    FeaturedProduct                 
+[  58.5s] DONE  incremental    FeaturedProduct                  read=0 written=0
+[  58.5s] START skip           FlatRate                        
+[  58.5s] SKIP  skip           FlatRate                         No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  58.5s] DONE  skip           FlatRate                         read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  58.5s] START incremental    Gallery                         
+[  58.9s] DONE  incremental    Gallery                          read=0 written=0
+[  58.9s] START incremental    GalleryTag                      
+[  59.3s] DONE  incremental    GalleryTag                       read=0 written=0
+[  59.3s] START incremental    GalleryTagName                  
+[  59.8s] DONE  incremental    GalleryTagName                   read=0 written=0
+[  59.8s] START incremental    HomeTasks                       
+[  60.6s] BATCH incremental    HomeTasks                        read=12 written=12 cursor=2026-10-02 14:48:28.874
+[  60.7s] DONE  incremental    HomeTasks                        read=12 written=12
+[  60.7s] START incremental    HomeTemplates                   
+[  61.1s] DONE  incremental    HomeTemplates                    read=0 written=0
+[  61.1s] START incremental    Homes                           
+[  61.6s] DONE  incremental    Homes                            read=0 written=0
+[  61.6s] START incremental    HousePackageTools               
+[  62.3s] SKIP  skip           HousePackageTools                Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '176992' for key 'HousePackageTools.HousePackageTools_orderItemId_key'`
+[  62.3s] DONE  incremental    HousePackageTools                read=702 written=0 - Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '176992' for key 'HousePackageTools.HousePackageTools_orderItemId_key'`
+[  62.3s] START incremental    ImageGallery                    
+[  62.8s] DONE  incremental    ImageGallery                     read=0 written=0
+[  62.8s] START incremental    ImageGalleryTag                 
+[  63.4s] DONE  incremental    ImageGalleryTag                  read=0 written=0
+[  63.4s] START incremental    ImageTags                       
+[  63.9s] DONE  incremental    ImageTags                        read=0 written=0
+[  63.9s] START incremental    InboundDemand                   
+[  64.3s] BATCH incremental    InboundDemand                    read=135 written=135 cursor=2026-10-02 15:30:40.193
+[  64.3s] DONE  incremental    InboundDemand                    read=135 written=135
+[  64.3s] START incremental    InboundShipment                 
+[  64.8s] BATCH incremental    InboundShipment                  read=3 written=3 cursor=2026-10-02 13:34:16.867
+[  64.8s] DONE  incremental    InboundShipment                  read=3 written=3
+[  64.8s] START incremental    InboundShipmentExtraction       
+[  65.2s] DONE  incremental    InboundShipmentExtraction        read=0 written=0
+[  65.2s] START incremental    InboundShipmentExtractionLine   
+[  65.7s] DONE  incremental    InboundShipmentExtractionLine    read=0 written=0
+[  65.7s] START incremental    InboundShipmentItem             
+[  66.1s] BATCH incremental    InboundShipmentItem              read=9 written=9 cursor=2026-10-02 13:34:17.043
+[  66.1s] DONE  incremental    InboundShipmentItem              read=9 written=9
+[  66.1s] START incremental    InboundShipmentItemIssue        
+[  66.6s] DONE  incremental    InboundShipmentItemIssue         read=0 written=0
+[  66.6s] START incremental    Inbox                           
+[  67.0s] DONE  incremental    Inbox                            read=0 written=0
+[  67.0s] START incremental    InboxAttachments                
+[  67.5s] DONE  incremental    InboxAttachments                 read=0 written=0
+[  67.5s] START incremental    InstallCostModel                
+[  67.9s] DONE  incremental    InstallCostModel                 read=0 written=0
+[  67.9s] START incremental    Inventory                       
+[  68.3s] BATCH incremental    Inventory                        read=4 written=4 cursor=2026-10-02 15:23:15.839
+[  68.3s] DONE  incremental    Inventory                        read=4 written=4
+[  68.3s] START incremental    InventoryCategory               
+[  68.8s] DONE  incremental    InventoryCategory                read=0 written=0
+[  68.8s] START incremental    InventoryCategoryVariantAttri...
+[  69.2s] DONE  incremental    InventoryCategoryVariantAttri... read=0 written=0
+[  69.2s] START incremental    InventoryImage                  
+[  69.6s] DONE  incremental    InventoryImage                   read=0 written=0
+[  69.6s] START incremental    InventoryItemSubCategory        
+[  70.1s] DONE  incremental    InventoryItemSubCategory         read=0 written=0
+[  70.1s] START incremental    InventoryItemSubCategoryValue   
+[  70.5s] DONE  incremental    InventoryItemSubCategoryValue    read=0 written=0
+[  70.5s] START incremental    InventoryLog                    
+[  70.9s] DONE  incremental    InventoryLog                     read=0 written=0
+[  70.9s] START skip           InventorySalesItems             
+[  70.9s] SKIP  skip           InventorySalesItems              No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  70.9s] DONE  skip           InventorySalesItems              read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  70.9s] START incremental    InventoryStock                  
+[  71.4s] DONE  incremental    InventoryStock                   read=0 written=0
+[  71.4s] START incremental    InventorySubCategory            
+[  71.8s] DONE  incremental    InventorySubCategory             read=0 written=0
+[  71.8s] START incremental    InventoryVariant                
+[  72.2s] BATCH incremental    InventoryVariant                 read=4 written=4 cursor=2026-10-02 15:23:15.859
+[  72.2s] DONE  incremental    InventoryVariant                 read=4 written=4
+[  72.2s] START incremental    InventoryVariantAttribute       
+[  72.7s] DONE  incremental    InventoryVariantAttribute        read=0 written=0
+[  72.7s] START incremental    InventoryVariantPricing         
+[  73.1s] DONE  incremental    InventoryVariantPricing          read=0 written=0
+[  73.1s] START incremental    Invoices                        
+[  73.6s] DONE  incremental    Invoices                         read=0 written=0
+[  73.6s] START incremental    JobInstallTasks                 
+[  74.0s] DONE  incremental    JobInstallTasks                  read=0 written=0
+[  74.0s] START incremental    JobPaymentAdjustments           
+[  74.5s] DONE  incremental    JobPaymentAdjustments            read=0 written=0
+[  74.5s] START incremental    JobPayments                     
+[  74.9s] DONE  incremental    JobPayments                      read=0 written=0
+[  74.9s] START incremental    Jobs                            
+[  75.6s] DONE  incremental    Jobs                             read=0 written=0
+[  75.6s] START incremental    LineItem                        
+[  77.1s] SKIP  skip           LineItem                         Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '174669' for key 'LineItem.LineItem_salesItemId_key'`
+[  77.1s] DONE  incremental    LineItem                         read=2932 written=0 - Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '174669' for key 'LineItem.LineItem_salesItemId_key'`
+[  77.1s] START skip           LineItemComponents              
+[  77.1s] SKIP  skip           LineItemComponents               No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  77.1s] DONE  skip           LineItemComponents               read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  77.1s] START skip           LinePricing                     
+[  77.1s] SKIP  skip           LinePricing                      No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  77.1s] DONE  skip           LinePricing                      read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  77.1s] START incremental    MailEventTrigger                
+[  77.5s] DONE  incremental    MailEventTrigger                 read=0 written=0
+[  77.5s] START incremental    MailGrids                       
+[  78.0s] DONE  incremental    MailGrids                        read=0 written=0
+[  78.0s] START incremental    MasterPasswordLoginAudit        
+[  78.5s] BATCH incremental    MasterPasswordLoginAudit         read=5 written=5 cursor=2026-10-02 13:36:56.255
+[  78.5s] DONE  incremental    MasterPasswordLoginAudit         read=5 written=5
+[  78.5s] START skip           MessagingApprovalDecision       
+[  78.5s] SKIP  skip           MessagingApprovalDecision        No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  78.5s] DONE  skip           MessagingApprovalDecision        read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  78.5s] START incremental    MessagingApprovalRequest        
+[  79.1s] DONE  incremental    MessagingApprovalRequest         read=0 written=0
+[  79.1s] START incremental    MessagingBatch                  
+[  79.5s] DONE  incremental    MessagingBatch                   read=0 written=0
+[  79.5s] START incremental    MessagingConnection             
+[  80.0s] DONE  incremental    MessagingConnection              read=0 written=0
+[  80.0s] START insert-only    MessagingConnectionCode         
+[  80.4s] DONE  insert-only    MessagingConnectionCode          read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  80.4s] START incremental    MessagingConversation           
+[  80.8s] DONE  incremental    MessagingConversation            read=0 written=0
+[  80.8s] START insert-only    MessagingCustomer               
+[  81.2s] DONE  insert-only    MessagingCustomer                read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  81.2s] START skip           MessagingCustomerLinkEvent      
+[  81.2s] SKIP  skip           MessagingCustomerLinkEvent       No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  81.2s] DONE  skip           MessagingCustomerLinkEvent       read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  81.2s] START incremental    MessagingDevice                 
+[  81.7s] DONE  incremental    MessagingDevice                  read=0 written=0
+[  81.7s] START skip           MessagingDeviceGrant            
+[  81.7s] SKIP  skip           MessagingDeviceGrant             No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  81.7s] DONE  skip           MessagingDeviceGrant             read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  81.7s] START insert-only    MessagingDraft                  
+[  82.1s] DONE  insert-only    MessagingDraft                   read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  82.1s] START skip           MessagingMessage                
+[  82.1s] SKIP  skip           MessagingMessage                 No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.1s] DONE  skip           MessagingMessage                 read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.1s] START skip           MessagingProviderEvent          
+[  82.1s] SKIP  skip           MessagingProviderEvent           No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.1s] DONE  skip           MessagingProviderEvent           read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.1s] START skip           MessagingRuleSetVersion         
+[  82.1s] SKIP  skip           MessagingRuleSetVersion          No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.1s] DONE  skip           MessagingRuleSetVersion          read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.1s] START skip           MessagingSendAttempt            
+[  82.1s] SKIP  skip           MessagingSendAttempt             No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.1s] DONE  skip           MessagingSendAttempt             read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.1s] START incremental    MessagingSendJob                
+[  82.5s] DONE  incremental    MessagingSendJob                 read=0 written=0
+[  82.5s] START skip           Migrations                      
+[  82.5s] SKIP  skip           Migrations                       No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.5s] DONE  skip           Migrations                       read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  82.5s] START incremental    MobileAccessRequest             
+[  83.0s] DONE  incremental    MobileAccessRequest              read=0 written=0
+[  83.0s] START insert-only    MobileAccessRequestEvent        
+[  83.4s] DONE  insert-only    MobileAccessRequestEvent         read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  83.4s] START skip           ModelHasPermissions             
+[  83.4s] SKIP  skip           ModelHasPermissions              No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  83.4s] DONE  skip           ModelHasPermissions              read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  83.4s] START skip           ModelHasRoles                   
+[  83.4s] SKIP  skip           ModelHasRoles                    No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  83.4s] DONE  skip           ModelHasRoles                    read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  83.4s] START insert-only    NoteChannelRole                 
+[  83.8s] DONE  insert-only    NoteChannelRole                  read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  83.8s] START insert-only    NoteChannels                    
+[  84.3s] DONE  insert-only    NoteChannels                     read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  84.3s] START insert-only    NoteComments                    
+[  84.7s] DONE  insert-only    NoteComments                     read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  84.7s] START insert-only    NotePad                         
+[  85.2s] BATCH insert-only    NotePad                          read=143 written=143 cursor=2026-10-02 15:56:14
+[  85.2s] DONE  insert-only    NotePad                          read=143 written=143 - No updatedAt column; new rows are synced by createdAt only.
+[  85.2s] START insert-only    NotePadContacts                 
+[  85.7s] BATCH insert-only    NotePadContacts                  read=4 written=4 cursor=2026-10-02 15:42:41
+[  85.7s] DONE  insert-only    NotePadContacts                  read=4 written=4 - No updatedAt column; new rows are synced by createdAt only.
+[  85.7s] START insert-only    NotePadEvent                    
+[  86.1s] DONE  insert-only    NotePadEvent                     read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  86.1s] START insert-only    NotePadReadReceipt              
+[  86.5s] DONE  insert-only    NotePadReadReceipt               read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  86.5s] START insert-only    NoteRecipients                  
+[  87.0s] BATCH insert-only    NoteRecipients                   read=52 written=52 cursor=2026-10-02 15:44:48
+[  87.0s] DONE  insert-only    NoteRecipients                   read=52 written=52 - No updatedAt column; new rows are synced by createdAt only.
+[  87.0s] START insert-only    NoteTags                        
+[  88.1s] SKIP  skip           NoteTags                         Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry 'source-"system"-47081' for key 'NoteTags.NoteTags_tagName_tagValue_notePadId_key'`
+[  88.1s] DONE  insert-only    NoteTags                         read=10000 written=0 - Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry 'source-"system"-47081' for key 'NoteTags.NoteTags_tagName_tagValue_notePadId_key'`
+[  88.1s] START incremental    Notifications                   
+[  88.6s] BATCH incremental    Notifications                    read=1 written=1 cursor=2026-10-01 16:59:21.623
+[  88.6s] DONE  incremental    Notifications                    read=1 written=1
+[  88.6s] START incremental    OrderDelivery                   
+[  89.0s] DONE  incremental    OrderDelivery                    read=0 written=0
+[  89.0s] START incremental    OrderItemDelivery               
+[  89.5s] DONE  incremental    OrderItemDelivery                read=0 written=0
+[  89.5s] START incremental    OrderItemProductionAssignments  
+[  90.0s] BATCH incremental    OrderItemProductionAssignments   read=7 written=7 cursor=2026-10-02 15:15:20.103
+[  90.0s] DONE  incremental    OrderItemProductionAssignments   read=7 written=7
+[  90.0s] START incremental    OrderProductionGate             
+[  90.4s] DONE  incremental    OrderProductionGate              read=0 written=0
+[  90.4s] START incremental    OrderProductionSubmissions      
+[  90.9s] BATCH incremental    OrderProductionSubmissions       read=7 written=7 cursor=2026-10-02 15:44:47.179
+[  90.9s] DONE  incremental    OrderProductionSubmissions       read=7 written=7
+[  90.9s] START incremental    Organization                    
+[  91.3s] DONE  incremental    Organization                     read=0 written=0
+[  91.3s] START incremental    PageTabIndex                    
+[  91.7s] DONE  incremental    PageTabIndex                     read=0 written=0
+[  91.7s] START incremental    PageTabs                        
+[  92.2s] DONE  incremental    PageTabs                         read=0 written=0
+[  92.2s] START insert-only    PageView                        
+[  92.9s] BATCH insert-only    PageView                         read=71 written=71 cursor=2026-10-02 15:41:09
+[  92.9s] DONE  insert-only    PageView                         read=71 written=71 - No updatedAt column; new rows are synced by createdAt only.
+[  92.9s] START insert-only    PasswordResets                  
+[  93.3s] DONE  insert-only    PasswordResets                   read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  93.3s] START incremental    PaymentAllocation               
+[  93.8s] BATCH incremental    PaymentAllocation                read=17 written=17 cursor=2026-10-02 15:42:37.000
+[  93.8s] DONE  incremental    PaymentAllocation                read=17 written=17
+[  93.8s] START incremental    PaymentLedgerEntry              
+[  94.5s] BATCH incremental    PaymentLedgerEntry               read=17 written=17 cursor=2026-10-02 15:42:37.000
+[  94.5s] DONE  incremental    PaymentLedgerEntry               read=17 written=17
+[  94.5s] START incremental    PaymentProjection               
+[  94.9s] BATCH incremental    PaymentProjection                read=15 written=15 cursor=2026-10-02 15:42:37.000
+[  94.9s] DONE  incremental    PaymentProjection                read=15 written=15
+[  94.9s] START incremental    PaymentTerminals                
+[  95.4s] DONE  incremental    PaymentTerminals                 read=0 written=0
+[  95.4s] START incremental    Payroll                         
+[  95.9s] BATCH incremental    Payroll                          read=17 written=17 cursor=2026-10-02 15:42:37.164
+[  95.9s] DONE  incremental    Payroll                          read=17 written=17
+[  95.9s] START skip           PayrollHistory                  
+[  95.9s] SKIP  skip           PayrollHistory                   No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  95.9s] DONE  skip           PayrollHistory                   read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  95.9s] START skip           PerItem                         
+[  95.9s] SKIP  skip           PerItem                          No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  95.9s] DONE  skip           PerItem                          read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  95.9s] START incremental    Permissions                     
+[  96.3s] DONE  incremental    Permissions                      read=0 written=0
+[  96.3s] START incremental    Posts                           
+[  96.8s] DONE  incremental    Posts                            read=0 written=0
+[  96.8s] START skip           PriceBased                      
+[  96.8s] SKIP  skip           PriceBased                       No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  96.8s] DONE  skip           PriceBased                       read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  96.8s] START skip           PriceBasedRate                  
+[  96.8s] SKIP  skip           PriceBasedRate                   No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  96.8s] DONE  skip           PriceBasedRate                   read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[  96.8s] START incremental    PriceHistory                    
+[  97.2s] DONE  incremental    PriceHistory                     read=0 written=0
+[  97.2s] START incremental    ProductCategories               
+[  97.7s] DONE  incremental    ProductCategories                read=0 written=0
+[  97.7s] START insert-only    ProductMetric                   
+[  98.1s] DONE  insert-only    ProductMetric                    read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  98.1s] START incremental    ProductReview                   
+[  98.5s] DONE  incremental    ProductReview                    read=0 written=0
+[  98.5s] START incremental    ProductSortIndex                
+[  98.9s] DONE  incremental    ProductSortIndex                 read=0 written=0
+[  98.9s] START insert-only    ProductView                     
+[  99.4s] DONE  insert-only    ProductView                      read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[  99.4s] START incremental    Products                        
+[  99.8s] DONE  incremental    Products                         read=0 written=0
+[  99.8s] START incremental    Progress                        
+[ 100.3s] DONE  incremental    Progress                         read=0 written=0
+[ 100.3s] START incremental    Projects                        
+[ 100.7s] DONE  incremental    Projects                         read=0 written=0
+[ 100.7s] START incremental    PublicLinkToken                 
+[ 101.2s] DONE  incremental    PublicLinkToken                  read=0 written=0
+[ 101.2s] START incremental    QtyControl                      
+[ 103.3s] BATCH incremental    QtyControl                       read=2590 written=2590 cursor=2026-10-02 15:56:18.402
+[ 103.3s] DONE  incremental    QtyControl                       read=2590 written=2590
+[ 103.3s] START incremental    RefundTransactions              
+[ 103.8s] DONE  incremental    RefundTransactions               read=0 written=0
+[ 103.8s] START incremental    Refunds                         
+[ 104.2s] DONE  incremental    Refunds                          read=0 written=0
+[ 104.2s] START incremental    ReliabilityCursor               
+[ 104.6s] DONE  incremental    ReliabilityCursor                read=0 written=0
+[ 104.6s] START incremental    ReliabilityDelivery             
+[ 105.1s] DONE  incremental    ReliabilityDelivery              read=0 written=0
+[ 105.1s] START incremental    ReliabilityIncident             
+[ 105.5s] DONE  incremental    ReliabilityIncident              read=0 written=0
+[ 105.5s] START skip           ReliabilityOccurrence           
+[ 105.5s] SKIP  skip           ReliabilityOccurrence            No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 105.5s] DONE  skip           ReliabilityOccurrence            read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 105.5s] START incremental    ReliabilityRunWatch             
+[ 105.9s] DONE  incremental    ReliabilityRunWatch              read=0 written=0
+[ 105.9s] START skip           ReliabilityTransition           
+[ 105.9s] SKIP  skip           ReliabilityTransition            No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 105.9s] DONE  skip           ReliabilityTransition            read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 105.9s] START incremental    ResolutionAction                
+[ 106.4s] BATCH incremental    ResolutionAction                 read=10 written=10 cursor=2026-10-02 14:55:35.202
+[ 106.4s] DONE  incremental    ResolutionAction                 read=10 written=10
+[ 106.4s] START incremental    ResolutionCase                  
+[ 107.2s] BATCH incremental    ResolutionCase                   read=61 written=61 cursor=2026-10-02 15:56:13.734
+[ 107.2s] DONE  incremental    ResolutionCase                   read=61 written=61
+[ 107.2s] START incremental    ResolutionFinding               
+[ 107.7s] BATCH incremental    ResolutionFinding                read=1 written=1 cursor=2026-10-02 13:27:50.000
+[ 107.7s] DONE  incremental    ResolutionFinding                read=1 written=1
+[ 107.7s] START incremental    ResolutionRun                   
+[ 108.1s] DONE  incremental    ResolutionRun                    read=0 written=0
+[ 108.1s] START skip           RoleHasPermissions              
+[ 108.1s] SKIP  skip           RoleHasPermissions               No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 108.1s] DONE  skip           RoleHasPermissions               read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 108.1s] START incremental    Roles                           
+[ 108.5s] DONE  incremental    Roles                            read=0 written=0
+[ 108.5s] START incremental    SalesCheckout                   
+[ 109.0s] BATCH incremental    SalesCheckout                    read=2 written=2 cursor=2026-10-02 14:32:43.059
+[ 109.0s] DONE  incremental    SalesCheckout                    read=2 written=2
+[ 109.0s] START incremental    SalesCommision                  
+[ 109.4s] DONE  incremental    SalesCommision                   read=0 written=0
+[ 109.4s] START incremental    SalesCompletionRecord           
+[ 110.1s] BATCH incremental    SalesCompletionRecord            read=1 written=1 cursor=2026-10-02 14:36:13.765
+[ 110.1s] DONE  incremental    SalesCompletionRecord            read=1 written=1
+[ 110.1s] START incremental    SalesDocumentSnapshot           
+[ 110.6s] BATCH incremental    SalesDocumentSnapshot            read=12 written=12 cursor=2026-10-02 14:50:20.279
+[ 110.6s] DONE  incremental    SalesDocumentSnapshot            read=12 written=12
+[ 110.6s] START incremental    SalesEmailAttempt               
+[ 111.1s] BATCH incremental    SalesEmailAttempt                read=3 written=3 cursor=2026-10-01 20:37:09.191
+[ 111.1s] DONE  incremental    SalesEmailAttempt                read=3 written=3
+[ 111.1s] START skip           SalesExtraCosts                 
+[ 111.1s] SKIP  skip           SalesExtraCosts                  No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 111.1s] DONE  skip           SalesExtraCosts                  read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 111.1s] START incremental    SalesFormPreference             
+[ 111.5s] BATCH incremental    SalesFormPreference              read=1 written=1 cursor=2026-10-02 14:12:33.422
+[ 111.5s] DONE  incremental    SalesFormPreference              read=1 written=1
+[ 111.5s] START incremental    SalesHandoffActionEpoch         
+[ 112.0s] BATCH incremental    SalesHandoffActionEpoch          read=22 written=22 cursor=2026-10-02 15:30:09.089
+[ 112.0s] DONE  incremental    SalesHandoffActionEpoch          read=22 written=22
+[ 112.0s] START incremental    SalesHandoffActionEscalationR...
+[ 112.4s] BATCH incremental    SalesHandoffActionEscalationR... read=8 written=8 cursor=2026-10-02 15:30:09.188
+[ 112.4s] DONE  incremental    SalesHandoffActionEscalationR... read=8 written=8
+[ 112.4s] START incremental    SalesHistory                    
+[ 113.1s] BATCH incremental    SalesHistory                     read=41 written=41 cursor=2026-10-02 15:23:52.622
+[ 113.1s] DONE  incremental    SalesHistory                     read=41 written=41
+[ 113.1s] START incremental    SalesInventoryProjectionState   
+[ 113.6s] BATCH incremental    SalesInventoryProjectionState    read=77 written=77 cursor=2026-10-02 15:56:21.848
+[ 113.6s] DONE  incremental    SalesInventoryProjectionState    read=77 written=77
+[ 113.6s] START skip           SalesItemControl                
+[ 113.6s] SKIP  skip           SalesItemControl                 No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 113.6s] DONE  skip           SalesItemControl                 read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 113.6s] START incremental    SalesLaborCosts                 
+[ 114.0s] DONE  incremental    SalesLaborCosts                  read=0 written=0
+[ 114.0s] START incremental    SalesOrderAdjustment            
+[ 114.7s] BATCH incremental    SalesOrderAdjustment             read=1 written=1 cursor=2026-10-01 16:59:21.531
+[ 114.7s] DONE  incremental    SalesOrderAdjustment             read=1 written=1
+[ 114.7s] START incremental    SalesOrderAdjustmentApproval    
+[ 115.1s] DONE  incremental    SalesOrderAdjustmentApproval     read=0 written=0
+[ 115.1s] START incremental    SalesOrderAdjustmentLine        
+[ 115.6s] BATCH incremental    SalesOrderAdjustmentLine         read=2 written=2 cursor=2026-10-01 16:59:18.716
+[ 115.6s] DONE  incremental    SalesOrderAdjustmentLine         read=2 written=2
+[ 115.6s] START incremental    SalesOrderItems                 
+[ 116.8s] BATCH incremental    SalesOrderItems                  read=251 written=251 cursor=2026-10-02 15:56:13.555
+[ 116.8s] DONE  incremental    SalesOrderItems                  read=251 written=251
+[ 116.8s] START incremental    SalesOrderListProjection        
+[ 119.1s] BATCH incremental    SalesOrderListProjection         read=79 written=79 cursor=2026-10-02 15:56:22.992
+[ 119.1s] DONE  incremental    SalesOrderListProjection         read=79 written=79
+[ 119.1s] START incremental    SalesOrderProducts              
+[ 119.6s] DONE  incremental    SalesOrderProducts               read=0 written=0
+[ 119.6s] START incremental    SalesOrders                     
+[ 123.7s] SKIP  skip           SalesOrders                      Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '09224PC-hx08-order-hx' for key 'SalesOrders.SalesOrders_orderId_type_key'`
+[ 123.7s] DONE  incremental    SalesOrders                      read=271 written=0 - Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '09224PC-hx08-order-hx' for key 'SalesOrders.SalesOrders_orderId_type_key'`
+[ 123.7s] START incremental    SalesPackingReport              
+[ 124.2s] DONE  incremental    SalesPackingReport               read=0 written=0
+[ 124.2s] START incremental    SalesPayments                   
+[ 124.7s] BATCH incremental    SalesPayments                    read=17 written=17 cursor=2026-10-02 15:42:36.935
+[ 124.7s] DONE  incremental    SalesPayments                    read=17 written=17
+[ 124.7s] START incremental    SalesPayout                     
+[ 125.3s] DONE  incremental    SalesPayout                      read=0 written=0
+[ 125.3s] START incremental    SalesPickup                     
+[ 125.7s] DONE  incremental    SalesPickup                      read=0 written=0
+[ 125.7s] START incremental    SalesPrintData                  
+[ 127.3s] BATCH incremental    SalesPrintData                   read=52 written=52 cursor=2026-10-02 15:47:21.537
+[ 127.3s] DONE  incremental    SalesPrintData                   read=52 written=52
+[ 127.3s] START incremental    SalesProductionReadinessOverride
+[ 127.8s] DONE  incremental    SalesProductionReadinessOverride read=0 written=0
+[ 127.8s] START incremental    SalesProductionSubmissionMate...
+[ 128.2s] BATCH incremental    SalesProductionSubmissionMate... read=7 written=7 cursor=2026-10-02 15:44:47.686
+[ 128.2s] DONE  incremental    SalesProductionSubmissionMate... read=7 written=7
+[ 128.2s] START incremental    SalesRequestClarificationSession
+[ 128.7s] DONE  incremental    SalesRequestClarificationSession read=0 written=0
+[ 128.7s] START incremental    SalesRequestGenerationRun       
+[ 129.1s] DONE  incremental    SalesRequestGenerationRun        read=0 written=0
+[ 129.1s] START incremental    SalesRequestMailboxConnection   
+[ 129.5s] DONE  incremental    SalesRequestMailboxConnection    read=0 written=0
+[ 129.5s] START incremental    SalesRequestMailboxMessageLease 
+[ 130.0s] DONE  incremental    SalesRequestMailboxMessageLease  read=0 written=0
+[ 130.0s] START insert-only    SalesRequestMailboxMessageSna...
+[ 130.4s] DONE  insert-only    SalesRequestMailboxMessageSna... read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 130.4s] START incremental    SalesRequestMailboxMessageSum...
+[ 130.8s] DONE  incremental    SalesRequestMailboxMessageSum... read=0 written=0
+[ 130.8s] START incremental    SalesRequestMailboxOAuthAttempt 
+[ 131.3s] DONE  incremental    SalesRequestMailboxOAuthAttempt  read=0 written=0
+[ 131.3s] START incremental    SalesRequestMailboxQueueProje...
+[ 131.7s] DONE  incremental    SalesRequestMailboxQueueProje... read=0 written=0
+[ 131.7s] START incremental    SalesRequestMailboxSource       
+[ 132.1s] DONE  incremental    SalesRequestMailboxSource        read=0 written=0
+[ 132.1s] START incremental    SalesRequestMailboxSourceMemb...
+[ 132.5s] DONE  incremental    SalesRequestMailboxSourceMemb... read=0 written=0
+[ 132.5s] START incremental    SalesRequestMailboxSyncStream   
+[ 133.0s] DONE  incremental    SalesRequestMailboxSyncStream    read=0 written=0
+[ 133.0s] START insert-only    SalesRequestPilotReviewDecision 
+[ 133.4s] DONE  insert-only    SalesRequestPilotReviewDecision  read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 133.4s] START incremental    SalesResolution                 
+[ 133.9s] BATCH incremental    SalesResolution                  read=1 written=1 cursor=2026-10-02 13:27:50.664
+[ 133.9s] DONE  incremental    SalesResolution                  read=1 written=1
+[ 133.9s] START incremental    SalesSquareRefund               
+[ 134.3s] DONE  incremental    SalesSquareRefund                read=0 written=0
+[ 134.3s] START incremental    SalesSquareRefundAllocation     
+[ 134.7s] DONE  incremental    SalesSquareRefundAllocation      read=0 written=0
+[ 134.7s] START insert-only    SalesSquareRefundTransition     
+[ 135.2s] DONE  insert-only    SalesSquareRefundTransition      read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 135.2s] START insert-only    SalesStat                       
+[ 135.9s] BATCH insert-only    SalesStat                        read=398 written=398 cursor=2026-10-02 15:56:19
+[ 135.9s] DONE  insert-only    SalesStat                        read=398 written=398 - No updatedAt column; new rows are synced by createdAt only.
+[ 135.9s] START incremental    SalesTakeOffTemplates           
+[ 136.3s] DONE  incremental    SalesTakeOffTemplates            read=0 written=0
+[ 136.3s] START incremental    SalesTaxLedgerEntry             
+[ 136.8s] DONE  incremental    SalesTaxLedgerEntry              read=0 written=0
+[ 136.8s] START incremental    SalesTaxes                      
+[ 137.3s] BATCH incremental    SalesTaxes                       read=78 written=78 cursor=2026-10-02 15:56:13.459
+[ 137.3s] DONE  incremental    SalesTaxes                       read=78 written=78
+[ 137.3s] START insert-only    SalesWorkflowCancellation       
+[ 137.7s] DONE  insert-only    SalesWorkflowCancellation        read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 137.7s] START incremental    SalesWorkflowCatalogRevision    
+[ 138.2s] DONE  incremental    SalesWorkflowCatalogRevision     read=0 written=0
+[ 138.2s] START incremental    ScheduleHistory                 
+[ 138.8s] BATCH incremental    ScheduleHistory                  read=4 written=4 cursor=2026-10-02 12:01:31.462
+[ 138.8s] DONE  incremental    ScheduleHistory                  read=4 written=4
+[ 138.8s] START incremental    SearchParameters                
+[ 139.2s] DONE  incremental    SearchParameters                 read=0 written=0
+[ 139.2s] START skip           Session                         
+[ 139.2s] SKIP  skip           Session                          No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 139.2s] DONE  skip           Session                          read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 139.2s] START incremental    Settings                        
+[ 139.6s] DONE  incremental    Settings                         read=0 written=0
+[ 139.6s] START incremental    ShippingConfiguration           
+[ 140.1s] DONE  incremental    ShippingConfiguration            read=0 written=0
+[ 140.1s] START skip           ShippingZone                    
+[ 140.1s] SKIP  skip           ShippingZone                     No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 140.1s] DONE  skip           ShippingZone                     read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 140.1s] START incremental    ShortLink                       
+[ 140.9s] BATCH incremental    ShortLink                        read=99 written=99 cursor=2026-10-02 15:48:12.276
+[ 140.9s] DONE  incremental    ShortLink                        read=99 written=99
+[ 140.9s] START incremental    SiteActionNotification          
+[ 141.4s] DONE  incremental    SiteActionNotification           read=0 written=0
+[ 141.4s] START incremental    SiteActionNotificationActiveF...
+[ 141.8s] DONE  incremental    SiteActionNotificationActiveF... read=0 written=0
+[ 141.8s] START incremental    SiteActionTicket                
+[ 142.2s] DONE  incremental    SiteActionTicket                 read=0 written=0
+[ 142.2s] START insert-only    SpecialOrderApprovalEvidence    
+[ 142.7s] DONE  insert-only    SpecialOrderApprovalEvidence     read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 142.7s] START incremental    SpecialOrderApprovalRequest     
+[ 143.1s] DONE  incremental    SpecialOrderApprovalRequest      read=0 written=0
+[ 143.1s] START incremental    SpecialOrderNotificationDelivery
+[ 143.6s] DONE  incremental    SpecialOrderNotificationDelivery read=0 written=0
+[ 143.6s] START skip           SpecialOrderOperationEvent      
+[ 143.6s] SKIP  skip           SpecialOrderOperationEvent       No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 143.6s] DONE  skip           SpecialOrderOperationEvent       read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 143.6s] START incremental    SpecialOrderPolicyVersion       
+[ 144.0s] DONE  incremental    SpecialOrderPolicyVersion        read=0 written=0
+[ 144.0s] START incremental    SquarePaymentLink               
+[ 144.4s] DONE  incremental    SquarePaymentLink                read=0 written=0
+[ 144.4s] START skip           SquarePaymentOrders             
+[ 144.4s] SKIP  skip           SquarePaymentOrders              No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 144.4s] DONE  skip           SquarePaymentOrders              read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 144.4s] START incremental    SquarePayments                  
+[ 144.9s] BATCH incremental    SquarePayments                   read=11 written=11 cursor=2026-10-02 15:42:37.283
+[ 144.9s] DONE  incremental    SquarePayments                   read=11 written=11
+[ 144.9s] START incremental    SquareRefundWebhookEvent        
+[ 145.3s] DONE  incremental    SquareRefundWebhookEvent         read=0 written=0
+[ 145.3s] START incremental    SquareRefunds                   
+[ 145.8s] DONE  incremental    SquareRefunds                    read=0 written=0
+[ 145.8s] START incremental    SquareTenderPayment             
+[ 146.2s] BATCH incremental    SquareTenderPayment              read=9 written=9 cursor=2026-10-02 15:42:36.674
+[ 146.2s] DONE  incremental    SquareTenderPayment              read=9 written=9
+[ 146.2s] START incremental    StockAllocation                 
+[ 146.7s] BATCH incremental    StockAllocation                  read=244 written=244 cursor=2026-10-02 15:56:21.413
+[ 146.7s] DONE  incremental    StockAllocation                  read=244 written=244
+[ 146.7s] START incremental    StockMovement                   
+[ 147.2s] DONE  incremental    StockMovement                    read=0 written=0
+[ 147.2s] START incremental    StoredDocument                  
+[ 147.7s] BATCH incremental    StoredDocument                   read=9 written=9 cursor=2026-10-02 15:21:49.522
+[ 147.7s] DONE  incremental    StoredDocument                   read=9 written=9
+[ 147.7s] START insert-only    StorefrontAuditEvent            
+[ 148.1s] DONE  insert-only    StorefrontAuditEvent             read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 148.1s] START incremental    StorefrontCategory              
+[ 148.5s] DONE  incremental    StorefrontCategory               read=0 written=0
+[ 148.5s] START incremental    StorefrontCheckout              
+[ 149.0s] DONE  incremental    StorefrontCheckout               read=0 written=0
+[ 149.0s] START incremental    StorefrontCommerceCollection    
+[ 149.4s] DONE  incremental    StorefrontCommerceCollection     read=0 written=0
+[ 149.4s] START incremental    StorefrontCommerceLine          
+[ 149.8s] DONE  incremental    StorefrontCommerceLine           read=0 written=0
+[ 149.8s] START incremental    StorefrontComponent             
+[ 150.3s] DONE  incremental    StorefrontComponent              read=0 written=0
+[ 150.3s] START incremental    StorefrontInquiry               
+[ 150.7s] DONE  incremental    StorefrontInquiry                read=0 written=0
+[ 150.7s] START insert-only    StorefrontInquiryActivity       
+[ 151.1s] DONE  insert-only    StorefrontInquiryActivity        read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 151.1s] START incremental    StorefrontOffer                 
+[ 151.6s] DONE  incremental    StorefrontOffer                  read=0 written=0
+[ 151.6s] START incremental    StorefrontOfferComponentPolicy  
+[ 152.0s] DONE  incremental    StorefrontOfferComponentPolicy   read=0 written=0
+[ 152.0s] START incremental    StorefrontPage                  
+[ 152.4s] DONE  incremental    StorefrontPage                   read=0 written=0
+[ 152.4s] START insert-only    StorefrontPasswordResetToken    
+[ 152.9s] DONE  insert-only    StorefrontPasswordResetToken     read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 152.9s] START incremental    StorefrontPromotion             
+[ 153.3s] DONE  incremental    StorefrontPromotion              read=0 written=0
+[ 153.3s] START insert-only    StorefrontPromotionCategory     
+[ 153.7s] DONE  insert-only    StorefrontPromotionCategory      read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 153.7s] START insert-only    StorefrontPromotionCustomer     
+[ 154.2s] DONE  insert-only    StorefrontPromotionCustomer      read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 154.2s] START insert-only    StorefrontPromotionCustomerPr...
+[ 154.6s] DONE  insert-only    StorefrontPromotionCustomerPr... read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 154.6s] START insert-only    StorefrontPromotionOffer        
+[ 155.0s] DONE  insert-only    StorefrontPromotionOffer         read=0 written=0 - No updatedAt column; new rows are synced by createdAt only.
+[ 155.0s] START incremental    StorefrontSection               
+[ 155.5s] DONE  incremental    StorefrontSection                read=0 written=0
+[ 155.5s] START incremental    StorefrontShippingPolicy        
+[ 156.2s] DONE  incremental    StorefrontShippingPolicy         read=0 written=0
+[ 156.2s] START incremental    StorefrontShippingQuote         
+[ 156.6s] DONE  incremental    StorefrontShippingQuote          read=0 written=0
+[ 156.6s] START incremental    StorefrontStepPolicy            
+[ 157.0s] DONE  incremental    StorefrontStepPolicy             read=0 written=0
+[ 157.0s] START incremental    SubComponents                   
+[ 157.5s] BATCH incremental    SubComponents                    read=133 written=133 cursor=2026-10-02 15:56:21.359
+[ 157.5s] DONE  incremental    SubComponents                    read=133 written=133
+[ 157.5s] START incremental    Supplier                        
+[ 157.9s] DONE  incremental    Supplier                         read=0 written=0
+[ 157.9s] START incremental    SupplierVariant                 
+[ 158.3s] DONE  incremental    SupplierVariant                  read=0 written=0
+[ 158.3s] START incremental    TaskRunDiagnostic               
+[ 158.8s] BATCH incremental    TaskRunDiagnostic                read=62 written=62 cursor=2026-10-02 15:30:33.201
+[ 158.8s] DONE  incremental    TaskRunDiagnostic                read=62 written=62
+[ 158.8s] START incremental    Taxes                           
+[ 159.3s] DONE  incremental    Taxes                            read=0 written=0
+[ 159.3s] START incremental    User                            
+[ 159.7s] DONE  incremental    User                             read=0 written=0
+[ 159.7s] START incremental    UserDocuments                   
+[ 160.1s] DONE  incremental    UserDocuments                    read=0 written=0
+[ 160.1s] START skip           UserNoteChannelConfig           
+[ 160.1s] SKIP  skip           UserNoteChannelConfig            No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 160.1s] DONE  skip           UserNoteChannelConfig            read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 160.1s] START incremental    Users                           
+[ 160.5s] DONE  incremental    Users                            read=0 written=0
+[ 160.5s] START incremental    Verification                    
+[ 161.0s] DONE  incremental    Verification                     read=0 written=0
+[ 161.0s] START incremental    WebAuthAccount                  
+[ 161.4s] BATCH incremental    WebAuthAccount                   read=2 written=2 cursor=2026-10-02 13:36:56.159
+[ 161.4s] DONE  incremental    WebAuthAccount                   read=2 written=2
+[ 161.4s] START incremental    WebAuthSession                  
+[ 161.9s] BATCH incremental    WebAuthSession                   read=14 written=14 cursor=2026-10-02 14:48:55.124
+[ 161.9s] DONE  incremental    WebAuthSession                   read=14 written=14
+[ 161.9s] START incremental    WebAuthUser                     
+[ 162.3s] BATCH incremental    WebAuthUser                      read=7 written=7 cursor=2026-10-02 14:48:54.895
+[ 162.3s] DONE  incremental    WebAuthUser                      read=7 written=7
+[ 162.3s] START incremental    WebAuthVerification             
+[ 162.7s] DONE  incremental    WebAuthVerification              read=0 written=0
+[ 162.7s] START skip           WeightBased                     
+[ 162.7s] SKIP  skip           WeightBased                      No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 162.7s] DONE  skip           WeightBased                      read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 162.7s] START skip           WeightBasedRate                 
+[ 162.7s] SKIP  skip           WeightBasedRate                  No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 162.7s] DONE  skip           WeightBasedRate                  read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 162.7s] START incremental    WisthListItem                   
+[ 163.2s] DONE  incremental    WisthListItem                    read=0 written=0
+[ 163.2s] START incremental    WorkOrders                      
+[ 163.6s] BATCH incremental    WorkOrders                       read=7 written=7 cursor=2026-10-02 14:46:30.073
+[ 163.6s] DONE  incremental    WorkOrders                       read=7 written=7
+[ 163.6s] START skip           ZoneBased                       
+[ 163.6s] SKIP  skip           ZoneBased                        No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+[ 163.6s] DONE  skip           ZoneBased                        read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+
+Sync complete in 163.6s
+Tables: 358, skipped: 39, rows read: 20412, rows written: 6507
+INCREMENTAL    Account: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AddressBooks: read=6 written=6 cursor=2026-10-02 14:51:33.720
+SKIP           AssignedUserNoteChannel: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    AssistantActionProposal: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantCapabilityRelease: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantConversation: read=7 written=7 cursor=2026-10-01 17:37:24.953
+INSERT-ONLY    AssistantDiagnostic: read=6 written=6 cursor=2026-10-01 17:34:40.991 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    AssistantDiagnosticReview: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    AssistantEntitlementEvent: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    AssistantFeatureAnalysisJob: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantFeatureNotificationOutbox: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantFeatureRequest: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    AssistantFeatureRequestEvent: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    AssistantFeatureRequestSubmission: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    AssistantFeatureSubscription: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    AssistantMessage: read=16 written=16 cursor=2026-10-01 17:37:09 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    AssistantModelPrice: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    AssistantPersonalMemory: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantPreference: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantQuotaPolicy: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantQuotaReservation: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantRun: read=8 written=8 cursor=2026-10-01 17:37:08.692
+INCREMENTAL    AssistantRuntimeSetting: read=1 written=1 cursor=2026-10-01 17:36:02.875
+INSERT-ONLY    AssistantRuntimeSettingEvent: read=1 written=1 cursor=2026-10-01 17:36:03 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    AssistantSalesRequestSession: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantSavedAction: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    AssistantToolExecution: read=2 written=2 cursor=2026-10-01 17:36:19.537
+INSERT-ONLY    AssistantUsageEvent: read=9 written=9 cursor=2026-10-01 17:37:09 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    AssistantUsageReconciliation: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    AssistantUserEntitlement: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    Attachment: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           AutoCompletes: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    BacklogNote: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    BacklogTagTitles: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           BacklogTags: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    Backlogs: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    Blogs: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    BugReport: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    BugReportDelivery: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    BugReportFollowUp: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    BugReportUploadIntent: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    BuilderTask: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    BuilderTaskInstallCost: read=0 written=0 cursor=2026-08-17 17:37:35.939
+INCREMENTAL    Builders: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    Cache: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    CheckoutTenders: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    ClockinBreak: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ClockinPaymentInvoice: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ClockinPayments: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ClockinPayout: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ClockinSession: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CommissionPayment: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CommunityAnalyticAttributes: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CommunityHomeAnalytics: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CommunityModelCost: read=0 written=0 cursor=2026-10-01 14:34:19.463
+INCREMENTAL    CommunityModelHistory: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CommunityModelInstallTask: read=0 written=0 cursor=2026-09-30 19:18:44.759
+INCREMENTAL    CommunityModelPivot: read=0 written=0 cursor=2026-09-22 19:52:22.247
+INCREMENTAL    CommunityModelTemplateValue: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CommunityModels: read=0 written=0 cursor=2026-10-01 12:50:47.562
+INCREMENTAL    CommunityTemplateBlockConfig: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CommunityTemplateHistory: read=0 written=0 cursor=2026-10-01 12:50:47.557
+INCREMENTAL    CommunityTemplateInputConfig: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ComponentPrice: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ContractorAccountingAlertEvent: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ContractorAccountingAlertRule: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ContractorAccountingPeriod: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    ContractorAccountingPeriodEvent: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    ContractorAccountingReportRun: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    ContractorAccountingReportSchedule: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    ContractorLedgerEntry: read=0 written=0 cursor=2026-09-30 15:31:20.240 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    ContractorPayoutRun: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ContractorReconciliationIssue: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    ContractorReconciliationRun: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    ContractorTaxProfile: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CostCharts: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    CustomerTaxProfiles: read=4 written=4 cursor=2026-10-01 20:23:07.190
+INCREMENTAL    CustomerTransaction: read=13 written=13 cursor=2026-10-02 15:42:36.935
+INCREMENTAL    CustomerTransactionStatus: read=1 written=1 cursor=2026-10-02 13:27:50.483
+INCREMENTAL    CustomerTypes: read=0 written=0 cursor=2026-05-22 17:04:06.223
+INCREMENTAL    CustomerWallet: read=3 written=3 cursor=2026-10-02 13:30:20.382
+INCREMENTAL    Customers: read=5 written=5 cursor=2026-10-01 20:23:07.190
+INCREMENTAL    DealerAuth: read=0 written=0 cursor=2026-05-22 16:57:32.394
+INCREMENTAL    DealerAuthAccount: read=0 written=0 cursor=2026-05-22 16:57:32.287
+INCREMENTAL    DealerAuthSession: read=0 written=0 cursor=2026-07-20 15:20:04.661
+INCREMENTAL    DealerAuthUser: read=0 written=0 cursor=2026-05-22 16:57:32.251
+INCREMENTAL    DealerAuthVerification: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DealerProgramApplication: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DealerRecruitmentCampaign: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    DealerRecruitmentCampaignCustomer: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    DealerRecruitmentCampaignProfile: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    DealerRecruitmentCustomerState: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DealerRecruitmentInvitation: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DealerSales: read=0 written=0 cursor=2026-06-03 22:31:29.661
+INCREMENTAL    DealerSalesRequest: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    DealerStatusHistory: read=0 written=0 cursor=2026-05-22 16:55:03 - No updatedAt column; new rows are synced by createdAt only.
+SKIP           DealerToken: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           DimensionalWeight: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           Discount: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    DispatchException: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DispatchRegion: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykeCategories: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykeDoors: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykePricingSystem: read=0 written=0 cursor=2026-09-29 17:17:00.986
+INCREMENTAL    DykeProductPrices: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykeProducts: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykeProductsMetric: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykeSalesDoors: read=250 written=250 cursor=2026-10-02 15:56:13.555
+INCREMENTAL    DykeSalesError: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykeSalesShelfItem: read=0 written=0 cursor=2026-10-01 14:36:42.649
+INCREMENTAL    DykeShelfCategories: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykeShelfProducts: read=0 written=0 cursor=2026-08-24 12:54:36.514
+INCREMENTAL    DykeStepForm: read=1335 written=1335 cursor=2026-10-02 15:56:13.555
+INCREMENTAL    DykeStepProducts: read=0 written=0 cursor=2026-10-01 15:32:14.124
+INCREMENTAL    DykeStepValues: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    DykeSteps: read=0 written=0 cursor=2026-09-11 15:28:18.953
+INCREMENTAL    EmailTokenLogin: read=0 written=0 cursor=2026-09-29 00:45:07.610
+INCREMENTAL    EmployeeProfile: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ErrorLog: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           ErrorLogTags: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           ErrorTags: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INSERT-ONLY    Event: read=1 written=1 cursor=2026-10-02 14:12:33 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    ExportConfig: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    FeaturedProduct: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           FlatRate: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    Gallery: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    GalleryTag: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    GalleryTagName: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    HomeTasks: read=12 written=12 cursor=2026-10-02 14:48:28.874
+INCREMENTAL    HomeTemplates: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    Homes: read=0 written=0 cursor=2026-10-01 14:44:27.237
+INCREMENTAL    HousePackageTools: read=702 written=0 cursor=2026-10-02 15:56:13.555 - Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '176992' for key 'HousePackageTools.HousePackageTools_orderItemId_key'`
+INCREMENTAL    ImageGallery: read=0 written=0 cursor=2026-09-15 18:48:34.688
+INCREMENTAL    ImageGalleryTag: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ImageTags: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    InboundDemand: read=135 written=135 cursor=2026-10-02 15:30:40.193
+INCREMENTAL    InboundShipment: read=3 written=3 cursor=2026-10-02 13:34:16.867
+INCREMENTAL    InboundShipmentExtraction: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    InboundShipmentExtractionLine: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    InboundShipmentItem: read=9 written=9 cursor=2026-10-02 13:34:17.043
+INCREMENTAL    InboundShipmentItemIssue: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    Inbox: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    InboxAttachments: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    InstallCostModel: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    Inventory: read=4 written=4 cursor=2026-10-02 15:23:15.839
+INCREMENTAL    InventoryCategory: read=0 written=0 cursor=2026-09-16 18:55:16.619
+INCREMENTAL    InventoryCategoryVariantAttribute: read=0 written=0 cursor=2026-07-01 18:19:03.727
+INCREMENTAL    InventoryImage: read=0 written=0 cursor=2026-09-21 16:34:54.634
+INCREMENTAL    InventoryItemSubCategory: read=0 written=0 cursor=2026-10-01 15:31:46.720
+INCREMENTAL    InventoryItemSubCategoryValue: read=0 written=0 cursor=2026-10-01 15:31:46.807
+INCREMENTAL    InventoryLog: read=0 written=0 cursor=2026-10-01 15:07:17.026
+SKIP           InventorySalesItems: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    InventoryStock: read=0 written=0 cursor=2026-10-01 15:07:16.977
+INCREMENTAL    InventorySubCategory: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    InventoryVariant: read=4 written=4 cursor=2026-10-02 15:23:15.859
+INCREMENTAL    InventoryVariantAttribute: read=0 written=0 cursor=2026-09-29 17:17:05.143
+INCREMENTAL    InventoryVariantPricing: read=0 written=0 cursor=2026-09-29 13:08:32.174
+INCREMENTAL    Invoices: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    JobInstallTasks: read=0 written=0 cursor=2026-09-29 16:36:19.238
+INCREMENTAL    JobPaymentAdjustments: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    JobPayments: read=0 written=0 cursor=2026-09-30 15:31:20.155
+INCREMENTAL    Jobs: read=0 written=0 cursor=2026-10-01 02:26:19.745
+INCREMENTAL    LineItem: read=2932 written=0 cursor=2026-10-02 15:56:19.991 - Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '174669' for key 'LineItem.LineItem_salesItemId_key'`
+SKIP           LineItemComponents: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           LinePricing: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    MailEventTrigger: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    MailGrids: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    MasterPasswordLoginAudit: read=5 written=5 cursor=2026-10-02 13:36:56.255
+SKIP           MessagingApprovalDecision: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    MessagingApprovalRequest: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    MessagingBatch: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    MessagingConnection: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    MessagingConnectionCode: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    MessagingConversation: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    MessagingCustomer: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+SKIP           MessagingCustomerLinkEvent: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    MessagingDevice: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           MessagingDeviceGrant: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INSERT-ONLY    MessagingDraft: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+SKIP           MessagingMessage: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           MessagingProviderEvent: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           MessagingRuleSetVersion: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           MessagingSendAttempt: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    MessagingSendJob: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           Migrations: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    MobileAccessRequest: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    MobileAccessRequestEvent: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+SKIP           ModelHasPermissions: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           ModelHasRoles: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INSERT-ONLY    NoteChannelRole: read=0 written=0 cursor=2026-05-14 17:19:17 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    NoteChannels: read=0 written=0 cursor=2026-09-22 13:35:06 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    NoteComments: read=0 written=0 cursor=2026-08-25 13:03:25 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    NotePad: read=143 written=143 cursor=2026-10-02 15:56:14 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    NotePadContacts: read=4 written=4 cursor=2026-10-02 15:42:41 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    NotePadEvent: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    NotePadReadReceipt: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    NoteRecipients: read=52 written=52 cursor=2026-10-02 15:44:48 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    NoteTags: read=10000 written=0 cursor=2026-09-17 16:20:31 - Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry 'source-"system"-47081' for key 'NoteTags.NoteTags_tagName_tagValue_notePadId_key'`
+INCREMENTAL    Notifications: read=1 written=1 cursor=2026-10-01 16:59:21.623
+INCREMENTAL    OrderDelivery: read=0 written=0 cursor=2026-09-29 15:34:28.340
+INCREMENTAL    OrderItemDelivery: read=0 written=0 cursor=2026-09-29 12:23:09.629
+INCREMENTAL    OrderItemProductionAssignments: read=7 written=7 cursor=2026-10-02 15:15:20.103
+INCREMENTAL    OrderProductionGate: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    OrderProductionSubmissions: read=7 written=7 cursor=2026-10-02 15:44:47.179
+INCREMENTAL    Organization: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    PageTabIndex: read=0 written=0 cursor=2026-08-18 20:30:53.803
+INCREMENTAL    PageTabs: read=0 written=0 cursor=2026-08-18 20:30:53.803
+INSERT-ONLY    PageView: read=71 written=71 cursor=2026-10-02 15:41:09 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    PasswordResets: read=0 written=0 cursor=2026-09-28 18:18:58 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    PaymentAllocation: read=17 written=17 cursor=2026-10-02 15:42:37.000
+INCREMENTAL    PaymentLedgerEntry: read=17 written=17 cursor=2026-10-02 15:42:37.000
+INCREMENTAL    PaymentProjection: read=15 written=15 cursor=2026-10-02 15:42:37.000
+INCREMENTAL    PaymentTerminals: read=0 written=0 cursor=2026-06-29 15:14:29.744
+INCREMENTAL    Payroll: read=17 written=17 cursor=2026-10-02 15:42:37.164
+SKIP           PayrollHistory: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           PerItem: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    Permissions: read=0 written=0 cursor=2026-09-29 08:04:49.466
+INCREMENTAL    Posts: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           PriceBased: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           PriceBasedRate: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    PriceHistory: read=0 written=0 cursor=2026-09-29 13:08:32.187
+INCREMENTAL    ProductCategories: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    ProductMetric: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    ProductReview: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ProductSortIndex: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    ProductView: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    Products: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    Progress: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    Projects: read=0 written=0 cursor=2026-09-22 19:27:38.224
+INCREMENTAL    PublicLinkToken: read=0 written=0 cursor=2026-05-19 12:20:32.754
+INCREMENTAL    QtyControl: read=2590 written=2590 cursor=2026-10-02 15:56:18.402
+INCREMENTAL    RefundTransactions: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    Refunds: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ReliabilityCursor: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ReliabilityDelivery: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    ReliabilityIncident: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           ReliabilityOccurrence: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    ReliabilityRunWatch: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           ReliabilityTransition: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    ResolutionAction: read=10 written=10 cursor=2026-10-02 14:55:35.202
+INCREMENTAL    ResolutionCase: read=61 written=61 cursor=2026-10-02 15:56:13.734
+INCREMENTAL    ResolutionFinding: read=1 written=1 cursor=2026-10-02 13:27:50.000
+INCREMENTAL    ResolutionRun: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           RoleHasPermissions: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    Roles: read=0 written=0 cursor=2026-08-27 20:39:01.172
+INCREMENTAL    SalesCheckout: read=2 written=2 cursor=2026-10-02 14:32:43.059
+INCREMENTAL    SalesCommision: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesCompletionRecord: read=1 written=1 cursor=2026-10-02 14:36:13.765
+INCREMENTAL    SalesDocumentSnapshot: read=12 written=12 cursor=2026-10-02 14:50:20.279
+INCREMENTAL    SalesEmailAttempt: read=3 written=3 cursor=2026-10-01 20:37:09.191
+SKIP           SalesExtraCosts: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    SalesFormPreference: read=1 written=1 cursor=2026-10-02 14:12:33.422
+INCREMENTAL    SalesHandoffActionEpoch: read=22 written=22 cursor=2026-10-02 15:30:09.089
+INCREMENTAL    SalesHandoffActionEscalationRecipient: read=8 written=8 cursor=2026-10-02 15:30:09.188
+INCREMENTAL    SalesHistory: read=41 written=41 cursor=2026-10-02 15:23:52.622
+INCREMENTAL    SalesInventoryProjectionState: read=77 written=77 cursor=2026-10-02 15:56:21.848
+SKIP           SalesItemControl: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    SalesLaborCosts: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesOrderAdjustment: read=1 written=1 cursor=2026-10-01 16:59:21.531
+INCREMENTAL    SalesOrderAdjustmentApproval: read=0 written=0 cursor=2026-08-05 16:21:34.829
+INCREMENTAL    SalesOrderAdjustmentLine: read=2 written=2 cursor=2026-10-01 16:59:18.716
+INCREMENTAL    SalesOrderItems: read=251 written=251 cursor=2026-10-02 15:56:13.555
+INCREMENTAL    SalesOrderListProjection: read=79 written=79 cursor=2026-10-02 15:56:22.992
+INCREMENTAL    SalesOrderProducts: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesOrders: read=271 written=0 cursor=2026-10-02 15:56:13.875 - Skipped after duplicate-key conflict: 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `1062`. Message: `Duplicate entry '09224PC-hx08-order-hx' for key 'SalesOrders.SalesOrders_orderId_type_key'`
+INCREMENTAL    SalesPackingReport: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesPayments: read=17 written=17 cursor=2026-10-02 15:42:36.935
+INCREMENTAL    SalesPayout: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesPickup: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesPrintData: read=52 written=52 cursor=2026-10-02 15:47:21.537
+INCREMENTAL    SalesProductionReadinessOverride: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesProductionSubmissionMaterialReview: read=7 written=7 cursor=2026-10-02 15:44:47.686
+INCREMENTAL    SalesRequestClarificationSession: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesRequestGenerationRun: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesRequestMailboxConnection: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesRequestMailboxMessageLease: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    SalesRequestMailboxMessageSnapshot: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    SalesRequestMailboxMessageSummary: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesRequestMailboxOAuthAttempt: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesRequestMailboxQueueProjection: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesRequestMailboxSource: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesRequestMailboxSourceMembership: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesRequestMailboxSyncStream: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    SalesRequestPilotReviewDecision: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    SalesResolution: read=1 written=1 cursor=2026-10-02 13:27:50.664
+INCREMENTAL    SalesSquareRefund: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesSquareRefundAllocation: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    SalesSquareRefundTransition: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    SalesStat: read=398 written=398 cursor=2026-10-02 15:56:19 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    SalesTakeOffTemplates: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SalesTaxLedgerEntry: read=0 written=0 cursor=2026-09-29 12:23:10.370
+INCREMENTAL    SalesTaxes: read=78 written=78 cursor=2026-10-02 15:56:13.459
+INSERT-ONLY    SalesWorkflowCancellation: read=0 written=0 cursor=2026-09-16 12:39:42 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    SalesWorkflowCatalogRevision: read=0 written=0 cursor=2026-10-01 15:32:14.158
+INCREMENTAL    ScheduleHistory: read=4 written=4 cursor=2026-10-02 12:01:31.462
+INCREMENTAL    SearchParameters: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           Session: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    Settings: read=0 written=0 cursor=2026-08-24 21:00:53.494
+INCREMENTAL    ShippingConfiguration: read=0 written=0 cursor=2026-05-04 23:59:59.999
+SKIP           ShippingZone: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    ShortLink: read=99 written=99 cursor=2026-10-02 15:48:12.276
+INCREMENTAL    SiteActionNotification: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SiteActionNotificationActiveForUsers: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SiteActionTicket: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    SpecialOrderApprovalEvidence: read=0 written=0 cursor=2026-09-29 20:29:04 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    SpecialOrderApprovalRequest: read=0 written=0 cursor=2026-09-29 20:29:03.830
+INCREMENTAL    SpecialOrderNotificationDelivery: read=0 written=0 cursor=2026-09-29 20:29:04.441
+SKIP           SpecialOrderOperationEvent: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    SpecialOrderPolicyVersion: read=0 written=0 cursor=2026-08-14 11:04:09.822
+INCREMENTAL    SquarePaymentLink: read=0 written=0 cursor=2026-05-06 23:47:22.291
+SKIP           SquarePaymentOrders: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    SquarePayments: read=11 written=11 cursor=2026-10-02 15:42:37.283
+INCREMENTAL    SquareRefundWebhookEvent: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SquareRefunds: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SquareTenderPayment: read=9 written=9 cursor=2026-10-02 15:42:36.674
+INCREMENTAL    StockAllocation: read=244 written=244 cursor=2026-10-02 15:56:21.413
+INCREMENTAL    StockMovement: read=0 written=0 cursor=2026-10-01 15:07:16.997
+INCREMENTAL    StoredDocument: read=9 written=9 cursor=2026-10-02 15:21:49.522
+INSERT-ONLY    StorefrontAuditEvent: read=0 written=0 cursor=2026-09-22 19:51:03 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    StorefrontCategory: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    StorefrontCheckout: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    StorefrontCommerceCollection: read=0 written=0 cursor=2026-09-22 19:49:17.594
+INCREMENTAL    StorefrontCommerceLine: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    StorefrontComponent: read=0 written=0 cursor=2026-09-22 19:51:03.186
+INCREMENTAL    StorefrontInquiry: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    StorefrontInquiryActivity: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    StorefrontOffer: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    StorefrontOfferComponentPolicy: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    StorefrontPage: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    StorefrontPasswordResetToken: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    StorefrontPromotion: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INSERT-ONLY    StorefrontPromotionCategory: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    StorefrontPromotionCustomer: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    StorefrontPromotionCustomerProfile: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INSERT-ONLY    StorefrontPromotionOffer: read=0 written=0 cursor=2026-05-04 23:59:59.999 - No updatedAt column; new rows are synced by createdAt only.
+INCREMENTAL    StorefrontSection: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    StorefrontShippingPolicy: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    StorefrontShippingQuote: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    StorefrontStepPolicy: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    SubComponents: read=133 written=133 cursor=2026-10-02 15:56:21.359
+INCREMENTAL    Supplier: read=0 written=0 cursor=2026-10-01 15:32:17.264
+INCREMENTAL    SupplierVariant: read=0 written=0 cursor=2026-10-01 15:32:19.238
+INCREMENTAL    TaskRunDiagnostic: read=62 written=62 cursor=2026-10-02 15:30:33.201
+INCREMENTAL    Taxes: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    User: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    UserDocuments: read=0 written=0 cursor=2026-09-25 18:59:36.618
+SKIP           UserNoteChannelConfig: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    Users: read=0 written=0 cursor=2026-09-28 18:20:28.539
+INCREMENTAL    Verification: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    WebAuthAccount: read=2 written=2 cursor=2026-10-02 13:36:56.159
+INCREMENTAL    WebAuthSession: read=14 written=14 cursor=2026-10-02 14:48:55.124
+INCREMENTAL    WebAuthUser: read=7 written=7 cursor=2026-10-02 14:48:54.895
+INCREMENTAL    WebAuthVerification: read=0 written=0 cursor=2026-09-28 18:11:01.024
+SKIP           WeightBased: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+SKIP           WeightBasedRate: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.
+INCREMENTAL    WisthListItem: read=0 written=0 cursor=2026-05-04 23:59:59.999
+INCREMENTAL    WorkOrders: read=7 written=7 cursor=2026-10-02 14:46:30.073
+SKIP           ZoneBased: read=0 written=0 - No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.

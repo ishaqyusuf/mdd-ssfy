@@ -1,0 +1,78 @@
+$ bun ../../local-infra-kit/bin/dev.ts --profile gnd --filter jobs
+No killable project ports found for the selected dev filters.
+$ bun ../../local-infra-kit/bin/dev-services.ts --profile gnd
+Starting local dev services: mysql
+ Container gnd-mysql Running 
+ Container gnd-redis Running 
+Local MySQL is ready.
+turbo 2.5.8
+
+ WARNING  Unable to calculate transitive closures: No lockfile entry found for 'npm-install-checks'
+• Packages in scope: @gnd/jobs
+• Running dev in 1 packages
+• Remote caching disabled
+@gnd/jobs:dev: cache bypass, force executing 516018464f056682
+@gnd/jobs:dev: $ bun run with-env bun ../../scripts/with-trigger-profile.mjs -- trigger dev --profile redland
+@gnd/jobs:dev: $ bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd -- bun ../../scripts/with-trigger-profile.mjs -- trigger dev --profile redland
+@gnd/jobs:dev: (node:69264) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: 
+@gnd/jobs:dev: Trigger.dev (4.5.9 -> 4.7.2) | Profile: redland
+@gnd/jobs:dev: ------------------------------------------------------
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ▲  Warning: You're not running the latest CLI version, please consider updating ASAP
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: │           Current:     4.5.9
+@gnd/jobs:dev: │           Latest:      4.7.2
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: │           Run latest:  npx trigger.dev@latest
+@gnd/jobs:dev: ------------------------------------------------------
+@gnd/jobs:dev: Key: Version | Task | Run
+@gnd/jobs:dev: ------------------------------------------------------
+@gnd/jobs:dev: ○ Building local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:69391) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.1
+@gnd/jobs:dev: ○ Oct 02, 17:00:20.570 ->  20261002.1 | contractor-accounting-report-schedule | run_06gfqlvvo5rqv0i5v78kr1ms01.1
+@gnd/jobs:dev: ○ Oct 02, 17:00:22.904 ->  20261002.1 | contractor-accounting-report-schedule | run_06gfqlvvo5rqv0i5v78kr1ms01.1 | Success (59ms)
+@gnd/jobs:dev: ○ Oct 02, 17:00:38.674 ->  20261002.1 | sales-handoff-escalation-schedule | run_06gfqm2jaiqito1bqej1v4mq01.1
+@gnd/jobs:dev: ○ Oct 02, 17:00:41.119 ->  20261002.1 | sales-handoff-escalation-schedule | run_06gfqm2jaiqito1bqej1v4mq01.1 | Success (82ms)
+@gnd/jobs:dev: ○ Oct 02, 17:01:39.439 ->  20261002.1 | notification | run_06gfqmcc6lui7vj949q6e8d301.1
+@gnd/jobs:dev: ○ Oct 02, 17:01:41.504 run_06gfqmcc6lui7vj949q6e8d301.1 {"level":30,"time":1790956901503,"pid":70725,"hostname":"MacBook-Pro.local","id":5,"profileId":44,"role":"employee","name":"Izri","email":"[Redacted]","phoneNo":"9548005694","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:01:42.685 ->  20261002.1 | notification | run_06gfqmcc6lui7vj949q6e8d301.1 | Success (683ms)
+@gnd/jobs:dev: ○ Oct 02, 17:05:45.736 ->  20261002.1 | update-sales-control | run_06gfqnae8nt33gpi9tc7q7h801.1
+@gnd/jobs:dev: ○ Oct 02, 17:05:48.060 run_06gfqnae8nt33gpi9tc7q7h801.1 {"level":30,"time":1790957148060,"pid":72860,"hostname":"MacBook-Pro.local","id":5,"profileId":44,"role":"employee","name":"Izri","email":"[Redacted]","phoneNo":"9548005694","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:05:48.088 run_06gfqnae8nt33gpi9tc7q7h801.1 {"level":30,"time":1790957148088,"pid":72860,"hostname":"MacBook-Pro.local","id":5,"profileId":44,"role":"employee","name":"Izri","email":"[Redacted]","phoneNo":"9548005694","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:05:49.021 ->  20261002.1 | update-sales-control | run_06gfqnae8nt33gpi9tc7q7h801.1 | Success (625ms)
+@gnd/jobs:dev: ○ Oct 02, 17:06:54.838 ->  20261002.1 | notification | run_06gfqnis867nq3hk4cdn733501.1
+@gnd/jobs:dev: ○ Oct 02, 17:06:56.731 {"level":30,"time":1790957216721,"pid":73449,"hostname":"MacBook-Pro.local","id":26,"profileId":54,"role":"employee","name":"CARLOS","email":"[Redacted]","phoneNo":"786 626 2982","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:06:57.964 ->  20261002.1 | notification | run_06gfqnis867nq3hk4cdn733501.1 | Success (695ms)
+@gnd/jobs:dev: ○ Oct 02, 17:08:30.642 ->  20261002.1 | update-sales-control | run_06gfqnuiegs53lk95cohnb0g01.1
+@gnd/jobs:dev: ○ Oct 02, 17:08:33.341 run_06gfqnuiegs53lk95cohnb0g01.1 {"level":30,"time":1790957313341,"pid":73954,"hostname":"MacBook-Pro.local","id":26,"profileId":54,"role":"employee","name":"CARLOS","email":"[Redacted]","phoneNo":"786 626 2982","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:08:33.386 run_06gfqnuiegs53lk95cohnb0g01.1 {"level":30,"time":1790957313386,"pid":73954,"hostname":"MacBook-Pro.local","id":26,"profileId":54,"role":"employee","name":"CARLOS","email":"[Redacted]","phoneNo":"786 626 2982","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:08:34.325 ->  20261002.1 | update-sales-control | run_06gfqnuiegs53lk95cohnb0g01.1 | Success (753ms)
+@gnd/jobs:dev: ○ Oct 02, 17:09:08.575 ->  20261002.1 | bulk-mark-sales-production-completed | run_06gfqo36ht7j0418om5vg4g001.1
+@gnd/jobs:dev: ○ Oct 02, 17:09:12.130 ->  20261002.1 | update-sales-control | run_06gfqo3ker16c6u4mn7gr8ok01.1
+@gnd/jobs:dev: ○ Oct 02, 17:09:14.984 ->  20261002.1 | update-sales-control | run_06gfqo3ker16c6u4mn7gr8ok01.1 | Error (retrying skipped) (313ms)
+@gnd/jobs:dev: 
+@gnd/jobs:dev: AppError: Unable to complete, nothing to submit!
+@gnd/jobs:dev:     at createClassifiedError (file:///Users/M1PRO/Documents/code/_turbo/gnd/packages/errors/src/classify.ts:104:9)
+@gnd/jobs:dev:     at classifyError (file:///Users/M1PRO/Documents/code/_turbo/gnd/packages/errors/src/classify.ts:193:9)
+@gnd/jobs:dev:     at runDbTransaction (file:///Users/M1PRO/Documents/code/_turbo/gnd/packages/db/src/transactions.ts:36:23)
+@gnd/jobs:dev:     at run (file:///Users/M1PRO/Documents/code/_turbo/gnd/packages/jobs/src/tasks/sales/update-sales-control.ts:663:22)
+@gnd/jobs:dev:     at _tracer.startActiveSpan.attributes (file:///Users/M1PRO/Documents/code/_turbo/gnd/node_modules/.bun/@trigger.dev+core@4.5.9/node_modules/@trigger.dev/core/src/v3/workers/taskExecutor.ts:431:18)
+@gnd/jobs:dev:     at file:///Users/M1PRO/Documents/code/_turbo/gnd/node_modules/.bun/@trigger.dev+core@4.5.9/node_modules/@trigger.dev/core/src/v3/tracer.ts:135:18
+@gnd/jobs:dev:     at file:///Users/M1PRO/Documents/code/_turbo/gnd/node_modules/.bun/@trigger.dev+core@4.5.9/node_modules/@trigger.dev/core/src/v3/workers/taskExecutor.ts:426:14
+@gnd/jobs:dev:     at _RunTimelineMetricsAPI.measureMetric (file:///Users/M1PRO/Documents/code/_turbo/gnd/node_modules/.bun/@trigger.dev+core@4.5.9/node_modules/@trigger.dev/core/src/v3/runTimelineMetrics/index.ts:67:22)
+@gnd/jobs:dev:     at file:///Users/M1PRO/Documents/code/_turbo/gnd/node_modules/.bun/@trigger.dev+core@4.5.9/node_modules/@trigger.dev/core/src/v3/workers/taskExecutor.ts:190:26
+@gnd/jobs:dev:     at tryCatch (file:///Users/M1PRO/Documents/code/_turbo/gnd/node_modules/.bun/@trigger.dev+core@4.5.9/node_modules/@trigger.dev/core/src/v3/tryCatch.ts:10:18)
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:09:16.769 ->  20261002.1 | bulk-mark-sales-production-completed | run_06gfqo36ht7j0418om5vg4g001.1 | Success (1.5s)

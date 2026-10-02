@@ -1,0 +1,36 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/db/src/local-sync.test.ts:
+(pass) local db sync helpers > quotes MySQL identifiers [0.19ms]
+(pass) local db sync helpers > classifies updatedAt tables as incremental [0.82ms]
+(pass) local db sync helpers > classifies createdAt-only tables as insert-only
+(pass) local db sync helpers > skips tables without keys
+(pass) local db sync helpers > builds deterministic cursor where clause with composite keys [0.17ms]
+(pass) local db sync helpers > builds deterministic keyset where clause with composite keys [0.11ms]
+(pass) local db sync helpers > keeps cursor floor on keyset fallback scans [0.02ms]
+(pass) local db sync helpers > builds multi-row upsert SQL [0.09ms]
+(pass) local db sync helpers > serializes JSON values before raw MySQL upserts [0.21ms]
+(pass) local db sync helpers > rejects unsafe target connections [0.18ms]
+(pass) local db sync helpers > accepts explicit preview targets while preserving identity guards [0.10ms]
+(pass) local db sync helpers > parses cli args and env files [0.31ms]
+(pass) local db sync helpers > uses generic .env.local DATABASE_URL as local sync target [1.67ms]
+(pass) local db sync helpers > ignores package-level profile files [0.88ms]
+(pass) local db sync helpers > uses preview mode DATABASE_URL from .env.preview [1.01ms]
+(pass) local db sync helpers > does not inherit a database URL from the base env [0.58ms]
+(pass) local db sync helpers > uses separate cursor state files per target mode [0.24ms]
+(pass) local db sync helpers > detects raw MySQL duplicate-key errors [0.04ms]
+(pass) local db sync helpers > resets a local table with quoted identifiers and restores FK checks [0.16ms]
+(pass) local db sync helpers > restores FK checks when auto-increment reset is not supported [0.09ms]
+(pass) local db sync helpers > builds ignored duplicate reports with readable skip reasons [0.04ms]
+(pass) local db sync helpers > duplicate recovery ignore returns a skipped report [0.18ms]
+(pass) local db sync helpers > duplicate recovery cancel rethrows the original error [0.09ms]
+(pass) local db sync helpers > duplicate recovery reset clears table cursor and records one reset attempt [0.72ms]
+(pass) local db sync helpers > duplicate recovery refuses a second reset for the same table [0.04ms]
+
+packages/db/src/qty-control-sync-contract.test.ts:
+(pass) QtyControl local-sync contract > exposes an update cursor for incremental production-control sync
+
+ 26 pass
+ 0 fail
+ 58 expect() calls
+Ran 26 tests across 2 files. [846.00ms]
