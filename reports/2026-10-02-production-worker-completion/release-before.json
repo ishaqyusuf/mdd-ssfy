@@ -1,0 +1,1667 @@
+{
+  "project": "proj_caklyqpkhwrtmdbtjhjs",
+  "environment": "prod",
+  "deployment": {
+    "id": "deployment_os4jb69xubeytnpqym6js",
+    "createdAt": "2026-10-01T16:36:53.687Z",
+    "shortCode": "dpthrn6r",
+    "version": "20261001.1",
+    "runtime": "node",
+    "runtimeVersion": "21.7.3",
+    "status": "DEPLOYED",
+    "deployedAt": "2026-10-01T16:40:01.024Z",
+    "git": {
+      "dirty": false,
+      "source": "local",
+      "commitRef": "master",
+      "commitSha": "3601ee6733f1ec1c90a174d26abcfbe445ceb32b",
+      "commitMessage": "Fix approval and persistence of new configured sales door lines",
+      "commitAuthorName": "Ishaq Yusuf"
+    }
+  },
+  "worker": {
+    "worker": {
+      "id": "worker_cmupreage52me0jn0xp6nhzka",
+      "version": "20261001.1",
+      "engine": "V2",
+      "sdkVersion": "4.5.9",
+      "cliVersion": "4.5.9",
+      "tasks": [
+        {
+          "id": "task_d2g4qxyonrw99javatwv9",
+          "slug": "allocate-received-inbound-to-backorders",
+          "filePath": "src/tasks/sales/allocate-received-inbound-to-backorders.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.808Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "limit"
+            ],
+            "properties": {
+              "note": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "limit": {
+                "type": "number",
+                "default": 50
+              },
+              "authorName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "salesOrderId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inventoryVariantId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lineItemComponentIds": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_yw6o2rt3ogrrd6xi9hv2q",
+          "slug": "app-download-expiry-reminder-schedule",
+          "filePath": "src/tasks/app-download-expiry-reminder-schedule.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.851Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_s52ygur31nb4ff3roaar9",
+          "slug": "apply-sales-order-adjustment",
+          "filePath": "src/tasks/sales/apply-sales-order-adjustment.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.811Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "adjustmentId"
+            ],
+            "properties": {
+              "adjustmentId": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_hutoyabpcg6chi5nmvfvs",
+          "slug": "attach-signed-dispatch-pdf",
+          "filePath": "src/tasks/sales/attach-signed-dispatch-pdf.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.807Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "dispatchId",
+              "salesId",
+              "templateId"
+            ],
+            "properties": {
+              "salesId": {
+                "type": "number"
+              },
+              "authorId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dispatchId": {
+                "type": "number"
+              },
+              "templateId": {
+                "type": "string",
+                "default": "template-2"
+              },
+              "notificationId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "notificationIds": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_5zidxh4e74qrrkjwiir1i",
+          "slug": "backfill-sales-inventory-line-items",
+          "filePath": "src/tasks/sales/backfill-sales-inventory-line-items.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.808Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "batchSize",
+              "includeAlreadySynced",
+              "source"
+            ],
+            "properties": {
+              "source": {
+                "enum": [
+                  "old-form",
+                  "new-form",
+                  "copy-sales",
+                  "adjustment",
+                  "manual",
+                  "repair"
+                ],
+                "type": "string",
+                "default": "repair"
+              },
+              "cursorId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "batchSize": {
+                "type": "number",
+                "default": 50
+              },
+              "salesOrderIds": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "triggeredByUserId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "includeAlreadySynced": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_nucxgfpfzgm347xjsvzzn",
+          "slug": "backfill-sales-order-list-projections",
+          "filePath": "src/tasks/sales/backfill-sales-order-list-projections.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.808Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "cursorId",
+              "batchSize",
+              "maxBatches",
+              "includeDeleted"
+            ],
+            "properties": {
+              "cursorId": {
+                "type": "number",
+                "default": 0
+              },
+              "batchSize": {
+                "type": "number",
+                "default": 50
+              },
+              "maxBatches": {
+                "type": "number",
+                "default": 10
+              },
+              "includeDeleted": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_xd73uoydpeqzmkyjhe5k7",
+          "slug": "bulk-mark-sales-fulfilled",
+          "filePath": "src/tasks/sales/bulk-mark-sales-fulfilled.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.811Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_xdaomv5s6toug619h4bs5",
+          "slug": "bulk-mark-sales-production-completed",
+          "filePath": "src/tasks/sales/bulk-mark-sales-production-completed.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.807Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_wgb2pynx6judz1e89sd6g",
+          "slug": "contractor-accounting-alert-schedule",
+          "filePath": "src/tasks/contractor-accounting/alert-schedule.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.811Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_v3mp82sc2hbxu41uesvx9",
+          "slug": "contractor-accounting-report-schedule",
+          "filePath": "src/tasks/contractor-accounting/report-schedule.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.848Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_5o7h1nghoyhk8exz8cdmv",
+          "slug": "create-sales-dispatch",
+          "filePath": "src/tasks/create-sales-dispatch.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.847Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_v7xa5r1vabtr2o6mqiqub",
+          "slug": "create-sales-history",
+          "filePath": "src/tasks/sales/create-sales-history.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.807Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "author",
+              "salesNo",
+              "salesType"
+            ],
+            "properties": {
+              "author": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "salesNo": {
+                "type": "string"
+              },
+              "salesType": {
+                "enum": [
+                  "order",
+                  "quote"
+                ],
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_p358odxu9ofbbui1fwfwv",
+          "slug": "dispatch-duplicate-sweeper-schedule",
+          "filePath": "src/tasks/sales/dispatch-duplicate-sweeper-schedule.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.809Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_du8s5qtd3ehqkg7s185f9",
+          "slug": "generate-contractor-accounting-report",
+          "filePath": "src/tasks/contractor-accounting/generate-report.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.818Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "runId"
+            ],
+            "properties": {
+              "runId": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_djv8af938x2q55y54cqt8",
+          "slug": "migrate-sales-inventory-legacy-status",
+          "filePath": "src/tasks/sales/migrate-sales-inventory-legacy-status.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.810Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "salesOrderId",
+              "legacyStatus",
+              "savedOrderUpdatedAt",
+              "actor"
+            ],
+            "properties": {
+              "actor": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "legacyStatus": {
+                "enum": [
+                  "AVAILABLE",
+                  "ORDERED",
+                  "PENDING ORDER"
+                ],
+                "type": "string"
+              },
+              "salesOrderId": {
+                "type": "number"
+              },
+              "savedOrderUpdatedAt": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_373btmobdfy5v2bbrwur7",
+          "slug": "notification",
+          "filePath": "src/tasks/notifications/notifications.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.808Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_gmxoggrexvhkjx3kti5na",
+          "slug": "persist-sales-order-list-projections",
+          "filePath": "src/tasks/sales/persist-sales-order-list-projections.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.808Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "orders"
+            ],
+            "properties": {
+              "orders": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "salesOrderId",
+                    "sourceUpdatedAt"
+                  ],
+                  "properties": {
+                    "salesOrderId": {
+                      "type": "number"
+                    },
+                    "sourceUpdatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_qb5omb3dt85odu96f8pkc",
+          "slug": "process-square-sales-refund",
+          "filePath": "src/tasks/sales/process-square-refund.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.808Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "refundId"
+            ],
+            "properties": {
+              "refundId": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_91792ohrqnq6agbttm1dk",
+          "slug": "reconcile-square-sales-refunds",
+          "filePath": "src/tasks/sales/reconcile-square-refunds.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.810Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_qqpdmssxv1wfh4brghdk9",
+          "slug": "reset-sales-control",
+          "filePath": "src/tasks/sales/reset-sales-control.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.811Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "meta"
+            ],
+            "properties": {
+              "meta": {
+                "type": "object",
+                "required": [
+                  "salesId",
+                  "authorId",
+                  "authorName"
+                ],
+                "properties": {
+                  "salesId": {
+                    "type": "number"
+                  },
+                  "authorId": {
+                    "type": "number"
+                  },
+                  "authorName": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_ybvcry1k3svyvju2gxqp5",
+          "slug": "run-app-download-expiry-reminder-now",
+          "filePath": "src/tasks/app-download-expiry-reminder-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.847Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_c7jap7m8h79dn8ff2vcgv",
+          "slug": "run-app-download-expiry-reminder-test",
+          "filePath": "src/tasks/app-download-expiry-reminder-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.846Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_45zgtghkqeymju5z8dqau",
+          "slug": "run-dispatch-duplicate-sweeper-now",
+          "filePath": "src/tasks/sales/dispatch-duplicate-sweeper-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.810Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_1cs5udhd6c3whn1tuknfi",
+          "slug": "run-dispatch-duplicate-sweeper-test",
+          "filePath": "src/tasks/sales/dispatch-duplicate-sweeper-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.807Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_62t2h4mf7dwcm7k6zykti",
+          "slug": "run-inventory-full-import-now",
+          "filePath": "src/tasks/inventory/run-full-inventory-import.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.847Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "scope",
+              "strategy",
+              "compare",
+              "reset",
+              "source"
+            ],
+            "properties": {
+              "reset": {
+                "type": "boolean",
+                "default": false
+              },
+              "scope": {
+                "enum": [
+                  "active",
+                  "all"
+                ],
+                "type": "string",
+                "default": "active"
+              },
+              "source": {
+                "enum": [
+                  "manual",
+                  "event",
+                  "job"
+                ],
+                "type": "string",
+                "default": "job"
+              },
+              "compare": {
+                "type": "boolean",
+                "default": false
+              },
+              "strategy": {
+                "enum": [
+                  "handcrafted",
+                  "optimized"
+                ],
+                "type": "string",
+                "default": "optimized"
+              },
+              "categoryId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_mif9uwahoc3k3o89szg2j",
+          "slug": "run-inventory-full-import-test",
+          "filePath": "src/tasks/inventory/run-full-inventory-import.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.851Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "scope",
+              "strategy",
+              "compare",
+              "reset",
+              "source"
+            ],
+            "properties": {
+              "reset": {
+                "type": "boolean",
+                "default": false
+              },
+              "scope": {
+                "enum": [
+                  "active",
+                  "all"
+                ],
+                "type": "string",
+                "default": "active"
+              },
+              "source": {
+                "enum": [
+                  "manual",
+                  "event",
+                  "job"
+                ],
+                "type": "string",
+                "default": "job"
+              },
+              "compare": {
+                "type": "boolean",
+                "default": false
+              },
+              "strategy": {
+                "enum": [
+                  "handcrafted",
+                  "optimized"
+                ],
+                "type": "string",
+                "default": "optimized"
+              },
+              "categoryId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_7zw799iuv9zwebsd2emb2",
+          "slug": "run-inventory-reconciliation-report",
+          "filePath": "src/tasks/inventory/run-inventory-reconciliation-report.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.847Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "limit",
+              "sampleLimit"
+            ],
+            "properties": {
+              "limit": {
+                "type": "number",
+                "default": 50
+              },
+              "cursorId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sampleLimit": {
+                "type": "number",
+                "default": 10
+              },
+              "salesOrderId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_sirewpdz6puw4ie23e5v8",
+          "slug": "run-sales-daily-payment-report-now",
+          "filePath": "src/tasks/sales/sales-daily-payment-report-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.753Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_mb7jn8161b76g9gzoporz",
+          "slug": "run-sales-daily-payment-report-test",
+          "filePath": "src/tasks/sales/sales-daily-payment-report-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.758Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_inp6ao9u85xoq31329ncf",
+          "slug": "run-sales-pending-bill-reminder-now",
+          "filePath": "src/tasks/sales/sales-pending-bill-reminder-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.753Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_aoo9jcs6qafavxpnkn8xg",
+          "slug": "run-sales-pending-bill-reminder-test",
+          "filePath": "src/tasks/sales/sales-pending-bill-reminder-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.755Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_rzn8y2z8pw2cmxhurnzjb",
+          "slug": "run-storefront-lifecycle-now",
+          "filePath": "src/tasks/storefront/storefront-lifecycle-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.753Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_n88niy58948reewnhh1q3",
+          "slug": "run-unit-invoice-duplicate-sweeper-now",
+          "filePath": "src/tasks/community/unit-invoice-duplicate-sweeper.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.851Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "properties": {
+              "homeId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reason": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_psxoiikwac731uf6mvrki",
+          "slug": "sales-commission",
+          "filePath": "src/tasks/sales/sales-commission.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.755Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_stowqtq3g76xhmq4mj3sk",
+          "slug": "sales-daily-payment-report-schedule",
+          "filePath": "src/tasks/sales/sales-daily-payment-report-schedule.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.754Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_w4gm6bwwjypdw2m3svy74",
+          "slug": "sales-handoff-escalation-schedule",
+          "filePath": "src/tasks/sales/sales-handoff-escalation-schedule.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.759Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_jttjgg6a2wogurth7y4s4",
+          "slug": "sales-handoff-reconciliation-schedule",
+          "filePath": "src/tasks/sales/sales-handoff-reconciliation-schedule.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.760Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_j1vvn49x6ek2jh1bacy13",
+          "slug": "sales-pending-bill-reminder-schedule",
+          "filePath": "src/tasks/sales/sales-pending-bill-reminder-schedule.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.755Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_si8ds5bhw9zepvz1fvoqx",
+          "slug": "sales-rep-payment-received-notification",
+          "filePath": "src/tasks/sales/sales-rep-payment-received-notification.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.755Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "printType"
+            ],
+            "properties": {
+              "salesIds": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "salesNos": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "emailType": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "with payment",
+                      "with part payment",
+                      "without payment"
+                    ],
+                    "type": "string",
+                    "default": "with payment"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "printType": {
+                "enum": [
+                  "order",
+                  "quote"
+                ],
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_gv439fzrmffb5org6rqud",
+          "slug": "send-composed-email",
+          "filePath": "src/tasks/sales/send-composed-email.tsx",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.753Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "data",
+              "from",
+              "to",
+              "preview"
+            ],
+            "properties": {
+              "to": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "data": {},
+              "from": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "preview": {
+                "type": "string"
+              },
+              "subject": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_uikcpab9e5oxmy8dfdb6o",
+          "slug": "send-sales-email",
+          "filePath": "src/tasks/sales/send-sales-email.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.754Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "printType"
+            ],
+            "properties": {
+              "salesIds": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "salesNos": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "emailType": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "with payment",
+                      "with part payment",
+                      "without payment"
+                    ],
+                    "type": "string",
+                    "default": "with payment"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "printType": {
+                "enum": [
+                  "order",
+                  "quote"
+                ],
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_h5rwg8ysij1dr17m5ymkv",
+          "slug": "send-sales-reminder",
+          "filePath": "src/tasks/sales/send-sales-reminder.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.752Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "sales",
+              "salesRepEmail",
+              "salesRep"
+            ],
+            "properties": {
+              "sales": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "salesIds",
+                    "customerEmail",
+                    "customerName"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "order",
+                        "quote"
+                      ],
+                      "type": "string"
+                    },
+                    "salesIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "customerName": {
+                      "type": "string"
+                    },
+                    "paymentToken": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "customerEmail": {
+                      "type": "string"
+                    },
+                    "downloadToken": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "salesRep": {
+                "type": "string"
+              },
+              "salesRepId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "salesRepEmail": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_4hip7d4d52u9dwyo6avuz",
+          "slug": "send-storefront-order-confirmation-email",
+          "filePath": "src/tasks/storefront/send-storefront-order-confirmation-email.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.754Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "email",
+              "name",
+              "orderId"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "orderId": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_tt7mvwgtqg1cz69o6hkno",
+          "slug": "square-sales-refund-reconciliation-schedule",
+          "filePath": "src/tasks/sales/reconcile-square-refunds.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.808Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_zx84nhqdkb4hgd3hcygax",
+          "slug": "storefront-custom-inquiry-submitted",
+          "filePath": "src/tasks/storefront/send-storefront-custom-inquiry-notifications.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.721Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "inquiryId"
+            ],
+            "properties": {
+              "inquiryId": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_y2huco5rmj7gueg1se7e1",
+          "slug": "storefront-lifecycle-schedule",
+          "filePath": "src/tasks/storefront/storefront-lifecycle-schedule.ts",
+          "triggerSource": "SCHEDULED",
+          "createdAt": "2026-10-01T16:39:11.746Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_eztaz9ag64nfmjthz53mt",
+          "slug": "sync-dyke-step-to-inventory",
+          "filePath": "src/tasks/inventory/sync-dyke-step-to-inventory.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.849Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "stepId",
+              "compare",
+              "strategy",
+              "source"
+            ],
+            "properties": {
+              "source": {
+                "enum": [
+                  "manual",
+                  "event",
+                  "job"
+                ],
+                "type": "string",
+                "default": "event"
+              },
+              "stepId": {
+                "type": "number"
+              },
+              "compare": {
+                "type": "boolean",
+                "default": false
+              },
+              "strategy": {
+                "enum": [
+                  "handcrafted",
+                  "optimized"
+                ],
+                "type": "string",
+                "default": "optimized"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_cpw6jmk19uts1wq29qi2p",
+          "slug": "sync-inventory-to-dyke",
+          "filePath": "src/tasks/inventory/sync-inventory-to-dyke.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.848Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "mode",
+              "source"
+            ],
+            "properties": {
+              "mode": {
+                "enum": [
+                  "compare",
+                  "sync"
+                ],
+                "type": "string",
+                "default": "sync"
+              },
+              "source": {
+                "enum": [
+                  "inventory-form",
+                  "category-form",
+                  "variant-form",
+                  "variant-price",
+                  "supplier-variant",
+                  "repair"
+                ],
+                "type": "string",
+                "default": "repair"
+              },
+              "inventoryId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "triggeredByUserId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inventoryVariantId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inventoryCategoryId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_7iq8jmvac4yqv9ey6mktq",
+          "slug": "sync-sales-inventory-line-items",
+          "filePath": "src/tasks/sales/sync-sales-inventory-line-items.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.755Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "salesOrderId",
+              "source"
+            ],
+            "properties": {
+              "source": {
+                "enum": [
+                  "old-form",
+                  "new-form",
+                  "copy-sales",
+                  "adjustment",
+                  "manual",
+                  "repair"
+                ],
+                "type": "string",
+                "default": "manual"
+              },
+              "salesOrderId": {
+                "type": "number"
+              },
+              "skipInventory": {
+                "type": "boolean"
+              },
+              "triggeredByUserId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "id": "task_gv9bjww7vtgdyfpacicty",
+          "slug": "update-sales-control",
+          "filePath": "src/tasks/sales/update-sales-control.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.751Z",
+          "payloadSchema": null
+        },
+        {
+          "id": "task_x6j5w4ctpioruse6pn5sk",
+          "slug": "warm-sales-document-snapshot",
+          "filePath": "src/tasks/sales/warm-sales-document-snapshot.ts",
+          "triggerSource": "STANDARD",
+          "createdAt": "2026-10-01T16:39:11.717Z",
+          "payloadSchema": {
+            "type": "object",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "required": [
+              "salesOrderId",
+              "mode",
+              "templateId",
+              "forceRegenerate"
+            ],
+            "properties": {
+              "mode": {
+                "enum": [
+                  "invoice",
+                  "quote",
+                  "packing-slip",
+                  "production",
+                  "order-packing"
+                ],
+                "type": "string"
+              },
+              "dispatchId": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "snapshotId": {
+                "type": "string"
+              },
+              "templateId": {
+                "type": "string",
+                "default": "template-2"
+              },
+              "salesOrderId": {
+                "type": "number"
+              },
+              "forceRegenerate": {
+                "type": "boolean",
+                "default": false
+              },
+              "assistantRequest": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "scopeType",
+                  "scopeId",
+                  "sourceRevision"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "number"
+                  },
+                  "scopeId": {
+                    "type": "string"
+                  },
+                  "scopeType": {
+                    "enum": [
+                      "organization",
+                      "user"
+                    ],
+                    "type": "string"
+                  },
+                  "sourceRevision": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      ]
+    },
+    "urls": {
+      "runs": "https://cloud.trigger.dev/orgs/gnd-millwork-eabc/projects/gnd-zHzt/env/prod/runs?versions=20261001.1"
+    }
+  },
+  "schedules": [
+    {
+      "id": "sched_3a3xsnpm57a6hfen4d9n6",
+      "type": "DECLARATIVE",
+      "task": "sales-handoff-escalation-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "*/15 * * * *",
+        "description": "Every 15 minutes"
+      },
+      "timezone": "America/New_York",
+      "nextRun": "2026-10-02T16:45:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    },
+    {
+      "id": "sched_p14n22ciop28rsk3wxi16",
+      "type": "DECLARATIVE",
+      "task": "square-sales-refund-reconciliation-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "17 * * * *",
+        "description": "At 17 minutes past the hour"
+      },
+      "timezone": "UTC",
+      "nextRun": "2026-10-02T17:17:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    },
+    {
+      "id": "sched_vh61trv9an2zgqhok2145",
+      "type": "DECLARATIVE",
+      "task": "contractor-accounting-report-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "0 * * * *",
+        "description": "Every hour"
+      },
+      "timezone": "UTC",
+      "nextRun": "2026-10-02T17:00:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    },
+    {
+      "id": "sched_k9p35ev4zbfrf1yj2ym67",
+      "type": "DECLARATIVE",
+      "task": "contractor-accounting-alert-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "15 * * * *",
+        "description": "At 15 minutes past the hour"
+      },
+      "timezone": "UTC",
+      "nextRun": "2026-10-02T17:15:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    },
+    {
+      "id": "sched_a4kyqbr9p772wsh4i2jnr",
+      "type": "DECLARATIVE",
+      "task": "storefront-lifecycle-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "30 3 * * *",
+        "description": "At 03:30 AM"
+      },
+      "timezone": "America/New_York",
+      "nextRun": "2026-10-03T07:30:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    },
+    {
+      "id": "sched_9pghhifv7r39v2znz87mw",
+      "type": "DECLARATIVE",
+      "task": "sales-daily-payment-report-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "59 23 * * *",
+        "description": "At 11:59 PM"
+      },
+      "timezone": "America/New_York",
+      "nextRun": "2026-10-03T03:59:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    },
+    {
+      "id": "sched_bwwebdsa94xsb98ox5mz5",
+      "type": "DECLARATIVE",
+      "task": "app-download-expiry-reminder-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "0 8 * * *",
+        "description": "At 08:00 AM"
+      },
+      "timezone": "America/New_York",
+      "nextRun": "2026-10-03T12:00:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    },
+    {
+      "id": "sched_v8x524nwvex8g5mo8rqb4",
+      "type": "DECLARATIVE",
+      "task": "dispatch-duplicate-sweeper-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "0 3 * * *",
+        "description": "At 03:00 AM"
+      },
+      "timezone": "America/New_York",
+      "nextRun": "2026-10-03T07:00:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    },
+    {
+      "id": "sched_y3hbunk98pj3o8vnuqpwk",
+      "type": "DECLARATIVE",
+      "task": "sales-pending-bill-reminder-schedule",
+      "active": true,
+      "externalId": null,
+      "generator": {
+        "type": "CRON",
+        "expression": "0 8 * * 1",
+        "description": "At 08:00 AM, only on Monday"
+      },
+      "timezone": "America/New_York",
+      "nextRun": "2026-10-05T12:00:00.000Z",
+      "environments": [
+        {
+          "id": "cm6td4roo0d7uoc1vlqyikwfi",
+          "type": "PRODUCTION"
+        }
+      ]
+    }
+  ]
+}

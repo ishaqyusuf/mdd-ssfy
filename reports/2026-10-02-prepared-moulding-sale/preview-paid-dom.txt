@@ -1,0 +1,467 @@
+- list
+- region "Notifications alt+T"
+- complementary:
+  - button:
+  - navigation:
+    - link:
+      - /url: /assistant
+    - link:
+      - /url: /sales-dashboard
+    - link:
+      - /url: /storefront
+    - link:
+      - /url: /sales-rep
+    - link:
+      - /url: /sales-book/finance
+    - link:
+      - /url: /sales-book/reports
+    - link:
+      - /url: /product-report
+    - link:
+      - /url: /sales-book/orders
+    - link:
+      - /url: /sales-book/orders/bin
+    - link:
+      - /url: /sales-form/create-order
+    - link:
+      - /url: /sales-form/create-quote
+    - link:
+      - /url: /sales-book/shelf-items
+    - link:
+      - /url: /sales-book/requests
+    - link:
+      - /url: /sales-book/emails
+    - link:
+      - /url: /sales-book/quotes
+    - link:
+      - /url: /sales-book/inbounds
+    - link:
+      - /url: /sales-book/productions
+    - link:
+      - /url: /sales/packing-list
+    - link:
+      - /url: /sales-book/fulfillment/v2
+    - link:
+      - /url: /sales-book/customers
+    - link:
+      - /url: /sales-book/dealers
+    - link:
+      - /url: /settings/profile
+    - link:
+      - /url: /settings/sales
+    - link:
+      - /url: /settings/assistant
+    - link:
+      - /url: /settings/sales-form-adoption
+    - link:
+      - /url: /task-events
+    - link:
+      - /url: /settings/master-password-logins
+    - link:
+      - /url: /site-actions
+    - link:
+      - /url: /settings/notification-channels/v2
+    - link:
+      - /url: /settings/bug-reports
+    - link:
+      - /url: /settings/short-links
+    - link:
+      - /url: /support/mobile-app
+  - link:
+    - /url: /
+  - button:
+    - generic: PC
+- banner:
+  - heading [level=1]:
+    - generic: Current page
+    - generic: Edit Order | 09955PC
+  - button:
+    - generic: Find anything...
+    - generic: ⌘
+    - text: K
+  - navigation:
+    - list:
+      - button:
+        - text: Reports
+  - link:
+    - /url: /assistant?newSalesRequest=order
+  - link:
+    - /url: /sales-rep?tab=requests
+    - generic: 6 sales requests
+  - button:
+  - button [pressed]:
+  - button:
+    - generic: "8"
+  - button:
+    - generic: PA
+- main:
+  - paragraph: Sales Invoice Editor
+  - heading [level=2]: "#09955PC 10/02/26"
+  - generic: Idle
+  - generic: "Last saved: 10/2/2026, 5:56:44 PM"
+  - button:
+    - generic: Use legacy sales form
+  - button:
+    - text: Overview
+  - button:
+  - button:
+  - button:
+  - button:
+    - generic: Actions
+  - generic: "ITEM 1:"
+  - textbox:
+    - /placeholder: MOULDINGS
+    - text: Mouldings
+  - generic: $417.90
+  - button:
+  - button:
+  - navigation:
+    - list:
+      - button: MOULDINGS
+      - generic: /
+      - button: FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED, FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6
+      - generic: /
+      - button: Line Item
+  - paragraph: "Select Component: Line Item"
+  - button:
+    - text: Add Moulding
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader: Moulding
+        - columnheader: Qty
+        - columnheader: Estimate
+        - columnheader: Line Total
+        - columnheader: Remove
+    - rowgroup:
+      - row:
+        - cell:
+          - paragraph: FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED
+        - cell:
+          - button:
+          - generic: Moulding line 1 quantity
+          - button:
+          - spinbutton: "15"
+          - button:
+        - cell:
+          - button:
+            - generic: $13.46
+        - cell: $201.90
+        - cell:
+          - button:
+      - row:
+        - cell:
+          - paragraph: FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6
+        - cell:
+          - button:
+          - generic: Moulding line 2 quantity
+          - button:
+          - spinbutton: "18"
+          - button:
+        - cell:
+          - button:
+            - generic: $15.02
+        - cell: $216.00
+        - cell:
+          - button:
+    - rowgroup:
+      - row:
+        - cell: Total
+        - cell: "33"
+        - cell
+        - cell: $417.90
+        - cell
+  - button:
+  - button [disabled]:
+  - button:
+  - button:
+  - button:
+  - button:
+  - button:
+  - button:
+  - button: Save (5)
+  - button: Save & Close
+  - button: Save & New
+  - button: Cancel
+- complementary:
+  - heading [level=3]: Invoice Summary
+  - button: Summary
+  - button: History
+  - paragraph: Special Order
+  - generic: Not required
+  - radio [checked]: "No"
+  - radio: "Yes"
+  - heading [level=3]: Customer
+  - button: Edit
+  - button: Change
+  - generic: AD
+  - button [expanded]:
+    - paragraph: Aixa Delgado
+  - paragraph: "Account #: 3532"
+  - generic: CUSTOMER
+  - combobox
+  - button:
+    - text: Billing Address
+    - generic: Edit
+    - generic: Aixa Delgado
+    - generic: 786-626-2151
+  - button:
+    - text: Shipping Address
+    - generic: Edit
+    - generic: same as billing
+  - heading [level=3]: Global Invoice Details
+  - paragraph: Purchase order, payment terms, and fulfillment.
+  - generic: P.O. Number
+  - textbox:
+    - /placeholder: Purchase order number
+  - generic: Net
+  - combobox
+  - generic: Fulfillment
+  - combobox:
+    - generic: pickup
+  - heading [level=3]: Due Dates
+  - paragraph: Production and fulfillment target dates for this order.
+  - generic: Production
+  - button:
+    - text: Pick a date
+  - generic: Fulfillment
+  - button:
+    - text: Pick a date
+  - heading [level=3]: Totals & Pricing
+  - paragraph: Invoice-wide charges, tax, and payment settings.
+  - generic: Subtotal (All Items)
+  - generic: $417.90
+  - generic: Payment Method
+  - combobox
+  - generic: Tax Group
+  - combobox
+  - generic: Tax Amount
+  - generic: $29.25
+  - generic: Total Labor Cost
+  - generic: Global calculation
+  - generic: $
+  - spinbutton: "0"
+  - text: Additional Costs
+  - paragraph: Select a cost type, then edit its label and amount.
+  - generic: +$0.00
+  - paragraph: No additional costs added.
+  - button:
+    - text: Add Cost
+  - generic: CCC (3%)
+  - generic: Credit card processing surcharge
+  - generic: $13.41
+  - generic: Customer Credit Limit
+  - generic: N/A
+  - generic: Grand Total
+  - generic: $460.56
+  - button: Save
+  - button:
+- button:
+  - generic: "4"
+- generic: 2xl
+- alert
+- dialog "09955PC | Aixa Delgado":
+  - paragraph: Sales overview · Order
+  - heading [level=2]:
+    - generic: 09955PC | Aixa Delgado
+  - generic: Ready
+  - generic: •
+  - generic: Inbound
+  - generic: No status
+  - generic: •
+  - generic: Updated 7m
+  - combobox:
+    - generic: Normal
+  - button:
+  - tablist:
+    - tab [selected]:
+      - generic: General
+    - tab [disabled]:
+      - generic: Productions
+      - generic: "0"
+    - tab:
+      - generic: Transactions
+      - generic: "1"
+    - tab:
+      - generic: Inventory
+    - tab:
+      - generic: Dispatch
+    - tab:
+      - generic: Packing
+  - tabpanel:
+    - region:
+      - heading [level=2]:
+        - text: Customer
+      - button:
+        - text: Edit
+      - button: Aixa Delgado
+      - link:
+        - /url: tel:786-626-2151
+        - generic: 786-626-2151
+      - button:
+        - text: Addresses
+      - strong: Ready
+      - generic: "Inbound: No status"
+      - generic: Order
+    - region "Order details":
+      - heading [level=2]:
+        - text: Order details
+      - term: Order number
+      - definition: 09955PC
+      - term: Age
+      - definition: 7m
+      - term: Type
+      - definition: order
+      - term: Inbound status
+      - definition:
+        - generic: No status
+      - term: P.O. number
+      - definition:
+        - textbox
+        - button:
+      - term: Sales representative
+      - definition:
+        - generic: Pablo Cruz (PC)
+        - button:
+          - text: Change rep
+      - term: Delivery option
+      - definition:
+        - button:
+          - generic: pickup
+          - generic: ·
+          - generic: Set date
+    - region:
+      - heading [level=2]:
+        - text: Operations
+      - strong: Production
+      - generic: Not Required
+      - progressbar
+      - strong: Fulfillment
+      - generic: Backlog
+      - progressbar
+    - complementary:
+      - region:
+        - heading [level=2]: Invoice
+        - generic: Settled
+        - term: Total
+        - definition: $447.15
+        - term: Paid
+        - definition: $447.15
+        - term: Balance due
+        - definition: $0.00
+        - generic: Payment method
+        - generic: Credit Card
+        - generic: View breakdown
+  - button:
+    - generic: Preview
+  - button:
+    - generic: Edit
+  - button:
+    - generic: More
+  - heading [level=2]: Activity
+  - button:
+  - heading [level=4]: Activity History
+  - button:
+    - generic: All channels
+  - paragraph: Oct 2, 2026, 5:58 PM
+  - paragraph: Payment recorded
+  - paragraph: Aixa Delgado payment recorded for order 09955PC.
+  - paragraph: By Aixa Delgado
+  - paragraph: $447.15 via credit-card
+  - textbox:
+    - /placeholder: Write a sales activity note...
+  - button:
+  - button:
+    - generic: Sales Info
+  - button: Black
+  - button [disabled]:
+- dialog "Sales preview":
+  - heading "Sales preview" [level=2]
+  - button "Close preview"
+  - article:
+    - img "GND logo"
+    - generic: 13285 SW 131 ST
+    - generic: Miami, Fl 33186
+    - generic: 305-278-6555
+    - generic: "Fax: 305-278-2003"
+    - generic: support@gndmillwork.com
+    - generic: Invoice
+    - generic: "Order #"
+    - generic: 09955-PC
+    - generic: Order Date
+    - generic: 10/02/26
+    - generic: Rep
+    - generic: Pablo Cruz
+    - generic: PAID
+    - generic: 10/02/26
+    - img "Document QR"
+    - generic: Bill To
+    - generic: AIXA DELGADO
+    - generic: 786-626-2151
+    - generic: Ship To
+    - generic: AIXA DELGADO
+    - generic: 786-626-2151
+    - generic: Mouldings
+    - table:
+      - rowgroup:
+        - row "# Items Qty Rate Total":
+          - columnheader "#"
+          - columnheader "Items"
+          - columnheader "Qty"
+          - columnheader "Rate"
+          - columnheader "Total"
+      - rowgroup:
+        - row "1 FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED 15 $13.46 $201.90":
+          - cell "1":
+            - generic: "1"
+          - cell "FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED":
+            - generic: FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED
+          - cell "15":
+            - generic: "15"
+          - cell "$13.46":
+            - generic: $13.46
+          - cell "$201.90":
+            - generic: $201.90
+        - row "2 FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6 18 $12.00 $216.00":
+          - cell "2":
+            - generic: "2"
+          - cell "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6":
+            - generic: FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6
+          - cell "18":
+            - generic: "18"
+          - cell "$12.00":
+            - generic: $12.00
+          - cell "$216.00":
+            - generic: $216.00
+    - generic: Subtotal
+    - generic: $417.90
+    - generic: County & State Tax 7%
+    - generic: $29.25
+    - generic: Order Total
+    - generic: $447.15
+    - generic: Paid Toward Order
+    - generic: $447.15
+    - generic: Card Payment
+    - generic: $447.15
+    - generic: C.C.C. on Card Payment
+    - generic: $13.41
+    - generic: Charged to Card
+    - generic: $460.56
+    - generic: Balance Due
+    - generic: $0.00
+    - generic: Customer Signature
+    - generic: Date
+  - button "Send document":
+    - generic: Send document
+  - button "Print":
+    - generic: Print
+  - button "PDF":
+    - generic: PDF
+  - button "Regenerate":
+    - generic: Regenerate
+  - button "Open Overview":
+    - generic: Open Overview
+  - button "Close":
+    - generic: Close
+  - button "Close" [active]:
+    - generic: Close

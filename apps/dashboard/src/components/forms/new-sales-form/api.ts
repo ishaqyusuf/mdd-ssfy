@@ -2,10 +2,14 @@ import { useTRPC, useTRPCClient } from "@/trpc/client";
 import type { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useMemo } from "react";
+import {
+	isInitialCatalogRankingPending,
+	mergeComponentsWithUsage,
+} from "./catalog-picker-state";
 import { isSalesCatalogCacheEnabled } from "./catalog-rollout";
-import { getRoutingStaleTime } from "./routing-query-policy";
 import type { SalesRequestGeneratePreviewVariables } from "./request-generation-controller";
 import type { SalesRequestGeneratePreviewOutput } from "./request-generation-controller";
+import { getRoutingStaleTime } from "./routing-query-policy";
 import type {
 	NewSalesFormBootstrapInput,
 	NewSalesFormDeleteLineItemInput,
@@ -232,24 +236,6 @@ export function useCustomerTaxProfilesQuery(enabled = true) {
 	});
 }
 
-function mergeComponentsWithUsage(
-	components: RouterOutputs["newSalesForm"]["getComponentCatalog"]["components"],
-	usage: Array<{ id: number; statistics: number }>,
-) {
-	const usageById = new Map(usage.map((row) => [row.id, row.statistics]));
-	return components
-		.map((component) => ({
-			...component,
-			statistics: usageById.get(component.id) ?? 0,
-		}))
-		.sort(
-			(a, b) =>
-				b.statistics - a.statistics ||
-				String(a.title || "").localeCompare(String(b.title || "")) ||
-				String(a.uid || "").localeCompare(String(b.uid || "")),
-		);
-}
-
 export function useSalesStepComponentsQuery(
 	input: { stepId?: number | null; stepTitle?: string | null },
 	enabled = true,
@@ -288,23 +274,33 @@ export function useSalesStepComponentsQuery(
 	const usageQuery = useQuery(
 		trpc.newSalesForm.getComponentUsageRanks.queryOptions(selector, {
 			// tRPC batches queries started together; a cold count must not hold
-			// the cached catalog response or its first component render.
+			// the catalog response. Keep the picker skeleton until ranks settle.
 			enabled: shouldLoad && cacheEnabled && !!catalogQuery.data,
 			initialData: initialUsage,
 			staleTime: 5 * 60 * 1000,
 			gcTime: 15 * 60 * 1000,
 		}),
 	);
+	const rankingPending = isInitialCatalogRankingPending({
+		enabled: shouldLoad,
+		catalogPending: catalogQuery.isPending,
+		catalogError: catalogQuery.isError,
+		usagePending: usageQuery.isPending,
+	});
 	const components = useMemo(() => {
-		if (!catalogQuery.data?.components) return undefined;
+		if (rankingPending || !catalogQuery.data?.components) return undefined;
 		return mergeComponentsWithUsage(
 			catalogQuery.data.components,
 			usageQuery.data || [],
 		);
-	}, [catalogQuery.data?.components, usageQuery.data]);
+	}, [catalogQuery.data?.components, usageQuery.data, rankingPending]);
 	if (!cacheEnabled) return legacyQuery;
 	return {
 		...catalogQuery,
+		isPending: catalogQuery.isPending || rankingPending,
+		isLoading:
+			catalogQuery.isLoading || (rankingPending && usageQuery.isFetching),
+		isFetching: catalogQuery.isFetching || usageQuery.isFetching,
 		data: components,
 		refetch: async () => {
 			const [fresh, freshUsage] = await Promise.all([

@@ -1,0 +1,34 @@
+[
+  {
+    "orderNo": "08950PC",
+    "salesId": 24605,
+    "sameBefore": true,
+    "parentRefreshed": false,
+    "tableChecks": [
+      {
+        "table": "OrderItemProductionAssignments",
+        "sourceRows": 4,
+        "localRows": 4,
+        "equal": true
+      },
+      {
+        "table": "OrderProductionSubmissions",
+        "sourceRows": 0,
+        "localRows": 0,
+        "equal": true
+      },
+      {
+        "table": "SalesOrderItems",
+        "sourceRows": 5,
+        "localRows": 5,
+        "equal": true
+      },
+      {
+        "table": "SalesProductionSubmissionMaterialReview",
+        "sourceRows": 0,
+        "localRows": 0,
+        "equal": true
+      }
+    ]
+  }
+]

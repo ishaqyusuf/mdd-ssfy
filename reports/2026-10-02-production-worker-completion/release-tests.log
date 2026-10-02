@@ -1,0 +1,103 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/sales-pipeline-commands.test.ts:
+(pass) evaluateSalesPipelineCommand > keeps fully reported work awaiting review and permits a remaining unit (0) [1.10ms]
+(pass) evaluateSalesPipelineCommand > keeps fully reported work awaiting review and permits a remaining unit (1) [0.07ms]
+(pass) evaluateSalesPipelineCommand > does not let excess reports on one assignment cover another assignment [0.10ms]
+(pass) evaluateSalesPipelineCommand > rejects stale, unauthorized, and conflicting transitions before writes [0.06ms]
+(pass) evaluateSalesPipelineCommand > returns a replay for terminal evidence and central affected scopes [0.08ms]
+(pass) evaluateSalesPipelineCommand > governs administrative completion and cancellation without fabricating workflow proof [0.09ms]
+(pass) evaluateSalesPipelineCommand > binds an administrative override to the exceptional stage [0.32ms]
+(pass) evaluateSalesPipelineCommand > allows known cross-stage conflicts to remain informational for a deliberate status-only action [0.15ms]
+(pass) evaluateSalesPipelineCommand > retains known cross-stage conflict codes when the selected stage is unavailable [0.06ms]
+(pass) evaluateSalesPipelineCommand > requires the explicit override contract for an exceptional stage [0.03ms]
+(pass) evaluateSalesPipelineCommand > permits confirmed completion overrides without a user-written reason [0.21ms]
+(pass) evaluateSalesPipelineCommand > governs assignment creation and rejects impossible operational transitions [0.06ms]
+(pass) evaluateSalesPipelineCommand > permits departure only for an item-bearing packed dispatch [0.04ms]
+(pass) evaluateSalesPipelineCommand > keeps the audited review-resolution path available for review-owned conflicts [0.07ms]
+
+packages/sales/src/bulk-production-completion.test.ts:
+(pass) bulk production completion > uses only the current worker's reported assignment capacity (PENDING) [0.26ms]
+(pass) bulk production completion > uses only the current worker's reported assignment capacity (APPROVED)
+(pass) bulk production completion > uses only the current worker's reported assignment capacity (REJECTED)
+(pass) bulk production completion > uses only the current worker's reported assignment capacity (CANCELLED)
+(pass) bulk production completion > recognizes every lifecycle state already past production completion
+(pass) bulk production completion > deduplicates valid ids and rejects oversized batches [0.43ms]
+(pass) bulk production completion > skips completed orders and reports stale or cancelled rows [0.09ms]
+(pass) bulk production completion > summarizes actual completion, review, skip, and failure outcomes
+
+packages/sales/src/sales-control/task-authorization.test.ts:
+(pass) sales-control task authorization > normalizes direct task metadata from the authenticated server actor [0.04ms]
+(pass) sales-control task authorization > rejects an unauthenticated actor before a task can be authorized [0.29ms]
+(pass) sales-control task authorization > overwrites forged actor identity and elevated production metadata [0.32ms]
+(pass) sales-control task authorization > allows an assigned dispatch worker with the worker permission [0.12ms]
+(pass) sales-control task authorization > rejects a worker who is not assigned to the requested dispatch [0.08ms]
+(pass) sales-control task authorization > rejects a cross-sale dispatch even for a packing manager [0.05ms]
+(pass) sales-control task authorization > authorizes fulfillment with the view-prefixed action permission [0.10ms]
+(pass) sales-control task authorization > does not let broad order access replace fulfillment permission [0.02ms]
+(pass) sales-control task authorization > derives submit-for-others capability from editProduction
+(pass) sales-control task authorization > preserves worker self-service updates only for owned submissions [0.21ms]
+
+packages/sales/src/sales-control/production-submission-limits.test.ts:
+(pass) worker completion does not create assignments for unassigned order quantities [0.31ms]
+(pass) production limits prioritize existing assignments and exclude unrelated items [0.23ms]
+(pass) empty explicit production scope cannot become whole-order submission [0.03ms]
+(pass) production retry evidence includes quantities and ignores plan row order [0.30ms]
+
+packages/sales/src/sales-control/tasks.transaction.test.ts:
+(pass) sales-control task transactions > rejects stale preview revision before starting queued packing [2.36ms]
+(pass) sales-control task transactions > rejects an assignment revision changed between shortcut entry and finalization [1.41ms]
+(pass) sales-control task transactions > existing-deliverables packing never creates production evidence [0.71ms]
+(pass) sales-control task transactions > rejects legacy repeat completion before packing or writing effects [0.11ms]
+(pass) sales-control task transactions > admin shortcut rejects a future date before preparing or packing items [10.59ms]
+(pass) sales-control task transactions > rejects a future delivery date before completion effects [1.00ms]
+(pass) sales-control task transactions > reads completion state after acquiring the dispatch lock [0.24ms]
+(pass) sales-control task transactions > blocks batch fulfillment before packing when a report is pending [0.12ms]
+(pass) sales-control task transactions > consumes dispatch-bound inventory in the completion transaction [0.39ms]
+(pass) sales-control task transactions > stale fulfillment preparation fails before material review and submissions [0.94ms]
+(pass) sales-control task transactions > new deliverables invalidate production preparation before submission [1.36ms]
+(pass) sales-control task transactions > submits pending-material work atomically and defers completion side effects [0.21ms]
+(pass) sales-control task transactions > finalizes ready-material work and creates payroll in the same transaction [0.34ms]
+(pass) sales-control task transactions > returns an existing pending batch without duplicating submissions [0.11ms]
+(pass) sales-control task transactions > creates assignment and override-use audit in the same transaction [0.50ms]
+(pass) sales-control task transactions > clearPackingTask updates and resets within the same transaction [0.27ms]
+(pass) sales-control task transactions > locks and rejects a clear before any packed row changes [0.22ms]
+(pass) sales-control task transactions > rolls a clear back when derived-state reset fails [0.15ms]
+(pass) sales-control task transactions > keeps legacy unscoped rows in clear-all alongside locked active dispatches [0.12ms]
+(pass) sales-control task transactions > locks single-item unpack and rolls it back with derived state [0.26ms]
+(pass) sales-control task transactions > attributes a single-item unpack to the server-derived actor [0.10ms]
+(pass) sales-control task transactions > rejects single-item unpack after the dispatch lock when a report is pending [0.14ms]
+(pass) sales-control task transactions > cancelDispatchTask transitions every dispatch and resets within same transaction [0.18ms]
+(pass) sales-control task transactions > retries inventory failure for a packed scope without new packing [0.90ms]
+(pass) sales-control task transactions > retries inventory failure for a in progress scope without new packing [0.32ms]
+(pass) sales-control task transactions > completion shortcut replays an already completed scoped fulfillment without repacking [0.15ms]
+(pass) sales-control task transactions > start command rejects packed status when assigned quantities remain [0.34ms]
+(pass) sales-control task transactions > completion rejects an unconfirmed shortage before marking delivered [0.69ms]
+(pass) sales-control task transactions > checks inventory readiness before starting a dispatch in the same transaction [0.23ms]
+(pass) sales-control task transactions > rejects dispatch ids outside the parent sales order [0.09ms]
+(pass) sales-control task transactions > rejects closed scoped fulfillment before preparation [0.08ms]
+(pass) sales-control task transactions > rejects corrupt assignment scope before packing or production preparation [0.52ms]
+(pass) sales-control task transactions > rejects assignment revision changes before replacing existing packing [0.21ms]
+(pass) sales-control task transactions > rejects selected quantities above scope before non-production preparation [0.33ms]
+(pass) sales-control task transactions > replacement preparation excludes current packed and available quantities [1.01ms]
+(pass) sales-control task transactions > automatic packing builds only the unfilled assigned quantity [0.67ms]
+(pass) sales-control task transactions > packDispatchItemTask packs and resets within same transaction client [0.11ms]
+(pass) sales-control task transactions > marks a dispatch complete without submitting the same production scope twice [0.39ms]
+(pass) sales-control task transactions > marks an already-produced dispatch complete without requiring another submission [0.23ms]
+(pass) sales-control task transactions > releases automatic non-production work from material review before fulfillment [0.39ms]
+(pass) sales-control task transactions > does not complete an empty dispatch while material review is pending [0.17ms]
+(pass) sales-control task transactions > rejects a direct production submission when there is nothing to submit [0.05ms]
+(pass) sales-control task transactions > packDispatchItemTask can replace existing dispatch packings atomically [0.10ms]
+(pass) sales-control task transactions > rejects a cross-sale packing dispatch after the lock with zero packing writes [0.17ms]
+(pass) sales-control task transactions > does not reset when transactional mutation fails [0.10ms]
+(pass) sales-control task transactions > only deletes submissions created by automatic production completion [0.21ms]
+(pass) sales-control task transactions > rejects production cancellation when no automatic completion exists [0.10ms]
+(pass) sales-control task transactions > rejects production cancellation for a different sales order [0.06ms]
+(pass) sales-control task transactions > retries selection packing after non-production submit when initial allocation is insufficient [0.19ms]
+(pass) sales-control task transactions > reuses this dispatch's packed quantity when replacing its packing list [0.15ms]
+(pass) sales-control task transactions > throws insufficient error when still insufficient after non-production retry [0.09ms]
+
+ 87 pass
+ 0 fail
+ 271 expect() calls
+Ran 87 tests across 5 files. [1049.00ms]

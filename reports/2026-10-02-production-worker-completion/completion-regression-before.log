@@ -1,0 +1,53 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/sales-pipeline-commands.test.ts:
+52 | 					administrativeCompletion: null,
+53 | 				},
+54 | 			});
+55 | 			expect(evaluateSalesPipelineCommand(current, {
+56 | 				action: "production.complete", authorized: true, expectedRevision: current.revision,
+57 | 			})).toMatchObject(remaining
+            ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "reasons": [
+-     "PRODUCTION_SUBMISSIONS_AWAITING_REVIEW",
++   "action": "production.complete",
++   "affectedScopes": [
++     "sales.orders",
++     "sales.overview",
++     "production.queue",
++     "production.calendar",
++     "production.summary",
++     "fulfillment.backlog",
+    ],
+-   "status": "review_required",
++   "reasons": [],
++   "revision": "835f3f25b902e5780fad704560cfb28d61fcad331960d7d46e91e07afb670ac9",
++   "status": "ready",
+  }
+
+- Expected  - 3
++ Received  + 11
+
+      at <anonymous> (/Users/M1PRO/Documents/code/_turbo/gnd/packages/sales/src/sales-pipeline-commands.test.ts:57:8)
+(fail) evaluateSalesPipelineCommand > keeps fully reported work awaiting review and permits a remaining unit (0) [1.49ms]
+(pass) evaluateSalesPipelineCommand > keeps fully reported work awaiting review and permits a remaining unit (1) [0.15ms]
+(pass) evaluateSalesPipelineCommand > does not let excess reports on one assignment cover another assignment [0.12ms]
+(pass) evaluateSalesPipelineCommand > rejects stale, unauthorized, and conflicting transitions before writes [0.05ms]
+(pass) evaluateSalesPipelineCommand > returns a replay for terminal evidence and central affected scopes [0.06ms]
+(pass) evaluateSalesPipelineCommand > governs administrative completion and cancellation without fabricating workflow proof [0.07ms]
+(pass) evaluateSalesPipelineCommand > binds an administrative override to the exceptional stage [0.26ms]
+(pass) evaluateSalesPipelineCommand > allows known cross-stage conflicts to remain informational for a deliberate status-only action [0.10ms]
+(pass) evaluateSalesPipelineCommand > retains known cross-stage conflict codes when the selected stage is unavailable [0.04ms]
+(pass) evaluateSalesPipelineCommand > requires the explicit override contract for an exceptional stage [0.05ms]
+(pass) evaluateSalesPipelineCommand > permits confirmed completion overrides without a user-written reason [0.10ms]
+(pass) evaluateSalesPipelineCommand > governs assignment creation and rejects impossible operational transitions [0.13ms]
+(pass) evaluateSalesPipelineCommand > permits departure only for an item-bearing packed dispatch [0.06ms]
+(pass) evaluateSalesPipelineCommand > keeps the audited review-resolution path available for review-owned conflicts [0.07ms]
+
+ 13 pass
+ 1 fail
+ 36 expect() calls
+Ran 14 tests across 1 file. [1004.00ms]

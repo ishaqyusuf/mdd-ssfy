@@ -1,0 +1,47 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/sales-pipeline-commands.test.ts:
+(pass) evaluateSalesPipelineCommand > keeps fully reported work awaiting review and permits a remaining unit (0) [2.04ms]
+(pass) evaluateSalesPipelineCommand > keeps fully reported work awaiting review and permits a remaining unit (1) [0.14ms]
+(pass) evaluateSalesPipelineCommand > does not let excess reports on one assignment cover another assignment [0.11ms]
+(pass) evaluateSalesPipelineCommand > rejects stale, unauthorized, and conflicting transitions before writes [0.06ms]
+(pass) evaluateSalesPipelineCommand > returns a replay for terminal evidence and central affected scopes [0.07ms]
+(pass) evaluateSalesPipelineCommand > governs administrative completion and cancellation without fabricating workflow proof [0.06ms]
+(pass) evaluateSalesPipelineCommand > binds an administrative override to the exceptional stage [0.23ms]
+(pass) evaluateSalesPipelineCommand > allows known cross-stage conflicts to remain informational for a deliberate status-only action [0.12ms]
+(pass) evaluateSalesPipelineCommand > retains known cross-stage conflict codes when the selected stage is unavailable [0.06ms]
+(pass) evaluateSalesPipelineCommand > requires the explicit override contract for an exceptional stage [0.04ms]
+(pass) evaluateSalesPipelineCommand > permits confirmed completion overrides without a user-written reason [0.14ms]
+(pass) evaluateSalesPipelineCommand > governs assignment creation and rejects impossible operational transitions [0.05ms]
+(pass) evaluateSalesPipelineCommand > permits departure only for an item-bearing packed dispatch [0.03ms]
+(pass) evaluateSalesPipelineCommand > keeps the audited review-resolution path available for review-owned conflicts [0.07ms]
+
+packages/sales/src/bulk-production-completion.test.ts:
+(pass) bulk production completion > recognizes every lifecycle state already past production completion [0.07ms]
+(pass) bulk production completion > deduplicates valid ids and rejects oversized batches [0.29ms]
+(pass) bulk production completion > skips completed orders and reports stale or cancelled rows
+(pass) bulk production completion > summarizes actual completion, review, skip, and failure outcomes
+
+packages/sales/src/sales-pipeline-command-executor.test.ts:
+(pass) runSalesPipelineCommandTransaction > allows reconciliation to disable even write-conflict retries [2.21ms]
+(pass) runSalesPipelineCommandTransaction > locks, recomputes, and validates the revision before executing [0.53ms]
+(pass) runSalesPipelineCommandTransaction > rejects a stale revision inside the transaction without executing [0.18ms]
+(pass) runSalesPipelineCommandTransaction > requires a revision whenever canonical commands are enforced [0.12ms]
+(pass) runSalesPipelineCommandTransaction > can execute a command-specific idempotency check for canonical replays [0.13ms]
+
+packages/sales/src/sales-control/task-authorization.test.ts:
+(pass) sales-control task authorization > normalizes direct task metadata from the authenticated server actor [0.06ms]
+(pass) sales-control task authorization > rejects an unauthenticated actor before a task can be authorized [0.35ms]
+(pass) sales-control task authorization > overwrites forged actor identity and elevated production metadata [0.46ms]
+(pass) sales-control task authorization > allows an assigned dispatch worker with the worker permission [0.08ms]
+(pass) sales-control task authorization > rejects a worker who is not assigned to the requested dispatch [0.04ms]
+(pass) sales-control task authorization > rejects a cross-sale dispatch even for a packing manager [0.08ms]
+(pass) sales-control task authorization > authorizes fulfillment with the view-prefixed action permission [0.07ms]
+(pass) sales-control task authorization > does not let broad order access replace fulfillment permission [0.03ms]
+(pass) sales-control task authorization > derives submit-for-others capability from editProduction [0.11ms]
+(pass) sales-control task authorization > preserves worker self-service updates only for owned submissions [0.16ms]
+
+ 33 pass
+ 0 fail
+ 68 expect() calls
+Ran 33 tests across 4 files. [1081.00ms]

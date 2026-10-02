@@ -1,0 +1,8 @@
+@gnd/sales typecheck: ../db/src/queries/assistant.ts(1320,15): error TS2339: Property 'providerAttempted' does not exist on type 'InputJsonObject | InputJsonArray | { toJSON(): unknown; }'.
+@gnd/sales typecheck:   Property 'providerAttempted' does not exist on type 'InputJsonArray'.
+@gnd/sales typecheck: ../db/src/queries/assistant.ts(1385,15): error TS2339: Property 'providerAttempted' does not exist on type 'InputJsonObject | InputJsonArray | { toJSON(): unknown; }'.
+@gnd/sales typecheck:   Property 'providerAttempted' does not exist on type 'InputJsonArray'.
+@gnd/sales typecheck: src/copy-sales.ts(521,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+@gnd/sales typecheck:   Type 'null' is not assignable to type 'string'.
+@gnd/sales typecheck: src/print/dealer-pricing-surface.ts(310,33): error TS2550: Property 'findLastIndex' does not exist on type '{ qty: any; rate: number; total: number; meta: unknown; shelfItems: any; housePackageTool: any; }[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.
+@gnd/sales typecheck: Exited with code 2

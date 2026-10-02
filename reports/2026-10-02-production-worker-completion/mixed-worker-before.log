@@ -1,0 +1,18 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/bulk-production-completion.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'getWorkerProductionCompletionState' not found in module '/Users/M1PRO/Documents/code/_turbo/gnd/packages/sales/src/bulk-production-completion.ts'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+ 0 pass
+ 1 fail
+ 1 error
+Ran 1 test across 1 file. [542.00ms]

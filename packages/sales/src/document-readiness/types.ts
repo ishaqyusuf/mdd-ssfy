@@ -1,5 +1,5 @@
 export const SALES_DOCUMENT_READINESS_VALIDATOR_VERSION =
-	"sales-document-readiness-v1";
+	"sales-document-readiness-v2";
 
 export type SalesDocumentFinancialSnapshot = {
 	subTotalCents: number | null;

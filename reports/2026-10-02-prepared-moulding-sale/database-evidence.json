@@ -1,0 +1,243 @@
+{
+  "readOnly": true,
+  "orderId": "09955PC",
+  "id": 33385,
+  "subTotal": 417.9,
+  "tax": 29.25,
+  "grandTotal": 447.15,
+  "amountDue": 0,
+  "evaluation": {
+    "salesOrderId": 33385,
+    "orderNo": "09955PC",
+    "salesType": "order",
+    "validatorVersion": "sales-document-readiness-v2",
+    "financial": {
+      "saved": {
+        "subTotalCents": 41790,
+        "taxableSubTotalCents": 41790,
+        "taxCents": 2925,
+        "grandTotalCents": 44715,
+        "amountDueCents": 0
+      },
+      "candidate": {
+        "subTotalCents": 41790,
+        "taxableSubTotalCents": 41790,
+        "taxCents": 2925,
+        "grandTotalCents": 44715,
+        "amountDueCents": 0
+      },
+      "subTotalDeltaCents": 0,
+      "taxableSubTotalDeltaCents": 0,
+      "taxDeltaCents": 0,
+      "grandTotalDeltaCents": 0,
+      "amountDueDeltaCents": 0,
+      "totalChanged": false
+    },
+    "findings": [],
+    "operations": [],
+    "status": "ready"
+  },
+  "items": [
+    {
+      "id": 177732,
+      "qty": 15,
+      "total": 201.9,
+      "meta": {
+        "uid": "AGNzW",
+        "meta": {
+          "itemIndex": 0,
+          "mouldingRows": [
+            {
+              "img": "yezd4le9aqpyumturxjn.png",
+              "qty": 15,
+              "uid": "AGNzW",
+              "unit": 13.46,
+              "addon": 0,
+              "title": "FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED",
+              "basePrice": 8.75,
+              "lineTotal": 201.9,
+              "salesPrice": 13.46,
+              "customPrice": null,
+              "description": "FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED",
+              "estimateUnit": 13.46
+            },
+            {
+              "img": "zj36u05t81eepctnwhbj.png",
+              "qty": 18,
+              "uid": "Oj2ZE",
+              "unit": 1,
+              "addon": 0,
+              "title": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+              "basePrice": 9.76,
+              "lineTotal": 216,
+              "salesPrice": 15.02,
+              "customPrice": 12,
+              "description": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+              "estimateUnit": 15.02
+            }
+          ],
+          "totalAuthoritative": true,
+          "rateRoundingAdjustment": 0.12
+        },
+        "title": "Mouldings",
+        "description": "FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED"
+      },
+      "hpt": {
+        "id": 66620,
+        "orderItemId": 177732,
+        "priceId": null,
+        "height": null,
+        "doorType": "Mouldings",
+        "doorId": null,
+        "dykeDoorId": null,
+        "jambSizeId": null,
+        "casingId": null,
+        "moldingId": null,
+        "stepProductId": null,
+        "totalPrice": 201.9,
+        "totalDoors": 0,
+        "meta": {
+          "priceTags": {
+            "moulding": {
+              "addon": 0,
+              "price": 13.46,
+              "laborQty": null,
+              "basePrice": 8.75,
+              "unitLabor": null,
+              "salesPrice": 13.46,
+              "overridePrice": null
+            }
+          },
+          "legacyHptId": null,
+          "legacyGroupUid": "line-1-mur7drgi-41p2a2",
+          "legacySalesItemId": null
+        },
+        "salesOrderId": 33385,
+        "createdAt": "2026-10-02T16:56:45.000Z",
+        "updatedAt": "2026-10-02T16:56:44.868Z",
+        "deletedAt": null,
+        "doors": [
+          {
+            "id": 70248,
+            "activeIdentity": null,
+            "priceId": null,
+            "dimension": "2-8 x 6-8",
+            "swing": "OUT-SWING",
+            "doorType": "Garage DOOR",
+            "housePackageToolId": 66620,
+            "doorPrice": 0,
+            "jambSizePrice": 340.13,
+            "casingPrice": null,
+            "unitPrice": 420.44,
+            "lhQty": 0,
+            "rhQty": 1,
+            "totalQty": 1,
+            "salesOrderId": 28224,
+            "lineTotal": 420.44,
+            "salesOrderItemId": null,
+            "stepProductId": 1322,
+            "meta": {
+              "addon": 0,
+              "flatRate": 0,
+              "laborQty": 1,
+              "customPrice": null,
+              "priceMissing": false,
+              "baseUnitPrice": 255.1,
+              "jambSizePrice": 340.13,
+              "overridePrice": null,
+              "finalUnitPrice": 420.44,
+              "pricingAuthority": "recovered-relational-price",
+              "doorSalesUnitPrice": 340.13,
+              "sharedDoorSurcharge": 80.31,
+              "calculatedFinalUnitPrice": 420.44
+            },
+            "createdAt": "2026-09-29T18:33:47.000Z",
+            "updatedAt": "2026-09-29T18:33:46.927Z",
+            "deletedAt": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 177733,
+      "qty": 18,
+      "total": 216,
+      "meta": {
+        "uid": "Oj2ZE",
+        "meta": {
+          "itemIndex": 0,
+          "mouldingRows": [
+            {
+              "img": "yezd4le9aqpyumturxjn.png",
+              "qty": 15,
+              "uid": "AGNzW",
+              "unit": 13.46,
+              "addon": 0,
+              "title": "FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED",
+              "basePrice": 8.75,
+              "lineTotal": 201.9,
+              "salesPrice": 13.46,
+              "customPrice": null,
+              "description": "FLAT CASING 1 X 4 X 17 (3-1/2 X 9/16 X 17') FJ WOOD PRIMED",
+              "estimateUnit": 13.46
+            },
+            {
+              "img": "zj36u05t81eepctnwhbj.png",
+              "qty": 18,
+              "uid": "Oj2ZE",
+              "unit": 1,
+              "addon": 0,
+              "title": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+              "basePrice": 9.76,
+              "lineTotal": 216,
+              "salesPrice": 15.02,
+              "customPrice": 12,
+              "description": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+              "estimateUnit": 15.02
+            }
+          ],
+          "totalAuthoritative": true,
+          "rateRoundingAdjustment": 0.12
+        },
+        "title": "Mouldings",
+        "description": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6"
+      },
+      "hpt": {
+        "id": 66621,
+        "orderItemId": 177733,
+        "priceId": null,
+        "height": null,
+        "doorType": "Mouldings",
+        "doorId": null,
+        "dykeDoorId": null,
+        "jambSizeId": null,
+        "casingId": null,
+        "moldingId": null,
+        "stepProductId": null,
+        "totalPrice": 216,
+        "totalDoors": 0,
+        "meta": {
+          "priceTags": {
+            "moulding": {
+              "addon": 0,
+              "price": 12,
+              "laborQty": null,
+              "basePrice": 9.76,
+              "unitLabor": null,
+              "salesPrice": 15.02,
+              "overridePrice": 12
+            }
+          },
+          "legacyHptId": null,
+          "legacyGroupUid": "line-1-mur7drgi-41p2a2",
+          "legacySalesItemId": null
+        },
+        "salesOrderId": 33385,
+        "createdAt": "2026-10-02T16:56:45.000Z",
+        "updatedAt": "2026-10-02T16:56:44.882Z",
+        "deletedAt": null,
+        "doors": []
+      }
+    }
+  ]
+}

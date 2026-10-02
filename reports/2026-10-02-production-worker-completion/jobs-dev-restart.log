@@ -76,3 +76,253 @@ turbo 2.5.8
 @gnd/jobs:dev:     at tryCatch (file:///Users/M1PRO/Documents/code/_turbo/gnd/node_modules/.bun/@trigger.dev+core@4.5.9/node_modules/@trigger.dev/core/src/v3/tryCatch.ts:10:18)
 @gnd/jobs:dev: 
 @gnd/jobs:dev: ○ Oct 02, 17:09:16.769 ->  20261002.1 | bulk-mark-sales-production-completed | run_06gfqo36ht7j0418om5vg4g001.1 | Success (1.5s)
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:75553) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.2
+@gnd/jobs:dev: ○ Oct 02, 17:13:09.713 ->  20261002.2 | bulk-mark-sales-production-completed | run_06gfqp0khrpsheg09jsnfnb401.1
+@gnd/jobs:dev: ○ Oct 02, 17:13:13.630 ->  20261002.2 | bulk-mark-sales-production-completed | run_06gfqp0khrpsheg09jsnfnb401.1 | Success (96ms)
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:76464) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.3
+@gnd/jobs:dev: ○ Oct 02, 17:14:06.441 ->  20261002.3 | notification | run_06gfqp7dsriak6v8497cld9f01.1
+@gnd/jobs:dev: ○ Oct 02, 17:14:09.415 run_06gfqp7dsriak6v8497cld9f01.1 {"level":30,"time":1790957649415,"pid":76696,"hostname":"MacBook-Pro.local","id":890,"profileId":13,"role":"employee","name":"Samuel Gonzalez","email":"[Redacted]","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:14:10.351 ->  20261002.3 | notification | run_06gfqp7dsriak6v8497cld9f01.1 | Success (714ms)
+@gnd/jobs:dev: ○ Oct 02, 17:15:26.310 ->  20261002.3 | contractor-accounting-alert-schedule | run_06gfqpgqb41vhdc23dng2aj001.1
+@gnd/jobs:dev: ○ Oct 02, 17:15:28.627 ->  20261002.3 | contractor-accounting-alert-schedule | run_06gfqpgqb41vhdc23dng2aj001.1 | Success (60ms)
+@gnd/jobs:dev: ○ Oct 02, 17:15:39.567 ->  20261002.3 | sales-handoff-escalation-schedule | run_06gfqpgnpmc7nuo2orqiu4dv01.1
+@gnd/jobs:dev: ○ Oct 02, 17:15:42.095 ->  20261002.3 | sales-handoff-escalation-schedule | run_06gfqpgnpmc7nuo2orqiu4dv01.1 | Success (129ms)
+@gnd/jobs:dev: ○ Oct 02, 17:15:45.518 ->  20261002.3 | notification | run_06gfqpjl7h9h499okibn9nii01.1
+@gnd/jobs:dev: ○ Oct 02, 17:15:48.413 run_06gfqpjl7h9h499okibn9nii01.1 {"level":30,"time":1790957748412,"pid":77998,"hostname":"MacBook-Pro.local","id":32,"profileId":71,"role":"employee","name":"Martin Lautaro","email":"[Redacted]","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:15:49.441 ->  20261002.3 | notification | run_06gfqpjl7h9h499okibn9nii01.1 | Success (1.2s)
+@gnd/jobs:dev: ○ Oct 02, 17:17:18.843 ->  20261002.3 | assistant-diagnostic-retention | run_06gfqpsglntfvf8vmfhnckt201.1
+@gnd/jobs:dev: ○ Oct 02, 17:17:21.339 ->  20261002.3 | assistant-diagnostic-retention | run_06gfqpsglntfvf8vmfhnckt201.1 | Success (50ms)
+@gnd/jobs:dev: ○ Oct 02, 17:17:21.521 ->  20261002.3 | square-sales-refund-reconciliation-schedule | run_06gfqps6mj33r84e3l8ivomj01.1
+@gnd/jobs:dev: ○ Oct 02, 17:17:24.646 ->  20261002.3 | square-sales-refund-reconciliation-schedule | run_06gfqps6mj33r84e3l8ivomj01.1 | Success (1.2s)
+@gnd/jobs:dev: ○ Oct 02, 17:18:19.146 ->  20261002.3 | bulk-mark-sales-production-completed | run_06gfqq6d8svked822ci6b46l01.1
+@gnd/jobs:dev: ○ Oct 02, 17:18:22.999 ->  20261002.3 | bulk-mark-sales-production-completed | run_06gfqq6d8svked822ci6b46l01.1 | Success (71ms)
+@gnd/jobs:dev: ○ Oct 02, 17:19:27.141 ->  20261002.3 | notification | run_06gfqqemt8t18iq5uci2k5gl01.1
+@gnd/jobs:dev: ○ Oct 02, 17:19:29.212 run_06gfqqemt8t18iq5uci2k5gl01.1 {"level":30,"time":1790957969212,"pid":79354,"hostname":"MacBook-Pro.local","id":26,"profileId":54,"role":"employee","name":"CARLOS","email":"[Redacted]","phoneNo":"786 626 2982","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:19:30.191 ->  20261002.3 | notification | run_06gfqqemt8t18iq5uci2k5gl01.1 | Success (681ms)
+@gnd/jobs:dev: ○ Oct 02, 17:19:43.183 ->  20261002.3 | bulk-mark-sales-production-completed | run_06gfqqglgeiltcsssdnn0lj701.1
+@gnd/jobs:dev: ○ Oct 02, 17:19:48.243 ->  20261002.3 | update-sales-control | run_06gfqqh98se0l8k60ucoirsk01.1
+@gnd/jobs:dev: ○ Oct 02, 17:19:50.968 run_06gfqqh98se0l8k60ucoirsk01.1 {"level":30,"time":1790957990968,"pid":79436,"hostname":"MacBook-Pro.local","id":26,"profileId":54,"role":"employee","name":"CARLOS","email":"[Redacted]","phoneNo":"786 626 2982","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:19:51.055 run_06gfqqh98se0l8k60ucoirsk01.1 {"level":30,"time":1790957991051,"pid":79436,"hostname":"MacBook-Pro.local","id":26,"profileId":54,"role":"employee","name":"CARLOS","email":"[Redacted]","phoneNo":"786 626 2982","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:19:52.024 ->  20261002.3 | update-sales-control | run_06gfqqh98se0l8k60ucoirsk01.1 | Success (1s)
+@gnd/jobs:dev: ○ Oct 02, 17:19:53.976 ->  20261002.3 | bulk-mark-sales-production-completed | run_06gfqqglgeiltcsssdnn0lj701.1 | Success (1.5s)
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:79527) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.4
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:83020) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.5
+@gnd/jobs:dev: ○ Oct 02, 17:23:13.181 ->  20261002.5 | assistant-staged-document-retention | run_06gfqr9paklnjs7m8r404bnh01.1
+@gnd/jobs:dev: ○ Oct 02, 17:23:15.516 ->  20261002.5 | assistant-staged-document-retention | run_06gfqr9paklnjs7m8r404bnh01.1 | Success (56ms)
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:83193) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.6
+@gnd/jobs:dev: ○ Oct 02, 17:27:30.603 ->  20261002.6 | bulk-mark-sales-production-completed | run_06gfqs9ndd6i1j2ejblb295001.1
+@gnd/jobs:dev: ○ Oct 02, 17:27:34.104 ->  20261002.6 | update-sales-control | run_06gfqsa50niu05bo3gcsiqlo01.1
+@gnd/jobs:dev: ○ Oct 02, 17:27:35.941 run_06gfqsa50niu05bo3gcsiqlo01.1 {"level":30,"time":1790958455940,"pid":85029,"hostname":"MacBook-Pro.local","id":26,"profileId":54,"role":"employee","name":"CARLOS","email":"[Redacted]","phoneNo":"786 626 2982","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:27:35.984 run_06gfqsa50niu05bo3gcsiqlo01.1 {"level":30,"time":1790958455984,"pid":85029,"hostname":"MacBook-Pro.local","id":26,"profileId":54,"role":"employee","name":"CARLOS","email":"[Redacted]","phoneNo":"786 626 2982","emailNotification":false,"inAppNotification":false,"whatsAppNotification":false,"msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:27:36.958 ->  20261002.6 | update-sales-control | run_06gfqsa50niu05bo3gcsiqlo01.1 | Success (695ms)
+@gnd/jobs:dev: ○ Oct 02, 17:27:38.605 ->  20261002.6 | bulk-mark-sales-production-completed | run_06gfqs9ndd6i1j2ejblb295001.1 | Success (1.5s)
+@gnd/jobs:dev: ○ Oct 02, 17:28:03.921 ->  20261002.6 | bulk-mark-sales-production-completed | run_06gfqsdphf69e0edrp3jn2oh01.1
+@gnd/jobs:dev: ○ Oct 02, 17:28:07.016 ->  20261002.6 | bulk-mark-sales-production-completed | run_06gfqsdphf69e0edrp3jn2oh01.1 | Success (95ms)
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:85802) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.7
+@gnd/jobs:dev: ○ Oct 02, 17:30:39.635 ->  20261002.7 | sales-handoff-escalation-schedule | run_06gfqsul65qj9a49t31u30uh01.1
+@gnd/jobs:dev: ○ Oct 02, 17:30:42.366 ->  20261002.7 | sales-handoff-escalation-schedule | run_06gfqsul65qj9a49t31u30uh01.1 | Success (62ms)
+@gnd/jobs:dev: ○ Oct 02, 17:37:39.233 ->  20261002.7 | sales-pdf-artifact-cleanup | run_06gfquio28lgg92jdt20avgd01.1
+@gnd/jobs:dev: ○ Oct 02, 17:37:46.218 ->  20261002.7 | sales-pdf-artifact-cleanup | run_06gfquio28lgg92jdt20avgd01.1 | Success (4.8s)
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: ○ No changes detected, skipping build…
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:94666) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.8
+@gnd/jobs:dev: ○ Oct 02, 17:45:39.416 ->  20261002.8 | sales-handoff-escalation-schedule | run_06gfr0ciddvj3mqcfjn6t44a01.1
+@gnd/jobs:dev: ○ Oct 02, 17:45:41.737 ->  20261002.8 | sales-handoff-escalation-schedule | run_06gfr0ciddvj3mqcfjn6t44a01.1 | Success (54ms)
+@gnd/jobs:dev: ○ Oct 02, 17:47:43.376 ->  20261002.8 | assistant-conversation-retention | run_06gfr0romttp31spkqvvhru101.1
+@gnd/jobs:dev: ○ Oct 02, 17:47:46.259 ->  20261002.8 | assistant-conversation-retention | run_06gfr0romttp31spkqvvhru101.1 | Success (37ms)
+@gnd/jobs:dev: ○ Oct 02, 17:56:45.998 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr300f41imq6rifc7f3nd01.1
+@gnd/jobs:dev: ○ Oct 02, 17:56:46.540 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr300erpe49jrvrbg8rok01.1
+@gnd/jobs:dev: ○ Oct 02, 17:56:47.092 ->  20261002.8 | sync-sales-inventory-line-items | run_06gfr300f2koq8gbvnh89b7i01.1
+@gnd/jobs:dev: ○ Oct 02, 17:56:47.632 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr300kb3ir4e9cb66addj01.1
+@gnd/jobs:dev: ○ Oct 02, 17:56:48.057 run_06gfr300f41imq6rifc7f3nd01.1 [sales-print-data-cache] miss {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'packing_slip_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   status: null
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:48.116 run_06gfr300f41imq6rifc7f3nd01.1 [sales-print-data-cache] getPrintDocumentData {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'packing_slip_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   durationMs: 51,
+@gnd/jobs:dev:   pages: 1
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:48.129 run_06gfr300f41imq6rifc7f3nd01.1 [sales-print-data-cache] refreshed {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'packing_slip_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   salesPrintDataId: 'cmur7gstz00019kxs5szmkrsp',
+@gnd/jobs:dev:   cacheStatus: 'miss'
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:48.154 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr300m2f3gcd5qg4umirf01.1
+@gnd/jobs:dev: ○ Oct 02, 17:56:48.582 run_06gfr300erpe49jrvrbg8rok01.1 [sales-print-data-cache] miss {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'invoice_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   status: null
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:48.720 run_06gfr300erpe49jrvrbg8rok01.1 [sales-print-data-cache] getPrintDocumentData {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'invoice_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   durationMs: 104,
+@gnd/jobs:dev:   pages: 1
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:48.738 run_06gfr300erpe49jrvrbg8rok01.1 [sales-print-data-cache] refreshed {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'invoice_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   salesPrintDataId: 'cmur7gtaq00019kybwzcqtaig',
+@gnd/jobs:dev:   cacheStatus: 'miss'
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:49.724 run_06gfr300kb3ir4e9cb66addj01.1 [sales-print-data-cache] miss {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'production_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   status: null
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:49.803 run_06gfr300kb3ir4e9cb66addj01.1 [sales-print-data-cache] getPrintDocumentData {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'production_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   durationMs: 69,
+@gnd/jobs:dev:   pages: 1
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:49.823 run_06gfr300kb3ir4e9cb66addj01.1 [sales-print-data-cache] refreshed {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'production_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   salesPrintDataId: 'cmur7gu4t00019kydrfevypti',
+@gnd/jobs:dev:   cacheStatus: 'miss'
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:50.536 ->  20261002.8 | sync-sales-inventory-line-items | run_06gfr300f2koq8gbvnh89b7i01.1 | Success (1.3s)
+@gnd/jobs:dev: ○ Oct 02, 17:56:50.940 run_06gfr300m2f3gcd5qg4umirf01.1 [sales-print-data-cache] miss {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'order_packing_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   status: null
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:51.153 run_06gfr300m2f3gcd5qg4umirf01.1 [sales-print-data-cache] getPrintDocumentData {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'order_packing_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   durationMs: 206,
+@gnd/jobs:dev:   pages: 2
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:51.182 run_06gfr300m2f3gcd5qg4umirf01.1 [sales-print-data-cache] refreshed {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'order_packing_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   salesPrintDataId: 'cmur7gv6b00019kye3ncbtnaz',
+@gnd/jobs:dev:   cacheStatus: 'miss'
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:56:52.263 ->  20261002.8 | create-sales-history | run_06gfr30otsqj6bbu605imlho01.1
+@gnd/jobs:dev: ○ Oct 02, 17:56:54.357 ->  20261002.8 | send-composed-email | run_06gfr3114d0ev7pmrc0fj9su01.1
+@gnd/jobs:dev: ○ Oct 02, 17:56:55.914 ->  20261002.8 | sync-sales-inventory-line-items | run_06gfr3176tk1f04bqh9gcso601.1
+@gnd/jobs:dev: ○ Oct 02, 17:56:56.546 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr300f41imq6rifc7f3nd01.1 | Success (7.6s)
+@gnd/jobs:dev: ○ Oct 02, 17:56:56.847 ->  20261002.8 | create-sales-history | run_06gfr30otsqj6bbu605imlho01.1 | Success (1.2s)
+@gnd/jobs:dev: ○ Oct 02, 17:56:57.484 ->  20261002.8 | send-composed-email | run_06gfr3114d0ev7pmrc0fj9su01.1 | Success (8ms)
+@gnd/jobs:dev: ○ Oct 02, 17:56:58.368 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr300erpe49jrvrbg8rok01.1 | Success (9s)
+@gnd/jobs:dev: ○ Oct 02, 17:56:59.004 ->  20261002.8 | sync-sales-inventory-line-items | run_06gfr3176tk1f04bqh9gcso601.1 | Success (902ms)
+@gnd/jobs:dev: ○ Oct 02, 17:56:59.401 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr300m2f3gcd5qg4umirf01.1 | Success (7.9s)
+@gnd/jobs:dev: ○ Oct 02, 17:56:59.497 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr300kb3ir4e9cb66addj01.1 | Success (8.6s)
+@gnd/jobs:dev: ○ Oct 02, 17:58:01.818 ->  20261002.8 | notification | run_06gfr398kr9oohc77urriorl01.1
+@gnd/jobs:dev: ○ Oct 02, 17:58:02.369 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr399u3lbmar32tuck0bv01.1
+@gnd/jobs:dev: ○ Oct 02, 17:58:02.902 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr39bj7f8008fhf1kh6as01.1
+@gnd/jobs:dev: ○ Oct 02, 17:58:05.067 run_06gfr398kr9oohc77urriorl01.1 {"level":30,"time":1790960285066,"pid":1455,"hostname":"MacBook-Pro.local","id":811,"profileId":3532,"role":"customer","name":"Aixa Delgado","phoneNo":"786-626-2151","msg":"Fetched author and contacts"}
+@gnd/jobs:dev: 
+@gnd/jobs:dev: ○ Oct 02, 17:58:05.092 run_06gfr399u3lbmar32tuck0bv01.1 [sales-print-data-cache] stale {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'invoice_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   status: 'stale'
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:58:05.425 run_06gfr399u3lbmar32tuck0bv01.1 [sales-print-data-cache] getPrintDocumentData {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'invoice_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   durationMs: 329,
+@gnd/jobs:dev:   pages: 1
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:58:05.570 run_06gfr399u3lbmar32tuck0bv01.1 [sales-print-data-cache] refreshed {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'invoice_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   salesPrintDataId: 'cmur7gtaq00019kybwzcqtaig',
+@gnd/jobs:dev:   cacheStatus: 'stale'
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:58:05.702 run_06gfr39bj7f8008fhf1kh6as01.1 [sales-print-data-cache] stale {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'order_packing_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   status: 'stale'
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:58:05.911 run_06gfr39bj7f8008fhf1kh6as01.1 [sales-print-data-cache] getPrintDocumentData {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'order_packing_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   durationMs: 156,
+@gnd/jobs:dev:   pages: 2
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:58:05.962 run_06gfr39bj7f8008fhf1kh6as01.1 [sales-print-data-cache] refreshed {
+@gnd/jobs:dev:   salesOrderId: 33385,
+@gnd/jobs:dev:   documentType: 'order_packing_pdf',
+@gnd/jobs:dev:   templateId: 'template-2',
+@gnd/jobs:dev:   salesPrintDataId: 'cmur7gv6b00019kye3ncbtnaz',
+@gnd/jobs:dev:   cacheStatus: 'stale'
+@gnd/jobs:dev: }
+@gnd/jobs:dev: ○ Oct 02, 17:58:06.223 ->  20261002.8 | notification | run_06gfr398kr9oohc77urriorl01.1 | Success (1.4s)
+@gnd/jobs:dev: ○ Oct 02, 17:58:12.404 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr399u3lbmar32tuck0bv01.1 | Success (6.6s)
+@gnd/jobs:dev: ○ Oct 02, 17:58:13.100 ->  20261002.8 | warm-sales-document-snapshot | run_06gfr39bj7f8008fhf1kh6as01.1 | Success (7.3s)
+@gnd/jobs:dev: ○ Oct 02, 18:00:21.890 ->  20261002.8 | contractor-accounting-report-schedule | run_06gfr3p8qf88a02m28gagmk301.1
+@gnd/jobs:dev: ○ Oct 02, 18:00:24.142 ->  20261002.8 | contractor-accounting-report-schedule | run_06gfr3p8qf88a02m28gagmk301.1 | Success (49ms)
+@gnd/jobs:dev: ○ Oct 02, 18:00:39.480 ->  20261002.8 | sales-handoff-escalation-schedule | run_06gfr3qtjrcsq5tcqs24rjsd01.1
+@gnd/jobs:dev: ○ Oct 02, 18:00:42.190 ->  20261002.8 | sales-handoff-escalation-schedule | run_06gfr3qtjrcsq5tcqs24rjsd01.1 | Success (53ms)
+@gnd/jobs:dev: ○ Rebuilding local worker…
+@gnd/jobs:dev: │
+@gnd/jobs:dev: ■  Error: (node:2701) Warning: `--localstorage-file` was provided without a valid path
+@gnd/jobs:dev: │  (Use `node --trace-warnings ...` to show where the warning was created)
+@gnd/jobs:dev: │  
+@gnd/jobs:dev: ○ Local worker ready on branch: default [node] -> 20261002.9

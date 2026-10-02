@@ -1,5 +1,8 @@
 import { describe, expect, it, mock } from "bun:test";
-import { buildSalesDocumentReadinessSignature } from "./meta";
+import {
+	buildSalesDocumentReadinessSignature,
+	readSalesDocumentReadinessMeta,
+} from "./meta";
 import {
 	applySalesDocumentReadinessRepair,
 	prepareSalesDocumentReadiness,
@@ -10,6 +13,19 @@ import {
 } from "./types";
 
 describe("prepareSalesDocumentReadiness", () => {
+	it("re-evaluates attestations created before child ownership validation", () => {
+		expect(
+			readSalesDocumentReadinessMeta({
+				salesDocumentReadiness: {
+					validatorVersion: "sales-document-readiness-v1",
+					status: "financial_review",
+					signature: "old-foreign-child-signature",
+					validatedSourceUpdatedAt: "2026-10-02T16:58:00.000Z",
+				},
+			}),
+		).toBeNull();
+	});
+
 	it("uses a current readiness attestation without loading relational rows", async () => {
 		const updatedAt = new Date("2026-09-01T12:00:00.000Z");
 		const evaluation: SalesDocumentReadinessEvaluation = {
@@ -142,8 +158,7 @@ describe("prepareSalesDocumentReadiness", () => {
 				upsert: mock(async ({ create }: { create: { meta: unknown } }) => {
 					stagedProposal = create.meta as Record<string, unknown>;
 					const proposalId = stagedProposal.proposalId;
-					stagedProposalId =
-						typeof proposalId === "string" ? proposalId : null;
+					stagedProposalId = typeof proposalId === "string" ? proposalId : null;
 					resolutionStatus = "open";
 					return create;
 				}),

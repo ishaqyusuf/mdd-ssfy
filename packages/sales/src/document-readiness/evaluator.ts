@@ -19,6 +19,8 @@ type FormStepInput = {
 
 type DoorInput = {
 	id: number;
+	salesOrderId?: number | null;
+	salesOrderItemId?: number | null;
 	totalQty?: number | null;
 	lhQty?: number | null;
 	rhQty?: number | null;
@@ -311,7 +313,13 @@ export function evaluateSalesDocumentReadiness(
 		}
 
 		const hpt = item.housePackageTool;
-		const doors = hpt?.doors ?? [];
+		// Imported orphan rows can share a reused HPT id. Explicit ownership must
+		// agree before a child row can replace this item's commercial totals.
+		const doors = (hpt?.doors ?? []).filter(
+			(door) =>
+				(door.salesOrderId == null || door.salesOrderId === sale.id) &&
+				(door.salesOrderItemId == null || door.salesOrderItemId === item.id),
+		);
 		const persistedItemQty = finiteNumber(item.qty);
 		const persistedItemTotalCents = cents(item.total);
 		let candidateItemTotalCents = persistedItemTotalCents;

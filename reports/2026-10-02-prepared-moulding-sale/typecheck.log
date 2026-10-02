@@ -1,0 +1,8 @@
+$ tsc --noEmit
+../db/src/queries/assistant.ts(1320,15): error TS2339: Property 'providerAttempted' does not exist on type 'InputJsonObject | InputJsonArray | { toJSON(): unknown; }'.
+  Property 'providerAttempted' does not exist on type 'InputJsonArray'.
+../db/src/queries/assistant.ts(1385,15): error TS2339: Property 'providerAttempted' does not exist on type 'InputJsonObject | InputJsonArray | { toJSON(): unknown; }'.
+  Property 'providerAttempted' does not exist on type 'InputJsonArray'.
+src/copy-sales.ts(521,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/print/dealer-pricing-surface.ts(310,33): error TS2550: Property 'findLastIndex' does not exist on type '{ qty: any; rate: number; total: number; meta: unknown; shelfItems: any; housePackageTool: any; }[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.

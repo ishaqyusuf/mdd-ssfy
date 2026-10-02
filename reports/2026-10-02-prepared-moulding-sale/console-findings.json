@@ -1,0 +1,122 @@
+[
+  {
+    "timestamp": "2026-10-02T16:55:58.844Z",
+    "level": "error",
+    "message": "%c%s%c background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrdersSummary (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?267:33456:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.844Z",
+    "level": "error",
+    "message": "%c%s%c ⨯ background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   uncaughtException: Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrdersSummary (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?267:33456:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.845Z",
+    "level": "error",
+    "message": "%c%s%c ⨯ background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   uncaughtException:  Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrdersSummary (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?267:33456:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.845Z",
+    "level": "error",
+    "message": "%c%s%c background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrders (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?329:33209:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.845Z",
+    "level": "error",
+    "message": "%c%s%c ⨯ background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   uncaughtException: Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrders (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?329:33209:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.845Z",
+    "level": "error",
+    "message": "%c%s%c ⨯ background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   uncaughtException:  Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrders (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?329:33209:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.845Z",
+    "level": "error",
+    "message": "%c%s%c background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrdersSummary (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?267:33456:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.845Z",
+    "level": "error",
+    "message": "%c%s%c ⨯ background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   uncaughtException: Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrdersSummary (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?267:33456:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.855Z",
+    "level": "error",
+    "message": "%c%s%c ⨯ background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   uncaughtException:  Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrdersSummary (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?267:33456:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.856Z",
+    "level": "error",
+    "message": "%c%s%c background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrders (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?329:33209:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.856Z",
+    "level": "error",
+    "message": "%c%s%c ⨯ background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   uncaughtException: Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrders (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?329:33209:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.856Z",
+    "level": "error",
+    "message": "%c%s%c ⨯ background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   uncaughtException:  Error: write EPIPE\n    at Object.finish (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?266:32170:25)\n    at getOrders (about://React/Server/file:///Users/M1PRO/Documents/code/_turbo/gnd/apps/dashboard/.next/dev/server/chunks/ssr/apps_api_src_db_queries_1pkdlns._.js?329:33209:21)"
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.856Z",
+    "level": "warn",
+    "message": "DropdownMenu is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component."
+  },
+  {
+    "timestamp": "2026-10-02T16:55:58.856Z",
+    "level": "warn",
+    "message": "DropdownMenu is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component."
+  },
+  {
+    "timestamp": "2026-10-02T16:56:59.997Z",
+    "level": "error",
+    "message": "`DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.\n\nIf you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component."
+  },
+  {
+    "timestamp": "2026-10-02T16:56:59.998Z",
+    "level": "warn",
+    "message": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."
+  },
+  {
+    "timestamp": "2026-10-02T16:56:59.999Z",
+    "level": "error",
+    "message": "`DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.\n\nIf you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component."
+  },
+  {
+    "timestamp": "2026-10-02T16:57:00.001Z",
+    "level": "warn",
+    "message": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."
+  },
+  {
+    "timestamp": "2026-10-02T16:58:20.602Z",
+    "level": "warn",
+    "message": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."
+  },
+  {
+    "timestamp": "2026-10-02T16:58:20.602Z",
+    "level": "warn",
+    "message": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."
+  },
+  {
+    "timestamp": "2026-10-02T17:01:36.024Z",
+    "level": "warn",
+    "message": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."
+  },
+  {
+    "timestamp": "2026-10-02T17:01:36.026Z",
+    "level": "warn",
+    "message": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."
+  },
+  {
+    "timestamp": "2026-10-02T17:02:12.856Z",
+    "level": "warn",
+    "message": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."
+  },
+  {
+    "timestamp": "2026-10-02T17:02:12.856Z",
+    "level": "warn",
+    "message": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."
+  }
+]

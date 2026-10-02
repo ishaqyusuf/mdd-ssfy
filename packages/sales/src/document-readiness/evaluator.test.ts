@@ -67,6 +67,101 @@ function requireDoorItem(sale: ReturnType<typeof createSale>) {
 }
 
 describe("evaluateSalesDocumentReadiness", () => {
+	it("ignores foreign doors on a reused moulding package without changing the paid invoice", () => {
+		const sale = createSale({
+			id: 33385,
+			orderId: "09955PC",
+			subTotal: 417.9,
+			tax: 29.25,
+			grandTotal: 447.15,
+			amountDue: 0,
+			taxes: [{ taxxable: 417.9 }],
+			items: [
+				{
+					id: 177732,
+					qty: 15,
+					total: 201.9,
+					formSteps: [],
+					housePackageTool: {
+						id: 66620,
+						totalDoors: 0,
+						totalPrice: 201.9,
+						doors: [
+							{
+								id: 70248,
+								salesOrderId: 28224,
+								salesOrderItemId: null,
+								totalQty: 1,
+								rhQty: 1,
+								unitPrice: 420.44,
+								lineTotal: 420.44,
+							},
+						],
+					},
+				},
+				{
+					id: 177733,
+					qty: 18,
+					total: 216,
+					formSteps: [],
+					housePackageTool: null,
+				},
+			],
+		});
+		const result = evaluateSalesDocumentReadiness(sale);
+		expect(result.status).toBe("ready");
+		expect(result.financial.candidate.subTotalCents).toBe(41790);
+		expect(result.financial.candidate.amountDueCents).toBe(0);
+		expect(result.operations).toEqual([]);
+	});
+
+	it("excludes a sibling item's doors but retains owned and legacy unassigned rows", () => {
+		const sale = createSale({
+			subTotal: 100,
+			tax: 7,
+			grandTotal: 107,
+			amountDue: 107,
+			taxes: [{ taxxable: 100 }],
+			items: [
+				{
+					id: 10,
+					qty: 2,
+					total: 100,
+					formSteps: [],
+					housePackageTool: {
+						id: 20,
+						totalDoors: 2,
+						totalPrice: 100,
+						doors: [
+							{
+								id: 1,
+								salesOrderId: 23288,
+								salesOrderItemId: 10,
+								totalQty: 1,
+								lineTotal: 50,
+							},
+							{
+								id: 2,
+								salesOrderId: 23288,
+								salesOrderItemId: null,
+								totalQty: 1,
+								lineTotal: 50,
+							},
+							{
+								id: 3,
+								salesOrderId: 23288,
+								salesOrderItemId: 11,
+								totalQty: 1,
+								lineTotal: 80,
+							},
+						],
+					},
+				},
+			],
+		});
+		expect(evaluateSalesDocumentReadiness(sale).status).toBe("ready");
+	});
+
 	it("stages only parent aggregate repairs when door rows preserve the invoice total", () => {
 		const result = evaluateSalesDocumentReadiness(createSale());
 

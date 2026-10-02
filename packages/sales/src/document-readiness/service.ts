@@ -64,6 +64,8 @@ const readinessInclude = {
 						orderBy: { id: "asc" as const },
 						select: {
 							id: true,
+							salesOrderId: true,
+							salesOrderItemId: true,
 							totalQty: true,
 							lhQty: true,
 							rhQty: true,

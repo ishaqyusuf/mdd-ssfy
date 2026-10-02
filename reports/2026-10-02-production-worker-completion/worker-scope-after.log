@@ -1,0 +1,12 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/sales-control/production-submission-limits.test.ts:
+(pass) worker completion does not create assignments for unassigned order quantities [1.95ms]
+(pass) production limits prioritize existing assignments and exclude unrelated items [1.74ms]
+(pass) empty explicit production scope cannot become whole-order submission [0.08ms]
+(pass) production retry evidence includes quantities and ignores plan row order [0.91ms]
+
+ 4 pass
+ 0 fail
+ 9 expect() calls
+Ran 4 tests across 1 file. [862.00ms]

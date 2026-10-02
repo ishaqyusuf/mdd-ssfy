@@ -1,0 +1,55 @@
+{
+  "production": {
+    "applicability": "required",
+    "state": "awaiting_review",
+    "requiredQty": 8,
+    "assignedQty": 8,
+    "completedQty": 0,
+    "assignmentIds": [
+      13220,
+      13221
+    ]
+  },
+  "submissions": [
+    {
+      "id": 14973,
+      "assignmentId": 13220,
+      "active": true,
+      "quantity": 3,
+      "reviewStatus": "PENDING",
+      "createdAt": "2026-10-02T16:07:57.000Z"
+    },
+    {
+      "id": 14974,
+      "assignmentId": 13220,
+      "active": true,
+      "quantity": 3,
+      "reviewStatus": "PENDING",
+      "createdAt": "2026-10-02T16:08:33.000Z"
+    },
+    {
+      "id": 14975,
+      "assignmentId": 13221,
+      "active": true,
+      "quantity": 2,
+      "reviewStatus": "PENDING",
+      "createdAt": "2026-10-02T16:08:33.000Z"
+    }
+  ],
+  "decision": {
+    "action": "production.complete",
+    "revision": "5acef7a874f64ac1311f977572b4261b875982679480114a9b0e4730e69c3640",
+    "affectedScopes": [
+      "sales.orders",
+      "sales.overview",
+      "production.queue",
+      "production.calendar",
+      "production.summary",
+      "fulfillment.backlog"
+    ],
+    "status": "review_required",
+    "reasons": [
+      "PRODUCTION_SUBMISSIONS_AWAITING_REVIEW"
+    ]
+  }
+}

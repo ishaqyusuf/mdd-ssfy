@@ -1,0 +1,17 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/sales-form/ui/workflow/step-component-picker.test.tsx:
+(pass) StepComponentPicker > keeps the floating toolbar mounted during loading and empty states [9.00ms]
+
+packages/sales/src/sales-form/ui/workflow/workflow-sync-patches.test.ts:
+(pass) workflow sync patches > builds shelf sync patches from stored shelf rows [1.22ms]
+(pass) workflow sync patches > does not re-discount stored shelf unit prices when base metadata is absent [0.13ms]
+(pass) workflow sync patches > recalculates stored shelf rows from base metadata when profile changes [0.05ms]
+(pass) workflow sync patches > does not mark a persisted shelf row dirty when derived pricing metadata is already equivalent
+(pass) workflow sync patches > builds an initial shelf patch only for empty shelf item lines [0.57ms]
+(pass) workflow sync patches > builds door sync patches with route overrides [0.99ms]
+
+ 7 pass
+ 0 fail
+ 27 expect() calls
+Ran 7 tests across 2 files. [923.00ms]

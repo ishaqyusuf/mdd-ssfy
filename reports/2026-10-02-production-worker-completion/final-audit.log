@@ -1,0 +1,730 @@
+{
+  "id": 28096,
+  "production": {
+    "applicability": "required",
+    "state": "awaiting_review",
+    "requiredQty": 3,
+    "assignedQty": 3,
+    "completedQty": 0,
+    "assignmentIds": [
+      13963,
+      13964,
+      13965
+    ]
+  },
+  "assignments": [
+    {
+      "id": 13963,
+      "assignedToId": 44,
+      "qtyAssigned": 1,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 14970,
+          "qty": 1,
+          "lhQty": 0,
+          "rhQty": 1,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    },
+    {
+      "id": 13964,
+      "assignedToId": 44,
+      "qtyAssigned": 1,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 14971,
+          "qty": 1,
+          "lhQty": 0,
+          "rhQty": 1,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    },
+    {
+      "id": 13965,
+      "assignedToId": 44,
+      "qtyAssigned": 1,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 14972,
+          "qty": 1,
+          "lhQty": 0,
+          "rhQty": 1,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    }
+  ],
+  "payroll": 0,
+  "completions": 0,
+  "history": []
+}
+{
+  "id": 26027,
+  "production": {
+    "applicability": "required",
+    "state": "awaiting_review",
+    "requiredQty": 8,
+    "assignedQty": 8,
+    "completedQty": 0,
+    "assignmentIds": [
+      13220,
+      13221
+    ]
+  },
+  "assignments": [
+    {
+      "id": 13220,
+      "assignedToId": 54,
+      "qtyAssigned": 6,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 14973,
+          "qty": 3,
+          "lhQty": 1,
+          "rhQty": 2,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        },
+        {
+          "id": 14974,
+          "qty": 3,
+          "lhQty": 1,
+          "rhQty": 2,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    },
+    {
+      "id": 13221,
+      "assignedToId": 54,
+      "qtyAssigned": 2,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 14975,
+          "qty": 2,
+          "lhQty": 1,
+          "rhQty": 1,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    }
+  ],
+  "payroll": 0,
+  "completions": 0,
+  "history": [
+    {
+      "data": {
+        "error": null,
+        "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+        "status": "awaiting_review",
+        "actorId": 54,
+        "orderNo": "09344AD",
+        "milestone": "PRODUCTION_COMPLETED",
+        "requestId": "073c5de7-f328-4c98-a62f-089508103327",
+        "salesOrderId": 26027,
+        "commandFingerprint": "7c7bc9f394b6f5394552db48d4ecebf8901539ccae67abad24605fe791aed6bb"
+      }
+    },
+    {
+      "data": {
+        "error": "Unable to complete, nothing to submit!",
+        "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+        "status": "failed",
+        "actorId": 54,
+        "orderNo": "09344AD",
+        "milestone": "PRODUCTION_COMPLETED",
+        "requestId": "d04a0033-d8e5-4eeb-8cf8-7a56181fbf86",
+        "salesOrderId": 26027,
+        "commandFingerprint": "929b8b70da69e0f9046f46533dfc09342b006c91f4a8c024d74a21b0333bc01d"
+      }
+    }
+  ]
+}
+{
+  "id": 24605,
+  "production": {
+    "applicability": "required",
+    "state": "awaiting_review",
+    "requiredQty": 11,
+    "assignedQty": 11,
+    "completedQty": 0,
+    "assignmentIds": [
+      12153,
+      12154,
+      12155,
+      12156
+    ]
+  },
+  "assignments": [
+    {
+      "id": 12153,
+      "assignedToId": 54,
+      "qtyAssigned": 6,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 15031,
+          "qty": 6,
+          "lhQty": 2,
+          "rhQty": 4,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    },
+    {
+      "id": 12154,
+      "assignedToId": 54,
+      "qtyAssigned": 1,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 15032,
+          "qty": 1,
+          "lhQty": 0,
+          "rhQty": 1,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    },
+    {
+      "id": 12155,
+      "assignedToId": 54,
+      "qtyAssigned": 3,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 15033,
+          "qty": 3,
+          "lhQty": 2,
+          "rhQty": 1,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    },
+    {
+      "id": 12156,
+      "assignedToId": 44,
+      "qtyAssigned": 1,
+      "qtyCompleted": null,
+      "submissions": []
+    }
+  ],
+  "payroll": 0,
+  "completions": 0,
+  "history": [
+    {
+      "data": {
+        "error": null,
+        "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+        "status": "awaiting_review",
+        "actorId": 54,
+        "orderNo": "08950PC",
+        "milestone": "PRODUCTION_COMPLETED",
+        "requestId": "da204ab2-28d1-4387-ab50-4781aed52d9e",
+        "salesOrderId": 24605,
+        "commandFingerprint": "038eeddc2cdaf0c99e7b5b8f7b0fb32d1ab584ef879cfd0d4183f0c9e3ee8ec6"
+      }
+    },
+    {
+      "data": {
+        "error": null,
+        "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+        "status": "awaiting_review",
+        "actorId": 54,
+        "orderNo": "08950PC",
+        "milestone": "PRODUCTION_COMPLETED",
+        "requestId": "e390bc65-024c-48c8-b8bf-d124a287a0df",
+        "salesOrderId": 24605,
+        "commandFingerprint": "0af5e25bc3c43b78daa13d2752b0c8d7764b6198b0048385c8e1b2543a2c6f13"
+      }
+    },
+    {
+      "data": {
+        "error": null,
+        "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+        "status": "awaiting_review",
+        "actorId": 54,
+        "orderNo": "08950PC",
+        "milestone": "PRODUCTION_COMPLETED",
+        "requestId": "0ecae9eb-a991-4cbb-9f01-c6e6b23e6d73",
+        "salesOrderId": 24605,
+        "commandFingerprint": "40ec39ecc7ab1fa4b6bcea75f247f8cb68bd123723f28fbd7bd89105328d6d0b"
+      }
+    }
+  ]
+}
+{
+  "id": 26945,
+  "production": {
+    "applicability": "required",
+    "state": "awaiting_review",
+    "requiredQty": 9,
+    "assignedQty": 9,
+    "completedQty": 0,
+    "assignmentIds": [
+      13479,
+      13480,
+      13481
+    ]
+  },
+  "assignments": [
+    {
+      "id": 13479,
+      "assignedToId": 71,
+      "qtyAssigned": 3,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 13555,
+          "qty": 3,
+          "lhQty": 2,
+          "rhQty": 1,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    },
+    {
+      "id": 13480,
+      "assignedToId": 71,
+      "qtyAssigned": 5,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 13558,
+          "qty": 5,
+          "lhQty": 2,
+          "rhQty": 3,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    },
+    {
+      "id": 13481,
+      "assignedToId": 71,
+      "qtyAssigned": 1,
+      "qtyCompleted": null,
+      "submissions": [
+        {
+          "id": 13557,
+          "qty": 1,
+          "lhQty": 0,
+          "rhQty": 1,
+          "materialReview": {
+            "status": "PENDING"
+          }
+        }
+      ]
+    }
+  ],
+  "payroll": 0,
+  "completions": 0,
+  "history": [
+    {
+      "data": {
+        "error": null,
+        "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+        "status": "awaiting_review",
+        "actorId": 71,
+        "orderNo": "09560PC",
+        "milestone": "PRODUCTION_COMPLETED",
+        "requestId": "a0484203-42c7-4518-9f76-84a800685303",
+        "salesOrderId": 26945,
+        "commandFingerprint": "288633799407f6c044c2a7865ef427bf998f431d9cf7d66135b3ca797da704c0"
+      }
+    }
+  ]
+}
+[
+  {
+    "orderNo": "09865DB",
+    "production": {
+      "applicability": "required",
+      "state": "awaiting_review",
+      "requiredQty": 3,
+      "assignedQty": 3,
+      "completedQty": 0,
+      "assignmentIds": [
+        13963,
+        13964,
+        13965
+      ]
+    },
+    "assignments": [
+      {
+        "id": 13963,
+        "assignedToId": 44,
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 14970,
+            "qty": 1,
+            "lhQty": 0,
+            "rhQty": 1,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      {
+        "id": 13964,
+        "assignedToId": 44,
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 14971,
+            "qty": 1,
+            "lhQty": 0,
+            "rhQty": 1,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      {
+        "id": 13965,
+        "assignedToId": 44,
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 14972,
+            "qty": 1,
+            "lhQty": 0,
+            "rhQty": 1,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      }
+    ],
+    "payroll": 0,
+    "completions": 0,
+    "history": []
+  },
+  {
+    "orderNo": "09344AD",
+    "production": {
+      "applicability": "required",
+      "state": "awaiting_review",
+      "requiredQty": 8,
+      "assignedQty": 8,
+      "completedQty": 0,
+      "assignmentIds": [
+        13220,
+        13221
+      ]
+    },
+    "assignments": [
+      {
+        "id": 13220,
+        "assignedToId": 54,
+        "qtyAssigned": 6,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 14973,
+            "qty": 3,
+            "lhQty": 1,
+            "rhQty": 2,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          },
+          {
+            "id": 14974,
+            "qty": 3,
+            "lhQty": 1,
+            "rhQty": 2,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      {
+        "id": 13221,
+        "assignedToId": 54,
+        "qtyAssigned": 2,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 14975,
+            "qty": 2,
+            "lhQty": 1,
+            "rhQty": 1,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      }
+    ],
+    "payroll": 0,
+    "completions": 0,
+    "history": [
+      {
+        "data": {
+          "error": null,
+          "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+          "status": "awaiting_review",
+          "actorId": 54,
+          "orderNo": "09344AD",
+          "milestone": "PRODUCTION_COMPLETED",
+          "requestId": "073c5de7-f328-4c98-a62f-089508103327",
+          "salesOrderId": 26027,
+          "commandFingerprint": "7c7bc9f394b6f5394552db48d4ecebf8901539ccae67abad24605fe791aed6bb"
+        }
+      },
+      {
+        "data": {
+          "error": "Unable to complete, nothing to submit!",
+          "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+          "status": "failed",
+          "actorId": 54,
+          "orderNo": "09344AD",
+          "milestone": "PRODUCTION_COMPLETED",
+          "requestId": "d04a0033-d8e5-4eeb-8cf8-7a56181fbf86",
+          "salesOrderId": 26027,
+          "commandFingerprint": "929b8b70da69e0f9046f46533dfc09342b006c91f4a8c024d74a21b0333bc01d"
+        }
+      }
+    ]
+  },
+  {
+    "orderNo": "08950PC",
+    "production": {
+      "applicability": "required",
+      "state": "awaiting_review",
+      "requiredQty": 11,
+      "assignedQty": 11,
+      "completedQty": 0,
+      "assignmentIds": [
+        12153,
+        12154,
+        12155,
+        12156
+      ]
+    },
+    "assignments": [
+      {
+        "id": 12153,
+        "assignedToId": 54,
+        "qtyAssigned": 6,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 15031,
+            "qty": 6,
+            "lhQty": 2,
+            "rhQty": 4,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      {
+        "id": 12154,
+        "assignedToId": 54,
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 15032,
+            "qty": 1,
+            "lhQty": 0,
+            "rhQty": 1,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      {
+        "id": 12155,
+        "assignedToId": 54,
+        "qtyAssigned": 3,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 15033,
+            "qty": 3,
+            "lhQty": 2,
+            "rhQty": 1,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      {
+        "id": 12156,
+        "assignedToId": 44,
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "submissions": []
+      }
+    ],
+    "payroll": 0,
+    "completions": 0,
+    "history": [
+      {
+        "data": {
+          "error": null,
+          "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+          "status": "awaiting_review",
+          "actorId": 54,
+          "orderNo": "08950PC",
+          "milestone": "PRODUCTION_COMPLETED",
+          "requestId": "da204ab2-28d1-4387-ab50-4781aed52d9e",
+          "salesOrderId": 24605,
+          "commandFingerprint": "038eeddc2cdaf0c99e7b5b8f7b0fb32d1ab584ef879cfd0d4183f0c9e3ee8ec6"
+        }
+      },
+      {
+        "data": {
+          "error": null,
+          "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+          "status": "awaiting_review",
+          "actorId": 54,
+          "orderNo": "08950PC",
+          "milestone": "PRODUCTION_COMPLETED",
+          "requestId": "e390bc65-024c-48c8-b8bf-d124a287a0df",
+          "salesOrderId": 24605,
+          "commandFingerprint": "0af5e25bc3c43b78daa13d2752b0c8d7764b6198b0048385c8e1b2543a2c6f13"
+        }
+      },
+      {
+        "data": {
+          "error": null,
+          "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+          "status": "awaiting_review",
+          "actorId": 54,
+          "orderNo": "08950PC",
+          "milestone": "PRODUCTION_COMPLETED",
+          "requestId": "0ecae9eb-a991-4cbb-9f01-c6e6b23e6d73",
+          "salesOrderId": 24605,
+          "commandFingerprint": "40ec39ecc7ab1fa4b6bcea75f247f8cb68bd123723f28fbd7bd89105328d6d0b"
+        }
+      }
+    ]
+  },
+  {
+    "orderNo": "09560PC",
+    "production": {
+      "applicability": "required",
+      "state": "awaiting_review",
+      "requiredQty": 9,
+      "assignedQty": 9,
+      "completedQty": 0,
+      "assignmentIds": [
+        13479,
+        13480,
+        13481
+      ]
+    },
+    "assignments": [
+      {
+        "id": 13479,
+        "assignedToId": 71,
+        "qtyAssigned": 3,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 13555,
+            "qty": 3,
+            "lhQty": 2,
+            "rhQty": 1,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      {
+        "id": 13480,
+        "assignedToId": 71,
+        "qtyAssigned": 5,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 13558,
+            "qty": 5,
+            "lhQty": 2,
+            "rhQty": 3,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      },
+      {
+        "id": 13481,
+        "assignedToId": 71,
+        "qtyAssigned": 1,
+        "qtyCompleted": null,
+        "submissions": [
+          {
+            "id": 13557,
+            "qty": 1,
+            "lhQty": 0,
+            "rhQty": 1,
+            "materialReview": {
+              "status": "PENDING"
+            }
+          }
+        ]
+      }
+    ],
+    "payroll": 0,
+    "completions": 0,
+    "history": [
+      {
+        "data": {
+          "error": null,
+          "event": "SALES_COMPLETION_FULL_WORKFLOW_OUTCOME",
+          "status": "awaiting_review",
+          "actorId": 71,
+          "orderNo": "09560PC",
+          "milestone": "PRODUCTION_COMPLETED",
+          "requestId": "a0484203-42c7-4518-9f76-84a800685303",
+          "salesOrderId": 26945,
+          "commandFingerprint": "288633799407f6c044c2a7865ef427bf998f431d9cf7d66135b3ca797da704c0"
+        }
+      }
+    ]
+  }
+]

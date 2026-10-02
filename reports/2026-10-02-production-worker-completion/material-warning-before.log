@@ -1,0 +1,23 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/production-covered-materials.integration.test.ts:
+33 | 		const preview = await getCoveredProductionMaterials(db, f.sale.id, {
+34 | 			...f.actor, canViewAll: false, canEditInbound: false,
+35 | 			canMarkAvailable: false, canReconcileMaterials: false,
+36 | 		});
+37 | 		expect(preview.eligibleReviewCount).toBe(0);
+38 | 		expect(preview.blockers.join(" ")).not.toContain("assignment details or review evidence changed");
+                                              ^
+error: expect(received).not.toContain(expected)
+
+Expected to not contain: "assignment details or review evidence changed"
+Received: "Submission review #1984: assignment details or review evidence changed. A production supervisor must check the worker, quantities and labor rate."
+
+      at <anonymous> (/Users/M1PRO/Documents/code/_turbo/gnd/packages/sales/src/production-covered-materials.integration.test.ts:38:42)
+(fail) material scope mismatch does not claim an unchanged worker assignment is stale [1017.64ms]
+
+ 0 pass
+ 50 filtered out
+ 1 fail
+ 4 expect() calls
+Ran 1 test across 1 file. [2.81s]

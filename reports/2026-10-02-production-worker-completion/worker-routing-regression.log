@@ -1,0 +1,26 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/jobs/src/bulk-mark-sales-production-completed.test.ts:
+(pass) bulk mark sales production completed task contract > deduplicates request ids and rejects batches above 40 [3.94ms]
+(pass) bulk mark sales production completed task contract > requires server-stamped actor metadata [0.42ms]
+(pass) bulk mark sales production completed task contract > uses one durable parent with bounded runtime and idempotent children [0.34ms]
+
+apps/dashboard/src/components/sales-bulk-production-completion-task.test.ts:
+(pass) sales bulk production completion UI contract > starts one monitored batch and refreshes only after terminal completion [0.35ms]
+
+apps/dashboard/src/actions/production-submission-auth.test.ts:
+(pass) production submission authentication boundary > replaces client author identity before dispatching the background task [0.40ms]
+(pass) production submission authentication boundary > notifies the order sales rep directly when material review is pending [0.42ms]
+(pass) production submission authentication boundary > derives the on-behalf sales-rep exception from order ownership [0.07ms]
+
+apps/dashboard/src/actions/production-submission-authority.test.ts:
+(pass) production submission authority > requires editProduction for assignment mutations [0.07ms]
+(pass) production submission authority > allows an assigned production worker without submit-for-others authority [0.05ms]
+(pass) production submission authority > preserves elevated and production edit authority for submit-for-others [0.04ms]
+(pass) production submission authority > rejects an authenticated actor without production capability [0.04ms]
+(pass) production submission authority > allows the order sales rep to submit on behalf without global production edit access [0.04ms]
+
+ 12 pass
+ 0 fail
+ 42 expect() calls
+Ran 12 tests across 4 files. [858.00ms]

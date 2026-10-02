@@ -1,0 +1,34 @@
+bun test v1.3.0 (b0a6feca)
+
+apps/dashboard/src/components/forms/new-sales-form/catalog-picker-state.test.ts:
+(pass) initial catalog ranking > keeps loading through catalog then ranking and releases an empty rank result [0.05ms]
+(pass) initial catalog ranking > does not block a disabled query or catalog failure on disabled ranks [0.03ms]
+(pass) initial catalog ranking > cached or failed ranks release the picker without waiting for a background refetch
+(pass) initial catalog ranking > sorts by usage with deterministic ties without changing prices or source order [0.51ms]
+
+packages/sales/src/sales-form/ui/workflow/workflow-selection-actions.test.ts:
+(pass) workflow selection actions > retains custom dependency cost through selection, rehydration and HPT [3.19ms]
+(pass) workflow selection actions > retains custom dependency cost through selection, rehydration and HPT [0.30ms]
+(pass) workflow selection actions > retains custom dependency cost through selection, rehydration and HPT [0.21ms]
+(pass) workflow selection actions > selects a root component and returns a line patch [0.21ms]
+(pass) workflow selection actions > initializes one product row when Shelf Items is selected [0.50ms]
+(pass) workflow selection actions > saves a single selected item-type component and advances to the route [0.04ms]
+(pass) workflow selection actions > reaffirms a selected custom single-select component and advances once [0.18ms]
+(pass) workflow selection actions > toggles off a selected custom component on a multi-select step [0.19ms]
+(pass) workflow selection actions > keeps a custom selection when submit explicitly selects it [0.17ms]
+(pass) workflow selection actions > keeps all configured step pills after selecting the next component [0.13ms]
+(pass) workflow selection actions > hot swaps configured HPT rows when the selected height changes [1.32ms]
+(pass) workflow selection actions > waits for profile pricing before changing height on configured HPT rows
+(pass) workflow selection actions > proceeds a multi-select door step to the line item step [0.15ms]
+(pass) workflow selection actions > proceeds a multi-select moulding step to the line item step [0.15ms]
+(pass) workflow selection actions > proceeds a multi-select step from JSON selected-component metadata [0.10ms]
+(pass) workflow selection actions > selects all visible components for a multi-select step [0.02ms]
+(pass) workflow selection actions > selects all without spreading JSON step metadata
+(pass) workflow selection actions > selects all while preserving string custom metadata [0.21ms]
+(pass) workflow selection actions > updates selected component redirect and reroutes primary selections [0.11ms]
+(pass) workflow selection actions > updates selected component redirect from JSON step metadata [0.07ms]
+
+ 24 pass
+ 0 fail
+ 83 expect() calls
+Ran 24 tests across 2 files. [824.00ms]

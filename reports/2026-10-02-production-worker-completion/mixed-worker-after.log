@@ -1,0 +1,22 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/bulk-production-completion.test.ts:
+(pass) bulk production completion > uses only the current worker's reported assignment capacity (PENDING) [0.58ms]
+(pass) bulk production completion > uses only the current worker's reported assignment capacity (APPROVED) [0.02ms]
+(pass) bulk production completion > uses only the current worker's reported assignment capacity (REJECTED)
+(pass) bulk production completion > uses only the current worker's reported assignment capacity (CANCELLED) [0.10ms]
+(pass) bulk production completion > recognizes every lifecycle state already past production completion [0.05ms]
+(pass) bulk production completion > deduplicates valid ids and rejects oversized batches [0.43ms]
+(pass) bulk production completion > skips completed orders and reports stale or cancelled rows [0.13ms]
+(pass) bulk production completion > summarizes actual completion, review, skip, and failure outcomes [1.36ms]
+
+packages/sales/src/sales-control/production-submission-limits.test.ts:
+(pass) worker completion does not create assignments for unassigned order quantities [0.33ms]
+(pass) production limits prioritize existing assignments and exclude unrelated items [0.26ms]
+(pass) empty explicit production scope cannot become whole-order submission [0.03ms]
+(pass) production retry evidence includes quantities and ignores plan row order [0.37ms]
+
+ 12 pass
+ 0 fail
+ 34 expect() calls
+Ran 12 tests across 2 files. [1139.00ms]

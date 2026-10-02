@@ -1,0 +1,91 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/production-covered-materials.integration.test.ts:
+(skip) receipt command rolls back its own stock, demand, allocation and audit writes after allocation rejection
+(skip) independent concurrent receipts apply quantities once (same key: true)
+(skip) independent concurrent receipts apply quantities once (same key: false)
+(skip) admin cancellation reverses exact receipt once and workers cannot cancel
+(skip) cancellation restores an existing stock's null price
+(skip) worker shortage guidance survives reload without a review and clears when covered
+(skip) cancellation rejects malformed before-order provenance without writes
+(skip) cancellation rejects malformed before-shipment provenance without writes
+(skip) cancellation rejects malformed before-quantity provenance without writes
+(skip) cancellation rejects malformed before-item-overflow provenance without writes
+(skip) cancellation rejects malformed before-demand-overflow provenance without writes
+(skip) cancellation refuses later physical stock changes without partial reversal
+(skip) concurrent cancellations reverse once (same key: true)
+(skip) concurrent cancellations reverse once (same key: false)
+(skip) a failure after stock compensation rolls back the entire cancellation
+(skip) cancellation refuses a changed assignment and keeps the receipt intact
+(skip) cancellation preserves later dispatch evidence
+(skip) cancellation preserves later payment evidence
+(skip) cancellation preserves later shared-allocation evidence
+(skip) enabled worker/admin receipt preserves reviews and scope (worker first: true)
+(skip) enabled worker/admin receipt preserves reviews and scope (worker first: false)
+(skip) receipt revalidates concurrent reassigned before writing
+(skip) receipt revalidates concurrent policy-revoked before writing
+(skip) receipt revalidates concurrent cancelled before writing
+(skip) different orders receiving the same variant cannot over-approve shared stock
+(skip) receipt finalizes a linked eligible review and creates its payroll exactly once
+(skip) receipt leaves linked review pending for missing-configuration
+(skip) receipt leaves linked review pending for changed-assignment
+(skip) inventory synchronization preserves received reservations
+(pass) availability concurrent same request keys receive stock once [1654.46ms]
+(pass) availability concurrent different request keys receive stock once [2128.43ms]
+(pass) availability rolls back a receipt if downstream allocation fails [802.57ms]
+(pass) availability rejects stale material and invalid supplier snapshots without receiving [628.08ms]
+(pass) worker availability uses assigned scope and current authority: none [1234.59ms]
+(pass) worker availability uses assigned scope and current authority: assignment [754.77ms]
+(pass) worker availability uses assigned scope and current authority: policy [1052.60ms]
+(pass) unlinked ordered demands with existing stock proposals remain markable [1518.25ms]
+(pass) unrelated stock allocations do not conceal an unapplied receipt [1303.38ms]
+(pass) repeated partial receipts cannot consume unrelated free stock beyond their selected quantities [4087.50ms]
+(pass) merged materials preserve each component's unapplied-receipt cap [1406.82ms]
+(pass) receipt provenance survives partial allocation splits and consumption [1215.98ms]
+(pass) material scope mismatch does not claim an unchanged worker assignment is stale [570.20ms]
+(pass) Sync repairs stale proposals and derived classification before finalizing once [3212.49ms]
+(pass) scoped shipment application excludes issues and preserves another order's received demand [1654.27ms]
+(pass) covered material reviews finalize once without receiving stock or duplicating payroll (reserved) [1342.36ms]
+(pass) covered material reviews finalize once without receiving stock or duplicating payroll (pending_review) [1215.69ms]
+(pass) covered material reviews finalize once without receiving stock or duplicating payroll (received_unallocated) [1629.84ms]
+(pass) covered material reviews finalize once without receiving stock or duplicating payroll (shipment_unapplied) [2375.24ms]
+(pass) worker synchronization revalidates assignment and receiving policy: none [710.40ms]
+(pass) worker synchronization revalidates assignment and receiving policy: assignment [320.34ms]
+(pass) worker synchronization revalidates assignment and receiving policy: policy [197.81ms]
+
+29 tests skipped:
+(skip) receipt command rolls back its own stock, demand, allocation and audit writes after allocation rejection
+(skip) independent concurrent receipts apply quantities once (same key: true)
+(skip) independent concurrent receipts apply quantities once (same key: false)
+(skip) admin cancellation reverses exact receipt once and workers cannot cancel
+(skip) cancellation restores an existing stock's null price
+(skip) worker shortage guidance survives reload without a review and clears when covered
+(skip) cancellation rejects malformed before-order provenance without writes
+(skip) cancellation rejects malformed before-shipment provenance without writes
+(skip) cancellation rejects malformed before-quantity provenance without writes
+(skip) cancellation rejects malformed before-item-overflow provenance without writes
+(skip) cancellation rejects malformed before-demand-overflow provenance without writes
+(skip) cancellation refuses later physical stock changes without partial reversal
+(skip) concurrent cancellations reverse once (same key: true)
+(skip) concurrent cancellations reverse once (same key: false)
+(skip) a failure after stock compensation rolls back the entire cancellation
+(skip) cancellation refuses a changed assignment and keeps the receipt intact
+(skip) cancellation preserves later dispatch evidence
+(skip) cancellation preserves later payment evidence
+(skip) cancellation preserves later shared-allocation evidence
+(skip) enabled worker/admin receipt preserves reviews and scope (worker first: true)
+(skip) enabled worker/admin receipt preserves reviews and scope (worker first: false)
+(skip) receipt revalidates concurrent reassigned before writing
+(skip) receipt revalidates concurrent policy-revoked before writing
+(skip) receipt revalidates concurrent cancelled before writing
+(skip) different orders receiving the same variant cannot over-approve shared stock
+(skip) receipt finalizes a linked eligible review and creates its payroll exactly once
+(skip) receipt leaves linked review pending for missing-configuration
+(skip) receipt leaves linked review pending for changed-assignment
+(skip) inventory synchronization preserves received reservations
+
+ 22 pass
+ 29 skip
+ 0 fail
+ 186 expect() calls
+Ran 51 tests across 1 file. [32.61s]

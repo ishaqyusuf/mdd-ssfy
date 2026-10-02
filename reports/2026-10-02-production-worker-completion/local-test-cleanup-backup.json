@@ -1,0 +1,368 @@
+{
+  "rows": [
+    {
+      "id": 15024,
+      "salesOrderId": 24605,
+      "salesOrderItemId": 166558,
+      "qty": 1,
+      "lhQty": 1,
+      "rhQty": 0,
+      "note": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.392Z",
+      "assignmentId": 14295,
+      "submittedById": 54,
+      "materialReviewId": 2032,
+      "meta": {
+        "source": "sales_mark_as_completed"
+      }
+    },
+    {
+      "id": 15025,
+      "salesOrderId": 24605,
+      "salesOrderItemId": 166560,
+      "qty": 1,
+      "lhQty": 0,
+      "rhQty": 0,
+      "note": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.392Z",
+      "assignmentId": 14296,
+      "submittedById": 54,
+      "materialReviewId": 2032,
+      "meta": {
+        "source": "sales_mark_as_completed"
+      }
+    },
+    {
+      "id": 15026,
+      "salesOrderId": 24605,
+      "salesOrderItemId": 166561,
+      "qty": 30,
+      "lhQty": 0,
+      "rhQty": 0,
+      "note": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.392Z",
+      "assignmentId": 14297,
+      "submittedById": 54,
+      "materialReviewId": 2032,
+      "meta": {
+        "source": "sales_mark_as_completed"
+      }
+    },
+    {
+      "id": 15027,
+      "salesOrderId": 24605,
+      "salesOrderItemId": 166562,
+      "qty": 13,
+      "lhQty": 0,
+      "rhQty": 0,
+      "note": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.392Z",
+      "assignmentId": 14298,
+      "submittedById": 54,
+      "materialReviewId": 2032,
+      "meta": {
+        "source": "sales_mark_as_completed"
+      }
+    },
+    {
+      "id": 15028,
+      "salesOrderId": 24605,
+      "salesOrderItemId": 166559,
+      "qty": 6,
+      "lhQty": 2,
+      "rhQty": 4,
+      "note": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.397Z",
+      "assignmentId": 12153,
+      "submittedById": 54,
+      "materialReviewId": 2032,
+      "meta": {
+        "source": "sales_mark_as_completed"
+      }
+    },
+    {
+      "id": 15029,
+      "salesOrderId": 24605,
+      "salesOrderItemId": 166559,
+      "qty": 1,
+      "lhQty": 0,
+      "rhQty": 1,
+      "note": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.397Z",
+      "assignmentId": 12154,
+      "submittedById": 54,
+      "materialReviewId": 2032,
+      "meta": {
+        "source": "sales_mark_as_completed"
+      }
+    },
+    {
+      "id": 15030,
+      "salesOrderId": 24605,
+      "salesOrderItemId": 166559,
+      "qty": 3,
+      "lhQty": 2,
+      "rhQty": 1,
+      "note": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.397Z",
+      "assignmentId": 12155,
+      "submittedById": 54,
+      "materialReviewId": 2032,
+      "meta": {
+        "source": "sales_mark_as_completed"
+      }
+    }
+  ],
+  "assignments": [
+    {
+      "id": 14295,
+      "itemId": 166558,
+      "orderId": 24605,
+      "assignedToId": 54,
+      "assignedById": 54,
+      "qtyAssigned": 1,
+      "qtyCompleted": null,
+      "completedAt": null,
+      "salesItemControlUid": "door-60492-2-8 x 8-0",
+      "lhQty": 1,
+      "rhQty": 0,
+      "note": null,
+      "salesDoorId": 60492,
+      "startedAt": null,
+      "assignedAt": "2026-10-02T16:19:50.000Z",
+      "dueDate": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.386Z",
+      "laborCost": null,
+      "shelfItemId": null
+    },
+    {
+      "id": 14296,
+      "itemId": 166560,
+      "orderId": 24605,
+      "assignedToId": 54,
+      "assignedById": 54,
+      "qtyAssigned": 1,
+      "qtyCompleted": null,
+      "completedAt": null,
+      "salesItemControlUid": "door-60496-5-0 x 8-0",
+      "lhQty": 0,
+      "rhQty": 0,
+      "note": null,
+      "salesDoorId": 60496,
+      "startedAt": null,
+      "assignedAt": "2026-10-02T16:19:50.000Z",
+      "dueDate": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.386Z",
+      "laborCost": null,
+      "shelfItemId": null
+    },
+    {
+      "id": 14297,
+      "itemId": 166561,
+      "orderId": 24605,
+      "assignedToId": 54,
+      "assignedById": 54,
+      "qtyAssigned": 30,
+      "qtyCompleted": null,
+      "completedAt": null,
+      "salesItemControlUid": "molding-166561-57566",
+      "lhQty": 0,
+      "rhQty": 0,
+      "note": null,
+      "salesDoorId": null,
+      "startedAt": null,
+      "assignedAt": "2026-10-02T16:19:50.000Z",
+      "dueDate": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.386Z",
+      "laborCost": null,
+      "shelfItemId": null
+    },
+    {
+      "id": 14298,
+      "itemId": 166562,
+      "orderId": 24605,
+      "assignedToId": 54,
+      "assignedById": 54,
+      "qtyAssigned": 13,
+      "qtyCompleted": null,
+      "completedAt": null,
+      "salesItemControlUid": "molding-166562-57567",
+      "lhQty": 0,
+      "rhQty": 0,
+      "note": null,
+      "salesDoorId": null,
+      "startedAt": null,
+      "assignedAt": "2026-10-02T16:19:50.000Z",
+      "dueDate": null,
+      "deletedAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.386Z",
+      "laborCost": null,
+      "shelfItemId": null
+    }
+  ],
+  "reviews": [
+    {
+      "id": 2032,
+      "salesOrderId": 24605,
+      "submittedById": 54,
+      "reviewedById": null,
+      "status": "PENDING",
+      "classificationReason": "NOT_CONFIGURED",
+      "idempotencyKey": "production:156b5a67b5186d4e2c59d83811908044cbc19ae61725fc9b9e0887bf8bb84b6d",
+      "assignmentScope": [
+        {
+          "laborCost": null,
+          "controlUid": "door-60492-2-8 x 8-0",
+          "salesItemId": 166558,
+          "assignedToId": null,
+          "assignmentId": null,
+          "assignmentUpdatedAt": null
+        },
+        {
+          "laborCost": null,
+          "controlUid": "door-60493-2-8 x 8-0",
+          "salesItemId": 166559,
+          "assignedToId": 54,
+          "assignmentId": 12153,
+          "assignmentUpdatedAt": "2026-07-21T13:43:05.025Z"
+        },
+        {
+          "laborCost": null,
+          "controlUid": "door-60494-2-6 x 8-0",
+          "salesItemId": 166559,
+          "assignedToId": 54,
+          "assignmentId": 12154,
+          "assignmentUpdatedAt": "2026-07-21T13:43:05.048Z"
+        },
+        {
+          "laborCost": null,
+          "controlUid": "door-60495-2-4 x 8-0",
+          "salesItemId": 166559,
+          "assignedToId": 54,
+          "assignmentId": 12155,
+          "assignmentUpdatedAt": "2026-07-21T13:43:05.067Z"
+        },
+        {
+          "laborCost": null,
+          "controlUid": "door-60496-5-0 x 8-0",
+          "salesItemId": 166560,
+          "assignedToId": null,
+          "assignmentId": null,
+          "assignmentUpdatedAt": null
+        },
+        {
+          "laborCost": null,
+          "controlUid": "molding-166561-57566",
+          "salesItemId": 166561,
+          "assignedToId": null,
+          "assignmentId": null,
+          "assignmentUpdatedAt": null
+        },
+        {
+          "laborCost": null,
+          "controlUid": "molding-166562-57567",
+          "salesItemId": 166562,
+          "assignedToId": null,
+          "assignmentId": null,
+          "assignmentUpdatedAt": null
+        }
+      ],
+      "materialSnapshot": [
+        {
+          "name": "Material configuration missing",
+          "readiness": "not_configured",
+          "expectedAt": null,
+          "componentId": null,
+          "requiredQty": 0,
+          "salesItemId": 166558,
+          "stockStatus": null,
+          "availableQty": 0,
+          "salesOrderId": 24605,
+          "openInboundQty": 0,
+          "undatedOpenInboundQty": 0
+        },
+        {
+          "name": "Material configuration missing",
+          "readiness": "not_configured",
+          "expectedAt": null,
+          "componentId": null,
+          "requiredQty": 0,
+          "salesItemId": 166559,
+          "stockStatus": null,
+          "availableQty": 0,
+          "salesOrderId": 24605,
+          "openInboundQty": 0,
+          "undatedOpenInboundQty": 0
+        },
+        {
+          "name": "Material configuration missing",
+          "readiness": "not_configured",
+          "expectedAt": null,
+          "componentId": null,
+          "requiredQty": 0,
+          "salesItemId": 166560,
+          "stockStatus": null,
+          "availableQty": 0,
+          "salesOrderId": 24605,
+          "openInboundQty": 0,
+          "undatedOpenInboundQty": 0
+        },
+        {
+          "name": "Material configuration missing",
+          "readiness": "not_configured",
+          "expectedAt": null,
+          "componentId": null,
+          "requiredQty": 0,
+          "salesItemId": 166561,
+          "stockStatus": null,
+          "availableQty": 0,
+          "salesOrderId": 24605,
+          "openInboundQty": 0,
+          "undatedOpenInboundQty": 0
+        },
+        {
+          "name": "Material configuration missing",
+          "readiness": "not_configured",
+          "expectedAt": null,
+          "componentId": null,
+          "requiredQty": 0,
+          "salesItemId": 166562,
+          "stockStatus": null,
+          "availableQty": 0,
+          "salesOrderId": 24605,
+          "openInboundQty": 0,
+          "undatedOpenInboundQty": 0
+        }
+      ],
+      "materialRevision": "1807fd9f496398851c801879d93b11c4764633ffb7e411925e7784115fe81d27",
+      "resolution": null,
+      "decisionNote": null,
+      "submittedAt": "2026-10-02T16:19:50.000Z",
+      "reviewedAt": null,
+      "cancelledAt": null,
+      "createdAt": "2026-10-02T16:19:50.000Z",
+      "updatedAt": "2026-10-02T16:19:50.568Z"
+    }
+  ]
+}

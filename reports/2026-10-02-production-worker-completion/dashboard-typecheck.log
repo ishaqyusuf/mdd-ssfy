@@ -1,0 +1,131 @@
+@gnd/dashboard typecheck: 
+@gnd/dashboard typecheck: <--- Last few GCs --->
+@gnd/dashboard typecheck: 
+@gnd/dashboard typecheck: [79219:0xb57c00000]    64451 ms: Scavenge (during sweeping) 4081.5 (4098.4) -> 4078.5 (4098.9) MB, pooled: 0.0 MB, 4.52 / 0.00 ms (average mu = 0.302, current mu = 0.196) allocation failure; 
+@gnd/dashboard typecheck: [79219:0xb57c00000]    65301 ms: Mark-Compact (reduce) 4087.1 (4103.9) -> 4081.9 (4095.9) MB, pooled: 0.0 MB, 43.13 / 0.00 ms (+ 625.2 ms in 123 steps since start of marking, biggest step 8.1 ms, walltime since start of marking 743 ms) (average mu = 0.286
+@gnd/dashboard typecheck: FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+@gnd/dashboard typecheck: ----- Native stack trace -----
+@gnd/dashboard typecheck: 
+@gnd/dashboard typecheck:  1: 0x104e8b5ac node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck:  2: 0x10506e6ec v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck:  3: 0x10506e6a4 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck:  4: 0x10521b09c v8::internal::Heap::ShouldOptimizeForLoadTime() const [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck:  5: 0x10521d628 v8::internal::Heap::OldGenerationConsumedBytes() const [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck:  6: 0x10521d4d0 v8::internal::Heap::RecomputeLimits(v8::internal::GarbageCollector, v8::base::TimeTicks) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck:  7: 0x10522af70 v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags, v8::internal::PerformHeapLimitCheck)::$_1::operator()() const [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck:  8: 0x10522ac14 void heap::base::Stack::SetMarkerAndCallbackImpl<v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags, v8::internal::PerformHeapLimitCheck)::$_1>(heap::base::Stack*, void*, void const*) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck:  9: 0x1058437f0 PushAllRegistersAndIterateStack [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 10: 0x10521981c v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags, v8::internal::PerformHeapLimitCheck) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 11: 0x105211e2c std::__1::invoke_result<v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment, v8::internal::AllocationHint)::$_0&>::type v8::internal::HeapAllocator::CollectGarbageAndRetryAllocation<v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment, v8::internal::AllocationHint)::$_0&>(v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment, v8::internal::AllocationHint)::$_0&, v8::internal::AllocationType) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 12: 0x105210c98 v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment, v8::internal::AllocationHint) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 13: 0x1051f90e4 v8::internal::Factory::NewFillerObject(int, v8::internal::AllocationAlignment, v8::internal::AllocationType, v8::internal::AllocationOrigin) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 14: 0x1055067d8 v8::internal::Runtime_AllocateInYoungGeneration(int, unsigned long*, v8::internal::Isolate*) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 15: 0x104cad474 Builtins_CEntry_Return1_ArgvOnStack_NoBuiltinExit [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 16: 0x137604188 
+@gnd/dashboard typecheck: 17: 0x1371c28f4 
+@gnd/dashboard typecheck: 18: 0x136866fac 
+@gnd/dashboard typecheck: 19: 0x1370db6e0 
+@gnd/dashboard typecheck: 20: 0x13686616c 
+@gnd/dashboard typecheck: 21: 0x136883220 
+@gnd/dashboard typecheck: 22: 0x137526d48 
+@gnd/dashboard typecheck: 23: 0x13686590c 
+@gnd/dashboard typecheck: 24: 0x136883220 
+@gnd/dashboard typecheck: 25: 0x137188b00 
+@gnd/dashboard typecheck: 26: 0x136865d98 
+@gnd/dashboard typecheck: 27: 0x136883220 
+@gnd/dashboard typecheck: 28: 0x137878d90 
+@gnd/dashboard typecheck: 29: 0x1368661c0 
+@gnd/dashboard typecheck: 30: 0x1371ec660 
+@gnd/dashboard typecheck: 31: 0x136ace2c0 
+@gnd/dashboard typecheck: 32: 0x1374d06a4 
+@gnd/dashboard typecheck: 33: 0x1378ba7c8 
+@gnd/dashboard typecheck: 34: 0x137153f0c 
+@gnd/dashboard typecheck: 35: 0x1374d06f8 
+@gnd/dashboard typecheck: 36: 0x137526aa4 
+@gnd/dashboard typecheck: 37: 0x13754e6dc 
+@gnd/dashboard typecheck: 38: 0x136bbb698 
+@gnd/dashboard typecheck: 39: 0x1378b5360 
+@gnd/dashboard typecheck: 40: 0x1378b4e2c 
+@gnd/dashboard typecheck: 41: 0x13789f9a8 
+@gnd/dashboard typecheck: 42: 0x136866074 
+@gnd/dashboard typecheck: 43: 0x1371ec660 
+@gnd/dashboard typecheck: 44: 0x136ace2c0 
+@gnd/dashboard typecheck: 45: 0x1374d06a4 
+@gnd/dashboard typecheck: 46: 0x1378ba6b4 
+@gnd/dashboard typecheck: 47: 0x137153f0c 
+@gnd/dashboard typecheck: 48: 0x1374d06f8 
+@gnd/dashboard typecheck: 49: 0x137526aa4 
+@gnd/dashboard typecheck: 50: 0x13754e6dc 
+@gnd/dashboard typecheck: 51: 0x136bbb698 
+@gnd/dashboard typecheck: 52: 0x1378b5360 
+@gnd/dashboard typecheck: 53: 0x13689b87c 
+@gnd/dashboard typecheck: 54: 0x137854c7c 
+@gnd/dashboard typecheck: 55: 0x136a82f3c 
+@gnd/dashboard typecheck: 56: 0x1371f3924 
+@gnd/dashboard typecheck: 57: 0x136651430 
+@gnd/dashboard typecheck: 58: 0x1378550a0 
+@gnd/dashboard typecheck: 59: 0x13687c2ac 
+@gnd/dashboard typecheck: 60: 0x1374b70d4 
+@gnd/dashboard typecheck: 61: 0x137854ed8 
+@gnd/dashboard typecheck: 62: 0x136a82f3c 
+@gnd/dashboard typecheck: 63: 0x1371f3a9c 
+@gnd/dashboard typecheck: 64: 0x136b8f6d8 
+@gnd/dashboard typecheck: 65: 0x13747df94 
+@gnd/dashboard typecheck: 66: 0x1374699e0 
+@gnd/dashboard typecheck: 67: 0x136ac03b8 
+@gnd/dashboard typecheck: 68: 0x13747dc38 
+@gnd/dashboard typecheck: 69: 0x1371b3934 
+@gnd/dashboard typecheck: 70: 0x13693a1c0 
+@gnd/dashboard typecheck: 71: 0x13693814c 
+@gnd/dashboard typecheck: 72: 0x13751d9b0 
+@gnd/dashboard typecheck: 73: 0x13716a260 
+@gnd/dashboard typecheck: 74: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 75: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 76: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 77: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 78: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 79: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 80: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 81: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 82: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 83: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 84: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 85: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 86: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 87: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 88: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 89: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 90: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 91: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 92: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 93: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 94: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 95: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 96: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 97: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 98: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 99: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 100: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 101: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 102: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 103: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 104: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 105: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 106: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 107: 0x104c0d5ec Builtins_InterpreterEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 108: 0x104c0a96c Builtins_JSEntryTrampoline [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 109: 0x104c0a610 Builtins_JSEntry [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 110: 0x105185e58 v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 111: 0x10518583c v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::DirectHandle<v8::internal::Object>, v8::internal::DirectHandle<v8::internal::Object>, v8::base::Vector<v8::internal::DirectHandle<v8::internal::Object> const>) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 112: 0x105d83474 v8::Function::Call(v8::Isolate*, v8::Local<v8::Context>, v8::Local<v8::Value>, int, v8::Local<v8::Value>*) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 113: 0x104e7001c node::builtins::BuiltinLoader::CompileAndCall(v8::Local<v8::Context>, char const*, node::Realm*) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 114: 0x105d18f90 node::Realm::ExecuteBootstrapper(char const*) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 115: 0x105cdca58 node::StartExecution(node::Environment*, char const*) (.cold.1) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 116: 0x104e5b260 node::StartExecution(node::Environment*, char const*) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 117: 0x104e5b1f8 node::StartExecution(node::Environment*, std::__1::function<v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 118: 0x104deaa74 node::LoadEnvironment(node::Environment*, std::__1::function<v8::MaybeLocal<v8::Value> (node::StartExecutionCallbackInfo const&)>, std::__1::function<void (node::Environment*, v8::Local<v8::Value>, v8::Local<v8::Value>)>) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 119: 0x104eb9320 node::NodeMainInstance::Run(node::ExitCode*, node::Environment*) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 120: 0x104eb90b0 node::NodeMainInstance::Run() [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 121: 0x104e5dda8 node::Start(int, char**) [/opt/homebrew/Cellar/node/25.4.0/lib/libnode.141.dylib]
+@gnd/dashboard typecheck: 122: 0x18b6c44e4 start [/usr/lib/dyld]
+@gnd/dashboard typecheck: Signaled with code SIGABRT

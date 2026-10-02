@@ -1,10 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import {
-	buildStepComponentOverrideMap,
+	computeHptSharedDoorSurcharge,
+	resolveHptDoorUnitPriceBreakdown,
+} from "../../domain/hpt-compatibility";
+import {
 	type WorkflowComponentRecord,
 	type WorkflowStepRecord,
+	buildStepComponentOverrideMap,
 } from "./workflow-records";
-import { resolveWorkflowCatalogComponents } from "./workflow-visible-components";
 import {
 	proceedWorkflowMultiSelectStep,
 	saveWorkflowSelectedComponent,
@@ -12,6 +15,7 @@ import {
 	selectWorkflowRootComponent,
 	setWorkflowComponentRedirect,
 } from "./workflow-selection-actions";
+import { resolveWorkflowCatalogComponents } from "./workflow-visible-components";
 
 const routeData = {
 	composedRouter: {
@@ -45,54 +49,90 @@ const routeData = {
 };
 
 describe("workflow selection actions", () => {
-	it.each([110, 0])("retains custom dependency cost %s through selection and rehydration", (cost) => {
-		const steps: WorkflowStepRecord[] = [
-			{ stepId: 1, step: { uid: "rootStep", title: "Item Type" }, prodUid: "rootA" },
-			{
-				stepId: 2,
-				step: { uid: "stepB", title: "Jamb Size" },
-				meta: { priceStepDeps: ["rootStep"] },
-			},
-		];
-		const fresh: WorkflowComponentRecord = {
-			uid: "custom-frame",
-			title: "FRAME 10-1/2' FJ PRIMED",
-			custom: true,
-			basePrice: null,
-			salesPrice: null,
-			pricing: { rootA: { price: cost } },
-		};
-		const component = resolveWorkflowCatalogComponents({
-			components: [fresh], steps, activeStep: steps[1]!,
-			overrides: new Map(), profileCoefficient: 0.5,
-		})[0]!;
-		const result = saveWorkflowSelectedComponent({
-			routeData: {
-				...routeData,
-				stepsByUid: {
-					...routeData.stepsByUid,
-					stepB: { ...routeData.stepsByUid.stepB, title: "Jamb Size" },
+	it.each([
+		{ cost: 110, coefficient: 0.5, sales: 220 },
+		{ cost: 0, coefficient: 0.5, sales: 0 },
+		{ cost: 70, coefficient: 0.7, sales: 100 },
+	])(
+		"retains custom dependency cost through selection, rehydration and HPT",
+		({ cost, coefficient, sales }) => {
+			const steps: WorkflowStepRecord[] = [
+				{
+					stepId: 1,
+					step: { uid: "rootStep", title: "Item Type" },
+					prodUid: "rootA",
 				},
-			},
-			line: { uid: "custom-line", formSteps: steps },
-			steps, currentStepIndex: 1, component,
-			visibleComponents: [component], activeStepTitle: "Jamb Size",
-		});
-		expect(result?.linePatch.formSteps?.[1]).toMatchObject({
-			prodUid: "custom-frame", basePrice: cost, price: cost * 2,
-		});
-		const reopened: WorkflowStepRecord[] = JSON.parse(JSON.stringify(result?.linePatch.formSteps));
-		const overrides = buildStepComponentOverrideMap(reopened[1]);
-		const selected = overrides.get("custom-frame");
-		expect(selected?.basePrice).toBe(cost);
-		expect(selected?.salesPrice).toBe(cost * 2);
-		const [card] = resolveWorkflowCatalogComponents({
-			components: [selected!], steps: reopened, activeStep: reopened[1]!,
-			overrides, profileCoefficient: 0.5,
-		});
-		expect(card?.basePrice).toBe(cost);
-		expect(card?.salesPrice).toBe(cost * 2);
-	});
+				{
+					stepId: 2,
+					step: { uid: "stepB", title: "Jamb Size" },
+					meta: { priceStepDeps: ["rootStep"] },
+				},
+			];
+			const fresh: WorkflowComponentRecord = {
+				uid: "custom-frame",
+				title: "FRAME 10-1/2' FJ PRIMED",
+				custom: true,
+				basePrice: null,
+				salesPrice: null,
+				pricing: { rootA: { price: cost } },
+			};
+			const component = resolveWorkflowCatalogComponents({
+				components: [fresh],
+				steps,
+				activeStep: steps[1] || null,
+				overrides: new Map(),
+				profileCoefficient: coefficient,
+			})[0];
+			if (!component) throw new Error("Expected custom component");
+			const result = saveWorkflowSelectedComponent({
+				routeData: {
+					...routeData,
+					stepsByUid: {
+						...routeData.stepsByUid,
+						stepB: { ...routeData.stepsByUid.stepB, title: "Jamb Size" },
+					},
+				},
+				line: { uid: "custom-line", formSteps: steps },
+				steps,
+				currentStepIndex: 1,
+				component,
+				visibleComponents: [component],
+				activeStepTitle: "Jamb Size",
+			});
+			expect(result?.linePatch.formSteps?.[1]).toMatchObject({
+				prodUid: "custom-frame",
+				basePrice: cost,
+				price: sales,
+			});
+			const reopened: WorkflowStepRecord[] = JSON.parse(
+				JSON.stringify(result?.linePatch.formSteps),
+			);
+			const overrides = buildStepComponentOverrideMap(reopened[1]);
+			const selected = overrides.get("custom-frame");
+			if (!selected) throw new Error("Expected retained custom selection");
+			expect(selected?.basePrice).toBe(cost);
+			expect(selected?.salesPrice).toBe(sales);
+			const [card] = resolveWorkflowCatalogComponents({
+				components: [selected],
+				steps: reopened,
+				activeStep: reopened[1] || null,
+				overrides,
+				profileCoefficient: coefficient,
+			});
+			expect(card?.basePrice).toBe(cost);
+			expect(card?.salesPrice).toBe(sales);
+			const sharedDoorSurcharge = computeHptSharedDoorSurcharge({
+				formSteps: reopened,
+			});
+			expect(sharedDoorSurcharge).toBe(sales);
+			const breakdown = resolveHptDoorUnitPriceBreakdown(
+				{ meta: { doorSalesUnitPrice: 143.97 } },
+				{ sharedDoorSurcharge },
+			);
+			expect(breakdown.sharedDoorSurcharge).toBe(sales);
+			expect(breakdown.unitPrice).toBe(143.97 + sales);
+		},
+	);
 
 	it("selects a root component and returns a line patch", () => {
 		const result = selectWorkflowRootComponent({
