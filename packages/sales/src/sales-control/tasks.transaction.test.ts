@@ -338,7 +338,11 @@ describe("sales-control task transactions", () => {
 		const result = await tasksModule.submitAllTask(
 			db as any,
 			{
-				meta: { salesId: 9001, authorId: 12 },
+				meta: {
+					salesId: 9001,
+					authorId: 12,
+					allowProductionSubmissionForOthers: false,
+				},
 				submitAll: {
 					assignedToId: 12,
 					idempotencyKey: "submit-9001-77",
@@ -369,7 +373,10 @@ describe("sales-control task transactions", () => {
 		);
 		expect(submitAssignmentsActionMock).toHaveBeenCalledWith(
 			tx,
-			expect.objectContaining({ materialReviewId: 55 }),
+			expect.objectContaining({
+				materialReviewId: 55,
+				allowCreateAssignments: false,
+			}),
 		);
 		expect(refreshAssignmentScope).toHaveBeenCalledWith(tx, 55);
 		expect(autoReviewSalesPaymentsForOrderActionMock).not.toHaveBeenCalled();

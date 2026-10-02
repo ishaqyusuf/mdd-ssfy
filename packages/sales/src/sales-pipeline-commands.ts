@@ -401,6 +401,45 @@ export function evaluateSalesPipelineCommand(
 					reasons: ["NO_ACTIVE_ADMINISTRATIVE_COMPLETION"],
 				};
 	}
+	if (
+		input.action === "production.complete" &&
+		snapshot.production.state === "awaiting_review" &&
+		snapshot.production.requiredQty > 0 &&
+		snapshot.production.assignedQty >= snapshot.production.requiredQty
+	) {
+		const reports = snapshot.evidence.production.submissions.filter(
+			(submission) =>
+				submission.active &&
+				!["rejected", "cancelled"].includes(
+					submission.reviewStatus?.trim().toLowerCase() ?? "",
+				),
+		);
+		const assignments = snapshot.evidence.production.assignments.filter(
+			(assignment) => assignment.active && assignment.assignedQty > 0,
+		);
+		// Pending reports exhaust submission capacity, but do not finalize work.
+		const fullyReported =
+			assignments.length > 0 &&
+			assignments.every((assignment) => {
+				const reportedQty = reports
+					.filter((submission) => submission.assignmentId === assignment.id)
+					.reduce(
+						(total, submission) => total + Math.max(0, submission.quantity),
+						0,
+					);
+				return (
+					Math.max(assignment.completedQty, reportedQty) >=
+					assignment.assignedQty
+				);
+			});
+		if (fullyReported) {
+			return {
+				...base,
+				status: "review_required",
+				reasons: ["PRODUCTION_SUBMISSIONS_AWAITING_REVIEW"],
+			};
+		}
+	}
 	if (administrativeCompletion) {
 		const applicability = production
 			? snapshot.production.applicability

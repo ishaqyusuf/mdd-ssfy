@@ -1515,13 +1515,18 @@ function SalesMenuMarkAs({
 			preparedSalesIds ?? prepareStatusAction("production_completed");
 		if (!targetSalesIds) return;
 		if (!beginStatusAction()) return;
-		const inventoryReady = await runInventoryMarkAsPreflight(
-			"production_completed",
-			targetSalesIds,
-		);
-		if (!inventoryReady) {
-			releaseStatusAction();
-			return;
+		const productionWorker =
+			auth.can.viewProduction && !auth.can.viewOrders && !auth.can.editProduction;
+		// Workers report their own work; inventory approval is a separate authority.
+		if (!productionWorker) {
+			const inventoryReady = await runInventoryMarkAsPreflight(
+				"production_completed",
+				targetSalesIds,
+			);
+			if (!inventoryReady) {
+				releaseStatusAction();
+				return;
+			}
 		}
 		await startMarkProductionCompletedTask();
 	};

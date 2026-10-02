@@ -558,6 +558,7 @@ export type SubmitAssingmentsAction = {
   data: RenturnTypeAsync<typeof getSaleInformation>;
   authorId;
   materialReviewId?: number | null;
+  allowCreateAssignments?: boolean;
   quantityLimits?: Array<{ uid: string; quantity: { qty: number; lh: number; rh: number } }>;
 } & SubmitAll;
 export function buildProductionSubmissionPlan(props: SubmitAssingmentsAction) {
@@ -567,6 +568,7 @@ export function buildProductionSubmissionPlan(props: SubmitAssingmentsAction) {
   for (const item of props.data.items) {
     const pendingProds = item.analytics?.assignment.pending!;
     if (
+      props.allowCreateAssignments !== false &&
       hasQty(pendingProds) &&
       (submitAll || props.itemUids?.includes(item?.controlUid))
     )

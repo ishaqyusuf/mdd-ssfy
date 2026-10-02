@@ -32,6 +32,101 @@ function snapshot(overrides: Partial<SalesPipelineEvidence> = {}) {
 }
 
 describe("evaluateSalesPipelineCommand", () => {
+	for (const remaining of [0, 1]) {
+		it(`keeps fully reported work awaiting review and permits a remaining unit (${remaining})`, () => {
+			const current = snapshot({
+				production: {
+					configuredRequirement: true,
+					requiredQty: 8,
+					assignments: [
+						{ id: 1, active: true, assignedQty: 6, completedQty: 0 },
+						{ id: 2, active: true, assignedQty: 2, completedQty: 0 },
+					],
+					submissions: [
+						{
+							id: 1,
+							assignmentId: 1,
+							active: true,
+							quantity: 3,
+							reviewStatus: "PENDING",
+						},
+						{
+							id: 2,
+							assignmentId: 1,
+							active: true,
+							quantity: 3 - remaining,
+							reviewStatus: "PENDING",
+						},
+						{
+							id: 3,
+							assignmentId: 2,
+							active: true,
+							quantity: 2,
+							reviewStatus: "PENDING",
+						},
+						{
+							id: 4,
+							assignmentId: 1,
+							active: true,
+							quantity: 1,
+							reviewStatus: "REJECTED",
+						},
+					],
+					aggregate: null,
+					administrativeCompletion: null,
+				},
+			});
+			expect(
+				evaluateSalesPipelineCommand(current, {
+					action: "production.complete",
+					authorized: true,
+					expectedRevision: current.revision,
+				}),
+			).toMatchObject(
+				remaining
+					? { status: "ready" }
+					: {
+							status: "review_required",
+							reasons: ["PRODUCTION_SUBMISSIONS_AWAITING_REVIEW"],
+						},
+			);
+			expect(
+				evaluateSalesPipelineCommand(current, {
+					action: "production.review.resolve",
+					authorized: true,
+				}).status,
+			).toBe("ready");
+		});
+	}
+	it("does not let excess reports on one assignment cover another assignment", () => {
+		const current = snapshot({
+			production: {
+				configuredRequirement: true,
+				requiredQty: 2,
+				assignments: [
+					{ id: 1, active: true, assignedQty: 1, completedQty: 0 },
+					{ id: 2, active: true, assignedQty: 1, completedQty: 0 },
+				],
+				submissions: [
+					{
+						id: 1,
+						assignmentId: 1,
+						active: true,
+						quantity: 2,
+						reviewStatus: "PENDING",
+					},
+				],
+				aggregate: null,
+				administrativeCompletion: null,
+			},
+		});
+		expect(
+			evaluateSalesPipelineCommand(current, {
+				action: "production.complete",
+				authorized: true,
+			}).status,
+		).toBe("ready");
+	});
 	it("rejects stale, unauthorized, and conflicting transitions before writes", () => {
 		const current = snapshot();
 		expect(

@@ -154,10 +154,6 @@ export async function getCoveredProductionMaterials(
 		const validated = validateProductionMaterialReviewAssignmentScope(review);
 		const scopeRefresh = canRefreshReviews ? reviewScopePlan.rows.find(row => row.reviewId === review.id) : null;
 		const allowed =
-			reviewTouchesReceivedComponents(
-				review.materialSnapshot,
-				scope.componentIds,
-			) &&
 			reviewScope.length > 0 &&
 			review.submissions.length > 0 &&
 			(!validated.staleReasons.length || !!scopeRefresh) &&
@@ -167,6 +163,11 @@ export async function getCoveredProductionMaterials(
 				));
 		if (!allowed) {
 			blockers.push(`Submission review #${review.id}: assignment details or review evidence changed. A production supervisor must check the worker, quantities and labor rate.`);
+			candidates.push({ id: review.id, materialRevision: "", eligible: false });
+			continue;
+		}
+		if (!reviewTouchesReceivedComponents(review.materialSnapshot, scope.componentIds)) {
+			blockers.push(`Submission review #${review.id}: material evidence does not match the materials for your assignments. A production supervisor must check the material configuration.`);
 			candidates.push({ id: review.id, materialRevision: "", eligible: false });
 			continue;
 		}

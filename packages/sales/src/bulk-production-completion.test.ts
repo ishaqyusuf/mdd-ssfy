@@ -4,10 +4,56 @@ import {
 	hasCompletedProductionLifecycle,
 	normalizeBulkProductionCompletionSalesIds,
 	prepareBulkProductionCompletion,
+	getWorkerProductionCompletionState,
 	summarizeBulkProductionCompletionResult,
 } from "./bulk-production-completion";
 
 describe("bulk production completion", () => {
+	for (const reviewStatus of ["PENDING", "APPROVED", "REJECTED", "CANCELLED"]) {
+		it(`uses only the current worker's reported assignment capacity (${reviewStatus})`, () => {
+			const production = {
+				assignments: [
+					{
+						id: 1,
+						active: true,
+						assignedToId: 54,
+						assignedQty: 3,
+						completedQty: 0,
+					},
+					{
+						id: 2,
+						active: true,
+						assignedToId: 44,
+						assignedQty: 1,
+						completedQty: 0,
+					},
+				],
+				submissions: [
+					{ id: 1, assignmentId: 1, active: true, quantity: 3, reviewStatus },
+				],
+			};
+			expect(getWorkerProductionCompletionState(production, 54)).toBe(
+				reviewStatus === "PENDING"
+					? "awaiting_review"
+					: reviewStatus === "APPROVED"
+						? "already_completed"
+						: "ready",
+			);
+			expect(getWorkerProductionCompletionState(production, 44)).toBe("ready");
+			expect(getWorkerProductionCompletionState(production, 7)).toBe(
+				"unassigned",
+			);
+			expect(
+				getWorkerProductionCompletionState(
+					{
+						...production,
+						submissions: [{ ...production.submissions[0]!, active: false }],
+					},
+					54,
+				),
+			).toBe("ready");
+		});
+	}
 	it("recognizes every lifecycle state already past production completion", () => {
 		expect(hasCompletedProductionLifecycle("ready_to_fulfill")).toBe(true);
 		expect(hasCompletedProductionLifecycle("fulfilled")).toBe(true);

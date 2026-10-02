@@ -1,4 +1,46 @@
 import type { SalesOrderLifecycleStatus } from "./order-status";
+import type { SalesPipelineEvidence } from "./sales-pipeline";
+
+export function getWorkerProductionCompletionState(
+	production: Pick<
+		SalesPipelineEvidence["production"],
+		"assignments" | "submissions"
+	>,
+	workerId: number,
+) {
+	const assignments = production.assignments.filter(
+		(assignment) =>
+			assignment.active &&
+			assignment.assignedToId === workerId &&
+			assignment.assignedQty > 0,
+	);
+	if (!assignments.length) return "unassigned" as const;
+	let pendingReview = false;
+	for (const assignment of assignments) {
+		const reports = production.submissions.filter(
+			(submission) =>
+				submission.active &&
+				submission.assignmentId === assignment.id &&
+				!["rejected", "cancelled"].includes(
+					submission.reviewStatus?.trim().toLowerCase() ?? "",
+				),
+		);
+		const reportedQty = reports.reduce(
+			(sum, report) => sum + Math.max(0, report.quantity),
+			0,
+		);
+		if (Math.max(assignment.completedQty, reportedQty) < assignment.assignedQty)
+			return "ready" as const;
+		pendingReview ||= reports.some((report) =>
+			["pending", "pending_review"].includes(
+				report.reviewStatus?.trim().toLowerCase() ?? "",
+			),
+		);
+	}
+	return pendingReview
+		? ("awaiting_review" as const)
+		: ("already_completed" as const);
+}
 
 export const BULK_PRODUCTION_COMPLETION_LIMIT = 40;
 

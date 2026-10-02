@@ -16,6 +16,30 @@ import {
 const localTest =
 	process.env.GND_AVAILABILITY_DB_TEST === "1" ? test : test.skip;
 
+localTest("material scope mismatch does not claim an unchanged worker assignment is stale", async () => {
+	const f = await fixture("material-scope-warning");
+	try {
+		await db.salesProductionSubmissionMaterialReview.updateMany({
+			where: { salesOrderId: f.sale.id, status: "PENDING" },
+			data: {
+				assignmentScope: [{
+					controlUid: f.control.uid, salesItemId: f.salesItem.id,
+					assignmentId: f.assignment.id, assignedToId: f.assignment.assignedToId,
+					assignmentUpdatedAt: f.assignment.updatedAt!.toISOString(), laborCost: f.assignment.laborCost,
+				}],
+				materialSnapshot: [{ componentId: null, readiness: "not_configured" }],
+			},
+		});
+		const preview = await getCoveredProductionMaterials(db, f.sale.id, {
+			...f.actor, canViewAll: false, canEditInbound: false,
+			canMarkAvailable: false, canReconcileMaterials: false,
+		});
+		expect(preview.eligibleReviewCount).toBe(0);
+		expect(preview.blockers.join(" ")).not.toContain("assignment details or review evidence changed");
+		expect(preview.blockers.join(" ")).toContain("material evidence does not match");
+	} finally { await cleanup(f); }
+}, 30000);
+
 localTest("Sync repairs stale proposals and derived classification before finalizing once", async () => {
 	const f = await fixture("sync-repair");
 	try {

@@ -1,6 +1,40 @@
 import { expect, test } from "bun:test";
 import { buildProductionSubmissionPlan, productionSubmissionPlanQuantities } from "./actions";
 
+test("worker completion does not create assignments for unassigned order quantities", () => {
+	const result = buildProductionSubmissionPlan({
+		authorId: 54,
+		allowCreateAssignments: false,
+		data: {
+			order: { id: 1 },
+			items: [
+				{
+					controlUid: "own-door",
+					itemId: 10,
+					analytics: {
+						assignment: { pending: { qty: 1, lh: 0, rh: 1 } },
+						pendingSubmissions: [
+							{ assignmentId: 12, qty: { qty: 3, lh: 2, rh: 1 } },
+						],
+					},
+				},
+				{
+					controlUid: "unassigned-trim",
+					itemId: 11,
+					analytics: {
+						assignment: { pending: { qty: 30, lh: 0, rh: 0 } },
+						pendingSubmissions: [],
+					},
+				},
+			],
+		} as never,
+	});
+	expect(result.createAssignments).toHaveLength(0);
+	expect(productionSubmissionPlanQuantities(result)).toEqual([
+		{ uid: "own-door", assignmentId: 12, qty: 3, lh: 2, rh: 1 },
+	]);
+});
+
 test("production limits prioritize existing assignments and exclude unrelated items", () => {
   const qty = (qty: number) => ({ qty, lh: 0, rh: 0 });
   const item = (controlUid: string, itemId: number) => ({

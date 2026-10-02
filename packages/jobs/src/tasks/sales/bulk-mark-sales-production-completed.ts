@@ -5,6 +5,7 @@ import {
 	type UpdateSalesControl,
 	evaluateSalesPipelineCommand,
 	getSalesPipelineSnapshots,
+	getWorkerProductionCompletionState,
 	normalizeBulkProductionCompletionSalesIds,
 	recordSalesCompletionFullWorkflowOutcomes,
 	summarizeBulkProductionCompletionResult,
@@ -77,6 +78,30 @@ export const bulkMarkSalesProductionCompleted = schemaTask({
 				authorized: true,
 				expectedRevision: snapshot.revision,
 			});
+			const workerState = canEditProduction
+				? "ready"
+				: getWorkerProductionCompletionState(
+						snapshot.evidence.production,
+						input.actor.id,
+					);
+			if (workerState === "unassigned") {
+				outcomes.push({
+					salesId,
+					orderNo: snapshot.evidence.orderNo,
+					status: "failed",
+					error:
+						"No active production assignment belongs to you on this order.",
+				});
+				continue;
+			}
+			if (decision.status === "ready" && workerState !== "ready") {
+				outcomes.push({
+					salesId,
+					orderNo: snapshot.evidence.orderNo,
+					status: workerState,
+				});
+				continue;
+			}
 			if (decision.status === "ready") {
 				ready.push({
 					salesId,

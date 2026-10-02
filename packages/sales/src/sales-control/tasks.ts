@@ -85,6 +85,7 @@ export async function submitAllTask(
 		throw new Error("Production submission details are required.");
 	const effectiveSubmitArgs = {
 		...submitArgs,
+		allowCreateAssignments: data.meta.allowProductionSubmissionForOthers !== false,
 		quantityLimits: options.quantityLimits,
 		assignedToId: data.meta.allowProductionSubmissionForOthers
 			? submitArgs.assignedToId
