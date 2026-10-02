@@ -1,7 +1,6 @@
 /** @jsxImportSource react */
 "use client";
 
-import { useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
 import {
 	Dialog,
@@ -12,12 +11,13 @@ import {
 	DialogTitle,
 } from "@gnd/ui/dialog";
 import { Input } from "@gnd/ui/input";
+import { useId, useMemo, useState } from "react";
 
-import type { SalesFormLineItemRecord } from "../../../application";
 import {
 	multiplyMoney,
 	sumMoney,
 } from "../../../../payment-system/domain/money";
+import type { SalesFormLineItemRecord } from "../../../application";
 
 type DoorLine = NonNullable<
 	NonNullable<SalesFormLineItemRecord["housePackageTool"]>["doors"]
@@ -71,6 +71,7 @@ interface DoorDetailsDialogProps {
 }
 
 export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
+	const fieldPrefix = useId();
 	const [rows, setRows] = useState<DoorLine[]>(
 		(props.line.housePackageTool?.doors || []).map(calcDoorRow),
 	);
@@ -95,16 +96,16 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
 			<DialogContent
 				onOpenAutoFocus={(event) => event.preventDefault()}
-				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl flex-col overflow-hidden"
+				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl max-sm:h-[calc(100dvh-1rem)] max-sm:max-h-[calc(100dvh-1rem)] max-sm:rounded-xl max-sm:[&>button:last-child]:size-11 max-sm:[&>button:last-child]:right-2 max-sm:[&>button:last-child]:top-2 flex-col overflow-hidden"
 			>
-				<DialogHeader className="shrink-0">
+				<DialogHeader className="max-sm:pr-14 max-sm:text-left shrink-0">
 					<DialogTitle>Door Details</DialogTitle>
 					<DialogDescription>
 						Configure door sizes, swings, quantities, and pricing.
 					</DialogDescription>
 				</DialogHeader>
 				<div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain rounded-lg border p-3">
-					<div className="grid grid-cols-12 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+					<div className="hidden sm:grid grid-cols-12 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 						<p className="col-span-3">Dimension</p>
 						<p className="col-span-2">Swing</p>
 						<p className="col-span-2">LH Qty</p>
@@ -113,95 +114,152 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 						<p className="col-span-1">Remove</p>
 					</div>
 					{rows.map((row, index) => (
-						<div key={`door-row-${index}`} className="grid grid-cols-12 gap-2">
-							<Input
-								className="col-span-3"
-								value={row.dimension || ""}
-								onChange={(e) =>
-									setRows((prev) =>
-										prev.map((item, ri) =>
-											ri === index
-												? {
-														...item,
-														dimension: e.target.value,
-													}
-												: item,
-										),
-									)
-								}
-								placeholder="2-8 x 8-0"
-							/>
-							<Input
-								className="col-span-2"
-								value={row.swing || ""}
-								onChange={(e) =>
-									setRows((prev) =>
-										prev.map((item, ri) =>
-											ri === index
-												? {
-														...item,
-														swing: e.target.value,
-													}
-												: item,
-										),
-									)
-								}
-								placeholder="LH/RH"
-							/>
-							<Input
-								className="col-span-2"
-								type="number"
-								value={row.lhQty || 0}
-								onChange={(e) =>
-									setRows((prev) =>
-										prev.map((item, ri) =>
-											ri === index
-												? calcDoorRow({
-														...item,
-														lhQty: toNumber(e.target.value),
-													})
-												: item,
-										),
-									)
-								}
-							/>
-							<Input
-								className="col-span-2"
-								type="number"
-								value={row.rhQty || 0}
-								onChange={(e) =>
-									setRows((prev) =>
-										prev.map((item, ri) =>
-											ri === index
-												? calcDoorRow({
-														...item,
-														rhQty: toNumber(e.target.value),
-													})
-												: item,
-										),
-									)
-								}
-							/>
-							<Input
-								className="col-span-2"
-								type="number"
-								step="0.01"
-								value={row.unitPrice || 0}
-								onChange={(e) =>
-									setRows((prev) =>
-										prev.map((item, ri) =>
-											ri === index
-												? calcDoorRow({
-														...item,
-														unitPrice: toNumber(e.target.value),
-													})
-												: item,
-										),
-									)
-								}
-							/>
+						<div
+							key={`door-row-${index}`}
+							className="grid grid-cols-12 gap-2 max-sm:grid-cols-2 max-sm:gap-3 max-sm:rounded-lg max-sm:border max-sm:p-3"
+						>
+							<label
+								htmlFor={`${fieldPrefix}-${index}-dimension`}
+								className="col-span-3 max-sm:col-span-2 min-w-0 space-y-1"
+							>
+								<span className="text-xs font-medium text-muted-foreground sm:hidden">
+									Dimension
+								</span>
+								<Input
+									id={`${fieldPrefix}-${index}-dimension`}
+									aria-label={`Door row ${index + 1} dimension`}
+									className="min-w-0 max-sm:h-11 max-sm:text-base"
+									value={row.dimension || ""}
+									onChange={(e) =>
+										setRows((prev) =>
+											prev.map((item, ri) =>
+												ri === index
+													? {
+															...item,
+															dimension: e.target.value,
+														}
+													: item,
+											),
+										)
+									}
+									placeholder="2-8 x 8-0"
+								/>
+							</label>
+							<label
+								htmlFor={`${fieldPrefix}-${index}-swing`}
+								className="col-span-2 max-sm:col-span-1 min-w-0 space-y-1"
+							>
+								<span className="text-xs font-medium text-muted-foreground sm:hidden">
+									Swing
+								</span>
+								<Input
+									id={`${fieldPrefix}-${index}-swing`}
+									aria-label={`Door row ${index + 1} swing`}
+									className="min-w-0 max-sm:h-11 max-sm:text-base"
+									value={row.swing || ""}
+									onChange={(e) =>
+										setRows((prev) =>
+											prev.map((item, ri) =>
+												ri === index
+													? {
+															...item,
+															swing: e.target.value,
+														}
+													: item,
+											),
+										)
+									}
+									placeholder="LH/RH"
+								/>
+							</label>
+							<label
+								htmlFor={`${fieldPrefix}-${index}-left-hand-quantity`}
+								className="col-span-2 max-sm:col-span-1 min-w-0 space-y-1"
+							>
+								<span className="text-xs font-medium text-muted-foreground sm:hidden">
+									Left hand quantity
+								</span>
+								<Input
+									id={`${fieldPrefix}-${index}-left-hand-quantity`}
+									aria-label={`Door row ${index + 1} left hand quantity`}
+									className="min-w-0 max-sm:h-11 max-sm:text-base"
+									type="number"
+									inputMode="numeric"
+									value={row.lhQty || 0}
+									onChange={(e) =>
+										setRows((prev) =>
+											prev.map((item, ri) =>
+												ri === index
+													? calcDoorRow({
+															...item,
+															lhQty: toNumber(e.target.value),
+														})
+													: item,
+											),
+										)
+									}
+								/>
+							</label>
+							<label
+								htmlFor={`${fieldPrefix}-${index}-right-hand-quantity`}
+								className="col-span-2 max-sm:col-span-1 min-w-0 space-y-1"
+							>
+								<span className="text-xs font-medium text-muted-foreground sm:hidden">
+									Right hand quantity
+								</span>
+								<Input
+									id={`${fieldPrefix}-${index}-right-hand-quantity`}
+									aria-label={`Door row ${index + 1} right hand quantity`}
+									className="min-w-0 max-sm:h-11 max-sm:text-base"
+									type="number"
+									inputMode="numeric"
+									value={row.rhQty || 0}
+									onChange={(e) =>
+										setRows((prev) =>
+											prev.map((item, ri) =>
+												ri === index
+													? calcDoorRow({
+															...item,
+															rhQty: toNumber(e.target.value),
+														})
+													: item,
+											),
+										)
+									}
+								/>
+							</label>
+							<label
+								htmlFor={`${fieldPrefix}-${index}-unit-price`}
+								className="col-span-2 max-sm:col-span-1 min-w-0 space-y-1"
+							>
+								<span className="text-xs font-medium text-muted-foreground sm:hidden">
+									Unit price
+								</span>
+								<Input
+									id={`${fieldPrefix}-${index}-unit-price`}
+									aria-label={`Door row ${index + 1} unit price`}
+									className="min-w-0 max-sm:h-11 max-sm:text-base"
+									type="number"
+									inputMode="decimal"
+									step="0.01"
+									value={row.unitPrice || 0}
+									onChange={(e) =>
+										setRows((prev) =>
+											prev.map((item, ri) =>
+												ri === index
+													? calcDoorRow({
+															...item,
+															unitPrice: toNumber(e.target.value),
+														})
+													: item,
+											),
+										)
+									}
+								/>
+							</label>
 							<Button
-								className="col-span-1"
+								className="col-span-1 max-sm:min-h-11"
+								aria-label={`Remove door row ${index + 1}`}
 								variant="destructive"
 								onClick={() =>
 									setRows((prev) => prev.filter((_, ri) => ri !== index))
@@ -209,7 +267,7 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 							>
 								X
 							</Button>
-							<p className="col-span-12 text-right text-xs text-muted-foreground">
+							<p className="col-span-12 max-sm:col-span-2 text-right text-xs text-muted-foreground">
 								Qty: {toNumber(calcDoorRow(row).totalQty)} | Line Total: ${" "}
 								{toNumber(calcDoorRow(row).lineTotal).toFixed(2)}
 							</p>
@@ -217,7 +275,7 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 					))}
 				</div>
 
-				<div className="flex shrink-0 items-center gap-3 rounded-lg border bg-muted/20 p-3 text-sm">
+				<div className="flex shrink-0 flex-wrap items-center gap-3 rounded-lg border bg-muted/20 p-3 text-sm">
 					<Button
 						size="sm"
 						variant="outline"
@@ -237,7 +295,7 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 					</p>
 				</div>
 
-				<DialogFooter className="shrink-0">
+				<DialogFooter className="shrink-0 max-sm:grid max-sm:grid-cols-2 max-sm:gap-2 max-sm:[&>button]:min-h-11">
 					<Button variant="outline" onClick={() => props.onOpenChange(false)}>
 						Cancel
 					</Button>

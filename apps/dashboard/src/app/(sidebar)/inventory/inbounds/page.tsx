@@ -3,6 +3,7 @@ import { InboundReceivingPage } from "@/components/inventory/inbound-receiving-p
 import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
 import { InventoryInboundsSkeleton } from "@/components/tables-2/inventory-inbounds/skeleton";
+import { loadInventoryInboundFilterParams } from "@/hooks/use-inventory-inbound-filter-params";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
@@ -16,17 +17,21 @@ type Props = {
 	searchParams: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
-	await props.searchParams;
+	const filters = loadInventoryInboundFilterParams(await props.searchParams);
 	const initialSettings = await getInitialTableSettings("inventory-inbounds");
 
-	batchPrefetch([
-		trpc.inventories.inboundSuppliers.queryOptions(),
-		trpc.inventories.inboundShipments.queryOptions({}),
-		trpc.inventories.inboundDemandQueue.queryOptions({}),
-		trpc.inventories.supplierReorderSuggestions.queryOptions(),
-		trpc.inventories.inboundStatusDemandReconciliation.queryOptions({
-			take: 50,
-		}),
+	await batchPrefetch([
+		trpc.inventories.inboundShipments.infiniteQueryOptions(
+			{
+				limit: 50,
+				q: filters.inboundSearch,
+				status: filters.inboundStatus ? [filters.inboundStatus] : undefined,
+			},
+			{
+				getNextPageParam: (page) =>
+					page.length === 50 ? page.at(-1)?.id : undefined,
+			},
+		),
 	]);
 
 	return (

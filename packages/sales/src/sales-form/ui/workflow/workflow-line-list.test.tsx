@@ -183,7 +183,7 @@ describe("WorkflowLineList", () => {
 		expect(html).not.toContain("-mx-4 mt-3 min-h-[43px]");
 		expect(html).toContain("flex flex-wrap items-center");
 		expect(html).toContain("flex shrink-0 items-center");
-		expect(html).not.toContain("overflow-x-auto");
+		expect(html).toContain("max-lg:overflow-x-auto");
 		expect(html).not.toContain("min-w-max");
 	});
 });

@@ -67,6 +67,10 @@
 		"./fulfillment-completion-review": "./src/fulfillment-completion-review.ts",
 		"./fulfillment-packing-targets": "./src/fulfillment-packing-targets.ts",
 		"./fulfillment-assignment-plan": "./src/fulfillment-assignment-plan.ts",
+		"./sales-form-stock-preview": "./src/sales-form-stock-preview.ts",
+		"./sales-form-stock-application": "./src/sales-form-stock-application.ts",
+		"./sales-inbound-receipt": "./src/sales-inbound-receipt.ts",
+		"./sales-stock-tracking-repair": "./src/sales-stock-tracking-repair.ts",
 		"./sales-fulfillment-plan": "./src/sales-fulfillment-plan.ts",
 		"./dispatch-manifest/driver-work-queue": "./src/dispatch-manifest/driver-work-queue.ts",
 		"./dispatch-manifest/normalize-legacy-item": "./src/dispatch-manifest/normalize-legacy-item.ts",
@@ -126,6 +130,7 @@
 		"./sales-handoff/production": "./src/sales-handoff/production.ts",
 		"./sales-form/application/legacy-metadata": "./src/sales-form/application/legacy-metadata.ts",
 		"./sales-form/application/approved-adjustment-projection": "./src/sales-form/application/approved-adjustment-projection.ts",
+		"./sales-form/application/order-owned-door-rows": "./src/sales-form/application/order-owned-door-rows.ts",
 		"./sales-form/contracts/schemas": "./src/sales-form/contracts/schemas.ts",
 		"./sales-form/domain/costing": "./src/sales-form/domain/costing.ts",
 		"./sales-form/domain/grouping": "./src/sales-form/domain/grouping.ts",
@@ -157,7 +162,8 @@
 		"./sales-tax-report": "./src/sales-tax-report.ts",
 		"./tax-system": "./src/tax-system/index.ts",
 		"./sales-workbook": "./src/sales-workbook.ts",
-		"./performance-reports": "./src/sales-performance-reports.ts"
+		"./performance-reports": "./src/sales-performance-reports.ts",
+		"./sales-form-stock-prompt": "./src/sales-form-stock-prompt.ts"
 	},
 	"dependencies": {
 		"@gnd/db": "workspace:*",

@@ -32,7 +32,7 @@ describe("inventory stock audit tables-2 migration", () => {
 		expect(routeSource.includes("PageStickyHeader")).toBe(false);
 	});
 
-	it("keeps the stock adjustment form while replacing mapped audit cards", () => {
+	it("opens stock adjustments in a sheet and renders the audit table directly", () => {
 		const source = readSource(
 			"components/inventory/inventory-stock-operations-page.tsx",
 		);
@@ -40,11 +40,19 @@ describe("inventory stock audit tables-2 migration", () => {
 		expect(
 			source.includes("components/tables-2/inventory-stock-audit/data-table"),
 		).toBe(true);
-		expect(source.includes("adjustInventoryStock")).toBe(true);
+		const route = readSource("app/(sidebar)/inventory/stocks/page.tsx");
+		const context = readSource(
+			"components/forms/inventory-stock/form-context.tsx",
+		);
+		const sheets = readSource("components/sheets/global-sheets.tsx");
+		expect(route.includes("InventoryStockSheet")).toBe(false);
+		expect(sheets.includes("InventoryStockSheet")).toBe(true);
+		expect(context.includes("adjustInventoryStock")).toBe(true);
+		expect(source.includes("<Card")).toBe(false);
 		expect(source.includes("stockAuditVerificationReport")).toBe(true);
-		expect(source.includes("queryClient.invalidateQueries")).toBe(true);
+		expect(context.includes("queryClient.invalidateQueries")).toBe(true);
 		expect(source.includes("rows.map((row)")).toBe(false);
-		expect(source.includes("Audit Verification")).toBe(true);
+		expect(source.includes("Audit verification")).toBe(true);
 	});
 
 	it("uses core table behaviors with compact stock-audit columns", () => {

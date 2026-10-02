@@ -647,7 +647,7 @@ function roundQuantity(value: number) {
 	return Math.round(value * 1000) / 1000;
 }
 
-async function runSerializableInventoryTransaction<T>(
+export async function runSerializableInventoryTransaction<T>(
 	db: Db,
 	callback: (transaction: TransactionClient) => Promise<T>,
 ) {
@@ -3341,7 +3341,7 @@ export async function recomputeLineItemComponentFulfillment(
 	};
 }
 
-async function getAvailableStockRows(db: DbLike, inventoryVariantId: number) {
+export async function getAvailableStockRows(db: DbLike, inventoryVariantId: number) {
 	const stockRows = await db.inventoryStock.findMany({
 		where: {
 			inventoryVariantId,
@@ -3396,12 +3396,13 @@ async function getAvailableStockRows(db: DbLike, inventoryVariantId: number) {
 		.filter((stock) => stock.availableQty > 0);
 }
 
-async function reserveAvailableStockForComponent(
+export async function reserveAvailableStockForComponent(
 	db: DbLike,
 	input: {
 		lineItemComponentId: number;
 		inventoryVariantId: number;
 		qty: number;
+		inboundDemandId?: number;
 		note?: string | null;
 	},
 ) {
@@ -3421,6 +3422,7 @@ async function reserveAvailableStockForComponent(
 				lineItemComponentId: input.lineItemComponentId,
 				inventoryVariantId: input.inventoryVariantId,
 				inventoryStockId: stock.id,
+				inboundDemandId: input.inboundDemandId,
 				qty,
 				status: "reserved",
 				notes: input.note || "Reserved from received inbound stock.",
@@ -3508,8 +3510,10 @@ export async function allocateReceivedInboundToBackordersInTransaction(
 					deletedAt: null,
 					lineItemType: "SALE",
 					saleId: input.salesOrderId || undefined,
-					sale: {
+				sale: {
 						deletedAt: null,
+						archivedAt: null,
+						type: "order",
 					},
 				},
 			},
@@ -3560,7 +3564,6 @@ export async function allocateReceivedInboundToBackordersInTransaction(
 						deletedAt: null,
 						status: {
 							in: [
-								"pending_review",
 								"approved",
 								"reserved",
 								"picked",
@@ -3570,6 +3573,7 @@ export async function allocateReceivedInboundToBackordersInTransaction(
 					},
 					select: {
 						qty: true,
+						inboundDemandId: true,
 					},
 				},
 			},
@@ -3600,10 +3604,16 @@ export async function allocateReceivedInboundToBackordersInTransaction(
 			component.stockAllocations,
 			(allocation) => numberValue(allocation.qty),
 		);
+		const reservedFromDemand = sumBy(
+			component.stockAllocations.filter(
+				(allocation) => allocation.inboundDemandId === demand.id,
+			),
+			(allocation) => numberValue(allocation.qty),
+		);
 		const plan = planReceivedBackorderAllocation({
 			requiredQty: component.qty,
 			allocatedQty: allocatedComponentQty,
-			receivedQty: demand.qtyReceived,
+			receivedQty: Math.max(0, demand.qtyReceived - reservedFromDemand),
 			availableStockQty,
 		});
 
@@ -3618,10 +3628,19 @@ export async function allocateReceivedInboundToBackordersInTransaction(
 			continue;
 		}
 
+		await tx.stockAllocation.updateMany({
+			where: {
+				lineItemComponentId: demand.lineItemComponentId,
+				deletedAt: null,
+				status: "pending_review",
+			},
+			data: { status: "released" },
+		});
 		const reserved = await reserveAvailableStockForComponent(tx, {
 			lineItemComponentId: demand.lineItemComponentId,
 			inventoryVariantId: demand.inventoryVariantId,
 			qty: plan.reserveQty,
+			inboundDemandId: demand.id,
 			note: input.note || "Reserved from received inbound demand.",
 		});
 

@@ -93,7 +93,7 @@ function InvoiceItemActionsMenu(props: {
 				className={buttonVariants({
 					variant: "outline",
 					size: "icon",
-					className: "size-8",
+					className: "size-8 max-lg:size-11",
 				})}
 				aria-label={`Item ${props.index + 1} actions`}
 				onClick={(event) => event.stopPropagation()}
@@ -214,6 +214,7 @@ export type InvoiceItemCardProps = {
 	stepListVersion?: WorkflowStepListVersion;
 	activeIndex: number;
 	isExpanded?: boolean;
+	isMobileVisible?: boolean;
 	onActivate: () => void;
 	onTitleChange: (value: string) => void;
 	onRemove: () => void;
@@ -246,7 +247,9 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 			role={isCollapsed && !collapseTriggerDisabled ? "button" : undefined}
 			tabIndex={isCollapsed && !collapseTriggerDisabled ? 0 : undefined}
 			className={`bg-background p-4 transition-all ${
-				isExpanded ? "block" : "hidden lg:block"
+				props.isMobileVisible === false || !isExpanded
+					? "hidden lg:block"
+					: "block"
 			} ${
 				props.isActive
 					? "bg-muted/20"
@@ -270,7 +273,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 			<div className="-mx-4 -mt-4 grid gap-3 bg-muted p-4 md:grid-cols-12">
 				<div className="min-w-0 md:col-span-10 md:pr-3">
 					<InputGroup
-						className="h-10 bg-card"
+						className="h-10 bg-card max-lg:h-11"
 						onClick={(event) => event.stopPropagation()}
 						onKeyDown={(event) => event.stopPropagation()}
 					>
@@ -298,7 +301,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 							placeholder={uppercaseItemTitle(
 								props.titlePlaceholder || "Description",
 							)}
-							className="h-10 text-sm uppercase"
+							className="h-10 text-sm uppercase max-lg:h-11 max-lg:text-base"
 						/>
 					</InputGroup>
 				</div>
@@ -332,7 +335,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 					<Button
 						size="icon"
 						variant="outline"
-						className="size-8 border-destructive bg-secondary text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
+						className="size-8 max-lg:size-11 border-destructive bg-secondary text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
 						onClick={(event) => {
 							event.stopPropagation();
 							props.onRemove();

@@ -25,7 +25,7 @@ describe("query event mutation registry", () => {
 		expect(resolveQueryEventTargets({ name: "sales.pipeline.changed" }).some(target => target.route === "notes.activityTree")).toBe(true);
 	});
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(105);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(111);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(18);
 	});
 	it("refreshes Community projects and user documents for assistant mutations", () => {

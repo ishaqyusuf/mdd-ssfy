@@ -1,5 +1,7 @@
 "use client";
 
+import { StockWorkflowComponentPanel } from "./stock-workflow-component-panel";
+
 import { MouldingCalculator } from "@/components/moulding-calculator";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -240,6 +242,7 @@ export function DashboardSalesFormWorkflowPanel() {
 						}),
 				}}
 				slots={{
+					componentPanel: StockWorkflowComponentPanel,
 					getComponentRedirectOptions: ({ routeData, steps }) =>
 						getRouteOptions(routeData, steps),
 					renderDoorSupplierPanel:

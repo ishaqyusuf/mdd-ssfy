@@ -470,13 +470,13 @@ function PrimaryContent({ children }: { children?: ReactNode }) {
 	);
 }
 
-function CloseSecondary() {
+function CloseSecondary({ label = "Back to sales overview" }: { label?: string }) {
 	const sheet = useSheetV2();
 
 	return (
 		<Button
-			aria-label="Back to sales overview"
-			title="Back to sales overview"
+			aria-label={label}
+			title={label}
 			type="button"
 			onClick={() => sheet.onCloseSecondary?.()}
 			className="size-7 shrink-0 p-0"
@@ -488,6 +488,7 @@ function CloseSecondary() {
 }
 
 interface SecondaryHeaderProps {
+	backLabel?: string;
 	actions?: ReactNode;
 	children?: ReactNode;
 	description?: ReactNode;
@@ -497,7 +498,7 @@ interface SecondaryHeaderProps {
 function SecondaryHeader(props: SecondaryHeaderProps) {
 	return (
 		<SheetHeader className="flex-row items-start gap-3 space-y-0 bg-background text-left">
-			<CloseSecondary />
+			<CloseSecondary label={props.backLabel} />
 			<div className="grid min-w-0 flex-1 gap-1.5">
 				{props.children ?? (
 					<>

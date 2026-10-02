@@ -17,7 +17,7 @@ export function WorkflowComponentGrid<TComponent>(
 ) {
 	return (
 		<>
-			<div className="grid gap-3 pb-24 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+			<div className="grid grid-cols-2 gap-3 lg:pb-24 lg:grid-cols-3 2xl:grid-cols-4">
 				{props.leadingSlot ? (
 					<div className="min-w-0">{props.leadingSlot}</div>
 				) : null}

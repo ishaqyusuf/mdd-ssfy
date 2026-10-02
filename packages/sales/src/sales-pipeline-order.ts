@@ -141,6 +141,10 @@ function qtyControlTotal(
 	type: string,
 ) {
 	const qty = control.qtyControls.find((item) => item.type === type);
+	// Requirement rows store their planned quantity in itemTotal. Legacy writes
+	// can leave total at its default zero; progress rows must still honor zero.
+	if (type === "qty")
+		return Number(qty?.itemTotal ?? qty?.total ?? qty?.qty ?? 0);
 	return Number(qty?.total ?? qty?.itemTotal ?? qty?.qty ?? 0);
 }
 

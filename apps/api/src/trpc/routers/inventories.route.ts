@@ -1,3 +1,9 @@
+import { createGeneralInbound, generalInboundSchema } from "@gnd/inventory/inbound";
+import { previewSalesFormStock, salesFormStockPreviewSchema } from "@gnd/sales/sales-form-stock-preview";
+import { getSalesFormStockPlan, applySalesFormStock, applySalesFormStockSchema, salesFormStockPlanSchema } from "@gnd/sales/sales-form-stock-application";
+import { getWorkflowStock, workflowStockSchema } from "@gnd/inventory";
+import { setVariantStockAlerts, variantStockAlertsSchema } from "@gnd/inventory";
+import { getCategoryStockPolicy, setCategoryStockPolicy, setVariantStockThreshold, stockPolicySelectorSchema, categoryStockPolicySchema, variantStockThresholdSchema } from "@gnd/inventory";
 import {
 	applyInboundExtractionQuery,
 	applyInboundNeedsApplicationAttentionQuery,
@@ -59,6 +65,14 @@ import {
 import {
 	NEW_INBOUND_SHIPMENT_STATUSES,
 	adjustInventoryStock,
+	getStockVariantOptions,
+	getStockVariantContext,
+	getStockVariantBalances,
+	manualStockAdjustmentSchema,
+	stockVariantOptionsSchema,
+	stockVariantContextSchema,
+	stockVariantBalancesSchema,
+	StockAdjustmentError,
 	applyInventoryImportSourceDisposition,
 	applyInventoryImportSourceDispositionBatch,
 	archiveDykeCustomStepComponent,
@@ -100,7 +114,6 @@ import {
 	pendingStockAllocations,
 	queueDykeStepToInventorySync,
 	queueInventoryToDykeSync,
-	receiveInboundShipment,
 	reportInboundItemIssue,
 	resetInventorySystem,
 	resolveInboundItemIssue,
@@ -179,6 +192,8 @@ import { InventoryFulfillmentPolicyError } from "@gnd/sales/inventory-fulfillmen
 import { getInventoryReconciliationReport } from "@gnd/sales/inventory-reconciliation-report";
 import { fulfillSalesInventoryNeedsManually as fulfillSalesInventoryNeedsManuallyMutation } from "@gnd/sales/manual-fulfill-sales-inventory-needs";
 import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
+import { receiveSalesInboundShipment } from "@gnd/sales/sales-inbound-receipt";
+import { repairSalesStockTracking, repairStockTrackingSchema } from "@gnd/sales/sales-stock-tracking-repair";
 import {
 	type InventoryFulfillmentCompletionHook,
 	allocateReceivedInboundToBackorders,
@@ -609,30 +624,6 @@ export const createInboundShipmentFromDemandsSchema = z.object({
 	expectedAt: z.date().optional().nullable(),
 });
 
-async function queueReceivedInboundAllocation(
-	result: {
-		inboundId: number;
-		lineItemComponentIds: number[];
-	},
-	authorName: string,
-) {
-	if (!result.lineItemComponentIds.length) return null;
-	try {
-		return await tasks.trigger("allocate-received-inbound-to-backorders", {
-			lineItemComponentIds: result.lineItemComponentIds,
-			limit: Math.min(200, result.lineItemComponentIds.length),
-			authorName,
-			note: `Inbound shipment #${result.inboundId} received`,
-		});
-	} catch (error) {
-		console.warn("Failed to queue received inbound backorder allocation", {
-			inboundId: result.inboundId,
-			error,
-		});
-		return null;
-	}
-}
-
 const salesInventoryMarkAsActionSchema = z.enum([
 	"production_completed",
 	"fulfilled",
@@ -714,6 +705,9 @@ export const inventoriesRouter = createTRPCRouter({
 	inboundShipments: protectedProcedure
 		.input(
 			z.object({
+				cursor: z.number().int().positive().nullish(),
+				limit: z.number().int().min(1).max(100).optional(),
+				q: z.string().max(120).nullish(),
 				status: z
 					.array(
 						z.enum([
@@ -804,6 +798,11 @@ export const inventoriesRouter = createTRPCRouter({
 	inboundSuppliers: protectedProcedure.query(async (props) => {
 		return listInboundSuppliers(props.ctx);
 	}),
+	createGeneralInbound: protectedProcedure.input(generalInboundSchema).mutation(async ({ ctx, input }) => {
+		const actor = await requireAnyOperationalPermission(ctx, ["editInboundOrder"], "You do not have permission to create warehouse inbound.");
+		try { return await createGeneralInbound(ctx.db, input, actor.id); }
+		catch (error) { if (error instanceof StockAdjustmentError) throw new TRPCError({ code: error.code, message: error.message }); throw error; }
+	}),
 	createInboundShipment: protectedProcedure
 		.input(
 			z.object({
@@ -813,6 +812,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+            await requireAnyOperationalPermission(props.ctx, ["editInboundOrder"], "You do not have permission to manage inbound stock.");
 			return createInboundShipmentQuery(props.ctx, props.input);
 		}),
 	inboundDemandQueue: protectedProcedure
@@ -888,6 +888,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+            await requireAnyOperationalPermission(props.ctx, ["editInboundOrder"], "You do not have permission to manage inbound stock.");
 			return uploadInboundDocumentsQuery(props.ctx, props.input);
 		}),
 	inboundExtractions: protectedProcedure
@@ -908,6 +909,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+            await requireAnyOperationalPermission(props.ctx, ["editInboundOrder"], "You do not have permission to manage inbound stock.");
 			return extractInboundDocumentsQuery(props.ctx, props.input);
 		}),
 	applyInboundExtraction: protectedProcedure
@@ -919,11 +921,13 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+            await requireAnyOperationalPermission(props.ctx, ["editInboundOrder"], "You do not have permission to manage inbound stock.");
 			return applyInboundExtractionQuery(props.ctx, props.input);
 		}),
 	assignInboundDemands: protectedProcedure
 		.input(assignInboundDemandsSchema)
 		.mutation(async (props) => {
+            await requireAnyOperationalPermission(props.ctx, ["editInboundOrder"], "You do not have permission to manage inbound stock.");
 			return assignInboundDemandsQuery(props.ctx, props.input);
 		}),
 	inboundActivity: protectedProcedure
@@ -938,6 +942,7 @@ export const inventoriesRouter = createTRPCRouter({
 	createInboundShipmentFromDemands: protectedProcedure
 		.input(createInboundShipmentFromDemandsSchema)
 		.mutation(async (props) => {
+            if (props.input.operation !== "mark_available") await requireAnyOperationalPermission(props.ctx, ["editInboundOrder"], "You do not have permission to create inbound stock.");
 			if (props.input.operation === "mark_available") {
 				await requireAnyOperationalPermission(
 					props.ctx,
@@ -949,13 +954,7 @@ export const inventoriesRouter = createTRPCRouter({
 				props.ctx,
 				props.input,
 			);
-			const allocationJob = result.receipt
-				? await queueReceivedInboundAllocation(
-						result.receipt,
-						String(props.ctx.userId ?? "Inventory"),
-					)
-				: null;
-			return { ...result, allocationJob };
+			return { ...result, allocationJob: null };
 		}),
 	updateInboundShipmentStatus: protectedProcedure
 		.input(updateInboundShipmentStatusSchema)
@@ -1005,53 +1004,61 @@ export const inventoriesRouter = createTRPCRouter({
 				["editInboundOrder"],
 				"You do not have permission to receive inbound materials.",
 			);
-			const result = await props.ctx.db.$transaction((tx) =>
-				receiveInboundShipment(tx, {
+			const result = await receiveSalesInboundShipment(props.ctx.db, {
 					...props.input,
 					authorName: String(props.ctx.userId),
-				}),
-			);
-			const allocationJob = await queueReceivedInboundAllocation(
-				result,
-				String(props.ctx.userId ?? "Inventory"),
-			);
+				});
 
 			return {
 				...result,
-				allocationJob,
+				allocationJob: null,
 			};
 		}),
+	stockVariantOptions: protectedProcedure
+		.input(stockVariantOptionsSchema)
+		.query(async ({ ctx, input }) => {
+			await requireAnyOperationalPermission(
+				ctx,
+				["editInboundOrder"],
+				"You do not have permission to manage warehouse stock.",
+			);
+			return getStockVariantOptions(ctx.db, input);
+		}),
+	stockVariantBalances: protectedProcedure
+		.input(stockVariantBalancesSchema)
+		.query(async ({ ctx, input }) => {
+			await requireInventoryFulfillmentViewer(ctx);
+			return getStockVariantBalances(ctx.db, [...new Set(input.inventoryVariantIds)]);
+		}),
+	stockVariantContext: protectedProcedure
+		.input(stockVariantContextSchema)
+		.query(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to manage warehouse stock.",
+			);
+			return getStockVariantContext(props.ctx.db, props.input.inventoryVariantId);
+		}),
 	adjustInventoryStock: protectedProcedure
-		.input(
-			z.object({
-				inventoryVariantId: z.number(),
-				inventoryStockId: z.number().optional().nullable(),
-				supplierId: z.number().optional().nullable(),
-				location: z.string().optional().nullable(),
-				unitPrice: z.number().optional().nullable(),
-				qty: z.number(),
-				mode: z.enum(["delta", "set"]).optional(),
-				reason: z.enum([
-					"correction",
-					"cycle_count",
-					"damage",
-					"return",
-					"consume",
-					"release",
-					"stock_in",
-					"stock_out",
-				]),
-				reference: z.string().optional().nullable(),
-				notes: z.string().optional().nullable(),
-				authorName: z.string().optional().nullable(),
-			}),
-		)
+		.input(manualStockAdjustmentSchema)
 		.mutation(async (props) => {
-			return adjustInventoryStock(props.ctx.db, {
-				...props.input,
-				authorName:
-					props.input.authorName || String(props.ctx.userId ?? "Inventory"),
-			});
+			const actor = await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to manage warehouse stock.",
+			);
+			try {
+				return await adjustInventoryStock(props.ctx.db, {
+					...props.input,
+					authorName: inventoryOperatorName(actor),
+				});
+			} catch (error) {
+				if (error instanceof StockAdjustmentError) {
+					throw new TRPCError({ code: error.code, message: error.message });
+				}
+				throw error;
+			}
 		}),
 	stockAuditVerificationReport: protectedProcedure
 		.input(
@@ -1341,6 +1348,19 @@ export const inventoriesRouter = createTRPCRouter({
 				triggeredByUserId: props.ctx.userId ?? props.input.triggeredByUserId,
 			});
 		}),
+	salesFormStockPreview: protectedProcedure.input(salesFormStockPreviewSchema).query(async ({ ctx, input }) => {
+		await requireInventoryFulfillmentViewer(ctx);
+		return previewSalesFormStock(ctx.db, input);
+	}),
+	salesFormStockPlan: protectedProcedure.input(salesFormStockPlanSchema).query(async ({ ctx, input }) => {
+		await requireInventoryFulfillmentViewer(ctx);
+		return getSalesFormStockPlan(ctx.db, input.salesOrderId, input.componentIds);
+	}),
+	applySalesFormStock: protectedProcedure.input(applySalesFormStockSchema).mutation(async ({ ctx, input }) => {
+		const session = await requireReceivedBackorderOperator(ctx);
+		try { return await applySalesFormStock(ctx.db, input, { id: session.id, name: inventoryOperatorName(session) }); }
+		catch (error) { if (error instanceof StockAdjustmentError) throw new TRPCError({ code: error.code, message: error.message }); throw error; }
+	}),
 	salesInventoryOverview: protectedProcedure
 		.input(
 			z.object({
@@ -1467,11 +1487,13 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireReceivedBackorderOperator(props.ctx);
 			const overview = await getSalesInventoryOverview(props.ctx.db, {
 				salesOrderId: props.input.salesOrderId,
 			});
 
-			if (overview && !overview.capabilities.canSync) {
+			if (!overview) throw new TRPCError({ code: "NOT_FOUND", message: "Sales order not found." });
+			if (!overview.capabilities.canSync) {
 				throw new Error(
 					overview.inventoryActionBlockReason ||
 						"Inventory sync is not available for this order.",
@@ -2057,6 +2079,30 @@ export const inventoriesRouter = createTRPCRouter({
 			await requireInventoryImportOperator(props.ctx);
 			return updateCategoryVariantAttribute(props.ctx.db, props.input);
 		}),
+	workflowStock: protectedProcedure.input(workflowStockSchema).query(async ({ ctx, input }) => {
+		await requireInventoryFulfillmentViewer(ctx);
+		try { return await getWorkflowStock(ctx.db, input); }
+		catch (error) { if (error instanceof StockAdjustmentError) throw new TRPCError({ code: error.code, message: error.message }); throw error; }
+	}),
+	stockPolicy: protectedProcedure.input(stockPolicySelectorSchema).query(async ({ ctx, input }) => {
+		await requireAnyOperationalPermission(ctx, ["viewOrders", "viewInboundOrder", "editInboundOrder", "editSalesComponent"], "You do not have permission to view stock settings.");
+		try { return await getCategoryStockPolicy(ctx.db, input); }
+		catch (error) { if (error instanceof StockAdjustmentError) throw new TRPCError({ code: error.code, message: error.message }); throw error; }
+	}),
+	setStockPolicy: protectedProcedure.input(categoryStockPolicySchema).mutation(async ({ ctx, input }) => {
+		await requireAnyOperationalPermission(ctx, ["editInboundOrder", "editSalesComponent"], "You do not have permission to configure stock tracking.");
+		try { return await setCategoryStockPolicy(ctx.db, input); }
+		catch (error) { if (error instanceof StockAdjustmentError) throw new TRPCError({ code: error.code, message: error.message }); throw error; }
+	}),
+	setVariantStockThreshold: protectedProcedure.input(variantStockThresholdSchema).mutation(async ({ ctx, input }) => {
+		await requireAnyOperationalPermission(ctx, ["editInboundOrder", "editSalesComponent"], "You do not have permission to configure stock thresholds.");
+		return setVariantStockThreshold(ctx.db, input);
+	}),
+	setVariantStockAlerts: protectedProcedure.input(variantStockAlertsSchema).mutation(async ({ ctx, input }) => {
+		await requireAnyOperationalPermission(ctx, ["editInboundOrder", "editSalesComponent"], "You do not have permission to configure stock alerts.");
+		try { return await setVariantStockAlerts(ctx.db, input); }
+		catch (error) { if (error instanceof StockAdjustmentError) throw new TRPCError({ code: error.code, message: error.message }); throw error; }
+	}),
 	updateCategoryStockMode: protectedProcedure
 		.input(updateCategoryStockModeSchema)
 		.mutation(async (props) => {
@@ -2071,11 +2117,17 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return getSalesInventoryTrackingChangeRepairPreview(props.ctx.db, {
 				inventoryCategoryId: props.input.inventoryCategoryId,
 				limit: props.input.limit,
 			});
 		}),
+	repairSalesStockTracking: protectedProcedure.input(repairStockTrackingSchema).mutation(async ({ ctx, input }) => {
+		await requireReceivedBackorderOperator(ctx);
+		try { return await repairSalesStockTracking(ctx.db, input, ctx.userId); }
+		catch (error) { if (error instanceof StockAdjustmentError) throw new TRPCError({ code: error.code, message: error.message }); throw error; }
+	}),
 	updateInventoryProductKind: protectedProcedure
 		.input(updateInventoryProductKindSchema)
 		.mutation(async (props) => {

@@ -5,6 +5,7 @@ import { salesFormData } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sal
 import { ComponentPrice, prisma, Prisma } from "@/db";
 import { projectApprovedAdjustmentLegacyOrder } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
 import { invalidateSalesDocumentReadiness } from "@gnd/sales/document-readiness";
+import { orderOwnedDoorRows } from "@gnd/sales/sales-form/application/order-owned-door-rows";
 import dayjs from "dayjs";
 import { SalesMeta, SalesType, StepComponentMeta } from "../../types";
 import { SalesBookFormIncludes } from "../utils/db-utils";
@@ -44,6 +45,15 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
                 : {},
         ),
     });
+    if (rawOrder) {
+        for (const item of rawOrder.items) {
+            if (item.housePackageTool) {
+                item.housePackageTool.doors = orderOwnedDoorRows(
+                    item.housePackageTool.doors, rawOrder.id,
+                );
+            }
+        }
+    }
     const approvedProjection = rawOrder
         ? projectApprovedAdjustmentLegacyOrder(rawOrder)
         : null;

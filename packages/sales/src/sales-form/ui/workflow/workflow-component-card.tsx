@@ -9,6 +9,7 @@ export type WorkflowComponentCardProps = {
 	badgesSlot?: ReactNode;
 	actionsSlot?: ReactNode;
 	selectionSlot?: ReactNode;
+	stockStatusSlot?: ReactNode;
 	children: ReactNode;
 };
 
@@ -23,6 +24,11 @@ export function WorkflowComponentCard(props: WorkflowComponentCardProps) {
 						: "bg-card hover:border-primary"
 			}`}
 		>
+			{props.stockStatusSlot ? (
+				<div className="absolute left-0 top-0 z-[2]">
+					{props.stockStatusSlot}
+				</div>
+			) : null}
 			{props.selectionSlot ? (
 				<div className="absolute left-2 top-2 z-[3] rounded bg-background p-1 shadow-sm">
 					{props.selectionSlot}

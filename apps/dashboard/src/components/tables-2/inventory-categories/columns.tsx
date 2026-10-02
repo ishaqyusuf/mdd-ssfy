@@ -1,20 +1,17 @@
 "use client";
 
+import { StockPolicyDialog } from "@/components/inventory/stock-policy-dialog";
 import ConfirmBtn from "@/components/confirm-button";
-import { StockModeStatus } from "@/components/stock-mode-status";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { cn } from "@/lib/utils";
-import { useTRPC } from "@/trpc/client";
 import type { InventoryProductKind } from "@gnd/inventory/schema";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
-import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
-import { toast } from "@gnd/ui/use-toast";
 import type { ColumnDef } from "@tanstack/react-table";
 
 type CategoryStockMode = "monitored" | "unmonitored";
@@ -78,50 +75,7 @@ function DescriptionCell({ item }: { item: InventoryCategory }) {
 }
 
 function CategoryStockModeCell({ item }: { item: InventoryCategory }) {
-	const trpc = useTRPC();
-	const queryClient = useQueryClient();
-	const mutation = useMutation(
-		trpc.inventories.updateCategoryStockMode.mutationOptions({
-			onSuccess() {
-				queryClient.invalidateQueries({
-					queryKey: trpc.inventories.inventoryCategories.infiniteQueryKey(),
-				});
-				queryClient.invalidateQueries({
-					queryKey: trpc.inventories.inventoryCategoryForm.queryKey(item.id),
-				});
-				queryClient.invalidateQueries({
-					queryKey: trpc.inventories.getInventoryCategories.queryKey(),
-				});
-				toast({
-					title: "Category stock mode updated",
-					variant: "success",
-				});
-			},
-		}),
-	);
-	const stockMode = item.stockMode || "unmonitored";
-	const nextStockMode = stockMode === "monitored" ? "unmonitored" : "monitored";
-
-	return (
-		<Button
-			type="button"
-			size="sm"
-			variant="outline"
-			className="h-8 gap-2 uppercase"
-			disabled={mutation.isPending}
-			onClick={(event) => {
-				event.preventDefault();
-				event.stopPropagation();
-				mutation.mutate({
-					id: item.id,
-					stockMode: nextStockMode,
-				});
-			}}
-		>
-			<StockModeStatus status={stockMode} />
-			<span>{mutation.isPending ? "Updating..." : stockMode}</span>
-		</Button>
-	);
+	return <StockPolicyDialog selector={{ categoryId: item.id }} trigger={<Button type="button" size="sm" variant="outline">{item.stockMode === "monitored" ? "Tracking stock" : "Stock management"}</Button>} />;
 }
 
 function InventoryCategoryActions({ item }: { item: InventoryCategory }) {

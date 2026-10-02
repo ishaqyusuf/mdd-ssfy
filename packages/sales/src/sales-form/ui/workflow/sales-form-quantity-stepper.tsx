@@ -54,7 +54,7 @@ export function SalesFormQuantityStepper(props: SalesFormQuantityStepperProps) {
 	return (
 		<fieldset
 			className={cn(
-				"flex h-9 w-28 items-stretch overflow-hidden rounded-lg border border-border bg-background shadow-xs transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15",
+				"flex h-9 w-28 items-stretch overflow-hidden rounded-lg border border-border bg-background shadow-xs transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 max-lg:min-h-11 max-lg:min-w-0",
 				props.disabled && "bg-muted/40 opacity-60",
 				props.className,
 			)}
@@ -65,7 +65,7 @@ export function SalesFormQuantityStepper(props: SalesFormQuantityStepperProps) {
 				variant="ghost"
 				size="icon"
 				aria-label={`Decrease ${props.label}`}
-				className="h-full w-9 shrink-0 rounded-none border-r text-muted-foreground hover:bg-muted hover:text-foreground"
+				className="h-full w-9 shrink-0 rounded-none max-lg:w-11 border-r text-muted-foreground hover:bg-muted hover:text-foreground"
 				disabled={props.disabled || value <= min}
 				onClick={() =>
 					props.onChange(stepSalesFormQuantity(value, -1, { min, max, step }))
@@ -83,7 +83,7 @@ export function SalesFormQuantityStepper(props: SalesFormQuantityStepperProps) {
 				step={step}
 				value={value}
 				disabled={props.disabled}
-				className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-1 text-center text-sm font-semibold shadow-none focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
+				className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-1 text-center text-sm font-semibold shadow-none max-lg:text-base focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
 				onChange={(event) =>
 					props.onChange(
 						normalizeSalesFormQuantity(event.target.value, min, max),
@@ -96,7 +96,7 @@ export function SalesFormQuantityStepper(props: SalesFormQuantityStepperProps) {
 				variant="ghost"
 				size="icon"
 				aria-label={`Increase ${props.label}`}
-				className="h-full w-9 shrink-0 rounded-none border-l text-muted-foreground hover:bg-muted hover:text-foreground"
+				className="h-full w-9 shrink-0 rounded-none max-lg:w-11 border-l text-muted-foreground hover:bg-muted hover:text-foreground"
 				disabled={props.disabled || value >= max}
 				onClick={() =>
 					props.onChange(stepSalesFormQuantity(value, 1, { min, max, step }))

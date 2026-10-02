@@ -5,6 +5,7 @@ import { AvailabilityActionGroup } from "@/components/sheets/sales-overview-shee
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { InboundNeedsApplicationActions } from "@/components/inventory/inbound-needs-application-actions";
+import { InventoryFocusedWorkspace } from "@/components/inventory/sales-inventory/focused-workspace";
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { useTRPC } from "@/trpc/client";
 import type { NewInboundShipmentStatus } from "@gnd/inventory";
@@ -1536,55 +1537,19 @@ function InventoryStockFilterGroup({
 	inboundCount: number;
 }) {
 	return (
-		<div className="inline-flex rounded-md border bg-background p-1">
-			<Button
-				type="button"
-				size="sm"
-				variant={value === "stock" ? "default" : "ghost"}
-				aria-pressed={value === "stock"}
-				className="h-8 gap-2 rounded-sm px-3"
-				onClick={() => onChange("stock")}
-			>
-				Needs
-				<Badge
-					variant={value === "stock" ? "secondary" : "outline"}
-					className="min-h-7 px-2.5 text-xs"
-				>
-					{stockCount}
-				</Badge>
-			</Button>
-			<Button
-				type="button"
-				size="sm"
-				variant={value === "inbounds" ? "default" : "ghost"}
-				aria-pressed={value === "inbounds"}
-				className="h-8 gap-2 rounded-sm px-3"
-				onClick={() => onChange("inbounds")}
-			>
-				Inbounds
-				<Badge
-					variant={value === "inbounds" ? "secondary" : "outline"}
-					className="h-5 px-1.5 text-[10px]"
-				>
-					{inboundCount < 0 ? "…" : inboundCount}
-				</Badge>
-			</Button>
-			<Button
-				type="button"
-				size="sm"
-				variant={value === "non_stock" ? "destructive" : "ghost"}
-				aria-pressed={value === "non_stock"}
-				className="h-8 gap-2 rounded-sm px-3"
-				onClick={() => onChange("non_stock")}
-			>
-				Not Needed
-				<Badge
-					variant={value === "non_stock" ? "secondary" : "outline"}
-					className="h-5 px-1.5 text-[10px]"
-				>
-					{nonStockCount}
-				</Badge>
-			</Button>
+		<div className="flex flex-wrap border-b" aria-label="Inventory views">
+			{([
+				["stock", "Needs", stockCount],
+				["warehouse", "Warehouse", null],
+				["inbounds", "Inbounds", inboundCount < 0 ? "…" : inboundCount],
+				["non_stock", "Not tracked", nonStockCount],
+			] as const).map(([segment, label, count]) => (
+				<Button key={segment} type="button" variant="ghost" size="sm" aria-pressed={value === segment}
+					className={cn("h-10 gap-2 rounded-none border-b-2 px-3 text-muted-foreground", value === segment ? "border-foreground text-foreground" : "border-transparent")}
+					onClick={() => onChange(segment)}>
+					{label}{count != null ? <span className="text-xs text-muted-foreground">{count}</span> : null}
+				</Button>
+			))}
 		</div>
 	);
 }
@@ -1615,6 +1580,7 @@ function InventoryInboundShipmentRow({
 	onReceive: () => void;
 }) {
 	const [statusNote, setStatusNote] = useState("");
+	const canRetryAllocation = !isReadOnly && shipment.status === "completed" && shipment.items.every((item) => Number(item.qtyIssue || 0) === 0 && Number(item.qtyGood || 0) === Number(item.qty));
 	const canReceive =
 		!isReadOnly &&
 		!["completed", "closed", "cancelled"].includes(shipment.status) &&
@@ -1741,10 +1707,10 @@ function InventoryInboundShipmentRow({
 							<Button
 								type="button"
 								size="sm"
-								disabled={!canReceive || isReceiving}
+								disabled={(!canReceive && !canRetryAllocation) || isReceiving}
 								onClick={onReceive}
 							>
-								Receive stock
+								{canRetryAllocation ? "Retry stock allocation" : "Receive stock"}
 							</Button>
 							<InboundNeedsApplicationActions
 								inboundId={shipment.id}
@@ -1826,6 +1792,7 @@ function InventoryInboundsPanel({
 	pendingQty,
 	onCheckStock,
 	onCreateInbound,
+	createInboundLabel = "Create inbound",
 	isReadOnly,
 	readOnlyReason,
 	onViewInbound,
@@ -1836,6 +1803,7 @@ function InventoryInboundsPanel({
 	pendingQty: number;
 	onCheckStock: () => void;
 	onCreateInbound: () => void;
+	createInboundLabel?: string;
 	isReadOnly: boolean;
 	readOnlyReason: string | null;
 	onViewInbound?: (inboundId: number) => void;
@@ -1896,7 +1864,7 @@ function InventoryInboundsPanel({
 				await refreshOrderInbounds(data.inboundId);
 				toast({
 					title: "Inbound received into stock",
-					description: `${formatQty(data.newlyReceivedQty)} new stock qty posted.`,
+					description: `${formatQty(data.newlyReceivedQty)} new stock qty posted; ${formatQty(data.allocation.allocatedQty)} reserved for order needs.`,
 					variant: "success",
 				});
 			},
@@ -1976,7 +1944,7 @@ function InventoryInboundsPanel({
 						</Button>
 						{pendingQty > 0 && !isReadOnly ? (
 							<Button type="button" size="sm" onClick={onCreateInbound}>
-								Create inbound
+								{createInboundLabel}
 							</Button>
 						) : null}
 					</div>
@@ -2671,11 +2639,9 @@ function SalesOverviewInventoryContentBody({
 		overview?.inventoryLegacyCompatibility.state,
 		syncInventory.mutate,
 	]);
-	const groups = overview?.groups ?? [];
 	const rows = overview?.rows ?? [];
 	const stockRows = rows.filter(isInventoryNeedRow);
 	const nonStockRows = rows.filter((row) => !isInventoryNeedRow(row));
-	const allNeedsFulfilled = areAllInventoryNeedsFulfilled(stockRows);
 	const orderInboundShipments = orderInboundsQuery.data ?? [];
 	const overviewLinkedInboundRowCount = rows.filter(
 		(row) => Number(row.qtyInboundLinkedOpen || 0) > 0,
@@ -2696,13 +2662,6 @@ function SalesOverviewInventoryContentBody({
 			: stockFilter === "non_stock"
 				? nonStockRows
 				: [];
-	const filteredPendingQty = filteredRows.reduce(
-		(total, row) => total + row.qtyPending,
-		0,
-	);
-	const filteredShortageCount = filteredRows.filter(
-		isShortageInventoryLine,
-	).length;
 	const showNeedsActions = shouldShowInventoryNeedsActions({
 		segment: stockFilter,
 		needCount: stockRows.length,
@@ -2778,57 +2737,14 @@ function SalesOverviewInventoryContentBody({
 					nonStockCount={nonStockRows.length}
 					inboundCount={inboundCountState === "loading" ? -1 : inboundCount}
 				/>
-				<div className="flex flex-wrap items-center gap-2">
-					{stockRows.length ? (
-						<Badge
-							variant="outline"
-							className={cn(
-								"capitalize",
-								allNeedsFulfilled &&
-									"border-emerald-200 bg-emerald-50 text-emerald-700",
-							)}
-						>
-							{allNeedsFulfilled ? (
-								<Icons.CheckCircle2 className="mr-1 size-3" />
-							) : null}
-							{allNeedsFulfilled
-								? "All needs fulfilled"
-								: readinessLabel(overview.summary.readiness)}
-						</Badge>
-					) : null}
-					{stockFilter === "inbounds" ? (
-						<Badge variant="outline">
-							{inboundCountState === "loading" ? "…" : formatQty(inboundCount)}{" "}
-							inbound
-							{inboundCount === 1 ? "" : "s"}
-						</Badge>
-					) : (
-						<>
-							{filteredShortageCount ? (
-								<Badge
-									variant="outline"
-									className="border-red-200 bg-red-50 text-red-700"
-								>
-									{formatQty(filteredShortageCount)} short
-								</Badge>
-							) : null}
-							{filteredPendingQty ? (
-								<Badge variant="outline">
-									{formatQty(filteredPendingQty)} pending
-								</Badge>
-							) : null}
-							<Badge variant="outline">
-								{formatQty(filteredRows.length)} shown
-							</Badge>
-						</>
-					)}
-				</div>
 			</div>
 			{stockFilter === "stock" ? (
+				<>
 				<ReceivedInboundNeedsApplicationAlert
 					salesOrderId={normalizedSalesOrderId}
 					onViewInbound={onViewInbound}
 				/>
+				</>
 			) : null}
 			{canRunInventorySync &&
 			(applicabilityState === "not_synced" ||
@@ -2838,7 +2754,7 @@ function SalesOverviewInventoryContentBody({
 					onSync={runInventorySync}
 				/>
 			) : null}
-			{showNeedsActions ? (
+			{showNeedsActions && (!overview.stockOrderEligible || openInboundCreator) ? (
 				<InventoryActionBar
 					overview={overview}
 					salesOrderId={normalizedSalesOrderId}
@@ -2857,8 +2773,10 @@ function SalesOverviewInventoryContentBody({
 					isLoading={orderInboundsQuery.isLoading}
 					pendingQty={getPendingInventoryQty(stockRows)}
 					onCheckStock={() => setStockFilter("stock")}
+					createInboundLabel={overview.stockOrderEligible ? "Choose a need" : undefined}
 					onCreateInbound={() => {
-						if (onCreateInbound) onCreateInbound();
+						if (overview.stockOrderEligible) setStockFilter("stock");
+						else if (onCreateInbound) onCreateInbound();
 						else {
 							setStockFilter("stock");
 							setOpenInboundForm(true);
@@ -2868,9 +2786,11 @@ function SalesOverviewInventoryContentBody({
 					isReadOnly={overview.isInventoryReadOnly}
 					readOnlyReason={overview.inventoryActionBlockReason}
 				/>
+			) : overview.stockOrderEligible ? (
+				<InventoryFocusedWorkspace key={stockFilter} rows={stockFilter === "warehouse" ? stockRows : filteredRows} warehouse={stockFilter === "warehouse"} notTracked={stockFilter === "non_stock"} readOnly={overview.isInventoryReadOnly} />
 			) : (
 				<InventoryMergedTable
-					rows={filteredRows}
+					rows={stockFilter === "warehouse" ? stockRows : filteredRows}
 					salesOrderId={normalizedSalesOrderId}
 					capabilities={overview.capabilities}
 					isReadOnly={overview.isInventoryReadOnly}

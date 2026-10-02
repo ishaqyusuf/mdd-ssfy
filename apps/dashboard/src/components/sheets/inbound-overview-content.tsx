@@ -329,7 +329,7 @@ export function InboundOverviewContent({ inboundId, productionSalesOrderId }: { 
 				await refresh();
 				toast({
 					title: "Inbound received",
-					description: `${formatQty(data.newlyReceivedQty)} new stock quantity posted.`,
+					description: `${formatQty(data.newlyReceivedQty)} new stock; ${formatQty(data.allocation.allocatedQty)} reserved for order needs.`,
 					variant: "success",
 				});
 			},
@@ -397,6 +397,7 @@ export function InboundOverviewContent({ inboundId, productionSalesOrderId }: { 
 	const canReceive =
 		!["completed", "closed", "cancelled"].includes(detail.status) &&
 		receivedQty + issueQty < orderedQty;
+	const canRetryAllocation = !workerMode && detail.status === "completed" && issueQty === 0 && receivedQty === orderedQty && orderedQty > 0;
 	const canAdjustDemand = !workerMode && !["completed", "closed", "cancelled"].includes(
 		detail.status,
 	);
@@ -490,7 +491,7 @@ export function InboundOverviewContent({ inboundId, productionSalesOrderId }: { 
 								</SelectContent>
 							</Select>
 							<Button
-								disabled={!canReceive || receive.isPending}
+								disabled={(!canReceive && !canRetryAllocation) || receive.isPending}
 								onClick={() =>
 									receive.mutate({
 										inboundId,
@@ -505,7 +506,7 @@ export function InboundOverviewContent({ inboundId, productionSalesOrderId }: { 
 								}
 							>
 								<Icons.Warehouse className="mr-2 size-4" />
-								Receive stock
+								{canRetryAllocation ? "Retry stock allocation" : "Receive stock"}
 							</Button>
 							<InboundNeedsApplicationActions
 								inboundId={inboundId}

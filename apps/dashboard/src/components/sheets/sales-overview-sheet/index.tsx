@@ -2,6 +2,11 @@
 
 import type { ChatDraft } from "@/components/chat/chat";
 import {
+	SalesInventoryPaneProvider,
+	type InventoryNeedSelection,
+	type InventoryAdjustmentSelection,
+} from "@/components/inventory/sales-inventory/pane-context";
+import {
 	inventoryCreateInboundParamForClose,
 	inventoryCreateInboundParamForOpen,
 } from "@/components/sales-overview-system/lib/inbound-create-continuation";
@@ -23,6 +28,8 @@ import {
 import { CustomerEditPane } from "./customer-edit-pane";
 import { InboundCreatePane } from "./inbound-create-pane";
 import { InboundDetailPane } from "./inbound-detail-pane";
+import { InventoryAdjustmentPane } from "./inventory-adjustment-pane";
+import { InventoryNeedPane } from "./inventory-need-pane";
 import { LegacySalesOverviewHeader, LegacySalesOverviewPanels } from "./layout";
 import { PaymentCreatePane } from "./payment-create-pane";
 import {
@@ -34,6 +41,8 @@ import { PaymentTransactionPane } from "./transactions-tab";
 import type { LegacySalesOverviewTabId } from "./types";
 
 type SalesOverviewPane =
+	| { kind: "inventory-need"; need: InventoryNeedSelection; inbound?: boolean }
+	| { kind: "inventory-adjustment"; target: InventoryAdjustmentSelection }
 	| { kind: "customer" }
 	| ({ kind: "address" } & SalesAddressPaneSelection)
 	| { kind: "inbound-create"; mode?: "create_inbound" | "mark_available" }
@@ -71,17 +80,31 @@ function Content() {
 		secondarySize: "2xl",
 	});
 	const paneTriggerRef = useRef<HTMLElement | null>(null);
+	const paneTriggerTokenRef = useRef<string | null>(null);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: changing sales must discard any open secondary pane
 	useEffect(() => {
 		setPane(null);
 		setPaneOpened(false);
 		paneTriggerRef.current = null;
+		paneTriggerTokenRef.current = null;
 	}, [data?.id]);
 	const rememberPaneTrigger = () => {
 		paneTriggerRef.current =
 			document.activeElement instanceof HTMLElement
 				? document.activeElement
 				: null;
+		paneTriggerTokenRef.current =
+			paneTriggerRef.current?.dataset.inventoryPaneTrigger ?? null;
+	};
+	const openNeed = (need: InventoryNeedSelection) => {
+		if (!paneOpened) rememberPaneTrigger();
+		setPane({ kind: "inventory-need", need });
+		setPaneOpened(true);
+	};
+	const openAdjustment = (target: InventoryAdjustmentSelection) => {
+		if (!paneOpened) rememberPaneTrigger();
+		setPane({ kind: "inventory-adjustment", target });
+		setPaneOpened(true);
 	};
 	const openAddressPane = (selection: SalesAddressPaneSelection) => {
 		rememberPaneTrigger();
@@ -142,6 +165,14 @@ function Content() {
 			setActivityDismissed(true);
 			return;
 		}
+		if (pane.kind === "inventory-adjustment" && pane.target.returnNeed) {
+			setPane({ kind: "inventory-need", need: pane.target.returnNeed });
+			return;
+		}
+		if (pane.kind === "inventory-need" && pane.inbound) {
+			setPane({ ...pane, inbound: false });
+			return;
+		}
 		if (query.salesRefund) {
 			query.setParams({ salesRefund: null });
 			return;
@@ -186,7 +217,18 @@ function Content() {
 		setPane(null);
 		const trigger = paneTriggerRef.current;
 		paneTriggerRef.current = null;
-		requestAnimationFrame(() => trigger?.focus());
+		const token = paneTriggerTokenRef.current;
+		paneTriggerTokenRef.current = null;
+		requestAnimationFrame(() => {
+			const target = trigger?.isConnected
+				? trigger
+				: token
+					? document.querySelector<HTMLElement>(
+							`[data-inventory-pane-trigger="${CSS.escape(token)}"]`,
+						)
+					: null;
+			target?.focus();
+		});
 	};
 	useEffect(() => {
 		if (query.salesPayment === "new") {
@@ -278,10 +320,12 @@ function Content() {
 	const setActiveTab = (tab: LegacySalesOverviewTabId) => {
 		const navigation = buildLegacySalesOverviewTabNavigation(tab, pane?.kind);
 		if (navigation.closePackingPane) closePane();
+		if (tab !== "inventory" && (pane?.kind === "inventory-need" || pane?.kind === "inventory-adjustment")) setPaneOpened(false);
 		query.setParams({ ...navigation.params, salesTab: tab as never });
 	};
 
 	return (
+		<SalesInventoryPaneProvider openNeed={openNeed} openAdjustment={openAdjustment}>
 		<Sheet
 			fullscreen={expanded}
 			sheetName="sales-overview-sheet"
@@ -342,6 +386,8 @@ function Content() {
 						</Tabs>
 					</Sheet.Content>
 				</Sheet.PrimaryContent>
+				{pane?.kind === "inventory-need" && data?.id && data.orderId ? <InventoryNeedPane key={pane.need.componentIds.join("-")} salesOrderId={data.id} orderNumber={data.orderId} need={pane.need} inbound={pane.inbound} onOrderShortage={() => setPane({ ...pane, inbound: true })} onBack={closePane} /> : null}
+				{pane?.kind === "inventory-adjustment" ? <InventoryAdjustmentPane target={pane.target} /> : null}
 				{activity.showActivityPane ? (
 					<SalesOverviewActivityPane
 						draftRef={activityDraftRef}
@@ -410,5 +456,6 @@ function Content() {
 				) : null}
 			</Sheet.MultiContent>
 		</Sheet>
+		</SalesInventoryPaneProvider>
 	);
 }

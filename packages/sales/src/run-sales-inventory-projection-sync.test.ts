@@ -27,6 +27,7 @@ describe("runSalesInventoryProjectionSync", () => {
 	test("records a successful zero-need projection", async () => {
 		const projectionWrites: unknown[] = [];
 		const db = {
+			$queryRaw: async () => [],
 			salesInventoryProjectionState: {
 				upsert: async (payload: unknown) => {
 					projectionWrites.push(payload);
@@ -88,6 +89,7 @@ describe("runSalesInventoryProjectionSync", () => {
 	test("excludes untracked and non-inventory components from projection needs", async () => {
 		const projectionWrites: unknown[] = [];
 		const db = {
+			$queryRaw: async () => [],
 			salesInventoryProjectionState: {
 				upsert: async (payload: unknown) => {
 					projectionWrites.push(payload);
@@ -170,6 +172,7 @@ describe("runSalesInventoryProjectionSync", () => {
 	test("records partial sync warnings as a failed projection", async () => {
 		const projectionWrites: unknown[] = [];
 		const db = {
+			$queryRaw: async () => [],
 			salesInventoryProjectionState: {
 				upsert: async (payload: unknown) => {
 					projectionWrites.push(payload);
@@ -220,6 +223,7 @@ describe("runSalesInventoryProjectionSync", () => {
 	test("records a thrown synchronization error before rethrowing", async () => {
 		const projectionWrites: unknown[] = [];
 		const db = {
+			$queryRaw: async () => [],
 			salesInventoryProjectionState: {
 				upsert: async (payload: unknown) => {
 					projectionWrites.push(payload);

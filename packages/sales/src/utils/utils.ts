@@ -525,6 +525,7 @@ export const FullSalesSelect = {
             select: {
               id: true,
               dimension: true,
+              salesOrderId: true,
               swing: true,
               lineTotal: true,
               unitPrice: true,

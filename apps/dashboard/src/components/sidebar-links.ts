@@ -318,7 +318,6 @@ const canViewCommunityUnits = _perm.in(
 	"viewCommunityUnit",
 	"editCommunityUnit",
 );
-const isDev = process.env.NODE_ENV !== "production";
 export const linkModules = [
 	_module("Sales", "salesDashboard", "GND Sales", [
 		_section(null, null, [
@@ -598,76 +597,65 @@ export const linkModules = [
 		]),
 	]),
 
-	...(isDev
-		? [
-				_module("Inventory", "products", "GND Inventory", [
-					_section("", null, [
-						_link("Inventory", "inbound", "/inventory", [
-							_subLink("Create Inventory", "/inventory?productId=-1").data,
-						]).access(_role.is("Super Admin")).data,
-						_link("Variants", "products", "/inventory/variants").access(
-							_role.is("Super Admin"),
-						).data,
-						_link("Components", "products", "/inventory/components", [
-							_subLink("Create Component", "/inventory/components?productId=-1")
-								.data,
-						]).access(_role.is("Super Admin")).data,
-						_link("Kind Review", "report", "/inventory/review").access(
-							_role.is("Super Admin"),
-						).data,
-						_link("Inbounds", "inbound", "/inventory/inbounds").access(
-							_role.is("Super Admin"),
-						).data,
-						_link("Allocations", "report", "/inventory/allocations").access(
-							_role.is("Super Admin"),
-						).data,
-						_link("Backorders", "report", "/inventory/backorders").access(
-							_role.is("Super Admin"),
-						).data,
-						_link(
-							"Partial Shipments",
-							"estimates",
-							"/inventory/partial-shipments",
-						).access(_role.is("Super Admin")).data,
-						_link(
-							"Dispatch Mode",
-							"estimates",
-							"/inventory/dispatch-mode",
-						).access(_role.is("Super Admin")).data,
-						_link(
-							"Production Plan",
-							"report",
-							"/inventory/production-plan",
-						).access(_role.is("Super Admin")).data,
-						_link("Stock Movements", "report", "/inventory/stocks").access(
-							_role.is("Super Admin"),
-						).data,
-						_link("Suppliers", "products", "/inventory/suppliers").access(
-							_role.is("Super Admin"),
-						).data,
-						_link("Categories", "products", "/inventory/categories").access(
-							_role.is("Super Admin"),
-						).data,
-						_link("Imports", "report", "/inventory/imports").access(
-							_role.is("Super Admin"),
-						).data,
-						_link(
-							"Inbound Management",
-							"inbound",
-							"/sales-book/inbounds",
-						).access(_role.is("Super Admin")).data,
-						// _link(
-						//     "Inbounds Managment",
-						//     "inbound",
-						//     "/sales-book/inbound-management",
-						// ).access(_perm.is("viewInboundOrder")).data,
-						// _link("Dispatch", "estimates", "/sales-books/quotes").access(
-						//     _perm.is("editOrders"),
-						// ).data,
-					]),
-				]),
-			]
-		: []),
+	_module("Inventory", "products", "GND Inventory", [
+		_section("", null, [
+			_link("Inventory", "inbound", "/inventory", [
+				_subLink("Create Inventory", "/inventory?productId=-1").data,
+			]).access(_role.is("Super Admin")).data,
+			_link("Variants", "products", "/inventory/variants").access(
+				_role.is("Super Admin"),
+			).data,
+			_link("Components", "products", "/inventory/components", [
+				_subLink("Create Component", "/inventory/components?productId=-1").data,
+			]).access(_role.is("Super Admin")).data,
+			_link("Kind Review", "report", "/inventory/review").access(
+				_role.is("Super Admin"),
+			).data,
+			_link("Inbounds", "inbound", "/inventory/inbounds").access(
+				_perm.some("viewInboundOrder", "editInboundOrder"),
+			).data,
+			_link("Allocations", "report", "/inventory/allocations").access(
+				_role.is("Super Admin"),
+			).data,
+			_link("Backorders", "report", "/inventory/backorders").access(
+				_role.is("Super Admin"),
+			).data,
+			_link(
+				"Partial Shipments",
+				"estimates",
+				"/inventory/partial-shipments",
+			).access(_role.is("Super Admin")).data,
+			_link("Dispatch Mode", "estimates", "/inventory/dispatch-mode").access(
+				_role.is("Super Admin"),
+			).data,
+			_link("Production Plan", "report", "/inventory/production-plan").access(
+				_role.is("Super Admin"),
+			).data,
+			_link("Stock Operations", "report", "/inventory/stocks").access(
+				_perm.is("editInboundOrder"),
+			).data,
+			_link("Suppliers", "products", "/inventory/suppliers").access(
+				_role.is("Super Admin"),
+			).data,
+			_link("Categories", "products", "/inventory/categories").access(
+				_role.is("Super Admin"),
+			).data,
+			_link("Imports", "report", "/inventory/imports").access(
+				_role.is("Super Admin"),
+			).data,
+			_link("Inbound Management", "inbound", "/sales-book/inbounds").access(
+				_role.is("Super Admin"),
+			).data,
+			// _link(
+			//     "Inbounds Managment",
+			//     "inbound",
+			//     "/sales-book/inbound-management",
+			// ).access(_perm.is("viewInboundOrder")).data,
+			// _link("Dispatch", "estimates", "/sales-books/quotes").access(
+			//     _perm.is("editOrders"),
+			// ).data,
+		]),
+	]),
 	_module("", null, "", [
 		profileSection,
 		_section("Support", null, [

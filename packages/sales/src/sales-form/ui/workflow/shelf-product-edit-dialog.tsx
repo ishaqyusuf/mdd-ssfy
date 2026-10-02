@@ -38,8 +38,7 @@ export function ShelfProductEditDialog(props: {
 	const hasValidCostPrice =
 		parsedCostPrice == null ||
 		(Number.isFinite(parsedCostPrice) && parsedCostPrice >= 0);
-	const canSave =
-		Boolean(trimmedTitle) && hasValidCostPrice && !props.isSaving;
+	const canSave = Boolean(trimmedTitle) && hasValidCostPrice && !props.isSaving;
 
 	return (
 		<Dialog
@@ -48,8 +47,8 @@ export function ShelfProductEditDialog(props: {
 				if (!open && !props.isSaving) props.onCancel();
 			}}
 		>
-			<DialogContent className="sm:max-w-lg">
-				<DialogHeader>
+			<DialogContent className="max-sm:w-[calc(100vw-1rem)] max-sm:max-h-[calc(100dvh-1rem)] max-sm:overflow-y-auto max-sm:rounded-xl max-sm:[&>button:last-child]:size-11 max-sm:[&>button:last-child]:right-2 max-sm:[&>button:last-child]:top-2 sm:max-w-lg">
+				<DialogHeader className="max-sm:pr-10 max-sm:text-left">
 					<DialogTitle>Edit shelf product</DialogTitle>
 					<DialogDescription>
 						Update the catalog name and cost price. Selected rows using this

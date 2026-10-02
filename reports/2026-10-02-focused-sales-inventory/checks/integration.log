@@ -1,0 +1,9 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/sales-form-stock.integration.test.ts:
+(pass) local stock policy, competing sales, idempotent apply and warehouse partial receipts [1963.21ms]
+
+ 1 pass
+ 0 fail
+ 62 expect() calls
+Ran 1 test across 1 file. [2.70s]

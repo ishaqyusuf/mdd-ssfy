@@ -1,319 +1,52 @@
 "use client";
-
-import { InventoryStockAuditColumnVisibility } from "@/components/tables-2/inventory-stock-audit/column-visibility";
 import { DataTable } from "@/components/tables-2/inventory-stock-audit/data-table";
+import { useInventoryStockParams } from "@/hooks/use-inventory-stock-params";
 import { useTRPC } from "@/trpc/client";
 import type { TableSettings } from "@/utils/table-settings";
-import type { RouterInputs } from "@api/trpc/routers/_app";
-import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
-import { Card } from "@gnd/ui/card";
-import { Input } from "@gnd/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@gnd/ui/select";
-import {
-	useMutation,
-	useQueryClient,
-	useSuspenseQuery,
-} from "@gnd/ui/tanstack";
-import { Textarea } from "@gnd/ui/textarea";
-import { toast } from "@gnd/ui/use-toast";
-import { useState } from "react";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 
-type StockAdjustmentInput = Exclude<
-	RouterInputs["inventories"]["adjustInventoryStock"],
-	void
->;
-type StockAdjustmentReason = StockAdjustmentInput["reason"];
-type StockAdjustmentMode = NonNullable<StockAdjustmentInput["mode"]>;
-type Props = {
-	initialSettings?: Partial<TableSettings>;
-};
-
-const reasonOptions: Array<{ label: string; value: StockAdjustmentReason }> = [
-	{ label: "Correction", value: "correction" },
-	{ label: "Cycle Count", value: "cycle_count" },
-	{ label: "Damage", value: "damage" },
-	{ label: "Return", value: "return" },
-	{ label: "Consume", value: "consume" },
-	{ label: "Release", value: "release" },
-	{ label: "Stock In", value: "stock_in" },
-	{ label: "Stock Out", value: "stock_out" },
-];
-
-function nullableNumber(value: string) {
-	if (!value.trim()) return null;
-	const numeric = Number(value);
-	return Number.isFinite(numeric) ? numeric : null;
-}
-
-function requiredNumber(value: string) {
-	const numeric = Number(value);
-	return Number.isFinite(numeric) ? numeric : null;
-}
-
-export function InventoryStockOperationsPage({ initialSettings }: Props) {
+export function InventoryStockOperationsPage({
+	initialSettings,
+}: { initialSettings?: Partial<TableSettings> }) {
 	const trpc = useTRPC();
-	const queryClient = useQueryClient();
-	const [inventoryVariantId, setInventoryVariantId] = useState("");
-	const [inventoryStockId, setInventoryStockId] = useState("");
-	const [supplierId, setSupplierId] = useState("");
-	const [location, setLocation] = useState("");
-	const [unitPrice, setUnitPrice] = useState("");
-	const [qty, setQty] = useState("");
-	const [mode, setMode] = useState<StockAdjustmentMode>("delta");
-	const [reason, setReason] = useState<StockAdjustmentReason>("correction");
-	const [reference, setReference] = useState("");
-	const [notes, setNotes] = useState("");
-	const auditReport = useSuspenseQuery(
+	const { stockAuditSearch } = useInventoryStockParams();
+	const audit = useSuspenseQuery(
 		trpc.inventories.stockAuditVerificationReport.queryOptions(undefined),
 	);
-
-	const adjustment = useMutation(
-		trpc.inventories.adjustInventoryStock.mutationOptions({
-			onSuccess(data) {
-				toast({
-					title: "Stock adjusted",
-					description: `Stock ${data.inventoryStockId}: ${data.previousQty} to ${data.currentQty}.`,
-					variant: "success",
-				});
-				void queryClient.invalidateQueries({
-					queryKey: trpc.inventories.stockAuditVerificationReport.queryKey(),
-				});
-			},
-		}),
+	const search = stockAuditSearch.trim().toLowerCase();
+	const rows = audit.data.rows.filter(
+		(row) =>
+			!search ||
+			`${row.category} ${row.reason} ${row.status}`
+				.toLowerCase()
+				.includes(search),
 	);
-
-	const submitAdjustment = () => {
-		const variantId = requiredNumber(inventoryVariantId);
-		const quantity = requiredNumber(qty);
-
-		if (!variantId || quantity == null) {
-			toast({
-				title: "Missing adjustment details",
-				description: "Inventory variant ID and quantity are required.",
-				variant: "destructive",
-			});
-			return;
-		}
-
-		adjustment.mutate({
-			inventoryVariantId: variantId,
-			inventoryStockId: nullableNumber(inventoryStockId),
-			supplierId: nullableNumber(supplierId),
-			location: location || null,
-			unitPrice: nullableNumber(unitPrice),
-			qty: quantity,
-			mode,
-			reason,
-			reference: reference || null,
-			notes: notes || null,
-		});
-	};
-
 	return (
 		<div className="flex flex-col gap-6">
-			<div className="space-y-1">
-				<h2 className="text-lg font-semibold">Stock Operations</h2>
-				<p className="max-w-3xl text-sm text-muted-foreground">
-					Post manual stock adjustments with movement and inventory-log audit
-					records.
+			<div className="flex flex-wrap items-baseline justify-between gap-2">
+				<div>
+					<h2 className="font-medium">Audit verification</h2>
+					<p className="text-sm text-muted-foreground">
+						{audit.data.summary.verifiedCategories} of{" "}
+						{audit.data.summary.totalCategories} categories verified in recent
+						audit rows.
+					</p>
+				</div>
+				<p className="text-sm text-muted-foreground">
+					{audit.data.summary.movementCount} movements ·{" "}
+					{audit.data.summary.logCount} logs
 				</p>
 			</div>
-
-			<Card className="p-4">
-				<div className="grid gap-4 lg:grid-cols-3">
-					<div className="space-y-2">
-						<label
-							htmlFor="inventory-variant-id"
-							className="text-sm font-medium"
-						>
-							Inventory Variant ID
-						</label>
-						<Input
-							id="inventory-variant-id"
-							inputMode="numeric"
-							value={inventoryVariantId}
-							onChange={(event) => setInventoryVariantId(event.target.value)}
-							placeholder="Required"
-						/>
-					</div>
-					<div className="space-y-2">
-						<label htmlFor="inventory-stock-id" className="text-sm font-medium">
-							Inventory Stock ID
-						</label>
-						<Input
-							id="inventory-stock-id"
-							inputMode="numeric"
-							value={inventoryStockId}
-							onChange={(event) => setInventoryStockId(event.target.value)}
-							placeholder="Optional existing stock row"
-						/>
-					</div>
-					<div className="space-y-2">
-						<label htmlFor="stock-supplier-id" className="text-sm font-medium">
-							Supplier ID
-						</label>
-						<Input
-							id="stock-supplier-id"
-							inputMode="numeric"
-							value={supplierId}
-							onChange={(event) => setSupplierId(event.target.value)}
-							placeholder="Optional"
-						/>
-					</div>
-					<div className="space-y-2">
-						<label
-							htmlFor="stock-adjustment-mode"
-							className="text-sm font-medium"
-						>
-							Mode
-						</label>
-						<Select
-							value={mode}
-							onValueChange={(value) => setMode(value as StockAdjustmentMode)}
-						>
-							<SelectTrigger id="stock-adjustment-mode">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="delta">Delta</SelectItem>
-								<SelectItem value="set">Set Count</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
-					<div className="space-y-2">
-						<label htmlFor="stock-quantity" className="text-sm font-medium">
-							Quantity
-						</label>
-						<Input
-							id="stock-quantity"
-							inputMode="decimal"
-							value={qty}
-							onChange={(event) => setQty(event.target.value)}
-							placeholder={mode === "set" ? "New counted qty" : "Change qty"}
-						/>
-					</div>
-					<div className="space-y-2">
-						<label htmlFor="stock-reason" className="text-sm font-medium">
-							Reason
-						</label>
-						<Select
-							value={reason}
-							onValueChange={(value) =>
-								setReason(value as StockAdjustmentReason)
-							}
-						>
-							<SelectTrigger id="stock-reason">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{reasonOptions.map((option) => (
-									<SelectItem key={option.value} value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-					<div className="space-y-2">
-						<label htmlFor="stock-location" className="text-sm font-medium">
-							Location
-						</label>
-						<Input
-							id="stock-location"
-							value={location}
-							onChange={(event) => setLocation(event.target.value)}
-							placeholder="Optional"
-						/>
-					</div>
-					<div className="space-y-2">
-						<label htmlFor="stock-unit-price" className="text-sm font-medium">
-							Unit Price
-						</label>
-						<Input
-							id="stock-unit-price"
-							inputMode="decimal"
-							value={unitPrice}
-							onChange={(event) => setUnitPrice(event.target.value)}
-							placeholder="Optional"
-						/>
-					</div>
-					<div className="space-y-2">
-						<label htmlFor="stock-reference" className="text-sm font-medium">
-							Reference
-						</label>
-						<Input
-							id="stock-reference"
-							value={reference}
-							onChange={(event) => setReference(event.target.value)}
-							placeholder="Cycle count, return, correction"
-						/>
-					</div>
-					<div className="space-y-2 lg:col-span-3">
-						<label htmlFor="stock-notes" className="text-sm font-medium">
-							Notes
-						</label>
-						<Textarea
-							id="stock-notes"
-							value={notes}
-							onChange={(event) => setNotes(event.target.value)}
-							placeholder="Reason details"
-						/>
-					</div>
+			{search && !rows.length ? (
+				<div className="py-20 text-center">
+					<p>No matching audit categories.</p>
+					<p className="text-sm text-muted-foreground">
+						Clear the search or use another category name.
+					</p>
 				</div>
-
-				<div className="mt-4 flex items-center justify-between gap-3">
-					<div className="text-sm text-muted-foreground">
-						{adjustment.data
-							? `Movement ${adjustment.data.movementId} / Log ${adjustment.data.logId}`
-							: "Adjustments update physical stock and write audit records."}
-					</div>
-					<Button
-						type="button"
-						onClick={submitAdjustment}
-						disabled={adjustment.isPending}
-					>
-						{adjustment.isPending ? "Posting..." : "Post Adjustment"}
-					</Button>
-				</div>
-			</Card>
-
-			<Card className="p-4">
-				<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-					<div>
-						<h3 className="text-base font-semibold">Audit Verification</h3>
-						<div className="text-sm text-muted-foreground">
-							{auditReport.data.summary.verifiedCategories} of{" "}
-							{auditReport.data.summary.totalCategories} categories verified in
-							recent audit rows.
-						</div>
-					</div>
-					<div className="flex flex-wrap items-center gap-2 text-sm">
-						<InventoryStockAuditColumnVisibility />
-						<div className="flex flex-wrap gap-2">
-							<Badge variant="outline">
-								{auditReport.data.summary.movementCount} movements
-							</Badge>
-							<Badge variant="outline">
-								{auditReport.data.summary.logCount} logs
-							</Badge>
-						</div>
-					</div>
-				</div>
-
-				<div className="mt-4">
-					<DataTable
-						data={auditReport.data.rows}
-						initialSettings={initialSettings}
-					/>
-				</div>
-			</Card>
+			) : (
+				<DataTable data={rows} initialSettings={initialSettings} />
+			)}
 		</div>
 	);
 }

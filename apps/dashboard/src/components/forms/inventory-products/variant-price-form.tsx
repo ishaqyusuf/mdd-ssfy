@@ -2,7 +2,7 @@ import { FormCombobox } from "@/components/common/controls/form-combobox";
 import FormInput from "@/components/common/controls/form-input";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Form } from "@gnd/ui/form";
-import { UpdateVariantCost, updateVariantCostSchema } from "@sales/inventory";
+import { type UpdateVariantCost, updateVariantCostSchema } from "@gnd/inventory/schema";
 import { useVariant } from "./context";
 import { SubmitButton } from "@/components/submit-button";
 import { PRICE_UPDATE_SOURCE_OPTIONS } from "@sales/constants";

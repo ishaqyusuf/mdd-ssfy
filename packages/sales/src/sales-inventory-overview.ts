@@ -1,4 +1,4 @@
-import type { Db } from "@gnd/db";
+import type { Db, TransactionClient } from "@gnd/db";
 
 import { getLegacySalesOrderLifecycleStatusInfo } from "./legacy-order-status";
 import type { SalesOrderLifecycleStatus } from "./order-status";
@@ -991,6 +991,8 @@ export type SalesInventoryTrackingChangeRepairPreview = {
 	totalPendingQty: number;
 	orders: SalesInventoryTrackingChangeRepairPreviewOrder[];
 	truncated: boolean;
+	projectionCandidates: Array<{ salesOrderId: number; orderId: string }>;
+	projectionCandidatesTruncated: boolean;
 };
 
 export async function getSalesInventoryTrackingChangeRepairPreview(
@@ -1001,12 +1003,16 @@ export async function getSalesInventoryTrackingChangeRepairPreview(
 	const components = await db.lineItemComponents.findMany({
 		where: {
 			inventoryCategoryId: input.inventoryCategoryId,
+			status: { not: "cancelled" },
+			required: true,
 			parent: {
 				deletedAt: null,
 				lineItemType: "SALE",
 				sale: {
 					is: {
 						deletedAt: null,
+						archivedAt: null,
+						type: "order",
 					},
 				},
 			},
@@ -1101,8 +1107,7 @@ export async function getSalesInventoryTrackingChangeRepairPreview(
 		const pendingQty = Math.max(
 			0,
 			numberValue(component.qty) -
-				numberValue(component.qtyAllocated) -
-				numberValue(component.qtyReceived),
+				Math.max(numberValue(component.qtyAllocated), numberValue(component.qtyReceived)),
 		);
 		if (pendingQty <= 0) continue;
 
@@ -1157,6 +1162,21 @@ export async function getSalesInventoryTrackingChangeRepairPreview(
 		pendingQty: positiveNumberValue(order.pendingQty),
 		componentNames: order.componentNames.slice(0, 4),
 	}));
+	const category = await db.inventoryCategory.findUnique({ where: { id: input.inventoryCategoryId }, select: { uid: true } });
+	const candidates = category ? await db.salesOrders.findMany({
+		where: {
+			type: "order", deletedAt: null, archivedAt: null,
+			formSteps: { some: { deletedAt: null, prodUid: { not: null }, step: { uid: category.uid, deletedAt: null } } },
+			NOT: { lineItems: { some: { deletedAt: null, components: { some: { inventoryCategoryId: input.inventoryCategoryId, status: { not: "cancelled" } } } } } },
+		},
+		orderBy: { id: "desc" }, take: limit + 1,
+		select: { id: true, orderId: true },
+	}) : [];
+	const projectionCandidates: SalesInventoryTrackingChangeRepairPreview["projectionCandidates"] = [];
+	for (const candidate of candidates.slice(0, limit)) {
+		const overview = await getSalesInventoryOverview(db, { salesOrderId: candidate.id });
+		if (overview?.capabilities.canSync) projectionCandidates.push({ salesOrderId: candidate.id, orderId: candidate.orderId });
+	}
 
 	return {
 		inventoryCategoryId: input.inventoryCategoryId,
@@ -1167,11 +1187,13 @@ export async function getSalesInventoryTrackingChangeRepairPreview(
 		),
 		orders,
 		truncated: allOrders.length > orders.length,
+		projectionCandidates,
+		projectionCandidatesTruncated: candidates.length > limit,
 	};
 }
 
 export async function getSalesInventoryOverview(
-	db: Db,
+	db: Db | TransactionClient,
 	input: GetSalesInventoryOverviewInput,
 ) {
 	const sale = await db.salesOrders.findUnique({
@@ -1181,6 +1203,9 @@ export async function getSalesInventoryOverview(
 		select: {
 			id: true,
 			orderId: true,
+			type: true,
+			archivedAt: true,
+			deletedAt: true,
 			updatedAt: true,
 			status: true,
 			inventoryStatus: true,
@@ -1506,6 +1531,7 @@ export async function getSalesInventoryOverview(
 
 	return {
 		...saleSnapshot,
+		stockOrderEligible: sale.type === "order" && !sale.archivedAt && !sale.deletedAt,
 		lifecycleStatus: lifecycle.status,
 		lifecycleLabel: lifecycle.label,
 		lifecycleTone: lifecycle.tone,

@@ -114,7 +114,7 @@ export function canMarkInventoryNeedsAvailable(input: {
 }
 
 export function shouldShowInventoryNeedsActions(input: {
-	segment: "stock" | "inbounds" | "non_stock";
+	segment: "stock" | "warehouse" | "inbounds" | "non_stock";
 	needCount: number;
 }) {
 	return input.segment === "stock" && Number(input.needCount || 0) > 0;

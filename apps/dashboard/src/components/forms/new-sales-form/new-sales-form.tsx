@@ -2,6 +2,7 @@
 
 import { createSaveFailure, type SaveFailure } from "./save-failure";
 import { SaveFailureAlert } from "./save-failure-alert";
+import { SavedTotalsNotice } from "./saved-totals-notice";
 import { triggerEvent } from "@/actions/events";
 import { refreshSavedSalesStatsAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
@@ -217,12 +218,7 @@ function getErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
-function formatSalesFormMoney(value: number) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(value);
-}
+
 
 const PACKAGE_WORKFLOW_PANEL_STORAGE_KEY =
     "gnd:new-sales-form:package-workflow-panel";
@@ -288,10 +284,10 @@ function lineItemPickerLabel(
     index: number,
 ) {
     const explicitTitle = String(line?.title || "").trim();
-    if (explicitTitle) return explicitTitle;
+    if (explicitTitle) return `Item ${index + 1}: ${explicitTitle}`;
     const placeholder = getLineTitlePlaceholder(line);
     return placeholder
-        ? `Item ${index + 1} (${placeholder})`
+        ? `Item ${index + 1}: ${placeholder}`
         : `Item ${index + 1}`;
 }
 
@@ -477,6 +473,7 @@ export function NewSalesForm(props: Props) {
     const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
 	const [changeReviewOpen, setChangeReviewOpen] = useState(false);
+	const workflowPanelRef = useRef<HTMLDivElement>(null);
 	const reviewedRecordRef = useRef<NewSalesFormRecord | null>(null);
 	const committedAdjustmentIdRef = useRef<string | null>(null);
 	const [pendingUnpricedSaveIntent, setPendingUnpricedSaveIntent] =
@@ -1255,7 +1252,11 @@ export function NewSalesForm(props: Props) {
 			afterSuccessfulSave: boolean,
 			intent: SaveIntent,
 		) => {
-			if (!isOrder) return false;
+			if (!isOrder) {
+				if (afterSuccessfulSave) await clearSelectedCustomerQuery();
+				return false;
+			}
+			if (afterSuccessfulSave) await clearSelectedCustomerQuery();
 			const action = resolveLegacyInventoryPostSaveAction({
 				salesId: resp.salesId,
 				orderNo: resp.orderId,
@@ -1285,6 +1286,7 @@ export function NewSalesForm(props: Props) {
 		[
 			isOrder,
 			legacyInventoryAdaptation,
+			clearSelectedCustomerQuery,
 			props.type,
 			router,
 		],
@@ -1757,7 +1759,6 @@ export function NewSalesForm(props: Props) {
                 committed = true;
 				void requestGenerationOutcome.recordSave(saveAttribution, "saved");
                 await handlePostSaveSuccess(resp);
-				await clearSelectedCustomerQuery();
 				const inventoryOverviewOpened =
 					await continueToInventoryAfterSave(resp, true, intent);
                 toast({
@@ -1812,7 +1813,6 @@ export function NewSalesForm(props: Props) {
             let inventoryOverviewOpened = false;
             try {
                 await handlePostSaveSuccess(resp);
-                await clearSelectedCustomerQuery();
                 inventoryOverviewOpened = await continueToInventoryAfterSave(resp, true, intent);
             } catch (error) {
                 const failure = createSaveFailure(error, "Refresh after save", resp.orderId, true);
@@ -2558,46 +2558,14 @@ export function NewSalesForm(props: Props) {
                             <div className="m-4 space-y-2 sm:m-6 lg:m-8">
                                 {saveFailure && <SaveFailureAlert key={saveFailure.referenceId} failure={saveFailure} onDismiss={() => setSaveFailure(null)} />}
 								{hasSavedFinancialDrift && financialReconciliation ? (
-									<output className="block rounded-lg border border-rose-400 bg-rose-50 p-3 text-sm text-rose-950 shadow-sm">
-										<div className="flex items-start gap-2">
-											<Icons.AlertCircle className="mt-0.5 size-4 shrink-0" />
-											<div className="min-w-0 flex-1">
-												<p className="font-semibold">
-													Saved and recalculated totals are different
-												</p>
-												<p className="mt-1 text-xs opacity-80">
-													Review the affected line items before saving. Opening this
-													form did not change or autosave the order.
-												</p>
-								<div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-													{(
-														[
-															["Subtotal", "subTotal"],
-													["Tax", "taxTotal"],
-													["Grand total", "grandTotal"],
-													["Amount due", "amountDue"],
-														] as const
-													).map(([label, key]) => (
-														<div key={key} className="rounded-md border border-rose-200 bg-white/70 p-2">
-															<p className="text-[11px] font-medium uppercase tracking-wide opacity-70">
-																{label}
-															</p>
-															<p className="mt-1 text-xs">
-																Saved {formatSalesFormMoney(financialReconciliation.saved[key])}
-															</p>
-															<p className="text-xs">
-																Recalculated {formatSalesFormMoney(financialReconciliation.recalculated[key])}
-															</p>
-															<p className="text-xs font-semibold">
-																Difference {formatSalesFormMoney(financialReconciliation.difference[key])}
-															</p>
-														</div>
-													))}
-												</div>
-											</div>
-										</div>
-									</output>
-								) : null}
+                                    <SavedTotalsNotice
+                                        reconciliation={financialReconciliation}
+                                        onReviewLineItems={() => {
+                                            workflowPanelRef.current?.focus({ preventScroll: true });
+                                            workflowPanelRef.current?.scrollIntoView({ block: "start" });
+                                        }}
+                                    />
+                                ) : null}
 								{loadedChangeProtection && hasSalesRepApprovalChange ? (
 									<output className="flex flex-col gap-3 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 shadow-sm md:flex-row md:items-center md:justify-between">
 										<div className="min-w-0">
@@ -2735,7 +2703,7 @@ export function NewSalesForm(props: Props) {
                             </div>
                         ) : null,
                     MainPanel: (
-						<div className="space-y-4">
+						<div ref={workflowPanelRef} tabIndex={-1} className="space-y-4">
 							{props.mode === "create" && !historyPreview && auth?.can?.viewAssistant ? (
 								<div className="flex flex-col gap-3 rounded-lg border border-dashed bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
 									<div className="min-w-0">

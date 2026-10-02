@@ -425,9 +425,9 @@ export function lineItemPickerLabel(
 	index: number,
 ) {
 	const explicitTitle = String(line?.title || "").trim();
-	if (explicitTitle) return explicitTitle;
+	if (explicitTitle) return `Item ${index + 1}: ${explicitTitle}`;
 	const placeholder = getLineTitlePlaceholder(line);
-	if (placeholder) return placeholder;
+	if (placeholder) return `Item ${index + 1}: ${placeholder}`;
 	const itemTypeStep = getWorkflowSteps(line).find(
 		(step) => normalizeTitle(step?.step?.title) === "item type",
 	);
@@ -435,7 +435,7 @@ export function lineItemPickerLabel(
 		itemTypeStep?.value || itemTypeStep?.title || itemTypeStep?.prodUid || "",
 	).trim();
 	return itemTypeLabel
-		? `Item ${index + 1} (${itemTypeLabel})`
+		? `Item ${index + 1}: ${itemTypeLabel}`
 		: `Item ${index + 1}`;
 }
 

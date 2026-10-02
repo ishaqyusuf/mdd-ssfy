@@ -66,6 +66,10 @@ export type WorkflowStepComponentPanelProps<
 	selectedUids: Set<string>;
 	search: string;
 	noticeSlot?: ReactNode;
+	stockManagementSlot?: ReactNode;
+	stockSlot?: (component: TComponent) => ReactNode;
+	stockStatusSlot?: (component: TComponent) => ReactNode;
+	onOpenInventory?: (component: TComponent, trigger?: HTMLElement) => void;
 	customComponentSlot?: ReactNode;
 	isDealershipMode: boolean;
 	isStorefrontMode?: boolean;
@@ -309,6 +313,9 @@ export function WorkflowStepComponentPanel<
 						String(props.mouldingSelection?.componentUid || "") ===
 							componentUid;
 					const isManagementSelected = managementSelection.has(componentUid);
+					const stockStatus = managementSelection.size
+						? null
+						: props.stockStatusSlot?.(component);
 
 					const canSetDefault = Boolean(
 						props.onSetDefault &&
@@ -320,9 +327,11 @@ export function WorkflowStepComponentPanel<
 						<WorkflowComponentCard
 							selected={isSelected}
 							selectedCustom={isSelectedCustom}
+							stockStatusSlot={stockStatus}
 							badgesSlot={
 								!props.isDealershipMode && !props.isStorefrontMode ? (
 									<WorkflowComponentBadges
+										withStockStatus={Boolean(stockStatus)}
 										isDefault={component.default === true}
 										hasVariations={Boolean(
 											(component as { variations?: unknown[] | null })
@@ -345,8 +354,15 @@ export function WorkflowStepComponentPanel<
 								) : null
 							}
 							actionsSlot={
-								canManageCatalog && !managementSelection.size ? (
+								(canManageCatalog || props.onOpenInventory) &&
+								!managementSelection.size ? (
 									<WorkflowComponentActionMenu
+										onOpenInventory={
+											props.onOpenInventory
+												? (trigger) =>
+														props.onOpenInventory?.(component, trigger)
+												: undefined
+										}
 										isDefault={component.default === true}
 										onSetDefault={
 											canSetDefault
@@ -380,7 +396,11 @@ export function WorkflowStepComponentPanel<
 												? () => props.onEditSectionOverride?.(component)
 												: undefined
 										}
-										onSelect={() => toggleManagementSelection(component)}
+										onSelect={
+											canManageCatalog
+												? () => toggleManagementSelection(component)
+												: undefined
+										}
 										onClearRedirect={
 											props.onClearRedirect
 												? () => props.onClearRedirect?.(component)
@@ -452,6 +472,7 @@ export function WorkflowStepComponentPanel<
 									/>
 								</button>
 							)}
+							{props.stockSlot?.(component)}
 						</WorkflowComponentCard>
 					);
 					return canSetDefault ? (
@@ -473,6 +494,7 @@ export function WorkflowStepComponentPanel<
 				}}
 				toolbarSlot={
 					<WorkflowComponentToolbar
+						key={`${props.lineUid}:${props.activeStepIndex}`}
 						count={managementSelection.size || filteredComponents.length}
 						total={
 							catalogTab === "custom" && props.customSuggestions
@@ -565,6 +587,7 @@ export function WorkflowStepComponentPanel<
 											Component
 										</Menu.Item>
 									) : null}
+									{props.stockManagementSlot}
 									<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
 									{props.onEnableCustomComponent ? (
 										<Menu.Item onClick={props.onEnableCustomComponent}>
@@ -611,9 +634,9 @@ export function WorkflowStepComponentPanel<
 									</Button>
 								</div>
 							) : supportsCustomComponents || isMultiSelectStep ? (
-								<div className="relative flex w-full justify-end sm:w-auto">
+								<div className="relative flex w-full justify-end sm:w-auto max-lg:flex-col max-lg:gap-2">
 									{supportsCustomComponents && props.customComponentSlot ? (
-										<div className="absolute right-0 bottom-full z-20 mb-2 w-[calc(100vw-2rem)] max-w-md sm:w-96">
+										<div className="absolute right-0 bottom-full z-20 mb-2 w-[calc(100vw-2rem)] max-w-md sm:w-96 max-lg:static max-lg:mb-0 max-lg:w-full">
 											{props.customComponentSlot}
 										</div>
 									) : null}

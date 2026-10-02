@@ -1,3 +1,6 @@
+import { updateVariantCostSchema, type UpdateVariantCost } from "./schema";
+export { updateVariantCostSchema, type UpdateVariantCost } from "./schema";
+import { setCategoryStockPolicy, readCategoryStockSettings, effectiveLowStockAlert } from "./application/stock/stock-policy";
 import { Prisma } from "@gnd/db";
 import type { Db } from "@gnd/db";
 import type {
@@ -444,8 +447,10 @@ export async function inventorySummary(db: Db, data: InventorySummary) {
         value: productCount,
         subtitle: `${publishedProducts} published`,
       };
-    case "inventory_value":
     case "stock_level":
+      const alerts = await lowStockSummary(db);
+      return { value: alerts.total, subtitle: "Products need restocking" };
+    case "inventory_value":
       const inv = await db.inventoryVariant.findMany({
         where: {
           inventory: {
@@ -453,12 +458,7 @@ export async function inventorySummary(db: Db, data: InventorySummary) {
               stockMode: "monitored" as StockModes,
             },
           },
-          lowStockAlert:
-            data.type == "inventory_value"
-              ? undefined
-              : {
-                  gt: 0,
-                },
+
           pricing: {
             costPrice: {
               gt: 0,
@@ -494,24 +494,8 @@ export async function inventorySummary(db: Db, data: InventorySummary) {
           // },
         },
       });
-      if (data.type == "inventory_value") {
-        const value = sum(
-          inv.map((a) => sum(a.logs.map((l) => l.costPrice! * l.qty))),
-        );
-        return {
-          value: formatMoney(value),
-          subtitle: "Total cost value",
-        };
-      }
-      const lowStockCount = inv.filter((v) => {
-        const totalQty = sum(v.logs.map((l) => l.qty));
-        return v.lowStockAlert && totalQty <= v.lowStockAlert;
-      }).length;
-      // const value = sum(inv.map((a) => sum(a.logs.map((l) => l.qty))));
-      return {
-        value: lowStockCount,
-        subtitle: `Products need restocking`,
-      };
+      const value = sum(inv.map((a) => sum(a.logs.map((l) => l.costPrice! * l.qty))));
+      return { value: formatMoney(value), subtitle: "Total cost value" };
     case "categories":
       const c = await db.inventoryCategory.count({
         where: {},
@@ -532,6 +516,7 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
       id: inventoryId,
     },
     include: {
+      inventoryCategory: { select: { meta: true } },
       inventoryItemSubCategories: {
         where: {
           deletedAt: null,
@@ -714,7 +699,7 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
         attributes: combo,
         title: titleParts.join(" "),
         stockCount: sum(matchedVariant?.stockMovements, "changeQty"),
-        lowStock: matchedVariant?.lowStockAlert,
+        lowStock: effectiveLowStockAlert(matchedVariant?.lowStockAlert, inventory.inventoryCategory?.meta),
         supplierVariants: matchedVariant?.supplierVariants || [],
         inventoryId,
       };
@@ -780,7 +765,7 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
         attributes,
         title,
         stockCount: sum(variant.stockMovements, "changeQty"),
-        lowStock: variant.lowStockAlert,
+        lowStock: effectiveLowStockAlert(variant.lowStockAlert, inventory.inventoryCategory?.meta),
         supplierVariants: variant.supplierVariants || [],
         inventoryId,
       };
@@ -852,6 +837,7 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
 }
 
 type InventoryItemDashboardSummaryInput = {
+  categoryStockMeta?: unknown;
   variants: Array<{
     lowStockAlert?: number | null;
     stocks?: Array<{
@@ -901,7 +887,7 @@ export function buildInventoryItemDashboardSummary(
     return {
       qty,
       value,
-      lowStockAlert: variant.lowStockAlert,
+      lowStockAlert: effectiveLowStockAlert(variant.lowStockAlert, input.categoryStockMeta),
       movementCount: variant.stockMovements?.length || 0,
     };
   });
@@ -962,13 +948,16 @@ type InventoryOperationsVariantLike = {
   sku?: string | null;
   description?: string | null;
   lowStockAlert?: number | null;
+  stockAlertsEnabled?: boolean;
   inventory?: {
     id: number;
     name?: string | null;
     stockMode?: string | null;
+    meta?: unknown;
     inventoryCategory?: {
       title?: string | null;
       stockMode?: string | null;
+    meta?: unknown;
     } | null;
     defaultSupplier?: {
       id: number;
@@ -1016,6 +1005,7 @@ export function buildInventoryOperationsSummary(input: {
   productionBlockerComponentIds?: number[];
 }) {
   const alerts = input.variants
+    .filter((variant) => variant.stockAlertsEnabled !== false)
     .map((variant) => {
       const stockQty = variantStockQty(variant);
       const stockMode = effectiveStockMode(variant);
@@ -1033,7 +1023,7 @@ export function buildInventoryOperationsSummary(input: {
         variantDescription: variant.description,
         stockMode,
         stockQty,
-        lowStockAlert: variant.lowStockAlert ?? null,
+        lowStockAlert: effectiveLowStockAlert(variant.lowStockAlert, variant.inventory?.inventoryCategory?.meta),
         supplierId:
           preferredSupplier?.supplier?.id ||
           variant.inventory?.defaultSupplier?.id ||
@@ -1046,8 +1036,7 @@ export function buildInventoryOperationsSummary(input: {
         isTracked: stockMode === "monitored",
         isLowStock:
           stockMode === "monitored" &&
-          variant.lowStockAlert != null &&
-          stockQty <= Number(variant.lowStockAlert),
+          stockQty <= effectiveLowStockAlert(variant.lowStockAlert, variant.inventory?.inventoryCategory?.meta),
         isOutOfStock: stockMode === "monitored" && stockQty <= 0,
       };
     })
@@ -2253,6 +2242,7 @@ export async function inventoryBrowserValidationFixtureReport(db: Db) {
             inventoryCategory: {
               select: {
                 stockMode: true,
+                meta: true,
               },
             },
           },
@@ -2280,7 +2270,7 @@ export async function inventoryBrowserValidationFixtureReport(db: Db) {
       (total, stock) => total + Number(stock.qty || 0),
       0,
     );
-    return variant.lowStockAlert != null && stockQty <= Number(variant.lowStockAlert);
+    return stockQty <= effectiveLowStockAlert(variant.lowStockAlert, variant.inventory?.inventoryCategory?.meta);
   });
 
   return buildInventoryBrowserValidationFixtureReport({
@@ -2395,6 +2385,7 @@ export async function inventoryOperationsSummary(db: Db) {
           sku: true,
           description: true,
           lowStockAlert: true,
+          stockAlertsEnabled: true,
           inventory: {
             select: {
               id: true,
@@ -2404,6 +2395,7 @@ export async function inventoryOperationsSummary(db: Db) {
                 select: {
                   title: true,
                   stockMode: true,
+                meta: true,
                 },
               },
               defaultSupplier: {
@@ -2562,6 +2554,7 @@ export async function getInventoryItemDashboard(
           title: true,
           productKind: true,
           stockMode: true,
+                meta: true,
           type: true,
         },
       },
@@ -2891,6 +2884,7 @@ export async function getInventoryItemDashboard(
 
   const summary = buildInventoryItemDashboardSummary({
     variants: item.variants,
+    categoryStockMeta: item.inventoryCategory?.meta,
     inboundDemands: flattenedInboundDemands,
     allocations: flattenedAllocations,
     relatedLineItems: item.lineItems,
@@ -2941,8 +2935,7 @@ export async function getInventoryItemDashboard(
           0,
         ),
         isLowStock:
-          variant.lowStockAlert != null &&
-          stockQty <= Number(variant.lowStockAlert),
+          stockQty <= effectiveLowStockAlert(variant.lowStockAlert, item.inventoryCategory?.meta),
       };
     }),
     stocks: flattenedStocks,
@@ -2961,6 +2954,7 @@ export type InventoryVariantsWorkspaceQuery = {
   supplierId?: number | null;
   status?: string | null;
   stockMode?: string | null;
+    meta?: unknown;
   lowStock?: boolean | null;
   cursorId?: number | null;
   limit?: number | null;
@@ -2979,10 +2973,12 @@ export function buildInventoryVariantWorkspaceRow(variant: {
     uid?: string | null;
     status?: string | null;
     stockMode?: string | null;
+    meta?: unknown;
     inventoryCategory?: {
       id: number;
       title: string;
       stockMode?: string | null;
+    meta?: unknown;
     } | null;
     defaultSupplier?: {
       id: number;
@@ -3053,11 +3049,12 @@ export function buildInventoryVariantWorkspaceRow(variant: {
     sku: variant.sku,
     description: variant.description,
     status: variant.status || "draft",
-    lowStockAlert: variant.lowStockAlert,
+    lowStockAlertOverride: variant.lowStockAlert ?? null,
+    lowStockAlert: effectiveLowStockAlert(variant.lowStockAlert, variant.inventory?.inventoryCategory?.meta),
     stockQty,
     stockValue,
     isLowStock:
-      variant.lowStockAlert != null && stockQty <= Number(variant.lowStockAlert),
+      stockQty <= effectiveLowStockAlert(variant.lowStockAlert, variant.inventory?.inventoryCategory?.meta),
     stockMode,
     price: variant.pricing?.price ?? null,
     costPrice: variant.pricing?.costPrice ?? null,
@@ -3173,13 +3170,6 @@ export async function inventoryVariantsWorkspace(
     });
   }
 
-  if (query.lowStock) {
-    and.push({
-      lowStockAlert: {
-        gt: 0,
-      },
-    });
-  }
 
   if (and.length) {
     where.AND = and;
@@ -3210,6 +3200,7 @@ export async function inventoryVariantsWorkspace(
               id: true,
               title: true,
               stockMode: true,
+                meta: true,
             },
           },
           defaultSupplier: {
@@ -3779,88 +3770,21 @@ export async function inventoryTopSalesAnalytics(
 }
 export async function lowStockSummary(db: Db) {
   const variants = await db.inventoryVariant.findMany({
-    where: {
-      deletedAt: null,
-      lowStockAlert: {
-        gt: 0,
-      },
-      inventory: {
-        deletedAt: null,
-        stockMode: "monitored" as StockModes,
-        productKind: "inventory",
-        ...({ sourceCustom: false } as any),
-      },
-    },
-    select: {
-      id: true,
-      uid: true,
-      lowStockAlert: true,
-      inventoryId: true,
-      inventory: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      attributes: {
-        select: {
-          value: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
-      stockMovements: {
-        where: {
-          deletedAt: null,
-          status: "completed",
-        },
-        select: {
-          changeQty: true,
-        },
-      },
+    where: { deletedAt: null, stockAlertsEnabled: true, inventory: { deletedAt: null, productKind: "inventory", inventoryCategory: { deletedAt: null, productKind: "inventory", stockMode: "monitored" } } },
+    take: 2000, orderBy: { id: "asc" },
+    select: { id: true, uid: true, inventoryId: true, lowStockAlert: true,
+      inventory: { select: { name: true, inventoryCategory: { select: { meta: true } } } },
+      attributes: { select: { value: { select: { name: true } } } },
+      stocks: { where: { deletedAt: null }, select: { id: true, qty: true } },
     },
   });
-
-  const rows = variants
-    .map((variant) => {
-      const qty = sum(variant.stockMovements, "changeQty");
-      const threshold = Number(variant.lowStockAlert || 0);
-      const shortage = Math.max(0, threshold - qty);
-      const variantTitle = variant.attributes
-        .map((attribute) => attribute.value?.name)
-        .filter(Boolean)
-        .join(" ");
-
-      return {
-        id: variant.id,
-        uid: variant.uid,
-        inventoryId: variant.inventoryId,
-        inventoryName: variant.inventory?.name || "Untitled inventory",
-        variantTitle: variantTitle || null,
-        qty,
-        threshold,
-        shortage,
-      };
-    })
-    .filter((variant) => variant.qty <= variant.threshold)
-    .sort((a, b) => {
-      if (a.shortage !== b.shortage) {
-        return b.shortage - a.shortage;
-      }
-      if (a.qty !== b.qty) {
-        return a.qty - b.qty;
-      }
-      return `${a.inventoryName} ${a.variantTitle || ""}`.localeCompare(
-        `${b.inventoryName} ${b.variantTitle || ""}`,
-      );
-    });
-
-  return {
-    total: rows.length,
-    items: rows.slice(0, 5),
-  };
+  const allocations = variants.length ? await db.stockAllocation.groupBy({ by: ["inventoryStockId"], where: { deletedAt: null, inventoryVariantId: { in: variants.map(row => row.id) }, status: { in: ["approved", "reserved", "picked", "consumed"] } }, _sum: { qty: true } }) : [];
+  const rows = variants.map(variant => {
+    const qty = variant.stocks.reduce((total, stock) => total + Math.max(0, stock.qty - Number(allocations.find(row => row.inventoryStockId === stock.id)?._sum.qty || 0)), 0);
+    const threshold = effectiveLowStockAlert(variant.lowStockAlert, variant.inventory.inventoryCategory?.meta);
+    return { id: variant.id, uid: variant.uid, inventoryId: variant.inventoryId, inventoryName: variant.inventory.name, variantTitle: variant.attributes.map(row => row.value?.name).filter(Boolean).join(" ") || null, qty, threshold, shortage: Math.max(0, threshold - qty) };
+  }).filter(row => row.qty <= row.threshold).sort((a,b) => b.shortage - a.shortage || a.qty - b.qty);
+  return { total: rows.length, items: rows.slice(0, 5), truncated: variants.length === 2000 };
 }
 export async function pendingInboundSummary(db: Db) {}
 
@@ -4019,6 +3943,7 @@ export async function inventoryForm(db: Db, inventoryId) {
         select: {
           enablePricing: true,
           stockMode: true,
+                meta: true,
         },
       },
       variants: {
@@ -5263,33 +5188,9 @@ export async function updateCategoryStockMode(
   db: Db,
   data: UpdateCategoryStockMode,
 ) {
-  const previous = await db.inventoryCategory.findUnique({
-    where: {
-      id: data.id,
-    },
-    select: {
-      stockMode: true,
-    },
-  });
-  const updated = await db.inventoryCategory.update({
-    where: {
-      id: data.id,
-    },
-    data: {
-      stockMode: data.stockMode,
-    },
-    select: {
-      id: true,
-      stockMode: true,
-    },
-  });
-
-  return {
-    ...updated,
-    previousStockMode: previous?.stockMode ?? null,
-    becameTracked:
-      previous?.stockMode !== "monitored" && updated.stockMode === "monitored",
-  };
+  const previous = await db.inventoryCategory.findFirstOrThrow({ where: { id: data.id, deletedAt: null }, select: { stockMode: true, meta: true } });
+  const updated = await setCategoryStockPolicy(db, { categoryId: data.id, tracked: data.stockMode === "monitored", ...readCategoryStockSettings(previous.meta) });
+  return { id: updated.categoryId, stockMode: data.stockMode, previousStockMode: previous.stockMode, becameTracked: updated.becameTracked };
 }
 
 export async function updateInventoryProductKind(
@@ -5459,29 +5360,6 @@ export async function resetInventorySystem(db: Db) {
   }
   return resetStatus;
 }
-
-export const updateVariantCostSchema = z.object({
-  uid: z.string(),
-  variantId: z.number().optional().nullable(),
-  pricingId: z.number().optional().nullable(),
-  cost: z.number(),
-  oldCostPrice: z.number().optional().nullable(),
-  inventoryId: z.number(),
-  editType: z.string(),
-  reason: z.string().optional().nullable(),
-  authorName: z.string(),
-  effectiveFrom: z.string().optional().nullable(),
-  effectiveTo: z.string().optional().nullable(),
-  attributes: z
-    .array(
-      z.object({
-        valueId: z.number(),
-        attributeId: z.number(),
-      }),
-    )
-    .optional(),
-});
-export type UpdateVariantCost = z.infer<typeof updateVariantCostSchema>;
 
 export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
   if (data.variantId) {

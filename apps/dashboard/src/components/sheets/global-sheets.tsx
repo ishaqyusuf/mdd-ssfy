@@ -11,7 +11,12 @@ import { useInventoryInboundParams } from "@/hooks/use-inventory-inbound-params"
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import dynamic from "next/dynamic";
+import { useInventoryStockParams } from "@/hooks/use-inventory-stock-params";
 import { useAssistantDiagnosticParams } from "@/hooks/use-assistant-diagnostic-params";
+
+const InventoryStockSheet = dynamic(() =>
+    import("./inventory-stock-sheet").then((mod) => mod.InventoryStockSheet),
+);
 
 const AssistantDiagnosticSheet = dynamic(() => import("./assistant-diagnostic-sheet").then(mod => mod.AssistantDiagnosticSheet));
 
@@ -57,6 +62,7 @@ const InventoryProductSheet = dynamic(() =>
 const SalesOverviewSheet = dynamic(() => import("./sales-overview-sheet"));
 export function GlobalSheets() {
     const diagnostic = useAssistantDiagnosticParams();
+    const stock = useInventoryStockParams();
     const { params: inboundViewParams } = useInboundView();
     const legacySalesOverview = useSalesOverviewQuery();
     const { opened: customerOverviewOpen } = useCustomerOverviewQuery();
@@ -90,6 +96,7 @@ export function GlobalSheets() {
             {filePreview.params.filePath || filePreview.params.documentId ? (
                 <FileViewSheet />
             ) : null}
+            {stock.stockOperation === "adjust" ? <InventoryStockSheet /> : null}
         </>
     );
 }

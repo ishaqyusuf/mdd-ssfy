@@ -1,7 +1,10 @@
-import { parseAsInteger, useQueryStates } from "nuqs";
+import { parseAsBoolean, parseAsInteger, useQueryStates } from "nuqs";
 
 const inventoryInboundParamsSchema = {
     editInboundId: parseAsInteger,
+    inboundId: parseAsInteger,
+    createWarehouseInbound: parseAsBoolean,
+    inboundQueue: parseAsBoolean,
 };
 
 export function useInventoryInboundParams() {

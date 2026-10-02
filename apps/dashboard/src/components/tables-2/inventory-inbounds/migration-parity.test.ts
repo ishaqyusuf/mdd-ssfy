@@ -34,8 +34,21 @@ describe("inventory inbounds tables-2 migration", () => {
 			source.includes("components/tables-2/inventory-inbounds/data-table"),
 		).toBe(true);
 		expect(source.includes("shipments.map((shipment)")).toBe(false);
-		expect(source.includes("DocumentUploader")).toBe(true);
-		expect(source.includes("Assign Selected Orders")).toBe(true);
+		const detail = readSource(
+			"components/inventory/inbound-receiving-content.tsx",
+		);
+		const queue = readSource(
+			"components/inventory/inbound-demand-assignment.tsx",
+		);
+		expect(source.includes("components/sheets/inbound-receiving-sheet")).toBe(
+			true,
+		);
+		expect(
+			source.includes("components/sheets/inbound-demand-queue-sheet"),
+		).toBe(true);
+		expect(source.includes("<Card")).toBe(false);
+		expect(detail.includes("DocumentUploader")).toBe(true);
+		expect(queue.includes("Assign Selected Orders")).toBe(true);
 	});
 
 	it("uses core table behaviors with compact custom columns", () => {

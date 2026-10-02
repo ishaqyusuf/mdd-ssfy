@@ -251,8 +251,8 @@ export function CustomerSelectorDialog(props: Props) {
 
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
-				<DialogHeader className="border-b bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+			<DialogContent className="max-w-2xl gap-0 overflow-hidden p-0 max-sm:flex max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-[calc(100vw-1rem)] max-sm:flex-col max-sm:rounded-xl max-sm:[&>button:last-child]:size-11">
+				<DialogHeader className="border-b bg-gradient-to-r from-slate-50 to-white px-6 py-5 max-sm:px-4 max-sm:pr-16 max-sm:py-3 max-sm:text-left">
 					<DialogTitle>
 						{props.initialPrompt
 							? `${heading}: Select Customer`
@@ -264,13 +264,13 @@ export function CustomerSelectorDialog(props: Props) {
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="space-y-4 p-6">
+				<div className="space-y-4 p-6 max-sm:min-h-0 max-sm:overflow-y-auto max-sm:p-4">
 					<div className="relative">
 						<div className="flex gap-2">
 							<div className="relative flex-1">
 								<input
 									ref={inputRef}
-									className="h-12 w-full rounded-xl border border-primary/40 bg-card pl-4 pr-12 text-sm font-medium text-foreground outline-none ring-2 ring-primary/10 placeholder:text-muted-foreground focus:border-primary"
+									className="h-12 w-full rounded-xl border border-primary/40 bg-card pl-4 pr-12 text-sm max-sm:text-base font-medium text-foreground outline-none ring-2 ring-primary/10 placeholder:text-muted-foreground focus:border-primary"
 									placeholder="Search customer name, phone, profile, or shipping address"
 									type="text"
 									value={searchQuery}
@@ -281,7 +281,7 @@ export function CustomerSelectorDialog(props: Props) {
 										<button
 											type="button"
 											onClick={() => setSearchQuery("")}
-											className="hover:text-foreground"
+											className="hover:text-foreground max-sm:size-11"
 											aria-label="Clear customer search"
 										>
 											<Icons.X className="size-4" />
@@ -350,7 +350,7 @@ export function CustomerSelectorDialog(props: Props) {
 										</div>
 										<div className="min-w-0 flex-1">
 											<div className="flex items-center gap-2">
-												<p className="truncate text-sm font-semibold text-foreground">
+												<p className="truncate text-sm font-semibold text-foreground max-sm:whitespace-normal max-sm:break-words">
 													{customer.name || customer.businessName}
 												</p>
 												{customer.isBusiness ? (

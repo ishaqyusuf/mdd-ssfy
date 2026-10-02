@@ -8,6 +8,7 @@ import {
 import { percent, RenturnTypeAsync, sum } from "@gnd/utils";
 import { getSalesSetting } from "./settings";
 import { composeControls } from "../utils/sales-control";
+import { orderOwnedDoorRows } from "../sales-form/application/order-owned-door-rows";
 
 export type GetSalesItemControllables = RenturnTypeAsync<
   typeof getSalesItemControllablesInfoAction
@@ -129,8 +130,9 @@ export async function getSalesItemControllablesInfoAction(
               id: true,
               moldingId: true,
               doors: {
-                where: { deletedAt: null },
+                where: { deletedAt: null, salesOrderId: salesId },
                 select: {
+                  salesOrderId: true,
                   dimension: true,
                   id: true,
                   lhQty: true,
@@ -169,6 +171,12 @@ export async function getSalesItemControllablesInfoAction(
       }
       return {
         ...item,
+        housePackageTool: item.housePackageTool
+          ? {
+              ...item.housePackageTool,
+              doors: orderOwnedDoorRows(item.housePackageTool.doors, order.id),
+            }
+          : null,
         itemStatConfig: order.isDyke
           ? {
               production: isService || !mainStep

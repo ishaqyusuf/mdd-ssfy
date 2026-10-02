@@ -120,16 +120,16 @@ export function DoorSizeVariantDialog(props: DoorSizeVariantDialogProps) {
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
 			<DialogContent
 				onOpenAutoFocus={(event) => event.preventDefault()}
-				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl flex-col overflow-hidden p-0"
+				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl max-sm:h-[calc(100dvh-1rem)] max-sm:max-h-[calc(100dvh-1rem)] max-sm:rounded-xl max-sm:[&>button:last-child]:size-11 max-sm:[&>button:last-child]:right-2 max-sm:[&>button:last-child]:top-2 flex-col overflow-hidden p-0"
 			>
 				<div className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_45%),linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)]">
-					<DialogHeader className="shrink-0 border-b border-slate-200 px-6 py-5">
+					<DialogHeader className="max-sm:pr-14 max-sm:text-left shrink-0 border-b border-slate-200 px-6 py-5 max-sm:px-4 max-sm:py-3">
 						<DialogTitle>Door Size Variant</DialogTitle>
 						<DialogDescription>
 							Control which widths are available for each door-height path.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-5">
+					<div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-5 max-sm:px-4 max-sm:py-3">
 						{!groups.length ? (
 							<div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-8 text-center text-sm text-slate-500">
 								No variant rules yet. Add a group to define which widths should
@@ -185,9 +185,9 @@ export function DoorSizeVariantDialog(props: DoorSizeVariantDialogProps) {
 											);
 											const stepOptions =
 												(
-													availableStepMap.get(
-														String(rule.stepUid || ""),
-													) as { components?: unknown[] } | undefined
+													availableStepMap.get(String(rule.stepUid || "")) as
+														| { components?: unknown[] }
+														| undefined
 												)?.components || [];
 											const selectedComponents = new Set(
 												rule.componentsUid || [],
@@ -456,7 +456,7 @@ export function DoorSizeVariantDialog(props: DoorSizeVariantDialogProps) {
 							))
 						)}
 					</div>
-					<DialogFooter className="shrink-0 border-t border-slate-200 px-6 py-4">
+					<DialogFooter className="max-sm:grid max-sm:grid-cols-2 max-sm:gap-2 max-sm:[&>button]:min-h-11 shrink-0 border-t border-slate-200 px-6 py-4">
 						<Button
 							type="button"
 							variant="outline"

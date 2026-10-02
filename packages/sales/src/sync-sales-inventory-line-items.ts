@@ -1,4 +1,5 @@
 import type { Db, TransactionClient } from "@gnd/db";
+import { readCategoryStockSettings } from "@gnd/inventory";
 import { resolveOrderInboundDemandStatus } from "@gnd/inventory/inbound";
 import { generateInventoryCategoryUidFromShelfCategoryId } from "@gnd/inventory/inventory-utils";
 import { roundMoney } from "./payment-system/domain/money";
@@ -1678,8 +1679,9 @@ type ComponentDemandState = {
 export function resolveComponentDemandQty(input: {
 	qty: number;
 	required: boolean;
+	piecesPerUnit?: number;
 }) {
-	return input.required ? Math.max(1, Math.round(input.qty)) : 0;
+	return input.required ? Math.max(1, Math.round(input.qty * (input.piecesPerUnit ?? 1))) : 0;
 }
 
 export function planComponentDemandState(input: {
@@ -1976,7 +1978,7 @@ async function syncComponentFulfillment(
 			const desiredQty = desiredAllocations.get(stockId);
 			if (!desiredQty) return sum;
 			const isCommitted =
-				allocation.status === "approved" &&
+				(allocation.status === "approved" || allocation.status === "reserved") &&
 				Number(allocation.qty || 0) === Number(desiredQty || 0);
 			return sum + (isCommitted ? Number(desiredQty || 0) : 0);
 		},
@@ -2196,6 +2198,7 @@ export async function syncSalesInventoryLineItems(
 							doors: {
 								where: {
 									deletedAt: null,
+									salesOrderId: input.salesOrderId,
 								},
 								select: {
 									id: true,
@@ -2238,6 +2241,7 @@ export async function syncSalesInventoryLineItems(
 	};
 
 	const syncedSalesItemIds = new Set<number>();
+	const categoryPieces = new Map<number, number>();
 
 	for (const [index, item] of sale.items.entries()) {
 		const itemMeta = asRecord(item.meta);
@@ -2368,11 +2372,25 @@ export async function syncSalesInventoryLineItems(
 				db,
 				candidate,
 			);
-			const componentQty = Math.max(1, Math.round(candidate.qty));
-			const componentDemandQty = resolveComponentDemandQty(candidate);
+			if (!categoryPieces.has(componentMapping.inventoryCategoryId)) {
+				const category = await db.inventoryCategory.findUnique({
+					where: { id: componentMapping.inventoryCategoryId },
+					select: { meta: true },
+				});
+				categoryPieces.set(
+					componentMapping.inventoryCategoryId,
+					readCategoryStockSettings(category?.meta).piecesPerUnit,
+				);
+			}
+			const componentQty = resolveComponentDemandQty({
+				qty: candidate.qty,
+				required: true,
+				piecesPerUnit: categoryPieces.get(componentMapping.inventoryCategoryId),
+			});
+			const componentDemandQty = candidate.required ? componentQty : 0;
 			const componentPricingInput = {
 				...componentMapping,
-				qty: componentQty,
+				qty: Math.max(1, Math.round(candidate.qty)),
 			};
 			const inventoryPricing = await resolveComponentLinePricingSnapshot(
 				db,

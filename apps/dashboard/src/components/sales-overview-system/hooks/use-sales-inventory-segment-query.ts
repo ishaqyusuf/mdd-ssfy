@@ -3,12 +3,14 @@
 import {
 	parseAsBoolean,
 	parseAsInteger,
+	parseAsString,
 	parseAsStringEnum,
 	useQueryStates,
 } from "nuqs";
 
 export const SALES_INVENTORY_SEGMENTS = [
 	"stock",
+	"warehouse",
 	"inbounds",
 	"non_stock",
 ] as const;
@@ -17,6 +19,7 @@ export type SalesInventorySegment = (typeof SALES_INVENTORY_SEGMENTS)[number];
 
 export function useSalesInventorySegmentQuery() {
 	const [params, setParams] = useQueryStates({
+		inventoryLocation: parseAsString,
 		inventorySegment: parseAsStringEnum([...SALES_INVENTORY_SEGMENTS]),
 		inventoryInboundId: parseAsInteger,
 		inventoryCreateInbound: parseAsBoolean,
@@ -31,6 +34,8 @@ export function useSalesInventorySegmentQuery() {
 		} = {},
 	) => {
 		setParams({
+			inventoryLocation:
+				segment === "warehouse" ? params.inventoryLocation : null,
 			inventorySegment: segment === "stock" ? null : segment,
 			inventoryInboundId:
 				segment === "inbounds" && options.inboundId ? options.inboundId : null,
@@ -50,6 +55,9 @@ export function useSalesInventorySegmentQuery() {
 	};
 
 	return {
+		inventoryLocation: params.inventoryLocation ?? "all",
+		setInventoryLocation: (location: string) =>
+			setParams({ inventoryLocation: location === "all" ? null : location }),
 		openInboundCreator: params.inventoryCreateInbound ?? false,
 		selectedInventoryInboundId: params.inventoryInboundId ?? null,
 		inventorySegment,

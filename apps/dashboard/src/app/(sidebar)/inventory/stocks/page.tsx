@@ -1,4 +1,5 @@
 import { ErrorFallback } from "@/components/error-fallback";
+import { InventoryStockHeader } from "@/components/inventory-stock-header";
 import { InventoryStockOperationsPage } from "@/components/inventory/inventory-stock-operations-page";
 import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
@@ -26,6 +27,7 @@ export default async function InventoryStocksPage() {
 				<ScrollableContent>
 					<div className="flex flex-col gap-4">
 						<PageTitle>Inventory Stock Operations</PageTitle>
+						<InventoryStockHeader />
 						<ErrorBoundary errorComponent={ErrorFallback}>
 							<Suspense
 								fallback={

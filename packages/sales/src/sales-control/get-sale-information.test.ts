@@ -5,7 +5,40 @@ import {
 	composeFullSalesSelect,
 	hasHistoricalProductionCapability,
 	preserveHistoricalProductionCapability,
+	salesInformationData,
 } from "./get-sale-information";
+
+it("production information excludes foreign doors attached to a reused house package", async () => {
+	const db = {
+		salesOrders: {
+			findFirstOrThrow: async () => ({
+				id: 42,
+				meta: {},
+				productionGate: null,
+				items: [
+					{
+						id: 7,
+						housePackageTool: {
+							doors: [
+								{ id: 101, salesOrderId: 42, totalQty: 2 },
+								{ id: 102, salesOrderId: 99, totalQty: 7 },
+							],
+						},
+					},
+				],
+			}),
+		},
+		settings: { findFirst: async () => ({ meta: {} }) },
+	} as unknown as Parameters<typeof salesInformationData>[0];
+	const result = await salesInformationData(db, { salesId: 42 });
+	expect(
+		result.order.items[0]?.housePackageTool?.doors.map((door) => door.id),
+	).toEqual([101]);
+	expect(
+		FullSalesSelect.items.select.housePackageTool.select.doors.select
+			.salesOrderId,
+	).toBe(true);
+});
 
 describe("composeFullSalesSelect", () => {
 	it("creates request-local assignment filters without mutating the shared select", () => {

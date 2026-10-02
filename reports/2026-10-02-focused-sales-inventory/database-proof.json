@@ -1,0 +1,181 @@
+{
+  "fixture": {
+    "uid": "FOCUS-QA-1790931903420",
+    "salesOrderId": 33348,
+    "inventoryIds": [
+      1683,
+      1684
+    ],
+    "variantIds": [
+      3581,
+      3582
+    ],
+    "stockIds": [
+      973,
+      974
+    ],
+    "componentIds": [
+      69229,
+      69230
+    ]
+  },
+  "replay": {
+    "salesOrderId": 33348,
+    "appliedQty": 10,
+    "replayed": true
+  },
+  "mismatchRejected": true,
+  "foreignRejected": true,
+  "allocations": [
+    {
+      "lineItemComponentId": 69229,
+      "qty": 10
+    },
+    {
+      "lineItemComponentId": 69230,
+      "qty": 6
+    }
+  ],
+  "demands": [
+    {
+      "qty": 2,
+      "lineItemComponentId": 69230,
+      "inboundShipmentItem": {
+        "inboundId": 1266,
+        "qty": 2
+      }
+    }
+  ],
+  "balances": [
+    {
+      "id": 3581,
+      "image": {
+        "path": "vsbjuqnxvk2wtcnm6sge.jpg",
+        "bucket": "dyke",
+        "provider": "cloudinary"
+      },
+      "imageUrl": null,
+      "stocks": [
+        {
+          "id": 973,
+          "qty": 10,
+          "location": "Main warehouse",
+          "supplier": null,
+          "reservedQty": 10,
+          "availableQty": 0
+        }
+      ],
+      "qty": 10,
+      "reservedQty": 10,
+      "availableQty": 0
+    },
+    {
+      "id": 3582,
+      "image": {
+        "path": "wznihvkdyondtyzpz9de.jpg",
+        "bucket": "dyke",
+        "provider": "cloudinary"
+      },
+      "imageUrl": null,
+      "stocks": [
+        {
+          "id": 974,
+          "qty": 8,
+          "location": "Workshop",
+          "supplier": null,
+          "reservedQty": 6,
+          "availableQty": 2
+        }
+      ],
+      "qty": 8,
+      "reservedQty": 6,
+      "availableQty": 2
+    }
+  ],
+  "originalRows": [
+    {
+      "variantId": 2293,
+      "required": 9,
+      "allocated": 0,
+      "pending": 9,
+      "onWay": 0
+    },
+    {
+      "variantId": 2317,
+      "required": 4,
+      "allocated": 0,
+      "pending": 4,
+      "onWay": 0
+    },
+    {
+      "variantId": 2328,
+      "required": 0,
+      "allocated": 0,
+      "pending": 0,
+      "onWay": 0
+    },
+    {
+      "variantId": 77,
+      "required": 4,
+      "allocated": 4,
+      "pending": 0,
+      "onWay": 0
+    },
+    {
+      "variantId": 79,
+      "required": 5,
+      "allocated": 5,
+      "pending": 0,
+      "onWay": 0
+    },
+    {
+      "variantId": 2291,
+      "required": 9,
+      "allocated": 0,
+      "pending": 9,
+      "onWay": 0
+    },
+    {
+      "variantId": 2329,
+      "required": 9,
+      "allocated": 0,
+      "pending": 9,
+      "onWay": 0
+    },
+    {
+      "variantId": 2292,
+      "required": 9,
+      "allocated": 0,
+      "pending": 9,
+      "onWay": 0
+    },
+    {
+      "variantId": 1973,
+      "required": 10,
+      "allocated": 10,
+      "pending": 0,
+      "onWay": 0
+    },
+    {
+      "variantId": 2007,
+      "required": 8,
+      "allocated": 6,
+      "pending": 2,
+      "onWay": 2
+    },
+    {
+      "variantId": 2290,
+      "required": 9,
+      "allocated": 0,
+      "pending": 9,
+      "onWay": 0
+    },
+    {
+      "variantId": 2574,
+      "required": 9,
+      "allocated": 0,
+      "pending": 9,
+      "onWay": 0
+    }
+  ]
+}

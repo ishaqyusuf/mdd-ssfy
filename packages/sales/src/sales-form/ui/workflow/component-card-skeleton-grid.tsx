@@ -8,7 +8,7 @@ export function ComponentCardSkeletonGrid({ count = 6 }: { count?: number }) {
 	);
 
 	return (
-		<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+		<div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-4">
 			{skeletonKeys.map((key) => (
 				<div key={key} className="overflow-hidden rounded-lg border bg-card">
 					<Skeleton className="h-32 w-full" />

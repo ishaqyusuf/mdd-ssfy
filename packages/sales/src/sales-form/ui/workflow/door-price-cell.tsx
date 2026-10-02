@@ -216,7 +216,7 @@ export function DoorPriceCell({
 						? "outline"
 						: "secondary"
 			}
-			className="h-8 w-full min-w-[92px] justify-end rounded-lg border-slate-300 px-2 text-right max-lg:h-10 max-lg:w-fit max-lg:min-w-0"
+			className="h-8 w-full min-w-[92px] justify-end rounded-lg border-slate-300 px-2 text-right max-lg:h-11 max-lg:w-fit max-lg:min-w-0"
 		>
 			<CostPriceBreakdownHover
 				breakdown={{
@@ -243,9 +243,10 @@ export function DoorPriceCell({
 					id={`door-base-${row.dimension || "row"}`}
 					type="number"
 					step="0.01"
+					inputMode="decimal"
 					value={draft}
 					onChange={(event) => setDraft(event.target.value)}
-					className="max-lg:h-11"
+					className="max-lg:h-11 max-lg:text-base"
 				/>
 			</div>
 			<div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -255,12 +256,19 @@ export function DoorPriceCell({
 				</span>
 			</div>
 			<div className="flex justify-end gap-2">
-				<Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					className="max-lg:h-11"
+					onClick={() => setOpen(false)}
+				>
 					Cancel
 				</Button>
 				<Button
 					type="button"
 					disabled={isSaving}
+					className="max-lg:h-11"
 					size="sm"
 					onClick={async () => {
 						const nextBase = toNumber(draft, Number.NaN);
@@ -284,15 +292,19 @@ export function DoorPriceCell({
 		return (
 			<Sheet open={open} onOpenChange={setOpen}>
 				<SheetTrigger asChild>{trigger}</SheetTrigger>
-				<SheetContent side="bottom" className="rounded-t-xl">
-					<SheetHeader className="text-left">
+				<SheetContent
+					side="bottom"
+					className="rounded-t-xl max-h-[calc(100dvh-1rem)] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))] [&>button]:size-11 [&>button]:top-2 [&>button]:right-2"
+				>
+					<SheetHeader className="text-left pr-10">
 						<SheetTitle>
 							{isMissingPrice || !hasStoredBasePrice
 								? "Set Base Price"
 								: "Edit Base Price"}
 						</SheetTitle>
 						<SheetDescription>
-							Final price keeps the current surcharge delta and updates from this base.
+							Final price keeps the current surcharge delta and updates from
+							this base.
 						</SheetDescription>
 					</SheetHeader>
 					<div className="mt-5 space-y-4">{editor}</div>

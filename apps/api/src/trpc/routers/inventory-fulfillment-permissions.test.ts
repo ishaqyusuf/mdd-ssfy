@@ -29,12 +29,52 @@ function unauthorizedOperationalContext() {
 }
 
 describe("inventory fulfillment route permissions", () => {
+	it("rejects unauthorized stock writes and stock selectors before domain access", async () => {
+		const caller = inventoriesRouter.createCaller(
+			unauthorizedOperationalContext(),
+		);
+		await expect(
+			caller.adjustInventoryStock({
+				inventoryVariantId: 1,
+				qty: 5,
+				expectedQty: 0,
+				reason: "stock_in",
+			}),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(caller.stockVariantBalances({ inventoryVariantIds: [1] })).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(caller.stockVariantOptions({})).rejects.toMatchObject({
+			code: "FORBIDDEN",
+		});
+		await expect(
+			caller.stockVariantContext({ inventoryVariantId: 1 }),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+	});
+	it("rejects stock policy changes and individual thresholds without a configuration grant", async () => {
+		const caller = inventoriesRouter.createCaller(unauthorizedOperationalContext());
+		await expect(caller.setStockPolicy({ categoryId: 1, tracked: true, lowStockAlert: 0, promptAvailableStock: false })).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(caller.setVariantStockThreshold({ inventoryVariantId: 1, lowStockAlert: null })).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(caller.setVariantStockAlerts({ inventoryVariantId: 1, enabled: false })).rejects.toMatchObject({ code: "FORBIDDEN" });
+	});
+	it("rejects sales stock application and warehouse inbound without an operator grant", async () => {
+        const caller = inventoriesRouter.createCaller(unauthorizedOperationalContext());
+        await expect(caller.applySalesFormStock({ salesOrderId: 1, expectedRevision: "a".repeat(64) })).rejects.toMatchObject({ code: "FORBIDDEN" });
+        await expect(caller.salesFormStockPlan({ salesOrderId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+        await expect(caller.salesFormStockPreview({ lineItems: [] })).rejects.toMatchObject({ code: "FORBIDDEN" });
+        await expect(caller.createGeneralInbound({ idempotencyKey: crypto.randomUUID(), items: [{ inventoryVariantId: 1, qty: 2 }] })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
 	it("rejects shipment, hold, dispatch, and received-allocation writes before domain access", async () => {
 		const caller = inventoriesRouter.createCaller(
 			unauthorizedOperationalContext(),
 		);
 		const calls = [
-			() => caller.shipAvailableSalesInventory({ salesOrderId: 1 }),
+			() => caller.repairSalesStockTracking({ inventoryCategoryId: 1, salesOrderIds: [1] }),
+			() => caller.salesInventoryTrackingChangeRepairPreview({ inventoryCategoryId: 1 }),
+			() => caller.receiveInboundShipment({ inboundId: 1 }),
+			() => caller.syncSalesInventoryOverview({ salesOrderId: 1 }),
+			() => caller.createInboundShipment({}),
+            () => caller.assignInboundDemands({ inboundId: 1, demandIds: [1] }),
+            () => caller.createInboundShipmentFromDemands({ demandIds: [1] }),
+            () => caller.shipAvailableSalesInventory({ salesOrderId: 1 }),
 			() =>
 				caller.setSalesInventoryLineFulfillmentHold({
 					lineItemId: 1,

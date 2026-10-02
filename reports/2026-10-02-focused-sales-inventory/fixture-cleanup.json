@@ -1,0 +1,11 @@
+{
+  "uid": "FOCUS-QA-1790931903420",
+  "salesOrderId": 33348,
+  "inboundIds": [
+    1266
+  ],
+  "archivedAt": "2026-10-02T09:24:28.110Z",
+  "auditRetained": true,
+  "activeStocks": 0,
+  "activeSale": 0
+}

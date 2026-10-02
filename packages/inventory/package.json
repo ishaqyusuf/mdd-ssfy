@@ -13,6 +13,7 @@
 		"./constants": "./src/constants.ts",
 		"./schema": "./src/schema.ts",
 		"./types": "./src/types.ts",
+		"./stock-status": "./src/application/stock/stock-status.ts",
 		"./inventory": "./src/inventory.ts",
 		"./inventory-import": "./src/inventory-import.ts",
 		"./inventory-import-service": "./src/application/import/inventory-import-service.ts",

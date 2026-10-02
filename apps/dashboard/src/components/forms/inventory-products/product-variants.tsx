@@ -1,3 +1,4 @@
+import { OpenInventoryStockSheet } from "@/components/open-inventory-stock-sheet";
 import type {
     InventoryProductFormVariantRow,
     InventoryProductFormVariantStatus,
@@ -112,6 +113,12 @@ function VariantDetailPanel({ onClose }: { onClose: () => void }) {
                         {data?.uid || "Variant pricing"}
                     </div>
                 </div>
+                {data?.variantId ? (
+                    <OpenInventoryStockSheet
+                        inventoryVariantId={data.variantId}
+                        size="sm"
+                    />
+                ) : null}
                 <Button
                     type="button"
                     variant="ghost"

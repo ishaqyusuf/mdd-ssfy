@@ -55,6 +55,27 @@ function order(overrides: Record<string, unknown> = {}) {
 }
 
 describe("resolveSalesPipelineSnapshotFromOrder", () => {
+	it("reads the saved requirement when a legacy total is zero without inventing progress", () => {
+		const snapshot = resolveSalesPipelineSnapshotFromOrder(
+			order({
+				itemControls: [
+					{
+						produceable: true,
+						shippable: true,
+						qtyControls: [
+							{ type: "qty", total: 0, itemTotal: 9, qty: 9 },
+							{ type: "packed", total: 0, itemTotal: 9, qty: 0 },
+						],
+					},
+				],
+			}),
+		);
+		expect(snapshot.production.requiredQty).toBe(9);
+		expect(snapshot.fulfillment.requiredQty).toBe(9);
+		expect(snapshot.production.completedQty).toBe(0);
+		expect(snapshot.packing.state).toBe("pending");
+	});
+
 	it("builds identical canonical presentation data for every order consumer", () => {
 		const snapshot = resolveSalesPipelineSnapshotFromOrder(order());
 		expect(snapshot.headline.code).toBe("awaiting_production");

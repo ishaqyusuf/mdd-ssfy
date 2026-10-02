@@ -1,4 +1,5 @@
 "use client";
+import { VariantStockThresholdDialog } from "@/components/inventory/variant-stock-threshold-dialog";
 
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -255,6 +256,7 @@ function InventoryVariantActions({ item }: { item: InventoryVariantRow }) {
 
 	return (
 		<div className="relative z-10 flex justify-end gap-1">
+			<VariantStockThresholdDialog variantId={item.id} override={item.lowStockAlertOverride ?? null} />
 			<Button
 				asChild
 				variant="ghost"

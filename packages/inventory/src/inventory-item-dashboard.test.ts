@@ -8,6 +8,18 @@ import {
 } from "./inventory";
 
 describe("buildInventoryItemDashboardSummary", () => {
+  test("uses category default while preserving explicit zero and reset inheritance", () => {
+    const summary = buildInventoryItemDashboardSummary({
+      categoryStockMeta: { stockSettings: { lowStockAlert: 5 } },
+      variants: [
+        { lowStockAlert: null, stocks: [{ qty: 4 }] },
+        { lowStockAlert: 0, stocks: [{ qty: 1 }] },
+        { lowStockAlert: 2, stocks: [{ qty: 3 }] },
+      ],
+    });
+    expect(summary.lowStockVariantCount).toBe(1);
+  });
+
   test("summarizes stock, inbound, allocation, movement, sales, and quote counts", () => {
     const summary = buildInventoryItemDashboardSummary({
       variants: [
@@ -244,6 +256,27 @@ describe("buildInventoryTopSalesAnalytics", () => {
 });
 
 describe("buildInventoryOperationsSummary", () => {
+  test("muted variants remain tracked but do not create stock alerts", () => {
+    const operations = buildInventoryOperationsSummary({
+      variants: [
+        {
+          id: 1,
+          uid: "muted",
+          stockAlertsEnabled: false,
+          lowStockAlert: 5,
+          stocks: [{ qty: 2 }],
+          inventory: {
+            id: 10,
+            name: "Door",
+            stockMode: "monitored",
+            inventoryCategory: { title: "Doors", stockMode: "monitored" },
+          },
+        },
+      ],
+    });
+    expect(operations.summary.trackedVariants).toBe(1);
+    expect(operations.alerts).toHaveLength(0);
+  });
   test("summarizes stock tracking, low-stock alerts, inbound demand, allocations, backorders, and blockers", () => {
     const operations = buildInventoryOperationsSummary({
       variants: [

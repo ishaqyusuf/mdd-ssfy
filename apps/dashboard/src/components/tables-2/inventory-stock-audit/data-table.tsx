@@ -118,7 +118,7 @@ export function DataTable({ data, initialSettings }: Props) {
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
 						height:
-							"min(420px, max(320px, calc(100vh - 520px + var(--header-offset, 0px))))",
+							"max(320px, calc(100vh - 330px + var(--header-offset, 0px)))",
 					}}
 				>
 					<DndContext

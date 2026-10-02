@@ -4,6 +4,8 @@
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
+import { Package } from "lucide-react";
+import { useRef } from "react";
 
 export type WorkflowComponentRedirectOption = {
 	uid: string;
@@ -24,25 +26,38 @@ export type WorkflowComponentActionMenuProps = {
 	onArchive?: () => void;
 	onSetDefault?: () => void;
 	isDefault?: boolean;
+	onOpenInventory?: (trigger?: HTMLElement) => void;
 };
 
 export function WorkflowComponentActionMenu(
 	props: WorkflowComponentActionMenuProps,
 ) {
+	const triggerRef = useRef<HTMLButtonElement>(null);
 	return (
 		<Menu
 			Trigger={
 				<Button
+					ref={triggerRef}
 					type="button"
 					size="icon"
 					variant="secondary"
-					className="size-7"
+					className="size-9 lg:size-7"
 					aria-label="Component actions"
 				>
-					<Icons.MoreHorizontal className="size-4" />
+					<Icons.MoreVertical className="size-4" />
 				</Button>
 			}
 		>
+			{props.onOpenInventory ? (
+				<Menu.Item
+					Icon={Package}
+					onClick={() =>
+						props.onOpenInventory?.(triggerRef.current ?? undefined)
+					}
+				>
+					Inventory information
+				</Menu.Item>
+			) : null}
 			{props.onSetDefault ? (
 				<Menu.Item Icon={Icons.Star} onClick={props.onSetDefault}>
 					{props.isDefault ? "Remove default" : "Make default"}

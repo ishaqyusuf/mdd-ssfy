@@ -65,11 +65,11 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
 
 	return (
 		<div
-			className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+			className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 max-sm:p-2 backdrop-blur-sm animate-in fade-in duration-200"
 			onClick={() => props.onOpenChange(false)}
 		>
 			<div
-				className="relative w-full max-w-[440px] overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-200"
+				className="relative w-full max-w-[440px] max-sm:flex max-sm:max-h-[calc(100dvh-1rem)] max-sm:flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-200"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
@@ -83,13 +83,14 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
 					</div>
 					<button
 						onClick={() => props.onOpenChange(false)}
-						className="text-muted-foreground transition-colors hover:text-foreground"
+						aria-label="Close moulding calculator"
+						className="max-sm:size-11 shrink-0 text-muted-foreground transition-colors hover:text-foreground"
 					>
 						<Icons.X className="size-6" />
 					</button>
 				</div>
 
-				<div className="max-h-[70vh] space-y-8 overflow-y-auto p-6">
+				<div className="max-h-[70vh] space-y-8 overflow-y-auto p-6 max-sm:min-h-0 max-sm:flex-1 max-sm:p-4">
 					<section className="space-y-4">
 						<div className="flex items-center gap-2">
 							<span className="text-sm font-bold text-primary">$</span>
@@ -236,7 +237,7 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
 					</section>
 				</div>
 
-				<div className="border-t border-border bg-card p-6">
+				<div className="shrink-0 border-t border-border bg-card p-6 max-sm:p-4">
 					<button
 						onClick={() => {
 							const computedLineTotal =

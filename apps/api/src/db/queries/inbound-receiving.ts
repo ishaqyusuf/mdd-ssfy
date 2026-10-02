@@ -36,6 +36,7 @@ import {
 	normalizeSalesPaymentReviewSettings,
 } from "@gnd/sales/payment-system";
 import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
+import { receiveSalesInboundShipmentInTransaction } from "@gnd/sales/sales-inbound-receipt";
 import {
 	resolveSalesInventoryFulfillmentStatus,
 	resolveSalesInventoryOperationPolicy,
@@ -661,6 +662,9 @@ export async function listInboundSuppliers(ctx: TRPCContext) {
 export async function listInboundShipmentsQuery(
 	ctx: TRPCContext,
 	input: {
+		cursor?: number | null;
+		limit?: number;
+		q?: string | null;
 		status?: Array<
 			| "pending"
 			| "in_progress"
@@ -698,6 +702,7 @@ export async function listInboundShipmentsQuery(
 		? await ctx.db.inboundDemand.findMany({
 				where: {
 					deletedAt: null,
+                    lineItemComponent: { parent: { deletedAt: null, sale: { deletedAt: null } } },
 					inboundShipmentItem: {
 						inboundId: {
 							in: ids,
@@ -1641,7 +1646,7 @@ export async function createInboundShipmentFromDemandsQuery(
 	const isMarkAvailable = operation === "mark_available";
 	const createShipmentFromDemands =
 		deps.createShipmentFromDemands ?? createInboundShipmentFromDemands;
-	const receiveShipment = deps.receiveShipment ?? receiveInboundShipment;
+	const receiveShipment = deps.receiveShipment ?? receiveSalesInboundShipmentInTransaction;
 	const getSalesSetting = deps.getSalesSetting ?? getSettingAction;
 	const autoReviewPayments =
 		deps.autoReviewPayments ?? autoReviewSalesPaymentsForOrderAction;
@@ -1781,7 +1786,7 @@ export async function createInboundShipmentFromDemandsQuery(
 				linkedSales,
 				updatedSalesOrderCount,
 			};
-		});
+		}, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
 	await reconcileSalesHandoffAfterCommit(
 		ctx.db,
 		{

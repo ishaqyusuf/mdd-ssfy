@@ -8,6 +8,7 @@ import {
 	createInboundShipmentFromDemands,
 	ensureSelectedInboundDemandQuantities,
 	getInboundShipmentDetail,
+    listInboundShipments,
 	markSalesOrdersAvailableWhenInboundDemandResolved,
 	planInboundReceiptDelta,
 	releaseCancelledInboundShipmentDemand,
@@ -1750,6 +1751,7 @@ describe("receiveInboundShipment", () => {
 				where: {
 					inventoryVariantId: 706,
 					supplierId: 26,
+					location: null,
 					deletedAt: null,
 				},
 				select: {
@@ -1777,6 +1779,7 @@ describe("receiveInboundShipment", () => {
 					id: 300,
 					inventoryVariantId: 706,
 					supplierId: 26,
+					location: null,
 					deletedAt: null,
 				},
 				data: {
@@ -1935,6 +1938,7 @@ describe("receiveInboundShipment", () => {
 					id: 301,
 					inventoryVariantId: 709,
 					supplierId: 29,
+					location: null,
 					deletedAt: null,
 				},
 				data: {
@@ -4162,3 +4166,10 @@ describe("releaseCancelledInboundShipmentDemand", () => {
 		]);
 	});
 });
+
+ test("shipment paging uses stable cursor order and bounds filters", async () => {
+    let query: unknown;
+    const db = { inboundShipment: { findMany: async (input: unknown) => { query = input; return []; } } };
+    await listInboundShipments(db as never, { cursor: 42, limit: 50, q: "  Supplier A  ", status: ["pending"] });
+    expect(query).toMatchObject({ take: 50, skip: 1, cursor: { id: 42 }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], where: { deletedAt: null, status: { in: ["pending"] }, OR: [{ reference: { contains: "Supplier A" } }, { supplier: { name: { contains: "Supplier A" } } }] } });
+ });

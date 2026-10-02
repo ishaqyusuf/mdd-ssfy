@@ -1,5 +1,6 @@
 "use client";
 
+import { OpenInventoryStockSheet } from "@/components/open-inventory-stock-sheet";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
@@ -303,8 +304,21 @@ export const variantColumns: ColumnDef<InventoryItemVariantRow>[] = [
 			),
 			contentClassName: "flex justify-end",
 		},
-		cell: ({ row }) =>
-			actionButton("/inventory/variants", `Open ${variantLabel(row.original)}`),
+		cell: ({ row }) => (
+			<div className="flex items-center gap-1">
+				<OpenInventoryStockSheet
+					inventoryVariantId={row.original.id}
+					size="icon-xs"
+					variant="ghost"
+					iconOnly
+					label={`Adjust ${variantLabel(row.original)} stock`}
+				/>
+				{actionButton(
+					"/inventory/variants",
+					`Open ${variantLabel(row.original)}`,
+				)}
+			</div>
+		),
 	},
 ];
 
@@ -400,7 +414,16 @@ export const stockColumns: ColumnDef<InventoryItemStockRow>[] = [
 			),
 			contentClassName: "flex justify-end",
 		},
-		cell: () => actionButton("/inventory/stocks", "Open stock operations"),
+		cell: ({ row }) => (
+			<OpenInventoryStockSheet
+				inventoryVariantId={row.original.inventoryVariantId}
+				inventoryStockId={row.original.id}
+				size="icon-xs"
+				variant="ghost"
+				iconOnly
+				label={`Adjust ${row.original.variantSku || "variant"} stock at ${row.original.location || "Warehouse"}`}
+			/>
+		),
 	},
 ];
 

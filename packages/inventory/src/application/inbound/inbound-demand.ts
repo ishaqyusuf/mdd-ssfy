@@ -308,6 +308,9 @@ export type InboundShipmentDetailInput = {
 };
 
 export type InboundShipmentListInput = {
+  cursor?: number | null;
+  limit?: number;
+  q?: string | null;
   status?: Array<
     "pending" | "in_progress" | "completed" | "issue_open" | "closed" | "cancelled"
   >;
@@ -1119,6 +1122,7 @@ export async function listInboundShipments(
   return db.inboundShipment.findMany({
     where: {
       deletedAt: null,
+      ...(input.q?.trim() ? { OR: [{ reference: { contains: input.q.trim() } }, { supplier: { name: { contains: input.q.trim() } } }, ...(Number.isSafeInteger(Number(input.q)) && Number(input.q) > 0 ? [{ id: Number(input.q) }] : [])] } : {}),
       ...(input.status?.length
         ? {
             status: {
@@ -1128,9 +1132,9 @@ export async function listInboundShipments(
         : {}),
       ...(input.supplierId ? { supplierId: input.supplierId } : {}),
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    ...(input.limit ? { take: input.limit } : {}),
+    ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
     select: {
       id: true,
       supplierId: true,
@@ -1435,6 +1439,7 @@ export async function getInboundShipmentDetail(
           id: true,
           qty: true,
           unitPrice: true,
+          location: true,
           qtyGood: true,
           qtyIssue: true,
           inventoryVariantId: true,
@@ -3204,6 +3209,7 @@ export async function receiveInboundShipment(
           id: true,
           qty: true,
           unitPrice: true,
+          location: true,
           qtyGood: true,
           qtyIssue: true,
           inventoryVariantId: true,
@@ -3393,6 +3399,7 @@ export async function receiveInboundShipment(
         where: {
           inventoryVariantId: item.inventoryVariantId,
           supplierId: shipment.supplierId,
+          location: item.location ?? null,
           deletedAt: null,
         },
         select: {
@@ -3413,6 +3420,7 @@ export async function receiveInboundShipment(
             id: existingStock.id,
             inventoryVariantId: item.inventoryVariantId,
             supplierId: shipment.supplierId,
+          location: item.location ?? null,
             deletedAt: null,
           },
           data: {
@@ -3447,6 +3455,7 @@ export async function receiveInboundShipment(
           data: {
             inventoryVariantId: item.inventoryVariantId,
             supplierId: shipment.supplierId,
+          location: item.location ?? null,
             qty: qtyGood,
             price: unitPrice,
           },

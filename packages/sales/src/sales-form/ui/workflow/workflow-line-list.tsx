@@ -66,6 +66,16 @@ export function resolveNewlyAddedActiveLineUid(
 export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 	props: WorkflowLineListProps<TLine>,
 ) {
+	const firstItem = props.items[0];
+	const mobileLineUid = props.items.some(
+		({ line, index }) =>
+			String(line.uid || `line-${index}`) === props.activeLineUid,
+	)
+		? props.activeLineUid
+		: firstItem
+			? String(firstItem.line.uid || `line-${firstItem.index}`)
+			: null;
+	const previousActiveLineUidRef = useRef(mobileLineUid);
 	const currentLineUidKey = props.items
 		.map(({ line, index }) => String(line.uid || `line-${index}`))
 		.join("\u001f");
@@ -83,11 +93,18 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 			props.activeLineUid,
 		);
 		previousLineUidsRef.current = nextLineUids;
-		if (!newlyAddedActiveLineUid) return;
+		const mobileSelectionChanged =
+			previousActiveLineUidRef.current !== mobileLineUid &&
+			!window.matchMedia("(min-width: 1024px)").matches;
+		previousActiveLineUidRef.current = mobileLineUid;
+		const scrollTargetUid =
+			newlyAddedActiveLineUid ||
+			(mobileSelectionChanged ? mobileLineUid : null);
+		if (!scrollTargetUid) return;
 
 		const animationFrame = window.requestAnimationFrame(() => {
 			const lineElement = document.getElementById(
-				`sales-form-item-${newlyAddedActiveLineUid}`,
+				`sales-form-item-${scrollTargetUid}`,
 			);
 			lineElement?.scrollIntoView({
 				behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -98,7 +115,7 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 		});
 
 		return () => window.cancelAnimationFrame(animationFrame);
-	}, [currentLineUidKey, props.activeLineUid]);
+	}, [currentLineUidKey, props.activeLineUid, mobileLineUid]);
 
 	return (
 		<section>
@@ -122,6 +139,7 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 							index={index}
 							uid={lineUid}
 							isActive={isActive}
+							isMobileVisible={lineUid === mobileLineUid}
 							isExpanded
 							disableCollapseTrigger
 							title={line.title}

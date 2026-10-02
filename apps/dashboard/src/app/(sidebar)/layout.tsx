@@ -41,7 +41,7 @@ export default async function Layout({ children }) {
     return (
         <HydrateClient>
             <SessionHydrator session={clientSession} />
-            <div className="relative">
+            <div className="relative max-lg:has-[[data-sales-form-shell]]:[&>[data-dashboard-floating-stack]]:hidden">
                 <SidebarContent initialAuth={initialAuth}>
                     {children}
                 </SidebarContent>

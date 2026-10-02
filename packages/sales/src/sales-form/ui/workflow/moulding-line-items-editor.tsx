@@ -35,7 +35,11 @@ export type MouldingLineItemEditorRow = {
 	title?: string | null;
 	img?: string | null;
 	qty?: number | null;
-	calculation?: { linearFeet: number; pieceLength: number; wastePercentage?: number };
+	calculation?: {
+		linearFeet: number;
+		pieceLength: number;
+		wastePercentage?: number;
+	};
 	addon?: number | null;
 	customPrice?: number | string | null;
 	estimateUnit?: number | null;
@@ -58,7 +62,14 @@ export type MouldingLineItemsEditorProps<
 	renderCalculator?: (args: {
 		row: TRow;
 		index: number;
-		onCalculate: (qty: number, calculation?: { linearFeet: number; pieceLength: number; wastePercentage?: number }) => void;
+		onCalculate: (
+			qty: number,
+			calculation?: {
+				linearFeet: number;
+				pieceLength: number;
+				wastePercentage?: number;
+			},
+		) => void;
 	}) => ReactNode;
 	canEditPricing?: boolean;
 	priceBreakdown?: CostPriceBreakdownContext | null;
@@ -67,23 +78,25 @@ export type MouldingLineItemsEditorProps<
 	onAddMoulding?: () => void;
 };
 
-function MouldingEstimateBreakdown<TRow extends MouldingLineItemEditorRow>(
-	props: {
-		row: TRow;
-		index: number;
-		quantity: number;
-		canEditPricing: boolean;
-		formatMoney: (value?: number | null) => string | null;
-		componentLabel: (value?: string | null) => string;
-		priceBreakdown?: CostPriceBreakdownContext | null;
-		onPatch: (patch: Partial<TRow>) => void;
-	},
-) {
+function MouldingEstimateBreakdown<
+	TRow extends MouldingLineItemEditorRow,
+>(props: {
+	row: TRow;
+	index: number;
+	quantity: number;
+	canEditPricing: boolean;
+	formatMoney: (value?: number | null) => string | null;
+	componentLabel: (value?: string | null) => string;
+	priceBreakdown?: CostPriceBreakdownContext | null;
+	onPatch: (patch: Partial<TRow>) => void;
+}) {
 	const hasCustomPrice =
 		props.row.customPrice != null && props.row.customPrice !== "";
 	const estimatedUnit = Number(props.row.estimateUnit || 0);
 	const addon = Number(props.row.addon || 0);
-	const customPrice = hasCustomPrice ? Number(props.row.customPrice || 0) : null;
+	const customPrice = hasCustomPrice
+		? Number(props.row.customPrice || 0)
+		: null;
 	const finalUnit = Number(
 		props.row.unit ?? (customPrice ?? estimatedUnit) + addon,
 	);
@@ -283,9 +296,13 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 									</div>
 								</td>
 								<td className="px-3 py-2 max-lg:col-span-2 max-lg:col-start-1 max-lg:row-start-2 max-lg:p-0 md:max-lg:col-span-1">
-									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Quantity</p>
+									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+										Quantity
+									</p>
 									{row.quantityReview === true && qty <= 0 && (
-										<p className="mb-1 text-xs font-medium text-amber-700 dark:text-amber-400">Quantity needs review</p>
+										<p className="mb-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+											Quantity needs review
+										</p>
 									)}
 									<div className="flex items-center justify-end gap-2 max-lg:justify-start">
 										{props.renderCalculator?.({
@@ -306,12 +323,14 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 													qty: value,
 												} as Partial<TRow>)
 											}
-											className="w-32 max-lg:h-10 max-lg:flex-1"
+											className="w-32 max-lg:h-11 max-lg:flex-1"
 										/>
 									</div>
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground max-lg:col-start-1 max-lg:row-start-3 max-lg:border-t max-lg:pt-3 max-lg:text-left md:max-lg:col-start-2 md:max-lg:row-start-2 md:max-lg:border-t-0 md:max-lg:pt-0">
-									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Estimate</p>
+									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+										Estimate
+									</p>
 									<div className="flex justify-end max-lg:justify-start">
 										<MouldingEstimateBreakdown
 											row={row}
@@ -326,7 +345,9 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 									</div>
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-bold max-lg:col-start-2 max-lg:row-start-3 max-lg:border-t max-lg:pt-3 md:max-lg:col-start-3 md:max-lg:row-start-2 md:max-lg:border-t-0 md:max-lg:pt-0">
-									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Line total</p>
+									<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+										Line total
+									</p>
 									<CostPriceBreakdownHover
 										breakdown={lineBreakdown}
 										context={props.priceBreakdown}
@@ -339,7 +360,7 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 										type="button"
 										size="icon"
 										variant="ghost"
-										className="size-7 max-lg:size-10"
+										className="size-7 max-lg:size-11"
 										disabled={props.rows.length <= 1}
 										aria-label={`Remove moulding line ${index + 1}`}
 										onClick={() => props.onRemoveRow(String(row.uid || ""))}
@@ -354,7 +375,9 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 				<tfoot className="max-lg:block">
 					<tr className="border-t bg-muted/20 text-xs font-bold max-lg:block">
 						<td className="px-3 py-2 uppercase max-lg:inline-block">Total</td>
-						<td className="px-3 py-2 text-right max-lg:inline-block">{props.totalQty}</td>
+						<td className="px-3 py-2 text-right max-lg:inline-block">
+							{props.totalQty}
+						</td>
 						<td className="max-lg:hidden" />
 						<td className="px-3 py-2 text-right max-lg:float-right">
 							{props.formatMoney(props.totalAmount) || "$0.00"}

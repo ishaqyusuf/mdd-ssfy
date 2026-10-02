@@ -1,5 +1,7 @@
 "use client";
 
+import { StockWorkflowComponentPanel as WorkflowStepComponentPanel } from "./stock-workflow-component-panel";
+
 import {
 	buildCustomComponentOptions,
 	customComponentPriceChanged,
@@ -59,7 +61,6 @@ import {
 	WorkflowComponentToolbar,
 	WorkflowLineList,
 	WorkflowShelfPanel,
-	WorkflowStepComponentPanel,
 	type WorkflowStepRecord,
 	WorkflowStepRenderer,
 	buildInitialWorkflowShelfPatch,
@@ -353,17 +354,19 @@ export function ItemWorkflowPanel() {
 		: null;
 	const needsDoorCatalog = Boolean(
 		isDoorStepTitle(activeStep?.step?.title) ||
-		routeScopedLineItems.some(
-			(line) =>
-				Boolean(line.housePackageTool?.doors?.length) ||
-				line.formSteps?.some(
-					(step) =>
-						isDoorStepTitle(step?.step?.title) &&
-						Boolean(
-							step.prodUid || step.componentId || step.meta?.selectedComponents?.length,
-						),
-				),
-		),
+			routeScopedLineItems.some(
+				(line) =>
+					Boolean(line.housePackageTool?.doors?.length) ||
+					line.formSteps?.some(
+						(step) =>
+							isDoorStepTitle(step?.step?.title) &&
+							Boolean(
+								step.prodUid ||
+									step.componentId ||
+									step.meta?.selectedComponents?.length,
+							),
+					),
+			),
 	);
 	const suppliersQuery = useSalesSuppliersQuery(needsDoorCatalog);
 	const activeSelectedComponentUids = useMemo(
@@ -1723,8 +1726,7 @@ export function ItemWorkflowPanel() {
 				onRemoveRow={removeSelectedMoulding}
 				onAddMoulding={
 					mouldingStepIndex >= 0
-						? () =>
-							reopenMouldingComponentGrid(line.uid, mouldingStepIndex)
+						? () => reopenMouldingComponentGrid(line.uid, mouldingStepIndex)
 						: undefined
 				}
 				renderCalculator={({ row, onCalculate }) => (
@@ -1872,6 +1874,7 @@ export function ItemWorkflowPanel() {
 					)}
 					toolbarSlot={
 						<WorkflowComponentToolbar
+							label="Root Step Components"
 							count={filteredRootComponents.length}
 							total={activeRootComponents.length}
 							search={componentSearch}

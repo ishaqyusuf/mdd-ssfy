@@ -1,4 +1,4 @@
-import type { Db } from "@gnd/db";
+import type { Db, TransactionClient } from "@gnd/db";
 
 import {
 	getSalesInventoryProjectionErrorMessage,
@@ -12,6 +12,7 @@ import {
 } from "./sync-sales-inventory-line-items";
 
 type RunSalesInventoryProjectionSyncDeps = {
+	beforeSync?: (tx: TransactionClient) => Promise<void>;
 	syncLineItems?: typeof syncSalesInventoryLineItems;
 	cleanupRepairResidue?: typeof cleanupSalesInventoryRepairResidue;
 };
@@ -24,14 +25,16 @@ export async function runSalesInventoryProjectionSync(
 	const source = input.source ?? "manual";
 	const startedAt = new Date();
 	await writeSalesInventoryProjectionState(db, {
-			salesOrderId: input.salesOrderId,
-			status: "syncing",
-			source,
-			startedAt,
+		salesOrderId: input.salesOrderId,
+		status: "syncing",
+		source,
+		startedAt,
 	});
 
 	try {
 		return await db.$transaction(async (tx) => {
+			await tx.$queryRaw`SELECT id FROM SalesOrders WHERE id=${input.salesOrderId} FOR UPDATE`;
+			await deps.beforeSync?.(tx);
 			const result = await (deps.syncLineItems ?? syncSalesInventoryLineItems)(
 				tx,
 				input,
@@ -46,10 +49,10 @@ export async function runSalesInventoryProjectionSync(
 				? result.warnings.join("\n").slice(0, 65_535)
 				: null;
 			const projection = await writeSalesInventoryProjectionReady(tx as Db, {
-					salesOrderId: input.salesOrderId,
-					source,
-					lastError,
-					startedAt,
+				salesOrderId: input.salesOrderId,
+				source,
+				lastError,
+				startedAt,
 			});
 
 			return {
@@ -60,12 +63,12 @@ export async function runSalesInventoryProjectionSync(
 		});
 	} catch (error) {
 		await writeSalesInventoryProjectionState(db, {
-				salesOrderId: input.salesOrderId,
-				status: "failed",
-				source,
+			salesOrderId: input.salesOrderId,
+			status: "failed",
+			source,
 			lastError: getSalesInventoryProjectionErrorMessage(error),
-				startedAt,
-				completedAt: new Date(),
+			startedAt,
+			completedAt: new Date(),
 		});
 		throw error;
 	}

@@ -175,7 +175,7 @@ function HptSwapSizeMenu(props: {
 					type="button"
 					variant="ghost"
 					size="icon"
-					className="size-7 shrink-0"
+					className="size-7 shrink-0 max-lg:size-11"
 					disabled={props.disabled}
 					aria-label={`Swap size ${currentSize || "door size"}`}
 					title={`Swap size ${currentSize || "door size"}`}
@@ -245,7 +245,7 @@ function HptAddSizeMenu(props: {
 				className={buttonVariants({
 					variant: "outline",
 					size: "icon",
-					className: "size-8 rounded-full",
+					className: "size-8 rounded-full max-lg:size-11",
 				})}
 				disabled={props.disabled}
 				aria-label="Add Size"
@@ -305,6 +305,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 						variant="outline"
 						onClick={props.onAddDoor}
 						disabled={!props.pricingReady}
+						className="max-lg:h-11"
 						aria-label="Add door"
 					>
 						<Icons.Plus className="mr-1.5 size-3.5" />
@@ -322,7 +323,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 								type="button"
 								aria-current={selected ? "true" : undefined}
 								aria-label={`Show ${props.componentLabel(component.title || component.uid)} door rows`}
-								className={`max-w-full rounded-md border px-3 py-1 text-[11px] font-semibold uppercase transition-colors ${
+								className={`max-w-full rounded-md border px-3 py-1 max-lg:min-h-11 text-[11px] font-semibold uppercase transition-colors ${
 									selected
 										? "border-primary bg-primary/10 text-primary"
 										: "bg-background text-muted-foreground hover:border-primary/70"
@@ -389,17 +390,17 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 					</div>
 				) : (
 					<article className="overflow-hidden rounded-lg border bg-background">
-						<header className="flex items-center gap-3 border-b bg-muted/20 px-4 py-3 max-lg:gap-2 max-lg:px-3 max-lg:py-2.5">
+						<header className="flex items-center gap-3 border-b bg-muted/20 px-4 py-3 max-lg:gap-2 max-lg:px-3 max-lg:py-2.5 max-lg:flex-wrap">
 							<ComponentImageLightbox
 								imageSrc={doorImageSrc}
 								title={doorTitle}
 								alt={props.activeDoorComponent?.title || doorTitle}
-								className="size-12 rounded-md max-lg:size-10 max-lg:shrink-0"
+								className="size-12 rounded-md max-lg:size-11 max-lg:shrink-0"
 								imageClassName="p-2"
 								fallback={<Icons.Ruler size={15} className="text-slate-500" />}
 							/>
-							<div className="min-w-0">
-								<p className="truncate text-sm font-semibold text-slate-900">
+							<div className="min-w-0 max-lg:flex-1">
+								<p className="lg:truncate text-sm font-semibold text-slate-900 max-lg:break-words">
 									{doorTitle}
 								</p>
 								<p className="text-[11px] uppercase tracking-wide text-slate-500">
@@ -407,7 +408,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 									{rowsForComponent.length > 1 ? "s" : ""}
 								</p>
 							</div>
-							<div className="ml-auto flex shrink-0 items-center gap-1">
+							<div className="ml-auto flex shrink-0 items-center gap-1 max-lg:basis-full max-lg:justify-end max-lg:gap-2">
 								<HptAddSizeMenu
 									componentId={componentId}
 									availableSizeOptions={props.availableSizeOptions}
@@ -421,7 +422,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											type="button"
 											size="icon"
 											variant="outline"
-											className="size-8 rounded-full"
+											className="size-8 rounded-full max-lg:size-11"
 											onClick={props.onConfigureSizes}
 											disabled={
 												!props.activeDoorComponent || !props.pricingReady
@@ -436,7 +437,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											type="button"
 											size="icon"
 											variant="outline"
-											className="size-8 rounded-full"
+											className="size-8 rounded-full max-lg:size-11"
 											onClick={props.onSwapDoor}
 											disabled={
 												!props.activeDoorComponent ||
@@ -453,7 +454,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											type="button"
 											size="icon"
 											variant="outline"
-											className="size-8 rounded-full border-destructive bg-secondary text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
+											className="size-8 rounded-full max-lg:size-11 border-destructive bg-secondary text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
 											onClick={props.onDeleteDoor}
 											disabled={!props.activeDoorComponent}
 											aria-label="Delete Door"
@@ -525,8 +526,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 												)}
 												className="border-b border-slate-100 last:border-0 max-lg:grid max-lg:grid-cols-2 max-lg:gap-x-2 max-lg:gap-y-3 max-lg:border-x-0 max-lg:border-t-0 max-lg:border-b max-lg:border-border max-lg:bg-transparent max-lg:p-3 max-lg:last:border-b-0"
 											>
-											<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800 max-lg:col-span-1 max-lg:row-start-1 max-lg:p-0 max-lg:text-foreground">
-												<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Size</p>
+												<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800 max-lg:col-span-1 max-lg:row-start-1 max-lg:p-0 max-lg:text-foreground">
+													<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+														Size
+													</p>
 													<div className="flex items-center gap-1">
 														<span
 															className={
@@ -547,9 +550,11 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 														/>
 													</div>
 												</td>
-											{props.hasSwing ? (
-												<td className="px-2 py-2 max-lg:col-span-2 max-lg:p-0">
-													<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Swing</p>
+												{props.hasSwing ? (
+													<td className="px-2 py-2 max-lg:col-span-2 max-lg:p-0">
+														<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+															Swing
+														</p>
 														{props.swingOptions ? (
 															<Select
 																value={
@@ -561,7 +566,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																}
 																disabled={!props.pricingReady}
 															>
-																<SelectTrigger className="h-8 w-full min-w-0 rounded-md border-slate-200 text-xs">
+																<SelectTrigger className="h-8 w-full min-w-0 max-lg:h-11 rounded-md border-slate-200 text-xs">
 																	<SelectValue placeholder="Select swing" />
 																</SelectTrigger>
 																<SelectContent>
@@ -583,16 +588,18 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																		swing: event.target.value,
 																	})
 																}
-																className="h-8 w-full min-w-0 rounded-md border-slate-200 text-xs"
+																className="h-8 w-full min-w-0 max-lg:h-11 rounded-md border-slate-200 text-xs"
 																disabled={!props.pricingReady}
 																placeholder="LH/RH"
 															/>
 														)}
 													</td>
 												) : null}
-											{props.noHandle ? (
-												<td className="px-2 py-2 max-lg:col-span-2 max-lg:p-0">
-													<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Quantity</p>
+												{props.noHandle ? (
+													<td className="px-2 py-2 max-lg:col-span-2 max-lg:p-0">
+														<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+															Quantity
+														</p>
 														<SalesFormQuantityStepper
 															label={`Quantity for ${row.dimension || "door size"}`}
 															value={row.totalQty}
@@ -607,14 +614,16 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																!props.pricingReady ||
 																isDoorRowPriceMissing(row)
 															}
-															className="w-32 max-lg:h-10 max-lg:w-full"
+															className="w-32 max-lg:h-11 max-lg:w-full"
 															min={0}
 														/>
 													</td>
 												) : (
 													<>
-													<td className="px-2 py-2 max-lg:min-w-0 max-lg:p-0">
-														<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Left hand</p>
+														<td className="px-2 py-2 max-lg:min-w-0 max-lg:p-0">
+															<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+																Left hand
+															</p>
 															<SalesFormQuantityStepper
 																label={`LH quantity for ${row.dimension || "door size"}`}
 																value={row.lhQty}
@@ -627,12 +636,14 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	!props.pricingReady ||
 																	isDoorRowPriceMissing(row)
 																}
-															className="w-32 max-lg:h-10 max-lg:w-full"
+																className="w-32 max-lg:h-11 max-lg:w-full"
 																min={0}
 															/>
 														</td>
-													<td className="px-2 py-2 max-lg:min-w-0 max-lg:p-0">
-														<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Right hand</p>
+														<td className="px-2 py-2 max-lg:min-w-0 max-lg:p-0">
+															<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+																Right hand
+															</p>
 															<SalesFormQuantityStepper
 																label={`RH quantity for ${row.dimension || "door size"}`}
 																value={row.rhQty}
@@ -645,17 +656,19 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	!props.pricingReady ||
 																	isDoorRowPriceMissing(row)
 																}
-															className="w-32 max-lg:h-10 max-lg:w-full"
+																className="w-32 max-lg:h-11 max-lg:w-full"
 																min={0}
 															/>
 														</td>
-											<td className="px-2 py-2 text-right text-xs font-semibold text-slate-700 max-lg:hidden">
-												{Number(row.totalQty || 0)}
+														<td className="px-2 py-2 text-right text-xs font-semibold text-slate-700 max-lg:hidden">
+															{Number(row.totalQty || 0)}
 														</td>
 													</>
 												)}
-											<td className="px-2 py-2 max-lg:border-t max-lg:pt-3">
-												<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Estimate</p>
+												<td className="px-2 py-2 max-lg:border-t max-lg:pt-3">
+													<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+														Estimate
+													</p>
 													<DoorPriceCell
 														row={row}
 														profileCoefficient={props.profileCoefficient}
@@ -682,8 +695,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 														}
 													/>
 												</td>
-											<td className="px-3 py-2 text-right text-xs font-semibold text-slate-900 max-lg:border-t max-lg:pt-3 max-lg:text-foreground">
-												<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">Line total</p>
+												<td className="px-3 py-2 text-right text-xs font-semibold text-slate-900 max-lg:border-t max-lg:pt-3 max-lg:text-foreground">
+													<p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground lg:hidden">
+														Line total
+													</p>
 													<ResponsiveEstimateBreakdown
 														title="Estimate breakdown"
 														label={
@@ -702,7 +717,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													>
 														<Card className="w-[320px] rounded-lg text-left max-lg:w-full max-lg:border-0 max-lg:shadow-none">
 															<CardHeader className="flex-row items-start justify-between gap-3 p-3">
-																<div className="min-w-0">
+																<div className="min-w-0 max-lg:flex-1">
 																	<CardTitle>Estimate breakdown</CardTitle>
 																	<CardDescription className="truncate">
 																		{props.componentLabel(
@@ -872,7 +887,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 														</Card>
 													</ResponsiveEstimateBreakdown>
 												</td>
-											<td className="w-14 px-1 py-2 text-right max-lg:col-start-2 max-lg:row-start-1 max-lg:flex max-lg:w-auto max-lg:items-start max-lg:justify-end max-lg:p-0">
+												<td className="w-14 px-1 py-2 text-right max-lg:col-start-2 max-lg:row-start-1 max-lg:flex max-lg:w-auto max-lg:items-start max-lg:justify-end max-lg:p-0">
 													<>
 														<div className="flex items-center justify-end gap-1">
 															{props.canEditPricing && profilePriceDrift ? (
@@ -883,7 +898,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																		type="button"
 																		size="icon"
 																		variant="ghost"
-																		className="size-6 text-amber-600 hover:bg-amber-50 hover:text-amber-700 max-lg:size-10"
+																		className="size-6 text-amber-600 hover:bg-amber-50 hover:text-amber-700 max-lg:size-11"
 																		disabled={!props.pricingReady}
 																		onClick={() => {
 																			const repaired =
@@ -908,11 +923,11 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																type="button"
 																size="icon"
 																variant="ghost"
-														className="size-6 text-slate-500 hover:text-red-600 max-lg:size-10"
+																className="size-6 text-slate-500 hover:text-red-600 max-lg:size-11"
 																onClick={() => props.onRemoveSizeRow(row)}
 																aria-label={`Remove ${row.dimension || "door size"}`}
 															>
-														<Icons.Trash2 className="size-4" />
+																<Icons.Trash2 className="size-4" />
 															</Button>
 														</div>
 													</>

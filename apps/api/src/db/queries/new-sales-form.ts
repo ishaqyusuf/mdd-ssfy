@@ -1,3 +1,4 @@
+import { orderOwnedDoorRows } from "@gnd/sales/sales-form/application/order-owned-door-rows";
 import { getSalesCustomer } from "@api/db/queries/customer";
 import { consumeSalesRequestGenerationRun } from "@api/db/queries/sales-request-telemetry";
 import { assistantSalesRequestDraftPreviewSchema } from "@api/assistant/order-draft-contract";
@@ -1067,6 +1068,7 @@ function toBootstrapPayload(
 					price: number | null;
 				} | null;
 				doors: Array<{
+					salesOrderId?: number;
 					id: number;
 					dimension: string;
 					swing: string | null;
@@ -1159,7 +1161,7 @@ function toBootstrapPayload(
 										}
 									: null,
 							doors: collapseDuplicateSalesDoorRows(
-								(item.housePackageTool.doors || []).map((door) => {
+								orderOwnedDoorRows(item.housePackageTool.doors || [], order.id).map((door) => {
 									const doorMeta = safeRecord(door.meta);
 									const coefficient = Number(
 										order.salesProfile?.coefficient || 0,
@@ -1849,6 +1851,7 @@ export async function getNewSalesForm(
 									},
 									select: {
 										id: true,
+										salesOrderId: true,
 										dimension: true,
 										swing: true,
 										doorType: true,

@@ -1,6 +1,7 @@
-import type { Db, TransactionClient } from "@gnd/db";
+import { Prisma, type Db, type TransactionClient } from "@gnd/db";
 
 type DbLike = Db | TransactionClient;
+import { readCategoryStockSettings } from "./stock-settings";
 
 export type StockAdjustmentReason =
   | "correction"
@@ -27,6 +28,8 @@ export type PlannedStockAdjustment = {
 };
 
 export type ManualStockAdjustmentInput = PlanStockAdjustmentInput & {
+	openingCount?: boolean;
+  expectedQty: number;
   inventoryVariantId: number;
   inventoryStockId?: number | null;
   supplierId?: number | null;
@@ -110,12 +113,18 @@ export const STOCK_AUDIT_MATRIX: StockAuditMatrixRow[] = [
 export function planStockAdjustment(
   input: PlanStockAdjustmentInput,
 ): PlannedStockAdjustment {
-  const previousQty = Number(input.previousQty || 0);
-  const qty = Number(input.qty || 0);
+  const previousQty = input.previousQty ?? 0;
+  const qty = input.qty;
+  if (!Number.isFinite(previousQty) || !Number.isFinite(qty)) {
+    throw new StockAdjustmentError("BAD_REQUEST", "Stock quantities must be finite numbers.");
+  }
   const currentQty = input.mode === "set" ? qty : previousQty + qty;
 
   if (currentQty < 0) {
-    throw new Error("Stock adjustment cannot reduce stock below zero.");
+    throw new StockAdjustmentError("BAD_REQUEST", "Stock adjustment cannot reduce stock below zero.");
+  }
+  if (!Number.isFinite(currentQty)) {
+    throw new StockAdjustmentError("BAD_REQUEST", "Stock quantity is too large.");
   }
 
   return {
@@ -123,6 +132,13 @@ export function planStockAdjustment(
     currentQty,
     changeQty: currentQty - previousQty,
   };
+}
+
+export class StockAdjustmentError extends Error {
+  constructor(public readonly code: "BAD_REQUEST" | "CONFLICT", message: string) {
+    super(message);
+    this.name = "StockAdjustmentError";
+  }
 }
 
 function getMovementType(reason: StockAdjustmentReason, changeQty: number) {
@@ -281,6 +297,21 @@ export async function adjustInventoryStock(
   input: ManualStockAdjustmentInput,
 ): Promise<ManualStockAdjustmentResult> {
   return db.$transaction(async (tx: DbLike) => {
+    // Serialize manual writes even when the first stock row does not yet exist.
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM InventoryVariant WHERE id=${input.inventoryVariantId} FOR UPDATE`);
+    const activeVariant = await tx.inventoryVariant.findFirstOrThrow({
+      where: {
+        id: input.inventoryVariantId,
+        deletedAt: null,
+        inventory: { deletedAt: null, inventoryCategory: { deletedAt: null } },
+      },
+      select: { id: true, inventory: { select: { inventoryCategory: { select: { meta: true } } } } },
+    });
+    const stockUnit = input.openingCount ? readCategoryStockSettings(activeVariant.inventory.inventoryCategory?.meta).stockUnit : null;
+    if (input.openingCount && (input.mode !== "set" || input.reason !== "cycle_count" || input.expectedQty !== 0 || !input.reference?.trim() || !stockUnit)) {
+      throw new StockAdjustmentError("BAD_REQUEST", "Opening counts require a zero baseline, counted-total mode, a count reference, and a confirmed category unit.");
+    }
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM InventoryStock WHERE inventoryVariantId=${input.inventoryVariantId} AND deletedAt IS NULL ORDER BY id FOR UPDATE`);
     const stock = input.inventoryStockId
       ? await tx.inventoryStock.findFirstOrThrow({
           where: {
@@ -301,8 +332,8 @@ export async function adjustInventoryStock(
       : await tx.inventoryStock.findFirst({
           where: {
             inventoryVariantId: input.inventoryVariantId,
-            supplierId: input.supplierId ?? undefined,
-            location: input.location ?? undefined,
+            supplierId: input.supplierId ?? null,
+            location: input.location?.trim() || null,
             deletedAt: null,
           },
           select: {
@@ -330,11 +361,41 @@ export async function adjustInventoryStock(
             inventoryId: true,
           },
         });
+    if (input.expectedQty !== (stock?.qty ?? 0)) {
+      throw new StockAdjustmentError("CONFLICT", "Stock changed. Refresh the current quantity and review the adjustment again.");
+    }
     const planned = planStockAdjustment({
       previousQty: stock?.qty ?? 0,
       qty: input.qty,
       mode: input.mode ?? "delta",
     });
+
+    if (stock && planned.changeQty < 0) {
+      const committed = await tx.stockAllocation.aggregate({
+        where: {
+          inventoryStockId: stock.id,
+          deletedAt: null,
+          status: { in: ["pending_review", "approved", "reserved", "picked", "consumed"] },
+        },
+        _sum: { qty: true },
+      });
+      if (planned.currentQty < (committed._sum.qty ?? 0)) {
+        throw new StockAdjustmentError("CONFLICT", "This stock is allocated to sales. Review the allocations before reducing the count below the allocated quantity.");
+      }
+    }
+
+    if (planned.changeQty === 0) {
+      throw new StockAdjustmentError("BAD_REQUEST", "Enter a quantity that changes the stock count.");
+    }
+    if (
+      ((input.reason === "stock_in" || input.reason === "return") && planned.changeQty < 0) ||
+      (["stock_out", "damage", "consume"].includes(input.reason) && planned.changeQty > 0)
+    ) {
+      throw new StockAdjustmentError("BAD_REQUEST", "Choose a reason that matches adding or removing stock.");
+    }
+    if (!stock && input.supplierId) {
+      await tx.supplier.findFirstOrThrow({ where: { id: input.supplierId, deletedAt: null }, select: { id: true } });
+    }
 
     const updatedStock = stock
       ? await tx.inventoryStock.update({
@@ -344,8 +405,6 @@ export async function adjustInventoryStock(
           data: {
             qty: planned.currentQty,
             price: input.unitPrice ?? undefined,
-            location: input.location ?? undefined,
-            supplierId: input.supplierId ?? undefined,
           },
           select: {
             id: true,
@@ -373,7 +432,7 @@ export async function adjustInventoryStock(
         type: getMovementType(input.reason, planned.changeQty) as any,
         status: "completed",
         reference: input.reference ?? null,
-        notes: input.notes ?? input.reason.replaceAll("_", " "),
+        notes: input.openingCount ? `Opening count (${stockUnit}): ${input.notes || input.reference}` : input.notes ?? input.reason.replaceAll("_", " "),
         authorName: input.authorName ?? null,
       },
       select: {
@@ -391,7 +450,7 @@ export async function adjustInventoryStock(
           stock?.inventoryVariant.inventoryId ?? inventoryVariant?.inventoryId ?? null,
         inventoryStockId: updatedStock.id,
         createdBy: input.authorName ?? null,
-        notes: input.notes ?? input.reason.replaceAll("_", " "),
+        notes: input.openingCount ? `Opening count (${stockUnit}): ${input.notes || input.reference}` : input.notes ?? input.reason.replaceAll("_", " "),
       },
       select: {
         id: true,
@@ -406,5 +465,5 @@ export async function adjustInventoryStock(
       logId: log.id,
       reason: input.reason,
     };
-  });
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }

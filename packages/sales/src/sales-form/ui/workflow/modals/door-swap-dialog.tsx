@@ -42,7 +42,11 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 			component.title,
 			component.uid,
 			props.componentLabel(component.title || component.uid || "Door"),
-		].some((value) => String(value || "").toLowerCase().includes(query)),
+		].some((value) =>
+			String(value || "")
+				.toLowerCase()
+				.includes(query),
+		),
 	);
 
 	return (
@@ -53,10 +57,8 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 				props.onOpenChange(open);
 			}}
 		>
-			<DialogContent
-				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl flex-col overflow-hidden"
-			>
-				<DialogHeader className="shrink-0">
+			<DialogContent className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl max-sm:h-[calc(100dvh-1rem)] max-sm:max-h-[calc(100dvh-1rem)] max-sm:rounded-xl max-sm:[&>button:last-child]:size-11 max-sm:[&>button:last-child]:right-2 max-sm:[&>button:last-child]:top-2 flex-col overflow-hidden">
+				<DialogHeader className="max-sm:pr-14 max-sm:text-left shrink-0">
 					<DialogTitle>Swap Door</DialogTitle>
 					<DialogDescription>
 						Replace the selected door while keeping the current size and
@@ -78,10 +80,10 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 					placeholder="Search doors..."
 					value={search}
 					onChange={(event) => setSearch(event.target.value)}
-					className="shrink-0"
+					className="shrink-0 max-sm:h-11 max-sm:text-base"
 				/>
 				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
-					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+					<div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
 						{candidates.map((component) => {
 							const imageSrc = props.resolveImageSrc(component.img);
 							return (
@@ -124,12 +126,14 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 						})}
 						{!candidates.length ? (
 							<div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-								{query ? "No doors match your search." : "No other visible door options are available to swap into right now."}
+								{query
+									? "No doors match your search."
+									: "No other visible door options are available to swap into right now."}
 							</div>
 						) : null}
 					</div>
 				</div>
-				<DialogFooter className="shrink-0">
+				<DialogFooter className="shrink-0 max-sm:[&>button]:min-h-11">
 					<Button
 						type="button"
 						variant="outline"

@@ -59,10 +59,10 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 			) : null}
 
 			<aside
-				className={`fixed bottom-0 right-0 top-[var(--header-height)] z-40 w-full max-w-[420px] overflow-hidden border-l bg-card shadow-2xl transition-transform duration-300 xl:static xl:z-auto xl:flex xl:h-full xl:w-[420px] xl:max-w-none xl:shrink-0 xl:translate-x-0 xl:border-l xl:shadow-none ${
+				className={`fixed bottom-0 right-0 top-[var(--header-height)] z-50 w-full max-w-[420px] overflow-hidden border-l bg-card shadow-2xl transition-transform duration-300 xl:static xl:z-auto xl:flex xl:h-full xl:w-[420px] xl:max-w-none xl:shrink-0 xl:translate-x-0 xl:border-l xl:shadow-none ${
 					props.mobileOpen
 						? "translate-x-0"
-						: "translate-x-full xl:translate-x-0"
+						: "invisible pointer-events-none translate-x-full xl:visible xl:pointer-events-auto xl:translate-x-0"
 				}`}
 			>
 				<div className="flex h-full w-full min-w-0 flex-col">
@@ -97,7 +97,8 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 							<Button
 								size="icon"
 								variant="ghost"
-								className="xl:hidden"
+								className="size-11 xl:hidden"
+								aria-label="Close invoice summary"
 								onClick={props.onClose}
 							>
 								<Icons.X className="size-4" />
@@ -111,7 +112,7 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 							: props.summaryPanel}
 					</div>
 
-					<div className="sticky bottom-0 border-t bg-card/95 px-4 py-3 backdrop-blur">
+					<div className="sticky bottom-0 border-t bg-card/95 px-4 py-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-lg:[&_button]:min-h-11 max-lg:[&_button]:min-w-11 backdrop-blur">
 						<div className="mb-3 flex items-center justify-between gap-4">
 							<span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
 								Grand Total

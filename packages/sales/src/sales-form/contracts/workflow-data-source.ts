@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { WorkflowStepComponentPanelProps } from "../ui/workflow/workflow-step-component-panel";
+import type { ComponentType, ReactNode } from "react";
 import type {
 	CustomerProfileRecord,
 	MouldingRow,
@@ -115,6 +116,7 @@ export type SalesFormWorkflowActions<TLine extends WorkflowLineItemRecord> = {
 export type SalesFormWorkflowSurfaceSlots<
 	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
 > = {
+	componentPanel?: ComponentType<WorkflowStepComponentPanelProps<WorkflowComponentRecord>>;
 	renderFlatLineEditor?: (input: {
 		line: TLine;
 		updateLine: (patch: Partial<TLine>) => void;

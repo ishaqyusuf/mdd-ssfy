@@ -44,8 +44,8 @@ export type ComponentEditDialogProps = ComponentEditDialogState & {
 export function ComponentEditDialog(props: ComponentEditDialogProps) {
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="max-h-[90vh] max-w-xl overflow-hidden">
-				<DialogHeader>
+			<DialogContent className="max-sm:w-[calc(100vw-1rem)] max-sm:max-h-[calc(100dvh-1rem)] max-sm:overflow-y-auto max-sm:rounded-xl max-sm:[&>button:last-child]:size-11 max-sm:[&>button:last-child]:right-2 max-sm:[&>button:last-child]:top-2 max-h-[90vh] max-w-xl overflow-hidden">
+				<DialogHeader className="max-sm:pr-10 max-sm:text-left">
 					<DialogTitle>
 						{props.mode === "sectionOverride"
 							? "Section Setting Override"
@@ -93,7 +93,10 @@ export function ComponentEditDialog(props: ComponentEditDialogProps) {
 								>
 									<option value="">None</option>
 									{props.redirectOptions.map((route) => (
-										<option key={`edit-redirect-${route.uid}`} value={route.uid}>
+										<option
+											key={`edit-redirect-${route.uid}`}
+											value={route.uid}
+										>
 											{route.title}
 										</option>
 									))}

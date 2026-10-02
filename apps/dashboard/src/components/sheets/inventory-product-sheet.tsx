@@ -1,3 +1,4 @@
+import { OpenInventoryStockSheet } from "@/components/open-inventory-stock-sheet";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useTRPC } from "@/trpc/client";
 import {
@@ -54,6 +55,9 @@ export function InventoryProductSheet() {
                 <SheetHeader.Description>
                     {formData?.product?.name}
                 </SheetHeader.Description>
+                {params.productId > 0 ? (
+                    <OpenInventoryStockSheet inventoryId={params.productId} size="sm" />
+                ) : null}
             </SheetHeader>
             <CustomSheetContent className="">
                 <FormContext data={formData}>

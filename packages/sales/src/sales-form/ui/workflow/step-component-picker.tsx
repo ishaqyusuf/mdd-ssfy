@@ -23,11 +23,12 @@ export function StepComponentPicker<TComponent>(
 ) {
 	return (
 		<div className="relative" data-workflow-component-boundary="true">
+			{props.toolbarSlot}
 			{props.noticeSlot}
 			{props.loading ? (
 				<ComponentCardSkeletonGrid />
 			) : !props.hasComponents && !props.leadingSlot ? (
-				<p className="pb-24 text-sm text-muted-foreground">
+				<p className="lg:pb-24 text-sm text-muted-foreground">
 					No components returned for this step.
 				</p>
 			) : (
@@ -40,7 +41,6 @@ export function StepComponentPicker<TComponent>(
 					leadingSlot={props.leadingSlot}
 				/>
 			)}
-			{props.toolbarSlot}
 		</div>
 	);
 }

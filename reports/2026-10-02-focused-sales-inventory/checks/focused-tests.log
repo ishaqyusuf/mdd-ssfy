@@ -1,0 +1,71 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/sales-form-stock-preview.test.ts:
+(pass) sales form stock preview > hinge piece requirements drive full and partial warehouse coverage [0.48ms]
+(pass) sales form stock preview > uses canonical step quantity projection and does not create stock writes [1.89ms]
+(pass) sales form stock preview > shares a stock budget across repeated material and protects linked inbound [0.06ms]
+(pass) sales form stock preview > reopened fully applied needs offer no further allocation [0.01ms]
+(pass) sales form stock preview > bounds preview payload size [13.76ms]
+
+packages/sales/src/sales-form-stock-selection.test.ts:
+(pass) selected needs are bounded, positive and canonical for confirmation and replay [2.26ms]
+
+apps/api/src/trpc/routers/inventory-fulfillment-permissions.test.ts:
+(pass) inventory fulfillment route permissions > rejects unauthorized stock writes and stock selectors before domain access [3.66ms]
+(pass) inventory fulfillment route permissions > rejects stock policy changes and individual thresholds without a configuration grant [0.50ms]
+(pass) inventory fulfillment route permissions > rejects sales stock application and warehouse inbound without an operator grant [3.22ms]
+(pass) inventory fulfillment route permissions > rejects shipment, hold, dispatch, and received-allocation writes before domain access [3.23ms]
+(pass) inventory fulfillment route permissions > rejects Mark as Fulfilled preflight without the dedicated permission [0.16ms]
+
+packages/ui/src/components/custom/sheet-v2-layout.test.ts:
+(pass) custom sheet v2 layout > uses the Midday-aligned v2 sheet size scale
+(pass) custom sheet v2 layout > defaults a single pane to Midday's 520px sheet width [0.12ms]
+(pass) custom sheet v2 layout > adds two independent 2xl panes without redistributing either width
+(pass) custom sheet v2 layout > preserves unequal pane widths
+(pass) custom sheet v2 layout > uses the primary width while the secondary pane is closed [0.06ms]
+(pass) custom sheet v2 layout > uses the secondary width alone when both panes cannot fit [0.11ms]
+(pass) custom sheet v2 layout > reserves enough viewport width for the Midday frame and safe gutter [0.02ms]
+(pass) custom sheet v2 layout > matches Midday reveal and hide timing
+(pass) custom sheet layered dismissal > dismisses the secondary pane before the primary sheet
+(pass) custom sheet layered dismissal > dismisses the primary sheet after the secondary pane has closed
+(pass) custom sheet layered dismissal > does not trap dismissal without a secondary close handler
+
+packages/inventory/src/application/stock/stock-operations.test.ts:
+(pass) manual stock operations > opening counts require confirmed units and an exact zero baseline, and retain audit context [9.44ms]
+(pass) manual stock operations > adds stock and records the before/after audit in one transaction [0.15ms]
+(pass) manual stock operations > creates the first stock row with matching movement and log [0.06ms]
+(pass) manual stock operations > sets a counted quantity without treating it as an increment [0.09ms]
+(pass) manual stock operations > rejects stale counts before any writes [0.03ms]
+(pass) manual stock operations > protects allocations before reducing stock [0.10ms]
+(pass) manual stock operations > rejects negative counts and no-op adjustments without audit writes
+(pass) manual stock operations > rejects reasons with the wrong movement direction [0.13ms]
+(pass) manual stock operations > validates IDs, finite quantities, reviewed baseline and bounded searches [1.02ms]
+(pass) contextual stock selection > validates contextual identities independently of the search limit [0.13ms]
+
+packages/inventory/src/application/stock/stock-operation-queries.test.ts:
+(pass) exact inventory selection context > the same door size on a different product is not a duplicate [0.38ms]
+(pass) exact inventory selection context > availability excludes committed stock per bucket and uses the product gallery fallback [0.39ms]
+(pass) exact inventory selection context > physical-count protection includes allocations awaiting review [0.11ms]
+
+apps/dashboard/src/components/sales-overview-system/lib/inventory-inbounds-utils.test.ts:
+(pass) sales overview inventory inbound helpers > counts applied inbound receipt as covered need quantity [0.09ms]
+(pass) sales overview inventory inbound helpers > separates covered quantity from ordered inbound coverage [0.02ms]
+(pass) sales overview inventory inbound helpers > clamps coverage and keeps an empty availability signal without inbound [0.02ms]
+(pass) sales overview inventory inbound helpers > uses covered quantity as the fulfillment signal [0.04ms]
+(pass) sales overview inventory inbound helpers > clamps orderable inbound quantity after open linked demand
+(pass) sales overview inventory inbound helpers > counts only tracked inventory rows as pending stock [0.05ms]
+(pass) sales overview inventory inbound helpers > classifies only positive tracked requirements as Needs rows [0.02ms]
+(pass) sales overview inventory inbound helpers > gates Mark as available on capability, lifecycle, and pending qty
+(pass) sales overview inventory inbound helpers > hides the needs action area when the active Needs segment has no rows
+(pass) sales overview inventory inbound helpers > auto-syncs only repairable unsynchronized inventory once per page session [0.08ms]
+(pass) sales overview inventory inbound helpers > does not open an inbound form when fulfilled needs have no pending work
+(pass) sales overview inventory inbound helpers > distinguishes fulfilled needs from tracked needs that are merely covered [0.11ms]
+(pass) sales overview inventory inbound helpers > keeps inbound count loading separate from empty state [0.31ms]
+(pass) sales overview inventory inbound helpers > configures Mark as available inbound form mode with locked status and selected items [0.30ms]
+(pass) sales overview inventory inbound helpers > opens secondary sheet in mark_available mode with reusable InboundCreatePane [0.53ms]
+(pass) uses canonical pending quantity without adding a receipt to its allocation twice [0.10ms]
+
+ 51 pass
+ 0 fail
+ 143 expect() calls
+Ran 51 tests across 7 files. [2.63s]

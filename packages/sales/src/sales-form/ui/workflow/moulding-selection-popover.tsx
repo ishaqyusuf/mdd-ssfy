@@ -26,7 +26,8 @@ export function MouldingSelectionPopover(props: MouldingSelectionPopoverProps) {
 			<PopoverContent
 				align="center"
 				side="bottom"
-				className="w-72 space-y-3 p-4"
+				aria-label={props.title}
+				className="w-72 space-y-3 p-4 max-sm:max-w-[calc(100vw-2rem)] max-sm:max-h-[calc(100dvh-2rem)] max-sm:overflow-y-auto"
 			>
 				<div className="space-y-1">
 					<p className="text-sm font-semibold">{props.title}</p>
@@ -36,6 +37,7 @@ export function MouldingSelectionPopover(props: MouldingSelectionPopoverProps) {
 				</div>
 				<div className="flex items-center gap-2">
 					<SalesFormQuantityStepper
+						className="max-lg:w-36"
 						inputRef={props.inputRef}
 						label={`Quantity for ${props.title}`}
 						value={Number(props.qty || 1)}
@@ -49,7 +51,7 @@ export function MouldingSelectionPopover(props: MouldingSelectionPopoverProps) {
 					/>
 					{props.calculatorSlot}
 				</div>
-				<div className="flex items-center justify-end gap-2">
+				<div className="flex items-center justify-end gap-2 max-sm:grid max-sm:grid-cols-2 max-sm:[&>button]:min-h-11">
 					<Button
 						type="button"
 						size="sm"

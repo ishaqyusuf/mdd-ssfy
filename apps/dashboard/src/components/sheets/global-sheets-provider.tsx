@@ -11,6 +11,7 @@ const GlobalSheets = dynamic(
 	},
 );
 const SHEET_QUERY_KEYS = [
+	"stockOperation",
 	"assistantDiagnostic",
 	"viewInboundId",
 	"sales-overview-id",

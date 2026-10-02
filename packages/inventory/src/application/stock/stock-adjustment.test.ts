@@ -43,6 +43,12 @@ describe("planStockAdjustment", () => {
       }),
     ).toThrow("Stock adjustment cannot reduce stock below zero.");
   });
+
+  test("rejects invalid quantities instead of coercing them to zero", () => {
+    for (const qty of [NaN, Infinity, -Infinity]) {
+      expect(() => planStockAdjustment({ previousQty: 10, qty })).toThrow("finite");
+    }
+  });
 });
 
 describe("stock audit expectations", () => {

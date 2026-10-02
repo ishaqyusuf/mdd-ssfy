@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { Db } from "@gnd/db";
 
 import { allocateReceivedInboundToBackorders } from "./sales-fulfillment-plan";
 
@@ -6,7 +7,7 @@ function makeDb(tx: Record<string, unknown>) {
 	return {
 		$transaction: async <T>(callback: (transaction: typeof tx) => Promise<T>) =>
 			callback(tx),
-	} as any;
+	} as unknown as Db;
 }
 
 describe("allocateReceivedInboundToBackorders", () => {
@@ -30,7 +31,9 @@ describe("allocateReceivedInboundToBackorders", () => {
 			},
 		};
 
-		const result = await allocateReceivedInboundToBackorders(db as any);
+		const result = await allocateReceivedInboundToBackorders(
+			db as unknown as Db,
+		);
 
 		expect(attempts).toBe(2);
 		expect(transactionOptions).toEqual([
@@ -40,7 +43,7 @@ describe("allocateReceivedInboundToBackorders", () => {
 		expect(result).toMatchObject({ ok: false, processedDemandCount: 0 });
 	});
 
-	test("skips received demand that is already covered by active or pending-review allocations", async () => {
+	test("skips received demand that is already covered by committed allocations", async () => {
 		const calls: string[] = [];
 		const componentReads: unknown[] = [];
 		const tx = {
@@ -109,13 +112,7 @@ describe("allocateReceivedInboundToBackorders", () => {
 				stockAllocations: {
 					where: {
 						status: {
-							in: [
-								"pending_review",
-								"approved",
-								"reserved",
-								"picked",
-								"consumed",
-							],
+							in: ["approved", "reserved", "picked", "consumed"],
 						},
 					},
 				},
@@ -172,6 +169,7 @@ describe("allocateReceivedInboundToBackorders", () => {
 			},
 			stockAllocation: {
 				findMany: async () => activeAllocations,
+				updateMany: async () => ({ count: 0 }),
 				create: async (payload: {
 					data: {
 						inventoryStockId: number;

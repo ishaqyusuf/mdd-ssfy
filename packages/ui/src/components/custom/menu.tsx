@@ -31,6 +31,8 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import { ScrollArea } from "@gnd/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@gnd/ui/collapsible";
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@gnd/ui/drawer";
 
 type MenuItemProps = {
   link?;
@@ -38,9 +40,10 @@ type MenuItemProps = {
   Icon?: IconKeys | React.JSXElementConstructor<any>;
   SubMenu?;
   shortCut?;
+  onClick?: React.MouseEventHandler<HTMLElement>;
   _blank?: boolean;
   icon?: IconKeys;
-} & DropdownMenuItemProps;
+} & Omit<DropdownMenuItemProps, "onClick">;
 interface RowActionMoreMenuProps {
   children;
   disabled?: boolean;
@@ -54,6 +57,8 @@ interface RowActionMoreMenuProps {
   open?;
   onOpenChanged?;
   className?: string;
+  presentation?: "dropdown" | "sheet";
+  title?: string;
   // dir?:  ComponentPropsWithoutRef<>
 }
 type MenuContext = ReturnType<typeof createMenuContext>;
@@ -75,6 +80,7 @@ export const createMenuContext = (props: RowActionMoreMenuProps, ref) => {
   return {
     _open,
     _onOpenChanged,
+    presentation: props.presentation || "dropdown",
     setHover,
     hover,
     disabled,
@@ -105,6 +111,25 @@ function BaseMenu(props: RowActionMoreMenuProps, ref) {
   } = props;
   const value = createMenuContext(props, ref);
   const { _open, _onOpenChanged, setHover, hover } = value;
+  if (props.presentation === "sheet") {
+    return (
+      <MenuContext.Provider value={{ ...value, _onOpenChanged: onOpenChanged || _onOpenChanged }}>
+        <Drawer shouldScaleBackground={false} open={onOpenChanged ? open : _open} onOpenChange={onOpenChanged || _onOpenChanged}>
+          <DrawerTrigger asChild>{Trigger}</DrawerTrigger>
+          <DrawerContent className="max-h-[80dvh]">
+            <DrawerHeader className="flex shrink-0 items-center justify-between text-left">
+              <div className="space-y-1">
+                <DrawerTitle>{props.title || "Options"}</DrawerTitle>
+                <DrawerDescription>Actions for the current selection.</DrawerDescription>
+              </div>
+              <DrawerClose asChild><Button type="button" variant="ghost" size="icon" className="size-11 shrink-0" aria-label="Close options"><Icons.X className="size-4" /></Button></DrawerClose>
+            </DrawerHeader>
+            <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">{children}</div>
+          </DrawerContent>
+        </Drawer>
+      </MenuContext.Provider>
+    );
+  }
   return (
     <MenuContext.Provider value={value}>
       <DropdownMenu
@@ -163,7 +188,35 @@ function Item({
   className,
   ...props
 }: MenuItemProps) {
-  const { disabled } = useMenuContext();
+  const { disabled, presentation, _onOpenChanged } = useMenuContext();
+  if (presentation === "sheet") {
+    if (SubMenu) {
+      return (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button type="button" variant="ghost" disabled={props.disabled || disabled} className="h-auto min-h-11 w-full justify-between gap-2 whitespace-normal text-left">
+              {children}<Icons.ChevronDown className="size-4 shrink-0" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="ml-2 space-y-1 border-l pl-2">{SubMenu}</CollapsibleContent>
+        </Collapsible>
+      );
+    }
+    return (
+      <Button type="button" variant="ghost" disabled={props.disabled || disabled} className={cn("h-auto min-h-11 w-full justify-start gap-2 whitespace-normal text-left", className)} onClick={(event) => {
+        if (props.onSelect) {
+          const selectionEvent = new Event("select", { cancelable: true });
+          props.onSelect(selectionEvent);
+          if (selectionEvent.defaultPrevented) return;
+        }
+        _onOpenChanged(false);
+        onClick?.(event);
+      }}>
+        {iconName || ItemIcon ? <Icon name={iconName} Icon={ItemIcon} className="size-4 shrink-0 text-muted-foreground/70" /> : null}
+        {children}
+      </Button>
+    );
+  }
 
   // Lucide.ALargeSmall
   if (SubMenu)

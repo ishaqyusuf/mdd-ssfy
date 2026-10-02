@@ -1,6 +1,7 @@
 "use client";
 
 import { InventoryTopSalesAnalytics } from "@/components/inventory/inventory-top-sales-analytics";
+import { OpenInventoryStockSheet } from "@/components/open-inventory-stock-sheet";
 import {
 	InventoryItemDashboardColumnVisibility,
 	InventoryItemDashboardDataTable,
@@ -25,7 +26,7 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
-import { useQuery } from "@gnd/ui/tanstack";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { imageUrl } from "@gnd/utils";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -108,16 +109,10 @@ export function InventoryItemDashboardPage({
 	initialSettings?: InventoryItemDashboardInitialSettings;
 }) {
 	const trpc = useTRPC();
-	const dashboardQuery = useQuery(
+	const dashboardQuery = useSuspenseQuery(
 		trpc.inventories.inventoryItemDashboard.queryOptions({ inventoryId }),
 	);
 	const dashboard = dashboardQuery.data;
-
-	if (dashboardQuery.isLoading) {
-		return (
-			<div className="text-sm text-muted-foreground">Loading inventory...</div>
-		);
-	}
 
 	if (!dashboard) {
 		return (
@@ -189,7 +184,8 @@ export function InventoryItemDashboardPage({
 					</div>
 				</div>
 
-				<div className="flex gap-2">
+				<div className="flex flex-wrap gap-2">
+					<OpenInventoryStockSheet inventoryId={item.id} />
 					<Button asChild variant="outline">
 						<Link href="/inventory">Back</Link>
 					</Button>
@@ -246,9 +242,7 @@ export function InventoryItemDashboardPage({
 				action={
 					<div className="flex items-center gap-2">
 						<InventoryItemDashboardColumnVisibility tableId="inventory-item-stocks" />
-						<Button asChild size="sm" variant="outline">
-							<Link href="/inventory/stocks">Stock Operations</Link>
-						</Button>
+						<OpenInventoryStockSheet inventoryId={item.id} size="sm" />
 					</div>
 				}
 			>

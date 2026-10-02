@@ -24,9 +24,10 @@ export function RootComponentPicker<TComponent>(
 			className="relative w-full space-y-3"
 			data-workflow-component-boundary="true"
 		>
-			<p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+			<p className="mb-3 hidden text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:block">
 				Root Step Components
 			</p>
+			{props.toolbarSlot}
 			{props.noticeSlot}
 			{props.loading ? (
 				<ComponentCardSkeletonGrid />
@@ -42,7 +43,6 @@ export function RootComponentPicker<TComponent>(
 						getKey={props.getKey}
 						renderComponent={props.renderComponent}
 					/>
-					{props.toolbarSlot}
 				</>
 			)}
 		</div>

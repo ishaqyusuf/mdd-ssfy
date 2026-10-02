@@ -8,6 +8,7 @@ export type WorkflowComponentBadgesProps = {
 	hasVariations?: boolean;
 	hasSectionOverride?: boolean;
 	hasRedirect?: boolean;
+	withStockStatus?: boolean;
 };
 
 export function WorkflowComponentBadges(props: WorkflowComponentBadgesProps) {
@@ -21,7 +22,9 @@ export function WorkflowComponentBadges(props: WorkflowComponentBadgesProps) {
 	}
 
 	return (
-		<div className="absolute left-2 top-2 z-[2] flex flex-col gap-1">
+		<div
+			className={`absolute left-2 z-[2] flex flex-col gap-1 ${props.withStockStatus ? "top-12" : "top-2"}`}
+		>
 			{props.isDefault ? (
 				<span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
 					Default

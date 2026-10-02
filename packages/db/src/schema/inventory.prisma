@@ -148,6 +148,7 @@ model InventoryVariant {
     updatedAt          DateTime?                   @updatedAt
     deletedAt          DateTime?                   @db.Timestamp(0)
     lowStockAlert      Int?
+    stockAlertsEnabled Boolean                     @default(true)
     status             String?
     publishedAt        DateTime?
     description        String?
@@ -592,6 +593,7 @@ model InboundShipmentItem {
 
     qty       Float
     unitPrice Float?
+    location  String?
     qtyGood   Float?
     qtyIssue  Float?
 
@@ -835,6 +837,9 @@ model StockAllocation {
     inventoryVariantId Int
     inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
 
+    inboundDemandId Int?
+    inboundDemand   InboundDemand? @relation(fields: [inboundDemandId], references: [id])
+
 	orderDeliveryId Int?
 	orderDelivery   OrderDelivery? @relation(fields: [orderDeliveryId], references: [id])
 
@@ -849,6 +854,7 @@ model StockAllocation {
     @@index([lineItemComponentId])
     @@index([inventoryStockId])
     @@index([inventoryVariantId])
+	@@index([inboundDemandId])
 	@@index([orderDeliveryId])
 	@@index([orderDeliveryId, status, deletedAt], name: "idx_stock_allocation_dispatch")
     @@index([lineItemComponentId, status, deletedAt], name: "idx_stock_allocation_fulfillment")
@@ -868,6 +874,8 @@ model InboundDemand {
 
     inboundShipmentItemId Int?
     inboundShipmentItem   InboundShipmentItem? @relation(fields: [inboundShipmentItemId], references: [id])
+
+    stockAllocations StockAllocation[]
 
     status InboundDemandStatus @default(pending)
     notes  String?

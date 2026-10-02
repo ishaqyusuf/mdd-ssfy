@@ -126,6 +126,13 @@ const customerTargets = [
 ] as const;
 
 const inventoryCatalogTargets = [
+	pathTarget("inventories.stockPolicy"),
+	pathTarget("inventories.workflowStock"),
+	pathTarget("inventories.salesInventoryOverview"),
+	pathTarget("inventories.salesFormStockPlan"),
+	pathTarget("inventories.salesFormStockPreview"),
+	pathTarget("inventories.inventoryCategoryForm"),
+	pathTarget("inventories.getInventoryCategories"),
 	pathTarget("inventories.inventoryProducts"),
 	pathTarget("inventories.inventoryVariantsWorkspace"),
 	pathTarget("inventories.inventoryCategories"),
@@ -138,6 +145,11 @@ const inventoryStockTargets = [
 	...inventoryCatalogTargets,
 	...salesOrderTargets,
 	pathTarget("inventories.stockAuditVerificationReport"),
+	pathTarget("inventories.stockVariantContext"),
+	pathTarget("inventories.stockVariantBalances"),
+	pathTarget("inventories.inventoryOperationsSummary"),
+	pathTarget("inventories.lowStockSummary"),
+	pathTarget("inventories.salesInventoryOverview"),
 	pathTarget("inventories.pendingAllocations"),
 	pathTarget("inventories.salesBackorderQueue"),
 	pathTarget("inventories.salesProductionPlan"),
@@ -295,11 +307,14 @@ export const MUTATION_QUERY_EVENTS = {
 		"inventory.fulfillment.changed",
 	],
 	"inventories.approveBulkStockAllocation": ["inventory.allocation.changed"],
+	"inventories.syncSalesInventoryOverview": ["inventory.allocation.changed"],
+	"inventories.applySalesFormStock": ["inventory.allocation.changed"],
 	"inventories.approveStockAllocation": ["inventory.allocation.changed"],
 	"inventories.assignInboundDemands": ["inventory.inbound.changed"],
 	"inventories.assignInventoryDispatchAllocations": [
 		"inventory.fulfillment.changed",
 	],
+	"inventories.createGeneralInbound": ["inventory.inbound.changed"],
 	"inventories.createInboundShipment": ["inventory.inbound.changed"],
 	"inventories.createInboundShipmentFromDemands": ["inventory.inbound.changed"],
 	"inventories.deleteInventories": ["inventory.catalog.changed"],
@@ -313,6 +328,7 @@ export const MUTATION_QUERY_EVENTS = {
 		"inventory.fulfillment.changed",
 	],
 	"inventories.receiveInboundShipment": ["inventory.inbound.changed"],
+	"inventories.repairSalesStockTracking": ["inventory.stock.changed"],
 	"inventories.rejectStockAllocation": ["inventory.allocation.changed"],
 	"inventories.releaseInventoryDispatchAllocations": [
 		"inventory.fulfillment.changed",
@@ -328,6 +344,9 @@ export const MUTATION_QUERY_EVENTS = {
 	"inventories.shipAvailableSalesInventory": ["inventory.fulfillment.changed"],
 	"inventories.syncInventorySuppliersFromDyke": ["inventory.catalog.changed"],
 	"inventories.updateCategoryProductKind": ["inventory.catalog.changed"],
+	"inventories.setStockPolicy": ["inventory.catalog.changed"],
+	"inventories.setVariantStockThreshold": ["inventory.stock.changed"],
+	"inventories.setVariantStockAlerts": ["inventory.stock.changed"],
 	"inventories.updateCategoryStockMode": ["inventory.catalog.changed"],
 	"inventories.updateInboundShipmentStatus": ["inventory.inbound.changed"],
 	"inventories.updateInboundShipmentNeedsApplication": [

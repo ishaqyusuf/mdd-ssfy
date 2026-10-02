@@ -47,10 +47,10 @@ describe("sales form quantity stepper", () => {
 		);
 
 		expect(source).toContain(
-			'className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-4 py-2"',
+			'className="grid shrink-0 grid-cols-1 sm:grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-4 py-2"',
 		);
 		expect(source).toContain(
-			'className="h-8 rounded-md bg-white text-xs font-medium"',
+			'className="h-8 max-sm:h-11 rounded-md bg-white text-xs font-medium"',
 		);
 		expect(source).toContain(
 			'className="flex shrink-0 items-center justify-end gap-4 border-t bg-muted/20 px-4 py-2 text-xs"',
@@ -69,7 +69,7 @@ describe("sales form quantity stepper", () => {
 			"./shelf-inline-items-editor.tsx",
 		]) {
 			const source = readFileSync(new URL(file, import.meta.url), "utf8");
-			expect(source).toContain('className="w-32"');
+			expect(source).toMatch(/className="w-32(?: [^"]*)?"/);
 		}
 
 		const mouldingSource = readFileSync(

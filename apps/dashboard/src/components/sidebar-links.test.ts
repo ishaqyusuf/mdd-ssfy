@@ -318,7 +318,7 @@ describe("sidebar role access", () => {
 		const links = getLinkModules(
 			validateLinks({
 				role: { name: "Super Admin" },
-				can: permissions(),
+				can: permissions({ viewInboundOrder: true, editInboundOrder: true }),
 				userId: "super-admin-1",
 			}),
 		);
@@ -326,6 +326,19 @@ describe("sidebar role access", () => {
 		for (const { href, public: isPublic } of inventoryValidationRoutes) {
 			if (isPublic) continue;
 			expect(links.linksNameMap[href]?.hasAccess).toBe(true);
+		}
+	});
+
+	test("exposes stock operations to inbound editors and denies viewers", () => {
+		for (const [can, allowed] of [
+			[permissions({ editInboundOrder: true }), true],
+			[permissions({ viewInboundOrder: true }), false],
+			[permissions(), false],
+		] as const) {
+			const links = getLinkModules(
+				validateLinks({ role: { name: "Admin" }, can, userId: "admin-1" }),
+			);
+			expect(links.linksNameMap["/inventory/stocks"]?.hasAccess).toBe(allowed);
 		}
 	});
 

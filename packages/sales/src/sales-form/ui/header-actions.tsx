@@ -5,11 +5,19 @@ import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import {
-	cloneElement,
-	isValidElement,
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@gnd/ui/select";
+import {
 	type MouseEvent,
 	type ReactElement,
 	type ReactNode,
+	cloneElement,
+	isValidElement,
 } from "react";
 import type { SalesFormCapabilities, SalesFormPermissions } from "../contracts";
 import { buildSalesFormHeaderTitle } from "./header-title";
@@ -74,6 +82,12 @@ function HeaderActionTooltip({
 }
 
 export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
+	const itemOptions = props.itemOptions || [];
+	const activeItem = itemOptions.some(
+		(option) => option.uid === props.activeItem,
+	)
+		? props.activeItem || ""
+		: itemOptions[0]?.uid || "";
 	const canOpenOverview =
 		props.capabilities?.internalOverview !== false &&
 		props.permissions?.canOpenInternalOverview !== false &&
@@ -202,27 +216,35 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 				</div>
 				<div className="order-2 flex w-full min-w-0 items-center gap-2 lg:hidden">
 					<div className="min-w-0 flex-1">
-						<select
-							aria-label="Select item"
-							value={props.activeItem || ""}
-							onChange={(event) =>
-								props.onActiveItemChange?.(event.target.value)
-							}
-							disabled={(props.itemOptions?.length || 0) <= 1}
-							className="h-9 w-full min-w-0 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+						<Select
+							value={activeItem}
+							onValueChange={props.onActiveItemChange}
+							disabled={!itemOptions.length || props.isSaving}
 						>
-							{(props.itemOptions || []).map((option) => (
-								<option key={`header-item-${option.uid}`} value={option.uid}>
-									{option.label}
-								</option>
-							))}
-						</select>
+							<SelectTrigger aria-label="Select item" className="h-11 min-w-0">
+								<SelectValue placeholder="Select item" />
+							</SelectTrigger>
+							<SelectContent className="max-h-[min(24rem,var(--radix-select-content-available-height))] max-w-[calc(100vw-2rem)]">
+								<SelectGroup>
+									{itemOptions.map((option) => (
+										<SelectItem
+											key={option.uid}
+											value={option.uid}
+											className="min-h-11"
+										>
+											{option.label}
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
 					</div>
 					<Button
 						size="icon"
 						variant="outline"
 						onClick={props.onAddItem}
 						disabled={props.isSaving}
+						className="size-11"
 						aria-label="Add new item"
 					>
 						<Icons.Plus className="size-4" />
@@ -232,6 +254,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						variant="outline"
 						onClick={props.onOpenMobileSummary}
 						disabled={!props.onOpenMobileSummary}
+						className="size-11"
 						aria-label="Open invoice summary"
 					>
 						<Icons.Sidebar className="size-4" />
@@ -243,7 +266,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						<Button
 							size="sm"
 							variant="outline"
-							className="size-9 px-0 lg:w-auto lg:px-3"
+							className="size-11 px-0 lg:size-9 lg:w-auto lg:px-3"
 							disabled={props.isSaving}
 							aria-label="Open actions menu"
 						>

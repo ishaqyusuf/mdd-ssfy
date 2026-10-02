@@ -2,7 +2,8 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
-import { useEffect, useRef, useState } from "react";
+import { Icons } from "@gnd/ui/icons";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { SalesFormComposition } from "../../contracts";
 import {
 	SALES_FORM_SAVE_CHOICE_DELAY_MS,
@@ -34,6 +35,7 @@ function MobileCountdownSave({
 	onSaveClose?: () => Promise<void> | void;
 	onSaveNew?: () => Promise<void> | void;
 }) {
+	const optionsId = useId();
 	const [optionsOpen, setOptionsOpen] = useState(false);
 	const [countdown, setCountdown] = useState(
 		SALES_FORM_SAVE_CHOICE_DELAY_SECONDS,
@@ -41,7 +43,7 @@ function MobileCountdownSave({
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-	const clearTimers = () => {
+	const clearTimers = useCallback(() => {
 		if (timeoutRef.current) {
 			clearTimeout(timeoutRef.current);
 			timeoutRef.current = null;
@@ -50,7 +52,7 @@ function MobileCountdownSave({
 			clearInterval(intervalRef.current);
 			intervalRef.current = null;
 		}
-	};
+	}, []);
 
 	const runSave = (mode: "save" | "close" | "new") => {
 		clearTimers();
@@ -85,39 +87,56 @@ function MobileCountdownSave({
 		);
 	};
 
-	useEffect(() => clearTimers, []);
+	useEffect(() => clearTimers, [clearTimers]);
 
 	return (
-		<div className="flex shrink-0 items-center justify-end overflow-hidden">
-			<div
-				className={[
-					"transition-all duration-200 ease-out",
-					optionsOpen
-						? "pointer-events-none max-w-0 scale-95 opacity-0"
-						: "max-w-28 scale-100 opacity-100",
-				].join(" ")}
-			>
+		<div
+			className="relative flex shrink-0 items-center justify-end"
+			onKeyDown={(event) => {
+				if (event.key === "Escape") cancelOptions();
+			}}
+		>
+			<div className="flex items-stretch">
 				<Button
-					className="h-11 px-4"
+					type="button"
+					className="h-11 min-w-20 rounded-r-none px-3"
 					onClick={openOptions}
+					aria-expanded={optionsOpen}
+					aria-controls={optionsId}
 					disabled={disabled || isSaving}
 				>
 					{isSaving ? "Saving..." : label}
 				</Button>
+				<Button
+					type="button"
+					size="icon"
+					className="size-11 rounded-l-none border-l border-primary-foreground/25"
+					aria-label="Save modes"
+					aria-expanded={optionsOpen}
+					aria-controls={optionsId}
+					disabled={disabled || isSaving}
+					onClick={optionsOpen ? cancelOptions : openOptions}
+				>
+					<Icons.ChevronDown className="size-4" />
+				</Button>
 			</div>
-			<div
+			<fieldset
+				data-sales-form-save-options
+				inert={!optionsOpen}
+				id={optionsId}
+				aria-label="Save options"
 				className={[
-					"flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out",
+					"absolute bottom-full right-0 mb-4 grid w-[min(22rem,calc(100vw-1.5rem))] grid-cols-2 gap-2 rounded-xl border bg-card p-3 shadow-xl transition-all duration-200 ease-out motion-reduce:transition-none",
 					optionsOpen
-						? "ml-1 max-w-[32rem] scale-100 opacity-100"
-						: "pointer-events-none ml-0 max-w-0 scale-95 opacity-0",
+						? "visible scale-100 opacity-100"
+						: "invisible pointer-events-none scale-95 opacity-0",
 				].join(" ")}
 			>
 				<Button
 					type="button"
 					size="sm"
 					disabled={disabled || isSaving}
-					className="h-10 rounded-full px-3 text-xs"
+					className="h-11 rounded-full px-3 text-xs"
 					onClick={() => runSave("save")}
 				>
 					{isSaving ? "Saving..." : `Save (${countdown})`}
@@ -127,7 +146,7 @@ function MobileCountdownSave({
 					size="sm"
 					variant="outline"
 					disabled={disabled || isSaving || !onSaveClose}
-					className="h-10 rounded-full px-3 text-xs"
+					className="h-11 rounded-full px-3 text-xs"
 					onClick={() => runSave("close")}
 				>
 					Save & Close
@@ -137,7 +156,7 @@ function MobileCountdownSave({
 					size="sm"
 					variant="outline"
 					disabled={disabled || isSaving || !onSaveNew}
-					className="h-10 rounded-full px-3 text-xs"
+					className="h-11 rounded-full px-3 text-xs"
 					onClick={() => runSave("new")}
 				>
 					Save & New
@@ -147,12 +166,12 @@ function MobileCountdownSave({
 					size="sm"
 					variant="ghost"
 					disabled={disabled || isSaving}
-					className="h-10 rounded-full px-3 text-xs"
+					className="h-11 rounded-full px-3 text-xs"
 					onClick={cancelOptions}
 				>
 					Cancel
 				</Button>
-			</div>
+			</fieldset>
 		</div>
 	);
 }
@@ -182,19 +201,23 @@ export function SalesFormShell(props: SalesFormShellProps) {
 			{props.capabilities.paymentMethodReview
 				? slots.PaymentMethodReviewDialog
 				: null}
-			<div className={frameClassName}>
+			<div data-sales-form-shell className={frameClassName}>
 				<div className={innerClassName}>
 					<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 						{props.children}
 
-						<div className="flex-1 overflow-y-auto overscroll-contain pb-28 lg:pb-20">
+						<div className="flex-1 overflow-y-auto overscroll-contain pb-[calc(5rem+env(safe-area-inset-bottom))] scroll-pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-20 lg:scroll-pb-20">
 							<div className="mx-auto flex w-full max-w-6xl flex-col">
 								{slots.RecoveryBanner}
 								{slots.MainPanel}
 							</div>
 						</div>
 
-						{slots.FloatingActions}
+						<div
+							className={showMobileFooter ? "hidden lg:contents" : "contents"}
+						>
+							{slots.FloatingActions}
+						</div>
 					</main>
 
 					{summaryPanel ? (
@@ -224,15 +247,18 @@ export function SalesFormShell(props: SalesFormShellProps) {
 					) : null}
 
 					{showMobileFooter ? (
-						<div className="absolute inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
+						<div
+							data-sales-form-mobile-footer
+							className="absolute inset-x-0 bottom-0 z-20 border-t bg-card px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden"
+						>
 							<div className="mx-auto flex w-full max-w-lg items-center gap-3">
 								<button
 									type="button"
-									className="flex flex-1 flex-col items-start"
+									className="flex min-h-11 min-w-0 flex-1 flex-col items-start justify-center"
 									onClick={props.onOpenSummary}
 								>
 									<span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-										Review Totals
+										Total · Review
 									</span>
 									<span className="text-lg font-bold text-foreground">
 										{slots.GrandTotalValue || currency(props.grandTotal)}

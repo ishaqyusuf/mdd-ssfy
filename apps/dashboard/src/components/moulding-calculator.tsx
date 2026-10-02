@@ -112,7 +112,7 @@ export function MouldingCalculator(props: Props) {
             <Dialog.Trigger asChild>
                 <Button
                     type="button"
-                    className={savedCalculation.success ? "text-blue-600 dark:text-blue-400" : ""}
+                    className={`max-sm:size-11 ${savedCalculation.success ? "text-blue-600 dark:text-blue-400" : ""}`}
                     size="icon-sm"
                     variant="secondary"
                     title={calculatorTitle}
@@ -122,10 +122,10 @@ export function MouldingCalculator(props: Props) {
                 </Button>
             </Dialog.Trigger>
             <Dialog.Content
-                className="max-h-[90vh] w-[min(94vw,560px)] overflow-y-auto"
+                className="max-h-[90vh] w-[min(94vw,560px)] overflow-y-auto max-sm:flex max-sm:flex-col max-sm:gap-0 max-sm:max-h-[calc(100dvh-1rem)] max-sm:w-[calc(100vw-1rem)] max-sm:overflow-hidden max-sm:rounded-xl max-sm:p-0 max-sm:[&>button]:hidden"
                 onPointerDownOutside={() => setOpened(false)}
             >
-                <Dialog.Header className="relative pr-8">
+                <Dialog.Header className="relative pr-8 max-sm:shrink-0 max-sm:border-b max-sm:p-4 max-sm:pr-16 max-sm:text-left">
                     <Dialog.Title>Moulding Calculator</Dialog.Title>
                     <Dialog.Description className="">
                         {props.title}
@@ -135,14 +135,14 @@ export function MouldingCalculator(props: Props) {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute right-0 top-0"
+                            className="absolute right-0 top-0 max-sm:right-2 max-sm:top-2 max-sm:size-11"
                             aria-label="Close calculator"
                         >
                             <Icons.Close className="" />
                         </Button>
                     </Dialog.Close>
                 </Dialog.Header>
-                <form onSubmit={(event) => event.preventDefault()}>
+                <form className="max-sm:min-h-0 max-sm:flex-1 max-sm:overflow-y-auto max-sm:overscroll-contain max-sm:p-4" onSubmit={(event) => event.preventDefault()}>
                     <div className="grid gap-4">
                         {quantityOverridden && (
                             <div className="rounded-md border p-3 text-sm" role="status">
@@ -173,7 +173,7 @@ export function MouldingCalculator(props: Props) {
                                                             )}
                                                             <Button
                                                                 type="button"
-                                                                className="flex-1"
+                                                                className="flex-1 max-sm:h-11"
                                                                 key={len}
                                                                 onClick={() =>
                                                                     field.onChange(
@@ -206,14 +206,16 @@ export function MouldingCalculator(props: Props) {
                                         name="longFoot"
                                         render={({ field }) => (
                                             <Field>
-                                                <Field.Label>
+                                                <Field.Label className="max-sm:min-h-10">
                                                     Total LF
                                                 </Field.Label>
-                                                <InputGroup>
+                                                <InputGroup className="max-sm:h-11">
                                                     <InputGroup.Input
                                                         type="number"
                                                         placeholder="0"
-                                                        className=""
+                                                        className="max-sm:text-base"
+                                                        aria-label="Total linear feet"
+                                                        inputMode="decimal"
                                                         value={Number.isFinite(field.value) ? field.value : ""}
                                                         onChange={(e) =>
                                                             field.onChange(
@@ -233,10 +235,10 @@ export function MouldingCalculator(props: Props) {
                                         name="unitPrice"
                                         render={() => (
                                             <Field>
-                                                <Field.Label>
+                                                <Field.Label className="max-sm:min-h-10">
                                                     Price per LF (Derived)
                                                 </Field.Label>
-                                                <InputGroup>
+                                                <InputGroup className="max-sm:h-11">
                                                     <InputGroup.Addon>
                                                         $
                                                     </InputGroup.Addon>
@@ -244,13 +246,14 @@ export function MouldingCalculator(props: Props) {
                                                         disabled
                                                         type="number"
                                                         placeholder="0.00"
-                                                        className=""
+                                                        className="max-sm:text-base"
+                                                        aria-label="Price per linear foot"
                                                         value={pricePerLF.toFixed(
                                                             2,
                                                         )}
                                                     />
                                                     <InputGroup.Addon
-                                                        className="text-xs"
+                                                        className="text-xs max-sm:hidden"
                                                         align="inline-end"
                                                     >
                                                         PER LF
@@ -386,13 +389,13 @@ export function MouldingCalculator(props: Props) {
                         </div>
                     </div>
                 </form>
-                <Dialog.Footer className="">
+                <Dialog.Footer className="max-sm:shrink-0 max-sm:border-t max-sm:p-4 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
                     {/* Footer */}
-                    <div className="gap-1 w-full">
+                    <div className="gap-1 w-full max-sm:grid max-sm:grid-cols-2 max-sm:gap-2">
                         <Button
                             type="button"
                             variant="outline"
-                            className="mb-2 w-full"
+                            className="mb-2 w-full max-sm:mb-0 max-sm:h-11"
                             onClick={() => setOpened(false)}
                         >
                             Cancel
@@ -409,12 +412,12 @@ export function MouldingCalculator(props: Props) {
                                 );
                                 setOpened(false);
                             }}
-                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                            className="w-full max-sm:h-11 max-sm:py-2 max-sm:px-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                         >
                             <Icons.CheckCircle2 size={20} />
-                            Apply to Invoice
+                            <span>Apply<span className="max-sm:sr-only"> to Invoice</span></span>
                         </Button>
-                        <p className="text-center text-[11px] text-muted-foreground mt-4">
+                        <p className="text-center text-[11px] text-muted-foreground mt-4 max-sm:col-span-2 max-sm:mt-0">
                             Calculated pieces will be applied to your line item
                             quantity.
                         </p>

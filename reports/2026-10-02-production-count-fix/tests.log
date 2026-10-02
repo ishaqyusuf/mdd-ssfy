@@ -1,0 +1,54 @@
+bun test v1.3.0 (b0a6feca)
+
+packages/sales/src/run-sales-post-save-sync.test.ts:
+(pass) post-save sales calibration > publishes workflow scope before inventory and preserves retryable inventory errors [0.41ms]
+(pass) post-save sales calibration > does not run inventory for a deleted order [0.12ms]
+(pass) post-save sales calibration > legacy saves still calibrate while leaving inventory adaptation independent [0.05ms]
+(pass) post-save sales calibration > a calibration failure retries instead of publishing misleading success [0.06ms]
+
+packages/sales/src/sales-pipeline-order.test.ts:
+(pass) buildCanonicalSalesSourceRevision > changes when either detailed or pipeline evidence changes [2.38ms]
+(pass) resolveSalesPipelineSnapshotFromOrder > reads the saved requirement when a legacy total is zero without inventing progress [2.94ms]
+(pass) resolveSalesPipelineSnapshotFromOrder > builds identical canonical presentation data for every order consumer [0.20ms]
+(pass) resolveSalesPipelineSnapshotFromOrder > does not promote a legacy completed Dispatch without proof [0.34ms]
+(pass) resolveSalesPipelineSnapshotFromOrder > ignores a cancelled predecessor when a replacement Dispatch proves fulfillment [0.12ms]
+(pass) getSalesPipelineSnapshots > loads independent evidence concurrently without changing the canonical snapshot [1.15ms]
+(pass) getSalesPipelineSnapshots > loads report-sized status inputs in bounded batches [0.22ms]
+(pass) getSalesPipelineSnapshots > rejects missing grandTotal evidence instead of manufacturing an empty stage [0.23ms]
+(pass) getSalesPipelineSnapshots > rejects missing itemControls evidence instead of manufacturing an empty stage [0.02ms]
+(pass) getSalesPipelineSnapshots > rejects missing assignments evidence instead of manufacturing an empty stage [0.04ms]
+(pass) getSalesPipelineSnapshots > rejects missing deliveries evidence instead of manufacturing an empty stage [0.04ms]
+
+packages/sales/src/sales-control/index.audit-retention.test.ts:
+(pass) sales item-control rebuild audit retention > rebuild (service-only: %s) [2.35ms]
+(pass) sales item-control rebuild audit retention > rebuild (service-only: %s) [0.21ms]
+
+packages/sales/src/sales-control/get-sale-information.test.ts:
+(pass) production information excludes foreign doors attached to a reused house package [0.36ms]
+(pass) composeFullSalesSelect > creates request-local assignment filters without mutating the shared select [0.03ms]
+(pass) hasHistoricalProductionCapability > matches a historical control by its current uid
+(pass) hasHistoricalProductionCapability > falls back to the linked order item when a legacy uid changed
+(pass) hasHistoricalProductionCapability > does not match a control from another item [0.07ms]
+(pass) preserveHistoricalProductionCapability > keeps legacy production items visible when the persisted control is produceable [0.01ms]
+(pass) preserveHistoricalProductionCapability > does not turn unrelated historical items into production items
+
+packages/sales/src/sales-control/initial-requirements.test.ts:
+(pass) a configured route with production omitted is non-production [0.18ms]
+(pass) a missing route fails calibration instead of claiming production is unnecessary [0.06ms]
+(pass) control reconstruction cannot import doors from another order sharing a house package [0.21ms]
+
+packages/sales/src/utils/sales-control.initial-scope.test.ts:
+(pass) saved sale control scope > a simple non-production line has fulfillment scope but no production scope [0.14ms]
+(pass) saved sale control scope > door production override %s overrides its route [0.08ms]
+(pass) saved sale control scope > door production override %s overrides its route [0.06ms]
+(pass) saved sale control scope > a production line has scope before assignment and keeps actual progress on regeneration [0.12ms]
+
+apps/api/src/db/queries/sales-overview-tab-counts.test.ts:
+(pass) Sales Overview tab counts > counts live dispatches and the payment rows shown in Transactions
+(pass) Sales Overview tab counts > uses total required production quantity, including already completed units [0.10ms]
+(pass) Sales Overview tab counts > returns zero production when no pipeline applies
+
+ 34 pass
+ 0 fail
+ 76 expect() calls
+Ran 34 tests across 7 files. [1280.00ms]

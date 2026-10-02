@@ -34,6 +34,10 @@ type Props = {
 	isLoading?: boolean;
 	selectedInboundId?: number | null;
 	onSelectInbound: (inboundId: number) => void;
+	hasNextPage?: boolean;
+	isFetchingNextPage?: boolean;
+	fetchNextPage?: () => void;
+	hasFilters?: boolean;
 };
 
 export function DataTable({
@@ -42,6 +46,10 @@ export function DataTable({
 	isLoading,
 	selectedInboundId,
 	onSelectInbound,
+	hasNextPage,
+	isFetchingNextPage,
+	fetchNextPage,
+	hasFilters,
 }: Props) {
 	const parentRef = useRef<HTMLDivElement>(null);
 	const { setColumns, bindShowColumnDividers } =
@@ -128,18 +136,44 @@ export function DataTable({
 		[onSelectInbound],
 	);
 
+	const virtualItems = rowVirtualizer.getVirtualItems();
+	const lastVisibleIndex = virtualItems.at(-1)?.index ?? -1;
+	useEffect(() => {
+		if (
+			hasNextPage &&
+			!isFetchingNextPage &&
+			lastVisibleIndex >= rows.length - 5
+		)
+			fetchNextPage?.();
+	}, [
+		hasNextPage,
+		isFetchingNextPage,
+		lastVisibleIndex,
+		rows.length,
+		fetchNextPage,
+	]);
+
 	if (isLoading) {
 		return <InventoryInboundsSkeleton initialSettings={initialSettings} />;
 	}
 
 	if (tableData.length === 0) {
-		return <EmptyState />;
+		return hasFilters ? (
+			<p className="py-12 text-center text-muted-foreground">
+				No shipments match these filters.
+			</p>
+		) : (
+			<EmptyState />
+		);
 	}
-
-	const virtualItems = rowVirtualizer.getVirtualItems();
 
 	return (
 		<div className="relative">
+			{isFetchingNextPage ? (
+				<output className="text-sm text-muted-foreground">
+					Loading more shipments…
+				</output>
+			) : null}
 			<div className="w-full">
 				<div
 					ref={(element) => {
@@ -149,7 +183,7 @@ export function DataTable({
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
 						height:
-							"max(320px, calc(100vh - 520px + var(--header-offset, 0px)))",
+							"max(320px, calc(100vh - 290px + var(--header-offset, 0px)))",
 					}}
 				>
 					<DndContext

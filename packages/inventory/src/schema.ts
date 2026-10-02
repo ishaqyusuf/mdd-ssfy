@@ -314,7 +314,7 @@ export const inventoryFormSchema = z.object({
 				price: z.number().optional().nullable(),
 				cost: z.number().optional().nullable(),
 				stock: z.number().optional().nullable(),
-				lowStockAlert: z.number().optional().nullable(),
+				lowStockAlert: z.number().int().nonnegative().max(2147483647).optional().nullable(),
 				attributes: z.array(
 					z.object({
 						id: z.number(),
@@ -353,7 +353,7 @@ export const variantFormSchema = z.object({
 		.nullable(),
 	changeReason: z.string().optional().nullable(),
 	authorName: z.string().optional().nullable(),
-	lowStockAlert: z.number().optional().nullable(),
+	lowStockAlert: z.number().int().nonnegative().max(2147483647).optional().nullable(),
 	inventoryId: z.number(),
 	sku: z.string().optional().nullable(),
 	description: z.string().optional().nullable(),
@@ -609,3 +609,26 @@ export const supplierVariantFormSchema = z.object({
 	active: z.boolean().optional().default(true),
 });
 export type SupplierVariantForm = z.infer<typeof supplierVariantFormSchema>;
+
+export const updateVariantCostSchema = z.object({
+  uid: z.string(),
+  variantId: z.number().optional().nullable(),
+  pricingId: z.number().optional().nullable(),
+  cost: z.number(),
+  oldCostPrice: z.number().optional().nullable(),
+  inventoryId: z.number(),
+  editType: z.string(),
+  reason: z.string().optional().nullable(),
+  authorName: z.string(),
+  effectiveFrom: z.string().optional().nullable(),
+  effectiveTo: z.string().optional().nullable(),
+  attributes: z
+    .array(
+      z.object({
+        valueId: z.number(),
+        attributeId: z.number(),
+      }),
+    )
+    .optional(),
+});
+export type UpdateVariantCost = z.infer<typeof updateVariantCostSchema>;

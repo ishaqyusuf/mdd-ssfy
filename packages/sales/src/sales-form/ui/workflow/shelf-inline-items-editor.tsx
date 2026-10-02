@@ -390,9 +390,9 @@ function ShelfInlineProductCell(props: {
 					autoHighlight
 					openOnFocus
 				>
-					<ComboboxAnchor className="relative h-8 px-3">
+					<ComboboxAnchor className="relative h-8 px-3 max-lg:h-11">
 						<ComboboxInput
-							className="h-8 min-w-20 pr-7"
+							className="h-8 min-w-20 pr-7 max-lg:h-11 max-lg:pr-11 max-lg:text-base"
 							placeholder="Search product..."
 						/>
 						{props.row.productId ? (
@@ -404,12 +404,16 @@ function ShelfInlineProductCell(props: {
 									props.onProductSearchChange?.("");
 									setOpen(true);
 								}}
-								className="absolute right-2 top-2"
+								className="absolute right-2 top-2 max-lg:right-0 max-lg:top-0 max-lg:size-11"
+								aria-label="Clear selected product"
 							>
 								<Icons.X className="size-4" />
 							</ComboboxTrigger>
 						) : (
-							<ComboboxTrigger className="absolute right-2 top-2">
+							<ComboboxTrigger
+								className="absolute right-2 top-2 max-lg:right-0 max-lg:top-0 max-lg:size-11"
+								aria-label="Open product options"
+							>
 								<Icons.ChevronDown className="size-4" />
 							</ComboboxTrigger>
 						)}
@@ -474,7 +478,7 @@ function ShelfInlineProductCell(props: {
 						type="button"
 						variant="outline"
 						size="sm"
-						className="h-8 shrink-0 px-2"
+						className="h-8 shrink-0 px-2 max-lg:h-11"
 						onClick={() => props.onEditProduct?.(editableProduct)}
 					>
 						<Icons.Pencil className="mr-1 size-3.5" />
@@ -482,6 +486,11 @@ function ShelfInlineProductCell(props: {
 					</Button>
 				) : null}
 			</div>
+			{props.row.productId ? (
+				<p className="break-words text-sm font-medium lg:hidden">
+					{selectedProduct?.title || props.row.description}
+				</p>
+			) : null}
 			{breadcrumb ? (
 				<p
 					className="truncate px-1 text-[11px] text-muted-foreground"
@@ -609,9 +618,9 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 				</p>
 				{props.headerSlot}
 			</div>
-			<div className="overflow-x-auto rounded-lg border">
-				<table className="w-full min-w-[820px] table-fixed text-sm">
-					<colgroup>
+			<div className="overflow-x-auto rounded-lg border max-lg:overflow-visible max-lg:border-0">
+				<table className="w-full min-w-[820px] table-fixed text-sm max-lg:min-w-0 max-lg:table-auto">
+					<colgroup className="max-lg:hidden">
 						<col style={{ width: "2.5rem" }} />
 						<col />
 						<col style={{ width: "8rem" }} />
@@ -619,7 +628,7 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 						<col style={{ width: "8rem" }} />
 						<col style={{ width: "5rem" }} />
 					</colgroup>
-					<thead>
+					<thead className="max-lg:hidden">
 						<tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 							<th
 								scope="col"
@@ -635,7 +644,7 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 							<th className="px-3 py-2 text-right">Delete</th>
 						</tr>
 					</thead>
-					<tbody>
+					<tbody className="max-lg:grid max-lg:gap-3">
 						{entries.map((entry, index) => {
 							const unitPrice = getShelfRowDisplayUnitPrice(entry.row);
 							const totalPrice = getShelfRowDisplayTotal(entry.row);
@@ -655,14 +664,17 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 							return (
 								<tr
 									key={`shelf-inline-row-${entry.section.uid}-${entry.row.uid}-${index}`}
-									className="border-t align-top"
+									className="border-t align-top max-lg:grid max-lg:grid-cols-2 max-lg:gap-3 max-lg:rounded-lg max-lg:border max-lg:p-3"
 								>
-									<td className="px-1 py-2 text-center">
+									<td className="px-1 py-2 text-center max-lg:hidden">
 										<span className="flex h-8 items-center justify-center text-xs font-semibold text-muted-foreground">
 											{index + 1}
 										</span>
 									</td>
-									<td className="min-w-0 px-3 py-2">
+									<td className="min-w-0 px-3 py-2 max-lg:col-span-2 max-lg:row-start-1 max-lg:p-0">
+										<p className="mb-1 text-xs font-medium text-muted-foreground lg:hidden">
+											Product {index + 1}
+										</p>
 										<ShelfInlineProductCell
 											row={entry.row}
 											products={props.products}
@@ -687,16 +699,20 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											}
 										/>
 									</td>
-									<td className="px-3 py-2">
+									<td className="px-3 py-2 max-lg:col-start-2 max-lg:row-start-2 max-lg:min-w-0 max-lg:p-0">
+										<p className="mb-1 text-xs font-medium text-muted-foreground lg:hidden">
+											Unit price
+										</p>
 										{canEditPricing ? (
 											<Menu
+												className="max-lg:w-[min(20rem,calc(100vw-2rem))] max-lg:max-h-[70dvh] max-lg:overflow-y-auto"
 												noSize
 												Icon={null}
 												Trigger={
 													<Button
 														type="button"
 														variant="outline"
-														className="h-8 w-full justify-end px-2 text-xs font-semibold"
+														className="h-8 w-full justify-end max-lg:h-11 px-2 text-xs font-semibold"
 													>
 														<CostPriceBreakdownHover
 															breakdown={unitBreakdown}
@@ -709,7 +725,7 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 													</Button>
 												}
 											>
-												<div className="min-w-[260px] space-y-3 p-2">
+												<div className="min-w-[260px] space-y-3 p-2 max-lg:min-w-0">
 													<div className="space-y-1">
 														<p className="text-xs font-bold uppercase text-muted-foreground">
 															Edit Shelf Price
@@ -724,6 +740,9 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 														<Input
 															type="number"
 															step="0.01"
+															inputMode="decimal"
+															className="max-lg:h-11 max-lg:text-base"
+															aria-label={`Shelf line ${index + 1} base price`}
 															value={getShelfRowBasePrice(entry.row)}
 															onChange={(event) =>
 																patchEntry(
@@ -753,6 +772,9 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 														<Input
 															type="number"
 															step="0.01"
+															inputMode="decimal"
+															className="max-lg:h-11 max-lg:text-base"
+															aria-label={`Shelf line ${index + 1} custom price`}
 															value={
 																entry.row?.customPrice ??
 																entry.row?.meta?.customPrice ??
@@ -785,7 +807,10 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											</p>
 										)}
 									</td>
-									<td className="px-3 py-2">
+									<td className="px-3 py-2 max-lg:col-start-1 max-lg:row-start-2 max-lg:min-w-0 max-lg:p-0">
+										<p className="mb-1 text-xs font-medium text-muted-foreground lg:hidden">
+											Quantity
+										</p>
 										<SalesFormQuantityStepper
 											label={`Shelf line ${index + 1} quantity`}
 											value={entry.row.qty || 0}
@@ -793,10 +818,13 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											onChange={(value) =>
 												patchEntry(entry, patchShelfRowQty(entry.row, value))
 											}
-											className="w-32"
+											className="w-32 max-lg:w-full"
 										/>
 									</td>
-									<td className="px-3 py-2 text-right text-xs font-bold">
+									<td className="px-3 py-2 text-right text-xs font-bold max-lg:col-start-1 max-lg:row-start-3 max-lg:self-center max-lg:p-0 max-lg:text-left">
+										<p className="mb-1 text-xs font-medium text-muted-foreground lg:hidden">
+											Line total
+										</p>
 										<CostPriceBreakdownHover
 											breakdown={totalBreakdown}
 											context={props.priceBreakdown}
@@ -804,12 +832,13 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											<span>{props.formatMoney(totalPrice) || "$0.00"}</span>
 										</CostPriceBreakdownHover>
 									</td>
-									<td className="px-3 py-2 text-right">
+									<td className="px-3 py-2 text-right max-lg:col-start-2 max-lg:row-start-3 max-lg:p-0">
 										<ConfirmBtn
 											type="button"
 											size="icon"
 											variant="ghost"
 											trash
+											className="max-lg:size-11"
 											aria-label={`Delete shelf line ${index + 1}`}
 											onClick={() =>
 												props.onSectionsChange(
@@ -839,7 +868,7 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 			<Button
 				type="button"
 				variant="secondary"
-				className="w-full uppercase"
+				className="w-full uppercase max-lg:min-h-11"
 				onClick={() =>
 					props.onSectionsChange([...props.sections, createShelfSectionDraft()])
 				}

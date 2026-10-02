@@ -24,6 +24,7 @@ import { formatCurrency, RenturnTypeAsync, sum } from "@gnd/utils";
 import { hasQty } from "@gnd/utils/sales";
 import { deriveOrderProductionGateState } from "../production-gate";
 import { isFinalizedProductionSubmissionForSalesOrder } from "../production-submission-review/policy";
+import { orderOwnedDoorRows } from "../sales-form/application/order-owned-door-rows";
 
 export type SalesInfoData = RenturnTypeAsync<typeof salesInformationData>;
 type SalesInfoDataItem = SalesInfoData["order"]["items"][number];
@@ -111,6 +112,15 @@ export async function salesInformationData(
   return {
     order: {
       ...order,
+      items: order.items.map((item) => ({
+        ...item,
+        housePackageTool: item.housePackageTool
+          ? {
+              ...item.housePackageTool,
+              doors: orderOwnedDoorRows(item.housePackageTool.doors, order.id),
+            }
+          : null,
+      })),
       meta,
       ...gateState,
     },

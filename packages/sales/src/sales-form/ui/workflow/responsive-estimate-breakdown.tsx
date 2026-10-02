@@ -34,13 +34,13 @@ export function ResponsiveEstimateBreakdown(
 	return (
 		<Sheet>
 			<SheetTrigger asChild>
-				<button type="button" className="min-h-10 text-right">
+				<button type="button" className="min-h-11 min-w-11 text-right">
 					{props.label}
 				</button>
 			</SheetTrigger>
 			<SheetContent
 				side="bottom"
-				className="max-h-[85dvh] w-full overflow-y-auto rounded-t-xl p-3"
+				className="max-h-[85dvh] w-full overflow-y-auto rounded-t-xl p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] [&>button]:size-11 [&>button]:top-2 [&>button]:right-2"
 			>
 				<SheetHeader className="sr-only">
 					<SheetTitle>{props.title}</SheetTitle>
