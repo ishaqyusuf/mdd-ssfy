@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+	expoBuildProviderFields,
 	providerErrorDetails,
 	providerIso,
 	repositoryHasCommit,
@@ -15,6 +16,38 @@ describe("GND release evidence normalization", () => {
 		expect(providerIso(1_700_000_000)).toBe("2023-11-14T22:13:20.000Z");
 		expect(providerIso(1_700_000_000_000)).toBe("2023-11-14T22:13:20.000Z");
 		expect(providerIso("invalid")).toBeNull();
+	});
+
+	test("normalizes the current nested EAS build-list response", () => {
+		expect(
+			expoBuildProviderFields({
+				platform: "ANDROID",
+				app: { id: "expo-project" },
+				updateChannel: { name: "production" },
+				runtime: { version: "1.0.305" },
+			}),
+		).toEqual({
+			platform: "android",
+			projectId: "expo-project",
+			channel: "production",
+			runtimeVersion: "1.0.305",
+		});
+	});
+
+	test("retains compatibility with the legacy flat EAS build shape", () => {
+		expect(
+			expoBuildProviderFields({
+				platform: "ios",
+				project: { id: "expo-project" },
+				channel: "preview",
+				runtimeVersion: "1.0.305",
+			}),
+		).toEqual({
+			platform: "ios",
+			projectId: "expo-project",
+			channel: "preview",
+			runtimeVersion: "1.0.305",
+		});
 	});
 
 	test("reports only sanitized provider status and error code", async () => {

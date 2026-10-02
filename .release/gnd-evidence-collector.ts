@@ -407,6 +407,42 @@ function expoPlatform(value: unknown): ExpoPlatform | null {
 			: null;
 }
 
+export function expoBuildProviderFields(item: RawExpoBuild) {
+	const platform = expoPlatform(item.platform);
+	const project =
+		item.project && typeof item.project === "object"
+			? (item.project as Record<string, unknown>)
+			: item.app && typeof item.app === "object"
+				? (item.app as Record<string, unknown>)
+				: {};
+	const runtime =
+		item.runtime && typeof item.runtime === "object"
+			? (item.runtime as Record<string, unknown>)
+			: {};
+	const updateChannel =
+		item.updateChannel && typeof item.updateChannel === "object"
+			? (item.updateChannel as Record<string, unknown>)
+			: {};
+	const runtimeVersion =
+		typeof item.runtimeVersion === "string"
+			? item.runtimeVersion
+			: typeof runtime.version === "string"
+				? runtime.version
+				: null;
+	const channel =
+		typeof item.channel === "string"
+			? item.channel
+			: typeof updateChannel.name === "string"
+				? updateChannel.name
+				: null;
+	return {
+		platform,
+		projectId: typeof project.id === "string" ? project.id : null,
+		runtimeVersion,
+		channel,
+	};
+}
+
 function collectExpo(
 	input: CollectorInput,
 	manifest: ReleaseManifest,
@@ -443,17 +479,14 @@ function collectExpo(
 	const builds: ExpoBuildRecord[] = [];
 	const buildCompletedAt = new Map<string, string>();
 	for (const item of Array.isArray(raw) ? (raw as RawExpoBuild[]) : []) {
-		const platform = expoPlatform(item.platform);
-		const project =
-			item.project && typeof item.project === "object"
-				? (item.project as Record<string, unknown>)
-				: {};
+		const metadata = expoBuildProviderFields(item);
 		if (
-			!platform ||
+			!metadata.platform ||
 			typeof item.id !== "string" ||
 			typeof item.gitCommitHash !== "string" ||
 			!SHA.test(item.gitCommitHash) ||
-			typeof item.runtimeVersion !== "string"
+			!metadata.runtimeVersion ||
+			!metadata.channel
 		)
 			continue;
 		let fingerprint: string;
@@ -472,12 +505,12 @@ function collectExpo(
 				: {};
 		builds.push({
 			id: item.id,
-			projectId: String(project.id ?? ""),
-			platform,
+			projectId: metadata.projectId ?? "",
+			platform: metadata.platform,
 			profile: String(item.buildProfile ?? ""),
-			channel: String(item.channel ?? ""),
+			channel: metadata.channel,
 			revision: item.gitCommitHash,
-			runtimeVersion: item.runtimeVersion,
+			runtimeVersion: metadata.runtimeVersion,
 			fingerprint,
 			status:
 				item.status === "FINISHED"
