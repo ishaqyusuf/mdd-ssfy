@@ -19,12 +19,6 @@ import {
 	decideExpoRelease,
 	generateExpoCurrentState,
 } from "./toolkit/9a324b2c4e759d4713375e7853ef7d791c357552/src/release/expo";
-import {
-	type JobsDeploymentRecord,
-	type JobsPreviewWaiverRecord,
-	type JobsTargetConfig,
-	verifyJobsDeployments,
-} from "./toolkit/9a324b2c4e759d4713375e7853ef7d791c357552/src/release/jobs";
 import type { ProviderLiveStateMetadata } from "./toolkit/9a324b2c4e759d4713375e7853ef7d791c357552/src/release/live-state";
 import type {
 	ReleaseManifest,
@@ -73,13 +67,6 @@ export type GndProviderBundle = {
 		updates: ExpoUpdateRecord[];
 		channels: ExpoChannelRecord[];
 	};
-	jobs: {
-		deploymentIds: Record<string, string | null | undefined>;
-		configurationFingerprints: Record<string, string | null | undefined>;
-		deployments: JobsDeploymentRecord[];
-		previewWaiverIds?: Record<string, string | null | undefined>;
-		waivers?: JobsPreviewWaiverRecord[];
-	};
 };
 
 const TEAM_ID = "team_SfkszTPphjtvTMZNm4W2pU8m";
@@ -90,27 +77,6 @@ export const WEB_TARGETS: VercelWebTarget[] = [
 		projectId: "prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr",
 		teamId: TEAM_ID,
 		productionDomain: "www.gndprodesk.com",
-		dbGateCheckName: "release-assurance-production",
-	},
-	{
-		targetId: "dealership-web",
-		projectId: "prj_AWc4oUE0gFp7u0sin5XeGVKfrJvW",
-		teamId: TEAM_ID,
-		productionDomain: "dealership-gndprodesk.vercel.app",
-		dbGateCheckName: "release-assurance-production",
-	},
-	{
-		targetId: "storefront-web",
-		projectId: "prj_HztAbqjAI9tBzSg4rIXqLyinczDj",
-		teamId: TEAM_ID,
-		productionDomain: "gnd-storefront-gndprodesk.vercel.app",
-		dbGateCheckName: "release-assurance-production",
-	},
-	{
-		targetId: "api-web",
-		projectId: "prj_Hv1OEuzGICuA99A9s9WS8KOuy9Hi",
-		teamId: TEAM_ID,
-		productionDomain: "api.gndprodesk.com",
 		dbGateCheckName: "release-assurance-production",
 	},
 ];
@@ -125,22 +91,6 @@ export const MOBILE_TARGET: ExpoMobileConfig = {
 		profile: "production",
 		channel: "production",
 		branch: "production",
-	},
-};
-
-export const JOBS_TARGET: JobsTargetConfig = {
-	targetId: "jobs",
-	provider: "trigger",
-	projectRef: "proj_caklyqpkhwrtmdbtjhjs",
-	preview: {
-		capability: "unsupported",
-		reason:
-			"Trigger Preview branch ownership and protected provider lookup are not yet verified for GND.",
-	},
-	production: {
-		capability: "isolated",
-		providerEnvironment: "prod",
-		branch: null,
 	},
 };
 
@@ -237,8 +187,7 @@ export function loadSignedProviderBundle(
 		!Array.isArray(payload.liveState) ||
 		!payload.fingerprints ||
 		!payload.vercel ||
-		!payload.expo ||
-		!payload.jobs
+		!payload.expo
 	) {
 		throw new Error("Signed provider evidence does not match this release.");
 	}
@@ -330,19 +279,7 @@ export function createGndProviderBindings(
 					}),
 				);
 			}
-			const jobs = await verifyJobsDeployments({
-				manifest,
-				plan,
-				configs: [JOBS_TARGET],
-				deploymentIds: bundle.jobs.deploymentIds,
-				currentConfigurationFingerprints: bundle.jobs.configurationFingerprints,
-				lookupDeployment: async (id) =>
-					bundle.jobs.deployments.find((item) => item.id === id) ?? null,
-				previewWaiverIds: bundle.jobs.previewWaiverIds,
-				lookupWaiver: async (id) =>
-					bundle.jobs.waivers?.find((item) => item.id === id) ?? null,
-			});
-			return { web, mobile, jobs };
+			return { web, mobile };
 		},
 	};
 }

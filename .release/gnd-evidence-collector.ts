@@ -3,7 +3,7 @@ import { createHash, createHmac } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import type { GndProviderBundle } from "./gnd-provider-bundle";
-import { JOBS_TARGET, MOBILE_TARGET, WEB_TARGETS } from "./gnd-provider-bundle";
+import { MOBILE_TARGET, WEB_TARGETS } from "./gnd-provider-bundle";
 import type {
 	ReleaseFingerprint,
 	ReleaseReceipt,
@@ -40,9 +40,6 @@ const GITHUB_REPOSITORY = "ishaqyusuf/mdd-ssfy";
 const EAS_CLI_VERSION = "24.8.0";
 const GITHUB_ENVIRONMENT_BY_TARGET: Record<string, string> = {
 	"dashboard-web": "gndprodesk",
-	"dealership-web": "dealership",
-	"storefront-web": "gnd-storefront",
-	"api-web": "prodesk-api",
 };
 
 function sha256(value: string | Buffer) {
@@ -710,60 +707,6 @@ function collectExpo(
 	};
 }
 
-async function collectTrigger(
-	input: CollectorInput,
-	manifest: ReleaseManifest,
-	now: Date,
-) {
-	const target = manifest.targets.find((item) => item.id === "jobs");
-	if (!target) throw new Error("Jobs release target is missing.");
-	if (input.environment === "preview") {
-		return {
-			deploymentIds: {},
-			configurationFingerprints: {
-				jobs: fingerprintAt(input.repository, input.revision, target).value,
-			},
-			deployments: [],
-			previewWaiverIds: { jobs: "waiver_preview_jobs" },
-			waivers: [
-				{
-					id: "waiver_preview_jobs",
-					project: "gnd",
-					targetId: "jobs",
-					environment: "preview" as const,
-					revision: input.revision,
-					status: "approved" as const,
-					protectedApproval: true,
-					approvedBy: process.env.GITHUB_ACTOR || "release-reviewer",
-					reason:
-						JOBS_TARGET.preview.capability === "unsupported"
-							? JOBS_TARGET.preview.reason
-							: "Preview jobs are protected by isolated branch verification.",
-					expiresAt: new Date(now.getTime() + 4 * 60 * 1000).toISOString(),
-				},
-			],
-		};
-	}
-	const token = requiredSecret("GND_RELEASE_TRIGGER_TOKEN");
-	const url = new URL(
-		`https://api.trigger.dev/api/v1/projects/${JOBS_TARGET.projectRef}/prod/workers/current`,
-	);
-	const payload = await providerJson(
-		url,
-		token,
-		"Trigger.dev current worker is unavailable.",
-	);
-	const worker =
-		payload.worker && typeof payload.worker === "object"
-			? (payload.worker as Record<string, unknown>)
-			: null;
-	return {
-		deploymentIds: {},
-		configurationFingerprints: {},
-		deployments: worker ? [] : [],
-	};
-}
-
 export async function collectGndEvidence(input: CollectorInput) {
 	if (!SHA.test(input.revision))
 		throw new Error("Release collector needs a full Git SHA.");
@@ -780,7 +723,6 @@ export async function collectGndEvidence(input: CollectorInput) {
 	const web = await collectVercel(input, manifest, now);
 	const database = collectDatabase(input, manifest, now);
 	const expo = collectExpo(input, manifest, now);
-	const jobs = await collectTrigger(input, manifest, now);
 	const currentFingerprints = Object.fromEntries(
 		manifest.targets.map((target) => [
 			target.id,
@@ -842,7 +784,6 @@ export async function collectGndEvidence(input: CollectorInput) {
 			updates: expo.updates,
 			channels: expo.channels,
 		},
-		jobs,
 	};
 	const key = requiredSecret("GND_RELEASE_EVIDENCE_HMAC_KEY");
 	if (Buffer.byteLength(key) < 32)

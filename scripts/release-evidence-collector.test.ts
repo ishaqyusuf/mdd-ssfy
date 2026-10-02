@@ -90,5 +90,6 @@ describe("GND release workflow trust boundary", () => {
 		expect(workflow).toContain("deployments: read");
 		expect(workflow).toContain("GND_RELEASE_GITHUB_TOKEN: ${{ github.token }}");
 		expect(workflow).not.toContain("GND_RELEASE_VERCEL_");
+		expect(workflow).not.toContain("GND_RELEASE_TRIGGER_TOKEN");
 	});
 });

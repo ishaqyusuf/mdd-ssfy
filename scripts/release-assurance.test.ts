@@ -97,11 +97,7 @@ function bundle(
 	const fingerprints = {
 		database: { kind: "schema" as const, value: "1".repeat(64) },
 		"dashboard-web": { kind: "configuration" as const, value: "2".repeat(64) },
-		"dealership-web": { kind: "configuration" as const, value: "3".repeat(64) },
-		"storefront-web": { kind: "configuration" as const, value: "4".repeat(64) },
-		"api-web": { kind: "configuration" as const, value: "5".repeat(64) },
 		mobile: { kind: "native" as const, value: "6".repeat(64) },
-		jobs: { kind: "configuration" as const, value: "7".repeat(64) },
 	};
 	const descriptors = [
 		{
@@ -110,25 +106,17 @@ function bundle(
 			action: "db-push" as const,
 			provider: "planetscale",
 		},
-		...["dashboard-web", "dealership-web", "storefront-web", "api-web"].map(
-			(targetId) => ({
-				targetId,
-				targetKind: "web" as const,
-				action: "web-deploy" as const,
-				provider: "vercel",
-			}),
-		),
+		{
+			targetId: "dashboard-web",
+			targetKind: "web" as const,
+			action: "web-deploy" as const,
+			provider: "vercel",
+		},
 		{
 			targetId: "mobile",
 			targetKind: "mobile" as const,
 			action: "mobile-build" as const,
 			provider: "expo",
-		},
-		{
-			targetId: "jobs",
-			targetKind: "jobs" as const,
-			action: "jobs-deploy" as const,
-			provider: "trigger",
 		},
 	];
 	const now = Date.now();
@@ -182,30 +170,6 @@ function bundle(
 			updates: [],
 			channels: [],
 		},
-		jobs: {
-			deploymentIds: {},
-			configurationFingerprints: { jobs: fingerprints.jobs.value },
-			deployments: [],
-			previewWaiverIds:
-				environment === "preview" ? { jobs: "waiver_preview_jobs" } : undefined,
-			waivers:
-				environment === "preview"
-					? [
-							{
-								id: "waiver_preview_jobs",
-								project: "gnd",
-								targetId: "jobs",
-								environment: "preview",
-								revision: releaseRevision,
-								status: "approved",
-								protectedApproval: true,
-								approvedBy: "release-reviewer",
-								reason: "Preview Trigger branch is not provisioned.",
-								expiresAt: new Date(now + 60_000).toISOString(),
-							},
-						]
-					: undefined,
-		},
 	};
 }
 
@@ -216,11 +180,7 @@ describe("GND release manifest", () => {
 		expect(releaseManifest.targets.map((target) => target.id)).toEqual([
 			"database",
 			"dashboard-web",
-			"dealership-web",
-			"storefront-web",
-			"api-web",
 			"mobile",
-			"jobs",
 		]);
 		const changes: Record<string, ReleaseTargetChange> = Object.fromEntries(
 			releaseManifest.targets.map((target) => [
@@ -251,10 +211,6 @@ describe("GND release manifest", () => {
 		expect(databasePlan.actions.map((action) => action.targetId)).toEqual([
 			"database",
 			"dashboard-web",
-			"dealership-web",
-			"storefront-web",
-			"api-web",
-			"jobs",
 		]);
 
 		const mobilePlan = planRelease(releaseManifest, {
@@ -322,18 +278,13 @@ describe("GND signed provider gate", () => {
 			});
 			expect(report.ready).toBe(true);
 			expect(report.environment).toBe(environment);
-			expect(report.targets).toHaveLength(7);
+			expect(report.targets).toHaveLength(3);
 			expect(
 				report.targets.every(
 					(target) =>
 						target.reason === "verified" || target.reason === "waived",
 				),
 			).toBe(true);
-			if (environment === "preview") {
-				expect(
-					report.targets.find((target) => target.targetId === "jobs")?.reason,
-				).toBe("waived");
-			}
 		});
 	}
 });

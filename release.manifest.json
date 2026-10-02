@@ -10,13 +10,7 @@
 				"packages/db/src/schema/**/*.prisma",
 				"packages/db/prisma.config.ts"
 			],
-			"impactTargets": [
-				"dashboard-web",
-				"dealership-web",
-				"storefront-web",
-				"api-web",
-				"jobs"
-			]
+			"impactTargets": ["dashboard-web"]
 		},
 		{
 			"id": "dashboard-web",
@@ -24,50 +18,6 @@
 			"environments": ["preview", "production"],
 			"sourcePaths": [
 				"apps/dashboard/**",
-				"apps/api/**",
-				"packages/**",
-				"tooling/**",
-				"package.json",
-				"bun.lock",
-				"turbo.json"
-			],
-			"prerequisites": ["database"]
-		},
-		{
-			"id": "dealership-web",
-			"kind": "web",
-			"environments": ["preview", "production"],
-			"sourcePaths": [
-				"apps/dealership/**",
-				"apps/api/**",
-				"packages/**",
-				"tooling/**",
-				"package.json",
-				"bun.lock",
-				"turbo.json"
-			],
-			"prerequisites": ["database"]
-		},
-		{
-			"id": "storefront-web",
-			"kind": "web",
-			"environments": ["preview", "production"],
-			"sourcePaths": [
-				"apps/storefront/**",
-				"apps/api/**",
-				"packages/**",
-				"tooling/**",
-				"package.json",
-				"bun.lock",
-				"turbo.json"
-			],
-			"prerequisites": ["database"]
-		},
-		{
-			"id": "api-web",
-			"kind": "web",
-			"environments": ["preview", "production"],
-			"sourcePaths": [
 				"apps/api/**",
 				"packages/**",
 				"tooling/**",
@@ -112,22 +62,7 @@
 				"bun.lock",
 				"patches/**"
 			],
-			"prerequisites": ["dashboard-web", "api-web"]
-		},
-		{
-			"id": "jobs",
-			"kind": "jobs",
-			"environments": ["preview", "production"],
-			"sourcePaths": [
-				"packages/jobs/**",
-				"apps/api/src/assistant/tasks/**",
-				"packages/**",
-				"scripts/with-trigger-profile.mjs",
-				"package.json",
-				"bun.lock",
-				"turbo.json"
-			],
-			"prerequisites": ["database"]
+			"prerequisites": ["dashboard-web"]
 		}
 	]
 }

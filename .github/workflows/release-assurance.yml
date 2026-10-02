@@ -45,7 +45,6 @@ jobs:
           GND_RELEASE_EVIDENCE_HMAC_KEY: ${{ secrets.GND_RELEASE_EVIDENCE_HMAC_KEY }}
           GND_RELEASE_EXPO_TOKEN: ${{ secrets.GND_RELEASE_EXPO_TOKEN }}
           GND_RELEASE_GITHUB_TOKEN: ${{ github.token }}
-          GND_RELEASE_TRIGGER_TOKEN: ${{ secrets.GND_RELEASE_TRIGGER_TOKEN }}
         run: >-
           bun scripts/collect-release-evidence.ts
           --env "${{ github.event_name == 'pull_request_target' && 'preview' || 'production' }}"
